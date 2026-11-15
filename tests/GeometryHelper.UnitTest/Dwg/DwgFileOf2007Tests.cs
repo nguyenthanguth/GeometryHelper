@@ -454,11 +454,12 @@ namespace GeometryHelper.UnitTest.Dwg
             Parsed answer = Parse(DwgAnswerKey.Dwg("curves_AC1021"));
             Parsed ours = Parse(OursOf("curves"));
 
-            // AutoCAD's application information and history are checked against parity of its own memory, so they are left
-            // out; there is no picture, so no preview; and no summary information.
+            // AutoCAD's history of the applications and its summary information are checked against parity of its own memory,
+            // so they are left out; there is no picture, so no preview. The application information is written coded 4.
             Assert.Equal(
                 new[]
                 {
+                    "AcDb:AppInfo",
                     "AcDb:RevHistory",
                     "AcDb:AcDbObjects",
                     "AcDb:ObjFreeSpace",
@@ -475,8 +476,30 @@ namespace GeometryHelper.UnitTest.Dwg
             {
                 Section same = answer.Sections.Single(s => s.Name == section.Name);
                 Assert.Equal(same.Hash, section.Hash);
-                Assert.Equal(same.Coding, section.Coding);
+
+                // AutoCAD stores the application information unpacked (1), with parity made from its memory; ours is coded 4.
+                Assert.Equal(section.Name == "AcDb:AppInfo" ? 4 : same.Coding, section.Coding);
             }
+        }
+
+        [Fact]
+        public void TheApplicationInformation_IsWrittenAsTheOtherVersionsHoldIt_CodedAs4()
+        {
+            // AutoCAD 2021 refused the section written unpacked with parity of zeros (the parity it wants is made from the bytes
+            // its own memory held), and opens it coded 4, compressed and in blocks of the code of 251 that it reads for the header.
+            byte[] file = OursOf("curves");
+            byte[] info = DataOf(file, Parse(file), "AcDb:AppInfo");
+
+            Assert.Equal(3, BitConverter.ToInt32(info, 0));
+            Assert.Equal("AppInfoDataList", Encoding.Unicode.GetString(info, 6, 30));
+
+            // The bytes of the file of R2018 made of the same drawing.
+            byte[] later = DwgWriter.ToDwg(
+                Encoding.UTF8.GetString(DwgReader.ToDxf(DwgAnswerKey.Dwg("curves_AC1021"))),
+                "AC1032",
+                out _
+            );
+            Assert.Equal(DwgContainer.SectionsOf(later, out _).Single(s => s.Key == "AcDb:AppInfo").Value, info);
         }
 
         [Fact]

@@ -621,6 +621,7 @@ namespace GeometryHelper.Dxf
             Solids();
             Plan();
             Own();
+            RoundTripOf2007();
 
             // The data store of the file holds the bodies of R2013 and later, binary; no version before has it.
             if (_target < 1027)

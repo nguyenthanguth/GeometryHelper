@@ -83,26 +83,31 @@ namespace GeometryHelper.Dwg
 
         private bool R2004Plus => _version >= 1018;
 
-        private bool? _holdsVertexIdentifiers;
+        private bool? _holdsRoundTripOf2007;
 
         /// <summary>
-        /// Whether the drawing holds the extended records AutoCAD 2007 keeps the vertex identifiers of a polyline in (the
-        /// XRECORD whose first group is <c>VERTEXIDENTIFIER</c>), which the constraint groups of a dynamic block need there:
-        /// a file of R2007 has no identifier in a LWPOLYLINE, and AUDIT finds an error in each group whose polylines have none.
-        /// A drawing made into R2007 from a later version has none and its constraint groups are left out.
+        /// Whether the drawing holds the extended records AutoCAD 2007 keeps what its form has no place for in: the vertex
+        /// identifiers of a polyline (the XRECORD whose first group is <c>VERTEXIDENTIFIER</c>) and the mark of a dimension of
+        /// the constraints (<c>ISDYNAMIC</c>), which the constraint groups of a dynamic block need there: a file of R2007 has
+        /// no identifier in a LWPOLYLINE and shows each dimension of a constraint, and AUDIT finds an error in each group whose
+        /// polylines have no identifiers. A drawing made into R2007 by <see cref="Dxf.DxfVersionConverter"/> holds them; one that
+        /// holds none, such as the text of R2010 given to the writer as it is, has its constraint groups left out.
         /// </summary>
-        private bool HoldsVertexIdentifiers
+        private bool HoldsRoundTripOf2007
         {
             get
             {
-                if (_holdsVertexIdentifiers == null)
+                if (_holdsRoundTripOf2007 == null)
                 {
-                    _holdsVertexIdentifiers = _drawing.Objects.Exists(r =>
-                        r.Type == "XRECORD" && r.Body.Exists(g => g.Key == 102 && g.Value.Trim() == "VERTEXIDENTIFIER")
+                    _holdsRoundTripOf2007 = _drawing.Objects.Exists(r =>
+                        r.Type == "XRECORD"
+                        && r.Body.Exists(g =>
+                            g.Key == 102 && (g.Value.Trim() == "VERTEXIDENTIFIER" || g.Value.Trim() == "ISDYNAMIC")
+                        )
                     );
                 }
 
-                return _holdsVertexIdentifiers.Value;
+                return _holdsRoundTripOf2007.Value;
             }
         }
 
@@ -173,7 +178,7 @@ namespace GeometryHelper.Dwg
                         && (
                             (!R2013Plus && IsConstraintGroup2(record))
                             || !NodesAreKnown(record)
-                            || (!R2010Plus && !HoldsVertexIdentifiers)
+                            || (!R2010Plus && !HoldsRoundTripOf2007)
                         )
                     )
                     ? -1

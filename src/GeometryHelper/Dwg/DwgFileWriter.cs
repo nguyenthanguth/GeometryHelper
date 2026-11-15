@@ -425,9 +425,15 @@ namespace GeometryHelper.Dwg
             }
 
             var container = new DwgContainerWriter(_version, maintenance, codePage);
-            byte[] store = DwgDataStoreWriter.Write(
-                _drawing.AcisData.FindAll(data => _written.Contains(data.Key) && IsAcis(_drawing.Find(data.Key)))
-            );
+            // The data store holds the bodies of R2013 and later; before it the entity holds its own.
+            byte[] store =
+                _number >= 1027
+                    ? DwgDataStoreWriter.Write(
+                        _drawing.AcisData.FindAll(data =>
+                            _written.Contains(data.Key) && IsAcis(_drawing.Find(data.Key))
+                        )
+                    )
+                    : null;
 
             byte[] picture = _drawing.Thumbnail;
 
@@ -469,9 +475,12 @@ namespace GeometryHelper.Dwg
 
         /// <summary>
         /// The file of AutoCAD 2007, in the container of <see cref="DwgContainerWriter21"/>: the sections of the later
-        /// versions without the application information, which AutoCAD 2007 and later check by parity bytes made from what
-        /// its own memory held and so cannot be written by another program, and without the history of the applications and
-        /// the summary information; the preview is written where the drawing has a picture.
+        /// versions, the application information among them, and not the history of the applications and the summary
+        /// information; the preview is written where the drawing has a picture. AutoCAD stores the application information, its
+        /// history and the summary information unpacked (coding 1) with parity bytes made from what its own memory held, which
+        /// no other program can write and AutoCAD 2021 checks; the section map says how each section is coded, and AutoCAD reads
+        /// the application information as well when it is coded 4, compressed with Reed-Solomon codes of its own kind, as the
+        /// header is.
         /// </summary>
         private byte[] File2007(byte[] objects, List<KeyValuePair<ulong, long>> map, int codePage)
         {
@@ -486,6 +495,7 @@ namespace GeometryHelper.Dwg
                 container.Add("AcDb:Preview", preview, (preview.Length + 0x3FF) & ~0x3FF, 1);
             }
 
+            container.Add("AcDb:AppInfo", AppInfo(), DwgContainerWriter21.LargePage, 4);
             container.Add("AcDb:RevHistory", new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 }, 0x1000, 4);
             container.Add("AcDb:AcDbObjects", objects, DwgContainerWriter21.LargePage, 4);
             container.Add("AcDb:ObjFreeSpace", FreeSpace(map.Count), DwgContainerWriter21.LargePage, 4);

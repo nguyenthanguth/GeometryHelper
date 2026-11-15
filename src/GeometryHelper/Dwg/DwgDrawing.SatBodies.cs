@@ -17,8 +17,9 @@ namespace GeometryHelper.Dwg
         /// a drawing as a DWG of R2018: the entity names its data by a GUID (the one its extended data kept, which is taken out,
         /// else one made of its handle, so that the same drawing gives the same bytes), the data joins <see cref="AcisData"/>,
         /// and the date of the SAT stays the date of the SAB. A body whose SAT the grammars do not place (ACIS 4.00 of R2000,
-        /// a record or a subtype they leave out) is not changed, and the writer leaves it out. The number of bodies turned is
-        /// returned.
+        /// a record or a subtype they leave out) is not changed, and the writer leaves it out. For a form that is not binary
+        /// (R2004, R2007 and R2010: the SAB the entity itself holds in the file) the record stays as it is and only the data joins
+        /// <see cref="AcisData"/>. The number of bodies turned is returned.
         /// </summary>
         public int SatBodiesToSab(AcisFormat form)
         {
@@ -81,6 +82,15 @@ namespace GeometryHelper.Dwg
 
                 if (sab == null)
                 {
+                    continue;
+                }
+
+                if (!form.Binary)
+                {
+                    // R2004 to R2010 keep the SAB in the entity itself: the record stays as it is, its text and its extended data.
+                    AcisData.Add(new KeyValuePair<ulong, byte[]>(record.Handle, sab));
+                    held.Add(record.Handle);
+                    turned++;
                     continue;
                 }
 
