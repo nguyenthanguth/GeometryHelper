@@ -50,6 +50,7 @@ namespace GeometryHelper.Dxf
             "AcDbDimension 73 74 75:1021 280:1024",
             "AcDbMText 45 63 90 421 431 441:1018 46:1021",
             "AcDbHatch 63 421 450 451 452 453 460 461 462 463 470:1018",
+            "AcDbPolyline 91:1024",
             "AcDbRasterImage 290:1024",
             "AcDbWipeout 290:1024",
             "AcDbAttribute 280:1021 71:1032",

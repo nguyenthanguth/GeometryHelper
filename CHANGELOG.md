@@ -6,6 +6,25 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A drawing saved as a DXF of R2000, R2004 or R2007 (`DxfDatabase.Save(path, version)`) lacked three things AutoCAD 2021 writes
+there, which the DWG writer had learned first. The 3 multileaders and the 2 multileader styles of a sample drawing of AutoCAD's, saved from
+R2018, carried no extended data, where AutoCAD's own DXF of the drawing in each of the three versions has `ACAD_MLEADERVER` (version 2) on
+each of the 5 and the application at the end of its table of applications (a count of 3); they hold it now, the application with the handle
+after the highest the drawing has (AutoCAD's own number is whatever its session had reached), the seed moved past it where it lagged
+behind. A drawing that holds the data already is not given it twice, one with no table of applications is left as it is, and R2010 and
+later have none. The vertex ids of a polyline (group 91
+of an LWPOLYLINE, which AutoCAD writes where the constraints of a dynamic block name its edges) are of R2010 and later: the 3 dynamic-block
+samples with ids (8, 12 and 8 polylines, 36, 32 and 32 ids) saved as R2004 or R2007 had them all (AutoCAD's DXF has none), and have none now,
+with R2010 and R2013 keeping every one. A letter beyond the code page of a drawing of R2004 or before (`\U+1EDB`, and `\M+182A0` of a
+multibyte page) stays an escape in R2000 and R2004, where AutoCAD writes it so, and is the letter when the drawing is saved as R2007 or
+later, as AutoCAD writes it: the layer `L\U+1EDBp \U+1EA9n` is `Lớp ẩn` in R2007, R2010 and R2018 (AutoCAD's own DXF of the drawing has none
+of the 2 escapes the file had), where an escape typed in a text of R2007 or later is the text and stays. The saved bytes of a drawing of R2000
+or R2004 that holds such a letter, saved as R2007 or later, change for it alone: in the 90 drawings of `DxfSpeed11Tests` and `DxfSpeed12Tests`
+12 saves to R2013 changed, each by the one text `café \U+0110 A\PB` that is `café Đ A\PB` now, the 78 others equal to the bit.
+**CHANGED.** The DWG writer saves a drawing of a later version through the same converter and no longer does the first and third of those by
+itself (the extended data of a multileader and the letters in place of the escapes, which it put in after the converter or before the
+DWG's file was laid out): the 167 drawings of AutoCAD's samples and of the tests, each read from its DWG and written again as R2004, R2010
+and R2013, are the same 501 files to the bit as before.
 **FIXED.** A text set in the last cell of a table could be written into the table's own groups. The last cell of a table ends where the
 table's own groups begin, which the flags it holds decide (an override its flags give it is its own, the same override of the table's is
 not), and the library kept that place from the first reading of the record; an edit of the cell that changed its flags left the place

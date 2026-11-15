@@ -202,10 +202,7 @@ namespace GeometryHelper.Dwg
                 GeometryHelperLog.Info("DwgWriter: for " + named + ": " + string.Join(" ", told));
             }
 
-            // The text of R2004 and before holds a letter beyond its code page as an escape (\U+1EDB); a DXF of R2007 and later
-            // holds the letter, and AutoCAD finds a symbol name that still has the escape "Un-normalized" (AUDIT).
-            int letters = DxfVersions.Number("AC1021");
-            return source >= 0 && source < letters && target >= letters ? DwgDrawing.Unescaped(converted) : converted;
+            return converted;
         }
 
         /// <summary>The number of the version a DXF text names in its header (<c>$ACADVER</c>), 1015 for AC1015; -1 where it names none.</summary>

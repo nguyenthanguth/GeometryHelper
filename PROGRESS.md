@@ -294,9 +294,11 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         AutoCAD 2021 in each with AUDIT as the originals (160 at 0, the 7 others with the originals' counts); fixed the
         R2010 file that made AutoCAD allocate without end (no maintenance release, no long of 0 after header/classes size)
         and R2004 graphics text, xdata strings, FIELD, vertex ids and MLEADERVER
-  - [ ] R3.3 follow-ups 2: DWG R2000 (container written, AutoCAD refuses: DIMSTYLE extra bit, LAYOUT 2 null handles,
+  - [x] DXF Save As older versions as the DWG path (dxfconv1): ACAD_MLEADERVER on multileaders before R2010, no
+        LWPOLYLINE vertex ids before R2010, \U+ escapes as letters from R2007; the DWG path uses the converter (501 DWG
+        rewrites byte-identical); DXF output equals AutoCAD 2021 DXFOUT on these points
+  - [ ] (dwgver2, running: DWG R2000) R3.3 follow-ups 2: DWG R2000 (container written, AutoCAD refuses: DIMSTYLE extra bit, LAYOUT 2 null handles,
         DICTIONARY AUDIT errors; patch in scratch\dwgver1\r2000-wip-with-all-changes.patch) and R2007 (Reed-Solomon, LZ21);
-        DxfVersionConverter gaps shared with DXF saves (MLEADERVER xdata, LWPOLYLINE vertex ids before R2010, \U+ to R2010+);
         -BOUNDARY Region islands and its message (GUI); UNION/SUBTRACT taking the first picked region (selection is kept
         sorted); a region's grips and UNION's colour reset checked in the GUI; spline edges and non-planar faces; orphan
         ACDSRECORDs; a parse cache for thousands of regions (M)
@@ -432,7 +434,7 @@ the ones wanted.
 - [x] MIRROR follow-ups 3 (mirror3): GeoTransform3/2.Mirror built from the normal over its greatest component (45-degree
       reflections exact; 20 000 random planes: worst error 1.67E-11 -> 1.16E-11; axis planes bit-identical; benchmarks'
       signatures unchanged); the extension dictionary of an annotative copy made without {ACAD_REACTORS as AutoCAD
-- [ ] MIRROR follow-ups 4: the public DxfDBObject.CreateExtensionDictionary also writes {ACAD_REACTORS (AutoCAD writes
+- [ ] (mirror4, running) MIRROR follow-ups 4: the public DxfDBObject.CreateExtensionDictionary also writes {ACAD_REACTORS (AutoCAD writes
       none for a LINE; probe layers, blocks, tables before changing ~25 callers); MIRROR/COPY dropping a plain entity's
       extension dictionary (AutoCAD copies it with its entries); a HATCH copy's ACDB_HATCHVIEWCONTEXTDATA_CLASS; the
       MLeader 45-degree workaround maybe redundant now (S)
@@ -861,7 +863,7 @@ the ones wanted.
       named entities, copying the rest in whole stretches: display after a one-line MOVE at 1M 93 -> 18 ms (net8) /
       198 -> 22 (net48), ERASE 196 -> 26, COPY 192 -> 25; display lists, bitmaps and saved bytes identical on 167
       samples; the walk kept as the fallback
-- [ ] Speed follow-ups 12: layer off at 1M (~110 ms: runs of only the switched-off layer emitted without Draw); cold
+- [ ] (speed13, running) Speed follow-ups 12: layer off at 1M (~110 ms: runs of only the switched-off layer emitted without Draw); cold
       display and REGEN at 1M (draw-bound, ~1.6 us an entity); the heap (627 MB at 1M: DxfItem 104 -> 96 B,
       DisplayText2 Extra, DxfPolyline's cache fields); dropping the LINE/ARC/CIRCLE shape cache (heap -55 MB but REGEN
       +27 %: declined); TryChain garbage; read-ahead wrappers; a DWG read stopped mid-way (S)

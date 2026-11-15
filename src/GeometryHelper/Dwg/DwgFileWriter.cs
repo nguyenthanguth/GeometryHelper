@@ -290,41 +290,9 @@ namespace GeometryHelper.Dwg
             }
         }
 
-        /// <summary>
-        /// Gives each multileader and each multileader style of a drawing written before R2010 the extended data of the
-        /// application ACAD_MLEADERVER (the version 2) that AutoCAD keeps on it in such a file, and registers the application
-        /// as AutoCAD does; AutoCAD 2021 refuses the file ("ErrorStatus 53") where one lacks it. One that has it is left as it
-        /// is.
-        /// </summary>
-        private void GiveMLeadersTheirVersion()
-        {
-            foreach (DwgRecord style in _drawing.All.FindAll(r => r.Type == "MLEADERSTYLE" || r.Type == "MULTILEADER"))
-            {
-                if (style.XData.Exists(g => g.Key == 1001 && g.Value.Trim() == "ACAD_MLEADERVER"))
-                {
-                    continue;
-                }
-
-                if (_drawing.AddApplication("ACAD_MLEADERVER") == 0)
-                {
-                    return;
-                }
-
-                var data = new List<KeyValuePair<int, string>>(style.XData);
-                data.Add(new KeyValuePair<int, string>(1001, "ACAD_MLEADERVER"));
-                data.Add(new KeyValuePair<int, string>(1070, "2"));
-                style.XData = data;
-            }
-        }
-
         private byte[] Write(ProgressSteps progress)
         {
             ListClassesOfFields();
-
-            if (_number < 1024)
-            {
-                GiveMLeadersTheirVersion();
-            }
 
             foreach (DwgRecord one in _drawing.Classes)
             {

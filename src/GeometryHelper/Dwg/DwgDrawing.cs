@@ -168,37 +168,6 @@ namespace GeometryHelper.Dwg
             }
         }
 
-        /// <summary>
-        /// The text of a DXF with the letters in place of the escapes of R2004 and before (see <see cref="Letters"/>), whatever
-        /// version its header names: for a text that <see cref="DxfVersionConverter"/> made of one of those versions into a
-        /// later one, which keeps the escapes and so names a version whose DXF holds letters.
-        /// </summary>
-        internal static string Unescaped(string text)
-        {
-            string[] lines = text.Split('\n');
-
-            // The values are the lines after the group codes: the second, the fourth and so on.
-            for (int i = 1; i < lines.Length; i += 2)
-            {
-                bool carriage = lines[i].EndsWith("\r", StringComparison.Ordinal);
-                string value = carriage ? lines[i].Substring(0, lines[i].Length - 1) : lines[i];
-
-                if (value.IndexOf('\\') < 0)
-                {
-                    continue;
-                }
-
-                string letters = DxfReader.Decode(value);
-
-                if (!ReferenceEquals(letters, value))
-                {
-                    lines[i] = carriage ? letters + "\r" : letters;
-                }
-            }
-
-            return string.Join("\n", lines);
-        }
-
         private static string Line(string text, ref int at)
         {
             int end = text.IndexOf('\n', at);
@@ -575,51 +544,6 @@ namespace GeometryHelper.Dwg
             }
 
             return names.TryGetValue(name.Trim(), out ulong handle) ? handle : 0;
-        }
-
-        /// <summary>
-        /// Registers the application <paramref name="name"/> in the APPID table as AutoCAD does when it needs one: a record at
-        /// the end of the table, with the handle after the highest the drawing has. Returns the handle of the application of
-        /// that name where the table has it already, 0 where the drawing has no APPID table.
-        /// </summary>
-        public ulong AddApplication(string name)
-        {
-            ulong handle = HandleOf("APPID", name);
-            DwgRecord table = Table("APPID");
-
-            if (handle != 0 || table == null)
-            {
-                return handle;
-            }
-
-            foreach (ulong one in ByHandle.Keys)
-            {
-                handle = Math.Max(handle, one);
-            }
-
-            handle++;
-            var record = new DwgRecord { Type = "APPID" };
-            record.Groups.Add(new KeyValuePair<int, string>(5, handle.ToString("X", CultureInfo.InvariantCulture)));
-            record.Groups.Add(
-                new KeyValuePair<int, string>(330, table.Handle.ToString("X", CultureInfo.InvariantCulture))
-            );
-            record.Groups.Add(new KeyValuePair<int, string>(100, "AcDbSymbolTableRecord"));
-            record.Groups.Add(new KeyValuePair<int, string>(100, "AcDbRegAppTableRecord"));
-            record.Groups.Add(new KeyValuePair<int, string>(2, name));
-            record.Groups.Add(new KeyValuePair<int, string>(70, "0"));
-            record.Split();
-            table.Records.Add(record);
-            All.Add(record);
-            ByHandle[handle] = record;
-
-            if (!_names.TryGetValue("APPID", out Dictionary<string, ulong> names))
-            {
-                names = new Dictionary<string, ulong>(StringComparer.OrdinalIgnoreCase);
-                _names["APPID"] = names;
-            }
-
-            names[name] = handle;
-            return handle;
         }
 
         /// <summary>The TABLE record of the table <paramref name="name"/> (such as <c>LAYER</c>); null where there is none.</summary>
