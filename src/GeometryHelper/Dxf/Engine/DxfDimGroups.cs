@@ -22,6 +22,7 @@ namespace GeometryHelper.Dxf
         private readonly HashSet<int> _codes = new HashSet<int>();
         private readonly List<KeyValuePair<int, string>> _was = new List<KeyValuePair<int, string>>();
         private readonly bool _readOnly;
+        private readonly Action<List<KeyValuePair<int, string>>> _splice;
 
         /// <summary>The own groups of a record of a file, or of an object made in code that holds its record in a file of its own.</summary>
         internal DxfDimGroups(DxfItem item)
@@ -73,6 +74,26 @@ namespace GeometryHelper.Dxf
             _readOnly = true;
             List = groups;
         }
+
+        /// <summary>
+        /// The groups of one cell of a table read from its bytes alone, to be changed and put back by
+        /// <paramref name="splice"/>, which writes them into the place of the bytes they were read from:
+        /// <see cref="Write(IReadOnlyList{int})"/> hands the list to it where it differs from the one read, in place of a
+        /// writing of every group of the record.
+        /// </summary>
+        internal DxfDimGroups(List<KeyValuePair<int, string>> groups, Action<List<KeyValuePair<int, string>>> splice)
+        {
+            List = groups;
+            _was.AddRange(groups);
+            Split = -1;
+            _splice = splice;
+        }
+
+        /// <summary>
+        /// Called with the record as it stands after a writing of the groups, where that wrote the record anew: a table notes by
+        /// it that every own group of its record stands as the file writes a group.
+        /// </summary>
+        internal Action<DxfFile.Rec> Rewrote { get; set; }
 
         /// <summary>The groups, to be changed in place.</summary>
         internal List<KeyValuePair<int, string>> List { get; }
@@ -296,8 +317,30 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
+            if (_splice != null)
+            {
+                _splice(List);
+                return true;
+            }
+
             var codes = new HashSet<int>(_codes);
+            DxfFile.Rec before = Rewrote == null ? default : _item.File.RecordAt(_item, 0);
             _item.File.ReplaceOwn(_item, 0, codes, List.ToArray(), order, false);
+
+            if (Rewrote != null)
+            {
+                DxfFile.Rec after = _item.File.RecordAt(_item, 0);
+
+                if (
+                    !ReferenceEquals(before.Bytes, after.Bytes)
+                    || before.Start != after.Start
+                    || before.End != after.End
+                )
+                {
+                    Rewrote(after);
+                }
+            }
+
             return true;
         }
 

@@ -455,13 +455,13 @@ namespace GeometryHelper.Dxf
 
             foreach (DxfBlockTableRecord block in BlockTable)
             {
-                foreach (DxfEntity entity in block.AllEntities())
+                foreach (DxfItem entityItem in block.AllItems())
                 {
-                    int count = File.RecordCount(entity.Item);
+                    int count = File.RecordCount(entityItem);
 
                     for (int r = 1; r < count; r++)
                     {
-                        DxfItem follower = File.FollowerOf(entity.Item, r);
+                        DxfItem follower = File.FollowerOf(entityItem, r);
                         Keep(follower.Handle, follower);
                     }
                 }
@@ -545,13 +545,13 @@ namespace GeometryHelper.Dxf
 
             foreach (DxfBlockTableRecord block in BlockTable)
             {
-                foreach (DxfEntity entity in block.AllEntities())
+                foreach (DxfItem entity in block.AllItems())
                 {
                     string own = entity.Handle;
 
                     if (own != null && !entities.ContainsKey(own))
                     {
-                        entities.Add(own, entity.Item);
+                        entities.Add(own, entity);
                     }
                 }
             }

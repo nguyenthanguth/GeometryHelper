@@ -74,7 +74,9 @@ namespace GeometryHelper.Dxf
                     }
 
                     var fresh = new List<DxfTypedValue>();
-                    byte[] sab = DxfUnknownEntity.RegionData(body, to, fresh);
+                    // The save of a drawing is not dated by the clock, nor given an identity at random: a body keeps the GUID it
+                    // had, or gets one made from its handle and data, so that the same drawing saved twice is the same bytes.
+                    byte[] sab = DxfUnknownEntity.RegionData(body, to, fresh, string.Empty);
                     var groups = new List<Group>();
 
                     foreach (DxfTypedValue value in fresh)
@@ -82,7 +84,10 @@ namespace GeometryHelper.Dxf
                         groups.Add(
                             value.TypeCode == 70 || value.TypeCode == 290
                                 ? Whole(value.TypeCode, 1)
-                                : new Group(value.TypeCode, value.TypeCode == 2 && guid != null ? guid : value.Value)
+                                : new Group(
+                                    value.TypeCode,
+                                    value.TypeCode == 2 && sab != null ? guid ?? GuidFrom(handle, sab) : value.Value
+                                )
                         );
                     }
 

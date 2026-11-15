@@ -593,8 +593,11 @@ namespace GeometryHelper.Dxf
             return slot;
         }
 
-        /// <summary>The records of an entity written anew: in the place of its first record, its others put out.</summary>
-        private void SetRecords(DxfItem item, List<Rec> records)
+        /// <summary>
+        /// The records of an entity written anew: in the place of its first record, its others put out. Where
+        /// <paramref name="namesKept"/> says so, the names the first record gives to the INSERTs are kept already.
+        /// </summary>
+        private void SetRecords(DxfItem item, List<Rec> records, bool namesKept = false)
         {
             // A record of no space, as one of a table or an object, may be one of the tables read by name, or of the objects.
             if (_tableNames != null && item.Parent == null && item.Space == null)
@@ -606,7 +609,7 @@ namespace GeometryHelper.Dxf
 
             // An INSERT is the first record of its entity: the records that follow one (an ATTRIB, a VERTEX, a SEQEND) are not
             // read, as 20 000 vertices set one at a time would read them all each time.
-            if (_insertNames != null && item.Parent == null)
+            if (_insertNames != null && item.Parent == null && !namesKept)
             {
                 InsertsWritten(records[0]);
             }
@@ -2831,7 +2834,7 @@ namespace GeometryHelper.Dxf
         /// Whether records of a type name the block they place or are drawn by in their group 2: an INSERT, and a dimension or an
         /// ACAD_TABLE, drawn by a block AutoCAD names itself, as <c>BlockDrawnBy</c> reads them.
         /// </summary>
-        private static bool NamesABlock(string type) =>
+        internal static bool NamesABlock(string type) =>
             type == "INSERT"
             || type == "DIMENSION"
             || type == "ARC_DIMENSION"

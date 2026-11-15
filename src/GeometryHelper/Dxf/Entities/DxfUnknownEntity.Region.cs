@@ -70,9 +70,14 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// The groups of a REGION's ACIS data for a format, after its subclass marker: for the SAT of R2000 to R2010 group 70 and
         /// a group 1 for each line, for the SAB of R2013 and R2018 group 290 and the GUID (2) of its record. The SAB itself is
-        /// given back, null for text.
+        /// given back, null for text. The SAB is dated <paramref name="date"/>, now where none is given.
         /// </summary>
-        internal static byte[] RegionData(AcisBody body, AcisFormat format, List<DxfTypedValue> groups)
+        internal static byte[] RegionData(
+            AcisBody body,
+            AcisFormat format,
+            List<DxfTypedValue> groups,
+            string date = null
+        )
         {
             List<AcisRecord> records = body.Records(format);
 
@@ -80,7 +85,7 @@ namespace GeometryHelper.Dxf
             {
                 groups.Add(new DxfTypedValue(290, "1"));
                 groups.Add(new DxfTypedValue(2, Guid.NewGuid().ToString("B")));
-                return AcisWriter.Sab(records, format, CDate(DateTime.Now));
+                return AcisWriter.Sab(records, format, date ?? CDate(DateTime.Now));
             }
 
             groups.Add(new DxfTypedValue(70, "1"));

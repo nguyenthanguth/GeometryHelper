@@ -68,37 +68,49 @@ namespace GeometryHelper.Dxf
             var styles = new List<string>();
             bool made = false;
 
-            foreach (string handle in written)
-            {
-                if (
-                    copy.TryGetObject(handle, out DxfDBObject found)
-                    && found is DxfTable table
-                    && table.MakeContent(out string style)
-                )
-                {
-                    made = true;
+            // The tables are listed in the drawing's ACDB_RECOMPOSE_DATA all at once, once each has been made.
+            copy.File.RecomposeBatch = new List<string>();
 
-                    if (style != null && !styles.Contains(style))
+            try
+            {
+                foreach (string handle in written)
+                {
+                    if (
+                        copy.TryGetObject(handle, out DxfDBObject found)
+                        && found is DxfTable table
+                        && table.MakeContent(out string style)
+                    )
                     {
-                        styles.Add(style);
+                        made = true;
+
+                        if (style != null && !styles.Contains(style))
+                        {
+                            styles.Add(style);
+                        }
+                    }
+                    else if (found is DxfTableStyle && !styles.Contains(handle))
+                    {
+                        styles.Add(handle);
                     }
                 }
-                else if (found is DxfTableStyle && !styles.Contains(handle))
-                {
-                    styles.Add(handle);
-                }
-            }
 
-            foreach (string handle in styles)
-            {
-                if (
-                    copy.TryGetObject(handle, out DxfDBObject found)
-                    && found is DxfTableStyle style
-                    && style.MakeCellStyleMap()
-                )
+                foreach (string handle in styles)
                 {
-                    made = true;
+                    if (
+                        copy.TryGetObject(handle, out DxfDBObject found)
+                        && found is DxfTableStyle style
+                        && style.MakeCellStyleMap()
+                    )
+                    {
+                        made = true;
+                    }
                 }
+
+                DxfTable.EndRecompose(copy.File);
+            }
+            finally
+            {
+                copy.File.RecomposeBatch = null;
             }
 
             return made ? copy.File : null;

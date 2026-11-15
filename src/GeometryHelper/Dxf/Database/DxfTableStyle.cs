@@ -86,7 +86,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the style is erased.</exception>
         public string Description
         {
-            get => Read().Head(3) ?? string.Empty;
+            get => Peek().Head(3) ?? string.Empty;
             set
             {
                 if (value == null)
@@ -106,7 +106,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the style is erased.</exception>
         public DxfFlowDirection FlowDirection
         {
-            get => Whole(Read().Head(70), 0) == 1 ? DxfFlowDirection.BottomToTop : DxfFlowDirection.TopToBottom;
+            get => Whole(Peek().Head(70), 0) == 1 ? DxfFlowDirection.BottomToTop : DxfFlowDirection.TopToBottom;
             set
             {
                 if (value != DxfFlowDirection.TopToBottom && value != DxfFlowDirection.BottomToTop)
@@ -127,7 +127,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the style is erased.</exception>
         public double HorizontalCellMargin
         {
-            get => Real(Read().Head(40), Read().Metric ? 1.5 : 0.06);
+            get => Real(Peek().Head(40), Peek().Metric ? 1.5 : 0.06);
             set
             {
                 Guard.NonNegative(value, nameof(value), "A cell's margin has to be a finite number of nought or more.");
@@ -140,7 +140,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the style is erased.</exception>
         public double VerticalCellMargin
         {
-            get => Real(Read().Head(41), Read().Metric ? 1.5 : 0.06);
+            get => Real(Peek().Head(41), Peek().Metric ? 1.5 : 0.06);
             set
             {
                 Guard.NonNegative(value, nameof(value), "A cell's margin has to be a finite number of nought or more.");
@@ -152,7 +152,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the style is erased.</exception>
         public bool IsTitleSuppressed
         {
-            get => Whole(Read().Head(-280), 0) != 0;
+            get => Whole(Peek().Head(-280), 0) != 0;
             set => Change(m => m.SetHead(-280, value ? "1" : "0"));
         }
 
@@ -160,7 +160,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the style is erased.</exception>
         public bool IsHeaderSuppressed
         {
-            get => Whole(Read().Head(281), 0) != 0;
+            get => Whole(Peek().Head(281), 0) != 0;
             set => Change(m => m.SetHead(281, value ? "1" : "0"));
         }
 
@@ -173,7 +173,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the kind is not one of the three.</exception>
         public string TextStyleName(DxfRowType rowType)
         {
-            string name = Read().Cell(Kind(rowType, nameof(rowType)), 7);
+            string name = Peek().Cell(Kind(rowType, nameof(rowType)), 7);
             return string.IsNullOrWhiteSpace(name) ? "Standard" : DxfReader.NameOf(name).Trim();
         }
 
@@ -207,7 +207,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the kind is not one of the three.</exception>
         public double TextHeight(DxfRowType rowType)
         {
-            Model model = Read();
+            Model model = Peek();
             int kind = Kind(rowType, nameof(rowType));
             return Real(model.Cell(kind, 140), Model.StandardHeight(kind, model.Metric));
         }
@@ -230,7 +230,7 @@ namespace GeometryHelper.Dxf
         public DxfCellAlignment Alignment(DxfRowType rowType)
         {
             int kind = Kind(rowType, nameof(rowType));
-            int value = Whole(Read().Cell(kind, 170), kind == 0 ? 2 : 5);
+            int value = Whole(Peek().Cell(kind, 170), kind == 0 ? 2 : 5);
             return value >= 1 && value <= 9 ? (DxfCellAlignment)value
                 : kind == 0 ? DxfCellAlignment.TopCenter
                 : DxfCellAlignment.MiddleCenter;
@@ -260,7 +260,7 @@ namespace GeometryHelper.Dxf
         /// <returns>The colour.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the kind is not one of the three.</exception>
         public DxfColor Color(DxfRowType rowType) =>
-            DxfColor.OfIndex(Whole(Read().Cell(Kind(rowType, nameof(rowType)), 62), 0));
+            DxfColor.OfIndex(Whole(Peek().Cell(Kind(rowType, nameof(rowType)), 62), 0));
 
         /// <summary>Sets the colour of the text of kinds of row, as AutoCAD's <c>SetColor(color, rowTypes)</c>.</summary>
         /// <param name="color">The colour: of the index, by layer or by block.</param>
@@ -277,7 +277,7 @@ namespace GeometryHelper.Dxf
         /// <returns>The colour.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the kind is not one of the three.</exception>
         public DxfColor BackgroundColor(DxfRowType rowType) =>
-            DxfColor.OfIndex(Whole(Read().Cell(Kind(rowType, nameof(rowType)), 63), 7));
+            DxfColor.OfIndex(Whole(Peek().Cell(Kind(rowType, nameof(rowType)), 63), 7));
 
         /// <summary>Sets the colour the cells of kinds of row are filled with and turns the fill on, as AutoCAD's <c>SetBackgroundColor(color, rowTypes)</c>.</summary>
         /// <param name="color">The colour: of the index, by layer or by block.</param>
@@ -305,7 +305,7 @@ namespace GeometryHelper.Dxf
         /// <returns>Whether they are unfilled.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the kind is not one of the three.</exception>
         public bool IsBackgroundColorNone(DxfRowType rowType) =>
-            Whole(Read().Cell(Kind(rowType, nameof(rowType)), 283), 0) == 0;
+            Whole(Peek().Cell(Kind(rowType, nameof(rowType)), 283), 0) == 0;
 
         /// <summary>Sets whether the cells of kinds of row are left unfilled, as AutoCAD's <c>SetBackgroundColorNone(value, rowTypes)</c>.</summary>
         /// <param name="value">Whether they are unfilled.</param>
@@ -322,7 +322,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the line is not one of the six, or the kind not one of the three.</exception>
         public DxfLineWeight GridLineWeight(DxfGridLineType gridLineType, DxfRowType rowType) =>
             (DxfLineWeight)Whole(
-                Read().Cell(Kind(rowType, nameof(rowType)), 274 + Line(gridLineType, nameof(gridLineType))),
+                Peek().Cell(Kind(rowType, nameof(rowType)), 274 + Line(gridLineType, nameof(gridLineType))),
                 (int)DxfLineWeight.ByBlock
             );
 
@@ -341,7 +341,7 @@ namespace GeometryHelper.Dxf
         /// <returns>Whether it is drawn.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the line is not one of the six, or the kind not one of the three.</exception>
         public bool GridVisibility(DxfGridLineType gridLineType, DxfRowType rowType) =>
-            Whole(Read().Cell(Kind(rowType, nameof(rowType)), 284 + Line(gridLineType, nameof(gridLineType))), 1) != 0;
+            Whole(Peek().Cell(Kind(rowType, nameof(rowType)), 284 + Line(gridLineType, nameof(gridLineType))), 1) != 0;
 
         /// <summary>Sets whether lines of kinds of row are drawn, as AutoCAD's <c>SetGridVisibility(visible, borders, rowTypes)</c>.</summary>
         /// <param name="visible">Whether they are drawn.</param>
@@ -359,7 +359,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the line is not one of the six, or the kind not one of the three.</exception>
         public DxfColor GridColor(DxfGridLineType gridLineType, DxfRowType rowType) =>
             DxfColor.OfIndex(
-                Whole(Read().Cell(Kind(rowType, nameof(rowType)), 64 + Line(gridLineType, nameof(gridLineType))), 0)
+                Whole(Peek().Cell(Kind(rowType, nameof(rowType)), 64 + Line(gridLineType, nameof(gridLineType))), 0)
             );
 
         /// <summary>Sets the colour of lines of kinds of row, as AutoCAD's <c>SetGridColor(color, borders, rowTypes)</c>.</summary>
@@ -379,6 +379,60 @@ namespace GeometryHelper.Dxf
 
         /// <summary>The groups a style made in code is written with in a file of a version: those after its subclass marker.</summary>
         internal List<KeyValuePair<int, string>> MadeGroups(bool valued) => _made.Groups(valued);
+
+        // The model Peek read of the record as it stood: kept while the record's bytes are the same, as every writing of a record
+        // gives it new ones, and the drawing's unit the same.
+        private Peeked _peeked;
+
+        private sealed class Peeked
+        {
+            internal Peeked(Model model, DxfFile.Rec record, bool metric)
+            {
+                Model = model;
+                Record = record;
+                Metric = metric;
+            }
+
+            internal Model Model { get; }
+
+            internal DxfFile.Rec Record { get; }
+
+            internal bool Metric { get; }
+        }
+
+        /// <summary>
+        /// The style's groups as <see cref="Read"/> gives them, to be read and not changed: the model of the record kept while
+        /// the record is the same, so that the lines of a style read for each of the 54 properties of a table's three kinds of
+        /// row (a table drawn anew) are read from its record once, not 54 times. A model made in code is given as it is.
+        /// </summary>
+        private Model Peek()
+        {
+            if (Item == null)
+            {
+                return _made;
+            }
+
+            DxfFile file = Item.File;
+            DxfFile.Rec record = file.RecordAt(Item, 0);
+            bool metric = file.Database == null || file.Database.Measurement == DxfMeasurementValue.Metric;
+
+            // One object to take or leave, as styles are read by the threads that copy a drawing at once.
+            Peeked kept = _peeked;
+
+            if (
+                kept == null
+                || !ReferenceEquals(kept.Record.Bytes, record.Bytes)
+                || kept.Record.Start != record.Start
+                || kept.Record.End != record.End
+                || kept.Metric != metric
+            )
+            {
+                kept = new Peeked(Read(), record, metric);
+                _peeked = kept;
+            }
+
+            return kept.Model;
+        }
 
         /// <summary>The style's groups, as the record holds them or as made in code.</summary>
         private Model Read()

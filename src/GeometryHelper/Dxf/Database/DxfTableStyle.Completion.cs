@@ -95,7 +95,7 @@ namespace GeometryHelper.Dxf
 
         private void AddCellStyle(List<KeyValuePair<int, string>> groups, DxfRowType kind)
         {
-            Model model = Read();
+            Model model = Peek();
             int cell = Kind(kind, nameof(kind));
             string margin = DxfTable.AsReal(Math.Abs(VerticalCellMargin));
             string side = DxfTable.AsReal(Math.Abs(HorizontalCellMargin));

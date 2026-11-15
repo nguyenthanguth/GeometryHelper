@@ -127,6 +127,20 @@ and 3 columns take 252 ms as R2018 among 4 600 other objects and 245 ms among 10
 is kept, weakly, until the drawing changes, so that saving it again as it stands, in another version for one, makes the content once:
 a second save of those 10 000 cells as R2018 takes 6 ms, until a garbage collection drops the copy.
 
+Building a table cell by cell costs in proportion to the cell, and then to the size of the table's record, which is copied for
+each. The first edits of a table write its record whole, as the file writes a group; from then on `SetTextString`, `SetValue` and the
+setters of a cell's look (`SetAlignment`, `SetTextHeight`, `SetTextStyle`, `SetContentColor`, `SetBackgroundColor`,
+`SetTextRotation`) read the groups of the cell's own bytes and write them back into their place, and the record's bytes are those a
+writing of every group would give. The last cell of a table, whose end is where the table's own groups begin and which its flags
+decide, is still written through the whole record, as are the setters not listed (a format, a data type, a merge). A table of 1 000
+cells, each given its text, takes 36 ms on .NET Framework 4.8 (it took 5.3 s), 3 000 cells 0.35 s (48 s) and 10 000 cells 3.2 s (the same loop had not ended
+after 15 minutes). Adding tables one after another costs the same for each: 400 tables of 3 rows and 4 columns, each cell given its text, take
+0.31 s, 1 600 take 1.3 s (25 s), and a table is not counted against the entities of the drawing, which the block it was given a moment
+ago cannot be named by. Copying them to another drawing (`WblockCloneObjects`) takes 80 ms for 400 tables whether the drawing holds
+5 000 other objects or 20 000 (it took 0.98 s and 4.8 s): the names under which the named object dictionary holds each object, which
+the pointers of a copied table are resolved by, are found for every object once for the call. A drawing of 100 000 entities that holds
+a table still pays for reading a copy of itself when it is saved after an edit (158 ms for 10 MB, 4 ms when nothing was changed).
+
 ## Values and their kinds
 
 A cell's value has its kind, `DataType` (`Long`, `Double` or `String`, the value's 90 from R2007 on), what its number
