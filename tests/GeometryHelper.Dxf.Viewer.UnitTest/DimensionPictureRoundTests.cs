@@ -919,18 +919,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             StandardCurrent(document.Database);
             document.Fonts = new CadFonts(null, CadFonts.BuiltInName, null);
 
-            try
-            {
-                Run(session, "DLI", P(0, 0), P(100, 0), P(50, -20));
-                DxfDimension dimension = Made(session);
-                HasLine(dimension, P(2.5, -20), P(50 - 5.1786, -20), 1E-3);
-                HasLine(dimension, P(97.5, -20), P(50 + 5.1786, -20), 1E-3);
-            }
-            finally
-            {
-                // The fonts a dimension is measured in are those last given any document: put them off again.
-                document.Fonts = new CadFonts(null, null, null);
-            }
+            Run(session, "DLI", P(0, 0), P(100, 0), P(50, -20));
+            DxfDimension dimension = Made(session);
+            HasLine(dimension, P(2.5, -20), P(50 - 5.1786, -20), 1E-3);
+            HasLine(dimension, P(97.5, -20), P(50 + 5.1786, -20), 1E-3);
         }
 
         [Fact]

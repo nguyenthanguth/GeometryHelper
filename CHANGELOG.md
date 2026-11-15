@@ -5969,6 +5969,12 @@ and across the line down to 7.
 **FIXED.** Presenter: the words of a jogged radius put exactly on the rim are inside it (they stay at their point and the box goes to
 the inside; 16 of 16 probes), and level words kept to a line of exactly two arrowheads within 15 degrees of level are left off it,
 as AutoCAD 2021 does 14 times of 16 (t9 38 to 34, ta9 28 to 18).
+**FIXED.** Presenter: the words of a dimension's picture are measured in the fonts of the document the dimension is in. They were
+measured in the fonts last given to any document, so that with two drawings open, a font folder set on one changed the width of the
+words of the other (a text style of test.shx, measured 5.2 wide for "IOI" 4 high in the drawing whose folder has it, was not measured
+in the drawing whose folder has not once that one was set last), and what a drawing's dimensions were laid out by hung on which
+document had its `CadDocument.Fonts` set last. Each document measures in its own, as the canvas draws its text; a style of a drawing
+no document shows is measured with the fonts off.
 
 ## 13.11.0 (2026-11-07)
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -14,9 +15,10 @@ namespace GeometryHelper.Dxf.Viewer
     /// its digits reaching past the top of the A a text's height stands for.
     /// </summary>
     /// <remarks>
-    /// The style's font is found as the canvas finds it to draw the words: an SHX font, and its big font, where the fonts last
-    /// given a document (<see cref="CadDocument.Fonts"/>) find it, the folder of that document's drawing first, the canvas's
-    /// own ghsimplex wherever fonts are on; a TrueType font from the Fonts folders of Windows. The style's width factor and
+    /// The style's font is found as the canvas finds it to draw the words: an SHX font, and its big font, where the fonts of
+    /// the document showing the style's drawing (<see cref="CadDocument.Fonts"/>) find it, the folder of that document's
+    /// drawing first, the canvas's own ghsimplex wherever fonts are on; a TrueType font from the Fonts folders of Windows. A
+    /// style of a drawing no document shows is measured with the fonts off. The style's width factor and
     /// oblique angle are measured too. Words of a face whose letters are not read (an SHX font with the fonts off or not
     /// found, a TrueType font with no file), or that the layout gives no ink at all, as words of spaces alone, are not
     /// measured: the picture then takes a letter as 0.7 of the height wide, as before. Words whose ink has no width are
@@ -27,27 +29,11 @@ namespace GeometryHelper.Dxf.Viewer
     {
         private const int MostKept = 4096;
 
-        private static readonly object Gate = new object();
         private static readonly CadFonts Off = new CadFonts(null, null, null);
-        private static readonly Dictionary<string, Measurement> Kept = new Dictionary<string, Measurement>(
-            StringComparer.Ordinal
-        );
-        private static CadFonts _fonts;
-        private static string _fontFolder;
 
-        /// <summary>
-        /// Takes the fonts a document's text is drawn in as those an SHX font of a dimension is measured in, and the folder of its
-        /// drawing as the first looked in; the measurements kept are let go.
-        /// </summary>
-        internal static void UseFonts(CadFonts fonts, string drawingFolder)
-        {
-            lock (Gate)
-            {
-                _fonts = fonts;
-                _fontFolder = drawingFolder;
-                Kept.Clear();
-            }
-        }
+        // The measurements kept for each set of fonts, which go with the fonts: a document given other fonts starts afresh.
+        private static readonly ConditionalWeakTable<CadFonts, Dictionary<string, Measurement>> KeptByFonts =
+            new ConditionalWeakTable<CadFonts, Dictionary<string, Measurement>>();
 
         /// <summary>
         /// Measures words of a text style as AutoCAD lays out a dimension's MTEXT of them: their width and their height; false,
@@ -104,8 +90,15 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
+            // The fonts of the document that shows the style's drawing: another document's fonts are none of its business.
+            DxfDatabase database = style.IsResident ? style.Item.File.Database : null;
+            CadDocument document = database == null ? null : CadDocument.Showing(database);
+            CadFonts fonts = document?.Fonts ?? Off;
+            string folder = document?.FontFolder;
             string key =
-                file
+                (folder ?? string.Empty)
+                + "|"
+                + file
                 + "|"
                 + bigFile
                 + "|"
@@ -119,9 +112,13 @@ namespace GeometryHelper.Dxf.Viewer
                 + "|"
                 + words;
 
-            lock (Gate)
+            Dictionary<string, Measurement> kept = KeptByFonts.GetValue(fonts, f => new Dictionary<string, Measurement>(
+                StringComparer.Ordinal
+            ));
+
+            lock (kept)
             {
-                if (Kept.TryGetValue(key, out Measurement known))
+                if (kept.TryGetValue(key, out Measurement known))
                 {
                     width = known.Width;
                     tall = known.Tall;
@@ -129,14 +126,27 @@ namespace GeometryHelper.Dxf.Viewer
                     return tall > 0.0;
                 }
 
-                Measure(file, bigFile, font.TypeFace, xscale, oblique, words, height, out width, out tall, out depth);
+                Measure(
+                    fonts,
+                    folder,
+                    file,
+                    bigFile,
+                    font.TypeFace,
+                    xscale,
+                    oblique,
+                    words,
+                    height,
+                    out width,
+                    out tall,
+                    out depth
+                );
 
-                if (Kept.Count >= MostKept)
+                if (kept.Count >= MostKept)
                 {
-                    Kept.Clear();
+                    kept.Clear();
                 }
 
-                Kept[key] = new Measurement(width, tall, depth);
+                kept[key] = new Measurement(width, tall, depth);
                 return tall > 0.0;
             }
         }
@@ -159,6 +169,8 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         private static void Measure(
+            CadFonts fonts,
+            string folder,
             string file,
             string bigFile,
             string typeface,
@@ -174,8 +186,6 @@ namespace GeometryHelper.Dxf.Viewer
             width = 0.0;
             tall = 0.0;
             depth = 0.0;
-            CadFonts fonts = _fonts ?? Off;
-            string folder = _fontFolder;
             double factor = xscale > 0.0 && !double.IsInfinity(xscale) ? xscale : 1.0;
 
             try
