@@ -406,10 +406,26 @@ namespace GeometryHelper.Dxf
         private DxfSpace _space;
         private DxfSpaceKind _kind = DxfSpaceKind.Block;
         private GeoPoint3 _origin;
+        private OriginRead _originRead;
         private string _comments = string.Empty;
         private DxfUnits _units;
         private bool _explodable = true;
         private DxfBlockScaling _scaling;
+
+        /// <summary>The origin read from the BLOCK of a file, with the head it was read from and the edit count of the file then.</summary>
+        private sealed class OriginRead
+        {
+            internal readonly DxfItem Head;
+            internal readonly int Edits;
+            internal readonly GeoPoint3 Point;
+
+            internal OriginRead(DxfItem head, int edits, GeoPoint3 point)
+            {
+                Head = head;
+                Edits = edits;
+                Point = point;
+            }
+        }
 
         /// <summary>
         /// Initializes a block made in code, to be added to a <see cref="DxfBlockTable"/> with its
@@ -4263,7 +4279,25 @@ namespace GeometryHelper.Dxf
                 }
 
                 DxfItem head = _block?.Head;
-                return head == null ? default(GeoPoint3) : PointOf(head, 10);
+
+                if (head == null)
+                {
+                    return default(GeoPoint3);
+                }
+
+                // Read once until the records of the file next change: an INSERT asks it of its block as it is drawn, and a
+                // drawing of 100 000 of them read the three groups of the origin 100 000 times.
+                int edits = _file.EditCount;
+                OriginRead kept = Volatile.Read(ref _originRead);
+
+                if (kept != null && kept.Edits == edits && ReferenceEquals(kept.Head, head))
+                {
+                    return kept.Point;
+                }
+
+                GeoPoint3 point = PointOf(head, 10);
+                Volatile.Write(ref _originRead, new OriginRead(head, edits, point));
+                return point;
             }
             set
             {

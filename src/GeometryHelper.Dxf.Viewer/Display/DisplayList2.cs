@@ -17,6 +17,12 @@ namespace GeometryHelper.Dxf.Viewer
 
         // The insertion points by handle, for the snap Insertion: looked up only, never enumerated.
         private Dictionary<string, Insertions> _insertions;
+
+        // Whether the table above is the older list's, which a patch leaves as it is until it has to change it.
+        private bool _insertionsShared;
+
+        // Whether an insertion point was kept since the last run closed: set by the entity drawn, read as its run is closed.
+        private bool _runInserted;
         private DisplayBox _bounds = DisplayBox.Empty;
 
         // The entities of the space in the order they were drawn, each with its items and the layers it read, so that an edit
@@ -45,10 +51,15 @@ namespace GeometryHelper.Dxf.Viewer
             // Sized as the older list, which a patch mostly copies: grown by doubling, a list of 178 000 items and 100 000 runs
             // makes some 12 MB of arrays on the large object heap, and the collections they bring land in the patch.
             _items = older == null ? new List<DisplayItem2>() : new List<DisplayItem2>(older._items.Count);
+            // The insertion points of every entity of the older list, taken whole and not copied until a patch changes one (a
+            // lookup and an insert for each of the 220 000 entities of a drawing of 1 000 000 that have a point took 55 ms of a
+            // patch): those of an entity drawn again are taken out as the patch comes to it (DropInsertions), and put back as it
+            // is drawn, in a copy of the table made then.
             _insertions =
                 older == null
                     ? new Dictionary<string, Insertions>(StringComparer.OrdinalIgnoreCase)
-                    : new Dictionary<string, Insertions>(older._insertions.Count, StringComparer.OrdinalIgnoreCase);
+                    : older._insertions;
+            _insertionsShared = older != null;
             _runs = older == null ? new List<RunRecord>() : new List<RunRecord>(older._runs.Count);
         }
 
@@ -116,7 +127,9 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
+            _runInserted = true;
             var point = new GeoPoint2(x, y);
+            OwnInsertions();
 
             if (!_insertions.TryGetValue(handle, out Insertions found))
             {
@@ -207,9 +220,12 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Closes the run of an entity drawn: the items added since <paramref name="start"/>, the layers it read, and the other entities and anonymous blocks it read (null for none).</summary>
         internal void AddRun(string handle, int start, ulong layers, string[] reads) =>
-            AddRecord(handle, start, _items.Count - start, layers, reads);
+            AddRecord(handle, start, _items.Count - start, layers, reads, _runInserted);
 
-        /// <summary>Takes the run of an entity from an older list of the same space as it was drawn there: its items, its insertion points and its layers.</summary>
+        /// <summary>
+        /// Takes the run of an entity from an older list of the same space as it was drawn there: its items and its layers; its
+        /// insertion points came with the list's own (see <see cref="DisplayList2(DisplayList2)"/>).
+        /// </summary>
         internal void CopyRun(DisplayList2 from, DisplayRun run)
         {
             int start = _items.Count;
@@ -220,16 +236,36 @@ namespace GeometryHelper.Dxf.Viewer
                 Add(from._items[i]);
             }
 
-            if (!string.IsNullOrEmpty(run.Handle) && from._insertions.TryGetValue(run.Handle, out Insertions points))
-            {
-                _insertions[run.Handle] = points;
-            }
-
-            AddRecord(run.Handle, start, run.Count, run.Layers, run.Reads);
+            AddRecord(run.Handle, start, run.Count, run.Layers, run.Reads, run.Inserted);
         }
 
-        private void AddRecord(string handle, int start, int count, ulong layers, string[] reads)
+        /// <summary>
+        /// Takes out the insertion points an older list's run of an entity kept, which a patch that draws the entity again, or
+        /// does not draw it at all, no longer has: the points were taken whole with the older list.
+        /// </summary>
+        internal void DropInsertions(DisplayRun run)
         {
+            if (run.Inserted && !string.IsNullOrEmpty(run.Handle) && _insertions.ContainsKey(run.Handle))
+            {
+                OwnInsertions();
+                _insertions.Remove(run.Handle);
+            }
+        }
+
+        /// <summary>Makes the table of insertion points the list's own, a copy of the older list's it shared, before it is changed.</summary>
+        private void OwnInsertions()
+        {
+            if (_insertionsShared)
+            {
+                _insertions = new Dictionary<string, Insertions>(_insertions, StringComparer.OrdinalIgnoreCase);
+                _insertionsShared = false;
+            }
+        }
+
+        private void AddRecord(string handle, int start, int count, ulong layers, string[] reads, bool inserted)
+        {
+            _runInserted = false;
+
             if (reads != null)
             {
                 if (_reads == null)
@@ -240,17 +276,20 @@ namespace GeometryHelper.Dxf.Viewer
                 _reads[_runs.Count] = reads;
             }
 
-            _runs.Add(new RunRecord(handle, start, count, layers));
+            _runs.Add(new RunRecord(handle, start, count, layers, inserted));
         }
 
         /// <summary>A run as the list keeps it: 24 bytes where a run with its reads took 32, a million of them in a drawing of 1 000 000 entities.</summary>
         private readonly struct RunRecord
         {
-            public RunRecord(string handle, int start, int count, ulong layers)
+            // The count of items, and in the top bit whether the entity kept an insertion point: the record stays 24 bytes.
+            private readonly int _countAndInserted;
+
+            public RunRecord(string handle, int start, int count, ulong layers, bool inserted)
             {
                 Handle = handle;
                 Start = start;
-                Count = count;
+                _countAndInserted = inserted ? count | int.MinValue : count;
                 Layers = layers;
             }
 
@@ -258,7 +297,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             public int Start { get; }
 
-            public int Count { get; }
+            public int Count => _countAndInserted & int.MaxValue;
+
+            public bool Inserted => _countAndInserted < 0;
 
             public ulong Layers { get; }
         }
@@ -279,7 +320,14 @@ namespace GeometryHelper.Dxf.Viewer
                     RunRecord record = _list._runs[index];
                     string[] reads = null;
                     _list._reads?.TryGetValue(index, out reads);
-                    return new DisplayRun(record.Handle, record.Start, record.Count, record.Layers, reads);
+                    return new DisplayRun(
+                        record.Handle,
+                        record.Start,
+                        record.Count,
+                        record.Layers,
+                        reads,
+                        record.Inserted
+                    );
                 }
             }
 
@@ -302,13 +350,14 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     internal readonly struct DisplayRun
     {
-        public DisplayRun(string handle, int start, int count, ulong layers, string[] reads)
+        public DisplayRun(string handle, int start, int count, ulong layers, string[] reads, bool inserted)
         {
             Handle = handle;
             Start = start;
             Count = count;
             Layers = layers;
             Reads = reads;
+            Inserted = inserted;
         }
 
         public string Handle { get; }
@@ -320,6 +369,9 @@ namespace GeometryHelper.Dxf.Viewer
         public ulong Layers { get; }
 
         public string[] Reads { get; }
+
+        /// <summary>Whether the entity kept an insertion point of its own when it was drawn.</summary>
+        public bool Inserted { get; }
     }
 
     /// <summary>

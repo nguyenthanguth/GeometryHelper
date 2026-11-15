@@ -4951,7 +4951,7 @@ namespace GeometryHelper.Dxf
 
                 if (code == 102)
                 {
-                    braced = Text(record, valueStart, valueEnd).Trim().StartsWith("{", StringComparison.Ordinal);
+                    braced = StartsWithBrace(record, valueStart, valueEnd);
                     continue;
                 }
 
@@ -5183,7 +5183,7 @@ namespace GeometryHelper.Dxf
             {
                 if (code == 102)
                 {
-                    braced = Text(record, start, end).Trim().StartsWith("{", StringComparison.Ordinal);
+                    braced = StartsWithBrace(record, start, end);
                     continue;
                 }
 
@@ -5289,7 +5289,7 @@ namespace GeometryHelper.Dxf
 
                 if (code == 102)
                 {
-                    braced = Text(record, valueStart, valueEnd).Trim().StartsWith("{", StringComparison.Ordinal);
+                    braced = StartsWithBrace(record, valueStart, valueEnd);
                     continue;
                 }
 
@@ -5372,7 +5372,7 @@ namespace GeometryHelper.Dxf
 
                 if (raw == 102)
                 {
-                    braced = Text(record, valueStart, valueEnd).Trim().StartsWith("{", StringComparison.Ordinal);
+                    braced = StartsWithBrace(record, valueStart, valueEnd);
                     continue;
                 }
 
@@ -5580,7 +5580,7 @@ namespace GeometryHelper.Dxf
 
                 if (code == 102)
                 {
-                    braced = Text(record, valueStart, valueEnd).Trim().StartsWith("{", StringComparison.Ordinal);
+                    braced = StartsWithBrace(record, valueStart, valueEnd);
                     continue;
                 }
 
@@ -5802,7 +5802,7 @@ namespace GeometryHelper.Dxf
 
                 if (code == 102)
                 {
-                    braced = Text(record, valueStart, valueEnd).Trim().StartsWith("{", StringComparison.Ordinal);
+                    braced = StartsWithBrace(record, valueStart, valueEnd);
                     continue;
                 }
 
