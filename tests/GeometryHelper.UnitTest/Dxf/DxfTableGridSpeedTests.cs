@@ -112,7 +112,7 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void LinesSetOneCellAtATime_AreWrittenAsTheyAreWhenEveryGroupOfTheRecordIsWrittenEachTime()
         {
-            // The same settings made twice. In one, a text set on another cell before each of them writes the whole record
+            // The same settings made twice. In one, a width set on a column before each of them writes the whole record
             // (every group as the file writes it); in the other nothing does, and the cells' own bytes alone are written. The
             // drawings are the same, byte for byte.
             DxfDatabase whole = Drawing(5, 4);
@@ -126,7 +126,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 int row = random.Next(4);
                 int column = random.Next(3);
                 int seed = random.Next(1000);
-                wholeTable.SetTextString(4, 3, "text " + step);
+                wholeTable.SetColumnWidth(0, step % 2 == 0 ? 30.0 : 31.0);
 
                 // Two blocks of merged cells, the lines set on one before and after it is merged.
                 if (step == 30 || step == 70)
@@ -140,7 +140,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 Setting(cellsTable, row, column, seed, step % 4);
             }
 
-            cellsTable.SetTextString(4, 3, "text 119");
+            cellsTable.SetColumnWidth(0, 31.0);
             Assert.Equal(whole.ToText(), cells.ToText());
         }
     }

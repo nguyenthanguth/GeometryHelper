@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
@@ -57,23 +56,27 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // 60 rows by 10 columns, 3 000 calls: each read and wrote the 30 000 groups of the record; now each copies the
             // bytes of the cell it changes. The ceiling is generous: a call to the whole record took some 8 ms.
-            DxfDatabase db = Drawing(60, 10);
-            DxfTable table = TableOf(db);
-            var watch = Stopwatch.StartNew();
-
-            for (int r = 0; r < 60; r++)
-            {
-                for (int c = 0; c < 10; c++)
+            DxfDatabase db = null;
+            SpeedGuard.AssertWithin(
+                6,
+                () =>
                 {
-                    Settings(table, r, c, 10 * r + c, () => { });
-                }
-            }
+                    db = Drawing(60, 10);
 
-            watch.Stop();
-            Assert.True(
-                watch.Elapsed.TotalSeconds < 6.0,
-                "3 000 settings of 600 cells took " + watch.Elapsed.TotalSeconds + " s."
+                    return TableOf(db);
+                },
+                table =>
+                {
+                    for (int r = 0; r < 60; r++)
+                    {
+                        for (int c = 0; c < 10; c++)
+                        {
+                            Settings(table, r, c, 10 * r + c, () => { });
+                        }
+                    }
+                }
             );
+
             Assert.Equal(db.ToText(), DxfDatabase.Parse(db.ToText()).ToText());
         }
 
@@ -82,19 +85,16 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // The last cell's end was not known to the bytes of its record, so that each of 1 000 calls on it of a table of
             // 100 rows read and wrote every group.
-            DxfDatabase db = Drawing(100, 10);
-            DxfTable table = TableOf(db);
-            var watch = Stopwatch.StartNew();
-
-            for (int i = 0; i < 1000; i++)
-            {
-                table.SetBackgroundColorNone(99, 9, i % 2 == 0);
-            }
-
-            watch.Stop();
-            Assert.True(
-                watch.Elapsed.TotalSeconds < 4.0,
-                "1 000 settings of the last cell took " + watch.Elapsed.TotalSeconds + " s."
+            SpeedGuard.AssertWithin(
+                4,
+                () => TableOf(Drawing(100, 10)),
+                table =>
+                {
+                    for (int i = 0; i < 1000; i++)
+                    {
+                        table.SetBackgroundColorNone(99, 9, i % 2 == 0);
+                    }
+                }
             );
         }
 
