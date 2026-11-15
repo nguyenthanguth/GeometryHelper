@@ -505,7 +505,7 @@ namespace GeometryHelper.Dxf
         /// </summary>
         internal bool SetValueFromText(int row, int col, string text)
         {
-            CellView cell = CellToWrite(row, col);
+            CellView cell = CellToEdit(row, col);
 
             if (cell.ValueFrom < 0 || cell.Whole(171, 1) == (int)DxfTableCellType.BlockCell)
             {
@@ -2266,7 +2266,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the cell is not a block cell, or the table is erased.</exception>
         public void SetAutoScale(int row, int col, bool autoFit)
         {
-            CellView cell = CellToWrite(row, col);
+            CellView cell = CellToEdit(row, col);
 
             if (cell.Whole(171, 1) != (int)DxfTableCellType.BlockCell)
             {

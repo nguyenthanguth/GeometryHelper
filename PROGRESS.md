@@ -444,7 +444,7 @@ the ones wanted.
 - [x] MIRROR follow-ups 5 (mirror5): an annotative hatch's scale contexts move, turn and scale with it and its view
       context is written on MOVE/COPY/ROTATE/SCALE/ARRAY as AutoCAD (84 of 84 oracle cases equal); 350/360 targets
       outside a copy cloned; copied dictionary entries sorted by name; AUDIT 0 on our output
-- [ ] MIRROR follow-ups 6: hatch MIRROR keeps its normal and pattern in AutoCAD (TransformBy; ours turns the hatch over:
+- [ ] (mirror6, running) MIRROR follow-ups 6: hatch MIRROR keeps its normal and pattern in AutoCAD (TransformBy; ours turns the hatch over:
       loops, arcs, bulges, ellipses, splines reflected in its plane; also MIRRHATCH); ROTATE -45 writes 53 as 360 (ours
       0); -OBJECTSCALE Add writing the view on the original; AddDerived's 43/44 on a moved hatch (unprobed) (S)
 - [x] Drafting aids: TK (TRACKING); check TT with OTRACK off, "(need YZ):" input and Enter at a modifier prompt
@@ -817,11 +817,14 @@ the ones wanted.
       cell (words in the style's font for the fit scale, in Arial for the room and the alignment; one pass, stored in
       144: scale and column equal AutoCAD to five places in 6 of 6 cases); SetFormat, SetDataType, SetBackgroundColorNone,
       SetOverrides and the last cell on the splice path (SetFormat over 1 000 cells 9.6 s -> 70 ms)
-- [ ] (tables6, running) Tables follow-ups 5: a dimension test (DimensionTurnedWordsTests ...StandOnALevelLandingTurnedAboutTheMiddleOfTheirStart)
-      gave other coordinates once in a full run (shared font state between parallel tests?); a definition in a non-Standard
-      style counting nothing in the console's minimum (GUI); AutoCAD's endless 1.8 % growth on repeated recomputes (we
-      settle after one pass); SetValueFromText, SetCellType, SetAutoScale, SetBlock*, SetFormula and merges still write
-      the record whole; dates in autofill; DxfTable.Value of a date; GUI-only sides (S)
+- [x] Tables follow-ups 5 (tables6): SetValueFromText, SetAutoScale, SetBlockScale/Rotation/AttributeValue and SetFormula
+      patch only their cell (465 cells 4-8 s / 3.7-6.6 GB -> 3-159 ms / 9-86 MB, bytes identical); DxfTable.Value of a
+      date is a DateTime and Fill continues date series as AutoCAD 2021 (mktime seconds, last-two step, UTC fields); the
+      1.8 % recompute growth not reproduced; the dimension test shares no state (16-thread test added)
+- [ ] Tables follow-ups 6: merges still rebuild the record (192 merges 1.6 s: cache the block list, splice the edge cells
+      and TABLECONTENT); CadTextInk.FileOf / CadFontMetrics.Of cache a failed font read for the whole process (do not
+      cache IO failures); a series date cell's 93 flags (AutoCAD DXF); series dates in a daylight-saving zone; a
+      definition in a non-Standard style counting nothing in the console's minimum (GUI); GUI-only sides (S)
 - [x] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
 
 - [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand
@@ -880,7 +883,7 @@ the ones wanted.
       copied as empty runs, the box folded on threads, handle strings not read; heap 627 -> 610 MB (DxfItem 104 -> 96 B,
       a polyline's caches in one lazy object 88 -> 40 B, the read-ahead index holds records); TryChain garbage; display
       lists, pixels and saved bytes identical on 167 samples
-- [ ] Speed follow-ups 13: cold display (2.2 s at 1M, GC pauses 0.7-0.9 s of it; 840 MB made, 426 MB kept) and REGEN:
+- [ ] (speed14, running) Speed follow-ups 13: cold display (2.2 s at 1M, GC pauses 0.7-0.9 s of it; 840 MB made, 426 MB kept) and REGEN:
       fuse the per-entity record walks (LookOf 7 %, HasWidthOf 5 %, TryTextGroups 3 %); layer off's remaining 36 ms
       (DropInsertions 15); OneShape wrappers (18.7 MB), the LWPOLYLINE shape cache (~58 MB: measure dropping it), handle
       strings (24 MB); a DWG read stopped mid-way (S)

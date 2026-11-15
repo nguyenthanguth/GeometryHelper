@@ -400,8 +400,10 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the value of a cell, as AutoCAD's <c>Value</c>: from R2007 on of the kind its value says (90: 1 a long, 2 a
-        /// double, 4 a text), an <see cref="int"/>, a <see cref="double"/> or a <see cref="string"/>; before R2007 its text. A
-        /// text is read as <see cref="TextString(int, int)"/> reads it, its escapes as letters.
+        /// double, 4 a text, 8 a date), an <see cref="int"/>, a <see cref="double"/>, a <see cref="string"/> or a
+        /// <see cref="DateTime"/>; before R2007 its text. A text is read as <see cref="TextString(int, int)"/> reads it, its
+        /// escapes as letters. A date or a time is the <see cref="DateTime"/> AutoCAD 2021 gave (the console's <c>Value</c>):
+        /// 1/1/2020 12:30 the 1st of January 2020 at 12:30, 12:30 alone the 30th of December 1899 at 12:30, to the second.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="col">The column, from nought.</param>
@@ -409,7 +411,21 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's.</exception>
         public object Value(int row, int col)
         {
-            object value = Cell(row, col).Value();
+            CellView cell = Cell(row, col);
+
+            // A date or a time is the DateTime AutoCAD 2021's Value gave (D42): 1/1/2020 12:30 the 1st of January 2020 at 12:30,
+            // 12:30 alone the 30th of December 1899 at 12:30.
+            if (
+                cell.ValueFrom >= 0
+                && cell.Whole(171, 1) != (int)DxfTableCellType.BlockCell
+                && KindOf(cell) == DxfDataType.Date
+                && DxfTableDate.TryFromBytes(cell.InValue(310), out DateTime day)
+            )
+            {
+                return day;
+            }
+
+            object value = cell.Value();
             return value is string text ? DxfReader.Decode(text) : value;
         }
 
@@ -821,7 +837,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the cell is not a block cell, or the table is erased.</exception>
         public void SetBlockScale(int row, int col, double scale)
         {
-            SetBlockValue(row, col, 144, scale, BlockScale(row, col), () =>
+            SetBlockValue(row, col, 144, scale, 1.0, () =>
                 Guard.Positive(scale, nameof(scale), "A block's scale has to be a finite number above nought.")
             );
         }
@@ -834,7 +850,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the cell is not a block cell, or the table is erased.</exception>
         public void SetBlockRotation(int row, int col, double rotationalAngle)
         {
-            SetBlockValue(row, col, 145, rotationalAngle, BlockRotation(row, col), () =>
+            SetBlockValue(row, col, 145, rotationalAngle, 0.0, () =>
                 Guard.Finite(rotationalAngle, nameof(rotationalAngle), "An angle has to be a finite number.")
             );
         }
@@ -868,7 +884,7 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentException("A value is written on one line.", nameof(value));
             }
 
-            CellView cell = CellToWrite(row, col);
+            CellView cell = CellToEdit(row, col);
             string handle = attributeDefinition.Handle;
 
             for (int i = cell.From; handle != null && i + 1 < cell.To; i++)
@@ -902,10 +918,10 @@ namespace GeometryHelper.Dxf
             );
         }
 
-        /// <summary>Writes a number of a block cell's head in place, nothing where it is the one read.</summary>
-        private void SetBlockValue(int row, int col, int code, double value, double now, Action check)
+        /// <summary>Writes a number of a block cell's head in place, nothing where it is the one read, <paramref name="absent"/> where the cell gives none.</summary>
+        private void SetBlockValue(int row, int col, int code, double value, double absent, Action check)
         {
-            CellView cell = CellToWrite(row, col);
+            CellView cell = CellToEdit(row, col);
 
             if (cell.Whole(171, 1) != (int)DxfTableCellType.BlockCell)
             {
@@ -919,6 +935,8 @@ namespace GeometryHelper.Dxf
             }
 
             // The value the cell has changes nothing, whatever the file holds; another is checked before it is written.
+            double now = Numbers.TryRead(cell.Head(code), out double read) && Guard.IsFinite(read) ? read : absent;
+
             if (Same(value, now))
             {
                 return;
