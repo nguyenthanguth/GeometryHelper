@@ -188,6 +188,12 @@ namespace GeometryHelper.Geometry
         /// A segment of any length carries its line: the segment from (0, 0) to (0.000007, 0.000007) mirrors (1, 0) to
         /// (0, 1), where it was read within the global vector tolerance of 1E-5 as having no direction and refused.
         /// </para>
+        /// <para>
+        /// A line at 45 degrees swaps the two coordinates, and its matrix has whole numbers for entries: (0, 10) across
+        /// the line y = x comes to (10, 0), where built from the unit direction (0.7071067811865476, 0.7071067811865476)
+        /// it came to 9.999999999999998. The matrix is built from the direction divided by its greatest component,
+        /// over its squared length.
+        /// </para>
         /// </remarks>
         public static GeoTransform2 Mirror(GeoLine2 line)
         {
@@ -199,14 +205,18 @@ namespace GeometryHelper.Geometry
             }
 
             // Reflection across the line through the origin along (ux, uy), then carried to the line itself.
+            double greatest = Math.Max(Math.Abs(unit.X), Math.Abs(unit.Y));
+            double ux = unit.X / greatest;
+            double uy = unit.Y / greatest;
+            double squared = ux * ux + uy * uy;
             GeoTransform2 t = new GeoTransform2();
-            double xx = unit.X * unit.X;
-            double yy = unit.Y * unit.Y;
-            double xy = 2.0 * unit.X * unit.Y;
-            t._m[0, 0] = xx - yy;
-            t._m[0, 1] = xy;
-            t._m[1, 0] = xy;
-            t._m[1, 1] = yy - xx;
+            double xx = ux * ux;
+            double yy = uy * uy;
+            double xy = 2.0 * ux * uy;
+            t._m[0, 0] = (xx - yy) / squared;
+            t._m[0, 1] = xy / squared;
+            t._m[1, 0] = xy / squared;
+            t._m[1, 1] = (yy - xx) / squared;
 
             GeoVector2 toStart = new GeoVector2(line.StartPoint.X, line.StartPoint.Y);
 

@@ -223,5 +223,40 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.Equal(before, new[] { 41, 140, 145 }.Select(c => Group(document, copy.Handle, c)).ToArray());
         }
+
+        [Fact]
+        public void TheCopyOfAnAnnotativeTextMade_ByMirror_HasAnExtensionDictionaryWithNoReactors()
+        {
+            // AutoCAD 2021's MIRROR (mirror-3 GHM3TEXT, an annotative TEXT and MTEXT across y = 100) writes the copy's extension
+            // dictionary with its owner (330) and no {ACAD_REACTORS; the dictionaries below it keep theirs.
+            CadDocument document = Blank();
+            document
+                .Database.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES")
+                .AddContext(
+                    new DxfAnnotationScale
+                    {
+                        Name = "1:1",
+                        PaperUnits = 1,
+                        DrawingUnits = 1,
+                    }
+                );
+            var text = new DxfDBText
+            {
+                Position = new GeoPoint3(10, 10, 0),
+                TextString = "ABC",
+                Height = 2.5,
+            };
+            document.Database.ModelSpace.AppendEntity(text);
+            text.Annotative = DxfAnnotativeStates.True;
+            Assert.Empty(text.ExtensionDictionary.GetPersistentReactorIds());
+
+            DxfDBText copy = MirroredCopy<DxfDBText>(document, text.Handle, P(0, 100), P(100, 100));
+
+            DxfDBDictionary extension = copy.ExtensionDictionary;
+            Assert.Equal(copy.Handle, extension.OwnerHandle);
+            Assert.Empty(extension.GetPersistentReactorIds());
+            var manager = (DxfDBDictionary)extension.GetAt("AcDbContextDataManager");
+            Assert.Equal(new[] { extension.Handle }, manager.GetPersistentReactorIds());
+        }
     }
 }

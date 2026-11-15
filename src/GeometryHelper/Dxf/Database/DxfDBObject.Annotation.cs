@@ -1164,14 +1164,7 @@ namespace GeometryHelper.Dxf
                 DxfItem owner = record.Key == 0 ? item : item.File.FollowerOf(item, record.Key);
                 owner.CopiedContexts = null;
                 DxfFile file = owner.File;
-                DxfItem extension = file.AddObject("DICTIONARY", owner.Handle, b =>
-                {
-                    b.Group(100, "AcDbDictionary");
-                    b.Group(280, "1");
-                    b.Group(281, "1");
-                });
-
-                file.SetExtensionDictionary(owner, extension.Handle);
+                DxfItem extension = DxfTable.MakeExtensionDictionary(file, owner, false);
                 DxfItem manager = ((DxfDBDictionary)OfObject(extension)).Add(
                     ContextManagerName,
                     "DICTIONARY",

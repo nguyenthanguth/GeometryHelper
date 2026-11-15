@@ -260,28 +260,42 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// Mirroring reverses handedness, so its determinant is negative and shapes come back with their
         /// winding flipped: a polygon normal points the other way afterwards.
+        /// <para>
+        /// A plane at 45 degrees swaps two coordinates, and its matrix has whole numbers for entries: (0, 10) across the
+        /// plane y = x comes to (10, 0) and across y = x - 50 to (60, -50), where built from the unit normal
+        /// (0.7071067811865476, -0.7071067811865476) every entry was a last digit off and the first came to
+        /// 10.000000000000002. The matrix is built from the normal divided by its greatest component, over its squared
+        /// length.
+        /// </para>
         /// </remarks>
         public static GeoTransform3 Mirror(GeoPlane3 plane)
         {
             GeoVector3 n = plane.Normal;
-            double d = plane.DistanceFromWorldOrigin;
+            double greatest = Math.Max(Math.Abs(n.X), Math.Max(Math.Abs(n.Y), Math.Abs(n.Z)));
+            double ux = n.X / greatest;
+            double uy = n.Y / greatest;
+            double uz = n.Z / greatest;
+            double squared = ux * ux + uy * uy + uz * uz;
+
+            // The distance of the plane from the origin, along the normal as it is scaled here.
+            double d = ux * plane.Origin.X + uy * plane.Origin.Y + uz * plane.Origin.Z;
 
             GeoTransform3 t = new GeoTransform3();
 
-            t._m[0, 0] = 1.0 - 2.0 * n.X * n.X;
-            t._m[0, 1] = -2.0 * n.X * n.Y;
-            t._m[0, 2] = -2.0 * n.X * n.Z;
-            t._m[0, 3] = 2.0 * d * n.X;
+            t._m[0, 0] = 1.0 - 2.0 * ux * ux / squared;
+            t._m[0, 1] = -2.0 * ux * uy / squared;
+            t._m[0, 2] = -2.0 * ux * uz / squared;
+            t._m[0, 3] = 2.0 * d * ux / squared;
 
-            t._m[1, 0] = -2.0 * n.Y * n.X;
-            t._m[1, 1] = 1.0 - 2.0 * n.Y * n.Y;
-            t._m[1, 2] = -2.0 * n.Y * n.Z;
-            t._m[1, 3] = 2.0 * d * n.Y;
+            t._m[1, 0] = -2.0 * uy * ux / squared;
+            t._m[1, 1] = 1.0 - 2.0 * uy * uy / squared;
+            t._m[1, 2] = -2.0 * uy * uz / squared;
+            t._m[1, 3] = 2.0 * d * uy / squared;
 
-            t._m[2, 0] = -2.0 * n.Z * n.X;
-            t._m[2, 1] = -2.0 * n.Z * n.Y;
-            t._m[2, 2] = 1.0 - 2.0 * n.Z * n.Z;
-            t._m[2, 3] = 2.0 * d * n.Z;
+            t._m[2, 0] = -2.0 * uz * ux / squared;
+            t._m[2, 1] = -2.0 * uz * uy / squared;
+            t._m[2, 2] = 1.0 - 2.0 * uz * uz / squared;
+            t._m[2, 3] = 2.0 * d * uz / squared;
 
             return t;
         }

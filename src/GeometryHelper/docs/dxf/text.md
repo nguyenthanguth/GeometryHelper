@@ -285,7 +285,9 @@ A TEXT, an MTEXT, an attribute definition, a hatch or a multileader set true is 
 (each record checked on a drawing AutoCAD wrote, the library's drawings audited by it with no error and read back to the same
 scales): its extended data (a multileader its group 293 instead), an extension dictionary with AcDbContextDataManager and
 ACDB_ANNOTATIONSCALES, and in it the default context, the entry `*A1` (290 of 1), of the scale CANNOSCALE names, or 1:1 in paper
-space. A text 2.5 high made annotative at 1:1 holds the context `70 0, 50 0, 10 10, 20 10, 11 0, 21 0` of the scale 1:1; its
+space. That extension dictionary names the object as its owner (330) and has no `{ACAD_REACTORS`, as AutoCAD 2021 writes
+the one of a TEXT, an MTEXT, an INSERT or a HATCH made annotative or copied (the copy of an annotative text appended to a
+drawing gets one of its own so); the dictionaries inside it have it as owner and reactor. A text 2.5 high made annotative at 1:1 holds the context `70 0, 50 0, 10 10, 20 10, 11 0, 21 0` of the scale 1:1; its
 record is kept, which holds the size at the default's scale, so that a text made at 1:50 is 125 high for 2.5 on the sheet. A
 hatch has the lines of its pattern multiplied by 1 over the scale, as AutoCAD 2021 does when it makes one annotative at 1:50
 (the offset 0.0884 of a line becomes 4.42), and its context holds them with 40 of 50, the direction of the pattern (10, 20, 30

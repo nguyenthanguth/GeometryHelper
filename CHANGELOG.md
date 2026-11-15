@@ -6,6 +6,21 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `GeoTransform3.Mirror` and `GeoTransform2.Mirror` across a plane or a line at 45 degrees give whole numbers where the
+points were whole: (0, 10) across the line from (0, 0) to (1, 1) is (10, 0), and (0, 10, 0) across the plane y = x - 50 is (60, -50, 0),
+where the matrix, built from the unit normal 0.7071067811865476 whose square is not quite a half, gave 9.999999999999998 (and
+10.000000000000002 from a normal normalized twice) and 59.999999999999986. The matrix is now built from the normal divided by its greatest
+component, over its squared length, which is exact where two components are equal and leaves the planes of the axes as they were to
+the bit. Any other plane reflects a point within a last digit of where it did: on 20 000 random planes and points up to 20 000 out the
+error against the exact reflection (computed with 300 bits) was 2.0E-12 on average and 1.2E-11 at the worst, where it had been 2.5E-12 and
+1.7E-11. The benchmarks do not time a mirror and every signature matched before and after.
+**FIXED.** The copy of an annotative TEXT, MTEXT or INSERT made by the presenter's MIRROR (or COPY, or a `Clone()` added to a drawing),
+and the extension dictionary of an object made annotative by `Annotative = True`, have no `{ACAD_REACTORS` group: AutoCAD 2021 writes
+the extension dictionary with its owner (330) alone (probed in its console, the DXF of a TEXT, an MTEXT, an INSERT and a HATCH mirrored
+across y = 100 and written by `DxfOut`: the copy's skeleton of objects and reactors equals the library's for TEXT, MTEXT and INSERT),
+and the dictionaries below it, down to the context, keep theirs. The library named the object as a reactor of its dictionary. A HATCH's
+copy still differs from AutoCAD's in the view context AutoCAD adds (parked, as before).
+
 **NEW.** The INSERT of a block cell in a table's block (`DxfTable.RecomputeTableBlock`, and every redraw of the presenter) is followed by
 an ATTRIB for each attribute definition of its block that is not constant, as AutoCAD 2021's console draws them: filled and placed
 by the INSERT's transformation as the INSERT command fills one, in the order of the block, an invisible definition's invisible, its words

@@ -745,13 +745,7 @@ namespace GeometryHelper.Dxf
 
             if (handle == null)
             {
-                extension = file.AddObject("DICTIONARY", owner.Handle, b =>
-                {
-                    b.Group(100, "AcDbDictionary");
-                    b.Group(280, "1");
-                    b.Group(281, "1");
-                });
-                file.SetExtensionDictionary(owner, extension.Handle);
+                extension = DxfTable.MakeExtensionDictionary(file, owner, false);
             }
             else
             {
