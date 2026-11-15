@@ -1747,13 +1747,19 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// The table's own groups, to be changed and written: read from the record, or copied from the layout read last where
-        /// that is of the record as it stands (a record just written has its layout kept, <see cref="Rebuild"/>), which costs
+        /// that is of the record as it stands (a record just written has its layout kept, <see cref="Rebuild"/>, and the cells
+        /// written one by one since are put into it, <see cref="Patched"/>), which costs
         /// a copy of its list and not a reading of every group.
         /// </summary>
-        private DxfDimGroups Own() =>
-            _layout != null && HeldLayout(Item.File.RecordAt(Item, 0))
-                ? new DxfDimGroups(Item, _layout.Groups)
+        private DxfDimGroups Own()
+        {
+            DxfFile.Rec record = Item.File.RecordAt(Item, 0);
+
+            // The cells written one by one since the layout was read are put into it, as any reading of the table does.
+            return _layout != null && (HeldLayout(record) || HeldPatched(record))
+                ? new DxfDimGroups(Item, Read().Groups)
                 : new DxfDimGroups(Item);
+        }
 
         /// <summary>
         /// The table's layout, read once for the record as it stands: kept while the record's bytes are the same, as every
@@ -1957,16 +1963,24 @@ namespace GeometryHelper.Dxf
             Guard.Positive(size, parameter, message);
             CheckEditable();
             string text = AsReal(size);
+            var changed = new List<int>();
 
             foreach (int at in places)
             {
                 if (!Same(Real(layout.Groups, at), size))
                 {
                     layout.Groups.List[at] = new KeyValuePair<int, string>(layout.Groups.List[at].Key, text);
+                    changed.Add(at);
                 }
             }
 
-            layout.Groups.Write(Order);
+            // The sizes are put in the place of the bytes they were read from where the record is one this table wrote whole,
+            // which keeps the places of its cells for the edits that follow.
+            if (!SpliceChanged(layout, changed))
+            {
+                layout.Groups.Rewrote = NoteWritten;
+                layout.Groups.Write(Order);
+            }
         }
 
         private static double Real(DxfDimGroups groups, int at) =>

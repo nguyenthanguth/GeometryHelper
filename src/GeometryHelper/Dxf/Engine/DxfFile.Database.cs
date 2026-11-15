@@ -6407,6 +6407,19 @@ namespace GeometryHelper.Dxf
             return written;
         }
 
+        /// <summary>
+        /// Puts the bytes a <see cref="Builder"/> wrote in the place of one record of an entity: a record made of bytes copied from
+        /// the one it had and groups written anew, as a table's rows put in are (<see cref="DxfTable"/>), the entity changed as
+        /// <see cref="ReplaceOwn"/> changes it.
+        /// </summary>
+        internal void PutRecord(DxfItem item, int index, Builder written)
+        {
+            Editable(item);
+            List<Rec> records = item.Parent == null && item.Piece != null ? item.Piece.Records : RecordsOf(item);
+            records[index] = written.Done(records[index].Type);
+            Rewritten(item, records, false);
+        }
+
         /// <summary>The bytes of groups as the file writes them, one after another.</summary>
         internal byte[] BytesOfGroups(IList<KeyValuePair<int, string>> groups)
         {
