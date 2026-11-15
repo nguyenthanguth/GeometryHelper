@@ -652,6 +652,23 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// The shapes <see cref="GetGeometry"/> gives, for a drawing to walk: where the entity has one shape that no list holds
+        /// yet, the shape in <paramref name="one"/> and no list, which the million entities of a drawing each had made for them
+        /// to be walked once; the list, and <paramref name="one"/> null, otherwise.
+        /// </summary>
+        internal IReadOnlyList<object> GeometryOrOne(out object one)
+        {
+            one = null;
+
+            if (Item.Type == "INSERT")
+            {
+                return GetGeometry();
+            }
+
+            return OwnGeometry() ?? Item.ShapesOrOne(out one);
+        }
+
+        /// <summary>
         /// The shapes of a class whose type <see cref="DxfReader"/> reads none of, given by <see cref="GetGeometry"/> in their
         /// place, as an IMAGE its boundary; null, the reader's, unless the class says otherwise.
         /// </summary>

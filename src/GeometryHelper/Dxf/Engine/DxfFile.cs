@@ -690,9 +690,35 @@ namespace GeometryHelper.Dxf
         internal Look LookOf(DxfItem item, out string handle) => LookOf(item, out handle, out _);
 
         /// <inheritdoc cref="LookOf(DxfItem, out string)"/>
-        internal Look LookOf(DxfItem item, out string handle, out bool hidden)
+        internal Look LookOf(DxfItem item, out string handle, out bool hidden) =>
+            LookOf(item, out handle, out hidden, false, out _);
+
+        /// <summary>
+        /// As <see cref="LookOf(DxfItem, out string, out bool)"/>; for a drawing, which asks what else of the record it is about to
+        /// draw (<paramref name="display"/>), the same walk of the record settles what the question of each would walk it for: of
+        /// a LWPOLYLINE whether it has no width (<paramref name="noWidth"/>, see <see cref="HasWidthOf"/>), which every polyline
+        /// drawn is asked, again at every REGEN.
+        /// </summary>
+        internal Look LookOf(DxfItem item, out string handle, out bool hidden, bool display, out bool noWidth)
         {
             Rec record = HeadOf(item);
+            var width = default(WidthScan);
+            bool widthed = display && record.Type == "LWPOLYLINE";
+
+            // A TEXT's groups are read into the thread's slots in the same walk, for the drawing of it that follows.
+            TextStash stash = null;
+            TextScan reading = default;
+            bool texted = display && item.CopiedContexts == null && record.Type == "TEXT";
+
+            if (texted)
+            {
+                stash = _textStash ?? (_textStash = new TextStash());
+                stash.Item = null;
+                stash.Bytes = null;
+                stash.Clear();
+                reading = new TextScan(stash.Slots);
+            }
+
             var spans = new LookSpans(-1);
             int handleStart = -1,
                 handleEnd = 0,
@@ -708,6 +734,15 @@ namespace GeometryHelper.Dxf
 
             while (walk.Next(out int code, out int start, out int end))
             {
+                if (widthed)
+                {
+                    width.Feed(this, record, code, start, end);
+                }
+                else if (texted)
+                {
+                    reading.Feed(this, record, code, start, end);
+                }
+
                 if (shown < 0)
                 {
                     if (code == 1001)
@@ -788,6 +823,17 @@ namespace GeometryHelper.Dxf
             string text = from < 0 ? null : Text(record, from, dimStyle ? dimEnd : handleEnd).Trim();
             handle = string.IsNullOrEmpty(text) ? null : text;
             hidden = shown == 0;
+            noWidth = widthed && !width.Result;
+
+            // The slots are the record's alone where no extension dictionary was met, which TryTextGroups takes as read.
+            if (texted && !reading.Stopped)
+            {
+                stash.Item = item;
+                stash.Bytes = record.Bytes;
+                stash.Start = record.Start;
+                stash.End = record.End;
+            }
+
             byte[] bytes = record.Bytes;
             int hash = spans.Hash(bytes);
             int slot = hash & (LookSlots - 1);

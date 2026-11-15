@@ -1858,7 +1858,7 @@ namespace GeometryHelper.Dxf
 
                 bool arcs = keptBulges.Exists(b => b != 0.0);
                 GeoVector3 bulged = flat ? new GeoVector3(0.0, 0.0, 1.0) : normal;
-                var normals = new List<GeoVector3>(keptBulges.Count);
+                List<GeoVector3> normals = ScratchNormals();
 
                 foreach (double bulge in keptBulges)
                 {

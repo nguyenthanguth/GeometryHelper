@@ -6,6 +6,24 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The cold display of a drawing of 1 000 000 entities makes 532 MB of objects where it made 837 and is collected 31 times where 47,
+and takes 1.52 s where 1.82 (best of 15 runs alternated with the older build in three passes, .NET 8; median 1.74 s where 2.15); under .NET
+Framework 4.8 540 MB where 860, 82 collections of the youngest generation where 123, 2.80 s where 3.10, and under .NET 10 1.52 s where 2.43. A REGEN takes 0.58 s where 0.80
+(1.27 s where 1.37 under .NET Framework 4.8), a layer switched off 22 ms where 35 (42 where 63), a layer switched on 314 ms where 342, and
+a MOVE of one line 16 ms as before. An entity of one shape keeps the shape itself where it kept a list of it (24 bytes of each of 780 000
+entities, and an enumerator of 48 for every walk of it): `Shapes` gives the list as before, made when asked for and kept, and the drawing
+takes the shape bare. The width of a LWPOLYLINE and the groups of a TEXT are found in the walk of the record that finds its look, by the same
+code, where each was a walk of its own over the same bytes; a polyline found to have no width is marked so, and a REGEN no longer walks each
+of 200 000 polylines to be told it again (a tenth of a REGEN). The box of a text is found with no array made, the lists a polyline of four
+vertices is read and drawn through are a thread's and a builder's own, emptied for each, and the room the runs, items and insertion points
+of a list need is made once after the first 4 096 entities where it was made over by doubling twenty times. A layer switched off is patched in
+pieces on up to eight threads where more than 131 072 runs are taken, the insertion points of the runs dropped taken out by another at the
+same time; those points were 12.5 of its 33 ms once the rest was in pieces, where they had been 2.5 of 36. Not
+kept: the shapes of a LWPOLYLINE, whose drop takes 68 MB off the heap (526 MB where 594) and a REGEN 0.84 s where 0.60. The display lists, their
+boxes, runs and insertion points, the bytes saved and the pixels are the same: 167 AutoCAD samples (cold, after a MOVE, an ERASE, three layers
+off and on, a REGEN and the layouts) item for item under both runtimes, the saved bytes but for the one sample with an ACIS body, and the
+pixels in two views, plain, selected and hovered; drawings of 200 000 and 1 000 000 entities the same way. `DxfSpeed16Tests` (13) and `DisplaySpeed16Tests` (7).
+
 **NEW.** `DwgWriter` writes AutoCAD 2000 (AC1015): `DwgWriter.Write(database, path, "AC1015")`. The file is the one AutoCAD 2000 has and not the pages of
 the later versions: a header of 0x61 bytes with six locators, the auxiliary header, the preview, the header variables, the classes, the objects, the
 object map with the places of the objects as places in the file, and the template, with the maintenance release 15 and no free-space section. A

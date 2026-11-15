@@ -346,6 +346,11 @@ namespace GeometryHelper.Dxf.Viewer
         private static bool IsFlat(GeoVector3 normal) =>
             Math.Abs(Math.Abs(normal.Z) - normal.Length) <= 1E-9 * Math.Max(1.0, normal.Length);
 
+        private List<double> _chainRun = new List<double>(64);
+
+        /// <summary>The most numbers the list of <see cref="AddArcChain"/> keeps room for between chains: a chain of 8 000 vertices.</summary>
+        private const int MostKeptChainNumbers = 16384;
+
         private void AddArcChain(
             IReadOnlyList<GeoPoint3> vertices,
             IReadOnlyList<double> bulges,
@@ -360,7 +365,11 @@ namespace GeometryHelper.Dxf.Viewer
         {
             int n = vertices.Count;
             int edges = closed ? n : n - 1;
-            var run = new List<double>();
+
+            // The numbers of the run being made are kept in a list of the builder's, emptied for each chain, where a list grown
+            // from nothing made three arrays of its own for each polyline of four vertices (some 300 bytes).
+            List<double> run = _chainRun;
+            run.Clear();
             bool sampled = false;
 
             void Flush()
@@ -485,6 +494,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             Flush();
+
+            // A chain of very many vertices does not leave its room in the list for every chain after it.
+            if (run.Capacity > MostKeptChainNumbers)
+            {
+                _chainRun = new List<double>(64);
+            }
         }
 
         /// <summary>
