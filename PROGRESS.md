@@ -306,13 +306,15 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] R2007 dynamic blocks and older-version solids (dwgver4): R2007 keeps constraint groups through VERTEXIDENTIFIER
         and ISDYNAMIC round-trip records (33 of 33 equal to AutoCAD's; 8 samples keep their groups); 3DSOLID/REGION/BODY
         written in R2004, R2007, R2010 (bit-identical to AutoCAD's, MASSPROP equal); R2007 AppInfo written coded 4
-  - [ ] (dwgver5, running: v2 groups, R2000 solids) R3.3 follow-ups 5: constraint groups of the v2 layout (an R2018 AutoCAD file) into R2007/R2010; R2000 solids
-        (SAT v1 text); an unexplained ErrorStatus 76 seen once; spline solids not placed; R2007 AppInfoHistory and
-        SummaryInfo (no version writes SummaryInfo yet); the ISDYNAMIC dimension test is a heuristic (layer + reactor);
-        non-ASCII text in pre-2007 DWGs as \U+ escapes; R2000 VIEWPORT entity header handle and frozen-layer code 5;
-        dictionaries naming left-out objects; -BOUNDARY Region islands (GUI); UNION/SUBTRACT first picked region; region
-        grips and UNION colour reset in the GUI; spline edges and non-planar faces; orphan ACDSRECORDs; a parse cache for
-        thousands of regions (M)
+  - [x] R2007/R2010 constraint groups of the second layout and R2000 solids (dwgver5): a v2 group written in the v1
+        layout AutoCAD writes below R2013 (34 of 34 groups' data bits equal to AutoCAD's R2010; AUDIT as AutoCAD's own);
+        3DSOLID/REGION/BODY in R2000 as SAT 4.00 text in 4 096-byte blocks (bytes equal to AutoCAD's; MASSPROP equal)
+  - [ ] R3.3 follow-ups 6: DXF saves of R2007/R2010 still hold the second-layout group text (AutoCAD's DXF holds v1);
+        R2000 spline solids not placed as ACIS 4.00; a constraint circle's fourth real dropped going down; AutoCAD's order
+        of owned actions and stretch-action entities (22 BLOCKSTRETCHACTION); an unexplained ErrorStatus 76; R2007
+        AppInfoHistory and SummaryInfo; the ISDYNAMIC heuristic; non-ASCII text in pre-2007 DWGs as \U+ escapes; R2000
+        VIEWPORT entity header handle and frozen-layer code 5; dictionaries naming left-out objects; region GUI checks;
+        spline edges and non-planar faces; orphan ACDSRECORDs; a parse cache for thousands of regions (M)
   - [x] Dialogs 5 (dialogs5, design v139-v140): Multiline Style (with New/Modify page, Load), Multiline Edit Tools, the
         Hatch dialog's third column (one-colour gradient, colours, layer, transparency, origin, gap), Plot Stamp and PLOT's
         "Plot stamp on", Image Adjust, Attribute Extraction, Xbind

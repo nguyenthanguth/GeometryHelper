@@ -195,8 +195,9 @@ equal its DXF group for group but for the order of the actions they own (a hash 
 the indexes of the dependencies gives it), and every one is written again from its DXF to the very bits of AutoCAD's object
 (its class number apart). A group of version 1, which a DWG of AutoCAD 2010 gives, is brought up to the version 2 when it is
 written to R2018, as AutoCAD does when it saves one: the action of version 2 with its four numbers 0, the nodes by
-identifier, the table and the directory, and a 0 for the fourth real of a circle or an arc. A group of the version 2 is not
-written to a DWG of R2010 or earlier (its network goes with it). The network and the variable are of the version 2 of an
+identifier, the table and the directory, and a 0 for the fourth real of a circle or an arc. A group of the version 2 is taken
+down to the version 1 when it is written to a DWG of R2010 or R2007, as AutoCAD does when it saves such a drawing (see
+below). The network and the variable are of the version 2 of an
 action (the four numbers more) in a DWG of R2013 and later, and of the version 1 before, whichever version the groups give,
 as AutoCAD 2021 writes them: its own R2018, R2013, R2010 and R2007 files of Architectural - Metric hold them at 2, 2, 1 and
 1, and the 6 networks and 35 variables of a drawing saved by AutoCAD 2010 and written to R2018 are the bits of AutoCAD's own.
@@ -273,7 +274,7 @@ call.
   nodes whose expression it does not find). So is a network that names an action left out (the variables and dependencies it
   owns), and a user or constraint parameter whose variable or dependency is. None of the 90 graphs of the sample drawings is
   left out of an R2018 any more (18 were, in the `Architectural`, `Civil`, `Electrical`, `Mechanical` and `Structural`
-  drawings); a group of version 2 is left out of a DWG of R2010 and earlier, where the writer only has the first layout.
+  drawings); a group of version 2 is written to a DWG of R2010 and R2007 in the first layout (see below).
   A TABLECONTENT that holds the attributes of a block or a cell's cached geometry is left out too, with its ACAD_TABLE;
   no sample drawing has one. A table of fields and links is read: the cell of a field gives it in group 344 and the
   TABLECONTENT lists the fields the table owns (92 and 360), a cell linked to a data link gives the link, its rows and
@@ -513,7 +514,7 @@ each (`DwgWriter: types that are not written yet were left out: SHAPE 1 …`). E
 left out is written as 0, every dictionary entry naming one is dropped, and the vertices and attributes it owns go
 with it. A record that has no handle (a DXF of AutoCAD 12 has none) cannot be named by the DWG and is left out the same
 way, counted under its type. Left out so far: a REGION, 3DSOLID or BODY
-of ACIS 4.00 text (the DXF of AutoCAD 2000) or of a SAT whose records the grammars do not place (see below), a SHAPE
+of a SAT whose records the grammars do not place, and of R2000 one that is not ACIS 4.00 (see below), a SHAPE
 given by its name, and the surfaces. A new drawing of AutoCAD 2018 is written whole: nothing of it is left out.
 
 A SHAPE is written where its DXF gives its number: under group 70, as the reader gives a shape whose file of shapes it
@@ -653,6 +654,37 @@ drawings as R2000 and R2004 read as many objects of every type as AutoCAD's DXF 
 out of them as broken, and with it the lookup parameter, the linear parameter, the grips, the stretch and the graph that lean on
 it (14 objects of a panel made in code with one lookup, and 21 of the 391 of Architectural - Metric), because the table's
 values, texts of the data before R2007, were looked for in a string stream that those versions have not.
+
+A constraint group of the version 2 (the DXF of a drawing AutoCAD 2018 saved) is written to R2010 and R2007 in the layout of the
+version 1, as AutoCAD 2021 does when it saves such a drawing in those versions (its DXF of R2010 holds the smallest group of
+Architectural - Metric in 423 groups where its DXF of R2018 holds 430): the action at version 1 without its four numbers, the two
+numbers and the flag after the next identifier left out, and the nodes by identifier, each with its class as a text, its
+identifier, its byte and its identifiers, and what its class holds, a circle and an arc with three reals where the version 2
+has four (the fourth is 0 in every sample, and is dropped). The group was left out of those versions, with the network that listed
+it, and so were the evaluation graph and the dependencies of the block. The 8 drawings of the `Dynamic Blocks` samples that hold
+groups (34 in all), saved by AutoCAD as R2018 and written as R2010 and as R2007 (the records of the DXF of R2007 as above), open in
+AutoCAD with `AUDIT` finding the errors of AutoCAD's own R2010 file of each (none in the Architectural, Mechanical - Imperial and
+Structural drawings, 2 in each Civil, 10 in Mechanical - Metric, 24 and 32 in the Annotation and Electrical drawings, which hold no
+group), and AutoCAD's DXF of each of the 16 files has every group of the R2018 file's DXF group for group and every other object of
+the dynamic block but for the order of the entities of a stretch action (1 to 12 in a drawing, AutoCAD's own order). The data
+stream of each of the 34 groups equals the data stream of the group in AutoCAD's own DWG of R2010 of the same drawing, bit for bit;
+the handle stream differs in the order of the actions the group owns where AutoCAD keeps them in an order of its own. The 180
+drawings (the 167 of the corpus and the 13 R2018 saves) written as each of the six versions are the same bytes as before but for
+the 16 files of R2007 and R2010 that hold groups and the 8 of R2000 that hold bodies (1 056 of 1 080).
+
+A REGION, 3DSOLID or BODY of a DWG of R2000 is written with its SAT, the text of ACIS 4.00, in the entity, as AutoCAD 2000's file
+keeps it: the flag of not empty, a bit AutoCAD 2000 sets to 1 where the later versions leave it at 0, the version 1, the text in
+blocks of at most 4 096 bytes, each with its size ahead of it and a 0 after the last, and the wireframe of a new solid, with no count
+of materials of faces and no handle of a history. Each line of the DXF is a line of the text as the groups hold it (each
+character but a space 0x9F less it, a caret held alone where DXF writes it with a space after), followed by a carriage return and a
+line feed, a line that starts with a space starting with a tab as the reader gives a tab. AutoCAD's own DWG of R2000 of a box 30 by
+20 by 10 and a region, and of two spline solids (the second with 9 836 bytes of text in blocks of 4 096, 4 096 and 1 644), are
+read and written again to the very bytes of each entity (4 of 4). The box, the sphere, the cylinder and the region (`acis`) written
+from the DXF of R2004, R2010, R2013 and R2018, the box with its region (`solids`) and the plate of 400 holes (`acisbig`, 515 873
+bytes of SAB) written to R2000 open in AutoCAD with `AUDIT` finding 0 errors, and `MASSPROP` gives the
+volume AutoCAD gives the original and its own SaveAs to R2000 (9 087.1384 for the three solids, area 153.9380 and perimeter 43.9823
+for the region; 6 000 and 314.1593; 1 398 938.0702 for the plate). A body whose ACIS the DXF versions cannot place as 4.00 (the two
+spline solids of each of the DXF of R2004, R2007 and R2010) is left out of R2000 as before: R2000 holds that version alone.
 
 A 2D polyline of R2010 and later puts the id of a vertex (group 91) between its bulge and its tangent direction (group
 50). It was written after the tangent and not read, so a polyline AutoCAD had curve-fitted (a vertex with a tangent of

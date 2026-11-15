@@ -556,15 +556,92 @@ namespace GeometryHelper.UnitTest.Dwg
         }
 
         [Fact]
-        public void AConstraintGroupOfTheSecondVersion_IsLeftOutOfADwgOfR2010WithTheNetworkThatListsIt()
+        public void AConstraintGroupOfTheSecondVersion_IsWrittenToADwgOfR2010AsTheFirst_WithTheNetworkThatListsIt()
         {
-            // The layouts of R2010 and R2018 differ; only the writer of R2018 knows the second, so a group of the version 2 is
-            // not written to R2010 in the layout of the first.
-            DwgDrawing drawing = DwgDrawing.Parse(Drawing(Group2, out _), null);
-            DwgFileWriter.Write(drawing, "AC1024", out DwgFileWriter writer);
+            // The layouts of R2010 and R2018 differ. AutoCAD 2021 saves a drawing of R2018 as R2010 with the group in the first
+            // layout, its action of version 1 and its nodes by identifier with their class as a text (its DXF of the two, the
+            // second of 7 fewer groups on the smallest group of Architectural - Metric, gives the first): the group goes into R2010
+            // as that, with its network, variable and dependency, and reads back as the group of the first version.
+            string text = Drawing(Group2, out _);
+            DwgDrawing drawing = DwgDrawing.Parse(text, null);
+            byte[] dwg = DwgFileWriter.Write(drawing, "AC1024", out DwgFileWriter writer);
+            byte[] back = DwgReader.ToDxf(dwg);
 
-            Assert.Contains("ACDBASSOC2DCONSTRAINTGROUP", writer.LeftOut.Keys);
-            Assert.Contains("ACDBASSOCNETWORK", writer.LeftOut.Keys);
+            Assert.DoesNotContain(writer.LeftOut.Keys, Dynamic);
+            Assert.Equal(1, Kept(1024, Drawing(Group, out _), back, "F301"));
+            Assert.Equal(3, Kept(1024, text, back, "F300", "F302", "F303"));
+        }
+
+        [Fact]
+        public void TheNodesOfAConstraintGroupOfTheSecondVersion_AreWrittenToR2010ByIdentifier()
+        {
+            // Two nodes in the directory the wrong way round, with their bodies, come out by identifier.
+            string boundedLine = Lines("1=AcConstrainedBoundedLine|90=1");
+            string implicitPoint = Lines("1=AcConstrainedImplicitPoint|90=2");
+            string boundedLineBody = Lines(
+                "90=1|90=1|90=3|70=0|330=F303|90=0"
+                    + "|10=0.0|20=4.0|30=0.0|10=0.0|20=-1.0|30=0.0|290=0|10=0.0|20=4.0|30=0.0|11=36.0|21=4.0|31=0.0"
+            );
+            string implicitPointBody = Lines("90=2|90=1|90=3|70=0|330=0|90=0|280=1|90=-1|90=1");
+            string text = Drawing(Group2, out _)
+                .Replace(boundedLine + implicitPoint, implicitPoint + boundedLine)
+                .Replace(boundedLineBody + implicitPointBody, implicitPointBody + boundedLineBody);
+            DwgDrawing drawing = DwgDrawing.Parse(text, null);
+            byte[] back = DwgReader.ToDxf(DwgFileWriter.Write(drawing, "AC1024", out DwgFileWriter writer));
+
+            Assert.NotEqual(Drawing(Group2, out _), text);
+            Assert.DoesNotContain(writer.LeftOut.Keys, Dynamic);
+            Assert.Equal(1, Kept(1024, Drawing(Group, out _), back, "F301"));
+        }
+
+        [Fact]
+        public void ACircleOfAConstraintGroupOfTheSecondVersion_LosesItsFourthRealInADwgOfR2010()
+        {
+            // The first layout holds three reals after the points of a circle and an arc where the second holds four (the fourth
+            // 0 in every sample of AutoCAD's).
+            string text = Drawing(Group2, out _)
+                .Replace(Lines("1=AcConstrainedBoundedLine|90=1"), Lines("1=AcConstrainedCircle|90=1"))
+                .Replace(
+                    Lines(
+                        "90=1|90=1|90=3|70=0|330=F303|90=0"
+                            + "|10=0.0|20=4.0|30=0.0|10=0.0|20=-1.0|30=0.0|290=0|10=0.0|20=4.0|30=0.0|11=36.0|21=4.0|31=0.0"
+                    ),
+                    Lines(
+                        "90=1|90=1|90=3|70=0|330=F303|90=0"
+                            + "|10=1.0|20=2.0|30=0.0|10=0.0|20=0.0|30=1.0|10=1.0|20=0.0|30=0.0|40=25.4|40=0.0|40=6.28|40=0.0"
+                    )
+                );
+            DwgDrawing drawing = DwgDrawing.Parse(text, null);
+            byte[] dwg = DwgFileWriter.Write(drawing, "AC1024", out DwgFileWriter writer);
+            DwgAnswerKey.Record group = DwgAnswerKey.Parse(DwgReader.ToDxf(dwg)).Single(r => Handle(r) == "F301");
+
+            Assert.DoesNotContain(writer.LeftOut.Keys, Dynamic);
+            Assert.Contains(group.Groups, g => g.Key == 1 && g.Value.Trim() == "AcConstrainedCircle");
+            Assert.Equal(
+                new[] { "25.4", "0.0", "6.28" },
+                group.Groups.Where(g => g.Key == 40).Select(g => g.Value.Trim())
+            );
+        }
+
+        [Fact]
+        public void AConstraintGroupOfTheSecondVersion_IsKeptInADwgOfR2007_WhereAnXRecordHoldsTheVertexIdentifiers()
+        {
+            string text = Drawing(
+                dictionary =>
+                    Group2(dictionary)
+                    + Object(
+                        "XRECORD",
+                        "F3F0",
+                        "F300",
+                        "100=AcDbXrecord|280=1|102=VERTEXIDENTIFIER|310=0100000015000000"
+                    ),
+                out _
+            );
+            DwgDrawing drawing = DwgDrawing.Parse(text, null);
+            byte[] back = DwgReader.ToDxf(DwgFileWriter.Write(drawing, "AC1021", out DwgFileWriter writer));
+
+            Assert.DoesNotContain("ACDBASSOC2DCONSTRAINTGROUP", writer.LeftOut.Keys);
+            Assert.Equal(1, Kept(1021, Drawing(Group, out _), back, "F301"));
         }
 
         [Fact]

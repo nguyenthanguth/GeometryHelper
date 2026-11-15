@@ -261,14 +261,11 @@ namespace GeometryHelper.Dwg
         private static bool NodesAreKnown(DwgRecord record) =>
             !record.Body.Exists(group => group.Key == 1 && !ConstraintNodes.Contains(group.Value.Trim()));
 
-        /// <summary>Whether the constraint group <paramref name="record"/> is of the version 2, the layout of AutoCAD 2013 and later, which an older DWG is not written in.</summary>
-        private static bool IsConstraintGroup2(DwgRecord record) =>
-            record.Body.Exists(group => group.Key == 90)
-            && DwgRecord.Int(record.Body.Find(group => group.Key == 90).Value) >= 2;
-
         /// <summary>
         /// A group of constraints: its number and flag, its plane, the actions it owns that are written, in ascending order of
-        /// handle as a DWG keeps them (DXF lists them in the order of AutoCAD's own table), and its nodes.
+        /// handle as a DWG keeps them (DXF lists them in the order of AutoCAD's own table), and its nodes. Before R2013 the
+        /// layout is the first one, whichever the groups give: a group of the version 2 (the DXF of AutoCAD 2018) is taken
+        /// down to it as AutoCAD does when it saves such a drawing as R2010 or R2007.
         /// </summary>
         private void WriteAssocConstraintGroup()
         {
@@ -280,7 +277,8 @@ namespace GeometryHelper.Dwg
 
             List<KeyValuePair<int, string>> groups = Sequence();
             int at = 0;
-            WriteAssocAction(groups, ref at);
+            bool version2 = groups.Count > 0 && DwgRecord.Int(groups[0].Value) >= 2;
+            WriteAssocAction(groups, ref at, version2 ? 1 : 0);
             _data.BitLong(Whole(groups, ref at, 90));
             _data.Bit(Whole(groups, ref at, 70) != 0);
 
@@ -301,6 +299,15 @@ namespace GeometryHelper.Dwg
             actions = Written(actions);
             actions.Sort();
             int next = Whole(groups, ref at, 90);
+
+            if (version2)
+            {
+                // Two numbers and a flag the first layout has no place for.
+                Whole(groups, ref at, 90);
+                Whole(groups, ref at, 90);
+                Take(groups, ref at, 290);
+            }
+
             int nodes = Whole(groups, ref at, 90);
             _data.BitLong(actions.Count);
             _data.BitLong(next);
@@ -312,9 +319,47 @@ namespace GeometryHelper.Dwg
                 H(3, action);
             }
 
+            if (version2)
+            {
+                WriteConstraintNodes1(TakeConstraintNodes(groups, ref at, nodes, true));
+                return;
+            }
+
             for (int i = 0; i < nodes; i++)
             {
                 WriteConstraintNode(groups, ref at);
+            }
+        }
+
+        /// <summary>
+        /// The nodes of a group of the version 2 in the first layout, by identifier as the groups of that layout come: each
+        /// with its class as a text, its identifier, its byte and its numbers, and what its class holds. The fourth real of a
+        /// circle and an arc, which the first layout has no place for, is left out.
+        /// </summary>
+        private void WriteConstraintNodes1(List<ConstraintNodeData> nodes)
+        {
+            nodes.Sort((a, b) => a.Id != b.Id ? a.Id.CompareTo(b.Id) : a.Order.CompareTo(b.Order));
+
+            foreach (ConstraintNodeData node in nodes)
+            {
+                T(node.Kind);
+                _data.BitLong(node.Id);
+                _data.RawChar(node.Byte);
+                _data.BitLong(node.Numbers.Count);
+
+                foreach (int number in node.Numbers)
+                {
+                    _data.BitLong(number);
+                }
+
+                if (node.Kind == "AcConstrainedArc" || node.Kind == "AcConstrainedCircle")
+                {
+                    // The pointer, a number and three points of three groups come first, then the four reals.
+                    node.Fields.RemoveAt(14);
+                }
+
+                int field = 0;
+                WriteConstraintFields(node.Kind, node.Fields, ref field, false);
             }
         }
 
