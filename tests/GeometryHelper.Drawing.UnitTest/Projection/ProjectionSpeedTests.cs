@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using GeometryHelper.Drawing.Projection;
 using GeometryHelper.Geometry;
+using GeometryHelper.UnitTest;
 using Xunit;
 using Xunit.Abstractions;
 using static GeometryHelper.Drawing.UnitTest.Projection.ProjectionKit;
@@ -31,18 +33,19 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
             Assert.Equal(50, parts.Length);
             ViewProjector.Project(parts, Top, Tol);
 
-            var watch = Stopwatch.StartNew();
             int lines = 0;
-
-            foreach (GeoCoordinateSystem3 frame in new[] { Top, Front, Right })
+            TimeSpan took = SpeedGuard.AssertWithin(1, () =>
             {
-                ProjectedView2 view = ViewProjector.Project(parts, frame, Tol);
-                lines += view.VisibleEdges.Count + view.HiddenEdges.Count;
-            }
+                lines = 0;
 
-            watch.Stop();
-            _output.WriteLine($"50 parts, three views: {watch.Elapsed.TotalMilliseconds:0} ms, {lines} lines");
-            Assert.True(watch.Elapsed.TotalSeconds < 1.0, watch.Elapsed.ToString());
+                foreach (GeoCoordinateSystem3 frame in new[] { Top, Front, Right })
+                {
+                    ProjectedView2 view = ViewProjector.Project(parts, frame, Tol);
+                    lines += view.VisibleEdges.Count + view.HiddenEdges.Count;
+                }
+            });
+
+            _output.WriteLine($"50 parts, three views: {took.TotalMilliseconds:0} ms, {lines} lines");
         }
 
         [Fact]

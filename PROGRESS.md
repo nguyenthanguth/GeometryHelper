@@ -374,7 +374,7 @@ User note 2026-11-12 evening (note.md 1-14):
       adding 1 600 tables 25.2 s -> 1.3 s (style reads cached); ListForRecompose flushed once; ACIS R2013 saves
       deterministic (the SAT head's empty date, the source's or a hashed GUID; AutoCAD reads all 24 checks, AUDIT 0);
       saved bytes identical (27 168 fuzz saves)
-- [ ] DXF versions follow-ups 12: the copy Complete() reads builds the whole entity index (~40 % of completing a large
+- [ ] (dxfver12, running: completion copy, record copies per cell edit, remaining setters) DXF versions follow-ups 12: the copy Complete() reads builds the whole entity index (~40 % of completing a large
       drawing); each cell edit still copies the record (3 s for 10 000 cells: deferred write); SetFormat, SetDataType,
       SetBackgroundColorNone, SetOverrides and the last cell on the splice path; NormalizeEdges (~70 us a table); the
       new DxfSpeed11Tests timing bounds (to flaky1's pattern); real TABLEGEOMETRY and row heights (font metrics); native
@@ -799,7 +799,12 @@ the ones wanted.
       GeoPolygonArc3 built in arrays (0.61 -> 0.37 us, 2 168 -> 624 B), small per-build caches: 100k INSERTs 1 115 -> 858
       ms (net8) / 2 057 -> 1 494 (net48), 100k mixed 247 -> 217 / 449 -> 345, garbage down a fifth to a third; display
       lists, saved bytes and pixels identical on 171 drawings; benchmarks' 34 signatures match
-- [ ] (flaky1, running) Wall-clock tests that fail under load (DisplayPatchSpeedTests, SelectObjectsOptionsTests' fence/polygon timing, Spline2TinyAndHugePartnersTests' petal curve, others): make them robust without losing what they guard (S)
+- [x] Wall-clock tests made robust (flaky1): SpeedGuard.AssertWithin (best of three after a full GC) for every timing
+      test whose limit was under ~10x its quiet time; the highlight test asks for a thread speed-up only when its threads
+      really run at once; under an 18-thread CPU burner core timing tests 0 -> 20 of 20 runs, Viewer speed tests 2 -> 10
+      of 10; a 4 s slow-down still fails them. Convention for new timing tests: SpeedGuard with a 10x limit or a ratio
+- [ ] Wall-clock tests 2: UndoReadAheadSpeedTests (50 ms floor) and the ratio tests DisplayPatch, MTextDisplay, Xref
+      under heavier load; timing classes in a DisableParallelization collection in the core suite (S)
 - [x] Speed follow-ups 10 (speed11): the 1M MOVE slowdown was real (the patch looked up every handle's insertion point):
       MOVE + display 295 -> 165 ms (net8) / 540 -> 375 (net48); the look and hidden read in one cached walk, handles
       found by the open's walk (1M open 896 -> 503 ms), block origins cached, unlike-scale arcs and circles sampled once

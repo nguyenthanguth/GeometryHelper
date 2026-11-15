@@ -566,18 +566,22 @@ namespace GeometryHelper.UnitTest.Dxf
                 + "142\n40.0\n142\n30.0\n"
                 + cells
                 + " 40\n1.5\n  0\nENDSEC\n  0\nEOF\n";
-            DxfDatabase cellsDb = DxfDatabase.Parse(text);
-            DxfTable table = Table(cellsDb);
-            DxfDatabase bothDb = DxfDatabase.Parse(text);
-            var watch = System.Diagnostics.Stopwatch.StartNew();
+            DxfDatabase cellsDb = null,
+                bothDb = null;
+            SpeedGuard.AssertWithin(
+                5,
+                () =>
+                {
+                    cellsDb = DxfDatabase.Parse(text);
+                    bothDb = DxfDatabase.Parse(text);
 
-            table.ClearTableStyleOverrides(2);
-            Table(bothDb).ClearTableStyleOverrides(0);
-
-            watch.Stop();
-            Assert.True(
-                watch.Elapsed.TotalSeconds < 5.0,
-                "Clearing the overrides of 32 002 cells twice took " + watch.Elapsed.TotalSeconds + " s."
+                    return (cells: Table(cellsDb), both: Table(bothDb));
+                },
+                tables =>
+                {
+                    tables.cells.ClearTableStyleOverrides(2);
+                    tables.both.ClearTableStyleOverrides(0);
+                }
             );
             DxfTable cleared = Table(DxfDatabase.Parse(cellsDb.ToText()));
             DxfTable both = Table(DxfDatabase.Parse(bothDb.ToText()));

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using GeometryHelper.Clipper;
 using Xunit;
 
@@ -25,13 +24,11 @@ namespace GeometryHelper.UnitTest.Clipper
             zigzag.Add(new Point64(1000000, 200));
             zigzag.Add(new Point64(0, 200));
 
-            var watch = Stopwatch.StartNew();
-            Paths64 union = Clipper2.Union(new Paths64 { zigzag }, FillRule.NonZero);
-            watch.Stop();
+            Paths64 union = null;
+            SpeedGuard.AssertWithin(3, () => union = Clipper2.Union(new Paths64 { zigzag }, FillRule.NonZero));
 
             Assert.Single(union);
             Assert.Equal(Clipper2.Area(zigzag), Clipper2.Area(union[0]));
-            Assert.True(watch.Elapsed.TotalSeconds < 3, watch.Elapsed.ToString());
         }
 
         [Fact]
@@ -56,13 +53,11 @@ namespace GeometryHelper.UnitTest.Clipper
             comb.Add(new Point64(x + 10, 200));
             comb.Add(new Point64(0, 200));
 
-            var watch = Stopwatch.StartNew();
-            Paths64 union = Clipper2.Union(new Paths64 { comb }, FillRule.NonZero);
-            watch.Stop();
+            Paths64 union = null;
+            SpeedGuard.AssertWithin(3, () => union = Clipper2.Union(new Paths64 { comb }, FillRule.NonZero));
 
             Assert.Single(union);
             Assert.Equal(Clipper2.Area(comb), Clipper2.Area(union[0]));
-            Assert.True(watch.Elapsed.TotalSeconds < 3, watch.Elapsed.ToString());
         }
 
         [Fact]
@@ -73,14 +68,14 @@ namespace GeometryHelper.UnitTest.Clipper
             // list's head: 18 to 24 seconds. The walk now goes on past the stretch a long walk before it found none in.
             Path64 comb = Comb(40000, true);
 
-            var watch = Stopwatch.StartNew();
-            Paths64 offset = Clipper2.InflatePaths(new Paths64 { comb }, -1, JoinType.Miter, EndType.Polygon);
-            watch.Stop();
+            Paths64 offset = null;
+            SpeedGuard.AssertWithin(3, () =>
+                offset = Clipper2.InflatePaths(new Paths64 { comb }, -1, JoinType.Miter, EndType.Polygon)
+            );
 
             // 2 400 a tooth and 1 600 more, less the length round it, 416 a tooth and 808 more, and 4 back at the corners.
             Assert.Single(offset);
             Assert.Equal(1984.0 * 40000 + 796, Clipper2.Area(offset[0]));
-            Assert.True(watch.Elapsed.TotalSeconds < 3, watch.Elapsed.ToString());
         }
 
         [Fact]
@@ -90,13 +85,13 @@ namespace GeometryHelper.UnitTest.Clipper
             // edge that adds to an output path: 19 to 26 seconds.
             Path64 comb = Comb(40000, false);
 
-            var watch = Stopwatch.StartNew();
-            Paths64 offset = Clipper2.InflatePaths(new Paths64 { comb }, 1, JoinType.Miter, EndType.Polygon);
-            watch.Stop();
+            Paths64 offset = null;
+            SpeedGuard.AssertWithin(3, () =>
+                offset = Clipper2.InflatePaths(new Paths64 { comb }, 1, JoinType.Miter, EndType.Polygon)
+            );
 
             Assert.Single(offset);
             Assert.Equal(2816.0 * 40000 + 2412, Clipper2.Area(offset[0]));
-            Assert.True(watch.Elapsed.TotalSeconds < 3, watch.Elapsed.ToString());
         }
 
         [Fact]
@@ -119,13 +114,11 @@ namespace GeometryHelper.UnitTest.Clipper
                 );
             }
 
-            var watch = Stopwatch.StartNew();
-            Paths64 union = Clipper2.Union(squares, FillRule.NonZero);
-            watch.Stop();
+            Paths64 union = null;
+            SpeedGuard.AssertWithin(3, () => union = Clipper2.Union(squares, FillRule.NonZero));
 
             Assert.Single(union);
             Assert.Equal(20000.0 * 100, Clipper2.Area(union[0]));
-            Assert.True(watch.Elapsed.TotalSeconds < 3, watch.Elapsed.ToString());
         }
 
         [Fact]
@@ -152,13 +145,11 @@ namespace GeometryHelper.UnitTest.Clipper
                 }
             }
 
-            var watch = Stopwatch.StartNew();
-            Paths64 union = Clipper2.Union(squares, FillRule.NonZero);
-            watch.Stop();
+            Paths64 union = null;
+            SpeedGuard.AssertWithin(3, () => union = Clipper2.Union(squares, FillRule.NonZero));
 
             Assert.Single(union);
             Assert.Equal(160000.0 * 100, Clipper2.Area(union[0]));
-            Assert.True(watch.Elapsed.TotalSeconds < 3, watch.Elapsed.ToString());
         }
 
         [Fact]
@@ -186,14 +177,12 @@ namespace GeometryHelper.UnitTest.Clipper
                 );
             }
 
-            var watch = Stopwatch.StartNew();
-            Paths64 union = Clipper2.Union(shapes, FillRule.NonZero);
-            watch.Stop();
+            Paths64 union = null;
+            SpeedGuard.AssertWithin(3, () => union = Clipper2.Union(shapes, FillRule.NonZero));
 
             // The strip 1 000 000 by 10 and 50 000 squares of 100.
             Assert.Single(union);
             Assert.Equal(15000000.0, Clipper2.Area(union[0]));
-            Assert.True(watch.Elapsed.TotalSeconds < 3, watch.Elapsed.ToString());
         }
 
         [Fact]
@@ -215,12 +204,14 @@ namespace GeometryHelper.UnitTest.Clipper
                 shapes.Add(Rectangle(20 * i + 4, 24, 20 * i + 6, 26));
             }
 
-            var clipper = new Clipper64();
-            clipper.AddSubject(shapes);
             var tree = new PolyTree64();
-            var watch = Stopwatch.StartNew();
-            Assert.True(clipper.Execute(ClipType.Union, FillRule.NonZero, tree));
-            watch.Stop();
+            SpeedGuard.AssertWithin(3, () =>
+            {
+                var clipper = new Clipper64();
+                clipper.AddSubject(shapes);
+                tree = new PolyTree64();
+                Assert.True(clipper.Execute(ClipType.Union, FillRule.NonZero, tree));
+            });
 
             // The strip 400 000 by 10 and the teeth 10 by 30, round 20 000 holes 6 by 10 with an island 2 by 2 in each.
             Assert.Single(tree);
@@ -236,8 +227,6 @@ namespace GeometryHelper.UnitTest.Clipper
                 Assert.Equal(4.0, Clipper2.Area(hole[0].Polygon));
                 Assert.Empty(hole[0]);
             }
-
-            Assert.True(watch.Elapsed.TotalSeconds < 3, watch.Elapsed.ToString());
         }
 
         [Fact]
@@ -253,17 +242,18 @@ namespace GeometryHelper.UnitTest.Clipper
                 squares.Add(Rectangle(10 * i, 0, 10 * i + 10, 10));
             }
 
-            var clipper = new Clipper64();
-            clipper.AddSubject(squares);
             var tree = new PolyTree64();
-            var watch = Stopwatch.StartNew();
-            Assert.True(clipper.Execute(ClipType.Union, FillRule.NonZero, tree));
-            watch.Stop();
+            SpeedGuard.AssertWithin(3, () =>
+            {
+                var clipper = new Clipper64();
+                clipper.AddSubject(squares);
+                tree = new PolyTree64();
+                Assert.True(clipper.Execute(ClipType.Union, FillRule.NonZero, tree));
+            });
 
             Assert.Single(tree);
             Assert.Equal(100000.0 * 100, Clipper2.Area(tree[0].Polygon));
             Assert.Empty(tree[0]);
-            Assert.True(watch.Elapsed.TotalSeconds < 3, watch.Elapsed.ToString());
         }
 
         [Fact]

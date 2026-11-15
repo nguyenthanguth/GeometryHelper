@@ -51,20 +51,21 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             string text = Nest(10000).ToText();
             DxfDatabase source = DxfDatabase.Parse(text);
-            DxfDatabase inserted = NewDrawing();
-            DxfDatabase copied = NewDrawing();
+            DxfDatabase inserted = null;
+            DxfDatabase copied = null;
 
             // .NET Framework took 11.5 s to insert and 6.5 s to copy, the layer of each entity copied found by reading every
             // record of the tables, 10 000 BLOCK_RECORDs among them; 1.1 s and 0.8 s now.
-            var watch = Stopwatch.StartNew();
-            inserted.Insert(GeoTransform3.Translation(new GeoVector3(100, 0, 0)), source, true);
-            long insert = watch.ElapsedMilliseconds;
-            watch.Restart();
-            source.WblockCloneObjects(source.ModelSpace.ToList(), copied.ModelSpace);
-            long copy = watch.ElapsedMilliseconds;
-
-            Assert.True(insert < 6000, "A drawing of 10 000 nested blocks took " + insert + " ms to insert.");
-            Assert.True(copy < 3000, "The INSERT of 10 000 nested blocks took " + copy + " ms to copy.");
+            SpeedGuard.AssertWithin(
+                6,
+                () => inserted = NewDrawing(),
+                into => into.Insert(GeoTransform3.Translation(new GeoVector3(100, 0, 0)), source, true)
+            );
+            SpeedGuard.AssertWithin(
+                3,
+                () => copied = NewDrawing(),
+                into => source.WblockCloneObjects(source.ModelSpace.ToList(), into.ModelSpace)
+            );
             Assert.Equal(text, source.ToText());
 
             foreach (DxfDatabase db in new[] { inserted, copied })
@@ -232,15 +233,16 @@ namespace GeometryHelper.UnitTest.Dxf
 
             // Each dimension drawn by a block AutoCAD names itself, *D1 to *D3000, as it gives each dimension one.
             DxfDatabase source = DxfDatabase.Parse(made.ToText().Replace("\nGH_DRAWN", "\n*D"));
-            DxfDatabase copied = NewDrawing();
+            DxfDatabase copied = null;
 
             // .NET Framework took 8.6 s, the objects of the other drawing read again for each pointer, the blocks by name for
             // each arrow and the names *D1 on for each block copied; 0.3 s now.
-            var watch = Stopwatch.StartNew();
-            source.WblockCloneObjects(source.ModelSpace.ToList(), copied.ModelSpace);
-            long copy = watch.ElapsedMilliseconds;
+            SpeedGuard.AssertWithin(
+                1,
+                () => copied = NewDrawing(),
+                into => source.WblockCloneObjects(source.ModelSpace.ToList(), into.ModelSpace)
+            );
 
-            Assert.True(copy < 1000, "3 000 dimensions took " + copy + " ms to copy.");
             DxfDatabase read = DxfDatabase.Parse(copied.ToText());
             DxfDimension[] dimensions = read.ModelSpace.OfType<DxfDimension>().ToArray();
             Assert.Equal(3000, dimensions.Length);
@@ -256,30 +258,32 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ThreeThousandNestedBlocksBuiltFromTheBottomUp_AreBuiltInAFractionOfASecond_AndARoundIsStillRefused()
         {
-            DxfDatabase db = NewDrawing();
+            DxfDatabase db = null;
             var blocks = new DxfBlockTableRecord[3000];
 
             // Each block added and given an INSERT of the one before it, as a nest is built from its bottom: .NET Framework
             // took 6.1 s, each INSERT appended walking down every block below it; 0.14 s now.
-            var watch = Stopwatch.StartNew();
-
-            for (int i = 0; i < blocks.Length; i++)
-            {
-                blocks[i] = new DxfBlockTableRecord { Name = "C" + i };
-                db.BlockTable.Add(blocks[i]);
-
-                if (i == 0)
+            SpeedGuard.AssertWithin(
+                1,
+                () => db = NewDrawing(),
+                into =>
                 {
-                    blocks[i].AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)));
-                }
-                else
-                {
-                    blocks[i].AppendEntity(new DxfBlockReference(new GeoPoint3(1, 0, 0), blocks[i - 1]));
-                }
-            }
+                    for (int i = 0; i < blocks.Length; i++)
+                    {
+                        blocks[i] = new DxfBlockTableRecord { Name = "C" + i };
+                        into.BlockTable.Add(blocks[i]);
 
-            long built = watch.ElapsedMilliseconds;
-            Assert.True(built < 1000, "3 000 nested blocks took " + built + " ms to build from the bottom up.");
+                        if (i == 0)
+                        {
+                            blocks[i].AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(10, 0, 0)));
+                        }
+                        else
+                        {
+                            blocks[i].AppendEntity(new DxfBlockReference(new GeoPoint3(1, 0, 0), blocks[i - 1]));
+                        }
+                    }
+                }
+            );
 
             // The top inserted into the bottom, or a block into itself, would make a round, and is refused as before.
             string text = db.ToText();
@@ -305,24 +309,32 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ThreeThousandBlocksErasedOneByOne_AreErasedInAFractionOfASecond_AndABlockInUseIsStillKept()
         {
-            DxfDatabase db = DxfDatabase.Parse(Nest(3000).ToText());
-
-            // B0 is inserted by B1, and B2999 by model space: neither is erased.
-            Assert.Throws<InvalidOperationException>(() => db.BlockTable["B0"].Erase());
-            Assert.Throws<InvalidOperationException>(() => db.BlockTable["B2999"].Erase());
-            db.ModelSpace.Single().Erase();
+            DxfDatabase db = null;
+            string nest = Nest(3000).ToText();
 
             // .NET Framework took 26 s, each erasing reading every record for an INSERT of the block, an arrow and a pointer to
             // it, and the blocks by name made again for each lookup; 0.15 s now.
-            var watch = Stopwatch.StartNew();
+            SpeedGuard.AssertWithin(
+                1,
+                () =>
+                {
+                    db = DxfDatabase.Parse(nest);
 
-            for (int i = 2999; i >= 0; i--)
-            {
-                db.BlockTable["B" + i].Erase();
-            }
+                    // B0 is inserted by B1, and B2999 by model space: neither is erased.
+                    Assert.Throws<InvalidOperationException>(() => db.BlockTable["B0"].Erase());
+                    Assert.Throws<InvalidOperationException>(() => db.BlockTable["B2999"].Erase());
+                    db.ModelSpace.Single().Erase();
 
-            long erased = watch.ElapsedMilliseconds;
-            Assert.True(erased < 1000, "3 000 blocks took " + erased + " ms to erase one by one.");
+                    return db;
+                },
+                into =>
+                {
+                    for (int i = 2999; i >= 0; i--)
+                    {
+                        into.BlockTable["B" + i].Erase();
+                    }
+                }
+            );
             Assert.False(db.BlockTable.Has("B0"));
             Assert.DoesNotContain(db.BlockTable, b => !b.IsLayout);
             Assert.DoesNotContain("\nB1500\n", db.ToText(), StringComparison.Ordinal);

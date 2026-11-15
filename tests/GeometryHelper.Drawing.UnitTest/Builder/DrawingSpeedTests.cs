@@ -1,6 +1,8 @@
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using GeometryHelper.UnitTest;
 using Xunit;
 using Xunit.Abstractions;
 using static GeometryHelper.Drawing.UnitTest.Builder.BuilderKit;
@@ -29,16 +31,16 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
             Assert.Equal(50, source.Objects.Count);
             DrawingBuilder.Build(TestBodies.TC5().ToSource(), DrawingSettings.Assembly, Tol);
 
-            var watch = Stopwatch.StartNew();
-            Drawing drawing = DrawingBuilder.Build(source, DrawingSettings.Assembly, Tol);
-            watch.Stop();
+            Drawing drawing = null;
+            TimeSpan took = SpeedGuard.AssertWithin(1, () =>
+                drawing = DrawingBuilder.Build(source, DrawingSettings.Assembly, Tol)
+            );
 
             _output.WriteLine(
-                $"50 parts, assembly preset: {watch.Elapsed.TotalMilliseconds:0} ms, {drawing.Views.Count} views at 1:{drawing.Scale} on {drawing.Sheet.SizeName}, {DrawingEntityTags.Find(drawing.Database).Count} entities, {drawing.Views.Sum(v => v.Dimensions.Count)} dimensions"
+                $"50 parts, assembly preset: {took.TotalMilliseconds:0} ms, {drawing.Views.Count} views at 1:{drawing.Scale} on {drawing.Sheet.SizeName}, {DrawingEntityTags.Find(drawing.Database).Count} entities, {drawing.Views.Sum(v => v.Dimensions.Count)} dimensions"
             );
             drawing.Save(Path.Combine(Folder(), "tc10-5x1.dxf"));
             _output.WriteLine(SavePicture(drawing.Database, DrawingDxfWriter.LayoutName, "tc10-5x1-layout"));
-            Assert.True(watch.Elapsed.TotalSeconds < 1.0, watch.Elapsed.ToString());
         }
 
         [Fact]

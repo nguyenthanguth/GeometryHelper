@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using GeometryHelper;
 using GeometryHelper.Geometry;
@@ -221,12 +220,10 @@ namespace GeometryHelper.UnitTest.Solid
             IReadOnlyList<GeoPoint3> corners = face.Boundary.Vertices;
             int n = corners.Count;
 
-            var clock = Stopwatch.StartNew();
-            GeoTriangle3[] triangles = face.TriangulateSurface(Within);
-            clock.Stop();
+            GeoTriangle3[] triangles = null;
+            SpeedGuard.AssertWithin(0.25, () => triangles = face.TriangulateSurface(Within));
 
             Assert.Equal(16000, n);
-            Assert.True(clock.Elapsed < TimeSpan.FromSeconds(0.25), $"{clock.Elapsed.TotalSeconds:F2} s");
             Assert.Equal(n - 2, triangles.Length);
 
             // The first corner is an ear every time, so the cut is the fan round the last corner.
@@ -255,15 +252,11 @@ namespace GeometryHelper.UnitTest.Solid
             var polygon = new GeoPolygon2(corners);
             var face = new GeoFace2(polygon);
 
-            var clock = Stopwatch.StartNew();
-            GeoTriangle2[] fromFace = face.TriangulateSurface(Within);
-            TimeSpan faceTime = clock.Elapsed;
-            clock.Restart();
-            GeoTriangle2[] fromPolygon = polygon.TriangulateSurface(Within);
-            TimeSpan polygonTime = clock.Elapsed;
+            GeoTriangle2[] fromFace = null,
+                fromPolygon = null;
+            SpeedGuard.AssertWithin(1, () => fromFace = face.TriangulateSurface(Within));
+            SpeedGuard.AssertWithin(1, () => fromPolygon = polygon.TriangulateSurface(Within));
 
-            Assert.True(faceTime < TimeSpan.FromSeconds(1), $"face {faceTime.TotalSeconds:F2} s");
-            Assert.True(polygonTime < TimeSpan.FromSeconds(1), $"polygon {polygonTime.TotalSeconds:F2} s");
             Assert.Equal(15998, fromFace.Length);
             Assert.Equal(15998, fromPolygon.Length);
             Assert.InRange(fromFace.Sum(t => t.Area), polygon.Area - 1E-3, polygon.Area + 1E-3);

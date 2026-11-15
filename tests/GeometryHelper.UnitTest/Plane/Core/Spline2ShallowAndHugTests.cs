@@ -348,14 +348,12 @@ namespace GeometryHelper.UnitTest.Plane
             GeoSpline2 first = GeoSpline2.FromCircle(new GeoCircle2(P(0, 0), r));
             GeoSpline2 second = GeoSpline2.FromCircle(new GeoCircle2(P(0, 0), r + gap));
 
-            var watch = Stopwatch.StartNew();
-            double distance = first.DistanceTo(second, Strict);
-            watch.Stop();
+            double distance = 0;
+
+            // 0.15 s now, 0.8 s where the cutting went on to its budget before anything was measured; the best of three runs.
+            SpeedGuard.AssertWithin(0.6, () => distance = first.DistanceTo(second, Strict));
 
             Assert.True(Math.Abs(distance - gap) <= 1E-6 * gap, "the distance is " + distance.ToString("R"));
-
-            // 0.15 s now, 0.8 s where the cutting went on to its budget before anything was measured.
-            Assert.True(watch.Elapsed.TotalSeconds < 0.6, "took " + watch.Elapsed.TotalSeconds + " s");
         }
 
         #endregion

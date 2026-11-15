@@ -110,16 +110,14 @@ namespace GeometryHelper.UnitTest.Solid
             var along = new GeoPolygon3(Comb(4000, true));
             var across = new GeoPolygon3(Comb(4000, false));
 
-            var watch = Stopwatch.StartNew();
-            GeoPolygon3[] offset = Offset3.Offset(along, 0.5, OffsetOptions.Default, Thousandth);
-            watch.Stop();
+            GeoPolygon3[] offset = null;
+            SpeedGuard.AssertWithin(2, () => offset = Offset3.Offset(along, 0.5, OffsetOptions.Default, Thousandth));
 
             GeoPolygon3[] turned = Offset3.Offset(across, 0.5, OffsetOptions.Default, Thousandth);
 
             Assert.Single(offset);
             Assert.Single(turned);
             Assert.InRange(offset[0].Area, turned[0].Area * (1 - 1E-12), turned[0].Area * (1 + 1E-12));
-            Assert.True(watch.Elapsed.TotalSeconds < 2, watch.Elapsed.ToString());
         }
     }
 }
