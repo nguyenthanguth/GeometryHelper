@@ -14,8 +14,8 @@ namespace GeometryHelper.Dwg
     /// </summary>
     internal sealed class DwgFileWriter
     {
-        /// <summary>The versions written: AC1015 (R2000), AC1018 (R2004), AC1024 (R2010), AC1027 (R2013) and AC1032 (R2018).</summary>
-        public static readonly string[] Versions = { "AC1015", "AC1018", "AC1024", "AC1027", "AC1032" };
+        /// <summary>The versions written: AC1015 (R2000), AC1018 (R2004), AC1021 (R2007), AC1024 (R2010), AC1027 (R2013) and AC1032 (R2018).</summary>
+        public static readonly string[] Versions = { "AC1015", "AC1018", "AC1021", "AC1024", "AC1027", "AC1032" };
 
         private static readonly byte[] HeaderStart =
         {
@@ -407,6 +407,7 @@ namespace GeometryHelper.Dwg
                 _number >= 1032 ? 174
                 : _number == 1027 ? 125
                 : _number == 1024 ? 226
+                : _number == 1021 ? 174
                 : _number == 1018 ? 104
                 : _number == 1015 ? 15
                 : 0;
@@ -416,6 +417,11 @@ namespace GeometryHelper.Dwg
             if (_number == 1015)
             {
                 return File2000(objectBytes, map, codePage);
+            }
+
+            if (_number == 1021)
+            {
+                return File2007(objectBytes, map, codePage);
             }
 
             var container = new DwgContainerWriter(_version, maintenance, codePage);
@@ -458,6 +464,42 @@ namespace GeometryHelper.Dwg
             container.Add("AcDb:Classes", Classes(), 3, 0x7400, true);
             container.Add("AcDb:AuxHeader", AuxHeader(maintenance), 2, 0x7400, true);
             container.Add("AcDb:Header", Header(), 1, 0x7400, true);
+            return container.ToArray();
+        }
+
+        /// <summary>
+        /// The file of AutoCAD 2007, in the container of <see cref="DwgContainerWriter21"/>: the sections of the later
+        /// versions without the application information, which AutoCAD 2007 and later check by parity bytes made from what
+        /// its own memory held and so cannot be written by another program, and without the history of the applications and
+        /// the summary information; the preview is written where the drawing has a picture.
+        /// </summary>
+        private byte[] File2007(byte[] objects, List<KeyValuePair<ulong, long>> map, int codePage)
+        {
+            var container = new DwgContainerWriter21(codePage);
+            byte[] picture = _drawing.Thumbnail;
+
+            if (picture != null)
+            {
+                // The preview comes first and names the place of its pictures in the file, which the pages after it decide
+                // by their number: it is made again once the others are added, as long as the one it stands for.
+                byte[] preview = DwgPreview.Build(picture, 0);
+                container.Add("AcDb:Preview", preview, (preview.Length + 0x3FF) & ~0x3FF, 1);
+            }
+
+            container.Add("AcDb:RevHistory", new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 }, 0x1000, 4);
+            container.Add("AcDb:AcDbObjects", objects, DwgContainerWriter21.LargePage, 4);
+            container.Add("AcDb:ObjFreeSpace", FreeSpace(map.Count), DwgContainerWriter21.LargePage, 4);
+            container.Add("AcDb:Template", Template(), 0x400, 4);
+            container.Add("AcDb:Handles", ObjectMap(map), DwgContainerWriter21.LargePage, 4);
+            container.Add("AcDb:Classes", Classes(), DwgContainerWriter21.LargePage, 4);
+            container.Add("AcDb:AuxHeader", AuxHeader(_maintenance), 0x800, 4);
+            container.Add("AcDb:Header", Header(), 0x800, 4);
+
+            if (picture != null)
+            {
+                container.Replace("AcDb:Preview", DwgPreview.Build(picture, container.PreviewAddress()));
+            }
+
             return container.ToArray();
         }
 
@@ -742,6 +784,12 @@ namespace GeometryHelper.Dwg
         /// </summary>
         private int[] ClassRelease(string name)
         {
+            // In its files of R2007 AutoCAD 2021 gives the table cell styles the release of the scale, not of the file.
+            if (_number == 1021 && name.ToUpperInvariant() == "CELLSTYLEMAP")
+            {
+                return new[] { 27, 1 };
+            }
+
             switch (name.ToUpperInvariant())
             {
                 case "ACDBDICTIONARYWDFLT":
@@ -771,7 +819,11 @@ namespace GeometryHelper.Dwg
                 case "ACDBASSOCPERSSUBENTMANAGER":
                     return new[] { 27, 174 };
                 default:
-                    return new[] { DwgContainerWriter.DwgVersionNumber(_version), _number >= 1032 ? 174 : 0 };
+                    return new[]
+                    {
+                        DwgContainerWriter.DwgVersionNumber(_version),
+                        _number >= 1032 || _number == 1021 ? 174 : 0,
+                    };
             }
         }
 
@@ -883,6 +935,25 @@ namespace GeometryHelper.Dwg
         {
             var space = new MemoryStream();
             Julian(_drawing.HeaderText("TDUUPDATE", "0"), out int day, out int milliseconds);
+
+            if (_number == 1021)
+            {
+                // The form AutoCAD 2021 writes into a file of R2007: two longs of 0xFFFF0000 and the numbers of 32 bits.
+                Long(space, -65536);
+                Long(space, -65536);
+                Long(space, day);
+                Long(space, milliseconds);
+                Long(space, 0);
+                space.WriteByte(4);
+
+                foreach (int value in new[] { 0x32, 0, 0x64, 0, 0x200, 0, -1, 0 })
+                {
+                    Long(space, value);
+                }
+
+                return space.ToArray();
+            }
+
             Long64(space, 0);
             Long64(space, count);
             Long(space, day);
@@ -952,8 +1023,19 @@ namespace GeometryHelper.Dwg
             Short(aux, 1);
             Short(aux, 0);
             Long(aux, 0);
-            Short(aux, version);
-            maint();
+
+            if (_number == 1021)
+            {
+                // A file of R2007 AutoCAD 2021 wrote names its own version, 27 and 50, between two of the application, 33 and 174.
+                Short(aux, 27);
+                Short(aux, 50);
+            }
+            else
+            {
+                Short(aux, version);
+                maint();
+            }
+
             Short(aux, version);
             maint();
             // Where the specification has the shorts 5, 0x893, 5, 0x893 AutoCAD 2021 writes 0; then 0 and 1, and five longs

@@ -52,7 +52,7 @@ namespace GeometryHelper.Dwg
     /// DXF of the version, as <see cref="DxfDatabase.Save(string, string)"/> would give it, and what the version cannot
     /// hold left out or replaced as it is there (the objects of R2007 and later that a file of R2004 keeps as AutoCAD keeps
     /// them: the multileaders with the version they were made by, the texts of their graphics in 8 bits, the fields in
-    /// the form of before R2007). AC1015 (2000) is written too (the file of sections in sequence AutoCAD 2000 has); AC1021 (2007) is not written yet. The same bytes come of the same
+    /// the form of before R2007). AC1015 (2000) is written too (the file of sections in sequence AutoCAD 2000 has), and AC1021 (2007), a container of its own, a file header and pages coded by Reed-Solomon. The same bytes come of the same
     /// drawing every time.
     /// </para>
     /// <code>
@@ -70,7 +70,7 @@ namespace GeometryHelper.Dwg
         /// </summary>
         /// <param name="database">The drawing.</param>
         /// <param name="path">The path of the file.</param>
-        /// <param name="version">The version of the file: AC1032 (AutoCAD 2018), AC1027 (2013), AC1024 (2010), AC1018 (2004) or AC1015 (2000).</param>
+        /// <param name="version">The version of the file: AC1032 (AutoCAD 2018), AC1027 (2013), AC1024 (2010), AC1021 (2007), AC1018 (2004) or AC1015 (2000).</param>
         /// <exception cref="ArgumentNullException">Thrown when the drawing or the path is null.</exception>
         /// <exception cref="NotSupportedException">Thrown when the version is not written; the message names it.</exception>
         /// <exception cref="IOException">Thrown when the file cannot be written.</exception>
@@ -86,7 +86,7 @@ namespace GeometryHelper.Dwg
         /// </summary>
         /// <param name="database">The drawing.</param>
         /// <param name="stream">The stream; it is written to and left open.</param>
-        /// <param name="version">The version of the file: AC1032 (AutoCAD 2018), AC1027 (2013), AC1024 (2010), AC1018 (2004) or AC1015 (2000).</param>
+        /// <param name="version">The version of the file: AC1032 (AutoCAD 2018), AC1027 (2013), AC1024 (2010), AC1021 (2007), AC1018 (2004) or AC1015 (2000).</param>
         /// <exception cref="ArgumentNullException">Thrown when the drawing or the stream is null.</exception>
         /// <exception cref="NotSupportedException">Thrown when the version is not written; the message names it.</exception>
         public static void Write(DxfDatabase database, Stream stream, string version = DefaultVersion)
@@ -103,7 +103,7 @@ namespace GeometryHelper.Dwg
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="path">The path of the file.</param>
-        /// <param name="version">The version of the file: AC1032 (AutoCAD 2018), AC1027 (2013), AC1024 (2010), AC1018 (2004) or AC1015 (2000).</param>
+        /// <param name="version">The version of the file: AC1032 (AutoCAD 2018), AC1027 (2013), AC1024 (2010), AC1021 (2007), AC1018 (2004) or AC1015 (2000).</param>
         /// <exception cref="ArgumentNullException">Thrown when the document or the path is null.</exception>
         /// <exception cref="NotSupportedException">Thrown when the version is not written; the message names it.</exception>
         /// <exception cref="IOException">Thrown when the file cannot be written.</exception>
@@ -119,7 +119,7 @@ namespace GeometryHelper.Dwg
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="stream">The stream; it is written to and left open.</param>
-        /// <param name="version">The version of the file: AC1032 (AutoCAD 2018), AC1027 (2013), AC1024 (2010), AC1018 (2004) or AC1015 (2000).</param>
+        /// <param name="version">The version of the file: AC1032 (AutoCAD 2018), AC1027 (2013), AC1024 (2010), AC1021 (2007), AC1018 (2004) or AC1015 (2000).</param>
         /// <exception cref="ArgumentNullException">Thrown when the document or the stream is null.</exception>
         /// <exception cref="NotSupportedException">Thrown when the version is not written; the message names it.</exception>
         public static void Write(DxfDocument document, Stream stream, string version = DefaultVersion)
@@ -165,7 +165,7 @@ namespace GeometryHelper.Dwg
                         + named
                         + " ("
                         + DwgContainer.ReleaseOf(named)
-                        + ") is not written; AC1032 (AutoCAD 2018), AC1027 (2013), AC1024 (2010), AC1018 (2004) and AC1015 (2000) are."
+                        + ") is not written; AC1032 (AutoCAD 2018), AC1027 (2013), AC1024 (2010), AC1021 (2007), AC1018 (2004) and AC1015 (2000) are."
                 );
             }
 

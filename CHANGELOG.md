@@ -42,14 +42,43 @@ the entry on the attribute of a block cell) was probed again and not reproduced:
 a fitted block cell of seven tables (three new ones, four read from a file; the column left alone, set to 40, to 20, and started from the widened
 40.69607 with the scale 1.41401 and with 1) left the column and the scale where the first pass put them, to the last digit. The presenter, which
 settles after one pass, stays as it is; the guide says what was and was not seen.
+**NEW.** `DwgWriter` writes AutoCAD 2007 (AC1021): `DwgWriter.Write(database, path, "AC1021")`. The file is the container AutoCAD 2007 has and the
+later versions do not: a file header, a header proper of 0x400 bytes and pages, all coded by Reed-Solomon, with CRCs of 64 bits and a
+compression of their own. The two codes were found by taking the blocks of AutoCAD 2021's own files of R2007 and testing which field and
+which roots make them codewords (the header and the maps: 255 bytes of which 239 are data, the field of `x^8 + x^6 + x^5 + x^3 + 1` and
+the roots 2^239 to 2^254; the data pages: 251 of 255, `x^8 + x^4 + x^3 + x^2 + 1`, 2^251 to 2^254), and the 2 746 headers, maps and data
+pages of 171 of its files are coded again to the byte. The compression is the variant of LZ77 that the reader already knew
+(`DwgLz21`), now also written: by a search of the longest copy of 3 bytes or more from up to 65 535 bytes back, read back before it is
+used, a page that does not get shorter stored as it is. A drawing of a later version is made into the DXF of R2007 first, as for R2004.
+The presenter's Save As lists "AutoCAD 2007/LT2007 Drawing (*.dwg)" between 2010 and 2004 (`CadExportJob.DwgSaveTypes`), `SAVEAS` with
+FILEDIA 0 takes `2007`, `LT2007` and `2007(LT2007)` (only R14 is refused now: "... is not written: a DWG is saved as AutoCAD 2018, 2013,
+2010, 2007, 2004 or 2000 (2018, 2013, 2010, 2007, 2004, 2000)."), and Save (QSAVE) writes the DWG of the version last chosen again.
+AutoCAD 2021 refused the first files with `ErrorStatus` 434 before it read a page. Putting its own pages into the writer's container, one
+section and one change at a time, found what it wants that the format does not say: the header proper only with its data compressed (the
+stored form is refused), the section map only compressed, the size a page names in the section map equal to the size of its data, and,
+of the application information and its history, parity made from the bytes its own memory held, which no other program can write; those
+two sections are left out, as is the summary information, and the preview is written only where the drawing has a picture. The
+free-space section is the 53 bytes AutoCAD writes into R2007 and the auxiliary header names the version of the file (27, 50) between two of
+the application, and the classes carry the release it gives them there (33 and 174, the table cell styles 27 and 1), as its own files do. The 167 drawings of AutoCAD 2021's samples and of the tests, each written as AC1021 and opened in
+AutoCAD 2021 with `AUDIT`: all 167 open, 160 at 0 errors, the other 7 with the errors of their originals (24, 24, 2, 2, 32, 32, 10 = 126
+of the 150 the originals have in all), and the 4 table drawings that had 6 each have none; none refused, none beyond 4 GB or 120 s. They
+come to 18.8 MB, where AutoCAD's own SaveAs of the same drawings to R2007 come to 19.7 MB. The same 167 written as R2000, R2004, R2010,
+R2013 and R2018 are the same bytes as before (835 of 835 compared). A 3DSOLID and a REGION are left out of R2007 as of R2004 and R2010
+(only R2013 and later write them), and so are the constraint groups of a dynamic block (ACDBASSOC2DCONSTRAINTGROUP with their network,
+actions and dependencies) of a drawing made into R2007 from a later version: AutoCAD keeps the vertex identifiers of a polyline there in
+an extended record and marks each dimension of a constraint with another, which the DXF of R2007 does not give, and its `AUDIT` found 34
+errors in each Architectural drawing of the samples (5 groups), 22 more than the original in each Civil (4 groups) and 24 in each
+Structural (6 groups), none with them left out; a drawing that holds those records, as AutoCAD's own files of R2007 do, keeps its
+groups. Left: the preview of a drawing with a picture holds parity the writer makes from zeros, which AutoCAD 2021's console does not
+check, and its application window was not tried.
 
 **NEW.** `DwgWriter` writes AutoCAD 2000 (AC1015): `DwgWriter.Write(database, path, "AC1015")`. The file is the one AutoCAD 2000 has and not the pages of
 the later versions: a header of 0x61 bytes with six locators, the auxiliary header, the preview, the header variables, the classes, the objects, the
 object map with the places of the objects as places in the file, and the template, with the maintenance release 15 and no free-space section. A
 drawing of a later version is made into the DXF of R2000 first, as the later versions are, so that what R2000 cannot hold is left out or replaced as
 `DxfDatabase.Save(path, "AC1015")` does. The presenter's Save As lists "AutoCAD 2000/LT2000 Drawing (*.dwg)" after the 2004 type
-(`CadExportJob.DwgSaveTypes`), `SAVEAS` with FILEDIA 0 takes 2000 (`2000`, `LT2000`, `2000(LT2000)`; R14 and 2007 are still refused, "... is not written: a
-DWG is saved as AutoCAD 2018, 2013, 2010, 2004 or 2000 (2018, 2013, 2010, 2004, 2000)."), and Save (QSAVE) writes the DWG of the version last chosen again.
+(`CadExportJob.DwgSaveTypes`), `SAVEAS` with FILEDIA 0 takes 2000 (`2000`, `LT2000`, `2000(LT2000)`; R14 is refused, "... is not written: a
+DWG is saved as AutoCAD 2018, 2013, 2010, 2007, 2004 or 2000 (2018, 2013, 2010, 2007, 2004, 2000)."), and Save (QSAVE) writes the DWG of the version last chosen again.
 Its objects are laid out as AutoCAD 2000's own, found by writing the DXF the reader makes of AutoCAD's files of R2000 and comparing object by object with
 AutoCAD's bytes: an entity holds the links to the entity before and after it in its owner's list (left out where they are the handles one before and one
 after), the vertices of a polyline are linked to each other and its SEQEND to none, a table record holds the bit that says it is referenced, a dimension style

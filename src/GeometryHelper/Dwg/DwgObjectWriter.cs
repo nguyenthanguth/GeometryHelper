@@ -83,6 +83,29 @@ namespace GeometryHelper.Dwg
 
         private bool R2004Plus => _version >= 1018;
 
+        private bool? _holdsVertexIdentifiers;
+
+        /// <summary>
+        /// Whether the drawing holds the extended records AutoCAD 2007 keeps the vertex identifiers of a polyline in (the
+        /// XRECORD whose first group is <c>VERTEXIDENTIFIER</c>), which the constraint groups of a dynamic block need there:
+        /// a file of R2007 has no identifier in a LWPOLYLINE, and AUDIT finds an error in each group whose polylines have none.
+        /// A drawing made into R2007 from a later version has none and its constraint groups are left out.
+        /// </summary>
+        private bool HoldsVertexIdentifiers
+        {
+            get
+            {
+                if (_holdsVertexIdentifiers == null)
+                {
+                    _holdsVertexIdentifiers = _drawing.Objects.Exists(r =>
+                        r.Type == "XRECORD" && r.Body.Exists(g => g.Key == 102 && g.Value.Trim() == "VERTEXIDENTIFIER")
+                    );
+                }
+
+                return _holdsVertexIdentifiers.Value;
+            }
+        }
+
         private bool R2007Plus => _version >= 1021;
 
         private bool R2010Plus => _version >= 1024;
@@ -147,7 +170,11 @@ namespace GeometryHelper.Dwg
                     (type == "VISUALSTYLE" && !IsListedVisualStyle(record) && RoundTripOfVisualStyle(record) == null)
                     || (
                         type == "ACDBASSOC2DCONSTRAINTGROUP"
-                        && ((!R2013Plus && IsConstraintGroup2(record)) || !NodesAreKnown(record))
+                        && (
+                            (!R2013Plus && IsConstraintGroup2(record))
+                            || !NodesAreKnown(record)
+                            || (!R2010Plus && !HoldsVertexIdentifiers)
+                        )
                     )
                     ? -1
                     : number;

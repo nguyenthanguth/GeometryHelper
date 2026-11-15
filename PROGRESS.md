@@ -300,11 +300,16 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] DWG Save As R2000 (dwgver2): the 167-file corpus written as AC1015 opens in AutoCAD 2021, 160 at AUDIT 0 and the
         other 7 with the originals' counts; fixed entity links, MTEXT, DIMSTYLE and LAYOUT bits; R2004+ output unchanged
         (668 files byte-identical)
-  - [ ] (dwgver3, running: R2007) R3.3 follow-ups 3: DWG R2007 (Reed-Solomon, LZ21); non-ASCII text in pre-2007 DWGs as \U+ escapes (AutoCAD's
-        R2004 form; would change R2004 bytes); R2000 VIEWPORT entity header handle and frozen-layer code 5; dictionaries
-        naming left-out objects; -BOUNDARY Region islands and its message (GUI); UNION/SUBTRACT taking the first picked
-        region (selection is kept sorted); a region's grips and UNION's colour reset checked in the GUI; spline edges and
-        non-planar faces; orphan ACDSRECORDs; a parse cache for thousands of regions (M)
+  - [x] DWG Save As R2007 (dwgver3): our own Reed-Solomon (two codes, 2 746 AutoCAD blocks re-encoded to the byte) and
+        LZ77-21 compressor; the 167-file corpus as AC1021 opens in AutoCAD 2021, 160 at AUDIT 0 and the other 7 with the
+        originals' counts; every other version byte-identical (835 files)
+  - [ ] R3.3 follow-ups 4: R2007 keeps dynamic-block constraint groups only with VERTEXIDENTIFIER/ISDYNAMIC records
+        (write them; 6 samples lose their networks now); R2007 AppInfo/SummaryInfo left out (parity not matched) and a
+        picture preview's parity unchecked in AutoCAD's window; 3DSOLID/REGION in R2004-R2010; non-ASCII text in pre-2007
+        DWGs as \U+ escapes (would change R2004 bytes); R2000 VIEWPORT entity header handle and frozen-layer code 5;
+        dictionaries naming left-out objects; -BOUNDARY Region islands and its message (GUI); UNION/SUBTRACT taking the
+        first picked region; a region's grips and UNION's colour reset checked in the GUI; spline edges and non-planar
+        faces; orphan ACDSRECORDs; a parse cache for thousands of regions (M)
 - Round 4, the follow-ups listed below (Dimension, Grips, Dialogs, Xrefs, Layouts, Table editing, PLOT, DXF versions, R12,
   VPCLIP, LAYERP), taken top to bottom, basics first.
   - [x] Dialogs 5 (dialogs5, design v139-v140): Multiline Style (with New/Modify page, Load), Multiline Edit Tools, the
@@ -596,7 +601,7 @@ the ones wanted.
       the words' box comes within 0.9 DIMGAP of an arrowhead and the middle direction passes a box- and radius-dependent
       edge (tar48s 299 -> 70, tar46s 319 -> 208, tar53s 345 -> 192); the symbol room by DIMGAP (tar56s 315 -> 240); the
       bothExtra plateau (tar58s 94 -> 56); 104 older sets byte-identical, 9 nearer
-- [ ] Associative dimensions follow-ups 11: the arrowheads-out lower edge (41 of 1 929); p10 of aligned and DIMJUST words
+- [ ] (assoc12, running) Associative dimensions follow-ups 11: the arrowheads-out lower edge (41 of 1 929); p10 of aligned and DIMJUST words
       outside past a half circle (tar52s 204, tar55s 156 a hundredth or two off); DIMJUST words' rotation; words-in
       thresholds a step late at 181-200 degrees (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
