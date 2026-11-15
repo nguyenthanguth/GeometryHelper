@@ -15,7 +15,6 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
     /// put down counts though it moves no further; ink left of the pen is not counted. The font is made here, 10 above its
     /// baseline, so that in a text 10 high a unit of the font is a unit of the drawing.
     /// </summary>
-    [Collection(DimensionWordsFontsCollection.Name)]
     public sealed class ShxInkMeasureTests : IDisposable
     {
         private readonly FontFolder _folder = new FontFolder();
@@ -139,36 +138,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             StandardCurrent(document.Database);
             document.Fonts = new CadFonts(new[] { _folder.FullPath }, null, null);
 
-            try
-            {
-                CadCommandSession session = Session(document);
-                Run(session, "DLI", new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(50, -20));
-                DxfDimension dimension = document.ModelSpace.Block.OfType<DxfDimension>().Last();
-                Assert.Equal("1", dimension.DimBlock.OfType<DxfMText>().Single().Contents);
-                Assert.Contains(dimension.DimBlock.OfType<DxfLine>(), l =>
-                    Near(l.StartPoint, 2.5, -20) && Near(l.EndPoint, 50 - 0.625, -20)
-                    || Near(l.EndPoint, 2.5, -20) && Near(l.StartPoint, 50 - 0.625, -20)
-                );
-            }
-            finally
-            {
-                // The fonts a dimension is measured in are those last given any document: put them off again.
-                document.Fonts = new CadFonts(null, null, null);
-            }
+            CadCommandSession session = Session(document);
+            Run(session, "DLI", new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(50, -20));
+            DxfDimension dimension = document.ModelSpace.Block.OfType<DxfDimension>().Last();
+            Assert.Equal("1", dimension.DimBlock.OfType<DxfMText>().Single().Contents);
+            Assert.Contains(dimension.DimBlock.OfType<DxfLine>(), l =>
+                Near(l.StartPoint, 2.5, -20) && Near(l.EndPoint, 50 - 0.625, -20)
+                || Near(l.EndPoint, 2.5, -20) && Near(l.StartPoint, 50 - 0.625, -20)
+            );
         }
 
         private static bool Near(GeoPoint3 point, double x, double y) =>
             Math.Abs(point.X - x) < 1E-3 && Math.Abs(point.Y - y) < 1E-3;
-    }
-
-    /// <summary>
-    /// The tests that measure a dimension's words in an SHX font of their own, run with no other test beside them: the fonts a
-    /// dimension is measured in are those last given any document, and another test giving its own would hide the font.
-    /// </summary>
-    [CollectionDefinition(Name, DisableParallelization = true)]
-    public class DimensionWordsFontsCollection
-    {
-        /// <summary>The name of the collection.</summary>
-        public const string Name = "Dimension words fonts";
     }
 }

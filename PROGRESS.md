@@ -150,7 +150,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         stem elements stopped on the second's mitred element; closed multilines crossed as the run of their segments
         (square crosses 123 -> 3 of 369); cuts at concave corners and MoveVertices shortening rules (staircase 56 -> 0).
         DECIDED: an edge through a closed MLINE's vertex is not trimmed into AutoCAD's duplicated-vertex open MLINE
-  - [ ] MLINE follow-ups 7: CJ with two joinable corners (117 of 2 232, AutoCAD half-edits); which of two crossings a
+  - [ ] (mline8, running) MLINE follow-ups 7: CJ with two joinable corners (117 of 2 232, AutoCAD half-edits); which of two crossings a
         closed cross breaks (~200 of 900); tees with stems along a segment and stops at non-right corners; 8 of 700
         moves; OC/MC stray pieces (not copied) (S)
   - [x] R2.2 HATCH completed (hatch2): -HATCH draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, Boundary
@@ -810,7 +810,9 @@ the ones wanted.
       test whose limit was under ~10x its quiet time; the highlight test asks for a thread speed-up only when its threads
       really run at once; under an 18-thread CPU burner core timing tests 0 -> 20 of 20 runs, Viewer speed tests 2 -> 10
       of 10; a 4 s slow-down still fails them. Convention for new timing tests: SpeedGuard with a 10x limit or a ratio
-- [ ] (race1, running) Dimension-picture tests failing now and then in full Viewer runs with other coordinates, a different one each time (shared font state between parallel tests suspected) (S)
+- [x] Dimension-word race (race1): CadDimensionWords measured with static fonts and folder that any document's Fonts
+      setter overwrote while other tests ran; now each document's own fonts, measurements kept per font set: 3 of 4
+      full Viewer runs failed before, 11 of 11 pass after; a repro test of two documents with different font folders
 - [ ] Wall-clock tests 2: UndoReadAheadSpeedTests (50 ms floor) and the ratio tests DisplayPatch, MTextDisplay, Xref
       under heavier load; timing classes in a DisableParallelization collection in the core suite (S)
 - [x] Speed follow-ups 10 (speed11): the 1M MOVE slowdown was real (the patch looked up every handle's insertion point):
