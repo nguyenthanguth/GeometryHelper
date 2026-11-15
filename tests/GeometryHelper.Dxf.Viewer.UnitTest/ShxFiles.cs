@@ -146,10 +146,29 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
         public string FullPath { get; }
 
+        /// <summary>
+        /// Writes a font file in the folder and gives its path, once nothing else holds the file: a scanner or an indexer of
+        /// the machine can still have a file just written open for a moment, and a font read then is read as not found.
+        /// </summary>
         public string Write(string name, byte[] bytes)
         {
             string path = Path.Combine(FullPath, name);
             File.WriteAllBytes(path, bytes);
+
+            for (int attempt = 0; attempt < 200; attempt++)
+            {
+                try
+                {
+                    using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None)) { }
+
+                    break;
+                }
+                catch (IOException)
+                {
+                    System.Threading.Thread.Sleep(10);
+                }
+            }
+
             return path;
         }
 

@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Threading;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
@@ -15,6 +18,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
     [Collection(ViewerSpeedCollection.Name)]
     public class UndoReadAheadSpeedTests
     {
+        private const int Attempts = 3;
         private readonly ITestOutputHelper _output;
 
         public UndoReadAheadSpeedTests(ITestOutputHelper output)
@@ -81,54 +85,105 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         /// <summary>
+        /// Measures an undo against the undo of a MOVE, each attempt on a drawing made anew after a full collection, until one
+        /// is within four times the undo of the MOVE and 50 ms or the attempts are used up; the shortest of each over the
+        /// attempts is judged, as the best of three runs is elsewhere. An undo that finds its drawing read ahead costs a few
+        /// milliseconds (6 for the first undo of a MOVE, 1 for BEDIT), and one that reads it first took 304 ms at this size,
+        /// in every attempt; a machine busy enough to hold one undo 50 ms longer than the next, as one beside several builds
+        /// does, is not mistaken for that fault.
+        /// </summary>
+        /// <param name="attempt">One measurement: the milliseconds of the undo of a MOVE, and of the undo under test.</param>
+        /// <param name="what">What the second time is of, for the output and the message.</param>
+        private void AssertNearTheUndoOfAMove(Func<double[]> attempt, string what)
+        {
+            double move = double.MaxValue;
+            double other = double.MaxValue;
+            var runs = new List<string>();
+
+            for (int run = 0; run < Attempts; run++)
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+                double[] times = attempt();
+                move = Math.Min(move, times[0]);
+                other = Math.Min(other, times[1]);
+                string line =
+                    "undo of a MOVE "
+                    + times[0].ToString("0", CultureInfo.InvariantCulture)
+                    + " ms, "
+                    + what
+                    + " "
+                    + times[1].ToString("0", CultureInfo.InvariantCulture)
+                    + " ms";
+                runs.Add(line);
+                _output.WriteLine(line);
+
+                if (other < (4 * move) + 50)
+                {
+                    return;
+                }
+            }
+
+            Assert.Fail(
+                "Undo "
+                    + what
+                    + " took "
+                    + other.ToString("0", CultureInfo.InvariantCulture)
+                    + " ms at its best, that of a MOVE "
+                    + move.ToString("0", CultureInfo.InvariantCulture)
+                    + " ms at its best ("
+                    + string.Join("; ", runs)
+                    + ")."
+            );
+        }
+
+        /// <summary>
         /// Three lines added to a block in the Block Editor and saved make one step, BEDIT; its undo finds the drawing before it
         /// read ahead, as the undo of a MOVE does. Before, the three steps merged into one left the drawing read ahead for the
         /// last of them, and the undo read its drawing then and walked it again to find an entity. The limit is four times the
-        /// undo of a MOVE and 50 ms; the times are written to the test's output.
+        /// undo of a MOVE and 50 ms, each at its best of three attempts; the times are written to the test's output.
         /// </summary>
         [Fact]
-        public void TheUndoOfABlockSavedInADrawingOfAHundredThousandEntities_FindsItsDrawingReadAhead()
-        {
-            CadDocument document = Drawing(out string handle);
-            Move(document, handle);
-            double move = UndoAndFind(document, handle);
+        public void TheUndoOfABlockSavedInADrawingOfAHundredThousandEntities_FindsItsDrawingReadAhead() =>
+            AssertNearTheUndoOfAMove(
+                () =>
+                {
+                    CadDocument document = Drawing(out string handle);
+                    Move(document, handle);
+                    double move = UndoAndFind(document, handle);
 
-            EditBlock(document);
-            Assert.True(document.CloseBlockEditor(true).Succeeded);
-            document.GetDisplay(document.ModelSpace);
-            Assert.Equal("BEDIT", document.NextUndo.Name);
-            double saved = UndoAndFind(document, handle);
-            _output.WriteLine("undo of a MOVE " + move.ToString("0") + " ms, of BEDIT " + saved.ToString("0") + " ms");
-
-            Assert.True(saved < 4 * move + 50, "undo of BEDIT " + saved + " ms, of a MOVE " + move + " ms");
-        }
+                    EditBlock(document);
+                    Assert.True(document.CloseBlockEditor(true).Succeeded);
+                    document.GetDisplay(document.ModelSpace);
+                    Assert.Equal("BEDIT", document.NextUndo.Name);
+                    return new[] { move, UndoAndFind(document, handle) };
+                },
+                "of BEDIT"
+            );
 
         /// <summary>
         /// A MOVE, then three lines added in the Block Editor and discarded on closing it: the undo of the MOVE finds the drawing
         /// before it read ahead. Before, the drawing read back on discarding left none read ahead. The limit is four times the
-        /// undo of a MOVE made alone and 50 ms; the times are written to the test's output.
+        /// undo of a MOVE made alone and 50 ms, each at its best of three attempts; the times are written to the test's output.
         /// </summary>
         [Fact]
-        public void TheUndoAfterTheBlockEditorDiscardsItsChanges_FindsItsDrawingReadAhead()
-        {
-            CadDocument document = Drawing(out string handle);
-            Move(document, handle);
-            double move = UndoAndFind(document, handle);
+        public void TheUndoAfterTheBlockEditorDiscardsItsChanges_FindsItsDrawingReadAhead() =>
+            AssertNearTheUndoOfAMove(
+                () =>
+                {
+                    CadDocument document = Drawing(out string handle);
+                    Move(document, handle);
+                    double move = UndoAndFind(document, handle);
 
-            Move(document, handle);
-            EditBlock(document);
-            Assert.True(document.CloseBlockEditor(false).Succeeded);
-            document.GetDisplay(document.ModelSpace);
-            Assert.Equal("MOVE", document.NextUndo.Name);
-            double discarded = UndoAndFind(document, handle);
-            _output.WriteLine(
-                "undo of a MOVE " + move.ToString("0") + " ms, after discarding " + discarded.ToString("0") + " ms"
+                    Move(document, handle);
+                    EditBlock(document);
+                    Assert.True(document.CloseBlockEditor(false).Succeeded);
+                    document.GetDisplay(document.ModelSpace);
+                    Assert.Equal("MOVE", document.NextUndo.Name);
+                    return new[] { move, UndoAndFind(document, handle) };
+                },
+                "after discarding"
             );
-
-            Assert.True(
-                discarded < 4 * move + 50,
-                "undo after discarding " + discarded + " ms, of a MOVE " + move + " ms"
-            );
-        }
     }
 }

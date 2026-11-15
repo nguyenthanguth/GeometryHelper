@@ -417,7 +417,7 @@ the ones wanted.
 - [x] MIRRTEXT: MLEADER under MIRROR, MIRRTEXT 1 TEXT/ATTDEF/ATTRIB (71 = 2, +Z), TEXT placed by its font ink under MIRRTEXT 0
 - [x] MIRROR: INSERT (41 = -1, turn of the mirrored y axis), ATTRIBs without 210, rotations within 0..360, TEXT spaces kept, 45-degree multileaders
 - [x] MIRROR follow-ups 2: MTEXT with no 11 read along world x, MINSERT, annotative INSERT, dynamic flip kept (and on COPY/ARRAY), MLEADER sizes exact, missing $AUPREC and $MIRRTEXT read as 0
-- [ ] MIRROR follow-ups 3: GeoTransform3.Mirror across 45 degrees gives 9.999999999999957 for 10 (plane from a normalized normal); annotative copy writes {ACAD_REACTORS where AutoCAD writes none (S)
+- [ ] (mirror3, running) MIRROR follow-ups 3: GeoTransform3.Mirror across 45 degrees gives 9.999999999999957 for 10 (plane from a normalized normal); annotative copy writes {ACAD_REACTORS where AutoCAD writes none (S)
 - [x] Drafting aids: TK (TRACKING); check TT with OTRACK off, "(need YZ):" input and Enter at a modifier prompt
       against AutoCAD (S)
 - [x] Draw: AUDIT a drawing made with every ARC, CIRCLE, PLINE, TEXT and MTEXT option, and compare ARC and PLINE entity
@@ -825,8 +825,12 @@ the ones wanted.
 - [x] Dimension-word race (race1): CadDimensionWords measured with static fonts and folder that any document's Fonts
       setter overwrote while other tests ran; now each document's own fonts, measurements kept per font set: 3 of 4
       full Viewer runs failed before, 11 of 11 pass after; a repro test of two documents with different font folders
-- [ ] (tests2, running; also MTextLayoutTests' locked temp fonts file) Wall-clock tests 2: UndoReadAheadSpeedTests (50 ms floor) and the ratio tests DisplayPatch, MTextDisplay, Xref
-      under heavier load; timing classes in a DisableParallelization collection in the core suite (S)
+- [x] Test isolation and timing 2 (tests2): every temp path in the six test projects checked (all unique per test or
+      run); FontFolder.Write waits until its file can be opened alone; UndoReadAhead, DisplayPatch, MTextDisplay and the
+      xref ratio tests take best of several runs (the xref test moved into the speed collection); Viewer 10 full runs in
+      a row and core twice green beside a CPU burner
+- [ ] Test isolation 3: CanvasPictureTests' hover limit (48 ms, no speed collection); a failure under memory or disk
+      pressure would now list every run's times (S)
 - [x] Speed follow-ups 10 (speed11): the 1M MOVE slowdown was real (the patch looked up every handle's insertion point):
       MOVE + display 295 -> 165 ms (net8) / 540 -> 375 (net48); the look and hidden read in one cached walk, handles
       found by the open's walk (1M open 896 -> 503 ms), block origins cached, unlike-scale arcs and circles sampled once

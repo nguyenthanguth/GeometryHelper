@@ -18,6 +18,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
     public class MTextDisplaySpeedTests
     {
         private const int Runs = 3;
+        private const int MostRuns = 8;
         private readonly ITestOutputHelper _output;
 
         public MTextDisplaySpeedTests(ITestOutputHelper output)
@@ -29,7 +30,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         /// 10 000 MTEXTs of 3 to 14 words, a third unwrapped, half in a TrueType style, a tenth with a taller red run and a
         /// stack. A new document over the drawing lays out every MTEXT; the document drawn again after a REGEN takes the
         /// layouts it kept. Before they were kept the two cost the same (196 and 197 ms under .NET Framework 4.8); kept, the
-        /// REGEN costs 0.55 of the new document (128 and 233 ms). The limit is 0.8, each the best of three runs.
+        /// REGEN costs 0.55 of the new document (128 and 233 ms). The limit is 0.8, each the best of three runs, and of up to
+        /// eight where the three do not meet it.
         /// </summary>
         [Fact]
         public void TenThousandMTextsDrawnAgainAfterARegen_TakeTheLayoutsKeptAndCostLessThanANewDocument()
@@ -42,7 +44,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = CadDocument.From(database, "mtext-10k.dxf");
             document.GetDisplay(document.ModelSpace);
 
-            for (int run = 0; run < Runs; run++)
+            // Three runs, and more while the best times are not within the limit, up to eight: a machine loaded by several jobs
+            // at once can hold one phase of a run for twice its time, and a layout that is not kept is slow in every run.
+            for (int run = 0; run < MostRuns && (run < Runs || kept >= layingOut * 0.8); run++)
             {
                 CadDocument other = CadDocument.From(database, "mtext-10k.dxf");
                 layingOut = Math.Min(layingOut, Time(() => fresh = other.GetDisplay(other.ModelSpace)));

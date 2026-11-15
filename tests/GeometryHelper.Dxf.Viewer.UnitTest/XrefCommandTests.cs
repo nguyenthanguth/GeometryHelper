@@ -508,56 +508,6 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(CadPathType.None, CadXrefManager.PathTypeOf("grid.dxf"));
         }
 
-        /// <summary>
-        /// A drawing of 100 000 entities shown as an external reference of a drawing of one line: read and drawn within twice
-        /// the time of opening and drawing it on its own, each timed at its best of three. On the maintainer's machine both take
-        /// about a second under .NET Framework 4.8.
-        /// </summary>
-        [Fact]
-        public void AnXrefOfAHundredThousandEntities_IsReadAndShownWithinTwiceTheTimeOfOpeningItsDrawing()
-        {
-            string big = Path.Combine(_folder, "xref", "big.dxf");
-            File.WriteAllText(big, BigDrawing.Text(100000));
-            DxfDatabase host = CadTemplate.CreateMetric();
-            host.ModelSpace.AppendEntity(
-                new DxfBlockReference(GeoPoint3.Origin, host.AttachXref("..\\xref\\big.dxf", "big"))
-            );
-            string hostPath = Path.Combine(_folder, "plans", "host.dxf");
-            Directory.CreateDirectory(Path.GetDirectoryName(hostPath));
-            host.Save(hostPath);
-
-            double direct = double.MaxValue;
-            double referenced = double.MaxValue;
-            int directCount = 0;
-            int referencedCount = 0;
-
-            for (int i = 0; i < 3; i++)
-            {
-                var watch = System.Diagnostics.Stopwatch.StartNew();
-                CadDocument alone = CadDocument.Open(big);
-                directCount = alone.GetDisplay(alone.ModelSpace).Count;
-                direct = Math.Min(direct, watch.Elapsed.TotalMilliseconds);
-
-                watch.Restart();
-                CadDocument shown = CadDocument.Open(hostPath);
-                referencedCount = shown.GetDisplay(shown.ModelSpace).Count;
-                referenced = Math.Min(referenced, watch.Elapsed.TotalMilliseconds);
-            }
-
-            Assert.True(
-                directCount == referencedCount,
-                directCount + " items alone, " + referencedCount + " referenced."
-            );
-            Assert.True(
-                referenced <= 2.0 * direct,
-                "Shown as an external reference in "
-                    + referenced.ToString("0", System.Globalization.CultureInfo.InvariantCulture)
-                    + " ms, opened alone in "
-                    + direct.ToString("0", System.Globalization.CultureInfo.InvariantCulture)
-                    + " ms."
-            );
-        }
-
         [Fact]
         public void ANameOfABlock_OrOfAnotherFile_IsRefused_AndAFileNotADrawingIsUnresolved()
         {
