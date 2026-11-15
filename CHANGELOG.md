@@ -37,6 +37,34 @@ read. Over each of the 1 000 cells of a table of 100 rows by 10 columns on .NET 
 cell of that table: `SetBackgroundColorNone` 3.6 s to 87 ms, `SetTextString` 5.0 s to 20 ms. The drawing is the same to the byte
 (150 steps of random settings, merges and the last cell, each compared with the record written whole); `SetTextString` and the
 setters of a cell's look cost what they did.
+**CHANGED.** WMFIN gives a pen's or brush's colour the index AutoCAD 2021's console gives it, where it gave the nearest index of the
+colours the indexes show on screen. AutoCAD's own palette for it, found by probing 72 000 colours through the console (a metafile of
+16 000 pens at a time; the header's object count must cover them all), has the 24 hues of ten indexes each at the levels 166, 128, 76
+and 38 of 255 (so 12 is (166, 0, 0), where the screen has (204, 0, 0)) and greys at 84, 118, 152, 187, 221 and 255 for 250 to 255,
+8 and 9 never chosen; the nearest of it by distance in red, green and blue gives AutoCAD's index for 99.7 per cent of the colours
+(the nearest of the screen's colours gave it for 33 per cent of 71 860, the darks and greys worst): dark green (0, 160, 0) is 92 and not 94, mid grey
+(128, 128, 128) is 251 and not 8, (1, 1, 1) and (10, 10, 10) are 7, (170, 85, 85) is 13. The 0.3 per cent left are colours within a
+unit or two of the line between two indexes.
+**FIXED.** WMFIN places a text as AutoCAD 2021 does. The reference point of a text is the top left of its font's cell, and AutoCAD
+puts the baseline the font's Windows ascent times the em below it (0.905 of the em for Arial, 0.8325 for Courier New, 1.0 for
+Tahoma; the guess was 0.9 for every font) and the height of the TEXT at 0.8 of that (0.724, 0.666 and 0.8 of the em; the guess was
+0.72), both in whole units of the file (an Arial of 80 is 72 and 57.6). A text turned a quarter reaches 0.0175 of the em further, one
+turned to any other angle by a measure of its face (0.1525 of the em for Arial, 0.205 for Courier New, 0.05 for Tahoma, 0.1 for a face
+not measured: Arial at 45 degrees is 0.84 of the em high and not 0.72), and one aligned to the bottom of the cell rests on the
+descent times the em times the ascent over the capitals' height. A text aligned to the centre or the right is left justified, as
+AutoCAD leaves it, and starts the width of its text (all of it or half) back from the point, the width being the advances of its
+letters times that same ascent over the capitals (1.26 for Arial): "Hello" in an Arial of 400 starts 1152 back where it was
+justified at the point. The look of a font is told by the face (letters of either case the same), bold at a weight of 700 and not
+600, italic, character set and pitch and family, so that a Russian Arial is `WMF-Arial1` beside the Western `WMF-Arial0` with its
+own character set kept in the style; the bytes of a text are Windows-1252 whatever the character set (80 is the euro sign and not
+a control character). The reader of the metafile now plays SaveDC and RestoreDC (the pen, brush, font, text colour, alignment and
+clip come back; RestoreDC of -1 or of a save's number) where it read them past, so a pen selected between the two no longer stays,
+and IntersectClipRect, which clips the lines as AutoCAD's console does (a line is cut where it crosses the clip, one across the clip
+along one axis and outside along the other is cut across the first only, one that misses the clip is left whole and one that
+runs along an axis and misses it is dropped; a polygon or rectangle is never cut). A window of a width or height below nought
+(the usual y-up metafile) turns the picture over as AutoCAD does: a window of 1 000 by -1 000 puts (100, 100) at (0.883, 0.883), one of
+-1 000 by 1 000 at (-0.5, -0.5), one of -1 000 by -1 000 draws upright with pens of no width. Probed through the console: 772 lines
+cut against one clip (769 of 772 as the rule above), 33 font looks, 610 texts in 24 faces and sizes from 1 to 800 units.
 **CHANGED.** MLEDIT's tees (CT, OT, MT) take the pair of segments AutoCAD 2021 takes where the second has three segments, or the
 meeting lies within the width of a corner: of every pair whose lines meet, the stem met on a segment or run on past the free end of
 its first or last, the second met on a segment or run on past its own free end, the one nearest the picks (the distances along the
@@ -306,6 +334,33 @@ switched on 45 ms where 52 and 78 where 89, a REGEN 109 where 124 and 173 where 
 of a block of 20 entities 858 ms where 1 115 (.NET 8) and 1 494 where 2 057 (.NET Framework), a layer switched on 316 where 441 and 550 where
 758, 424 MB of garbage where 640; the drawing of 1 000 000 entities 2.1 s where 2.3 under .NET 8 and 3.8 where 4.4 under .NET Framework,
 1 155 MB of garbage where 1 492 (a MOVE and its display, 250 ms, is as it was within the noise). No public signature changed.
+
+**CHANGED.** A large drawing opens and is edited faster again, and one with INSERTs of unlike scale factors displays nine times faster, the
+display lists, the saved bytes and the pixels as they were (167 AutoCAD samples and twelve generated drawings, item for item and field for field
+under .NET 8 and .NET Framework 4.8, and the pixels of 179 of them in three views, plain, selected, highlighted and with a hover). The note of
+the last round, that a MOVE and its display at 1 000 000 entities was no slower and not told from noise, was wrong: it was 60 ms slower,
+296 and 292 ms where 232 and 239 (the display alone, the move itself 10 ms, medians of eight moves with the undo read-aheads let finish
+between them). The display after an edit makes the list again from the older one and asked its table of insertion points for the handle
+of every one of the million entities it copied (a hash of a string ignoring case and a probe among 220 000 entries, 180 ms of the 300);
+a run now says whether its entity kept a point, so that only those are asked for, and the table is the older list's own until a patch has
+a point to take out or put in, then a copy of it: the display after a MOVE of one line is 165 ms where it was 295 (.NET 8) and 375 where
+540 (.NET Framework), the MOVE with its display 125 ms where 336 and 307 where 399. The look of an entity (layer, linetype, thickness, colour, lineweight,
+true colour) and whether it is hidden are found in one walk over its record, not two, and the look from the places of its groups among those
+of looks met before (64 are remembered), so that an entity of a look met makes no string of them and no `Look` (a REGEN of 100 000 entities
+makes 9 MB less garbage; a layer switched on 48 ms where 60 and a REGEN 153 where 171 at 100 000, 492 ms where 696 and 1.2 s where 2.0
+at 1 000 000, .NET 8); a group 102 is told from its bytes, a brace or not, as `Trim` reads it, and no longer made a string; the origin of
+a block is read once until the records of its file change, not for every INSERT; the style of the last colour and weight is answered as it
+was. The greatest handle of a file, which opening it asks for, is found as the records are walked, not by a pass of its own over every
+group of every record (a quarter of an opening): 1 000 000 entities open in 0.50 s where 0.90 under .NET 8, 100 000 in 45 ms where 86, and
+1.8 s where 3.1 under .NET Framework (on a loaded machine; 0.87 s where 1.30 on a quiet one); a new handle is the one it was, over
+generated files with pointers, seeds, a DIMSTYLE and the header's own 390. An INSERT whose scale factors are not alike draws the arcs and
+circles of its block as chains of points, each found by the shape's own arithmetic, 0.16 ms an INSERT of a block of 20 entities; the points
+of a shape of a block, before the INSERT's matrix, are now found once for all the INSERTs that place it, and each INSERT puts them through its
+own matrix into its array at once: 20 000 INSERTs display in 0.41 s where they took 3.5 s (.NET 8; 0.72 s where 4.5 s under .NET Framework),
+a layer switched on in them in 0.19 s where 1.2, with 451 MB of garbage where 1 479, every point the same to the bit. Not changed, with the
+reason: the cold display of 100 000 mixed entities (222 ms where 233, within the noise: what it does is the first touch of every
+record and its shapes, three walks over each, one of which is now gone) and the table of insertion points of a list made whole (a lookup and
+an insert for each entity that has one, 2.7 % of the display). No public signature changed.
 
 **FIXED.** Arc length dimensions (DIMARC) in the presenter follow AutoCAD 2021 where the last round left them (measured on its console,
 some 50 000 more dimensions made by both; the sets listed are differing pictures of those probed, before and after).

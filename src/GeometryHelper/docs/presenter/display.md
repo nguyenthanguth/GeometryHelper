@@ -160,6 +160,52 @@ saves and the pixels are those they were: 167 samples of AutoCAD and nine genera
 with a normal, in arrays and with attributes) give the same list, item for item and field for field, and the same bytes saved, under
 .NET 8 and .NET Framework 4.8, and 171 of them the same pixels in three views, plain, selected, highlighted and with a hover.
 
+The note of that round said a MOVE and its display at 1 000 000 entities was no slower and not told from the noise of the machine. It
+was slower: with the machine quiet and the read-aheads of the undo steps given time to finish between the moves, the display after a
+MOVE of one line (the move itself is 10 ms) took 232 and 239 ms before the INSERTs were read in one pass and 296 and 292 after (.NET 8,
+medians of eight moves, alternated). The display after an edit makes the list again from the older one: it walks every entity and
+copies the items of those the edit left alone, and for each it asked the older list's table of insertion points for the entity's
+handle (a hash of a string that ignores case and a probe among 220 000 entries, a million times), 180 ms of the 300. The run of an
+entity now says whether the entity kept a point when it was drawn (a bit in the count of its items, so that a run is still 24 bytes),
+and only those 220 000 are looked for. The patched list then shares the table of the older list and copies it only when it has a point
+to take out or put in (those of an entity drawn again, erased or hidden since, taken out as the patch comes to it, a run of the older
+list that no entity met being found by one pass over a bit for each run where the count of the entities met is short), so that moving
+a line copies nothing and moving a text copies it once. The display after a MOVE of one line
+at 1 000 000 entities takes 165 ms where it took 295 (.NET 8) and 375 where it took 540 (.NET Framework), the MOVE with its display 125
+ms where 336 and 307 where 399; the rest is the walk over the entities and the copy of their 1 780 000 items.
+
+What a display asks of the record of an entity was still two walks over its bytes, one for its look (layer, linetype, thickness,
+colour, lineweight, true colour and handle) and one for whether it is hidden. It is one: the walk over the groups of the head record
+finds the first of each code of the look, as before, the places where they stand are hashed and compared with those of the looks the
+file has shared (64 are remembered by their bytes), so that an entity of a look met already makes no string of them and no `Look`,
+and whether the entity is hidden is settled in the same walk by the rules of the group 60 and kept with the look, to be read again when
+the record is written anew. A group 102 that opens a group of an application is told from its bytes, a brace or not as `Trim` reads
+the value (the first byte that is not a space or a control white space, read as text only where it is beyond ASCII), and no longer made
+a string. The origin of a block (`DxfBlockTableRecord.Origin`, 0.25 µs and three reads for each INSERT) is read once until the records
+of the file next change, as the contexts of an INSERT are, and the style of the last colour and weight is answered as it was, as the
+layer already was. A layer switched on at 100 000 entities takes 48 ms where it took 60, at 1 000 000 entities 492 where 696, and a
+REGEN of 1 000 000 entities 1.2 s where 2.0.
+
+The greatest handle of a drawing, which opening it asks for (a pass over every group of every record, a quarter of the time it takes to
+open 1 000 000 entities), is found as the walk that lists the records goes by their groups: the first 5 of each record outside the
+header (105 for a DIMSTYLE, whose 5 is the name of its arrow block in a file of R12) and the greatest value of a pointer (320 to 369,
+390 to 399, 480, 481 and 1005). 1 000 000 entities open in 0.50 s where they took 0.90 (.NET 8), 100 000 in 45 ms where 86, and under
+.NET Framework 1.8 s where 3.1 on a loaded machine (0.87 s where 1.30 on a quiet one). A new handle is the one it was: tests over
+generated files hold it, with the seed, the pointers, the header's own 390 and a DIMSTYLE.
+
+An INSERT whose scale factors are not alike (2 and 0.5, for one) or whose block is turned out of the drawing's plane draws the arcs and
+circles of its block as the chains of points they become, 180 for a circle and up to 91 for an arc, each found by the shape's own
+arithmetic: 0.16 ms an INSERT of a block of 20 entities with five circles and five arcs, 3.5 s for 20 000 of them. The points of a shape
+of a block, before the matrix of the INSERT, are found once a build for all the INSERTs that place it (the shape is a value that never
+changes, so a sample is never out of date), and each INSERT puts them through its own matrix into its array at once. 20 000 INSERTs
+display in 0.41 s where they took 3.5 (.NET 8; 0.72 s where 4.5 under .NET Framework), a layer switched on in them in 0.19 s where 1.2, with
+451 MB of garbage where there were 1 479; every point and chain is the same to the bit. The cold display of 100 000 mixed entities is as it
+was within the noise (222 ms where 233; the first touch of every record and its shapes is what it does), 98 MB of garbage where 107.
+The display lists and the bytes a drawing saves are those they were: 167 samples of AutoCAD and twelve generated drawings (INSERTs plain,
+scaled alike and unalike, mirrored, with a normal, tilted, in arrays; 100 000 mixed entities and 100 000 INSERTs) give the same list,
+item for item and field for field, the same bytes saved and after a MOVE and an added entity, and the same new handle, under .NET 8 and
+.NET Framework 4.8, and 179 of them the same pixels in three views, plain, selected, highlighted and with a hover.
+
 `PrepareDisplay(space, progress, cancellationToken)` makes the list and the pick index of a space ahead, item for item the
 list `GetDisplay` makes, telling `progress` the share of the space's entities drawn every 4 096 of them and stopping, with
 an `OperationCanceledException`, when the token is cancelled; a list stopped is not kept, and is made whole when next

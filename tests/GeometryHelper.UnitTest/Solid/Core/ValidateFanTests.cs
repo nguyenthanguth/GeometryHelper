@@ -88,10 +88,10 @@ namespace GeometryHelper.UnitTest.Solid
         {
             List<GeoFace3> faces = ConeFaces(4000);
 
-            (SolidValidation3 validation, TimeSpan time) = Check(faces);
+            SolidValidation3 validation = null;
+            SpeedGuard.AssertWithin(1, () => validation = new GeoSolid3(faces).Validate(Within));
 
             Assert.Equal(16001, faces.Count);
-            Assert.True(time < TimeSpan.FromSeconds(1), $"{time.TotalSeconds:F2} s");
             Assert.True(validation.IsValid);
             Assert.True(validation.IsClosed);
             Assert.True(validation.IsWoundAlike);
@@ -106,14 +106,11 @@ namespace GeometryHelper.UnitTest.Solid
         {
             List<GeoFace3> sides = ConeFaces(4000).Skip(1).ToList();
 
-            (SolidValidation3 validation, TimeSpan time) = Check(sides);
-            var solid = new GeoSolid3(sides);
-            var clock = Stopwatch.StartNew();
-            bool closed = solid.IsClosed(Within);
-            TimeSpan closedTime = clock.Elapsed;
+            SolidValidation3 validation = null;
+            bool closed = true;
+            SpeedGuard.AssertWithin(1, () => validation = new GeoSolid3(sides).Validate(Within));
+            SpeedGuard.AssertWithin(1, () => closed = new GeoSolid3(sides).IsClosed(Within));
 
-            Assert.True(time < TimeSpan.FromSeconds(1), $"validating {time.TotalSeconds:F2} s");
-            Assert.True(closedTime < TimeSpan.FromSeconds(1), $"asking {closedTime.TotalSeconds:F2} s");
             Assert.False(closed);
             Assert.False(validation.IsClosed);
             Assert.Equal(16000, validation.Issues.Count);

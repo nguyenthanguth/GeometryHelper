@@ -478,6 +478,7 @@ namespace GeometryHelper.Dxf.Viewer
             // The patterns are kept for this build only: an edit between two builds may have changed a hatch.
             _patterns.Clear();
             _orders.Clear();
+            _sampled.Clear();
             _lastBlock = null;
             _lastContent = null;
             _lastNamed = null;
@@ -487,6 +488,11 @@ namespace GeometryHelper.Dxf.Viewer
             _building = list;
             IReadOnlyList<DisplayRun> runs = older?.Runs;
             Dictionary<string, int> byHandle = null;
+
+            // The runs of the older list the entities met: the insertion points of a run not met, of an entity erased or hidden
+            // since, are not carried on.
+            var met = runs == null ? null : new System.Collections.BitArray(runs.Count);
+            int metCount = 0;
             int next = 0;
             HashSet<string> keys = runs == null ? null : KeysOf(runs, handles);
 
@@ -555,6 +561,12 @@ namespace GeometryHelper.Dxf.Viewer
                         {
                             next = found + 1;
 
+                            if (!met[found])
+                            {
+                                met[found] = true;
+                                metCount++;
+                            }
+
                             if (
                                 (run.Layers & layers) == 0
                                 && (handles == null || !handles.Contains(handle))
@@ -564,6 +576,9 @@ namespace GeometryHelper.Dxf.Viewer
                                 list.CopyRun(older, run);
                                 continue;
                             }
+
+                            // Drawn again: its points are those it keeps now.
+                            list.DropInsertions(run);
                         }
                     }
 
@@ -581,6 +596,18 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     list.AddRun(handle, start, _runLayers, _runReads?.ToArray());
+                }
+
+                // An entity erased or hidden since the older list was made leaves its points behind in the copy of the older list's.
+                if (met != null && metCount < met.Count)
+                {
+                    for (int i = 0; i < met.Count; i++)
+                    {
+                        if (!met[i])
+                        {
+                            list.DropInsertions(runs[i]);
+                        }
+                    }
                 }
             }
             finally
@@ -1038,14 +1065,25 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var key = new PlainStyle(rgb, weight);
 
+            // The entities that follow one another mostly share a colour and a weight: the style asked for last is answered as it was.
+            if (_lastPlainStyle != null && _lastPlainKey.Equals(key))
+            {
+                return _lastPlainStyle;
+            }
+
             if (!_plainStyles.TryGetValue(key, out DisplayStyle style))
             {
                 style = new DisplayStyle(rgb, weight, null);
                 _plainStyles[key] = style;
             }
 
+            _lastPlainKey = key;
+            _lastPlainStyle = style;
             return style;
         }
+
+        private PlainStyle _lastPlainKey;
+        private DisplayStyle _lastPlainStyle;
 
         /// <summary>The colour and the bits of the weight of a style of no dashes.</summary>
         private readonly struct PlainStyle : IEquatable<PlainStyle>
@@ -1515,10 +1553,14 @@ namespace GeometryHelper.Dxf.Viewer
             bool mask = entity is DxfWipeout;
             bool fill = entity is DxfSolid;
 
+            _inBlock = frame.Depth > 0;
+
             foreach (object shape in shapes)
             {
                 AddShape(shape, frame.Matrix, list, style, handle, layerName, fill, mask);
             }
+
+            _inBlock = false;
         }
 
         /// <summary>Notes the words a leader points to, whose place and width its hook runs on by; always true.</summary>

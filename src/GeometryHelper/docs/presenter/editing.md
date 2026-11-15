@@ -448,8 +448,9 @@ is no file is answered `Cannot find the specified metafile`, one that is no meta
 (AutoCAD says nothing), and a metafile that draws nothing is not imported. The file is read by the presenter's own reader, the
 placeable header (or none) and these records: SetWindowOrg and SetWindowExt, MoveTo and LineTo, Polyline, Polygon, PolyPolygon,
 Rectangle, RoundRect, Ellipse, Arc, Pie and Chord, CreatePenIndirect, CreateBrushIndirect and CreateFontIndirect with SelectObject
-and DeleteObject, TextOut and ExtTextOut, SetTextColor and SetTextAlign; bitmaps, regions, clipping, hatch and pattern brushes, the
-mapping mode, the viewport and the saving of the device context are read past.
+and DeleteObject, TextOut and ExtTextOut, SetTextColor and SetTextAlign, SaveDC and RestoreDC, and IntersectClipRect; bitmaps,
+regions (SelectClipRegion, OffsetClipRgn and ExcludeClipRect change nothing in AutoCAD's console, so they change nothing here),
+hatch and pattern brushes, the mapping mode and the viewport are read past.
 
 The picture becomes block WMF0 (WMF1 for the next, and so on) of the unit inches, and an INSERT of it as INSERT places one: `Units:
 Unitless   Conversion:   25.4000` (the factor from inches to the drawing's INSUNITS: 25.4 for millimetres, 1 for inches or for none,
@@ -460,20 +461,43 @@ width and half its height in the units of the view, whatever the unit of the dra
 kept, a logical point (x, y) of the file at (x f, -y f) where f is the smaller of the half view's width over the window's width and its
 height over its height, the window's origin not taken (a window of 1 000 by 1 000 and a line from (100, 100) to (900, 900) in a view
 10 high are the points (0.5, -0.5) and (4.5, -4.5), the INSERT scaled 25.4, which AutoCAD gives in a console of millimetres), and the
-window 1 by 1 where the file sets none.
+window 1 by 1 where the file sets none. A window of a width or height below nought (a y-up metafile gives its height below nought)
+is laid out as AutoCAD lays it, case by case: a width below nought turns x over and fits by the height alone (a window of -1 000
+by 1 000 puts (100, 100) at (-0.5, -0.5)); a height below nought turns y over (the point at (0.883, 0.883) in a window of 1 000 by
+-1 000) and fits by the width alone; both below nought fits by the larger of the two, draws upright, and gives the pens no width.
 Each MoveTo and LineTo is a polyline of two vertices, a Polyline record one open polyline, a Rectangle, Polygon, PolyPolygon, RoundRect, Pie
 and Chord a closed one, an Ellipse an open one of 101 points that ends where it starts, an Arc an open one of a hundred
 pieces to the turn; all are 2D polylines of the width of the pen times f (nought for a null pen, which draws no line) in the
-colour index nearest the pen's, 7 for black and white; the closed shapes take the colour of the brush, the pen's where the brush is
-hollow, and an Ellipse the pen's. A text is a TEXT of the style `WMF-` and the face and a number (`WMF-Arial0`, then `WMF-Arial1` for
-another look of Arial, bold or italic, in the file; `WMF-Courier New0`), the style's font the face with its bold and italic file, the
-text's height 0.72 of the em (80 units high at f 0.005 is 0.288, which AutoCAD gives Arial's capitals), turned with the font's
-escapement and coloured by SetTextColor; its reference point, the top left of the font's cell, is taken to the baseline 0.9 of the em
-below it, and a text aligned to the centre or the right is justified at its point. WMFBKGND and WMFFOREGND are variables of 0 or 1 that
-AutoCAD keeps and its console ignores, so they are only kept here too. WMFOPTS (Wire Frame, Wide Lines) is a dialog of the full
-AutoCAD with no command in its console, and is not built. The colour index is the nearest by distance in red, green and blue: the
-primaries, black and white are AutoCAD's, but it gives other indexes for the colours between them (dark green (0, 160, 0) is 92 there
-and 94 here, (128, 128, 128) 251 there and 8 here), by a rule that probing 45 colours did not show.
+colour index AutoCAD gives it (below), 7 for black and white; the closed shapes take the colour of the brush, the pen's where the brush
+is hollow, and an Ellipse the pen's. A MoveTo and LineTo is cut by the clip IntersectClipRect sets (a clip is the intersection of the
+rectangles given, kept and given back by SaveDC and RestoreDC): a line is cut where it crosses the clip, one that runs across the
+clip along one axis and outside it along the other is cut across the first alone (a horizontal line above the clip, from x 0 to 1 000
+with the clip from 200 to 600, is cut to 200 to 600 and stays where it was), a line that misses the clip altogether is left whole, and
+one that runs along an axis and misses it is dropped; a Polyline, Polygon or Rectangle is never cut. SaveDC and RestoreDC (a number
+below nought that many saves back, above it that save) give back the pen, brush, font, text colour, alignment and clip.
+A text is a TEXT of the style `WMF-` and the face and a number (`WMF-Arial0`, then `WMF-Arial1` for another look of Arial in the
+file; `WMF-Courier New0`), the style's font the face with its bold and italic file, its character set and its pitch and family;
+the looks are told apart by the face (the case of its name does not matter), bold (a weight of 700; 600 is regular), italic,
+character set and pitch and family, and not by underline or strike-out. The bytes of the text are read as Windows-1252, whatever
+the character set of the font (AutoCAD 2021 does so: the bytes CF F0 E8 E2 E5 F2 of a Russian font are Ïðèâåò, and 80 is the euro
+sign). The ascent of the font's cell, its Windows ascent times the em rounded to a unit of the file (362 for Arial of 400, 333 for
+Courier New, 400 for Tahoma; 72 for Arial of 80), is how far the baseline lies below the reference point, which is the top left of
+the cell, and the text's height is 0.8 of it (80 units high at f 0.005 is 0.288, Arial's 72 of 80 being 0.9 of the em). A text turned a
+quarter reaches 0.0175 of the em further, and one turned to any other angle by a measure of its face that AutoCAD gave
+(0.1525 of the em for Arial, 0.205 for Courier New, 0.05 for Tahoma; 0.1 for a face not measured), which is why the height of a text
+at 45 degrees is about 0.85 of the em for Arial (0.84 of an em of 80) and not 0.72. A text aligned to the bottom of the cell lies the descent times the em times
+1.26 (the ascent over the height of the capitals, Arial's 0.905 over 0.716) above the point; one aligned to the baseline lies on it.
+A text aligned to the centre or the right is not justified (AutoCAD 2021 leaves it left justified): it starts half the width of
+its text, or all of it, back from the point, the width being the advances of its letters in the font times the same 1.26, which is
+1152 for "Hello" in Arial of 400, 1749 in Courier New, 1211 in Tahoma. A font whose file is not found is taken as Arial.
+WMFBKGND and WMFFOREGND are variables of 0 or 1 that AutoCAD keeps and its console ignores, so they are only kept here too. WMFOPTS
+(Wire Frame, Wide Lines) is a dialog of the full AutoCAD with no command in its console, and is not built.
+The colour index is not the nearest of the colours the indexes show on the screen: WMFIN takes the nearest, by distance in red,
+green and blue (the lowest index of the nearest), of a palette of its own, found by probing 72 000 colours through the console
+(99.7 per cent of them agree): the first seven indexes, the 24 hues of 15 degrees in ten indexes each (full, then half washed out,
+then the four lower levels of each: 166, 128, 76 and 38 of 255 for the full and 166, 127, 77 and 38 for the washed out, so that 12
+is (166, 0, 0), where the screen has (204, 0, 0)), and the greys 250 to 255 at 84, 118, 152, 187, 221 and 255, black being 7 as
+white is. Dark green (0, 160, 0) is 92 and (128, 128, 128) is 251, which the nearest colour of the screen's palette gave 94 and 8.
 
 **Shapes and hatching (batch 3 of acad.pgp).**
 

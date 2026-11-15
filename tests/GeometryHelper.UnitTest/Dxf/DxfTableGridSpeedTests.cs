@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
@@ -80,22 +79,25 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             // 60 rows by 10 columns, 2 400 calls: a call read and wrote the 30 000 groups of the record, 8 ms each, 19 s in all
             // (1 000 cells took 40 s for 4 000 calls); now each copies the bytes of the cells it changes into one of its own.
-            DxfDatabase db = Drawing(60, 10);
-            DxfTable table = TableOf(db);
-            var watch = Stopwatch.StartNew();
-
-            for (int r = 0; r < 60; r++)
-            {
-                for (int c = 0; c < 10; c++)
+            DxfDatabase db = null;
+            SpeedGuard.AssertWithin(
+                5,
+                () =>
                 {
-                    Lines(table, r, c, 10 * r + c);
-                }
-            }
+                    db = Drawing(60, 10);
 
-            watch.Stop();
-            Assert.True(
-                watch.Elapsed.TotalSeconds < 5.0,
-                "2 400 line settings of 600 cells took " + watch.Elapsed.TotalSeconds + " s."
+                    return TableOf(db);
+                },
+                table =>
+                {
+                    for (int r = 0; r < 60; r++)
+                    {
+                        for (int c = 0; c < 10; c++)
+                        {
+                            Lines(table, r, c, 10 * r + c);
+                        }
+                    }
+                }
             );
 
             // The last cell's left (70) and bottom (100) are its own, read from it whatever its neighbours were given.

@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using GeometryHelper;
@@ -23,12 +22,15 @@ namespace GeometryHelper.UnitTest.Solid
 
         private static T Answered<T>(Func<T> ask, double seconds)
         {
-            var watch = Stopwatch.StartNew();
-            Task<T> task = Task.Run(ask);
-            Assert.True(task.Wait(TimeSpan.FromSeconds(10)), "no answer after 10 s");
-            Assert.True(watch.Elapsed.TotalSeconds < seconds, "took " + watch.Elapsed.TotalSeconds + " s");
+            T answer = default;
+            SpeedGuard.AssertWithin(seconds, () =>
+            {
+                Task<T> task = Task.Run(ask);
+                Assert.True(task.Wait(TimeSpan.FromSeconds(10)), "no answer after 10 s");
+                answer = task.Result;
+            });
 
-            return task.Result;
+            return answer;
         }
 
         private static void AssertPlaces(GeoPoint3[] actual, double within, params GeoPoint3[] expected)

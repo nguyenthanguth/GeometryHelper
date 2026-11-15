@@ -41,6 +41,7 @@ namespace GeometryHelper.Dxf
         private object _wrapper;
         private bool _removed;
         private string _handle;
+        private bool _hidden;
         private DxfFile.Look _look;
         private IReadOnlyList<object> _shapes;
         private Extras _extras;
@@ -146,7 +147,7 @@ namespace GeometryHelper.Dxf
             {
                 if (Parent != null)
                 {
-                    _file.LookOf(this, out string handle);
+                    _file.LookOf(this, out string handle, out _);
                     return handle;
                 }
 
@@ -521,7 +522,7 @@ namespace GeometryHelper.Dxf
 
                 if (Parent != null)
                 {
-                    return _file.LookOf(this, out _);
+                    return _file.LookOf(this, out _, out _);
                 }
 
                 return look ?? ReadLook();
@@ -534,9 +535,32 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private DxfFile.Look ReadLook()
         {
-            DxfFile.Look look = _file.Shared(_file.LookOf(this, out string handle));
+            DxfFile.Look look = _file.LookOf(this, out string handle, out bool hidden);
             _handle = handle;
+            _hidden = hidden;
             return Interlocked.CompareExchange(ref _look, look, null) ?? look;
+        }
+
+        /// <summary>
+        /// Whether the entity is hidden, as <see cref="DxfFile.IsHidden"/> reads its record: found with the look, in the same
+        /// walk over the record, and kept as the look is, to be read again when the record is written anew.
+        /// </summary>
+        internal bool IsHidden
+        {
+            get
+            {
+                if (Parent != null)
+                {
+                    return _file.IsHidden(this);
+                }
+
+                if (Volatile.Read(ref _look) == null)
+                {
+                    ReadLook();
+                }
+
+                return _hidden;
+            }
         }
 
         /// <summary>The state few entities have, made when one is first set.</summary>

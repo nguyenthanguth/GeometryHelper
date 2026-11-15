@@ -299,7 +299,7 @@ namespace GeometryHelper.Dxf
         /// of R12, which writes none: R13 (AC1012) brought it.</exception>
         public bool Visible
         {
-            get => !Item.File.IsHidden(Item);
+            get => !Item.IsHidden;
             set
             {
                 if (value != Visible)

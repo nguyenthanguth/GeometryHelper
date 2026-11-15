@@ -18,6 +18,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Compile Include="..\GeometryHelper.UnitTest\SpeedGuard.cs" Link="SpeedGuard.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
         <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" />
         <ProjectReference Include="..\..\src\GeometryHelper.Dxf.Viewer\GeometryHelper.Dxf.Viewer.csproj" />
         <ProjectReference Include="..\..\src\GeometryHelper.Drawing\GeometryHelper.Drawing.csproj" />

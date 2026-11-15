@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using GeometryHelper;
@@ -21,16 +20,19 @@ namespace GeometryHelper.UnitTest.Plane
         private static GeoPoint2 P(double x, double y) => new GeoPoint2(x, y);
 
         /// <summary>
-        /// Asks a question on another thread, and fails when it is not answered within ten seconds or takes longer than the time given.
+        /// Asks a question on another thread, and fails when it is not answered within ten seconds or, in each of three asks, takes longer than the time given: a run slowed by a busy machine is asked again.
         /// </summary>
         private static T Answered<T>(Func<T> ask, double seconds)
         {
-            var watch = Stopwatch.StartNew();
-            Task<T> task = Task.Run(ask);
-            Assert.True(task.Wait(TimeSpan.FromSeconds(10)), "no answer after 10 s");
-            Assert.True(watch.Elapsed.TotalSeconds < seconds, "took " + watch.Elapsed.TotalSeconds + " s");
+            T answer = default;
+            SpeedGuard.AssertWithin(seconds, () =>
+            {
+                Task<T> task = Task.Run(ask);
+                Assert.True(task.Wait(TimeSpan.FromSeconds(10)), "no answer after 10 s");
+                answer = task.Result;
+            });
 
-            return task.Result;
+            return answer;
         }
 
         private static void AssertPlaces(GeoPoint2[] actual, double within, params GeoPoint2[] expected)
@@ -115,6 +117,7 @@ namespace GeometryHelper.UnitTest.Plane
             // A cubic through (100, 0) and a point 80 from it, turn about, twenty times: each petal passes through the ellipse of radius 1E-4.
             // A part of the ellipse no larger than the tolerance but not straight was cut until straight against each part of the curve near
             // it, not the curve cut until its parts were as small: the twenty took 7.9 s on .NET Framework.
+            // It takes about 0.2 s now; the limit is 2 s, a quarter of the 7.9 s, and the ask is made again up to twice when a busy machine slows it.
             var fit = new List<GeoPoint2> { P(100, 0) };
 
             for (int i = 0; i < 20; i++)
@@ -127,7 +130,7 @@ namespace GeometryHelper.UnitTest.Plane
             GeoSpline2 curve = GeoSpline2.Interpolate(fit, 3, Default);
             GeoEllipse2 ellipse = GeoEllipse2.FromCircle(new GeoCircle2(P(100, 0), 1E-4));
 
-            GeoPoint2[] places = Answered(() => curve.GetIntersections(ellipse, Default), 0.5);
+            GeoPoint2[] places = Answered(() => curve.GetIntersections(ellipse, Default), 2.0);
 
             Assert.NotEmpty(places);
             Assert.All(places, p => Assert.True(p.DistanceTo(P(100, 0)) <= 2E-4, p + " is not on the ellipse"));

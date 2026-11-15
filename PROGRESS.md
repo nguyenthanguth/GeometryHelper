@@ -188,7 +188,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         the run-on with a level landing and the straight leader from the middle (0 wrong of 6 480 bisected probes; the
         leader's reach floor exact); runs made an arrowhead long; the doubled line only with the middle leader; words on a
         level line past an end; tw17/20/23-26/29-31 now 0, tw28 4240 -> 7 ties; harness .claude/gk/annot-harness7
-  - [ ] Annotative objects 5e: tw19's 64 level words put out by the fit (run to the knee where run_k > 0; s120 l5 n15-16
+  - [ ] (annot8, running) Annotative objects 5e: tw19's 64 level words put out by the fit (run to the knee where run_k > 0; s120 l5 n15-16
         has no rule); tw27's 20 (words over the line by 2.25: arrowheads out and the line twice, or a 6.63 break); exact
         ties (tw18 2, tw22 1, tw28 7) (S)
   - [x] R2.2 follow-ups (hatch3): -HATCH draW boundary Arc (all AutoCAD's options and prompts), HPGAPTOL bridges along a
@@ -240,11 +240,13 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] WMFIN (wmf1): our own WMF reader (lines, polygons, rectangles, ellipses, arcs, pies, pens, brushes, fonts,
         text) and WMFIN as AutoCAD (block WMF<n> of inches, "Units: Unitless Conversion:", Explode and REpeat, the
         picture in half the view), WMFBKGND/WMFFOREGND kept; IMPORT still refuses .wmf as AutoCAD does
-  - [ ] (wmf2, running: the WMF parts) Dialogs 12 follow-ups: WMF colour index between primaries (45 probed, no rule; .claude/gk/wmf-notes); text height
-        and baseline per font look; clipping to the window, negative extents, RestoreDC, code pages; WMFOPTS (GUI);
-        raster image quality, PDF layer information and bookmarks (the SkiaSharp writer cannot); .pss location codes 1-3
-        (GUI Save As); Collect in the Leaders panel (after MLEADERCOLLECT); multi-line stamp and "." clearing in the GUI;
-        "match(es) replaced" wording (S)
+  - [x] WMFIN follow-ups (wmf2): AutoCAD's own WMF palette for colours (Euclid nearest, black 7; 71 860 probed colours
+        99.7 % equal, was 33 %); text baseline and height from the font's ascent, centre/right alignment as AutoCAD moves
+        the text; SaveDC/RestoreDC, IntersectClipRect on MoveTo/LineTo (769 of 772 lines), negative window extents
+  - [ ] Dialogs 12 follow-ups: WMF rotated text per face (12-face table), GDI hinting at small sizes, 3 clip cases, an
+        empty face name ("WMF-0"), raster/missing fonts, DBCS charsets; WMFOPTS (GUI); raster image quality, PDF layer
+        information and bookmarks (the SkiaSharp writer cannot); .pss location codes 1-3 (GUI Save As); Collect in the
+        Leaders panel; multi-line stamp and "." clearing in the GUI; "match(es) replaced" wording (S)
 - Round 3, what is left of the gap list (`.claude/gk/leader/pgp-GAP.md`):
   - [x] R3.1 (r31): MLEADERALIGN Parallel, Use current spacing, Spacing and Distribute as AutoCAD (content boxes, the
         reference's landing, prompts and modes); TEXTALIGN Left/Right on a line by the top corners; DIMBREAK Auto cut by
@@ -372,7 +374,7 @@ User note 2026-11-12 evening (note.md 1-14):
       adding 1 600 tables 25.2 s -> 1.3 s (style reads cached); ListForRecompose flushed once; ACIS R2013 saves
       deterministic (the SAT head's empty date, the source's or a hashed GUID; AutoCAD reads all 24 checks, AUDIT 0);
       saved bytes identical (27 168 fuzz saves)
-- [ ] DXF versions follow-ups 12: the copy Complete() reads builds the whole entity index (~40 % of completing a large
+- [ ] (dxfver12, running: completion copy, record copies per cell edit, remaining setters) DXF versions follow-ups 12: the copy Complete() reads builds the whole entity index (~40 % of completing a large
       drawing); each cell edit still copies the record (3 s for 10 000 cells: deferred write); SetFormat, SetDataType,
       SetBackgroundColorNone, SetOverrides and the last cell on the splice path; NormalizeEdges (~70 us a table); the
       new DxfSpeed11Tests timing bounds (to flaky1's pattern); real TABLEGEOMETRY and row heights (font metrics); native
@@ -759,7 +761,7 @@ the ones wanted.
       identical); MinimumColumnWidth counts block cells as AutoCAD; the 4/3 floor for a first-column block cell; ATTDEF
       text counted in block extents as AutoCAD; date letters %C %h %F %r %u %z %Z (AutoCAD's broken %j %U %W keep the
       date)
-- [ ] Tables follow-ups 4: ATTRIB text drawn in a table block cell; AutoCAD measures non-constant attribute words in
+- [ ] (tables8, running) Tables follow-ups 4: ATTRIB text drawn in a table block cell; AutoCAD measures non-constant attribute words in
       Arial metrics (about 1 mm off with SHX); the fit scale of a fitted block with a definition (1.44061 vs ~1.388);
       the other per-cell setters (SetAlignment, SetTextHeight, SetBackgroundColor) still quadratic; dates in autofill;
       DxfTable.Value of a date and SetValue(DateTime); band and size-field sides of up-flowing tables and the drag-only
@@ -797,11 +799,19 @@ the ones wanted.
       GeoPolygonArc3 built in arrays (0.61 -> 0.37 us, 2 168 -> 624 B), small per-build caches: 100k INSERTs 1 115 -> 858
       ms (net8) / 2 057 -> 1 494 (net48), 100k mixed 247 -> 217 / 449 -> 345, garbage down a fifth to a third; display
       lists, saved bytes and pixels identical on 171 drawings; benchmarks' 34 signatures match
-- [ ] (flaky1, running) Wall-clock tests that fail under load (DisplayPatchSpeedTests, SelectObjectsOptionsTests' fence/polygon timing, Spline2TinyAndHugePartnersTests' petal curve, others): make them robust without losing what they guard (S)
-- [ ] (speed11, running) Speed follow-ups 10: MOVE + display at 1M possibly a few % slower after speed10 (recheck on a quiet machine);
-      BlockTableRecord.Origin cached by EditCount; LookOf (11 %) and IsHidden allocating strings; KnowHandles/PairsOf in
-      the open; unlike-scale INSERTs making arcs into ellipses (15x per INSERT); AddInsertionPoint and PlainStyleOf
-      lookups; dropping the LINE/ARC/CIRCLE shape cache; TryChain garbage; DxfPolyline's 8 cache fields; DisplayText2's
+- [x] Wall-clock tests made robust (flaky1): SpeedGuard.AssertWithin (best of three after a full GC) for every timing
+      test whose limit was under ~10x its quiet time; the highlight test asks for a thread speed-up only when its threads
+      really run at once; under an 18-thread CPU burner core timing tests 0 -> 20 of 20 runs, Viewer speed tests 2 -> 10
+      of 10; a 4 s slow-down still fails them. Convention for new timing tests: SpeedGuard with a 10x limit or a ratio
+- [ ] Wall-clock tests 2: UndoReadAheadSpeedTests (50 ms floor) and the ratio tests DisplayPatch, MTextDisplay, Xref
+      under heavier load; timing classes in a DisableParallelization collection in the core suite (S)
+- [x] Speed follow-ups 10 (speed11): the 1M MOVE slowdown was real (the patch looked up every handle's insertion point):
+      MOVE + display 295 -> 165 ms (net8) / 540 -> 375 (net48); the look and hidden read in one cached walk, handles
+      found by the open's walk (1M open 896 -> 503 ms), block origins cached, unlike-scale arcs and circles sampled once
+      per block shape (20k unlike INSERTs 3 511 -> 406 ms); display lists, saved bytes and pixels identical on 179 drawings
+- [ ] Speed follow-ups 11: the remaining ~165 ms of a 1M patch (re-lists 1M wrappers, copies 1.78M items: per-block
+      bounds and whole-range copies); merging the shape read and HasWidthOf walks into the look walk; AddInsertionPoint's
+      two lookups; dropping the LINE/ARC/CIRCLE shape cache; TryChain garbage; DxfPolyline's 8 cache fields; DisplayText2's
       two-tier Extra; DxfItem 104 -> 96 B; read-ahead wrappers; a DWG read stopped mid-way (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first

@@ -66,6 +66,11 @@ namespace GeometryHelper.Dxf
         private ulong _nextHandle;
         private ulong _seed;
         private ulong _mostHandle;
+
+        // What the walk over the records found of handles, outside the HEADER: the greatest a record has and the greatest a group
+        // points to; the file's own, as it was read.
+        private ulong _walkedHandle;
+        private ulong _walkedPointed;
         private HashSet<ulong> _removed;
         private int _cleaned;
         private double[] _modelGrown;
@@ -1141,6 +1146,34 @@ namespace GeometryHelper.Dxf
             }
 
             return -1;
+        }
+
+        /// <summary>
+        /// Whether the value of a group, trimmed, begins with a brace, as <c>Text(record, start, end).Trim().StartsWith("{")</c>
+        /// reads it: told from the bytes up to the first that is not ASCII white space (a space, 9 to 13), which every
+        /// code page the reader takes reads as itself; read as text where that byte is beyond ASCII. The group 102 that opens or
+        /// closes an application's group is made no string, as an entity's registered applications and reactors are asked of
+        /// every entity of a drawing that has them.
+        /// </summary>
+        private bool StartsWithBrace(Rec record, int start, int end)
+        {
+            byte[] bytes = record.Bytes;
+
+            for (int i = start; i < end; i++)
+            {
+                byte b = bytes[i];
+
+                if (b == ' ' || (b >= 9 && b <= 13))
+                {
+                    continue;
+                }
+
+                return b < 0x80
+                    ? b == (byte)'{'
+                    : Text(record, start, end).Trim().StartsWith("{", StringComparison.Ordinal);
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -2373,11 +2406,11 @@ namespace GeometryHelper.Dxf
         private void KnowHandles() => KnowHandles(CancellationToken.None);
 
         /// <summary>
-        /// Reads the greatest handle of the file as <see cref="KnowHandles()"/> does, looking at a token every 4 096 records and
-        /// giving up when it is stopped: for the presenter, which asks it of a drawing it opens on a worker thread that Esc stops,
-        /// a scan that takes 0.25 s at 1 000 000 entities. What was read of a drawing given up is read again, to the same end.
+        /// Settles the greatest handle of the file as <see cref="KnowHandles()"/> does, for the presenter, which asks it of a
+        /// drawing it opens on a worker thread that Esc stops. The handles themselves were found as the walk over the records
+        /// went by (a pass of its own took 0.25 s at 1 000 000 entities), so that only the token is looked at.
         /// </summary>
-        /// <exception cref="OperationCanceledException">Thrown when the token is stopped before the scan is done.</exception>
+        /// <exception cref="OperationCanceledException">Thrown when the token is stopped.</exception>
         internal void KnowHandles(CancellationToken stop)
         {
             if (_handlesKnown)
@@ -2385,54 +2418,12 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            ulong mostPointed = 0;
-
-            foreach (Section section in _sections)
-            {
-                if (section.Name == "HEADER")
-                {
-                    continue;
-                }
-
-                for (int i = section.First; i <= section.Last; i++)
-                {
-                    if ((i & 4095) == 0)
-                    {
-                        stop.ThrowIfCancellationRequested();
-                    }
-
-                    Rec record = Original(i);
-
-                    if (HandleOf(record, out ulong handle) && handle > _mostHandle)
-                    {
-                        _mostHandle = handle;
-                    }
-
-                    // A handle something points at is taken too, though no record has it, so that nothing comes to point at a
-                    // new entity by chance.
-                    var walk = new PairWalk(record);
-
-                    while (walk.Next(out Pair pair))
-                    {
-                        bool pointer =
-                            (pair.Code >= 320 && pair.Code <= 369)
-                            || (pair.Code >= 390 && pair.Code <= 399)
-                            || pair.Code == 480
-                            || pair.Code == 481
-                            || pair.Code == 1005;
-
-                        if (
-                            pointer
-                            && TryHex(record.Bytes, pair.ValueStart, pair.ValueEnd, out ulong pointed)
-                            && pointed > mostPointed
-                        )
-                        {
-                            mostPointed = pointed;
-                        }
-                    }
-                }
-            }
-
+            // The greatest handle of a record and the greatest a group points to, which the walk over the records found as it
+            // went by their groups; a handle something points at is taken too, though no record has it, so that nothing comes
+            // to point at a new entity by chance.
+            stop.ThrowIfCancellationRequested();
+            ulong mostPointed = _walkedPointed;
+            _mostHandle = _walkedHandle;
             _seed =
                 _header.TryGetValue("$HANDSEED", out IReadOnlyList<DxfTypedValue> seed)
                 && seed.Count > 0

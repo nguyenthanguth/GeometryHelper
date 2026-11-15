@@ -59,7 +59,7 @@ namespace GeometryHelper.Dxf
                     {
                         if (code == 102)
                         {
-                            braced = Text(record, start, end).Trim().StartsWith("{", StringComparison.Ordinal);
+                            braced = StartsWithBrace(record, start, end);
                         }
                         else if (code == 8 && !braced)
                         {
