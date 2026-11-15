@@ -373,12 +373,21 @@ where AC1018 took 747 to 796 ms in the same runs. A small drawing of a few hundr
 
 [`DwgWriter`](xref:GeometryHelper.Dwg.DwgWriter)`.Write` writes a `DxfDatabase`, with every record it holds, or the
 shapes of a `DxfDocument`, as the drawing [`DxfWriter`](xref:GeometryHelper.Dxf.DxfWriter) makes of them, to a path or a
-stream. The file is of AC1032, the version AutoCAD 2018 and later save in; another version is refused with a
-`NotSupportedException` that names it.
+stream. The file is of AC1032, the version AutoCAD 2018 and later save in, unless a version is given: AC1027 (AutoCAD 2013), AC1024
+(2010) and AC1018 (2004) are written too, and another version is refused with a `NotSupportedException` that names it
+(AC1015 and AC1021 wait for a container of their own). A drawing of a later version is made into the DXF of the version first,
+as `DxfDatabase.Save(path, version)` gives it, and what AutoCAD keeps in such a file in its own way is put in as AutoCAD puts
+it: the multileaders and their styles with the extended data `ACAD_MLEADERVER` (before R2010), the texts of the
+proxy graphics of a table or a multileader in 8 bits (type 11) and not in 16 (type 38) in R2004, the fields in the form before
+R2007, no vertex ids in a polyline before R2010. Each file names the maintenance release AutoCAD 2021 writes for its
+version (104 for R2004, 226 for R2010, 125 for R2013, 174 for R2018), and from R2010 its header and classes carry the long of 0
+after their size; AutoCAD 2021 took all the memory it could get on an R2010 file that held a table, a multileader, a wipeout
+or an image when they lacked them.
 
 ```csharp
 DxfDatabase db = DxfDatabase.Open("plan.dxf");
 DwgWriter.Write(db, "plan.dwg");                         // AC1032
+DwgWriter.Write(db, "plan2010.dwg", "AC1024");           // AutoCAD 2010
 
 DxfDocument shapes = DxfReader.Read("plan.dxf");
 DwgWriter.Write(shapes, "shapes.dwg");                   // the shapes alone, each on its layer

@@ -179,14 +179,16 @@ The presenter opens a DWG of AutoCAD 2000 to 2018 as it opens a DXF, read by the
   `CadDocument.SaveAs(path, version, progress)` turns the drawing into that version, as `DxfDatabase.Save(path, version)`
   does, and Save (Ctrl+S, QSAVE) writes it so again (`CadDocument.SaveVersion`), as AutoCAD's QSAVE keeps the format of the
   last Save As. An R12 DXF is what AutoCAD writes of the drawing as R12 (see the drawing guide): the hatches, multileaders, texts of
-  several lines and the rest R12 lacks are the lines, texts and polylines they break into, and said after the save. A name ending in .dwg is written as a DWG, of AutoCAD 2018 only, any other as a DXF; a DXF type chosen for a
-  name ending in .dwg is refused, "Cannot save a.dwg: A DWG is written as AutoCAD 2018 (AC1032) only, not as AC1024." Save of a
+  several lines and the rest R12 lacks are the lines, texts and polylines they break into, and said after the save. A name ending in .dwg is written as a DWG, of AutoCAD 2018 or, where the type of 2013, 2010 or 2004 was chosen (the list holds
+  a DWG type for each of those four, then the DXF types), of that version, any other name as a DXF; a DXF type chosen for a
+  name ending in .dwg is refused, "Cannot save a.dwg: A DWG is written as AutoCAD 2018 (AC1032), 2013 (AC1027), 2010 (AC1024) or
+  2004 (AC1018) only, not as a DXF of AC1024." (the DXF of 2018 is the DWG of 2018) QSAVE writes the DWG of the version last chosen again. Save of a
   drawing opened from a DWG writes it back as a DWG. A drawing of R14, which the list has no type for, is offered "DXF (*.dxf)"
   as well, its own. With FILEDIA 0 SAVEAS asks on the command line what the dialog would, in AutoCAD 2021's words: "Current file
   format: AutoCAD 2018 Drawing" and "Enter file format [R14(LT98&LT97)/2000(LT2000)/2004(LT2004)/2007(LT2007)/2010(LT2010)/2013(LT2013)/2018(LT2018)/Dxf/Template/Standards]
-  &lt;2018&gt;:", Dxf as the default for a drawing that is a DXF. 2018 (or LT2018, or 2018(LT2018)) is the DWG; the older formats
-  and Template and Standards are refused with a line ("AutoCAD 2013(LT2013) Drawing (*.dwg) is not written: a DWG is saved as
-  AutoCAD 2018 (2018).") and the command ends. Dxf asks its settings, "Current DXF settings: Precision= 16 Format= ASCII
+  &lt;2018&gt;:", Dxf as the default for a drawing that is a DXF. 2018, 2013, 2010 and 2004 (or their LT names, or the listed form) are the DWG of that version; R14, 2000 and 2007
+  and Template and Standards are refused with a line ("AutoCAD 2007(LT2007) Drawing (*.dwg) is not written: a DWG is saved as
+  AutoCAD 2018, 2013, 2010 or 2004 (2018, 2013, 2010, 2004).") and the command ends. Dxf asks its settings, "Current DXF settings: Precision= 16 Format= ASCII
   Preview= No Version= 2018" and "Enter decimal places of accuracy (0 to 16) or [Version] &lt;16&gt;:", where Version asks "Enter version
   [R12(LT2)/2000(LT2000)/2004(LT2004)/2007(LT2007)/2010(LT2010)/2013(LT2013)/2018(LT2018)] &lt;2018&gt;:" (R14 refused, "R14 is not written: a
   DXF is saved as R12 or R2000 and later."); the places of accuracy are not set (coordinates are written in full, said for a

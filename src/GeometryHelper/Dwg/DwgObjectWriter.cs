@@ -802,10 +802,11 @@ namespace GeometryHelper.Dwg
                     }
                     else
                     {
+                        // A length of two bytes, then the code page, one byte (30 for ANSI_1252), as AutoCAD writes it.
                         byte[] bytes = Encoding.UTF8.GetBytes(value);
                         values.WriteByte((byte)bytes.Length);
+                        values.WriteByte((byte)(bytes.Length >> 8));
                         values.WriteByte(30);
-                        values.WriteByte(0);
                         values.Write(bytes, 0, bytes.Length);
                     }
 
@@ -1038,7 +1039,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>The proxy graphics of an entity: the size under 92 (from R2010 160), then pieces in hex under 310; null for none.</summary>
-        private static byte[] ProxyGraphics(DwgGroups all)
+        private byte[] ProxyGraphics(DwgGroups all)
         {
             int size = all.Int(160, all.Int(92, 0));
 
@@ -1054,7 +1055,146 @@ namespace GeometryHelper.Dwg
                 bytes.AddRange(Unhex(piece));
             }
 
-            return bytes.Count >= size ? bytes.GetRange(0, size).ToArray() : bytes.ToArray();
+            byte[] graphics = bytes.Count >= size ? bytes.GetRange(0, size).ToArray() : bytes.ToArray();
+            return R2007Plus ? graphics : WithAsciiTexts(graphics);
+        }
+
+        /// <summary>
+        /// The proxy graphics of a drawing of R2007 or later (a size, a count and the pieces, each a size, a type and its
+        /// data) as a file before R2007 holds them: a text is the piece of type 38 with its strings in 16 bits there, and the
+        /// piece of type 11 with them in 8 bits here, and AutoCAD refuses a file of R2004 (ErrorStatus 53) that has the
+        /// first. Each piece of type 38 is made a piece of type 11, as AutoCAD makes it when it saves such a drawing as
+        /// R2004: the text, the font and the big font in 8 bits, each with its closing zero and padded to four bytes, the
+        /// nine numbers before the text and the length, the one and the four numbers after it as they were, and the
+        /// seven words of flags and the three of R2007 that follow the numbers left out but five. A piece that does not
+        /// hold a text as expected is left out, and the size and the count follow; graphics that is not made of whole
+        /// pieces is kept as it is.
+        /// </summary>
+        private static byte[] WithAsciiTexts(byte[] graphics)
+        {
+            const int Unicode = 38;
+
+            if (graphics.Length < 8 || BitConverter.ToInt32(graphics, 0) != graphics.Length)
+            {
+                return graphics;
+            }
+
+            var kept = new List<byte>(graphics.Length);
+            int count = 0;
+            bool changed = false;
+
+            for (int at = 8; at < graphics.Length; )
+            {
+                int piece = at + 8 <= graphics.Length ? BitConverter.ToInt32(graphics, at) : 0;
+
+                if (piece < 8 || piece > graphics.Length - at)
+                {
+                    return graphics;
+                }
+
+                var one = new byte[piece];
+                Array.Copy(graphics, at, one, 0, piece);
+                at += piece;
+
+                if (BitConverter.ToInt32(one, 4) == Unicode)
+                {
+                    changed = true;
+                    one = AsciiText(one);
+
+                    if (one == null)
+                    {
+                        continue;
+                    }
+                }
+
+                kept.AddRange(one);
+                count++;
+            }
+
+            if (!changed)
+            {
+                return graphics;
+            }
+
+            var result = new byte[8 + kept.Count];
+            BitConverter.GetBytes(result.Length).CopyTo(result, 0);
+            BitConverter.GetBytes(count).CopyTo(result, 4);
+            kept.CopyTo(result, 8);
+            return result;
+        }
+
+        /// <summary>A piece of type 38 made the piece of type 11 that holds the same text; null where it does not hold one.</summary>
+        private static byte[] AsciiText(byte[] piece)
+        {
+            // The three points of nine numbers end at 80; then come the text, its length, the one and the four numbers and
+            // five words (60 bytes), in R2007 seven words and twelve bytes more, and the font and the big font.
+            const int Numbers = 80;
+            int after = StringEnd(piece, Numbers, out string text);
+
+            if (after < 0 || after + 80 >= piece.Length)
+            {
+                return null;
+            }
+
+            int bigFont = StringEnd(piece, after + 80, out string fontName);
+
+            if (bigFont < 0 || StringEnd(piece, bigFont, out string big) < 0)
+            {
+                return null;
+            }
+
+            var ascii = new List<byte>();
+            ascii.AddRange(BitConverter.GetBytes(0));
+            ascii.AddRange(BitConverter.GetBytes(11));
+            ascii.AddRange(new ArraySegment<byte>(piece, 8, Numbers - 8));
+            AddAscii(ascii, text);
+            ascii.AddRange(new ArraySegment<byte>(piece, after, 60));
+            AddAscii(ascii, fontName);
+            AddAscii(ascii, big);
+            byte[] result = ascii.ToArray();
+            BitConverter.GetBytes(result.Length).CopyTo(result, 0);
+            return result;
+        }
+
+        /// <summary>
+        /// The place after the string of 16 bits that stands at <paramref name="from"/> in <paramref name="piece"/>, its
+        /// closing zero and the padding to four bytes (counted from the start of the piece) past it; -1 where it has no
+        /// closing zero in the piece.
+        /// </summary>
+        private static int StringEnd(byte[] piece, int from, out string text)
+        {
+            text = null;
+            int end = from;
+
+            while (end + 1 < piece.Length && (piece[end] != 0 || piece[end + 1] != 0))
+            {
+                end += 2;
+            }
+
+            if (end + 1 >= piece.Length)
+            {
+                return -1;
+            }
+
+            text = Encoding.Unicode.GetString(piece, from, end - from);
+            int next = from + (((end + 2 - from) + 3) & ~3);
+            return next <= piece.Length ? next : -1;
+        }
+
+        /// <summary>A string in 8 bits (a letter beyond Latin-1 a question mark) with its closing zero, padded with zeros to four bytes.</summary>
+        private static void AddAscii(List<byte> into, string text)
+        {
+            foreach (char letter in text)
+            {
+                into.Add(letter < 0x100 ? (byte)letter : (byte)'?');
+            }
+
+            into.Add(0);
+
+            while (into.Count % 4 != 0)
+            {
+                into.Add(0);
+            }
         }
 
         /// <summary>

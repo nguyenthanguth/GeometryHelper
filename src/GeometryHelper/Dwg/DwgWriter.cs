@@ -47,7 +47,12 @@ namespace GeometryHelper.Dwg
     /// <see cref="GeometryHelperLog"/> counts them by type.
     /// </para>
     /// <para>
-    /// The file is of AC1032 (AutoCAD 2018 and later), the form AutoCAD 2021 saves in. The same bytes come of the same
+    /// The file is of AC1032 (AutoCAD 2018 and later), the form AutoCAD 2021 saves in, unless a version is given: AC1027
+    /// (AutoCAD 2013), AC1024 (2010) or AC1018 (2004) are written too, a drawing of a later version made first into the
+    /// DXF of the version, as <see cref="DxfDatabase.Save(string, string)"/> would give it, and what the version cannot
+    /// hold left out or replaced as it is there (the objects of R2007 and later that a file of R2004 keeps as AutoCAD keeps
+    /// them: the multileaders with the version they were made by, the texts of their graphics in 8 bits, the fields in
+    /// the form of before R2007). AC1015 (2000) and AC1021 (2007) are not written yet. The same bytes come of the same
     /// drawing every time.
     /// </para>
     /// <code>
@@ -65,7 +70,7 @@ namespace GeometryHelper.Dwg
         /// </summary>
         /// <param name="database">The drawing.</param>
         /// <param name="path">The path of the file.</param>
-        /// <param name="version">The version of the file; AC1032 (AutoCAD 2018) is written.</param>
+        /// <param name="version">The version of the file: AC1032 (AutoCAD 2018), AC1027 (2013), AC1024 (2010) or AC1018 (2004).</param>
         /// <exception cref="ArgumentNullException">Thrown when the drawing or the path is null.</exception>
         /// <exception cref="NotSupportedException">Thrown when the version is not written; the message names it.</exception>
         /// <exception cref="IOException">Thrown when the file cannot be written.</exception>
@@ -81,7 +86,7 @@ namespace GeometryHelper.Dwg
         /// </summary>
         /// <param name="database">The drawing.</param>
         /// <param name="stream">The stream; it is written to and left open.</param>
-        /// <param name="version">The version of the file; AC1032 (AutoCAD 2018) is written.</param>
+        /// <param name="version">The version of the file: AC1032 (AutoCAD 2018), AC1027 (2013), AC1024 (2010) or AC1018 (2004).</param>
         /// <exception cref="ArgumentNullException">Thrown when the drawing or the stream is null.</exception>
         /// <exception cref="NotSupportedException">Thrown when the version is not written; the message names it.</exception>
         public static void Write(DxfDatabase database, Stream stream, string version = DefaultVersion)
@@ -98,7 +103,7 @@ namespace GeometryHelper.Dwg
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="path">The path of the file.</param>
-        /// <param name="version">The version of the file; AC1032 (AutoCAD 2018) is written.</param>
+        /// <param name="version">The version of the file: AC1032 (AutoCAD 2018), AC1027 (2013), AC1024 (2010) or AC1018 (2004).</param>
         /// <exception cref="ArgumentNullException">Thrown when the document or the path is null.</exception>
         /// <exception cref="NotSupportedException">Thrown when the version is not written; the message names it.</exception>
         /// <exception cref="IOException">Thrown when the file cannot be written.</exception>
@@ -114,7 +119,7 @@ namespace GeometryHelper.Dwg
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="stream">The stream; it is written to and left open.</param>
-        /// <param name="version">The version of the file; AC1032 (AutoCAD 2018) is written.</param>
+        /// <param name="version">The version of the file: AC1032 (AutoCAD 2018), AC1027 (2013), AC1024 (2010) or AC1018 (2004).</param>
         /// <exception cref="ArgumentNullException">Thrown when the document or the stream is null.</exception>
         /// <exception cref="NotSupportedException">Thrown when the version is not written; the message names it.</exception>
         public static void Write(DxfDocument document, Stream stream, string version = DefaultVersion)
@@ -128,7 +133,9 @@ namespace GeometryHelper.Dwg
         private static string TextOf(DxfDocument document, string version)
         {
             Check(version);
-            var writer = new DxfWriter { Version = version.Trim().ToUpperInvariant(), CodePage = "ANSI_1252" };
+
+            // Always the text of AC1032: a version before it is made of that text by DxfVersionConverter, as ToDwg does for any text.
+            var writer = new DxfWriter { Version = DefaultVersion, CodePage = "ANSI_1252" };
 
             foreach (DxfShape shape in document.Shapes)
             {
@@ -151,18 +158,77 @@ namespace GeometryHelper.Dwg
             Need(version, nameof(version));
             string named = version.Trim().ToUpperInvariant();
 
-            if (named != "AC1032")
+            if (Array.IndexOf(DwgFileWriter.Versions, named) < 0)
             {
                 throw new NotSupportedException(
                     "A DWG file of "
                         + named
                         + " ("
                         + DwgContainer.ReleaseOf(named)
-                        + ") is not written; AC1032 (AutoCAD 2018) is."
+                        + ") is not written; AC1032 (AutoCAD 2018), AC1027 (2013), AC1024 (2010) and AC1018 (2004) are."
                 );
             }
 
             return named;
+        }
+
+        /// <summary>
+        /// The text of a drawing in the form of <paramref name="named"/>: as it is for AC1032, which is how a drawing made
+        /// in code and every drawing read from a DWG is written, and for a text of the version already; else as
+        /// <see cref="DxfVersionConverter"/> gives it, as a DXF saved in that version, what the version cannot hold left out
+        /// or replaced and told in one Info line. A text of R12 to R14, which the converter does not take, is written as it is.
+        /// </summary>
+        private static string InVersion(string text, string named)
+        {
+            int target = DxfVersions.Number(named);
+
+            if (target == DxfVersions.Number(DefaultVersion))
+            {
+                return text;
+            }
+
+            int source = SourceOf(text);
+
+            if (source == target || source < DxfVersions.Number("AC1015"))
+            {
+                return text;
+            }
+
+            var told = new List<string>();
+            string converted = DxfVersionConverter.Convert(text, target, told);
+
+            if (told.Count > 0)
+            {
+                GeometryHelperLog.Info("DwgWriter: for " + named + ": " + string.Join(" ", told));
+            }
+
+            // The text of R2004 and before holds a letter beyond its code page as an escape (\U+1EDB); a DXF of R2007 and later
+            // holds the letter, and AutoCAD finds a symbol name that still has the escape "Un-normalized" (AUDIT).
+            int letters = DxfVersions.Number("AC1021");
+            return source >= 0 && source < letters && target >= letters ? DwgDrawing.Unescaped(converted) : converted;
+        }
+
+        /// <summary>The number of the version a DXF text names in its header (<c>$ACADVER</c>), 1015 for AC1015; -1 where it names none.</summary>
+        private static int SourceOf(string text)
+        {
+            int at = text.IndexOf("$ACADVER", StringComparison.Ordinal);
+
+            if (at < 0)
+            {
+                return -1;
+            }
+
+            // $ACADVER, the code 1 line, then the value line.
+            int line = text.IndexOf('\n', at);
+            line = line < 0 ? -1 : text.IndexOf('\n', line + 1);
+
+            if (line < 0)
+            {
+                return -1;
+            }
+
+            int end = text.IndexOf('\n', line + 1);
+            return DxfVersions.Number(text.Substring(line + 1, (end < 0 ? text.Length : end) - line - 1));
         }
 
         /// <summary>The bytes of the DWG file of the DXF <paramref name="text"/> in <paramref name="version"/>.</summary>
@@ -203,7 +269,7 @@ namespace GeometryHelper.Dwg
         {
             string named = Check(version);
             ProgressSteps steps = ProgressSteps.Of(progress);
-            DwgDrawing drawing = DwgDrawing.Parse(text, steps);
+            DwgDrawing drawing = DwgDrawing.Parse(InVersion(text, named), steps);
             drawing.TemplateDescription = templateDescription;
             drawing.SatBodiesToSab(AcisFormat.For(named));
             byte[] bytes = DwgFileWriter.Write(drawing, named, out DwgFileWriter writer, steps);

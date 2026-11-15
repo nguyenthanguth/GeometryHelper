@@ -290,10 +290,16 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         regions converted between SAT and SAB versions on Save As; multi-face regions; fixed: AutoCAD's transform record and
         whole-ellipse arcs read, Explode directions as AutoCAD; 19 regions x 6 versions AUDIT 0, 540 AutoCAD regions converted
         with equal Explode
-  - [ ] (dwgver1, running: DWG Save As older versions) R3.3 follow-ups 2: regions in DWG R2000-R2010 (DWG writer is R2018 only); -BOUNDARY Region islands and its message
-        (GUI); UNION/SUBTRACT taking the first picked region (selection is kept sorted); a region's grips and UNION's colour
-        reset checked in the GUI; spline edges and non-planar faces; orphan ACDSRECORDs; a parse cache for thousands of
-        regions (M)
+  - [x] DWG Save As older versions (dwgver1): R2004, R2010 and R2013 written from SAVEAS; the 167-file corpus opens in
+        AutoCAD 2021 in each with AUDIT as the originals (160 at 0, the 7 others with the originals' counts); fixed the
+        R2010 file that made AutoCAD allocate without end (no maintenance release, no long of 0 after header/classes size)
+        and R2004 graphics text, xdata strings, FIELD, vertex ids and MLEADERVER
+  - [ ] R3.3 follow-ups 2: DWG R2000 (container written, AutoCAD refuses: DIMSTYLE extra bit, LAYOUT 2 null handles,
+        DICTIONARY AUDIT errors; patch in scratch\dwgver1\r2000-wip-with-all-changes.patch) and R2007 (Reed-Solomon, LZ21);
+        DxfVersionConverter gaps shared with DXF saves (MLEADERVER xdata, LWPOLYLINE vertex ids before R2010, \U+ to R2010+);
+        -BOUNDARY Region islands and its message (GUI); UNION/SUBTRACT taking the first picked region (selection is kept
+        sorted); a region's grips and UNION's colour reset checked in the GUI; spline edges and non-planar faces; orphan
+        ACDSRECORDs; a parse cache for thousands of regions (M)
 - Round 4, the follow-ups listed below (Dimension, Grips, Dialogs, Xrefs, Layouts, Table editing, PLOT, DXF versions, R12,
   VPCLIP, LAYERP), taken top to bottom, basics first.
   - [x] Dialogs 5 (dialogs5, design v139-v140): Multiline Style (with New/Modify page, Load), Multiline Edit Tools, the

@@ -11,8 +11,8 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>
     /// The drawing files the presenter opens, attaches and inserts: a DWG, read by <see cref="DwgReader"/>, of AutoCAD 2000
     /// to 2018, and a DXF. A file is read as a DWG where its first bytes say so ("AC1032" for AutoCAD 2018), whatever its
-    /// name; a drawing saved to a name ending in .dwg is written by <see cref="DwgWriter"/> as a DWG of AutoCAD 2018, any
-    /// other name as a DXF.
+    /// name; a drawing saved to a name ending in .dwg is written by <see cref="DwgWriter"/> as a DWG of AutoCAD 2018, or
+    /// of the older version asked for (2013, 2010 or 2004), any other name as a DXF.
     /// </summary>
     public static class CadDrawingFile
     {
@@ -118,6 +118,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Whether a name ends in .dwg, of either case.</summary>
         internal static bool IsDwgName(string path) => HasExtension(path, ".dwg");
 
+        /// <summary>Whether the DWG writer writes the version, as AC1024: those <see cref="CadExportJob.DwgSaveTypes"/> lists.</summary>
+        internal static bool IsDwgVersion(string version) => CadExportJob.DwgTypeOfVersion(version) != null;
+
         /// <summary>
         /// Saves a database to a path, replacing whatever is there: as a DWG of AutoCAD 2018 where the name ends in .dwg, else
         /// as its DXF. Gives what the DWG left out, as "IMAGE 1, MULTILEADER 2", the types in ordinal order; empty where nothing
@@ -131,9 +134,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// in thousandths, never going back, 0 first and 1 at the end. A DWG tells it as its text is taken apart and its objects
         /// written; a DXF, written at once from its bytes, tells 0 and 1. A DXF is written in the version given, as
         /// <see cref="DxfDatabase.Save(string, string)"/> writes it, what could not be written there told in <paramref name="told"/>;
-        /// in its own version where none is given. A DWG is written as AutoCAD 2018 only.
+        /// in its own version where none is given. A DWG is written as AutoCAD 2018 where no version is given, else as the version,
+        /// one of those <see cref="CadExportJob.DwgSaveTypes"/> lists.
         /// </summary>
-        /// <exception cref="NotSupportedException">Thrown when a version other than AutoCAD 2018 is given for a DWG.</exception>
+        /// <exception cref="NotSupportedException">Thrown when a version is given for a DWG that the DWG writer does not write.</exception>
         internal static string Save(
             DxfDatabase database,
             string path,
@@ -162,21 +166,23 @@ namespace GeometryHelper.Dxf.Viewer
                 return string.Empty;
             }
 
-            if (
-                version != null
-                && !string.Equals(version, DwgWriter.DefaultVersion, StringComparison.OrdinalIgnoreCase)
-            )
+            if (version != null && !IsDwgVersion(version))
             {
                 throw new NotSupportedException(
-                    "A DWG is written as AutoCAD 2018 (" + DwgWriter.DefaultVersion + ") only, not as " + version + "."
+                    "A DWG is written as AutoCAD 2018 ("
+                        + DwgWriter.DefaultVersion
+                        + "), 2013 (AC1027), 2010 (AC1024) or 2004 (AC1018) only, not as "
+                        + version
+                        + "."
                 );
             }
+
             byte[] bytes;
             IDictionary<string, int> left;
 
             try
             {
-                bytes = DwgWriter.ToDwg(database.ToText(), DwgWriter.DefaultVersion, out left, progress);
+                bytes = DwgWriter.ToDwg(database.ToText(), version ?? DwgWriter.DefaultVersion, out left, progress);
             }
             catch (Exception exception)
                 when (!(exception is OutOfMemoryException || exception is NotSupportedException))

@@ -553,8 +553,8 @@ as AutoCAD does: its ACIS data is written anew for the body it becomes, the loop
 over, a copy with a record and a GUID of its own (a box 40 by 30 moved by (100, 50) has its first side from (100, 50), and
 mirrored across x = 50 its normal is (0, 0, -1)). STRETCH holds the start of each curve of a loop (the centre of a whole
 circle) as its stretch points, and one inside the window moves the whole region, as AutoCAD's does; a region shows no grips
-(AutoCAD 2021's GetGripPoints gives it none). A DWG of R2000 to R2010 leaves it out (the
-DWG writer writes R2018 only), and saved as another version of DXF (`SAVEAS`, `DXFOUT`) a region is written for that
+(AutoCAD 2021's GetGripPoints gives it none). A DWG of R2004, R2010, R2013 or R2018 keeps it (the DWG
+writer writes no R2000 or R2007 yet), and saved as another version of DXF (`SAVEAS`, `DXFOUT`) a region is written for that
 version, SAT text up to R2010 and the data store from R2013.
 
 UNION (`UNI`) asks `Select objects:` and makes of the regions chosen what any of them covers: the first, in the order of the
