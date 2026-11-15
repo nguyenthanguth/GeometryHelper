@@ -342,6 +342,53 @@ namespace GeometryHelper.Dxf
             return hex.ToString();
         }
 
+        /// <summary>The 16 bytes of a date AutoCAD 2021 could not make: all nought, which read as no date.</summary>
+        internal const string NoDateBytes = "00000000000000000000000000000000";
+
+        private static readonly DateTime Epoch = new DateTime(1970, 1, 1);
+
+        // The earliest count of seconds AutoCAD 2021's console turned back into a date, 12 hours before the epoch (a count of
+        // -25 200 gave 31 December 1969 17:00, -111 600 none).
+        private const long EarliestSeconds = -43200;
+
+        /// <summary>
+        /// The seconds a date is after the epoch, 1 January 1970, as the C library's <c>mktime</c> counts them from the date as
+        /// the cell shows it (read as the machine's own time, its zone taken off): -1 where that is before it, as AutoCAD 2021's
+        /// series of dates went on from it (D42): 1/1/2020 is 1 577 836 800 less the zone, and 1/1/1970 or 12:30 alone, which is
+        /// on the 30th of December 1899, -1.
+        /// </summary>
+        internal static long Seconds(DateTime value)
+        {
+            if (value.Year < 1969)
+            {
+                return -1;
+            }
+
+            TimeSpan zone = TimeZoneInfo.Local.GetUtcOffset(DateTime.SpecifyKind(value, DateTimeKind.Unspecified));
+            long seconds = (value.Ticks - zone.Ticks - Epoch.Ticks) / TimeSpan.TicksPerSecond;
+            return seconds < 0 ? -1 : seconds;
+        }
+
+        /// <summary>
+        /// The date and time a count of seconds after the epoch makes, as <c>gmtime</c> gives them, with no zone put back; false
+        /// where AutoCAD 2021 could make none, a count before -43 200 or one past the year 9999.
+        /// </summary>
+        internal static bool TryFromSeconds(long seconds, out DateTime value)
+        {
+            value = default(DateTime);
+
+            if (
+                seconds < EarliestSeconds
+                || seconds > (DateTime.MaxValue.Ticks - Epoch.Ticks) / TimeSpan.TicksPerSecond
+            )
+            {
+                return false;
+            }
+
+            value = Epoch.AddTicks(seconds * TimeSpan.TicksPerSecond);
+            return true;
+        }
+
         /// <summary>The date the 16 bytes of a cell's 310 hold, as <see cref="Bytes"/> writes them; false for any other group.</summary>
         internal static bool TryFromBytes(string hex, out DateTime value)
         {

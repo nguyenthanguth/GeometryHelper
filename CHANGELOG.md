@@ -6,6 +6,43 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** `SetValueFromText`, `SetAutoScale`, `SetBlockScale`, `SetBlockRotation`, `SetBlockAttributeValue` and `SetFormula` are written
+into the place of the cell's own bytes, as `ResetValue`, `SetCellType` and the lines of a cell are, where each call read and wrote every group
+of the table's record (`SetBlockScale` and `SetBlockRotation` also read the layout of the table to learn the value the cell had; they read
+it from the cell now). On a table of 49 rows by 19 columns, half its cells block cells of a block with one attribute definition, on .NET
+Framework 4.8 (the tests run there; .NET 10 not timed): a text typed into each of the 466 text cells takes 26 ms and 9 MB in place of 4 014 ms
+and 3 688 MB, the fit of each of the 465 block cells 11 ms and 9 MB in place of 4 565 ms and 3 809 MB, their scale 4 ms and 9 MB in place
+of 5 599 ms and 4 791 MB, their turn 3 ms and 9 MB in place of 6 998 ms and 4 792 MB, the value of their attribute 45 ms and 9 MB in place of
+6 010 ms and 3 807 MB, and a formula in each text cell 159 ms and 86 MB in place of 8 230 ms and 6 625 MB (the field of each is written into the
+drawing too). The saved bytes are the same: the hashes of 24 runs of 120 edits (four versions, six seeds, every one of these setters among them
+with `MergeCells`, `UnmergeCells`, `SetValue`, `ResetValue`, `SetCellType` and the lines of a cell) equal those of the library before, and 240 random
+runs of 60 edits equal the same runs made on a record read anew before each edit, which reads it whole. (Those runs leave the first row alone:
+a table read anew merges across a row whose cells hold no value, as AutoCAD does on load, which a table edited in place does not do again.)
+`MergeCells` and `UnmergeCells` still write the record whole: 192 merges of two cells in a table of 931 cells take 1.6 s and 1.4 GB, 8 ms and 7 MB
+each. A merge reads the blocks of every cell and rewrites the cells along its edges and the table's content, and writing it into the
+bytes of those cells alone would need the blocks kept between calls; it is left.
+**CHANGED.** `DxfTable.Value` of a cell that holds a date or a time is the `DateTime` AutoCAD 2021's console gave (probed, en-US and a zone seven
+hours ahead of Greenwich: 1/1/2020 the 1st of January 2020, 12:30 the 30th of December 1899 at 12:30, 1/1/2020 12:30 and 2/29/2020 23:59 as
+typed, to the second), where it gave the words the cell shows. A date a table cannot read (16 bytes that are no date) still gives its words.
+**CHANGED.** `Fill` with `GenerateSeries` goes on with dates and times as AutoCAD 2021's console went on with them (probed over 48 sources,
+zone seven hours ahead of Greenwich), where it copied them: each is counted in seconds as the C library's `mktime` counts them, the date as
+shown read in the machine's zone and taken to the epoch (1 January 1970), the series goes on from the last date by the step between the last
+two (a day for one), or in reverse back from the first by the step between the first two, and each date is put back with no zone, the cell of
+the format of the source it repeats. So 1/1/2020 filled into three cells has the values 1/1/2020 17:00, 1/2/2020 17:00 and 1/3/2020 17:00 (shown
+1/1/2020, 1/2/2020 and 1/3/2020) in that zone and 1/2/2020, 1/3/2020 and 1/4/2020 in Greenwich; 1/1/2020, 1/2/2020 and 1/4/2020 go on by 2
+days, the last step, where numbers go on by the step from first to last; 1/1/2020 and 1/2/2020 12:30 by 36 hours 30 minutes, the cells in turn of
+the formats %x and %c. A date before the epoch counts as -1 (mktime fails): 12:30 alone, on the 30th of December 1899, goes on from -1 by a
+day to 1/1/1970 23:59:59 in any zone, and two such times by nought to 12/31/1969 23:59:59; 1/1/1970 (-25 200 s in that zone) and 1/2/1970
+go on by 61 201 s. A count of seconds before 12 hours before the epoch makes no date: the cell holds 16 bytes of nought and no words, as AutoCAD's
+did (-25 200 s gave 12/31/1969 17:00 and -111 600 s none). Dates mixed with other values are copied as before, and so are dates under
+`CopyContent`. The zone comes from the machine (`TimeZoneInfo.Local`) as AutoCAD's does, its daylight saving of the date shown included; a
+machine in another zone gives other times of day in the same rule, which the tests work out from the machine's own zone.
+**CHANGED.** The endless 1.8 % growth of a fitted block cell's column under repeated `GenerateLayout` and `RecomputeTableBlock` (said above, in
+the entry on the attribute of a block cell) was probed again and not reproduced: both calls made 12 to 14 times in the console, through the .NET API, over
+a fitted block cell of seven tables (three new ones, four read from a file; the column left alone, set to 40, to 20, and started from the widened
+40.69607 with the scale 1.41401 and with 1) left the column and the scale where the first pass put them, to the last digit. The presenter, which
+settles after one pass, stays as it is; the guide says what was and was not seen.
+
 **NEW.** `DwgWriter` writes AutoCAD 2000 (AC1015): `DwgWriter.Write(database, path, "AC1015")`. The file is the one AutoCAD 2000 has and not the pages of
 the later versions: a header of 0x61 bytes with six locators, the auxiliary header, the preview, the header variables, the classes, the objects, the
 object map with the places of the objects as places in the file, and the template, with the maintenance release 15 and no free-space section. A

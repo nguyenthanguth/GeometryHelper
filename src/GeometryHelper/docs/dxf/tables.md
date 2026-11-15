@@ -76,8 +76,12 @@ x 22 in a cell 40 wide is fitted at 37 over 26.17, 1.41401, and the column, whic
 widened to 40.69607 by the presenter (`CadTableEditor`), the block filling it from its margin. A constant definition is the same
 box in both, and a block with none has one box. `RecomputeTableBlock` alone, with no layout to widen the column, fits the block
 by the wider of the two boxes, 37 over 26.66, 1.38787, inside the cell. AutoCAD run twice (`GenerateLayout` and
-`RecomputeTableBlock` both) goes on from the widened column, 1.44061 and 41.40525 for that block, and each pass after widens
-it again, 1.8 % a time.
+`RecomputeTableBlock` both) went on from the widened column, 1.44061 and 41.40525 for that block, and was seen to widen
+it again, 1.8 % a time (the ratio of the block's Arial box to its own, 26.66 over 26.17). That growth has not been
+reproduced: the same two calls made 12 to 14 times in the console, through the .NET API, over a fitted block cell of seven
+tables (three new ones, the column left at 40, and started from the widened 40.69607 with the scale 1.41401 and with 1; four
+read from a file, the column left alone, set to 40, to 20, and to 20 with the row set to 30), left the column and the scale
+where the first pass put them, to the last digit, so the presenter, which settles after one pass, stays as it is.
 
 Lines set on the top left cell of a block of merged cells (`SetGridColor`, `SetGridLineWeight`, `SetGridVisibility`) are given to
 the cells along the block's edges, as AutoCAD 2021 reads them from a file: its top over the cells of its first row, its left down
@@ -244,7 +248,7 @@ gets wrong (`%j` is 001 for every date it reads, `%U` and `%W` 01 on a Sunday or
 `%g` follow); the editor opens it as the date alone,
 the time alone or both whatever the format. A text typed over a date is refused (eInvalidInput) unless it is a date or a time,
 which keeps the cell's format. The library reads the words as AutoCAD's OLE parser does in en-US, with the order of the
-culture given (`DxfTableDate.TryRead`): 12:30:45.5, a weekday, a zone, 2/30/2020, 24:00 and a year before 100 stay words, as does 12:30 p, which AutoCAD reads. The look of a cell is set as its own
+culture given (`DxfTableDate.TryRead`): 12:30:45.5, a weekday, a zone, 2/30/2020, 24:00 and a year before 100 stay words, as does 12:30 p, which AutoCAD reads. `Value` of a date or a time is the `DateTime` AutoCAD 2021 gave (1/1/2020 12:30 the 1st of January 2020 at 12:30, 12:30 alone the 30th of December 1899), where it gave the words before. The look of a cell is set as its own
 override with its flag in the cell's 177 (91 from R2007 on), in the order the DXF reference lists them: `SetAlignment`,
 `SetTextHeight`, `SetTextStyle`, `SetContentColor`, `SetBackgroundColor` (a colour of the index, BYLAYER or BYBLOCK; a
 true colour refused) and `SetBackgroundColorNone`, a background filled written `283 0` with a colour of its own (`63 0`,
@@ -474,7 +478,7 @@ and 0. Each number is written in the format of the source cell its place repeats
 format giving way, as AutoCAD 2021 fills them: 1.5 of `%lu6` goes on to 2.5000 and 3.5000 at LUPREC 4, and 1/2 of `%lu5`
 over 1.5 of `%lu6` to 2 1/2, 3.5000, 4 1/2 and 5.5000; a source of no format still gives six places. Options of none of
 the three change nothing, and a fill range that holds a cell of the source is refused, as
-AutoCAD refuses it; a text is a number only before R2007, and dates are not carried on.
+AutoCAD refuses it; a text is a number only before R2007, and a series of dates goes on as the dates above do (`Fill` with `GenerateSeries`: from the last date by the step between the last two, a day for one, in seconds as the C library's `mktime` counts them, the machine's zone taken off the date as shown and not put back, so that 1/1/2020 filled into three cells has the values 1/1/2020 17:00, 1/2/2020 17:00 and 1/3/2020 17:00 (shown 1/1/2020, 1/2/2020 and 1/3/2020) seven hours ahead of Greenwich; in reverse back from the first by the step between the first two; a date before the epoch counts as -1, and one the series cannot make is a date of 16 bytes of nought and no words; dates mixed with other values are copied).
 `SetFromStyle()` takes the table's and its cells' overrides away, as `ClearTableStyleOverrides(0)` does. What a file of
 these versions has no group for is not there: several contents in one cell, and a line's style, linetype and the spacing
 of a double line.

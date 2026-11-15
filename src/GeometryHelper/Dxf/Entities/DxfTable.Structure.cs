@@ -1457,8 +1457,16 @@ namespace GeometryHelper.Dxf
         /// gives the target none of no kind of value (<c>91 0</c>), CopyContent given or not (D33e f04, f05, g08, g20, g21). A
         /// cell given a content is no longer one emptied in the session (D33e g12, g14). The numbers are those of a whole
         /// number or a number value,
-        /// or before R2007 a text that reads as one. A date is not carried on: the library knows no groups of a date value. The
-        /// record is written once; the block AutoCAD drew the table with is not drawn anew.
+        /// or before R2007 a text that reads as one. A series of dates goes on as AutoCAD 2021's console took them (D42), in
+        /// seconds counted as the C library's <c>mktime</c> counts them, the date as shown read in the machine's zone and
+        /// taken to the epoch, 1 January 1970, and put back with no zone: from the last date by the step between the last two
+        /// (a day for one date), or in reverse back from the first by the step between the first two, so that 1/1/2020 filled
+        /// into three cells is 1/1/2020 17:00, 1/2/2020 17:00 and 1/3/2020 17:00 in a zone seven hours ahead of Greenwich and
+        /// 1/2/2020, 1/3/2020 and 1/4/2020 in Greenwich; a date before the epoch counts as -1 and a count before 12 hours
+        /// before it makes none (16 bytes of nought, no words), as AutoCAD 2021 did, so that 12:30 alone, which is on the 30th
+        /// of December 1899, goes on as 1/1/1970 23:59:59 in any zone. Each cell is of the format of the source it repeats.
+        /// Dates mixed with other values are copied. The record is written once; the block AutoCAD drew the table with is not
+        /// drawn anew.
         /// </summary>
         /// <param name="fillRange">The cells filled: its rows (its columns along the rows), within the table.</param>
         /// <param name="sourceRange">The cells filled from, within the table.</param>
@@ -1535,6 +1543,8 @@ namespace GeometryHelper.Dxf
                 var sources = new CellView[count];
                 var numbers = new double[count];
                 var emptied = new bool[count];
+                var stamps = new long[count];
+                bool dated = true;
                 bool numeric = true;
                 bool whole = true;
                 int places = 0;
@@ -1545,6 +1555,9 @@ namespace GeometryHelper.Dxf
                     int sourceColumn = along ? start + k : sourceRange.LeftColumn + line;
                     sources[k] = layout.CellAt(sourceRow, sourceColumn);
                     emptied[k] = EmptiedInSession(layout, sourceRow * layout.Columns + sourceColumn, sources[k]);
+                    bool day = DateOf(sources[k], out DateTime when);
+                    stamps[k] = day ? DxfTableDate.Seconds(when) : 0;
+                    dated &= day;
                     numeric &= NumberOf(sources[k], out numbers[k], out bool isWhole, out int decimals);
                     whole &= isWhole;
                     places = Math.Max(places, decimals);
@@ -1570,7 +1583,7 @@ namespace GeometryHelper.Dxf
                 {
                     int r = along ? sourceRange.TopRow + line : place;
                     int c = along ? place : sourceRange.LeftColumn + line;
-                    bool copy = !(series && numeric);
+                    bool copy = !(series && (numeric || dated));
 
                     // A cell a merge hides is left as it is (D33b f12, D33c e09, e15, e16), and so is a cell of a repeat back from
                     // the fill's last cell that would reach before the table's first row or column (D33c h-x07, h-x11, h-x15).
@@ -1617,6 +1630,22 @@ namespace GeometryHelper.Dxf
                             made,
                             rounded,
                             whole && rounded >= int.MinValue && rounded <= int.MaxValue,
+                            source.InValue(300) ?? string.Empty
+                        );
+                    }
+                    else if (series && dated)
+                    {
+                        // Dates go on in seconds as AutoCAD 2021's console took them (D42): from the last date by the step between
+                        // the last two (a day for one), in reverse back from the first by the step between the first two.
+                        int steps = reverse ? -(to - place + 1) : place - from + 1;
+                        long gap =
+                            count == 1 ? 86400
+                            : reverse ? stamps[1] - stamps[0]
+                            : stamps[count - 1] - stamps[count - 2];
+                        made = look ? Formatted(target, source) : target;
+                        made = WithSeriesDate(
+                            made,
+                            stamps[reverse ? 0 : count - 1] + steps * gap,
                             source.InValue(300) ?? string.Empty
                         );
                     }
@@ -1810,6 +1839,45 @@ namespace GeometryHelper.Dxf
             return cell.Groups.List;
         }
 
+        /// <summary>Whether a cell of R2007 holds a date or a time, and which: the 16 bytes of its value (<see cref="DxfTableDate.TryFromBytes"/>), a block cell none.</summary>
+        private static bool DateOf(CellView cell, out DateTime day)
+        {
+            day = default(DateTime);
+            return cell.ValueFrom >= 0
+                && cell.Whole(171, 1) != (int)DxfTableCellType.BlockCell
+                && KindOf(cell) == DxfDataType.Date
+                && DxfTableDate.TryFromBytes(cell.InValue(310), out day);
+        }
+
+        /// <summary>
+        /// A cell given the date a count of seconds after the epoch makes in a series, as <see cref="DxfTableDate.Seconds"/>
+        /// counts them: the kind 8, its 16 bytes, the format of the source it repeats and the words it shows, the flag of its
+        /// kind of value (0x40000) given; a count AutoCAD 2021 could make no date of is a date of 16 bytes of nought and no words.
+        /// </summary>
+        private List<KeyValuePair<int, string>> WithSeriesDate(
+            List<KeyValuePair<int, string>> groups,
+            long seconds,
+            string format
+        )
+        {
+            CellView cell = View(groups);
+            bool made = DxfTableDate.TryFromSeconds(seconds, out DateTime date);
+            cell.WriteValue(
+                ((int)DxfDataType.Date).ToString(CultureInfo.InvariantCulture),
+                new[]
+                {
+                    new KeyValuePair<int, string>(92, "16"),
+                    new KeyValuePair<int, string>(310, made ? DxfTableDate.Bytes(date) : DxfTableDate.NoDateBytes),
+                },
+                made ? DxfTableDate.Text(date, format, CultureInfo.CurrentCulture) : string.Empty,
+                null,
+                format,
+                false,
+                "4"
+            );
+            return WithFlags(cell.Groups.List, (View(cell.Groups.List).Flags ?? 0) | DataTypeFlag);
+        }
+
         /// <summary>
         /// A cell's groups given a number of a series, as AutoCAD 2021's Fill wrote it (D33 f02, f18, g06): of its kind in its
         /// value from R2007 on, the flags of the value 4, the format of the source cell its place in the fill repeats, and the
@@ -1997,7 +2065,13 @@ namespace GeometryHelper.Dxf
         public string GetFormula(int row, int column, int contentIndex)
         {
             CheckContent(contentIndex);
-            string handle = Cell(row, column).Head(344)?.Trim();
+            return FormulaOfCell(Cell(row, column), row, column);
+        }
+
+        /// <summary>The formula of a cell as <see cref="GetFormula(int, int, int)"/> reads it, the cell given as read.</summary>
+        private string FormulaOfCell(CellView cell, int row, int column)
+        {
+            string handle = cell.Head(344)?.Trim();
 
             if (string.IsNullOrEmpty(handle) || !IsResident)
             {
@@ -2070,7 +2144,9 @@ namespace GeometryHelper.Dxf
                 );
             }
 
-            CheckText(CellToWrite(row, column), row, column);
+            // Read from its own bytes alone, as the setters of a cell are.
+            CellView cell = CellToEdit(row, column);
+            CheckText(cell, row, column);
 
             if (!Item.File.Supports(1018))
             {
@@ -2079,7 +2155,7 @@ namespace GeometryHelper.Dxf
                 );
             }
 
-            if (string.Equals(GetFormula(row, column, 0), "=" + expression, StringComparison.Ordinal))
+            if (string.Equals(FormulaOfCell(cell, row, column), "=" + expression, StringComparison.Ordinal))
             {
                 return;
             }
@@ -2094,9 +2170,9 @@ namespace GeometryHelper.Dxf
         private void WriteFormula(int row, int column, string code)
         {
             CheckEditable();
-            string old = CellToWrite(row, column).Head(344);
+            string old = CellToEdit(row, column).Head(344);
             DxfItem field = DxfField.WriteOwned(Item.File, Handle, new DxfField("%<" + code + ">%"));
-            CellView cell = CellToWrite(row, column);
+            CellView cell = CellToEdit(row, column);
             cell.SetHead(344, field.Handle);
             cell.Groups.Write(Order);
             EraseFields(new[] { old });
