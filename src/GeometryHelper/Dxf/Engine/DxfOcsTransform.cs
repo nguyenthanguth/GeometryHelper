@@ -81,6 +81,22 @@ namespace GeometryHelper.Dxf
                 && Math.Abs(x.DotProduct(y)) <= Tolerance.Default.EqualVector * Math.Sqrt(xx * yy);
         }
 
+        /// <summary>
+        /// Whether the transformation turns the plane over within its own system: the images of the x and y axes, in the new
+        /// system, run clockwise where they ran counter-clockwise. The system made of the images of the axes never does (its
+        /// extrusion is their cross product); one given its extrusion (<see cref="DxfOcsTransform(GeoVector3, GeoVector3, GeoTransform3)"/>)
+        /// does where the extrusion is the image of the old one under a mirror.
+        /// </summary>
+        internal bool Reflects
+        {
+            get
+            {
+                GeoVector3 x = TransformDirection(new GeoVector3(1.0, 0.0, 0.0));
+                GeoVector3 y = TransformDirection(new GeoVector3(0.0, 1.0, 0.0));
+                return x.X * y.Y - x.Y * y.X < 0.0;
+            }
+        }
+
         /// <summary>A point of the old system in the new.</summary>
         internal GeoPoint3 TransformVertex(GeoPoint3 point)
         {

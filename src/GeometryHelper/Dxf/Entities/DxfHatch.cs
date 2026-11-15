@@ -1261,7 +1261,8 @@ namespace GeometryHelper.Dxf
         /// Moves, turns, scales or mirrors the HATCH, as AutoCAD's <c>TransformBy</c>, as ezdxf carries one: each loop taken from
         /// the old plane to the world, moved, and into the plane of the new normal, its arcs and ellipses turned with it; the
         /// elevation that of the old plane's origin there; the pattern's lines scaled, turned and their base points moved, its
-        /// scale and angle with them; and, past ezdxf, the seed points moved and the gradient's angle turned, as AutoCAD moves them.
+        /// scale and angle with them; and, past ezdxf, the seed points moved, as AutoCAD moves them. The angle of a gradient (460)
+        /// is left as it is, as AutoCAD 2021 leaves it under every turn and mirror.
         /// Of an annotative hatch the contexts of its scales move with it (<c>MoveContexts</c>) and its view context is
         /// written first, replaced where it has one (<c>KeepHatchView</c>), a move by nought included.
         /// </summary>
@@ -1270,6 +1271,13 @@ namespace GeometryHelper.Dxf
         /// A transformation that scales the plane unlike along its axes, or shears it, makes the arcs of the loops, and the arcs of
         /// a polyline loop, ellipse edges, and each ellipse edge the ellipse it becomes, as ezdxf makes them; the pattern is scaled
         /// by the length its x axis takes, as ezdxf scales it.
+        /// <para>
+        /// A mirror keeps the normal as the transformation takes it (a mirror across a plane that holds the normal leaves it as it
+        /// is, one across the plane of the hatch turns it over), as AutoCAD 2021 keeps it, and reflects what lies in the plane: the
+        /// loops (a bulge changes its sign, an arc and a circle run the other way round, an ellipse's major axis is reflected), the
+        /// seed points, and the lines of the pattern. A hatch over (42, 50) to (58, 58) mirrored across the line through (0, 0) and
+        /// (10, 10) lies over (50, 42) to (58, 58), its normal still (0, 0, 1), and a pattern line at 45 degrees is still at 45.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentException">Thrown when it takes the plane of the HATCH to no plane.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the HATCH is erased.</exception>
@@ -1283,6 +1291,12 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
+            Apply(transform);
+        }
+
+        /// <summary>Moves the hatch by a transformation that is not the identity, its view context already written.</summary>
+        private void Apply(GeoTransform3 transform)
+        {
             GeoVector3 normal = Normal;
             var ocs = new DxfOcsTransform(normal, transform);
 
@@ -1290,6 +1304,29 @@ namespace GeometryHelper.Dxf
             GeoVector3 x = ocs.TransformDirection(new GeoVector3(1.0, 0.0, 0.0));
             GeoVector3 y = ocs.TransformDirection(new GeoVector3(0.0, 1.0, 0.0));
             bool conformal = ocs.ScaleUniform && Math.Abs(x.DotProduct(y)) <= 1E-9 * x.Length * y.Length;
+
+            // The normal of the new plane is the image of the old normal, as AutoCAD 2021 takes it, not the cross product of the
+            // images of the axes, which a mirror turns the other way round: the plane is reflected in its own system.
+            if (ocs.NewExtrusion.DotProduct(transform.Transform(normal)) < 0.0)
+            {
+                if (!conformal)
+                {
+                    // A mirror that scales unlike along the axes: the plane reflected across its own x axis first (the normal kept),
+                    // then what is left, which turns nothing over.
+                    var axes = new DxfOcsTransform.Axes(normal);
+                    GeoVector3 origin = normal.Multiply(Num(Record().Text(30), 0.0));
+                    GeoTransform3 flip = GeoTransform3.Mirror(
+                        new GeoPlane3(new GeoPoint3(origin.X, origin.Y, origin.Z), axes.Y)
+                    );
+                    Apply(flip);
+                    Apply(transform.Multiply(flip));
+                    return;
+                }
+
+                ocs = new DxfOcsTransform(normal, ocs.NewExtrusion.Multiply(-1.0), transform);
+            }
+
+            bool reflects = ocs.Reflects;
             Parts record = Record();
             double elevation = Num(record.Text(30), 0.0);
             GeoPoint3 lifted = ocs.TransformVertex(new GeoPoint3(0.0, 0.0, elevation));
@@ -1329,7 +1366,7 @@ namespace GeometryHelper.Dxf
                 foreach (double[] line in lines)
                 {
                     GeoPoint3 basePoint = ocs.TransformVertex(new GeoPoint3(line[1], line[2], elevation));
-                    Turn(line, factor, turn);
+                    Carry(line, ocs, factor, turn, conformal);
                     line[1] = basePoint.X;
                     line[2] = basePoint.Y;
                 }
@@ -1337,14 +1374,15 @@ namespace GeometryHelper.Dxf
                 record.SetPart(Kind.Pattern, LineGroups(lines));
             }
 
-            MoveContexts(ocs, elevation, factor, turn);
+            MoveContexts(transform, ocs, elevation, factor, turn, conformal);
 
             if (record.Text(41) != null && !IsSolidFill)
             {
                 record.Set(41, Real(Num(record.Text(41), 1.0) * factor));
             }
 
-            if (record.Text(52) != null && !IsSolidFill)
+            // AutoCAD leaves the pattern angle of a hatch it reflects as it was, and turns it with one it turns.
+            if (record.Text(52) != null && !IsSolidFill && !reflects)
             {
                 record.Set(52, Real(Num(record.Text(52), 0.0) + turn));
             }
@@ -1365,15 +1403,6 @@ namespace GeometryHelper.Dxf
                 record.SetPart(Kind.Seeds, SeedPart(seeds));
             }
 
-            GradientData gradient = Gradient(record);
-
-            if (gradient != null && gradient.Text(460) != null && turn != 0.0)
-            {
-                double angle = (Num(gradient.Text(460), 0.0) + turn * (Math.PI / 180.0)) % (2.0 * Math.PI);
-                gradient.Set(460, Real(angle < 0.0 ? angle + 2.0 * Math.PI : angle));
-                record.SetPart(Kind.Gradient, gradient.Groups);
-            }
-
             Write(record);
         }
 
@@ -1382,9 +1411,16 @@ namespace GeometryHelper.Dxf
         /// them (probed in its console, GHM5, a hatch of ANSI31, HONEY, ANSI37, AR-B816 and a user pattern at one scale and two,
         /// moved, turned, scaled and copied): the base point of each pattern line moved with the hatch (43 of 100 for a copy 100
         /// along x), its angle (53) turned and its offset (45, 46) and dashes turned and scaled, as the lines of the record are, and
-        /// the direction of the pattern (10, 20) carried and made of unit length.
+        /// the direction of the pattern (10, 20, 30) carried by the transformation, as a vector of the world, and made of unit length.
         /// </summary>
-        private void MoveContexts(DxfOcsTransform ocs, double elevation, double factor, double turn)
+        private void MoveContexts(
+            GeoTransform3 transform,
+            DxfOcsTransform ocs,
+            double elevation,
+            double factor,
+            double turn,
+            bool conformal
+        )
         {
             foreach (DxfItem context in HatchContexts())
             {
@@ -1392,49 +1428,13 @@ namespace GeometryHelper.Dxf
                 IReadOnlyList<DxfTypedValue> groups = file.GroupsOf(context);
                 var lines = new List<List<double>>();
                 var places = new List<List<int>>();
-                int i = 0;
-                bool inside = false;
-
-                for (; i < groups.Count; i++)
-                {
-                    if (groups[i].TypeCode == 100)
-                    {
-                        inside = groups[i].Value.Trim() == HatchContextMarker;
-                    }
-                    else if (inside && groups[i].TypeCode == 78)
-                    {
-                        i++;
-                        break;
-                    }
-                }
-
-                // The lines as the groups after the 78 give them, to the scale (40) that follows: 53, 43, 44, 45, 46, 79, the dashes.
-                for (; i < groups.Count && groups[i].TypeCode != 40; i++)
-                {
-                    int code = groups[i].TypeCode;
-
-                    if (code == 53)
-                    {
-                        lines.Add(new List<double> { Num(groups[i].Value, 0.0), 0.0, 0.0, 0.0, 0.0 });
-                        places.Add(new List<int> { i, -1, -1, -1, -1 });
-                    }
-                    else if (lines.Count > 0 && code >= 43 && code <= 46)
-                    {
-                        lines[lines.Count - 1][code - 42] = Num(groups[i].Value, 0.0);
-                        places[places.Count - 1][code - 42] = i;
-                    }
-                    else if (lines.Count > 0 && code == 49)
-                    {
-                        lines[lines.Count - 1].Add(Num(groups[i].Value, 0.0));
-                        places[places.Count - 1].Add(i);
-                    }
-                }
+                int i = ContextLines(groups, lines, places);
 
                 for (int n = 0; n < lines.Count; n++)
                 {
                     double[] line = lines[n].ToArray();
                     GeoPoint3 basePoint = ocs.TransformVertex(new GeoPoint3(line[1], line[2], elevation));
-                    Turn(line, factor, turn);
+                    Carry(line, ocs, factor, turn, conformal);
                     line[1] = basePoint.X;
                     line[2] = basePoint.Y;
 
@@ -1447,43 +1447,173 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
-                // The direction of the pattern (10, 20) follows the scale: carried, of unit length, its z as it was.
-                int x = -1;
-                int y = -1;
+                // The direction of the pattern (10, 20, 30) is a vector of the world, whatever the plane of the hatch: carried by
+                // the transformation, as AutoCAD 2021 carries it (a pattern line at 30 degrees of a hatch of normal (0, 1, 0) holds
+                // (-0.866, 0, 0.5)), and made of unit length.
+                int[] at = { -1, -1, -1 };
 
                 for (int j = i + 1; j < groups.Count && groups[j].TypeCode != 90; j++)
                 {
-                    if (groups[j].TypeCode == 10 && x < 0)
+                    int axis = (groups[j].TypeCode / 10) - 1;
+
+                    if (groups[j].TypeCode % 10 == 0 && axis >= 0 && axis < 3 && at[axis] < 0)
                     {
-                        x = j;
-                    }
-                    else if (groups[j].TypeCode == 20 && y < 0)
-                    {
-                        y = j;
+                        at[axis] = j;
                     }
                 }
 
-                if (x >= 0 && y >= 0)
+                if (at[0] >= 0 && at[1] >= 0)
                 {
-                    double dx = Num(groups[x].Value, 0.0);
-                    double dy = Num(groups[y].Value, 0.0);
-                    GeoVector3 turned = ocs.TransformDirection(new GeoVector3(dx, dy, 0.0));
-                    double length = Math.Sqrt(turned.X * turned.X + turned.Y * turned.Y);
+                    var was = new[]
+                    {
+                        Num(groups[at[0]].Value, 0.0),
+                        Num(groups[at[1]].Value, 0.0),
+                        at[2] >= 0 ? Num(groups[at[2]].Value, 0.0) : 0.0,
+                    };
+                    GeoVector3 turned = transform.Transform(new GeoVector3(was[0], was[1], was[2]));
+                    double length = turned.Length;
 
                     if (length > 0.0)
                     {
-                        if (!Same(turned.X / length + 0.0, dx + 0.0))
-                        {
-                            file.SetValueAt(context, x, Real(turned.X / length));
-                        }
+                        var now = new[] { turned.X / length, turned.Y / length, turned.Z / length };
 
-                        if (!Same(turned.Y / length + 0.0, dy + 0.0))
+                        for (int axis = 0; axis < 3; axis++)
                         {
-                            file.SetValueAt(context, y, Real(turned.Y / length));
+                            if (at[axis] >= 0 && !Same(now[axis] + 0.0, was[axis] + 0.0))
+                            {
+                                file.SetValueAt(context, at[axis], Real(now[axis]));
+                            }
                         }
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Reads the pattern lines of a hatch context from its groups: after the 78 of its hatch data, to the scale (40) that follows,
+        /// each line's 53, 43, 44, 45, 46 and dashes (49) in <paramref name="lines"/> and the index of each in
+        /// <paramref name="places"/> (-1 for one it does not hold). Gives the index of the scale.
+        /// </summary>
+        private static int ContextLines(
+            IReadOnlyList<DxfTypedValue> groups,
+            List<List<double>> lines,
+            List<List<int>> places
+        )
+        {
+            int i = 0;
+            bool inside = false;
+
+            for (; i < groups.Count; i++)
+            {
+                if (groups[i].TypeCode == 100)
+                {
+                    inside = groups[i].Value.Trim() == HatchContextMarker;
+                }
+                else if (inside && groups[i].TypeCode == 78)
+                {
+                    i++;
+                    break;
+                }
+            }
+
+            // The lines as the groups after the 78 give them, to the scale (40) that follows: 53, 43, 44, 45, 46, 79, the dashes.
+            for (; i < groups.Count && groups[i].TypeCode != 40; i++)
+            {
+                int code = groups[i].TypeCode;
+
+                if (code == 53)
+                {
+                    lines.Add(new List<double> { Num(groups[i].Value, 0.0), 0.0, 0.0, 0.0, 0.0 });
+                    places.Add(new List<int> { i, -1, -1, -1, -1 });
+                }
+                else if (lines.Count > 0 && code >= 43 && code <= 46)
+                {
+                    lines[lines.Count - 1][code - 42] = Num(groups[i].Value, 0.0);
+                    places[places.Count - 1][code - 42] = i;
+                }
+                else if (lines.Count > 0 && code == 49)
+                {
+                    lines[lines.Count - 1].Add(Num(groups[i].Value, 0.0));
+                    places[places.Count - 1].Add(i);
+                }
+            }
+
+            return i;
+        }
+
+        /// <summary>
+        /// The pattern lines of the HATCH as they stand, in its record and in each of its contexts, for <see cref="RestorePattern"/>
+        /// to put back: what MIRROR keeps of a hatch when MIRRHATCH is 0.
+        /// </summary>
+        internal object SavePattern()
+        {
+            var state = new PatternState();
+            List<KeyValuePair<int, string>> lines = Record().Part(Kind.Pattern);
+            state.Record = lines == null ? null : new List<KeyValuePair<int, string>>(lines);
+
+            foreach (DxfItem context in HatchContexts())
+            {
+                IReadOnlyList<DxfTypedValue> groups = context.File.GroupsOf(context);
+                var places = new List<List<int>>();
+                ContextLines(groups, new List<List<double>>(), places);
+                var values = new List<KeyValuePair<int, string>>();
+
+                foreach (List<int> line in places)
+                {
+                    foreach (int place in line)
+                    {
+                        if (place >= 0)
+                        {
+                            values.Add(new KeyValuePair<int, string>(place, groups[place].Value));
+                        }
+                    }
+                }
+
+                state.Contexts.Add(values);
+            }
+
+            return state;
+        }
+
+        /// <summary>
+        /// Puts back the pattern lines <see cref="SavePattern"/> took, in the record and in the contexts: those of a copy hold the
+        /// same groups as its original's, in the same order.
+        /// </summary>
+        internal void RestorePattern(object saved)
+        {
+            var state = (PatternState)saved;
+            Parts record = Record();
+
+            if (state.Record != null && record.Part(Kind.Pattern) != null)
+            {
+                record.SetPart(Kind.Pattern, new List<KeyValuePair<int, string>>(state.Record));
+                Write(record);
+            }
+
+            List<DxfItem> contexts = HatchContexts();
+
+            for (int n = 0; n < contexts.Count && n < state.Contexts.Count; n++)
+            {
+                DxfFile file = contexts[n].File;
+                IReadOnlyList<DxfTypedValue> groups = file.GroupsOf(contexts[n]);
+
+                foreach (KeyValuePair<int, string> value in state.Contexts[n])
+                {
+                    if (value.Key < groups.Count && groups[value.Key].Value != value.Value)
+                    {
+                        file.SetValueAt(contexts[n], value.Key, value.Value);
+                    }
+                }
+            }
+        }
+
+        /// <summary>The pattern lines of a HATCH set aside: its record's, and the values of each context's by place.</summary>
+        private sealed class PatternState
+        {
+            internal List<KeyValuePair<int, string>> Record { get; set; }
+
+            internal List<List<KeyValuePair<int, string>>> Contexts { get; } =
+                new List<List<KeyValuePair<int, string>>>();
         }
 
         #endregion
@@ -2133,6 +2263,61 @@ namespace GeometryHelper.Dxf
             {
                 line[i] *= factor;
             }
+        }
+
+        /// <summary>
+        /// Carries a pattern line's angle, offset and dashes by a transformation, its base point left for the caller, as AutoCAD
+        /// 2021 does (probed in its console: a hatch turned 360 degrees is not touched, one turned -45 holds 53 of 360 where the line
+        /// stood at 45): the angle is that of the image of the line's direction, from nought up to a whole turn, so that one a hair
+        /// below nought is written 360; a mirror reflects the offset as a vector, the angle (30 degrees across a line at 45 is 60)
+        /// and the offset (-1.732, 1) across a line at 45 is (1, -1.732); the dashes are scaled. A transformation that scales the
+        /// plane unlike along its axes turns by what its x axis turns, as ezdxf does.
+        /// </summary>
+        private static void Carry(double[] line, DxfOcsTransform ocs, double factor, double turn, bool conformal)
+        {
+            if (ocs.Reflects)
+            {
+                line[0] = ImageAngle(ocs, line[0]);
+                GeoVector3 offset = ocs.TransformDirection(new GeoVector3(line[3], line[4], 0.0));
+                line[3] = offset.X;
+                line[4] = offset.Y;
+
+                for (int i = 5; i < line.Length; i++)
+                {
+                    line[i] *= factor;
+                }
+
+                return;
+            }
+
+            if (!conformal)
+            {
+                Turn(line, factor, turn);
+                return;
+            }
+
+            if (turn != 0.0)
+            {
+                Rotate(line, 3, turn);
+                line[0] = ImageAngle(ocs, line[0]);
+            }
+
+            for (int i = 3; i < line.Length; i++)
+            {
+                line[i] *= factor;
+            }
+        }
+
+        /// <summary>
+        /// The angle in degrees of the image of a direction at an angle, from nought up to a whole turn: the direction carried,
+        /// its angle taken by <c>Atan2</c> and a whole turn added to one below nought, so that a hair below nought becomes 360.
+        /// </summary>
+        private static double ImageAngle(DxfOcsTransform ocs, double degrees)
+        {
+            double radians = degrees * (Math.PI / 180.0);
+            GeoVector3 image = ocs.TransformDirection(new GeoVector3(Math.Cos(radians), Math.Sin(radians), 0.0));
+            double angle = Math.Atan2(image.Y, image.X);
+            return (angle < 0.0 ? angle + 2.0 * Math.PI : angle) * (180.0 / Math.PI);
         }
 
         /// <summary>Turns the point of a line at an index (its base point at 1, its offset at 3) by degrees about the origin.</summary>

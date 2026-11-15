@@ -371,11 +371,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             DxfHatch copy = Copied(document, hatch, "MIRROR", new[] { hatch.Handle }, Enter, P(0, 0), P(10, 10), Enter);
 
-            // The hatch is mirrored in a plane turned over (its normal (0, 0, -1), so its x is the drawing's -x), where AutoCAD
-            // 2021 keeps the normal and writes (0.5, 0.866) for the direction (GHM5): the same direction, in the frame of the
-            // hatch. Its context holds what its record holds.
-            Assert.Equal(-1.0, copy.Normal.Z);
-            AssertDirection(-0.5, Root3 / 2.0, Direction(Context(document, copy, "*A1")));
+            // AutoCAD 2021 keeps the normal and reflects the direction: (0.866, 0.5) across a line at 45 degrees is (0.5, 0.866)
+            // (GHM5, GHM6). Its context holds what its record holds: with MIRRHATCH 0, the default, the line as it was.
+            Assert.Equal(1.0, copy.Normal.Z);
+            AssertDirection(0.5, Root3 / 2.0, Direction(Context(document, copy, "*A1")));
             double[] record = FirstLine(Groups(document, copy.Handle));
             AssertLine(
                 record[0],

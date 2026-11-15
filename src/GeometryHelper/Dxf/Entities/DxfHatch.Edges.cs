@@ -505,19 +505,21 @@ namespace GeometryHelper.Dxf
                 var moved = new List<KeyValuePair<int, string>>(Groups);
                 Angles(out double start, out double end);
                 bool whole = WholeTurn(Span(start, end));
+                bool reflects = ocs.Reflects;
+
+                // What the transformation does to the angle of the plane's x axis, as AutoCAD 2021 moves the angles of an arc by it
+                // (probed in its console): added to each end as the file holds it (a counter-clockwise arc of 0 to 180 turned 30
+                // degrees is 30 to 210, not 30 to -150, and a clockwise one of 0 to 180, which the file holds as -30 to 150).
+                // A mirror across a vertical line gives the x axis 180 degrees, not -180 as a hair below nought would give it.
+                double turnedBy = ocs.TransformDegrees(0.0);
+
+                if (turnedBy <= -180.0 + 1E-9)
+                {
+                    turnedBy += 360.0;
+                }
+
                 double newStart = start;
                 double newEnd = end;
-
-                if (Type == 2 && !whole)
-                {
-                    newStart = ocs.TransformDegrees(start);
-                    newEnd = ocs.TransformDegrees(end);
-                }
-                else if (Type == 2)
-                {
-                    newStart = ocs.TransformDegrees(start);
-                    newEnd = newStart + 360.0;
-                }
                 double[] general = null;
 
                 if (Type == 3 && !conformal)
@@ -588,6 +590,21 @@ namespace GeometryHelper.Dxf
                     else if (code == 40 && Type == 2)
                     {
                         moved[i] = G(40, ocs.TransformLength(new GeoVector3(Num(moved[i].Value, 0.0), 0.0, 0.0)));
+                    }
+                    else if ((code == 50 || code == 51) && Type == 2)
+                    {
+                        // The angles of an arc as the file holds them, moved on by the angle the transformation gives the x axis: a
+                        // counter-clockwise arc on, a clockwise one back; a mirror turns the arc the other way round, so the other way
+                        // about (a counter-clockwise arc of 0 to 180 across a vertical line is written clockwise, -180 to 0).
+                        moved[i] = G(code, this[code] + (Ccw != reflects ? turnedBy : -turnedBy));
+                    }
+                    else if ((code == 50 || code == 51) && reflects)
+                    {
+                        // An ellipse's angles stay: its major axis is reflected, and the parameter runs the other way with the flag.
+                    }
+                    else if (code == 73 && reflects && (Type == 2 || Type == 3))
+                    {
+                        moved[i] = G(73, Ccw ? 0 : 1);
                     }
                     else if ((code == 50 || code == 51) && (Type == 2 || (Type == 3 && !whole)))
                     {

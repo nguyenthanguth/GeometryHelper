@@ -89,7 +89,9 @@ namespace GeometryHelper.Dxf
         /// drawn at 1:1 and 1:50): a TEXT and an attribute definition keep their point, angle and mode; an MTEXT keeps its place
         /// and direction and has its width, the height of its box and the width and height of its words (40, 41, 42, 43)
         /// multiplied by the default's scale over the new one's (an MTEXT 40 wide at 1:1 is 2000 wide at 1:50); a HATCH has the
-        /// lines of its pattern (43, 44, 45, 46, 49) multiplied so, and 1 over the scale in its group 40 (50 at 1:50); an INSERT
+        /// lines of its pattern (43, 44, 45, 46, 49) multiplied so, and 1 over the scale in its group 40 (50 at 1:50), and has its
+        /// view context written first from its default context as it stands, replaced where it has one (<c>KeepHatchView</c>:
+        /// a hatch moved by (100, 50) and then given 1:2 holds 43 of 100, 44 of 50 in its view, as -OBJECTSCALE Add writes it); an INSERT
         /// has its three factors multiplied so (50 at 1:50 for a 1 at 1:1) and each attribute of it that holds contexts is
         /// given one as well, its point moved out from the INSERT's by the same factor: the attribute at (300, 1003) of an
         /// INSERT at (300, 1000) is at (300, 1150) at 1:50. An INSERT that holds no context gets the scale as its one context,
@@ -198,6 +200,8 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
+            // A hatch takes its view context as the default context stands now, before the new context is written.
+            KeepHatchView();
             AddDerived(_item, source, scale, factor, null);
 
             if (kind == "INSERT")

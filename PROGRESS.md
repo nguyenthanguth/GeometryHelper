@@ -444,9 +444,12 @@ the ones wanted.
 - [x] MIRROR follow-ups 5 (mirror5): an annotative hatch's scale contexts move, turn and scale with it and its view
       context is written on MOVE/COPY/ROTATE/SCALE/ARRAY as AutoCAD (84 of 84 oracle cases equal); 350/360 targets
       outside a copy cloned; copied dictionary entries sorted by name; AUDIT 0 on our output
-- [ ] (mirror6, running) MIRROR follow-ups 6: hatch MIRROR keeps its normal and pattern in AutoCAD (TransformBy; ours turns the hatch over:
-      loops, arcs, bulges, ellipses, splines reflected in its plane; also MIRRHATCH); ROTATE -45 writes 53 as 360 (ours
-      0); -OBJECTSCALE Add writing the view on the original; AddDerived's 43/44 on a moved hatch (unprobed) (S)
+- [x] MIRROR follow-ups 6 (mirror6): a hatch MIRROR keeps its normal, the loops (bulges, arcs, ellipses, splines)
+      reflected in its plane, and MIRRHATCH 0/1 as AutoCAD; ROTATE normalises its angle (53 written 360 as AutoCAD);
+      -OBJECTSCALE Add writes the view context; gradient angle 460 left alone; 1 200 of 1 239 oracle cases equal
+- [ ] MIRROR follow-ups 7: an annotative hatch's context direction under TransformBy turns about an axis other than z
+      (39 of 1 239 cases; no command reaches them; 3 attempts, no rule found); the library's TransformBy reflects the
+      pattern (MIRRHATCH 1 form) where AutoCAD's follows MIRRHATCH (default 0); MIRROR3D not in the presenter (S)
 - [x] Drafting aids: TK (TRACKING); check TT with OTRACK off, "(need YZ):" input and Enter at a modifier prompt
       against AutoCAD (S)
 - [x] Draw: AUDIT a drawing made with every ARC, CIRCLE, PLINE, TEXT and MTEXT option, and compare ARC and PLINE entity
@@ -821,7 +824,7 @@ the ones wanted.
       patch only their cell (465 cells 4-8 s / 3.7-6.6 GB -> 3-159 ms / 9-86 MB, bytes identical); DxfTable.Value of a
       date is a DateTime and Fill continues date series as AutoCAD 2021 (mktime seconds, last-two step, UTC fields); the
       1.8 % recompute growth not reproduced; the dimension test shares no state (16-thread test added)
-- [ ] Tables follow-ups 6: merges still rebuild the record (192 merges 1.6 s: cache the block list, splice the edge cells
+- [ ] (tables7, running) Tables follow-ups 6: merges still rebuild the record (192 merges 1.6 s: cache the block list, splice the edge cells
       and TABLECONTENT); CadTextInk.FileOf / CadFontMetrics.Of cache a failed font read for the whole process (do not
       cache IO failures); a series date cell's 93 flags (AutoCAD DXF); series dates in a daylight-saving zone; a
       definition in a non-Standard style counting nothing in the console's minimum (GUI); GUI-only sides (S)
