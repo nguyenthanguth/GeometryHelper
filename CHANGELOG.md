@@ -25,6 +25,34 @@ of a cell; text cells and block cells, with and without a TABLECONTENT, four ver
 with and without a field in its linked cell, equal those of the library before; and the text of runs of the same edits made in place equals that of the same runs
 made on a record read anew before each edit (16 sets, 40 to 60 edits). A TABLECONTENT whose groups do not stand as the file writes them (a comment among them, found once, or
 one after the last group) is read and written whole, as before.
+**CHANGED.** The cold display of a drawing of 1 000 000 entities makes 452 MB of objects where it made 533 and takes 0.86 s where it took 1.04 (best
+of 15 runs alternated with the older build in three passes, .NET 8; median 0.88 s where 1.09), and a REGEN of it takes 0.39 s where 0.45 and makes 276 MB where 306.
+Under .NET 10 the cold display takes 0.75 s where 0.90 (452 MB where 516) and a REGEN 0.36 s where 0.41; under .NET Framework 4.8 the cold display takes
+2.48 s where 2.65 (460 MB where 541) and a REGEN 1.08 s where 1.24. What changed, each measured alone first:
+- A closed polyline with a bulge, which is read as a loop of arcs in space (`GeoPolygonArc3`), is built with 360 bytes where it took 448, and its `Area` makes no
+  garbage where it made 176. The vertices are walked by place where they stand in a list or an array (a walk of them as a sequence made an enumerator),
+  `GeoPlane3.ContainsAll` tests the points of an array or a list the same way, and the area is measured in two arrays of the thread's own, 64 edges and
+  fewer, where a polygon of the plane and two arrays were made for each call; a loop of more edges, or one that has two corners on one point once laid out
+  (as a point tolerance finer than the planar one allows), is laid out whole as before. A cold display of 200 000 polylines of four vertices with
+  a bulge takes 0.26 s where it took 0.34 and makes 169 MB where 219 (.NET 8).
+- The layer of an entity is found among the eight the builder drew last, by the string its record gave for it, which the entities of one look share. Three
+  tables were asked for its name before (the shared spelling, the layer, its bit in the list) and the last hit of each missed whenever layers took
+  turns: 200 000 lines on three layers in turn are redrawn in 18 ms where they took 25 (on one layer 17 ms where 20), and the cold display of
+  1 000 000 entities is 80 to 100 ms quicker (.NET 8).
+- A LINE, an ARC, a CIRCLE and a LWPOLYLINE go to their shapes at once, where the cases of `Draw` tested each against seventeen classes, four of them
+  unsealed: 10 ns an entity, 2 ms of the 20 of a REGEN of 200 000 lines, and within the noise at 1 000 000 entities.
+- The words of a TEXT are cleaned and trimmed with no builder, no buffer and no array for each `Trim`: they are made again only where they hold a carriage
+  return or the code of a degree, a plus-minus or a diameter sign. 200 000 texts are displayed with 65 MB of garbage where 95 (150 bytes a text) and redrawn
+  with 50 MB where 80, in 0.10 s where 0.11 and 0.085 s where 0.10 (.NET 8).
+
+The display lists, their boxes, runs and insertion points, the bytes a drawing saves and the pixels are the same: 167 AutoCAD samples and three generated
+drawings (60 000 entities on twelve layers, one off, with INSERTs of blocks on layer 0 and texts with codes; 100 000 and 1 000 000 mixed entities) give
+the same list item for item and field for field (cold, after a REGEN, the layouts, three layers off and on) under .NET 8 and .NET Framework 4.8 (the
+1 000 000 under .NET 8), the same bytes saved and the same pixels in two views, plain and selected, and 540 000 loops of arcs built three ways (a list,
+an array and a sequence) have every vertex, bulge, normal, area and the words of every exception the same to the bit. Not kept: a one-pass read of the code
+line of each group in the walk of a record, for the REGEN of the texts (it takes 87 ms for 200 000 texts with it and without, the read of their groups being 28 per cent of
+it): the walk is not made again but by keeping the places of the groups of each text, 144 bytes of each. `DxfSpeed20Tests` (11) and `DisplaySpeed20Tests` (11).
+
 **CHANGED.** `MergeCells` and `UnmergeCells` are written into the bytes of the cells they change and into those of the table's TABLECONTENT, as the setters
 of one cell are, where each call read every cell, rebuilt the whole record and read and wrote every group of the TABLECONTENT (a table read from a file
 holds one, from R2007 on). The blocks of merged cells are kept from one call to the next, for as long as every cell is as a whole writing leaves it (its

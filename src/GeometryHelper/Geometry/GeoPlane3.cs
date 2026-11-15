@@ -228,6 +228,33 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(nameof(points));
             }
 
+            // The points of a shape stand in an array or a list: read by place, no enumerator is made (32 bytes of each call).
+            if (points is GeoPoint3[] array)
+            {
+                foreach (GeoPoint3 point in array)
+                {
+                    if (Math.Abs(SignedDistanceTo(point)) > tolerance.EqualPlanar)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            if (points is IReadOnlyList<GeoPoint3> list)
+            {
+                for (int i = 0; i < list.Count; i++)
+                {
+                    if (Math.Abs(SignedDistanceTo(list[i])) > tolerance.EqualPlanar)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
             foreach (GeoPoint3 point in points)
             {
                 if (Math.Abs(SignedDistanceTo(point)) > tolerance.EqualPlanar)

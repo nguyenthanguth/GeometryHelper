@@ -903,10 +903,14 @@ the ones wanted.
       bare, reader scratch lists reused: cold display at 1M 2.15 -> 1.74 s median (net8), REGEN 1.06 -> 0.73 s, layer off
       47 -> 30 ms, allocated 837 -> 532 MB; display lists, pixels and saved bytes identical on 167 samples; dropping the
       LWPOLYLINE shape cache declined (REGEN +39 %)
-- [ ] (speed15, running) Speed follow-ups 14: GeoPolygonArc3 construction garbage (1.1 KB a polyline); three string-keyed layer lookups an
-      entity (a reference cache, ~4 %); Draw's type switch; REGEN's text group walk (~7 %); DrawText's CleanText garbage
-      (35 MB per 200 000); layer off's BoundsOfItems (7 ms); DxfEntity wrappers kept (~50 MB, identity contract); a DWG
-      read stopped mid-way (S)
+- [x] Speed follow-ups 14 (speed15): GeoPolygonArc3 built and measured without enumerators or garbage, an 8-slot layer
+      cache in the display, LINE/ARC/CIRCLE/polyline straight to shapes, DrawText's cleaning without garbage: cold
+      display at 1M 1 037 -> 858 ms (net8), REGEN 453 -> 391 ms, garbage 533 -> 452 MB; lists, pixels, saved bytes and
+      540 000 loops' areas identical
+- [ ] Speed follow-ups 15: REGEN's text group walk (28 % of a text REGEN; parked: per-text slots break the heap rule);
+      remaining cold garbage at 1M (DisplayArc2 79 MB, DisplayPolyline2 56 MB, double[] 55 MB, handle strings 40 MB, a
+      loop's GeoPoint3[]/GeoVector3[] 48 MB with a 112-byte normals array of a flat loop); DxfEntity wrappers (~50 MB);
+      a DWG read stopped mid-way (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)

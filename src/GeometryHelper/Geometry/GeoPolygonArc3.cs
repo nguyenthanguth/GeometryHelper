@@ -111,19 +111,22 @@ namespace GeometryHelper.Geometry
                     ? Array.Empty<GeoVector3>()
                     : normals as IReadOnlyList<GeoVector3> ?? new List<GeoVector3>(normals);
 
-            // The vertices kept, in arrays that grow only where the vertices are a sequence of no known length.
-            int room = vertices is ICollection<GeoPoint3> sized ? sized.Count : 8;
+            // The vertices are walked by place where they stand in a list or an array (a walk of them as a sequence makes an
+            // enumerator, 40 bytes of each loop), and copied only where they are a sequence, as the bulges and normals are.
+            IReadOnlyList<GeoPoint3> given = vertices as IReadOnlyList<GeoPoint3> ?? new List<GeoPoint3>(vertices);
+
+            // The vertices kept, in arrays that are the size of the vertices given and shrink only where some are dropped.
+            int room = given.Count;
             var kept = new GeoPoint3[room];
             var keptBulges = new double[room];
             var keptNormals = new GeoVector3[room];
             int count = 0;
-            int index = 0;
 
-            foreach (GeoPoint3 vertex in vertices)
+            for (int index = 0; index < given.Count; index++)
             {
+                GeoPoint3 vertex = given[index];
                 double bulge = index < givenBulges.Count ? givenBulges[index] : 0.0;
                 GeoVector3 normal = index < givenNormals.Count ? givenNormals[index] : default(GeoVector3);
-                index++;
 
                 // The edge between two vertices in the same place has no length and goes with the later vertex;
                 // the vertex kept takes the bulge and the plane of the edge running on from the one dropped.
@@ -132,13 +135,6 @@ namespace GeometryHelper.Geometry
                     keptBulges[count - 1] = bulge;
                     keptNormals[count - 1] = normal;
                     continue;
-                }
-
-                if (count == kept.Length)
-                {
-                    Array.Resize(ref kept, Math.Max(4, 2 * count));
-                    Array.Resize(ref keptBulges, kept.Length);
-                    Array.Resize(ref keptNormals, kept.Length);
                 }
 
                 kept[count] = vertex;
@@ -358,7 +354,13 @@ namespace GeometryHelper.Geometry
         {
             var vertices = new GeoPoint2[EdgeCount];
             var bulges = new double[EdgeCount];
+            LayOutInto(frame, vertices, bulges);
+            return GeoPolygonArc2.FromEdgesOf(vertices, bulges, tolerance);
+        }
 
+        /// <summary>Puts where each edge starts in a frame, and its bulge there, into the first <see cref="EdgeCount"/> places of two arrays.</summary>
+        private void LayOutInto(GeoCoordinateSystem3 frame, GeoPoint2[] vertices, double[] bulges)
+        {
             for (int i = 0; i < EdgeCount; i++)
             {
                 GeoEdge3 edge = GetEdgeAt(i);
@@ -371,8 +373,6 @@ namespace GeometryHelper.Geometry
 
                 bulges[i] = facingAway ? -edge.Bulge : edge.Bulge;
             }
-
-            return GeoPolygonArc2.FromEdgesOf(vertices, bulges, tolerance);
         }
 
         /// <summary>
@@ -401,7 +401,46 @@ namespace GeometryHelper.Geometry
         /// in the plane x = 20 and filleted at 0.0005 encloses 4 999.99999979, where it was laid out within the global
         /// tolerance of a thousandth, lost its arcs 0.0007 across, and read 4 999.9375.
         /// </remarks>
-        public double Area => Flat(GetFrame()).Area;
+        public double Area
+        {
+            get
+            {
+                GeoCoordinateSystem3 frame = GetFrame();
+                int count = EdgeCount;
+
+                if (count > AreaScratchMost)
+                {
+                    return Flat(frame).Area;
+                }
+
+                // The loop laid out in two arrays of the thread's own, measured there, where a loop made of them is a polygon of
+                // 40 bytes and two arrays of 130 for each call: a polyline read from a drawing asks once, and a drawing has
+                // 200 000 of them.
+                GeoPoint2[] starts = _areaStarts ?? (_areaStarts = new GeoPoint2[AreaScratchMost]);
+                double[] bulges = _areaBulges ?? (_areaBulges = new double[AreaScratchMost]);
+                LayOutInto(frame, starts, bulges);
+
+                // The loop laid out drops an edge whose ends land on one point; one that has such an edge is laid out whole.
+                for (int i = 0; i < count; i++)
+                {
+                    if (starts[i].IsEqualTo(starts[(i + 1) % count], default(Tolerance)))
+                    {
+                        return Flat(frame).Area;
+                    }
+                }
+
+                return Math.Abs(GeoPolygonArc2.SignedAreaOf(starts, count, bulges));
+            }
+        }
+
+        /// <summary>The most edges a loop has to be measured by <see cref="Area"/> in the arrays kept for each thread; a loop of more is laid out in arrays of its own.</summary>
+        private const int AreaScratchMost = 64;
+
+        [ThreadStatic]
+        private static GeoPoint2[] _areaStarts;
+
+        [ThreadStatic]
+        private static double[] _areaBulges;
 
         /// <summary>
         /// Gets the area the loop encloses, negative when it runs clockwise in its own frame.
