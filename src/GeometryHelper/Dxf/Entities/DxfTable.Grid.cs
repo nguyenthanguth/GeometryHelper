@@ -1192,10 +1192,43 @@ namespace GeometryHelper.Dxf
                 );
             }
 
-            Layout layout = ReadToWrite();
+            // A record this table wrote whole has the groups it changes written into their places alone (SetTableLinesAlone);
+            // else its every group is read, and written once noting the record as one written whole, so that the next call
+            // is the first.
+            if (SetTableLinesAlone(kind, text, borders, rows))
+            {
+                return;
+            }
+
+            Layout layout = ReadToEdit();
             DxfDimGroups g = layout.Groups;
             int headTo = layout.CellStart.Count > 0 ? layout.CellStart[0] : layout.CellsEnd;
             int cellsEnd = layout.CellsEnd;
+            EditTableLines(g, ref headTo, ref cellsEnd, kind, text, borders, rows);
+
+            if (!g.Same())
+            {
+                CheckEditable();
+                g.Write(Order);
+            }
+        }
+
+        /// <summary>
+        /// Gives the table's own groups of the lines and the kinds of rows given their texts, in the list of groups <paramref name="g"/>:
+        /// each in place where it has one, else put in with its flag as <see cref="SetTableLines"/> says. The head of the table
+        /// ends at <paramref name="headTo"/> and the cells at <paramref name="cellsEnd"/>, both moved on by the groups put into
+        /// the head.
+        /// </summary>
+        private static void EditTableLines(
+            DxfDimGroups g,
+            ref int headTo,
+            ref int cellsEnd,
+            int kind,
+            string text,
+            DxfGridLineType borders,
+            DxfRowType rows
+        )
+        {
             DxfRowType[] kinds = { DxfRowType.TitleRow, DxfRowType.HeaderRow, DxfRowType.DataRow };
 
             for (int rowKind = 0; rowKind < 3; rowKind++)
@@ -1271,12 +1304,94 @@ namespace GeometryHelper.Dxf
                     }
                 }
             }
+        }
 
-            if (!g.Same())
+        /// <summary>
+        /// Writes the lines of the rows of a kind into a record this table wrote whole, as <see cref="SetTableLines"/> does, the
+        /// groups of its head and of its own part after its cells changed in the place of their own bytes and the cells copied as
+        /// they are: a call on a table of 931 cells costs the copy of its bytes, not a reading and a writing of every group of
+        /// it. The groups are those a writing of every group would give, as those left as they are stand as the file writes
+        /// them. False, nothing written, where the places of the cells are not known (<see cref="AloneCells"/>), the table holds
+        /// no cell, or its record gives no subclass of the table's own.
+        /// </summary>
+        private bool SetTableLinesAlone(int kind, string text, DxfGridLineType borders, DxfRowType rows)
+        {
+            CellBytes cells = AloneCells(out DxfFile.PendingCells pending);
+
+            // The cells written and not yet put in the record are put in it first, the places of the cells moved with them.
+            if (cells != null && pending != null)
             {
-                CheckEditable();
-                g.Write(Order);
+                Item.File.RecordAt(Item, 0);
+                cells = AloneCells(out _);
             }
+
+            if (cells == null || cells.From.Length < 2)
+            {
+                return false;
+            }
+
+            DxfFile file = Item.File;
+            DxfFile.Rec record = file.RecordAt(Item, 0);
+            int last = cells.From.Length - 1;
+            int ownEnd = record.End - record.Start - cells.Trailing;
+            List<KeyValuePair<int, string>> head = file.GroupsBetween(record, cells.HeadFrom, cells.From[0]);
+            List<KeyValuePair<int, string>> tail = file.GroupsBetween(record, cells.From[last], ownEnd);
+            int split = head.FindIndex(group => group.Key == 100);
+
+            if (split < 0)
+            {
+                return false;
+            }
+
+            // The head and the part after the cells as one list, the cells left out, which is all the lines read or change.
+            var all = new List<KeyValuePair<int, string>>(head.Count + tail.Count + 16);
+            all.AddRange(head);
+            all.AddRange(tail);
+            var g = new DxfDimGroups(all, split);
+            int headTo = head.Count;
+            int cellsEnd = head.Count;
+            EditTableLines(g, ref headTo, ref cellsEnd, kind, text, borders, rows);
+
+            List<KeyValuePair<int, string>> headMade = all.GetRange(0, headTo);
+            List<KeyValuePair<int, string>> tailMade = all.GetRange(headTo, all.Count - headTo);
+            bool tailChanged = !SameGroups(tail, tailMade);
+            bool headChanged = !SameGroups(head, headMade);
+
+            if (!tailChanged && !headChanged)
+            {
+                return true;
+            }
+
+            CheckEditable();
+
+            // The tail first, so that the places of the head stand.
+            if (tailChanged)
+            {
+                file.SpliceRecord(Item, 0, cells.From[last], ownEnd, tailMade, false);
+            }
+
+            int shift = 0;
+
+            if (headChanged)
+            {
+                shift =
+                    file.SpliceRecord(Item, 0, cells.HeadFrom, cells.From[0], headMade, false)
+                    - (cells.From[0] - cells.HeadFrom);
+            }
+
+            for (int k = 0; shift != 0 && k < cells.From.Length; k++)
+            {
+                cells.From[k] += shift;
+            }
+
+            DxfFile.Rec written = file.RecordAt(Item, 0);
+            cells.Held(written);
+            NoteWritten(written);
+
+            // The layout read before is of the record as it stood, and the cells noted for it with it.
+            _noting = false;
+            _pending.Clear();
+            return true;
         }
 
         /// <summary>

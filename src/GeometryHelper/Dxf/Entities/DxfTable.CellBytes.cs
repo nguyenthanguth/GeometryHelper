@@ -21,17 +21,25 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private sealed class CellBytes
         {
-            internal CellBytes(DxfFile.Rec record, int rows, int columns, int[] from)
+            internal CellBytes(DxfFile.Rec record, int rows, int columns, int[] from, int headFrom, int trailing)
             {
                 Rows = rows;
                 Columns = columns;
                 From = from;
+                HeadFrom = headFrom;
+                Trailing = trailing;
                 Held(record);
             }
 
             internal int Rows { get; }
 
             internal int Columns { get; }
+
+            /// <summary>Where the table's own groups begin, those after its first subclass marker, counted from the record's start; the head they make runs on to the first cell.</summary>
+            internal int HeadFrom { get; }
+
+            /// <summary>How many bytes the record holds after its last own group (extended data, groups of an application): what no write of the table's own groups or cells moves.</summary>
+            internal int Trailing { get; }
 
             /// <summary>Where each cell of the record begins, from its start, and where the last ends; moved on with every cell written, or, while cells are pending, when they are put in the record.</summary>
             internal int[] From { get; }
@@ -240,7 +248,14 @@ namespace GeometryHelper.Dxf
             // Where the last cell ends: at the first group of the table's own part after the cells, or the end of the last group.
             int end = layout.CellsEnd + first;
             from[cells] = 2 * end < places.Count ? places[2 * end] : places[places.Count - 1];
-            return new CellBytes(record, layout.Rows, layout.Columns, from);
+            return new CellBytes(
+                record,
+                layout.Rows,
+                layout.Columns,
+                from,
+                2 * first < places.Count ? places[2 * first] : places[places.Count - 1],
+                record.End - record.Start - places[places.Count - 1]
+            );
         }
 
         /// <summary>

@@ -389,11 +389,14 @@ User note 2026-11-12 evening (note.md 1-14):
       they change (931 resets 4.0 s / 6.3 GB -> 4 ms / 6 MB; 931 SetGridColor 206 -> 16 ms; 10 000 cells' lines 11.7 s ->
       82 ms); the first save finds written tables in one walk (57 -> 9 ms at 100 000); a stale last-cell end that put a
       text into the table's own value fixed (60 of 4 000 fuzz seeds); MTextLayout fonts already per test
-- [ ] DXF versions follow-ups 14: the copy's open walk (25-30 ms for 15 MB); table-level SetGridColor(color, borders,
-      rows) still whole-record; the session-made first save (~110 ms at 100 000); first read of a native table
-      (PlacesOfCells); a SetCellType speed test (block cell built in code); real TABLEGEOMETRY and row heights (font
-      metrics); native R2000/R2004 table drawings; block-cell, field and link content; hidden bottom/left lines in
-      R2000/R2004; tolerant sweep_sur; blend/network surfaces and helix sweeps (M)
+- [x] DXF versions follow-ups 14 (dxfver14): table-level grid lines patch the head and tail only (108 calls on 931
+      cells 590 -> 9 ms, 982 -> 21 MB); the open walk a quarter faster (type words remembered, code lines read in one
+      pass: 100 000 entities 32.7 -> 23.3 ms); first save after an edit 52 -> 33 ms; saved bytes identical (2 900 fuzz)
+- [ ] DXF versions follow-ups 15: the completion copy still walks every record (an index needs the exact handle
+      maxima); first read of a native table (~1 ms of Read(), pairs without DxfTypedValue); SetGridProperty over a range
+      (18 ms, per-cell PutEdge); real TABLEGEOMETRY and row heights (font metrics); native R2000/R2004 table drawings;
+      block-cell, field and link content; hidden bottom/left lines in R2000/R2004; tolerant sweep_sur; blend/network
+      surfaces and helix sweeps (M)
 - [x] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)
 - [x] XCLIP follow-ups: grips on the clip boundary (corners/vertices and the flip arrow, as AutoCAD's GetGripPoints); EXPLODE ignores the clip (probed, already so); the grip crosshair pull looked at in the running app
 - [x] XCLIP follow-ups 2 (xclip3; REFEDIT by refedit): Clipdepth cuts the block in the display (slab along the clip

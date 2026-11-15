@@ -1728,18 +1728,64 @@ namespace GeometryHelper.Dxf
                 Types.Add(type);
             }
 
+            // The words of the last records, one to a slot, by a key of the bytes of a word: a drawing is long runs of a few kinds
+            // of record, and the word of each is found again by its bytes, with no string made of them (a string and a lookup
+            // for each of the 100 000 records of a drawing took 4 of the 31 ms of its walk). Words of ASCII only, whose bytes
+            // are the letters in every code page.
+            private readonly string[] _recent = new string[32];
+
             /// <summary>The value of a group 0, trimmed as the reader trims it, kept once for each word.</summary>
             private string Word(int start, int end)
             {
-                string word = _file.Text(start, end).Trim();
+                byte[] bytes = _file._bytes;
+                int from = start;
+                int to = end;
 
-                if (_words.TryGetValue(word, out string kept))
+                while (from < to && (bytes[from] == (byte)' ' || bytes[from] == (byte)'\t'))
                 {
-                    return kept;
+                    from++;
                 }
 
-                _words.Add(word, word);
-                return word;
+                while (to > from && (bytes[to - 1] == (byte)' ' || bytes[to - 1] == (byte)'\t'))
+                {
+                    to--;
+                }
+
+                int slot = to > from ? (to - from + 31 * bytes[from] + 7 * bytes[to - 1]) & 31 : 0;
+                string held = _recent[slot];
+
+                if (held != null && _file.IsWord(from, to, held))
+                {
+                    return held;
+                }
+
+                string word = _file.Text(start, end).Trim();
+
+                if (!_words.TryGetValue(word, out string kept))
+                {
+                    _words.Add(word, word);
+                    kept = word;
+                }
+
+                if (IsAscii(kept))
+                {
+                    _recent[slot] = kept;
+                }
+
+                return kept;
+            }
+
+            private static bool IsAscii(string word)
+            {
+                foreach (char c in word)
+                {
+                    if (c >= 0x80)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
             }
 
             /// <summary>
@@ -1768,10 +1814,18 @@ namespace GeometryHelper.Dxf
                         return false;
                     }
 
-                    int codeEnd = _file.LineEnd(_at, out _at);
+                    // A code line of the usual shape is read in one pass; any other is read, and refused, as it always was.
+                    bool plain = TryPlainCode(_file._bytes, _at, _file._length, out code, out int following);
+
+                    if (plain)
+                    {
+                        _at = following;
+                    }
+
+                    int codeEnd = plain ? 0 : _file.LineEnd(_at, out _at);
                     _line++;
 
-                    if (!TryCode(_file._bytes, codeStart, codeEnd, out code))
+                    if (!plain && !TryCode(_file._bytes, codeStart, codeEnd, out code))
                     {
                         string text = _file.Text(codeStart, codeEnd);
                         string said =
@@ -1887,6 +1941,52 @@ namespace GeometryHelper.Dxf
             int end = feed < 0 ? length : feed;
             next = feed < 0 ? length : feed + 1;
             return end > at && bytes[end - 1] == '\r' ? end - 1 : end;
+        }
+
+        /// <summary>
+        /// A group code line of the usual shape: spaces, one to nine digits, and the end of the line (a line feed, a carriage
+        /// return before it allowed), read in one pass where <see cref="LineEnd(byte[], int, int, out int)"/> and
+        /// <see cref="TryCode"/> take two, with the same code and the same start of the next line. False for any other line
+        /// (a sign, a tab, a longer number, a line that ends the file), which those two read.
+        /// </summary>
+        internal static bool TryPlainCode(byte[] bytes, int at, int length, out int code, out int next)
+        {
+            code = 0;
+            next = at;
+            int i = at;
+
+            while (i < length && bytes[i] == (byte)' ')
+            {
+                i++;
+            }
+
+            int digits = 0;
+
+            while (i < length && digits < 9 && bytes[i] >= (byte)'0' && bytes[i] <= (byte)'9')
+            {
+                code = code * 10 + (bytes[i] - (byte)'0');
+                digits++;
+                i++;
+            }
+
+            if (digits == 0 || i >= length)
+            {
+                return false;
+            }
+
+            if (bytes[i] == (byte)'\n')
+            {
+                next = i + 1;
+                return true;
+            }
+
+            if (bytes[i] == (byte)'\r' && i + 1 < length && bytes[i + 1] == (byte)'\n')
+            {
+                next = i + 2;
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>A group code: a whole number of up to nine digits, a sign before it, padded with spaces or tabs, as the reader reads it.</summary>

@@ -162,7 +162,12 @@ the record at once, not kept apart, and the place of its end is found again from
 record places it (an edit of the cell can change its flags, and the next edit would read the table's own groups as the cell's). A
 reset of each of 931 cells takes 4 ms on .NET Framework 4.8 (9 ms on .NET 10) where it took 4.0 s (3.3 s) and 6.3 GB, and of 10 000
 cells 33 ms; the lines of each of 931 cells take 16 ms (24) where they took 206 ms (146), and of 10 000 cells 0.08 s (0.21 s on
-.NET 10, where it took 11.7 s and 46 GB). The setters of a block cell, a formula and a merge still write the record whole. A table of 1 000 cells, each given its text, takes 36 ms on .NET Framework 4.8 (it took
+.NET 10, where it took 11.7 s and 46 GB). The lines of the rows of a kind (`SetGridColor(color, borders, rows)` and the lineweight and
+showing setters beside it) write the groups of the table's head and of its own part after the cells into their places and copy the
+cells as they stand, where each call read and wrote every group of the record: 108 calls on a table of 931 cells take 9 ms and 21 MB
+where they took 590 ms and 982 MB on .NET Framework 4.8 (14 ms where it took 420 on .NET 10). A table read from a file pays once, at
+its second edit, for the places of its cells (1.5 to 2.2 ms for 931 cells), and the first edit of a table not yet written whole by the
+library reads and writes its record whole, as before. The setters of a block cell, a formula and a merge still write the record whole. A table of 1 000 cells, each given its text, takes 36 ms on .NET Framework 4.8 (it took
 5.3 s), 3 000 cells 0.35 s (48 s). Adding tables one after another costs the same for each: 400 tables of 3 rows and 4 columns, each cell given its text, take
 0.31 s, 1 600 take 1.3 s (25 s), and a table is not counted against the entities of the drawing, which the block it was given a moment
 ago cannot be named by. Copying them to another drawing (`WblockCloneObjects`) takes 80 ms for 400 tables whether the drawing holds
@@ -171,7 +176,12 @@ the pointers of a copied table are resolved by, are found for every object once 
 a table pays for the copy its content is made on when it is saved after an edit, which is opened from the bytes the drawing saves as
 (no string of the whole file is made of them) and in which the tables written are found in its records by handle, one pass, each given
 the space of its kind (the drawing's entities are not made, nor the handle of each read): 52 ms for the 15 MB on .NET Framework 4.8
-where it took 157 ms (39 ms where it took 89 on .NET 10), and 11 ms for 20 000 entities (3 MB) where it took 26. The tables
+where it took 157 ms (39 ms where it took 89 on .NET 10), and 11 ms for 20 000 entities (3 MB) where it took 26. Most of what is
+left of that save is the walk over the records of the copy, 22 to 25 ms for 10 MB (it was 29 to 33), which finds the word of each
+record's type again by its bytes and reads a usual group code line in one pass: the first save after an edit of 100 000 lines (10
+MB) with a table added after the drawing was opened takes 33 ms where it took 52 on .NET Framework 4.8 (32 where it took 34 on
+.NET 10), and the first save of a drawing of 100 000 lines made in the session, with a table, 45 ms where it took 66 (71 where it took
+78). The tables
 written are found among the drawing's records by their type, in one walk that reads no other entity's handle, and no index of the
 drawing's entities by their handle is built for the first save after an edit: 100 000 lines (10 MB) with a table take 9 ms and 40 MB
 for it on .NET Framework 4.8 (9 ms on .NET 10) where they took 57 ms and 52 MB (60 ms).

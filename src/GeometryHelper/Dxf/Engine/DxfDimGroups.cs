@@ -61,6 +61,19 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Groups held apart, of no record, whose second subclass marker stands at <paramref name="split"/>, to be changed and
+        /// put back by the caller: the head and the own part after the cells of a table's record, the cells left out, so that
+        /// the lines of its rows are changed without a list of every group of a table of 931 cells.
+        /// </summary>
+        internal DxfDimGroups(List<KeyValuePair<int, string>> groups, int split)
+        {
+            List = groups;
+            _was.AddRange(groups);
+            Marked = true;
+            Split = split;
+        }
+
+        /// <summary>
         /// The groups of a record as they stand after a writing that was not made through this list, the list given taken as
         /// it is, to be read and not written back: the record's subclass markers as those of <paramref name="like"/>, which
         /// stand before the part that changed. A table given its cells' lines one by one takes the list of the record it
