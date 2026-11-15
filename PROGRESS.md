@@ -290,7 +290,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         regions converted between SAT and SAB versions on Save As; multi-face regions; fixed: AutoCAD's transform record and
         whole-ellipse arcs read, Explode directions as AutoCAD; 19 regions x 6 versions AUDIT 0, 540 AutoCAD regions converted
         with equal Explode
-  - [ ] R3.3 follow-ups 2: regions in DWG R2000-R2010 (DWG writer is R2018 only); -BOUNDARY Region islands and its message
+  - [ ] (dwgver1, running: DWG Save As older versions) R3.3 follow-ups 2: regions in DWG R2000-R2010 (DWG writer is R2018 only); -BOUNDARY Region islands and its message
         (GUI); UNION/SUBTRACT taking the first picked region (selection is kept sorted); a region's grips and UNION's colour
         reset checked in the GUI; spline edges and non-planar faces; orphan ACDSRECORDs; a parse cache for thousands of
         regions (M)
@@ -476,9 +476,13 @@ the ones wanted.
       chord at the radius (the arc unrolled), with the diagonal 0.7 of a landing's sagitta flatter; used from 5.5
       landings out (e11 165 -> 92, e12 164 -> 69, te11 162 -> 75, e13 94 -> 66); dims12's table kept nearer; e1 0 -> 2
       (mirror probes 0.016 off the edge); harness dims-harness19
-- [ ] (dims16, running) Dimension follow-ups 16: arcs nearer than 5.5 landings (the rule still worse than the table there); e1's two mirror
-      probes; a2's one SHX probe; t9/t10/t11 short vs wide landing (0.43 rms with nine terms, no clean law); d2 R6/R7
-      ties, t6's diameter turned 6.9 degrees, words on an aligned extension line (noise) (S)
+- [x] Dimension follow-ups 16 (dims16): one angle-band rule from 2.5 landings out, with a sagitta correction table by
+      direction (e8 106 -> 63, a7 58 -> 29, aq 130 -> 93, e11 92 -> 19, e13 66 -> 19); level words inside a circle by a
+      new KeepsToLine law (t9 34 -> 19, t10 216 -> 80, t11 554 -> 140); a2's SHX probe fixed; e1 2 -> 1
+- [ ] Dimension follow-ups 17: te5 10 -> 14 and te3 6 -> 7 (R240 Arial probes within 0.03 of the edge), d1 66 -> 70
+      (SHX jump probes below the arc middle), ta8 0 -> 1 after dims16; the table fitted at one 60-degree angle along +X
+      (other orientations extrapolated); arcs nearer than 2.5 landings; d2 R6/R7 ties, t6's turned diameter, words on an
+      aligned extension line (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
       ends in a fuzz join (20 cases to 1E-10) (S)
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in
