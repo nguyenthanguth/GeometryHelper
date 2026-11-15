@@ -85,10 +85,13 @@ those of its first column, its bottom along a block of one row and its right dow
 holds of its own is kept. On the title merged across 4 columns, a top of lineweight 50 is the top of its four cells.
 
 The lines of a cell set one at a time (`SetGridColor`, `SetGridLineWeight`, `SetGridVisibility` and `SetGridProperty` of a cell)
-write the bytes of the cells they change into the record the last of them wrote and copy the rest, where each read and wrote
-every group of it: the four settings of each of the 2 000 cells of a table of 200 rows by 10 columns, 8 000 calls, took 141 s
-(17.7 ms a call, growing with the table) and now take 7 s (0.9 ms), the drawing the same to the byte. The record is written
-whole the first time, so that its groups stand as the library writes them; a call that changes nothing writes nothing.
+read the cells they and the cells beside them need from the cells' own bytes and write the bytes of the cells they change into
+their places in the record the last of them wrote, kept apart from it and put in once like those of the other setters of a cell
+(see Building a table cell by cell below), where each read and wrote every group of it: the four settings of each of the 2 000
+cells of a table of 200 rows by 10 columns, 8 000 calls, took 141 s (17.7 ms a call, growing with the table) and then 7 s
+(0.9 ms), and now each of 931 cells set takes 16 ms (206 ms before) and 10 000 cells 0.08 s, the drawing the same to the byte.
+The record is written whole the first time, so that its groups stand as the library writes them; a call that changes nothing
+writes nothing.
 `SetGridProperty(range, ...)` still sets the lines of a block of cells in one writing.
 
 ## Saving tables made in code
@@ -147,16 +150,19 @@ a second save of those 10 000 cells as R2018 takes 6 ms, until a garbage collect
 Building a table cell by cell costs in proportion to the cell. The first edits of a table write its record whole, as the file
 writes a group; from then on `SetTextString`, `SetValue` and the setters of a cell's look (`SetAlignment`, `SetTextHeight`,
 `SetTextStyle`, `SetContentColor`, `SetBackgroundColor`, `SetTextRotation`), `SetFormat`, `SetDataType`, `SetBackgroundColorNone`,
-`SetOverrides` and the last cell of a table (whose end is where the table's own groups begin, which its flags decide as they stand)
+`SetOverrides`, `ResetValue`, `SetCellType` and the lines of a cell (`SetGridColor`, `SetGridLineWeight`, `SetGridVisibility`)
 read the groups of the cell's own bytes and write them back as that cell's own bytes, and the record's bytes are those a writing of
 every group would give. The bytes of the cells are kept apart from the record and put in their places once, when the record is next
 read (a read of the table or of its entity, a copy, a save): a run of 10 000 cells set one after another takes 0.44 s and allocates
 491 MB on .NET Framework 4.8 (0.37 s and 477 MB on .NET 10) where each cell copied the 2.5 MB of the record, 3.6 s and 13.5 GB. The
 layout the table reads (its row types, its own looks of a kind of row) is kept for the record the cells make by noting each cell
 written, put into it when it is next read, so that `SetBackgroundColorNone` and `SetOverrides` do not read every group of the record.
-The setters of a block cell, a formula, a merge, `SetCellType` and `ResetValue` still write the record whole (the reset of each of 931
-cells takes 8 to 10 s): written cell by cell they leave the table's record other than a writing of every group would, where the last
-cell's end is decided by the flags it holds. A table of 1 000 cells, each given its text, takes 36 ms on .NET Framework 4.8 (it took
+The last cell of a table ends where the table's own groups begin, which its flags decide as they stand: its bytes are written into
+the record at once, not kept apart, and the place of its end is found again from the record after each write, as a reading of the
+record places it (an edit of the cell can change its flags, and the next edit would read the table's own groups as the cell's). A
+reset of each of 931 cells takes 4 ms on .NET Framework 4.8 (9 ms on .NET 10) where it took 4.0 s (3.3 s) and 6.3 GB, and of 10 000
+cells 33 ms; the lines of each of 931 cells take 16 ms (24) where they took 206 ms (146), and of 10 000 cells 0.08 s (0.21 s on
+.NET 10, where it took 11.7 s and 46 GB). The setters of a block cell, a formula and a merge still write the record whole. A table of 1 000 cells, each given its text, takes 36 ms on .NET Framework 4.8 (it took
 5.3 s), 3 000 cells 0.35 s (48 s). Adding tables one after another costs the same for each: 400 tables of 3 rows and 4 columns, each cell given its text, take
 0.31 s, 1 600 take 1.3 s (25 s), and a table is not counted against the entities of the drawing, which the block it was given a moment
 ago cannot be named by. Copying them to another drawing (`WblockCloneObjects`) takes 80 ms for 400 tables whether the drawing holds
@@ -165,7 +171,10 @@ the pointers of a copied table are resolved by, are found for every object once 
 a table pays for the copy its content is made on when it is saved after an edit, which is opened from the bytes the drawing saves as
 (no string of the whole file is made of them) and in which the tables written are found in its records by handle, one pass, each given
 the space of its kind (the drawing's entities are not made, nor the handle of each read): 52 ms for the 15 MB on .NET Framework 4.8
-where it took 157 ms (39 ms where it took 89 on .NET 10), and 11 ms for 20 000 entities (3 MB) where it took 26.
+where it took 157 ms (39 ms where it took 89 on .NET 10), and 11 ms for 20 000 entities (3 MB) where it took 26. The tables
+written are found among the drawing's records by their type, in one walk that reads no other entity's handle, and no index of the
+drawing's entities by their handle is built for the first save after an edit: 100 000 lines (10 MB) with a table take 9 ms and 40 MB
+for it on .NET Framework 4.8 (9 ms on .NET 10) where they took 57 ms and 52 MB (60 ms).
 The table of a block is found among the entities of the copy, as before, and a drawing whose text is not its bytes as UTF-8 (a
 mark at its start, bytes read as the replacement character, a code page) makes the copy of its text.
 

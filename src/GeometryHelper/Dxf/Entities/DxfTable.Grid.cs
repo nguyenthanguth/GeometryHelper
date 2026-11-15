@@ -390,8 +390,18 @@ namespace GeometryHelper.Dxf
 
         private DxfCellRange OneCell(int row, int column)
         {
-            Layout layout = Read();
-            layout.CellOf(row, column);
+            // A record written whole is not read for it: the cells written and not yet put in the record stay apart from it.
+            CellBytes cells = AloneCells(out _);
+
+            if (cells != null)
+            {
+                CheckCell(row, column, cells.Rows, cells.Columns, cells.From.Length - 1);
+            }
+            else
+            {
+                Read().CellOf(row, column);
+            }
+
             return new DxfCellRange(row, column, row, column);
         }
 
@@ -425,8 +435,8 @@ namespace GeometryHelper.Dxf
             return then != null && then.HoldsEdge(thenEdge) ? then.EdgeText(thenEdge, kind) : null;
         }
 
-        /// <summary>The cell across an edge of a cell, top (0), right, bottom or left, from the layout given; null at the table's rim.</summary>
-        private static CellView Beside(Layout layout, int row, int column, int edge)
+        /// <summary>The cell across an edge of a cell, top (0), right, bottom or left, from the cells given; null at the table's rim.</summary>
+        private static CellView Beside(ICells cells, int row, int column, int edge)
         {
             int r =
                 row
@@ -442,13 +452,8 @@ namespace GeometryHelper.Dxf
                     : edge == 1 ? 1
                     : 0
                 );
-            return
-                r >= 0
-                && r < layout.Rows
-                && c >= 0
-                && c < layout.Columns
-                && (long)r * layout.Columns + c < layout.CellStart.Count
-                ? layout.CellAt(r, c)
+            return r >= 0 && r < cells.Rows && c >= 0 && c < cells.Columns && (long)r * cells.Columns + c < cells.Count
+                ? cells.CellAt(r, c)
                 : null;
         }
 
@@ -641,24 +646,31 @@ namespace GeometryHelper.Dxf
                 );
             }
 
-            // A record this method wrote last is read as it stands and changed in the bytes of its cells alone (SpliceLines).
-            bool written = _mergedAsLoaded && IsWritten(Item.File.RecordAt(Item, 0));
-            Layout layout = written ? Read() : ReadToWrite();
-            CheckRange(range, layout, rangeParameter);
+            // A record this table wrote whole is read cell by cell from its own bytes, and the cells that change are written into
+            // their places (SpliceCell) as the setters of one cell write them; a record written otherwise is read as the layout
+            // gives it, and written whole (SpliceLines).
+            CellBytes alone = AloneCells(out DxfFile.PendingCells pending);
+            bool written = alone != null || (_mergedAsLoaded && IsWritten(Item.File.RecordAt(Item, 0)));
+            Layout layout =
+                alone != null ? null
+                : written ? Read()
+                : ReadToWrite();
+            ICells cells = alone != null ? new AloneCellSource(this, alone, pending) : layout;
+            CheckRange(range, cells.Rows, cells.Columns, rangeParameter);
 
-            if ((long)range.BottomRow * layout.Columns + range.RightColumn >= layout.CellStart.Count)
+            if ((long)range.BottomRow * cells.Columns + range.RightColumn >= cells.Count)
             {
                 throw new ArgumentOutOfRangeException(
                     rangeParameter,
                     range,
                     "The table's record holds "
-                        + layout.CellStart.Count.ToString(CultureInfo.InvariantCulture)
+                        + cells.Count.ToString(CultureInfo.InvariantCulture)
                         + " cells, fewer than its rows by its columns."
                 );
             }
 
             int flagsCode = Item.File.Supports(1021) ? 91 : 177;
-            var made = new List<KeyValuePair<int, string>>[layout.CellStart.Count];
+            var made = new Dictionary<int, List<KeyValuePair<int, string>>>();
             bool applies = false;
             bool any = false;
 
@@ -697,13 +709,13 @@ namespace GeometryHelper.Dxf
                                 : 0
                             );
                         int across = (edge + 2) % 4;
-                        bool beside = Beside(layout, r, c, edge) != null;
+                        bool beside = Beside(cells, r, c, edge) != null;
 
                         // AutoCAD reads the line from the cell below or right of it where that cell holds it: the bottom or
                         // right of a cell is set on that cell too where it does, so that the line reads as set.
-                        if (beside && (edge == 1 || edge == 2) && Now(layout, made, nr, nc).HoldsEdge(across))
+                        if (beside && (edge == 1 || edge == 2) && Now(cells, made, nr, nc).HoldsEdge(across))
                         {
-                            any |= PutEdge(layout, made, nr, nc, across, texts, flagsCode);
+                            any |= PutEdge(cells, made, nr, nc, across, texts, flagsCode);
                         }
 
                         // A top or left the cell does not hold, read from the cell above or left of it, takes that line's
@@ -711,13 +723,13 @@ namespace GeometryHelper.Dxf
                         if (
                             beside
                             && (edge == 0 || edge == 3)
-                            && !Now(layout, made, r, c).HoldsEdge(edge)
-                            && Now(layout, made, nr, nc).HoldsEdge(across)
+                            && !Now(cells, made, r, c).HoldsEdge(edge)
+                            && Now(cells, made, nr, nc).HoldsEdge(across)
                         )
                         {
-                            CellView held = Now(layout, made, nr, nc);
+                            CellView held = Now(cells, made, nr, nc);
                             any |= PutEdge(
-                                layout,
+                                cells,
                                 made,
                                 r,
                                 c,
@@ -729,12 +741,12 @@ namespace GeometryHelper.Dxf
 
                         string[] was =
                         {
-                            Now(layout, made, r, c).EdgeText(edge, 0),
-                            Now(layout, made, r, c).EdgeText(edge, 1),
-                            Now(layout, made, r, c).EdgeText(edge, 2),
+                            Now(cells, made, r, c).EdgeText(edge, 0),
+                            Now(cells, made, r, c).EdgeText(edge, 1),
+                            Now(cells, made, r, c).EdgeText(edge, 2),
                         };
-                        any |= PutEdge(layout, made, r, c, edge, texts, flagsCode);
-                        any |= GiveAlongBlock(layout, made, r, c, edge, texts, was, flagsCode);
+                        any |= PutEdge(cells, made, r, c, edge, texts, flagsCode);
+                        any |= GiveAlongBlock(cells, made, r, c, edge, texts, was, flagsCode);
                     }
                 }
             }
@@ -755,10 +767,32 @@ namespace GeometryHelper.Dxf
             {
                 CheckEditable();
 
-                if (!written || !SpliceLines(layout, made))
+                // Each cell that changed is written into its place, in the order of the cells (SpliceCell).
+                if (alone != null)
+                {
+                    var changed = new List<int>(made.Keys);
+                    changed.Sort();
+
+                    foreach (int index in changed)
+                    {
+                        SpliceCell(alone, index, made[index]);
+                    }
+
+                    return;
+                }
+
+                // The cells as the layout gives them.
+                var all = new List<KeyValuePair<int, string>>[layout.CellStart.Count];
+
+                foreach (KeyValuePair<int, List<KeyValuePair<int, string>>> cell in made)
+                {
+                    all[cell.Key] = cell.Value;
+                }
+
+                if (!written || !SpliceLines(layout, all))
                 {
                     // The record written whole, every group as the file writes one; the cells' own bytes alone from then on.
-                    if (Splice(written ? new Layout(Own()) : layout, made))
+                    if (Splice(written ? new Layout(Own()) : layout, all))
                     {
                         DxfFile.Rec record = Item.File.RecordAt(Item, 0);
                         _writtenBytes = record.Bytes;
@@ -915,8 +949,8 @@ namespace GeometryHelper.Dxf
         /// cell changed.
         /// </summary>
         private static bool GiveAlongBlock(
-            Layout layout,
-            List<KeyValuePair<int, string>>[] made,
+            ICells cells,
+            Dictionary<int, List<KeyValuePair<int, string>>> made,
             int row,
             int column,
             int edge,
@@ -925,12 +959,12 @@ namespace GeometryHelper.Dxf
             int flagsCode
         )
         {
-            if ((long)row * layout.Columns + column >= layout.CellStart.Count)
+            if ((long)row * cells.Columns + column >= cells.Count)
             {
                 return false;
             }
 
-            layout.CellAt(row, column).Spans(out int wide, out int high);
+            cells.CellAt(row, column).Spans(out int wide, out int high);
             int across = Math.Max(1, wide);
             int down = Math.Max(1, high);
             int stepRow = 0;
@@ -955,12 +989,12 @@ namespace GeometryHelper.Dxf
                 int r = row + stepRow * k;
                 int c = column + stepColumn * k;
 
-                if (r >= layout.Rows || c >= layout.Columns || (long)r * layout.Columns + c >= layout.CellStart.Count)
+                if (r >= cells.Rows || c >= cells.Columns || (long)r * cells.Columns + c >= cells.Count)
                 {
                     break;
                 }
 
-                CellView target = Now(layout, made, r, c);
+                CellView target = Now(cells, made, r, c);
                 var give = new string[3];
                 bool given = false;
 
@@ -982,7 +1016,7 @@ namespace GeometryHelper.Dxf
 
                 if (given)
                 {
-                    any |= PutEdge(layout, made, r, c, edge, give, flagsCode);
+                    any |= PutEdge(cells, made, r, c, edge, give, flagsCode);
                 }
             }
 
@@ -990,11 +1024,15 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A cell as it stands in the edit: its groups changed so far, else the record's.</summary>
-        private static CellView Now(Layout layout, List<KeyValuePair<int, string>>[] made, int row, int column)
-        {
-            List<KeyValuePair<int, string>> groups = made[row * layout.Columns + column];
-            return groups != null ? View(groups) : layout.CellAt(row, column);
-        }
+        private static CellView Now(
+            ICells cells,
+            Dictionary<int, List<KeyValuePair<int, string>>> made,
+            int row,
+            int column
+        ) =>
+            made.TryGetValue(row * cells.Columns + column, out List<KeyValuePair<int, string>> groups)
+                ? View(groups)
+                : cells.CellAt(row, column);
 
         /// <summary>
         /// Gives an edge of a cell the properties given (its colour, lineweight, showing; null for one not given), each its own
@@ -1002,8 +1040,8 @@ namespace GeometryHelper.Dxf
         /// the cell copied apart into the edit where it changes. Whether it changed.
         /// </summary>
         private static bool PutEdge(
-            Layout layout,
-            List<KeyValuePair<int, string>>[] made,
+            ICells cells,
+            Dictionary<int, List<KeyValuePair<int, string>>> made,
             int row,
             int column,
             int edge,
@@ -1011,8 +1049,8 @@ namespace GeometryHelper.Dxf
             int flagsCode
         )
         {
-            int index = row * layout.Columns + column;
-            CellView cell = Now(layout, made, row, column);
+            int index = row * cells.Columns + column;
+            CellView cell = Now(cells, made, row, column);
             CellView apart = null;
             int edgeBit = 1 << edge;
 
@@ -1032,7 +1070,7 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                apart = apart ?? (made[index] != null ? cell : View(Slice(cell)));
+                apart = apart ?? (made.ContainsKey(index) ? cell : View(Slice(cell)));
 
                 if (!same)
                 {

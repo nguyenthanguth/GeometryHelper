@@ -851,14 +851,25 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the table is erased.</exception>
         public void ResetValue(int row, int col)
         {
-            Layout layout = ReadToWrite();
-            CellView cell = layout.CellOf(row, col);
+            // Read from its own bytes alone, as the setters of a cell are, and written into their place; a cell whose content's
+            // looks are weighed takes the rows of the table as they stand from the layout read last.
+            CellView cell = CellAlone(row, col);
+            Layout layout = null;
+
+            if (cell == null)
+            {
+                layout = ReadToEdit();
+                cell = layout.CellOf(row, col);
+            }
+
+            int rows = layout != null ? layout.Rows : _cellBytes.Rows;
+            int columns = layout != null ? layout.Columns : _cellBytes.Columns;
             bool block = cell.Whole(171, 1) == (int)DxfTableCellType.BlockCell;
 
             // A cell of no value is written as it is, but emptied in the session all the same (D33d c01, c02).
             if (!block && cell.HoldsNoValue())
             {
-                MarkCell(layout, row * layout.Columns + col, SessionEmptied);
+                MarkCell(rows, columns, row * columns + col, SessionEmptied);
                 return;
             }
 
@@ -880,7 +891,7 @@ namespace GeometryHelper.Dxf
             {
                 bool[] moved = null;
                 List<KeyValuePair<int, string>>[] looks = HoldsContentLooks(cell)
-                    ? ContentLooks(layout, out moved)
+                    ? ContentLooks(layout ?? Read(), out moved)
                     : null;
                 List<KeyValuePair<int, string>> reset = Emptied(
                     Slice(cell),
@@ -888,8 +899,8 @@ namespace GeometryHelper.Dxf
                     moved != null && moved[row],
                     Item.File.Supports(1021)
                 );
-                layout.Groups.List.RemoveRange(cell.From, cell.To - cell.From);
-                layout.Groups.List.InsertRange(cell.From, reset);
+                cell.Groups.List.RemoveRange(cell.From, cell.To - cell.From);
+                cell.Groups.List.InsertRange(cell.From, reset);
 
                 // The looks kept as the table's, marked for ClearTableStyleOverrides of 1 (0x10, 0x20, 0x08, as their flags).
                 CellView left = View(reset);
@@ -907,8 +918,8 @@ namespace GeometryHelper.Dxf
 
             // Marked before the writing, so that the layout is not used after it: read past the writing, it made 397 resets of a
             // table of 400 rows take up to 4.8 s on .NET 10, where they take 1.6 s.
-            MarkCell(layout, row * layout.Columns + col, (byte)(SessionEmptied | SessionReset | kept));
-            layout.Groups.Write(Order);
+            MarkCell(rows, columns, row * columns + col, (byte)(SessionEmptied | SessionReset | kept));
+            cell.Groups.Write(Order);
             EraseFields(new[] { field });
 
             // The block's content goes from the TABLECONTENT too, as AutoCAD 2021 emptied it (r04).
@@ -2100,7 +2111,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when a text cell is to be made a block cell, or the table is erased.</exception>
         public void SetCellType(int row, int col, DxfTableCellType type)
         {
-            CellView cell = CellToWrite(row, col);
+            CellView cell = CellToEdit(row, col);
 
             if (cell.Whole(171, 0) == (int)type)
             {
