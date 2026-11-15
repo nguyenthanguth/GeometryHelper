@@ -44,7 +44,9 @@ namespace GeometryHelper.Dxf
             GeoVector3 mx = Unit(mirror.Transform(x));
             GeoVector3 my = Unit(mirror.Transform(y));
             // A mirror line at 45 degrees to the plane's x axis turns it square to itself: not back, as AutoCAD 2021 reads it
-            // (mirror-insert GHMI1, across y = x), though the dot product comes out a hair below nought.
+            // (mirror-insert GHMI1, across y = x), though the dot product comes out a hair below nought: not for a line picked
+            // at whole numbers, whose matrix is exact, but for one picked at (1.1, 2.2) and (3.3, 4.4), which is 45 degrees
+            // within a last digit and meets the old axis at -2.2E-16.
             bool across = mx.DotProduct(x) < -1E-9;
             GeoVector3 nx = across ? mx.Negate() : mx;
             GeoVector3 ny = across ? my : my.Negate();

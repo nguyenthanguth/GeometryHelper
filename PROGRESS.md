@@ -434,10 +434,13 @@ the ones wanted.
 - [x] MIRROR follow-ups 3 (mirror3): GeoTransform3/2.Mirror built from the normal over its greatest component (45-degree
       reflections exact; 20 000 random planes: worst error 1.67E-11 -> 1.16E-11; axis planes bit-identical; benchmarks'
       signatures unchanged); the extension dictionary of an annotative copy made without {ACAD_REACTORS as AutoCAD
-- [ ] (mirror4, running) MIRROR follow-ups 4: the public DxfDBObject.CreateExtensionDictionary also writes {ACAD_REACTORS (AutoCAD writes
-      none for a LINE; probe layers, blocks, tables before changing ~25 callers); MIRROR/COPY dropping a plain entity's
-      extension dictionary (AutoCAD copies it with its entries); a HATCH copy's ACDB_HATCHVIEWCONTEXTDATA_CLASS; the
-      MLeader 45-degree workaround maybe redundant now (S)
+- [x] MIRROR follow-ups 4 (mirror4): CreateExtensionDictionary writes no {ACAD_REACTORS (28 AutoCAD objects probed: none
+      has one); COPY/MIRROR/ARRAY keep a plain entity's extension dictionary with its entries deep-copied and pointers
+      translated, as AutoCAD; an annotative HATCH copy gets its ACDB_HATCHVIEWCONTEXTDATA_CLASS; the MLeader 45-degree
+      tolerance is still needed (pinned by a test)
+- [ ] MIRROR follow-ups 5: a hatch copy's scale context moved with it (43 origin, 10/20/30 direction, 53 and 45/46 turned
+      or scaled, as AutoCAD); the view context on an annotative hatch moved in place by MOVE; outside 350/360 targets
+      cloned with the copy; dictionary entries sorted by name (S)
 - [x] Drafting aids: TK (TRACKING); check TT with OTRACK off, "(need YZ):" input and Enter at a modifier prompt
       against AutoCAD (S)
 - [x] Draw: AUDIT a drawing made with every ARC, CIRCLE, PLINE, TEXT and MTEXT option, and compare ARC and PLINE entity
@@ -516,7 +519,7 @@ the ones wanted.
 - [x] Stdin re-probe (stdin1): REFEDIT's prompts and messages corrected from AutoCAD's own string table (the console has
       no REFEDIT even through stdin); non-uniform references refused; VPMAX/VPMIN/-VPORTS Toggle on Model as AutoCAD
       (four tiles, ids, *Multiple); HATCHSETORIGIN equal to AutoCAD; the stdin runner documented in .claude/gk/acon-stdin
-- [ ] PEDIT/REVCLOUD follow-ups 3: PEDIT fit-spline tolerance (23 of 119 counts 1-24 vertices more); REVCLOUD variance-1
+- [ ] (pedit4, running) PEDIT/REVCLOUD follow-ups 3: PEDIT fit-spline tolerance (23 of 119 counts 1-24 vertices more); REVCLOUD variance-1
       sequence; tiny closed shapes (AutoCAD leaves a 2-vertex polyline); Freehand; the first arc length in layout
       viewports; REVCLOUDARCSTYLE/GRIPS/MIN/MAX variables; Modify making new handles. Still GUI-only: REFEDIT's line
       order and kept handles, TABLEEXPORT's file, pre-selection, BOUNDARY, FILTER, SPELL; through stdin next:

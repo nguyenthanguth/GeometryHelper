@@ -1170,6 +1170,12 @@ namespace GeometryHelper.Dxf
                     "DICTIONARY",
                     OwnedDictionary
                 );
+
+                if (owner.Type == "HATCH")
+                {
+                    WriteHatchView((DxfDBDictionary)OfObject(manager), record.Value, scaleOf);
+                }
+
                 var scales = (DxfDBDictionary)OfObject(
                     ((DxfDBDictionary)OfObject(manager)).Add(
                         DxfObjectContextManager.AnnotationScales,
@@ -1203,6 +1209,89 @@ namespace GeometryHelper.Dxf
                         }
                     });
                 }
+            }
+        }
+
+        /// <summary>
+        /// Gives the copy of an annotative HATCH the view context AutoCAD 2021 gives it (probed in its console, mirror-4 GHM4G,
+        /// GHM4H and GHM4I: COPY, MIRROR, ROTATE and SCALE of hatches of ANSI31, HONEY, SOLID and others): a dictionary
+        /// ACDB_ANNOTATIONSCALE_VIEW_COLLECTION in the manager, before ACDB_ANNOTATIONSCALES, holding under the name of the
+        /// default context one ACDB_HATCHVIEWCONTEXTDATA_CLASS, a second scale's none. It is the default context as the original
+        /// held it, before the copy was moved, with the origin of each pattern line (43, 44) and the direction of the pattern
+        /// (10, 20, 30) nought, and the subclass AcDbHatchViewContextData after it: a 330 of nought, the normal (0, 0, 1), 51 and
+        /// 290 of nought. Nothing where no default context is among those written.
+        /// </summary>
+        private static void WriteHatchView(
+            DxfDBDictionary manager,
+            List<KeyValuePair<string, DxfItem>> contexts,
+            Dictionary<string, string> scaleOf
+        )
+        {
+            foreach (KeyValuePair<string, DxfItem> context in contexts)
+            {
+                IReadOnlyList<DxfTypedValue> groups = context.Value.File.ObjectGroupsOf(context.Value);
+
+                if (
+                    context.Value.Type != HatchContextType
+                    || !IsDefaultContext(groups)
+                    || (scaleOf != null && !scaleOf.ContainsKey(ScaleHandleOf(groups) ?? string.Empty))
+                )
+                {
+                    continue;
+                }
+
+                var views = (DxfDBDictionary)OfObject(manager.Add(HatchViewCollection, "DICTIONARY", OwnedDictionary));
+                string zero = Numbers.Exact(0.0);
+                views.Add(context.Key, HatchViewContextType, b =>
+                {
+                    string marker = null;
+                    bool lines = true;
+
+                    foreach (DxfTypedValue group in groups)
+                    {
+                        string value = group.Value;
+
+                        if (group.TypeCode == 100)
+                        {
+                            marker = value.Trim();
+                        }
+                        else if (marker == HatchContextMarker && group.TypeCode == 40)
+                        {
+                            lines = false;
+                        }
+                        else if (
+                            marker == HatchContextMarker
+                            && (
+                                (lines && (group.TypeCode == 43 || group.TypeCode == 44))
+                                || (!lines && (group.TypeCode == 10 || group.TypeCode == 20 || group.TypeCode == 30))
+                            )
+                        )
+                        {
+                            value = zero;
+                        }
+                        else if (
+                            group.TypeCode == 340
+                            && marker == "AcDbAnnotScaleObjectContextData"
+                            && scaleOf != null
+                            && scaleOf.TryGetValue(value.Trim(), out string mapped)
+                        )
+                        {
+                            value = mapped;
+                        }
+
+                        b.Group(group.TypeCode, value);
+                    }
+
+                    b.Group(100, "AcDbHatchViewContextData");
+                    b.Group(330, "0");
+                    b.Group(10, zero);
+                    b.Group(20, zero);
+                    b.Group(30, Numbers.Exact(1.0));
+                    b.Group(51, zero);
+                    b.Group(290, "0");
+                });
+                manager.Item.File.AddClass(HatchViewContextType, "AcDbHatchViewContextData", 1153);
+                return;
             }
         }
 

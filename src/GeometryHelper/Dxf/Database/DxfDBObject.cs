@@ -105,9 +105,10 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gives the object an extension dictionary, as AutoCAD's <c>CreateExtensionDictionary</c>: an empty DICTIONARY at the end
-        /// of the OBJECTS section, owned hard by the object (280 of 1) and naming it as its reactor and owner, its handle written
-        /// into the object's record as the group <c>{ACAD_XDICTIONARY</c> after its handle and reactors, as AutoCAD writes it.
-        /// Nothing where it has one.
+        /// of the OBJECTS section, owned hard by the object (280 of 1) and naming it as its owner (330) but not as its reactor,
+        /// its handle written into the object's record as the group <c>{ACAD_XDICTIONARY</c> straight after its handle, before
+        /// its reactors, as AutoCAD 2021 writes it for a LINE, a layer, a block, a table of the drawing and an object of the
+        /// OBJECTS section alike. Nothing where it has one.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the object is in no file, is erased, or its file is one of R12,
         /// which has no OBJECTS section, or writes no handles.</exception>
@@ -119,15 +120,7 @@ namespace GeometryHelper.Dxf
             }
 
             DxfFile file = InFile("be given an extension dictionary");
-            DxfItem made = file.AddObject("DICTIONARY", Handle, b =>
-            {
-                b.Group(100, "AcDbDictionary");
-                b.Group(280, "1");
-                b.Group(281, "1");
-            });
-
-            file.SetExtensionDictionary(_item, made.Handle);
-            OfObject(made);
+            OfObject(DxfTable.MakeExtensionDictionary(file, _item, true));
         }
 
         /// <summary>
@@ -162,7 +155,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gives the object's extension dictionary, with what it holds, to another object of its file, as ATTSYNC keeps an
         /// attribute's when it makes the attribute anew: the dictionary keeps its handle, is owned by the other object and names
-        /// it as its reactor, and this one has none from then on. Nothing where this one has none or the other has one.
+        /// it as its reactor where it named this one so, and this one has none from then on. Nothing where this one has none or
+        /// the other has one.
         /// </summary>
         internal void MoveExtensionDictionaryTo(DxfDBObject other)
         {
@@ -181,6 +175,159 @@ namespace GeometryHelper.Dxf
             if (dictionary != null)
             {
                 DxfField.Reown(file, dictionary, Handle, other.Handle);
+            }
+        }
+
+        /// <summary>
+        /// Gives a copy of an object, added to the object's own drawing, the data its original keeps in its extension
+        /// dictionary, as AutoCAD 2021's COPY and MIRROR copy it (probed in its console, mirror-4 GHM4B, GHM4E): a dictionary
+        /// of its own, owned by the copy, holding every XRECORD of the original's and every DICTIONARY of XRECORDs and
+        /// dictionaries, each a new object in its place with the same name, groups and order, owned by the dictionary above it.
+        /// What a copied XRECORD points at (330, 340, 350 and 360 among its data) among the objects copied, the original
+        /// included, it points at the copy of: a pointer at the original entity names the copy, one at the original's XRECORD
+        /// its copy. A pointer at any other object stays. An original with an empty dictionary gives its copy an empty one; one
+        /// whose dictionary holds only entries of another kind (contexts, a clip, a representation, fields), which other code
+        /// copies, gives none here. Entries the copy has already are left as they are.
+        /// </summary>
+        /// <param name="source">The object copied, in the same drawing.</param>
+        internal void KeepExtensionOf(DxfDBObject source)
+        {
+            DxfDBDictionary from =
+                !IsResident || !source.IsResident || source.Item.File != Item.File ? null : source.ExtensionDictionary;
+
+            if (from == null)
+            {
+                return;
+            }
+
+            var entries = new List<DxfDBDictionaryEntry>();
+
+            foreach (DxfDBDictionaryEntry entry in from)
+            {
+                if (IsPlainData(entry.Value))
+                {
+                    entries.Add(entry);
+                }
+            }
+
+            if (from.Count > 0 && entries.Count == 0)
+            {
+                return;
+            }
+
+            CreateExtensionDictionary();
+            DxfDBDictionary extension = ExtensionDictionary;
+            var mapped = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [source.Handle] = Handle };
+            var made = new List<DxfItem>();
+
+            foreach (DxfDBDictionaryEntry entry in entries)
+            {
+                if (!extension.Contains(entry.Key))
+                {
+                    CopyData(extension, entry.Key, entry.Value, mapped, made);
+                }
+            }
+
+            // Every copy has its handle now: the pointers of the XRECORDs go to the copies of what they pointed at.
+            DxfFile file = Item.File;
+
+            foreach (DxfItem item in made)
+            {
+                if (item.Type != "XRECORD")
+                {
+                    continue;
+                }
+
+                IReadOnlyList<DxfTypedValue> groups = file.GroupsOf(item);
+                bool data = false;
+
+                for (int i = 0; i < groups.Count; i++)
+                {
+                    int code = groups[i].TypeCode;
+
+                    if (code == 100)
+                    {
+                        data = groups[i].Value.Trim() == "AcDbXrecord";
+                    }
+                    else if (
+                        data
+                        && (code == 330 || code == 340 || code == 350 || code == 360)
+                        && mapped.TryGetValue(groups[i].Value.Trim(), out string copy)
+                    )
+                    {
+                        file.SetValueAt(item, i, copy);
+                    }
+                }
+            }
+        }
+
+        /// <summary>Whether an entry of an extension dictionary is user data: an XRECORD, or a dictionary every entry of which is.</summary>
+        private static bool IsPlainData(DxfDBObject value)
+        {
+            if (value == null)
+            {
+                return false;
+            }
+
+            if (value.Item.Type == "XRECORD")
+            {
+                return true;
+            }
+
+            if (!(value is DxfDBDictionary dictionary) || value.Item.Type != "DICTIONARY")
+            {
+                return false;
+            }
+
+            foreach (DxfDBDictionaryEntry entry in dictionary)
+            {
+                if (!IsPlainData(entry.Value))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>Copies an XRECORD or a dictionary of them into a dictionary under a name, the entries of a dictionary in their order; each copy is noted by handle in <paramref name="mapped"/> and in <paramref name="made"/>.</summary>
+        private static void CopyData(
+            DxfDBDictionary owner,
+            string name,
+            DxfDBObject value,
+            Dictionary<string, string> mapped,
+            List<DxfItem> made
+        )
+        {
+            IReadOnlyList<DxfTypedValue> groups = value.Item.File.GroupsOf(value.Item);
+            var dictionary = value as DxfDBDictionary;
+            int start = 0;
+
+            while (start < groups.Count && groups[start].TypeCode != 100)
+            {
+                start++;
+            }
+
+            DxfItem copy = owner.Add(name, value.Item.Type, b =>
+            {
+                // A dictionary's entries are added after it, each copied.
+                for (int i = start; i < groups.Count && !(dictionary != null && groups[i].TypeCode == 3); i++)
+                {
+                    b.Group(groups[i].TypeCode, groups[i].Value);
+                }
+            });
+
+            mapped[value.Handle] = copy.Handle;
+            made.Add(copy);
+
+            if (dictionary != null)
+            {
+                var below = (DxfDBDictionary)OfObject(copy);
+
+                foreach (DxfDBDictionaryEntry entry in dictionary)
+                {
+                    CopyData(below, entry.Key, entry.Value, mapped, made);
+                }
             }
         }
 

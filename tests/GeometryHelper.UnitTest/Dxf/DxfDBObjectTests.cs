@@ -40,9 +40,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 StringComparison.Ordinal
             );
             Assert.Equal(
-                "  0\nDICTIONARY\n  5\n"
-                    + dictionary.Handle
-                    + "\n102\n{ACAD_REACTORS\n330\n3F\n102\n}\n330\n3F\n100\nAcDbDictionary\n280\n1\n281\n1\n",
+                "  0\nDICTIONARY\n  5\n" + dictionary.Handle + "\n330\n3F\n100\nAcDbDictionary\n280\n1\n281\n1\n",
                 Records(saved).Single(r => HandleOf(r) == dictionary.Handle)
             );
 

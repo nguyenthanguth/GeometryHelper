@@ -395,7 +395,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.NotNull(made.ExtensionDictionary);
             Assert.Equal(dictionary, made.ExtensionDictionary.Handle);
             Assert.Equal(made.Handle, made.ExtensionDictionary.OwnerHandle);
-            Assert.Equal(new[] { made.Handle }, made.ExtensionDictionary.GetPersistentReactorIds());
+            Assert.Empty(made.ExtensionDictionary.GetPersistentReactorIds());
             Assert.True(made.ExtensionDictionary.Contains("GHX"));
             Assert.Null(synced.AttributeCollection[0].ExtensionDictionary);
             AssertReopens(document);
