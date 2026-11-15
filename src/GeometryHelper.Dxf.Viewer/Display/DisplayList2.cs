@@ -214,6 +214,55 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
+        /// <summary>
+        /// Makes room ahead, in a list made whole of <paramref name="entities"/> entities, for what the entities drawn so far
+        /// show it will hold: a run for each entity, the items and the insertion points in the proportion of those drawn. Grown by
+        /// doubling, the arrays of runs and items and the table of points of a drawing of 1 000 000 entities were made over
+        /// twenty times, some 70 MB of arrays that the collector took in its collections, which land in the build. A list that
+        /// holds more than the room made is grown as before; one that holds less is cut to size by <see cref="TrimExcess"/>.
+        /// </summary>
+        internal void Reserve(int entities)
+        {
+            int done = _runCount;
+
+            if (done == 0 || entities <= done)
+            {
+                return;
+            }
+
+            if (_runs.Length < entities)
+            {
+                Array.Resize(ref _runs, entities);
+            }
+
+            long items = (long)_count * entities / done;
+            items += items / 10 + 16;
+
+            if (items > _items.Length && items < int.MaxValue)
+            {
+                Array.Resize(ref _items, (int)items);
+            }
+
+            long points = (long)_insertions.Count * entities / done;
+            points += points / 10 + 16;
+
+            if (!_insertionsShared && points > _insertionsRoom && points < int.MaxValue)
+            {
+                var table = new Dictionary<string, Insertions>((int)points, StringComparer.OrdinalIgnoreCase);
+
+                foreach (KeyValuePair<string, Insertions> pair in _insertions)
+                {
+                    table.Add(pair.Key, pair.Value);
+                }
+
+                _insertions = table;
+                _insertionsRoom = (int)points;
+            }
+        }
+
+        // The room Reserve made in the table of insertion points; nought where it made none.
+        private int _insertionsRoom;
+
         /// <summary>Gives back the room the lists of items and runs made by doubling left empty; a list that is full to 9 tenths is left as it is.</summary>
         internal void TrimExcess()
         {
@@ -230,8 +279,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             _reads?.TrimExcess();
 
-            // The entries of a dictionary grown by doubling: up to 4 tenths of them empty, at 48 bytes.
-            _insertions = new Dictionary<string, Insertions>(_insertions, StringComparer.OrdinalIgnoreCase);
+            // The entries of a dictionary grown by doubling: up to 4 tenths of them empty, at 48 bytes. One made with room for
+            // what it holds, to within a tenth, is left as it is.
+            if (_insertionsRoom == 0 || _insertions.Count < _insertionsRoom * 0.9)
+            {
+                _insertions = new Dictionary<string, Insertions>(_insertions, StringComparer.OrdinalIgnoreCase);
+                _insertionsRoom = 0;
+            }
         }
 
         /// <summary>Gets the entities of the space in the order they were drawn, each with its place in <see cref="Items"/> and the layers it read.</summary>
@@ -413,7 +467,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// Takes a stretch of runs as <see cref="CopyRuns"/> does, but for each that read one layer of <paramref name="hiding"/>
         /// and no other: the layer is off, so the entity draws nothing now, and its run is taken as an empty run of the same
         /// layer that reads nothing else, its insertion points dropped, as drawing the entity again would leave it. One pass
-        /// over the records, the items of each run kept moved by a copy of their own.
+        /// over the records, the items of each run kept moved by a copy of their own; of more than 131 072 runs, in pieces on up
+        /// to eight threads (each finds where its items go from the count of those kept before it), the insertion points of the
+        /// runs dropped taken out one thread after them, in the order of the runs.
         /// </summary>
         internal void CopyRunsHiding(DisplayList2 from, int first, int count, ulong hiding)
         {
@@ -445,28 +501,106 @@ namespace GeometryHelper.Dxf.Viewer
 
             int at = _count;
             int run = _runCount;
-            DisplayItem2[] fromItems = from._items;
             RunRecord[] fromRuns = from._runs;
             bool unnamed = from._unnamedRuns != 0;
 
-            for (int i = first; i < end; i++)
+            if (count <= MostRunsOnOneThread)
             {
-                RunRecord record = fromRuns[i];
-                ulong read = record.Layers;
+                at = CopyHiding(from, first, end, hiding, at, run, true);
+            }
+            else
+            {
+                int parts = Math.Min(Environment.ProcessorCount, 8);
+                int piece = (count + parts - 1) / parts;
+                var kept = new int[parts];
+                var inserted = new List<int>[parts];
+                var firstDropped = new List<int>[parts];
 
-                if ((read & hiding) != 0 && (read & (read - 1)) == 0)
+                // The items each piece keeps, so that the next knows where its own go; and the runs it drops that kept an insertion
+                // point, and the first of those it drops, which are all the box of the list is told of.
+                System.Threading.Tasks.Parallel.For(0, parts, part =>
                 {
-                    DropInsertions(record.Handle, record.Inserted);
-                    NoteDropped(from, i);
-                    _runs[run++] = new RunRecord(record.Handle, at, 0, read, false);
-                    continue;
+                    int from0 = first + Math.Min(part * piece, count);
+                    int to0 = first + Math.Min((part + 1) * piece, count);
+                    int n = 0;
+                    var points = new List<int>();
+                    var firsts = new List<int>();
+
+                    for (int i = from0; i < to0; i++)
+                    {
+                        RunRecord record = fromRuns[i];
+                        ulong read = record.Layers;
+
+                        if ((read & hiding) != 0 && (read & (read - 1)) == 0)
+                        {
+                            if (record.Inserted)
+                            {
+                                points.Add(i);
+                            }
+
+                            if (firsts.Count <= MostDropped)
+                            {
+                                firsts.Add(i);
+                            }
+                        }
+                        else
+                        {
+                            n += record.Count;
+                        }
+                    }
+
+                    kept[part] = n;
+                    inserted[part] = points;
+                    firstDropped[part] = firsts;
+                });
+
+                var places = new int[parts];
+
+                for (int part = 0; part < parts; part++)
+                {
+                    places[part] = at;
+                    at += kept[part];
                 }
 
-                int length = record.Count;
-                _runs[run++] = new RunRecord(record, at - record.Start);
-                Array.Copy(fromItems, record.Start, _items, at, length);
-                at += length;
+                // The points of the runs dropped are taken out of the table, which is copied for it, while the records and items are
+                // moved: the two touch nothing of each other's. (A copy of 267 000 points and 67 000 removals, one thread after
+                // the rest, took 12 of the 33 ms of a layer switched off at 1 000 000 entities.)
+                System.Threading.Tasks.Task dropping = System.Threading.Tasks.Task.Run(() =>
+                {
+                    foreach (List<int> runs in inserted)
+                    {
+                        foreach (int dropped in runs)
+                        {
+                            DropInsertions(fromRuns[dropped].Handle, true);
+                        }
+                    }
+                });
+
+                try
+                {
+                    System.Threading.Tasks.Parallel.For(0, parts, part =>
+                    {
+                        int from0 = first + Math.Min(part * piece, count);
+                        int to0 = first + Math.Min((part + 1) * piece, count);
+                        CopyHiding(from, from0, to0, hiding, places[part], run + (from0 - first), false);
+                    });
+                }
+                finally
+                {
+                    dropping.Wait();
+                }
+
+                // What reads the box of the older list is told of the runs dropped in their order, a call for each of the first.
+                foreach (List<int> runs in firstDropped)
+                {
+                    foreach (int dropped in runs)
+                    {
+                        NoteDropped(from, dropped);
+                    }
+                }
             }
+
+            run += count;
 
             if (from._reads != null)
             {
@@ -496,6 +630,75 @@ namespace GeometryHelper.Dxf.Viewer
             _count = at;
             _runCount = run;
             _copiedWhole = true;
+        }
+
+        /// <summary>The most runs <see cref="CopyRunsHiding"/> takes on one thread: more are taken in pieces on several, the threads costing more than a shorter stretch.</summary>
+        private const int MostRunsOnOneThread = 1 << 17;
+
+        /// <summary>
+        /// The runs <paramref name="lo"/> up to <paramref name="hi"/> of an older list, put in this list from the run
+        /// <paramref name="run"/> on, as <see cref="CopyRunsHiding"/> takes them: a run that read one layer of
+        /// <paramref name="hiding"/> and no other as an empty run, the others moved to the place <paramref name="at"/> on, their
+        /// items by one copy for each stretch that stood together. The points of the runs dropped are taken out here where
+        /// <paramref name="dropHere"/> is set, else left to the caller. Where the items end.
+        /// </summary>
+        private int CopyHiding(DisplayList2 from, int lo, int hi, ulong hiding, int at, int run, bool dropHere)
+        {
+            DisplayItem2[] fromItems = from._items;
+            DisplayItem2[] toItems = _items;
+            RunRecord[] toRuns = _runs;
+            RunRecord[] fromRuns = from._runs;
+
+            // The items of the runs kept that follow one another in the older list are moved by one copy, the stretch flushed where a
+            // run dropped, or one with items apart from them, comes: a call for each of 667 000 runs took more than the copying.
+            int stretchFrom = 0,
+                stretchAt = 0,
+                stretchLength = 0;
+
+            for (int i = lo; i < hi; i++)
+            {
+                RunRecord record = fromRuns[i];
+                ulong read = record.Layers;
+
+                if ((read & hiding) != 0 && (read & (read - 1)) == 0)
+                {
+                    if (dropHere)
+                    {
+                        DropInsertions(record.Handle, record.Inserted);
+                        NoteDropped(from, i);
+                    }
+                    toRuns[run++] = new RunRecord(record.Handle, at, 0, read, false);
+                    continue;
+                }
+
+                int length = record.Count;
+                toRuns[run++] = new RunRecord(record, at - record.Start);
+
+                if (stretchLength > 0 && stretchFrom + stretchLength == record.Start)
+                {
+                    stretchLength += length;
+                }
+                else
+                {
+                    if (stretchLength > 0)
+                    {
+                        Array.Copy(fromItems, stretchFrom, toItems, stretchAt, stretchLength);
+                    }
+
+                    stretchFrom = record.Start;
+                    stretchAt = at;
+                    stretchLength = length;
+                }
+
+                at += length;
+            }
+
+            if (stretchLength > 0)
+            {
+                Array.Copy(fromItems, stretchFrom, toItems, stretchAt, stretchLength);
+            }
+
+            return at;
         }
 
         /// <summary>Notes the stretch of items from <paramref name="start"/> as a run closing after it would: they stand in order, with no gap.</summary>
@@ -732,11 +935,24 @@ namespace GeometryHelper.Dxf.Viewer
 
         private void DropInsertions(string handle, bool inserted)
         {
-            if (inserted && !string.IsNullOrEmpty(handle) && _insertions.ContainsKey(handle))
+            if (!inserted || string.IsNullOrEmpty(handle))
             {
-                OwnInsertions();
-                _insertions.Remove(handle);
+                return;
             }
+
+            // The table is copied once, where a point is to go; once it is the list's own a point is taken out by the one lookup
+            // of Remove, which of 67 000 points of a layer switched off took two each, ContainsKey before it.
+            if (_insertionsShared)
+            {
+                if (!_insertions.ContainsKey(handle))
+                {
+                    return;
+                }
+
+                OwnInsertions();
+            }
+
+            _insertions.Remove(handle);
         }
 
         /// <summary>Makes the table of insertion points the list's own, a copy of the older list's it shared, before it is changed.</summary>

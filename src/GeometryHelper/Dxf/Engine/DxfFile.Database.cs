@@ -5542,84 +5542,111 @@ namespace GeometryHelper.Dxf
         /// for a polyline with no vertex. Walked in the bytes of the record, from the first subclass marker other than AcDbEntity
         /// (from the group after the first where it has none) to its extended data, with no list of its groups made and no group
         /// made a string but the widths themselves, where the typed values of every coordinate were made and dropped by the
-        /// question asked of every polyline a drawing draws.
+        /// question asked of every polyline a drawing draws. The answer no is kept on the item (<see cref="DxfItem.KnownWithoutWidth"/>),
+        /// where the look found it in its own walk of the record (<see cref="LookOf(DxfItem, out string, out bool, bool, out bool)"/>) or
+        /// this one did, so that a REGEN does not walk each polyline again to be told it.
         /// </summary>
         internal bool HasWidthOf(DxfItem item)
         {
+            if (item.KnownWithoutWidth)
+            {
+                return false;
+            }
+
             Rec record = RecordAt(item, 0);
-            byte[] bytes = record.Bytes;
-            int end = record.End;
-            int at = record.Start;
-            bool braced = false;
-            bool opened = false;
+            var walk = new GroupWalk(record);
+            var scan = default(WidthScan);
+
+            while (!scan.Done && walk.Next(out int code, out int valueStart, out int valueEnd))
+            {
+                scan.Feed(this, record, code, valueStart, valueEnd);
+            }
+
+            bool has = scan.Result;
+
+            // A record that follows an entity is read through the entity and kept by no one.
+            if (!has && item.Parent == null)
+            {
+                item.KnownWithoutWidth = true;
+            }
+
+            return has;
+        }
+
+        /// <summary>
+        /// The groups of a LWPOLYLINE's record, fed one at a time, settling whether it has a width (<see cref="HasWidthOf"/>): by the
+        /// walk of the record that does only that, or by the one that finds its look, which feeds this the groups it walks anyway.
+        /// </summary>
+        private struct WidthScan
+        {
+            private bool _braced;
+            private bool _bodyFound;
+            private bool _done;
 
             // Where the own part begins is known where its marker comes: what was met before it is forgotten.
-            double constant = 0.0;
-            bool constantRead = false;
-            bool bodyFound = false;
-            int vertices = 0;
-            bool explicitWidth = false;
-            bool constantUsed = false;
-            double start = 0.0;
-            double finish = 0.0;
-            bool startRead = false;
-            bool finishRead = false;
+            private double _constant;
+            private bool _constantRead;
+            private int _vertices;
+            private bool _explicitWidth;
+            private bool _constantUsed;
+            private double _start;
+            private double _finish;
+            private bool _startRead;
+            private bool _finishRead;
 
-            while (at < end)
+            /// <summary>Whether the extended data was reached, after which no group is looked at.</summary>
+            internal bool Done => _done;
+
+            /// <summary>Takes the next group of the record, the group 0 that names it already past, comments left out.</summary>
+            internal void Feed(DxfFile file, Rec record, int raw, int valueStart, int valueEnd)
             {
-                int codeEnd = LineEnd(bytes, at, end, out int valueStart);
-                TryCode(bytes, at, codeEnd, out int raw);
-                int valueEnd = LineEnd(bytes, valueStart, end, out int next);
-                at = next;
-
-                // The group 0 that names the record is the first.
-                if (!opened)
+                if (_done)
                 {
-                    opened = true;
-                    continue;
+                    return;
                 }
 
                 if (raw == 1001)
                 {
-                    break;
+                    _done = true;
+                    return;
                 }
 
                 if (raw == 102)
                 {
-                    braced = StartsWithBrace(record, valueStart, valueEnd);
-                    continue;
+                    _braced = file.StartsWithBrace(record, valueStart, valueEnd);
+                    return;
                 }
 
-                if (braced)
+                if (_braced)
                 {
-                    continue;
+                    return;
                 }
 
                 if (
-                    !bodyFound
+                    !_bodyFound
                     && raw == 100
-                    && !ValueIs(record, new Pair(raw, 0, valueStart, valueEnd, next), "AcDbEntity")
+                    && !file.ValueIs(record, new Pair(raw, 0, valueStart, valueEnd, 0), "AcDbEntity")
                 )
                 {
-                    bodyFound = true;
-                    constant = 0.0;
-                    constantRead = false;
-                    vertices = 0;
-                    explicitWidth = false;
-                    constantUsed = false;
-                    continue;
+                    _bodyFound = true;
+                    _constant = 0.0;
+                    _constantRead = false;
+                    _vertices = 0;
+                    _explicitWidth = false;
+                    _constantUsed = false;
+                    return;
                 }
 
                 // The first 43 of the own part: a number, or none at all where it is not one.
-                if (raw == 43 && !constantRead)
+                if (raw == 43 && !_constantRead)
                 {
-                    constantRead = true;
-                    constant = ReadReal(record, valueStart, valueEnd, out double width) ? width : 0.0;
+                    _constantRead = true;
+                    _constant = file.ReadReal(record, valueStart, valueEnd, out double width) ? width : 0.0;
                 }
 
                 if (raw == 999)
                 {
-                    continue;
+                    return;
                 }
 
                 // A group's code is a short in the typed value the vertices are read from.
@@ -5627,41 +5654,49 @@ namespace GeometryHelper.Dxf
 
                 if (code == 10)
                 {
-                    if (vertices > 0)
+                    if (_vertices > 0)
                     {
-                        explicitWidth |= (startRead && start != 0.0) || (finishRead && finish != 0.0);
-                        constantUsed |= !startRead || !finishRead;
+                        _explicitWidth |= (_startRead && _start != 0.0) || (_finishRead && _finish != 0.0);
+                        _constantUsed |= !_startRead || !_finishRead;
                     }
 
-                    vertices++;
-                    startRead = false;
-                    finishRead = false;
+                    _vertices++;
+                    _startRead = false;
+                    _finishRead = false;
                 }
-                else if (vertices > 0 && (code == 40 || code == 41))
+                else if (_vertices > 0 && (code == 40 || code == 41))
                 {
-                    bool read = ReadReal(record, valueStart, valueEnd, out double width);
+                    bool read = file.ReadReal(record, valueStart, valueEnd, out double width);
 
                     if (code == 40)
                     {
-                        startRead = read;
-                        start = width;
+                        _startRead = read;
+                        _start = width;
                     }
                     else
                     {
-                        finishRead = read;
-                        finish = width;
+                        _finishRead = read;
+                        _finish = width;
                     }
                 }
             }
 
-            if (vertices == 0)
+            /// <summary>Whether the groups fed so far show a width.</summary>
+            internal bool Result
             {
-                return constant != 0.0;
-            }
+                get
+                {
+                    if (_vertices == 0)
+                    {
+                        return _constant != 0.0;
+                    }
 
-            explicitWidth |= (startRead && start != 0.0) || (finishRead && finish != 0.0);
-            constantUsed |= !startRead || !finishRead;
-            return explicitWidth || (constantUsed && constant != 0.0);
+                    bool explicitWidth =
+                        _explicitWidth || (_startRead && _start != 0.0) || (_finishRead && _finish != 0.0);
+                    bool constantUsed = _constantUsed || !_startRead || !_finishRead;
+                    return explicitWidth || (constantUsed && _constant != 0.0);
+                }
+            }
         }
 
         /// <summary>The number of a group's value as <c>Numbers.TryRead</c> reads its text, taken from the bytes where <see cref="DxfFastNumber"/> is sure of it; false for one that is not a finite number, the number nought.</summary>
@@ -5743,90 +5778,41 @@ namespace GeometryHelper.Dxf
             }
 
             Rec record = RecordAt(item, 0);
-            byte[] bytes = record.Bytes;
-            int end = record.End;
-            int at = record.Start;
 
             // Where the first group of each code stands, its value start and end, or -1: what was met before the marker of the
             // own part is forgotten where the marker comes.
-            int[] slots = _textSlots ?? (_textSlots = new int[2 * TextCodes.Length]);
+            TextStash stash = _textStash ?? (_textStash = new TextStash());
+            int[] slots = stash.Slots;
 
-            for (int i = 0; i < slots.Length; i++)
+            // The walk that found the look of this very record (LookOf) fed the same groups to the same reading, a thread's
+            // slots kept for the entity drawn next: not walked again.
+            if (
+                !ReferenceEquals(stash.Item, item)
+                || !ReferenceEquals(stash.Bytes, record.Bytes)
+                || stash.Start != record.Start
+                || stash.End != record.End
+            )
             {
-                slots[i] = -1;
-            }
+                stash.Item = null;
+                stash.Bytes = null;
+                stash.Clear();
+                var scan = new TextScan(slots);
+                var walk = new GroupWalk(record);
 
-            bool braced = false;
-            bool opened = false;
-            bool bodyFound = false;
-            bool inData = false;
-
-            while (at < end)
-            {
-                int codeEnd = LineEnd(bytes, at, end, out int valueStart);
-                TryCode(bytes, at, codeEnd, out int code);
-                int valueEnd = LineEnd(bytes, valueStart, end, out int next);
-                at = next;
-
-                // The group 0 that names the record is the first.
-                if (!opened)
+                while (!scan.Stopped && walk.Next(out int code, out int valueStart, out int valueEnd))
                 {
-                    opened = true;
-                    continue;
+                    scan.Feed(this, record, code, valueStart, valueEnd);
                 }
 
-                // An extension dictionary stands in the groups of an application, anywhere in the record.
-                if (code == 102 && ValueIs(record, new Pair(code, 0, valueStart, valueEnd, next), "{ACAD_XDICTIONARY"))
+                if (scan.Stopped)
                 {
                     return false;
                 }
-
-                if (inData)
-                {
-                    continue;
-                }
-
-                if (code == 1001)
-                {
-                    inData = true;
-                    continue;
-                }
-
-                if (code == 102)
-                {
-                    braced = StartsWithBrace(record, valueStart, valueEnd);
-                    continue;
-                }
-
-                if (braced)
-                {
-                    continue;
-                }
-
-                if (
-                    !bodyFound
-                    && code == 100
-                    && !ValueIs(record, new Pair(code, 0, valueStart, valueEnd, next), "AcDbEntity")
-                )
-                {
-                    bodyFound = true;
-
-                    for (int i = 0; i < slots.Length; i++)
-                    {
-                        slots[i] = -1;
-                    }
-
-                    continue;
-                }
-
-                int slot = Array.IndexOf(TextCodes, code);
-
-                if (slot >= 0 && slots[2 * slot] < 0)
-                {
-                    slots[2 * slot] = valueStart;
-                    slots[2 * slot + 1] = valueEnd;
-                }
             }
+
+            // Kept for one reading: the next entity's walk makes its own, and the thread does not hold a file's bytes.
+            stash.Item = null;
+            stash.Bytes = null;
 
             TextGroups read = default(TextGroups);
             read.Words = slots[0] < 0 ? null : Text(record, slots[0], slots[1]);
@@ -5874,8 +5860,179 @@ namespace GeometryHelper.Dxf
             73,
         };
 
+        /// <summary>The slot of a code among <see cref="TextCodes"/>, -1 for a code a text is not read from; the same as the place of the code in that list, where it was found by a search of it for each group.</summary>
+        private static int SlotOf(int code)
+        {
+            switch (code)
+            {
+                case 1:
+                    return 0;
+                case 7:
+                    return 1;
+                case 10:
+                    return 2;
+                case 20:
+                    return 3;
+                case 30:
+                    return 4;
+                case 11:
+                    return 5;
+                case 21:
+                    return 6;
+                case 31:
+                    return 7;
+                case 40:
+                    return 8;
+                case 41:
+                    return 9;
+                case 50:
+                    return 10;
+                case 51:
+                    return 11;
+                case 210:
+                    return 12;
+                case 220:
+                    return 13;
+                case 230:
+                    return 14;
+                case 71:
+                    return 15;
+                case 72:
+                    return 16;
+                case 73:
+                    return 17;
+                default:
+                    return -1;
+            }
+        }
+
+        /// <summary>
+        /// A thread's slots for the groups of a text, and the record they were found in where the walk that found its look was
+        /// the one to fill them (see <see cref="TryTextGroups"/>), which a thread that draws a million texts one after another
+        /// reads from instead of walking each record twice.
+        /// </summary>
+        private sealed class TextStash
+        {
+            internal readonly int[] Slots = new int[2 * TextCodes.Length];
+            internal DxfItem Item;
+            internal byte[] Bytes;
+            internal int Start;
+            internal int End;
+
+            internal void Clear()
+            {
+                for (int i = 0; i < Slots.Length; i++)
+                {
+                    Slots[i] = -1;
+                }
+            }
+        }
+
         [ThreadStatic]
-        private static int[] _textSlots;
+        private static TextStash _textStash;
+
+        /// <summary>Lets go of what the thread's slots hold of a record, which the build of a display list leaves behind when its last text is not drawn.</summary>
+        internal static void ReleaseTextStash()
+        {
+            TextStash stash = _textStash;
+
+            if (stash != null)
+            {
+                stash.Item = null;
+                stash.Bytes = null;
+            }
+        }
+
+        /// <summary>
+        /// The groups of a TEXT's record, fed one at a time, found in the slots of <see cref="TryTextGroups"/>: by the walk that
+        /// does only that, or by the one that finds the look, which feeds this the groups it walks anyway.
+        /// </summary>
+        private struct TextScan
+        {
+            private readonly int[] _slots;
+            private bool _braced;
+            private bool _bodyFound;
+            private bool _inData;
+            private bool _stopped;
+
+            /// <summary>Starts a reading into slots all -1.</summary>
+            internal TextScan(int[] slots)
+            {
+                _slots = slots;
+                _braced = false;
+                _bodyFound = false;
+                _inData = false;
+                _stopped = false;
+            }
+
+            /// <summary>Whether an extension dictionary was met, which ends the reading: <see cref="TryTextGroups"/> gives none.</summary>
+            internal bool Stopped => _stopped;
+
+            /// <summary>Takes the next group of the record, the group 0 that names it already past, comments left out.</summary>
+            internal void Feed(DxfFile file, Rec record, int code, int valueStart, int valueEnd)
+            {
+                if (_stopped)
+                {
+                    return;
+                }
+
+                // An extension dictionary stands in the groups of an application, anywhere in the record.
+                if (
+                    code == 102
+                    && file.ValueIs(record, new Pair(code, 0, valueStart, valueEnd, 0), "{ACAD_XDICTIONARY")
+                )
+                {
+                    _stopped = true;
+                    return;
+                }
+
+                if (_inData)
+                {
+                    return;
+                }
+
+                if (code == 1001)
+                {
+                    _inData = true;
+                    return;
+                }
+
+                if (code == 102)
+                {
+                    _braced = file.StartsWithBrace(record, valueStart, valueEnd);
+                    return;
+                }
+
+                if (_braced)
+                {
+                    return;
+                }
+
+                if (
+                    !_bodyFound
+                    && code == 100
+                    && !file.ValueIs(record, new Pair(code, 0, valueStart, valueEnd, 0), "AcDbEntity")
+                )
+                {
+                    _bodyFound = true;
+
+                    for (int i = 0; i < _slots.Length; i++)
+                    {
+                        _slots[i] = -1;
+                    }
+
+                    return;
+                }
+
+                int slot = SlotOf(code);
+
+                if (slot >= 0 && _slots[2 * slot] < 0)
+                {
+                    _slots[2 * slot] = valueStart;
+                    _slots[2 * slot + 1] = valueEnd;
+                }
+            }
+        }
 
         /// <summary>
         /// The number of the group in a slot as <c>Numbers.TryRead</c> reads its text, taken from the bytes where

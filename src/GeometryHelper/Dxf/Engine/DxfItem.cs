@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Threading;
 
 namespace GeometryHelper.Dxf
@@ -32,7 +33,7 @@ namespace GeometryHelper.Dxf
     /// </remarks>
     internal sealed class DxfItem
     {
-        private static readonly IReadOnlyList<object> NoShapes = new object[0];
+        private static readonly IReadOnlyList<object> NoShapes = new ReadOnlyCollection<object>(new object[0]);
 
         private readonly DxfFile _ownFile;
         private readonly int _first;
@@ -40,19 +41,25 @@ namespace GeometryHelper.Dxf
         private object _wrapper;
         private string _handle;
         private DxfFile.Look _look;
-        private IReadOnlyList<object> _shapes;
+
+        // The shapes read: null before they are; the one shape itself, bare, for the entity of one shape, which nearly every
+        // entity read is (a million of them held a list of one each, 24 bytes of a million, and made an enumerator of 48 for
+        // every walk of it); else the read-only list of none or of several. A list is told from a shape by its type, one of
+        // two the item makes: see IsList.
+        private object _shapes;
         private Extras _extras;
 
-        // How many records the entity is made of, and in the bits above them whether it was removed, is hidden and is in paper
-        // space: three flags in the four bytes of the count, which took the object from 104 bytes to 96, a million of them in a
-        // drawing of 1 000 000 entities. A flag is changed by a compare and swap, so that two threads changing two of them,
-        // which were three bytes of their own, lose neither.
+        // How many records the entity is made of, and in the bits above them whether it was removed, is hidden, is in paper
+        // space and is known to have no width: four flags in the four bytes of the count, which took the object from 104 bytes
+        // to 96, a million of them in a drawing of 1 000 000 entities. A flag is changed by a compare and swap, so that two
+        // threads changing two of them, which were three bytes of their own, lose neither.
         private int _countAndFlags;
 
         private const int CountMask = 0x0FFFFFFF;
         private const int PaperFlag = 0x10000000;
         private const int RemovedFlag = 0x20000000;
         private const int HiddenFlag = 0x40000000;
+        private const int NoWidthFlag = unchecked((int)0x80000000);
 
         private bool Has(int flag) => (Volatile.Read(ref _countAndFlags) & flag) != 0;
 
@@ -307,35 +314,86 @@ namespace GeometryHelper.Dxf
         {
             get
             {
-                IReadOnlyList<object> shapes = Volatile.Read(ref _shapes);
-
-                // A record that follows an entity can be written through the entity as well: it is read each time.
-                if (Parent != null)
+                while (true)
                 {
-                    return ReadShapes();
-                }
+                    object kept = ShapesKept();
 
-                if (shapes == null)
-                {
-                    Interlocked.CompareExchange(ref _shapes, ReadShapes(), null);
-                    shapes = Volatile.Read(ref _shapes);
-                }
+                    // A record that follows an entity can be written through the entity as well: read each time, not kept.
+                    if (Parent != null)
+                    {
+                        return IsList(kept) ? (IReadOnlyList<object>)kept : new OneShape(kept);
+                    }
 
-                return shapes;
+                    if (IsList(kept))
+                    {
+                        return (IReadOnlyList<object>)kept;
+                    }
+
+                    // The one shape kept bare is given the list that holds it, kept in its place so that every call gets the same.
+                    var list = new OneShape(kept);
+
+                    if (Interlocked.CompareExchange(ref _shapes, list, kept) == kept)
+                    {
+                        return list;
+                    }
+                }
             }
         }
 
-        /// <summary>The shapes read from the record now: a LINE, ARC, CIRCLE or LWPOLYLINE read from its bytes into the list of one with no list made first, any other the reader's.</summary>
-        private IReadOnlyList<object> ReadShapes()
+        /// <summary>
+        /// The shapes as the item keeps them: the one shape itself where there is one and the list of <see cref="Shapes"/> has not
+        /// been asked for, else the list; read from the file the first time, and read again when it is not kept (a record that
+        /// follows an entity).
+        /// </summary>
+        private object ShapesKept()
+        {
+            if (Parent != null)
+            {
+                return ReadShapes();
+            }
+
+            object kept = Volatile.Read(ref _shapes);
+
+            if (kept == null)
+            {
+                Interlocked.CompareExchange(ref _shapes, ReadShapes(), null);
+                kept = Volatile.Read(ref _shapes);
+            }
+
+            return kept;
+        }
+
+        /// <summary>Whether what the item keeps of its shapes is a list: the two kinds it makes, and not a shape, which is no read-only collection of its own.</summary>
+        private static bool IsList(object kept) => kept is ReadOnlyCollection<object> || kept is OneShape;
+
+        /// <summary>
+        /// The shapes of the entity for a drawing to walk without making a list of them: the list where it keeps one, else null
+        /// and <paramref name="one"/> its one shape, which a build of a million entities asked for each, making 24 bytes of
+        /// list and 48 of enumerator for it.
+        /// </summary>
+        internal IReadOnlyList<object> ShapesOrOne(out object one)
+        {
+            object kept = ShapesKept();
+
+            if (IsList(kept))
+            {
+                one = null;
+                return (IReadOnlyList<object>)kept;
+            }
+
+            one = kept;
+            return null;
+        }
+
+        /// <summary>The shapes read from the record now: a LINE, ARC, CIRCLE or LWPOLYLINE read from its bytes, the shape itself as the item keeps it; any other the reader's, as <see cref="Listed"/> keeps them.</summary>
+        private object ReadShapes()
         {
             if (Type == "INSERT")
             {
                 return Listed(_file.ShapesOf(this));
             }
 
-            return _file.TryFastShape(this, out object shape)
-                ? new OneShape(shape)
-                : Listed(_file.ShapesReadLong(this));
+            return _file.TryFastShape(this, out object shape) ? shape : Listed(_file.ShapesReadLong(this));
         }
 
         /// <summary>
@@ -371,16 +429,23 @@ namespace GeometryHelper.Dxf
         {
             get
             {
-                IReadOnlyList<object> shapes = Shapes;
+                object kept = ShapesKept();
+
+                if (!IsList(kept))
+                {
+                    return kept;
+                }
+
+                var shapes = (IReadOnlyList<object>)kept;
                 return shapes.Count == 1 ? shapes[0] : null;
             }
             set => _file.SetShape(this, value);
         }
 
-        /// <summary>The shapes read as the read-only list the entity keeps: the shared empty one for none, a list of its own for one, which most entities have.</summary>
-        private static IReadOnlyList<object> Listed(List<object> read) =>
+        /// <summary>The shapes read as the item keeps them: the shared empty list for none, the shape itself for one, which most entities have, a read-only list for more.</summary>
+        private static object Listed(List<object> read) =>
             read.Count == 0 ? NoShapes
-            : read.Count == 1 ? new OneShape(read[0])
+            : read.Count == 1 ? read[0]
             : read.AsReadOnly();
 
         /// <summary>The index of the entity's first record in the file; -1 for an entity added, whose records are its own.</summary>
@@ -537,12 +602,25 @@ namespace GeometryHelper.Dxf
             set => SetFlag(RemovedFlag, value);
         }
 
-        /// <summary>The entity's record has been written anew: its type is that of the new record, and its look and shapes are read again.</summary>
+        /// <summary>
+        /// Whether the record was walked for a width and none was found, as <see cref="DxfFile.HasWidthOf"/> reads it: kept so
+        /// that a REGEN of a drawing of 200 000 polylines does not walk each of them again to be told so (a tenth of it). Only
+        /// the answer no is kept, as the many polylines have none, the one bit left of the word of the count; a polyline with a
+        /// width is walked each time. Forgotten when the record is written anew.
+        /// </summary>
+        internal bool KnownWithoutWidth
+        {
+            get => Has(NoWidthFlag);
+            set => SetFlag(NoWidthFlag, value);
+        }
+
+        /// <summary>The entity's record has been written anew: its type is that of the new record, and its look, width and shapes are read again.</summary>
         internal void Changed(string type)
         {
             Type = type;
             Volatile.Write(ref _look, null);
             Volatile.Write(ref _shapes, null);
+            SetFlag(NoWidthFlag, false);
         }
 
         private DxfFile.Look Look
@@ -564,12 +642,36 @@ namespace GeometryHelper.Dxf
         /// Reads the look and the handle from the record and keeps them, the look as the file shares it with the entities of the
         /// same look, the handle written first so that whoever sees the look sees it; the look kept, whichever thread read first.
         /// </summary>
-        private DxfFile.Look ReadLook()
+        private DxfFile.Look ReadLook(bool display = false)
         {
-            DxfFile.Look look = _file.LookOf(this, out string handle, out bool hidden);
+            DxfFile.Look look = _file.LookOf(this, out string handle, out bool hidden, display, out bool noWidth);
             _handle = handle;
             SetFlag(HiddenFlag, hidden);
+
+            if (noWidth)
+            {
+                SetFlag(NoWidthFlag, true);
+            }
+
             return Interlocked.CompareExchange(ref _look, look, null) ?? look;
+        }
+
+        /// <summary>
+        /// The handle, as <see cref="Handle"/> gives it, for a drawing that is about to draw the entity: where the look is not
+        /// read yet it is read in the walk that also settles what the drawing asks of the same record, a polyline's width.
+        /// </summary>
+        internal string HandleForDisplay
+        {
+            get
+            {
+                if (Parent == null && Volatile.Read(ref _look) == null)
+                {
+                    ReadLook(true);
+                    return _handle;
+                }
+
+                return Handle;
+            }
         }
 
         /// <summary>

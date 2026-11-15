@@ -286,7 +286,6 @@ namespace GeometryHelper.Dxf
                     nz = 0.0;
                 int flags = 0;
                 int have = 0;
-                int expected = 0;
                 List<GeoPoint3> points = null;
                 List<double> bulges = null;
                 bool atVertex = false;
@@ -306,10 +305,11 @@ namespace GeometryHelper.Dxf
                             case 10:
                                 if (points == null)
                                 {
-                                    // The count of vertices (90) stands before them; its room is made once, as far as is sane.
-                                    int room = expected > 0 && expected <= 4096 ? expected : 4;
-                                    points = new List<GeoPoint3>(room);
-                                    bulges = new List<double>(room);
+                                    // The lists are a thread's own, emptied for each polyline: the shape made of them copies what
+                                    // it keeps, and a list of its own for the vertices of each polyline was some 450 bytes of
+                                    // garbage, with its room for the bulges.
+                                    points = ScratchPoints();
+                                    bulges = ScratchBulges();
                                 }
 
                                 points.Add(new GeoPoint3(v, 0.0, 0.0));
@@ -356,10 +356,6 @@ namespace GeometryHelper.Dxf
                         {
                             have |= 16;
                             flags = n;
-                        }
-                        else if (code == 90 && expected == 0)
-                        {
-                            expected = n;
                         }
                     }
                 }
@@ -570,6 +566,60 @@ namespace GeometryHelper.Dxf
 
                 shape = DxfText.Read(at, normal, height, DxfText.Turn(rotation), value, multiline, widthFactor, width);
                 return true;
+            }
+
+            /// <summary>The most vertices a thread keeps room for between two polylines: a polyline of more than that gives its room back.</summary>
+            private const int MostScratch = 4096;
+
+            [ThreadStatic]
+            private static List<GeoPoint3> _scratchPoints;
+
+            [ThreadStatic]
+            private static List<double> _scratchBulges;
+
+            [ThreadStatic]
+            private static List<GeoVector3> _scratchNormals;
+
+            /// <summary>The thread's list for the vertices of the polyline being read, empty; the shapes made of it copy it.</summary>
+            private static List<GeoPoint3> ScratchPoints()
+            {
+                List<GeoPoint3> list = _scratchPoints;
+
+                if (list == null || list.Capacity > MostScratch)
+                {
+                    list = _scratchPoints = new List<GeoPoint3>(16);
+                }
+
+                list.Clear();
+                return list;
+            }
+
+            /// <summary>The thread's list for the bulges of the polyline being read, empty.</summary>
+            private static List<double> ScratchBulges()
+            {
+                List<double> list = _scratchBulges;
+
+                if (list == null || list.Capacity > MostScratch)
+                {
+                    list = _scratchBulges = new List<double>(16);
+                }
+
+                list.Clear();
+                return list;
+            }
+
+            /// <summary>The thread's list for the normals of the edges of the chain being made, empty.</summary>
+            private static List<GeoVector3> ScratchNormals()
+            {
+                List<GeoVector3> list = _scratchNormals;
+
+                if (list == null || list.Capacity > MostScratch)
+                {
+                    list = _scratchNormals = new List<GeoVector3>(16);
+                }
+
+                list.Clear();
+                return list;
             }
 
             /// <summary>Takes a value for the first group of its code: <paramref name="seen"/> keeps which of them came.</summary>

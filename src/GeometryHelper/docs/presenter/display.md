@@ -271,6 +271,48 @@ item for item and field for field under .NET 8 and .NET Framework 4.8, and the p
 highlighted, under .NET 8. (Of two passes with the older build the first differed from the second in the pixels of 11 files, every
 display list the same; the new build equals the second, as two more runs of the older build over those 11 do. The first pass is not explained.)
 
+The cold display of 1 000 000 entities makes 532 MB of objects where it made 837, and is collected 31 times where 47: 1.52 s where 1.82
+(best of 15 runs alternated with the older build in three passes, .NET 8; median 1.74 s where 2.15), the collector's pauses 0.5 s where
+0.9. Under .NET Framework 4.8 it makes 540 MB where 860, 82 collections of the youngest generation where 123, and takes 2.80 s where 3.10
+(median 2.88 where 3.19), and under .NET 10 515 MB where 764 and 1.52 s where 2.43 (median 1.97 where 2.79; two passes). A REGEN takes 0.58 s where 0.80 (median 0.73 where 1.06; .NET Framework 4.8 1.27 s where 1.37), a layer
+switched off 22 ms where 35 (median 30 where 47; .NET Framework 4.8 42 where 63), a layer switched on 314 ms where 342; a MOVE of one line
+is 16 ms as it was. What changed, each a part of the garbage or of the walk of the records that the profile of the cold display showed:
+
+- An entity of one shape keeps the shape itself where it kept a list of that one shape (24 bytes of each of 780 000 entities), which made
+  an enumerator of 48 bytes for every walk of it. `DxfItem.Shapes` still gives the list, made when it is asked for and kept, so that it is
+  the same list each time; the drawing takes the shape bare (`DxfEntity.GeometryOrOne`) and walks a list by place.
+- The width of a LWPOLYLINE and the groups of a TEXT are found in the walk of the record that finds its look, by the same code fed the
+  groups that walk reads anyway (`WidthScan`, `TextScan`), where each was a walk of its own over the same bytes. A polyline found to have
+  no width is marked so on its item (the one bit left in the word that holds the count of its records), so that a REGEN does not walk each
+  of 200 000 polylines to be told it again (`HasWidthOf` was 11.6 per cent of a REGEN); a polyline with a width is walked each time, and the
+  mark goes where the record is written anew. The groups of a text are read into a thread's slots that the look's walk filled, found by a
+  switch where each group was looked up in a list of eighteen codes. The look is read in this walk only for the drawing (`LookOf` is asked
+  for it, `DxfItem.HandleForDisplay`); every other reader of a look walks as before.
+- The box of a text is found with no array made (five of them, 190 bytes of each of 200 000 texts), and the width of its words by a walk of
+  the letters where a split of them made a string for each line. The numbers of the run of a polyline are kept in a list of the builder's,
+  emptied for each polyline, where a list grown from nothing made three arrays for each. The vertices, bulges and normals the reader makes
+  of a closed polyline of four vertices are in lists of a thread's own, emptied for each, as the shapes made of them copy what they keep.
+- The room a list needs is made after the first 4 096 entities (`DisplayList2.Reserve`): a run for each entity, the items and the
+  insertion points in the proportion those drawn showed, where the arrays and the table were made again by doubling twenty times, some
+  70 MB of arrays on the large object heap. A list that holds more than the room made grows as before; one that holds less is cut to its
+  size, and the table of points, made with room to within a tenth of what it holds, is not made over.
+- A layer switched off at 1 000 000 entities is patched in pieces on up to eight threads where more than 131 072 runs are taken: each
+  piece counts the items it keeps, so that the next knows where its own go, and moves its records and, by one copy for each stretch of
+  runs that stood together (a call to `Array.Copy` for each of 667 000 runs took more than the copying), its items. The insertion points of
+  the runs dropped are taken out of the table, copied for it, by another thread at the same time, and the box of the older list is told of
+  the first of the runs dropped, in their order, after. The taking out was the part left once the rest was in pieces: 12.5 of the 33 ms
+  (a copy of 267 000 points and 67 000 removals; the list asked its table for the handle twice for each of them, and does so once now),
+  where it had been 2.5 of 36 beside the 17 ms of the records and items moved by one thread. What the profile of a layer switched off still
+  shows is the box of the list, found again from every item for the runs dropped (7 ms), and the records and items (4.5 ms).
+
+Not kept: the shapes of a LWPOLYLINE, as those of a LINE, an ARC and a CIRCLE were not (see above). Dropping them takes 68 MB off the heap
+(526 MB where 594) and costs nothing in the cold display, but a REGEN reads each of 200 000 polylines again and takes 0.84 s where 0.60
+(median 1.03 where 0.74): 39 per cent more, so they stay. The display lists, their boxes, runs and insertion points, the bytes a drawing
+saves and the pixels are those they were: 167 samples of AutoCAD (cold, after a MOVE, an ERASE, three layers switched off and on, a REGEN
+and the layouts; the bytes saved but for the one with an ACIS body that differs from run to run, in the older build too) item for item
+and field for field under .NET 8 and .NET Framework 4.8, and the pixels of the samples in two views, plain, selected and hovered, under
+.NET 8; and the generated drawings of 100 000, 200 000 and 1 000 000 entities the same way, the last two being those whose layer switched off is taken in pieces.
+
 `PrepareDisplay(space, progress, cancellationToken)` makes the list and the pick index of a space ahead, item for item the
 list `GetDisplay` makes, telling `progress` the share of the space's entities drawn every 4 096 of them and stopping, with
 an `OperationCanceledException`, when the token is cancelled; a list stopped is not kept, and is made whole when next

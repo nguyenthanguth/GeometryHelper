@@ -832,7 +832,7 @@ the ones wanted.
 - [x] Tables follow-ups 6 (tables7): MergeCells/UnmergeCells splice the range and edge cells and TABLECONTENT (192 merges
       1.57 s / 1.8 GB -> 68 ms / 53 MB; with TABLECONTENT 5.7 s / 6.8 GB -> 94 ms; bytes identical); a font read that
       failed by IO is retried, not cached for the process; a filled date's 93 flags kept (not readable via the API)
-- [ ] Tables follow-ups 7: ContentEmptied/ContentDeleted and row/column Insert/Delete still read or rebuild the whole
+- [ ] (tables8, running) Tables follow-ups 7: ContentEmptied/ContentDeleted and row/column Insert/Delete still read or rebuild the whole
       TABLECONTENT/record; a merge emptying a field cell goes the whole way; the viewer's merge not timed; series dates in
       a daylight-saving zone; a definition in a non-Standard style counting nothing in the console's minimum (GUI);
       GUI-only sides (S)
@@ -894,10 +894,14 @@ the ones wanted.
       copied as empty runs, the box folded on threads, handle strings not read; heap 627 -> 610 MB (DxfItem 104 -> 96 B,
       a polyline's caches in one lazy object 88 -> 40 B, the read-ahead index holds records); TryChain garbage; display
       lists, pixels and saved bytes identical on 167 samples
-- [ ] (speed14, running) Speed follow-ups 13: cold display (2.2 s at 1M, GC pauses 0.7-0.9 s of it; 840 MB made, 426 MB kept) and REGEN:
-      fuse the per-entity record walks (LookOf 7 %, HasWidthOf 5 %, TryTextGroups 3 %); layer off's remaining 36 ms
-      (DropInsertions 15); OneShape wrappers (18.7 MB), the LWPOLYLINE shape cache (~58 MB: measure dropping it), handle
-      strings (24 MB); a DWG read stopped mid-way (S)
+- [x] Speed follow-ups 13 (speed14): the look, width and text walks fused into one in display mode, a lone shape held
+      bare, reader scratch lists reused: cold display at 1M 2.15 -> 1.74 s median (net8), REGEN 1.06 -> 0.73 s, layer off
+      47 -> 30 ms, allocated 837 -> 532 MB; display lists, pixels and saved bytes identical on 167 samples; dropping the
+      LWPOLYLINE shape cache declined (REGEN +39 %)
+- [ ] Speed follow-ups 14: GeoPolygonArc3 construction garbage (1.1 KB a polyline); three string-keyed layer lookups an
+      entity (a reference cache, ~4 %); Draw's type switch; REGEN's text group walk (~7 %); DrawText's CleanText garbage
+      (35 MB per 200 000); layer off's BoundsOfItems (7 ms); DxfEntity wrappers kept (~50 MB, identity contract); a DWG
+      read stopped mid-way (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)

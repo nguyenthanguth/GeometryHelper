@@ -1358,13 +1358,24 @@ namespace GeometryHelper.Dxf.Viewer
                     return measured;
                 }
 
+                // The longest line, found by a walk of the letters where a split of the words made a string for each line.
                 int longest = 0;
+                int length = 0;
 
-                foreach (string line in Text.Split('\n'))
+                foreach (char c in Text)
                 {
-                    longest = Math.Max(longest, line.Length);
+                    if (c == '\n')
+                    {
+                        longest = Math.Max(longest, length);
+                        length = 0;
+                    }
+                    else
+                    {
+                        length++;
+                    }
                 }
 
+                longest = Math.Max(longest, length);
                 return longest * Height * 0.6 * WidthFactor;
             }
         }
@@ -1529,13 +1540,11 @@ namespace GeometryHelper.Dxf.Viewer
             double sin = Math.Sin(Rotation);
             DisplayBox box = DisplayBox.Empty;
 
-            foreach (
-                double[] corner in new[] { new[] { x0, y0 }, new[] { x1, y0 }, new[] { x1, y1 }, new[] { x0, y1 } }
-            )
-            {
-                box = box.Add(X + corner[0] * cos - corner[1] * sin, Y + corner[0] * sin + corner[1] * cos);
-            }
-
+            // The four corners in the order they were taken from the arrays this made for each text (five of them, 190 bytes).
+            box = box.Add(X + x0 * cos - y0 * sin, Y + x0 * sin + y0 * cos);
+            box = box.Add(X + x1 * cos - y0 * sin, Y + x1 * sin + y0 * cos);
+            box = box.Add(X + x1 * cos - y1 * sin, Y + x1 * sin + y1 * cos);
+            box = box.Add(X + x0 * cos - y1 * sin, Y + x0 * sin + y1 * cos);
             return box;
         }
     }

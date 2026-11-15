@@ -80,6 +80,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>One less than how many entities of a space are drawn between two reports of <see cref="Progress"/>, a power of two.</summary>
         private const int ReportEvery = 4095;
 
+        /// <summary>How many entities of a space made whole are drawn before the room its list needs is judged from them, see <see cref="DisplayList2.Reserve"/>.</summary>
+        private const int ReserveAfter = 4096;
+
         /// <summary>Gets or sets what is told the share of a space's entities drawn, every 4 096; null for nothing.</summary>
         internal IProgress<double> Progress { get; set; }
 
@@ -570,6 +573,12 @@ namespace GeometryHelper.Dxf.Viewer
                         Progress?.Report((double)(index + 1) / total);
                     }
 
+                    // A list made whole is given the room its first entities show it will need, once, in place of growing.
+                    if (index == ReserveAfter && older == null && total > 2 * ReserveAfter)
+                    {
+                        list.Reserve(total);
+                    }
+
                     DxfItem item = items == null ? null : items[index];
                     DxfEntity entity = items == null ? content[index] : null;
                     string handle = items == null ? HandleOf(entity) : HandleOf(item);
@@ -679,6 +688,9 @@ namespace GeometryHelper.Dxf.Viewer
                 _building = null;
                 _refHidden = null;
                 _patterns.Clear();
+
+                // The groups of the last text, read ahead of its drawing, are not held by the thread.
+                DxfFile.ReleaseTextStash();
             }
 
             list.AnnotativeSeen = _sawAnnotative || (older != null && older.AnnotativeSeen);
@@ -785,7 +797,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             try
             {
-                return item.Handle;
+                return item.HandleForDisplay;
             }
             catch (Exception)
             {
@@ -2063,15 +2075,23 @@ namespace GeometryHelper.Dxf.Viewer
                     break;
             }
 
-            IReadOnlyList<object> shapes = entity.GetGeometry();
+            IReadOnlyList<object> shapes = entity.GeometryOrOne(out object one);
             bool mask = entity is DxfWipeout;
             bool fill = entity is DxfSolid;
 
             _inBlock = frame.Depth > 0;
 
-            foreach (object shape in shapes)
+            // The one shape most entities have is taken bare, and a list is walked by place: neither makes an enumerator.
+            if (shapes == null)
             {
-                AddShape(shape, frame.Matrix, list, style, handle, layerName, fill, mask);
+                AddShape(one, frame.Matrix, list, style, handle, layerName, fill, mask);
+            }
+            else
+            {
+                for (int i = 0; i < shapes.Count; i++)
+                {
+                    AddShape(shapes[i], frame.Matrix, list, style, handle, layerName, fill, mask);
+                }
             }
 
             _inBlock = false;
