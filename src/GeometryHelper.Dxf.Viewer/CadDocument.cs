@@ -188,7 +188,10 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly Dictionary<CadSpace, StaleDisplay> _stale = new Dictionary<CadSpace, StaleDisplay>();
         private readonly List<CadSpace> _spaces = new List<CadSpace>();
         private DisplayBuilder _builder;
-        private Dictionary<string, DxfEntity> _byHandle;
+
+        // The records of the entities by handle: an entity is made of its record where one is asked for, as a drawing read ahead
+        // for an undo holds no object for each of its million entities.
+        private Dictionary<string, DxfItem> _byHandle;
         private Dictionary<string, DxfBlockTableRecord> _blockByHandle;
 
         /// <summary>The width the display gives the words of a text, as MIRROR measures one it keeps readable.</summary>
@@ -603,7 +606,13 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             IndexHandles();
-            return _byHandle.TryGetValue(handle, out DxfEntity found) && !found.IsErased ? found : null;
+
+            return
+                _byHandle.TryGetValue(handle, out DxfItem item)
+                && DxfEntity.Of(item) is DxfEntity found
+                && !found.IsErased
+                ? found
+                : null;
         }
 
         /// <summary>
@@ -618,14 +627,15 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             IndexHandles();
-            return _byHandle.TryGetValue(handle, out DxfEntity found) ? found : null;
+            return _byHandle.TryGetValue(handle, out DxfItem item) ? DxfEntity.Of(item) : null;
         }
 
         /// <summary>
-        /// The entity of a handle as <see cref="FindKept"/> gives it, found only where the index of handles is made already:
-        /// false where it is not, which a patch of a display list does not make for itself (a million entities walked).
+        /// The record of the entity of a handle as <see cref="FindKept"/> gives the entity, found only where the index of handles
+        /// is made already: false where it is not, which a patch of a display list does not make for itself (a million entities
+        /// walked).
         /// </summary>
-        internal bool TryPeekKept(string handle, out DxfEntity entity)
+        internal bool TryPeekKept(string handle, out DxfItem entity)
         {
             entity = null;
 
@@ -683,29 +693,32 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static bool IndexHandles(
             List<DxfBlockTableRecord> blocks,
-            out Dictionary<string, DxfEntity> byHandle,
+            out Dictionary<string, DxfItem> byHandle,
             out Dictionary<string, DxfBlockTableRecord> blockByHandle,
             Func<bool> stop = null,
             int size = 0
         )
         {
-            byHandle = new Dictionary<string, DxfEntity>(size, StringComparer.OrdinalIgnoreCase);
+            byHandle = new Dictionary<string, DxfItem>(size, StringComparer.OrdinalIgnoreCase);
             blockByHandle = new Dictionary<string, DxfBlockTableRecord>(size, StringComparer.OrdinalIgnoreCase);
             int met = 0;
 
             foreach (DxfBlockTableRecord block in blocks)
             {
-                foreach (DxfEntity entity in block)
+                // The entities as the walk of the block gives them, each by its record.
+                foreach (DxfItem item in block.WalkedItems(out _, out _, out _))
                 {
                     if (stop != null && (++met & 4095) == 0 && stop())
                     {
                         return false;
                     }
 
-                    if (!string.IsNullOrEmpty(entity.Handle) && !byHandle.ContainsKey(entity.Handle))
+                    string handle = item.IsRemoved ? null : item.Handle;
+
+                    if (!string.IsNullOrEmpty(handle) && !byHandle.ContainsKey(handle))
                     {
-                        byHandle[entity.Handle] = entity;
-                        blockByHandle[entity.Handle] = block;
+                        byHandle[handle] = item;
+                        blockByHandle[handle] = block;
                     }
                 }
             }

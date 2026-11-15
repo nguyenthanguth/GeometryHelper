@@ -6,6 +6,29 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** A layer switched off in a drawing of 1 000 000 entities is shown in 36 ms where it took 96 (.NET 8) and in 78 ms where it took 177
+(.NET Framework 4.8; best of eight, alternated with the older build, three rounds): the entities of a third of the drawing, 333 000, were each made of their
+record, drawn and found to have nothing to draw. The display patch now takes the run of an entity that read the layer switched off and no
+other, which draws nothing now, as an empty run of the same layer, in the one pass that copies the runs between those drawn again (the handle of
+a run is not read, nor the insertion points of one that has none), and draws again only the runs that read another layer besides, those an
+edit names and those that read what these drew. A bit of the layers of the runs that the layers beyond the 63rd share hides a run only where
+every layer of the bit is off. The box of the list, found again from every item where more than 64 runs were dropped, is found in pieces on
+several threads for a list of more than 131 072 items, the fold of boxes giving the same box in any order. The lists, their boxes, the
+insertion points and the pixels are the same: 167 AutoCAD samples (cold, after a MOVE, an ERASE, a layer off and on, a REGEN and the
+layouts), item for item and field for field under both runtimes, and the pixels of the samples in two views, plain, selected and
+highlighted. The layer switched on, which draws a third of the entities again, the cold display and a REGEN are as they were.
+**CHANGED.** The objects of a drawing of 1 000 000 entities take 17 MB less: an entity as the file was read (`DxfItem`) is 96 bytes where it was 104,
+its three flags (removed, hidden, in paper space) sharing the word of its count of records, and a polyline holds one reference to what it was read by,
+its vertices, its normal and its places, where its eight fields took 56 bytes of every one (200 000 of them in this drawing: 8 MB of the 17);
+the heap of the displayed drawing is 610 MB where 627 (.NET 8; 618 where 635 under .NET Framework 4.8). The index of handles of a drawing read
+ahead for an undo holds the record of each entity and no object made for it (a million of them, of the 520 MB a drawing read and indexed
+held, some 45 MB of them): after a MOVE of one line, with the drawings of the undo and the redo read ahead, the heap is 1 235 MB where 1 357, and three moves with
+their undos and redos allocate 6.1 GB where 6.5; an entity is made of its record when one is asked for by its handle, as before. Open, cold
+display and REGEN are as they were (best of three alternated runs: open 473 ms where 484, cold display 2.1 s both, .NET 8). No public signature changed.
+**CHANGED.** The reader makes a closed polyline of four vertices from its bytes through fewer lists: the vertices it read are kept as they are
+where none lies on the one before, not copied twice, and the normals of the edges are made by a loop where a closure and a converted list were
+(1 040 bytes allocated a read where 1 408 on .NET Framework 4.8; 839 MB where 915 for the cold display of 1 000 000 entities, .NET 8). The shape
+is the same to the bit.
 **FIXED.** A text set in the last cell of a table could be written into the table's own groups. The last cell of a table ends where the
 table's own groups begin, which the flags it holds decide (an override its flags give it is its own, the same override of the table's is
 not), and the library kept that place from the first reading of the record; an edit of the cell that changed its flags left the place

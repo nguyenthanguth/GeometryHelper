@@ -1759,6 +1759,7 @@ namespace GeometryHelper.Dxf
                         closed,
                         flat,
                         normal,
+                        false,
                         out object shape,
                         ref _openedLoops
                     )
@@ -1774,6 +1775,8 @@ namespace GeometryHelper.Dxf
             /// <summary>
             /// The shape <see cref="Chain"/> makes of the vertices, the tolerance and what a typed conversion asks for given;
             /// false where fewer than two of the vertices are distinct; <paramref name="opened"/> counts up the loops made an open chain, as they are made.
+            /// Where <paramref name="owned"/> the two lists are the call's own, and are the vertices kept where no vertex lies on the one before it,
+            /// changed as the shape is made, where they would be copied.
             /// </summary>
             private static bool TryChain(
                 Tolerance tolerance,
@@ -1784,25 +1787,37 @@ namespace GeometryHelper.Dxf
                 bool closed,
                 bool flat,
                 GeoVector3 normal,
+                bool owned,
                 out object shape,
                 ref int opened
             )
             {
                 shape = null;
                 closed |= loopAsked == true;
-                var kept = new List<GeoPoint3>(points.Count);
-                var keptBulges = new List<double>(points.Count);
+                List<GeoPoint3> kept;
+                List<double> keptBulges;
 
-                for (int i = 0; i < points.Count; i++)
+                if (owned && !HasRepeat(points, tolerance))
                 {
-                    if (kept.Count > 0 && kept[kept.Count - 1].IsEqualTo(points[i], tolerance))
-                    {
-                        keptBulges[keptBulges.Count - 1] = bulges[i];
-                        continue;
-                    }
+                    kept = points;
+                    keptBulges = bulges;
+                }
+                else
+                {
+                    kept = new List<GeoPoint3>(points.Count);
+                    keptBulges = new List<double>(points.Count);
 
-                    kept.Add(points[i]);
-                    keptBulges.Add(bulges[i]);
+                    for (int i = 0; i < points.Count; i++)
+                    {
+                        if (kept.Count > 0 && kept[kept.Count - 1].IsEqualTo(points[i], tolerance))
+                        {
+                            keptBulges[keptBulges.Count - 1] = bulges[i];
+                            continue;
+                        }
+
+                        kept.Add(points[i]);
+                        keptBulges.Add(bulges[i]);
+                    }
                 }
 
                 if (closed)
@@ -1842,9 +1857,13 @@ namespace GeometryHelper.Dxf
                 }
 
                 bool arcs = keptBulges.Exists(b => b != 0.0);
-                var normals = keptBulges.ConvertAll(b =>
-                    b != 0.0 ? (flat ? new GeoVector3(0.0, 0.0, 1.0) : normal) : default(GeoVector3)
-                );
+                GeoVector3 bulged = flat ? new GeoVector3(0.0, 0.0, 1.0) : normal;
+                var normals = new List<GeoVector3>(keptBulges.Count);
+
+                foreach (double bulge in keptBulges)
+                {
+                    normals.Add(bulge != 0.0 ? bulged : default);
+                }
 
                 if (
                     closed
@@ -1898,6 +1917,20 @@ namespace GeometryHelper.Dxf
                     ? (object)new GeoPolylineArc3(kept, keptBulges, normals, tolerance)
                     : new GeoPolyline3(kept.ToArray(), true);
                 return true;
+            }
+
+            /// <summary>Whether a vertex lies within the point tolerance of the one before it.</summary>
+            private static bool HasRepeat(List<GeoPoint3> points, Tolerance tolerance)
+            {
+                for (int i = 1; i < points.Count; i++)
+                {
+                    if (points[i - 1].IsEqualTo(points[i], tolerance))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
             }
 
             /// <summary>

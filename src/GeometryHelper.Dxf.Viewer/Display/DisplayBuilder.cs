@@ -966,17 +966,15 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 foreach (string handle in handles)
                 {
-                    if (!_document.TryPeekKept(handle, out DxfEntity named))
+                    if (!_document.TryPeekKept(handle, out DxfItem item))
                     {
                         return false;
                     }
 
-                    if (named == null)
+                    if (item == null)
                     {
                         continue;
                     }
-
-                    DxfItem item = named.Item;
 
                     if (DxfBlockTableRecord.ListsLinkedColumns(item))
                     {
@@ -1056,9 +1054,15 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
+            // An entity of a layer that is switched off or frozen draws nothing: a run that read that layer alone, and no other,
+            // is made again as an empty run, as Draw would make it, by the copy of the runs between the runs drawn again, and
+            // is not among them (unless an edit names it).
+            ulong hidden = 0;
+
             if (layers != 0)
             {
-                older.AddRunsReading(layers, dirty);
+                hidden = older.LayerMaskWhere(name => !IsLayerVisible(name), layers);
+                older.AddRunsReading(layers, dirty, hidden);
             }
 
             // The runs that read a layer come in order, and are most of them where a layer is switched.
@@ -1082,10 +1086,10 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 before = run;
-                list.CopyRuns(older, taken, run - taken);
+                list.CopyRunsHiding(older, taken, run - taken, hidden);
 
                 // Drawn again, or gone: its points are those it keeps now, none for an entity erased.
-                list.DropInsertions(older.RunAt(run));
+                list.DropInsertions(older, run);
                 list.NoteDropped(older, run);
 
                 if (!goneRuns.Contains(run))
@@ -1107,7 +1111,7 @@ namespace GeometryHelper.Dxf.Viewer
                 taken = run + 1;
             }
 
-            list.CopyRuns(older, taken, older.RunCount - taken);
+            list.CopyRunsHiding(older, taken, older.RunCount - taken, hidden);
 
             // The entities added stand last, in the order they were added.
             for (int i = head; i < entities.Count; i++)
