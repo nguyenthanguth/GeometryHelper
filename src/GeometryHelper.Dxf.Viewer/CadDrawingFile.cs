@@ -12,7 +12,7 @@ namespace GeometryHelper.Dxf.Viewer
     /// The drawing files the presenter opens, attaches and inserts: a DWG, read by <see cref="DwgReader"/>, of AutoCAD 2000
     /// to 2018, and a DXF. A file is read as a DWG where its first bytes say so ("AC1032" for AutoCAD 2018), whatever its
     /// name; a drawing saved to a name ending in .dwg is written by <see cref="DwgWriter"/> as a DWG of AutoCAD 2018, or
-    /// of the older version asked for (2013, 2010 or 2004), any other name as a DXF.
+    /// of the older version asked for (2013, 2010, 2004 or 2000), any other name as a DXF.
     /// </summary>
     public static class CadDrawingFile
     {
@@ -171,7 +171,7 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new NotSupportedException(
                     "A DWG is written as AutoCAD 2018 ("
                         + DwgWriter.DefaultVersion
-                        + "), 2013 (AC1027), 2010 (AC1024) or 2004 (AC1018) only, not as "
+                        + "), 2013 (AC1027), 2010 (AC1024), 2004 (AC1018) or 2000 (AC1015) only, not as "
                         + version
                         + "."
                 );

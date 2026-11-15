@@ -374,8 +374,8 @@ where AC1018 took 747 to 796 ms in the same runs. A small drawing of a few hundr
 [`DwgWriter`](xref:GeometryHelper.Dwg.DwgWriter)`.Write` writes a `DxfDatabase`, with every record it holds, or the
 shapes of a `DxfDocument`, as the drawing [`DxfWriter`](xref:GeometryHelper.Dxf.DxfWriter) makes of them, to a path or a
 stream. The file is of AC1032, the version AutoCAD 2018 and later save in, unless a version is given: AC1027 (AutoCAD 2013), AC1024
-(2010) and AC1018 (2004) are written too, and another version is refused with a `NotSupportedException` that names it
-(AC1015 and AC1021 wait for a container of their own). A drawing of a later version is made into the DXF of the version first,
+(2010), AC1018 (2004) and AC1015 (2000) are written too, and another version is refused with a `NotSupportedException` that
+names it (AC1021 waits for a container of its own). A drawing of a later version is made into the DXF of the version first,
 as `DxfDatabase.Save(path, version)` gives it, and what AutoCAD keeps in such a file in its own way is put in as AutoCAD puts
 it: the multileaders and their styles with the extended data `ACAD_MLEADERVER` (before R2010), the texts of the
 proxy graphics of a table or a multileader in 8 bits (type 11) and not in 16 (type 38) in R2004, the fields in the form before
@@ -426,6 +426,29 @@ and the classes the two that decided it (the objects, their map and the rest wer
 drawing opens, whatever release the header names. The writer now gives both as AutoCAD does (the reader looks for the long where the
 release is past 3), and the 36 drawings of the tests and of the samples written as R2013 open, with `AUDIT` finding 0 errors in
 29 of them and in the others the 24, 24, 2, 2, 32, 32 and 10 of their originals.
+
+The file of AutoCAD 2000 (AC1015) is not laid out in pages as the later versions are: a header of 0x61 bytes (the version, the
+maintenance release 15, the place of the preview, the code page, six locators of a section's number, place and size, a check sum
+of the header with the mask of six locators, and a sentinel), then the auxiliary header, the preview, the header variables, the
+classes (no long of 0 after the size, no 8 bytes after the end sentinel), the objects, the object map with the places of the objects
+as places in the file, and the template. AutoCAD 2021 writes no free-space section in it and neither does the writer. The objects are
+those of R2004 in the layout before it (the colours of an entity as an index, the plot settings with the strings of R2000, no
+count of the vertices or entities an owner holds but the first and the last), and the writer found six places where AutoCAD's own
+R2000 object differs from what the later versions' code made, each by writing the DXF the reader makes of AutoCAD's files of R2000
+(`curves`, `polys`, `text` and the other test drawings) and comparing object by object with AutoCAD's bytes: an entity holds the
+links to the entity before and after it in its owner's list, left out where they are the handles one before and one after (a bit
+of the entity says so: 0x78 is the first line of the model space of `curves`, with none before it and 0x79 after it, 0x79 and 0x7A
+have none), a vertex is linked to the vertices around it and the SEQEND, which is in no list, has none; a table record holds the bit
+that says it is referenced, set on every record AutoCAD writes; a dimension style holds the bit after its lineweights; a layout lists
+the handles of its base UCS and its named UCS (null); an MTEXT holds the bit after its line spacing factor. The objects written so
+equal AutoCAD's own bytes (the table records, the dimension style, the layouts, the vertices and the SEQEND, the LINE, CIRCLE,
+ELLIPSE, SPLINE, RAY and XLINE, 2 of 3 MTEXT objects of `text`), but where AutoCAD kept an extrusion (0, 0, 1) in full on an
+entity a probe had set it on (it is 6 bits longer: the ARC, SOLID, TRACE and TEXT of the test drawings) and the dictionaries that
+list the objects the writer leaves out (the materials, the visual styles and the table styles are not written before R2010).
+The 167 drawings of AutoCAD 2021's samples and of the tests, each written as R2000 and opened in AutoCAD 2021 with `AUDIT`: all 167
+open, 160 with 0 errors, the other 7 with the errors of their originals (24, 24, 2, 2, 32, 32 and 10), and the 4 tables that had 6
+each have none. A text beyond the code page is written as its UTF-8 bytes in R2000 as in R2004 (AutoCAD's own file keeps
+`\U+1EBF` there), a fault of both that is left.
 
 | Part | Written |
 |---|---|

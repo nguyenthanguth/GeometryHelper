@@ -6,6 +6,22 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DwgWriter` writes AutoCAD 2000 (AC1015): `DwgWriter.Write(database, path, "AC1015")`. The file is the one AutoCAD 2000 has and not the pages of
+the later versions: a header of 0x61 bytes with six locators, the auxiliary header, the preview, the header variables, the classes, the objects, the
+object map with the places of the objects as places in the file, and the template, with the maintenance release 15 and no free-space section. A
+drawing of a later version is made into the DXF of R2000 first, as the later versions are, so that what R2000 cannot hold is left out or replaced as
+`DxfDatabase.Save(path, "AC1015")` does. The presenter's Save As lists "AutoCAD 2000/LT2000 Drawing (*.dwg)" after the 2004 type
+(`CadExportJob.DwgSaveTypes`), `SAVEAS` with FILEDIA 0 takes 2000 (`2000`, `LT2000`, `2000(LT2000)`; R14 and 2007 are still refused, "... is not written: a
+DWG is saved as AutoCAD 2018, 2013, 2010, 2004 or 2000 (2018, 2013, 2010, 2004, 2000)."), and Save (QSAVE) writes the DWG of the version last chosen again.
+Its objects are laid out as AutoCAD 2000's own, found by writing the DXF the reader makes of AutoCAD's files of R2000 and comparing object by object with
+AutoCAD's bytes: an entity holds the links to the entity before and after it in its owner's list (left out where they are the handles one before and one
+after), the vertices of a polyline are linked to each other and its SEQEND to none, a table record holds the bit that says it is referenced, a dimension style
+the bit after its lineweights, a layout the handles of its base and named UCS, and an MTEXT the bit after its line spacing factor. The table records,
+dimension styles, layouts, vertices, SEQEND, lines, circles, ellipses and splines of the test drawings come out as AutoCAD's own bytes. The 167 drawings of
+AutoCAD 2021's samples and of the tests, each written as AC1015 and opened in AutoCAD 2021 with `AUDIT`: all 167 open, 160 at 0 errors, the other 7
+with the errors of their originals (126 of the 150 the originals have in all), and the 4 tables that had 6 each have none. Left: a text beyond the code
+page is written as its UTF-8 bytes in R2000 as it is in R2004, where AutoCAD keeps `\U+1EBF`.
+
 **FIXED.** A drawing saved as a DXF of R2000, R2004 or R2007 (`DxfDatabase.Save(path, version)`) lacked three things AutoCAD 2021 writes
 there, which the DWG writer had learned first. The 3 multileaders and the 2 multileader styles of a sample drawing of AutoCAD's, saved from
 R2018, carried no extended data, where AutoCAD's own DXF of the drawing in each of the three versions has `ACAD_MLEADERVER` (version 2) on
@@ -138,7 +154,7 @@ FILEDIA 0 takes 2013, 2010 and 2004 (R14, 2000 and 2007 are refused, "AutoCAD 20
 as AutoCAD 2018, 2013, 2010 or 2004 (2018, 2013, 2010, 2004)."), and Save (QSAVE) writes the DWG of the version last chosen again. The 167
 drawings of AutoCAD 2021's samples and of the tests, each written as AC1018, AC1024 and AC1027 and opened in AutoCAD 2021 with `AUDIT`: all
 167 open in every version; 160 of 167 at 0 errors in each (the originals: 156), the other 7 with the errors of their originals (126 of the
-150 the originals have in all), and the 4 tables that had 6 each have none. R2000 (AC1015) and R2007 (AC1021) are not written yet.
+150 the originals have in all), and the 4 tables that had 6 each have none. R2000 (AC1015) is written since (next entry); R2007 (AC1021) is not written yet.
 **FIXED.** A DWG of R2010 that held a table, a multileader, a wipeout or an image made AutoCAD 2021's `accoreconsole` take all the memory it
 could get (66 GB and 86 GB within 240 s on two of the corpus files, the machine frozen) or refuse the file (`ErrorStatus` 53): the file named
 no maintenance release, where AutoCAD's own names 226 for R2010 (104 for R2004, 125 for R2013), and its header and classes lacked the long

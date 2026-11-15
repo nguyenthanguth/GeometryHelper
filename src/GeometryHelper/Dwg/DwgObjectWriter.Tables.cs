@@ -61,7 +61,9 @@ namespace GeometryHelper.Dwg
             }
             else
             {
-                _data.Bit(false);
+                // The bit that says the record is referenced: AutoCAD 2021 sets it on every table record of an R2000 file it writes,
+                // whether anything refers to it or not; a file of R2004 is written with it clear, as before.
+                _data.Bit(_version == 1015);
                 _data.BitShort(0);
                 _data.Bit((flags & 16) != 0);
             }
@@ -569,9 +571,9 @@ namespace GeometryHelper.Dwg
                 }
             }
 
-            if (_version >= 1018)
+            if (_version >= 1015)
             {
-                // A bit AutoCAD writes after the lineweights from R2004 on, which the specification does not name.
+                // A bit AutoCAD writes after the lineweights from R2000 on, which the specification does not name.
                 _data.Bit(false);
             }
 

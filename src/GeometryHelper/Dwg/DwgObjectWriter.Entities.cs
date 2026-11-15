@@ -532,9 +532,11 @@ namespace GeometryHelper.Dwg
             _data.BitDouble(text.Double(44, 1.0));
             H(5, _drawing.HandleOf("STYLE", text.Text(7, "Standard")));
 
+            // The bit the specification does not name, after the line spacing factor from R2000 on.
+            _data.Bit(false);
+
             if (R2004Plus)
             {
-                _data.Bit(false);
                 int fill = text.Int(90);
                 _data.BitLong(fill);
 

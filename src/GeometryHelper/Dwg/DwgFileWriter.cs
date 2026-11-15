@@ -14,8 +14,8 @@ namespace GeometryHelper.Dwg
     /// </summary>
     internal sealed class DwgFileWriter
     {
-        /// <summary>The versions written: AC1018 (R2004), AC1024 (R2010), AC1027 (R2013) and AC1032 (R2018).</summary>
-        public static readonly string[] Versions = { "AC1018", "AC1024", "AC1027", "AC1032" };
+        /// <summary>The versions written: AC1015 (R2000), AC1018 (R2004), AC1024 (R2010), AC1027 (R2013) and AC1032 (R2018).</summary>
+        public static readonly string[] Versions = { "AC1015", "AC1018", "AC1024", "AC1027", "AC1032" };
 
         private static readonly byte[] HeaderStart =
         {
@@ -408,10 +408,17 @@ namespace GeometryHelper.Dwg
                 : _number == 1027 ? 125
                 : _number == 1024 ? 226
                 : _number == 1018 ? 104
+                : _number == 1015 ? 15
                 : 0;
             _maintenance = maintenance;
-            var container = new DwgContainerWriter(_version, maintenance, codePage);
             byte[] objectBytes = objects.ToArray();
+
+            if (_number == 1015)
+            {
+                return File2000(objectBytes, map, codePage);
+            }
+
+            var container = new DwgContainerWriter(_version, maintenance, codePage);
             byte[] store = DwgDataStoreWriter.Write(
                 _drawing.AcisData.FindAll(data => _written.Contains(data.Key) && IsAcis(_drawing.Find(data.Key)))
             );
@@ -452,6 +459,109 @@ namespace GeometryHelper.Dwg
             container.Add("AcDb:AuxHeader", AuxHeader(maintenance), 2, 0x7400, true);
             container.Add("AcDb:Header", Header(), 1, 0x7400, true);
             return container.ToArray();
+        }
+
+        /// <summary>
+        /// The file of AutoCAD 2000: no pages, the sections one after the other as the file header's locators name them. The
+        /// file header (0x61 bytes: the version, the place of the preview, the code page, six locators of a section's number,
+        /// place and size, a check sum and a sentinel), the auxiliary header, the preview, the header variables, the classes,
+        /// the objects with the places of the object map as places in the file, the object map and the template; no free
+        /// space, as AutoCAD writes none.
+        /// </summary>
+        private byte[] File2000(byte[] objects, List<KeyValuePair<ulong, long>> map, int codePage)
+        {
+            byte[] auxiliary = AuxHeader(_maintenance);
+            byte[] picture = _drawing.Thumbnail;
+            long auxiliaryAt = 0x61;
+            long previewAt = auxiliaryAt + auxiliary.Length;
+            byte[] preview = picture != null ? DwgPreview.Build(picture, previewAt) : DwgPreview.BuildEmpty(previewAt);
+            long variablesAt = previewAt + preview.Length;
+            byte[] variables = Header();
+            long classesAt = variablesAt + variables.Length;
+            byte[] classes = Classes();
+            long objectsAt = classesAt + classes.Length;
+            var places = new List<KeyValuePair<ulong, long>>(map.Count);
+
+            foreach (KeyValuePair<ulong, long> one in map)
+            {
+                places.Add(new KeyValuePair<ulong, long>(one.Key, objectsAt + one.Value));
+            }
+
+            long mapAt = objectsAt + objects.Length;
+            byte[] objectMap = ObjectMap(places);
+            long templateAt = mapAt + objectMap.Length;
+            byte[] template = Template();
+
+            var head = new byte[0x61];
+            Encoding.ASCII.GetBytes(_version).CopyTo(head, 0);
+            head[0x0B] = (byte)_maintenance;
+            head[0x0C] = 1;
+            Long(head, 0x0D, (int)previewAt);
+            head[0x11] = (byte)DwgContainerWriter.DwgVersionNumber(_version);
+            head[0x12] = (byte)_maintenance;
+            head[0x13] = (byte)codePage;
+            head[0x14] = (byte)(codePage >> 8);
+            Long(head, 0x15, 6);
+            long[][] locators =
+            {
+                new[] { 0L, variablesAt, variables.Length },
+                new[] { 1L, classesAt, classes.Length },
+                new[] { 2L, mapAt, objectMap.Length },
+                new[] { 3L, 0L, 0L },
+                new[] { 4L, templateAt, template.Length },
+                new[] { 5L, auxiliaryAt, auxiliary.Length },
+            };
+
+            for (int i = 0; i < locators.Length; i++)
+            {
+                int at = 0x19 + 9 * i;
+                head[at] = (byte)locators[i][0];
+                Long(head, at + 1, (int)locators[i][1]);
+                Long(head, at + 5, (int)locators[i][2]);
+            }
+
+            // The check sum of the header up to it, with the mask of six locators (0x8461), then the sentinel.
+            int crc = DwgCrc.Of(head, 0, 0x4F, 0) ^ 0x8461;
+            head[0x4F] = (byte)crc;
+            head[0x50] = (byte)(crc >> 8);
+            new byte[]
+            {
+                0x95,
+                0xA0,
+                0x4E,
+                0x28,
+                0x99,
+                0x82,
+                0x1A,
+                0xE5,
+                0x5E,
+                0x41,
+                0xE0,
+                0x5F,
+                0x9D,
+                0x3A,
+                0x4D,
+                0x00,
+            }.CopyTo(head, 0x51);
+
+            var file = new MemoryStream();
+
+            foreach (
+                byte[] part in new[] { head, auxiliary, preview, variables, classes, objects, objectMap, template }
+            )
+            {
+                file.Write(part, 0, part.Length);
+            }
+
+            return file.ToArray();
+        }
+
+        private static void Long(byte[] bytes, int at, int value)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                bytes[at + i] = (byte)(value >> (8 * i));
+            }
         }
 
         /// <summary>Whether a record is a REGION, a 3DSOLID or a BODY, whose ACIS data the data store holds.</summary>
@@ -590,7 +700,7 @@ namespace GeometryHelper.Dwg
                 data.BitLong(highest);
                 data.Bit(true);
             }
-            else
+            else if (_number >= 1018)
             {
                 data.BitShort(highest);
                 data.RawChar(0);
@@ -609,17 +719,21 @@ namespace GeometryHelper.Dwg
                 Text(data, strings, name);
                 data.Bit(one.Int(280) != 0);
                 data.BitShort(one.Int(281) != 0 ? 0x1F2 : 0x1F3);
-                _classCounts.TryGetValue(name, out int count);
-                data.BitLong(count);
-                int[] release = ClassRelease(name);
-                data.BitLong(release[0]);
-                data.BitLong(release[1]);
-                data.BitLong(0);
-                data.BitLong(0);
+
+                if (_number >= 1018)
+                {
+                    _classCounts.TryGetValue(name, out int count);
+                    data.BitLong(count);
+                    int[] release = ClassRelease(name);
+                    data.BitLong(release[0]);
+                    data.BitLong(release[1]);
+                    data.BitLong(0);
+                    data.BitLong(0);
+                }
             }
 
             byte[] bytes = r2007 ? Merged(data, strings, null) : Padded(data);
-            return Framed(ClassesStart, bytes, ClassesEnd, true);
+            return Framed(ClassesStart, bytes, ClassesEnd, _number >= 1018);
         }
 
         /// <summary>
@@ -990,8 +1104,8 @@ namespace GeometryHelper.Dwg
                 }
             }
 
-            // What AutoCAD writes after the last value the specification names.
-            if (_number >= 1018)
+            // What AutoCAD writes after the last value the specification names, in a file of R2000 as in the later ones.
+            if (_number >= 1015)
             {
                 data.BitShort(-1);
                 data.BitShort(-1);

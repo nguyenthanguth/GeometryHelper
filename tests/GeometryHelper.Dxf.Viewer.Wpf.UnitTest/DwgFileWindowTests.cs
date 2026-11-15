@@ -35,6 +35,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             "AutoCAD 2013/LT2013 Drawing (*.dwg)",
             "AutoCAD 2010/LT2010 Drawing (*.dwg)",
             "AutoCAD 2004/LT2004 Drawing (*.dwg)",
+            "AutoCAD 2000/LT2000 Drawing (*.dwg)",
             "AutoCAD 2018 DXF (*.dxf)",
             "AutoCAD 2013/LT2013 DXF (*.dxf)",
             "AutoCAD 2010/LT2010 DXF (*.dxf)",
