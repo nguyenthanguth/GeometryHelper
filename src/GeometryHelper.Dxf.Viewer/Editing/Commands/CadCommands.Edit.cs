@@ -177,8 +177,14 @@ namespace GeometryHelper.Dxf.Viewer
 
             double angle;
 
-            // The objects turned about the base point by an angle, as they are turned once it is given.
-            GeoTransform3 Turned(double by) => GeoTransform3.RotationAxis(P3(center), Up, by);
+            // The objects turned about the base point by an angle, as they are turned once it is given: the angle taken from nought
+            // up to a whole turn first, as AutoCAD 2021 takes it (a turn of 360 degrees is none, -90 is 270), which it writes into
+            // a hatch's pattern lines as it does.
+            GeoTransform3 Turned(double by)
+            {
+                double turn = by % (2.0 * Math.PI);
+                return GeoTransform3.RotationAxis(P3(center), Up, turn < 0.0 ? turn + 2.0 * Math.PI : turn);
+            }
 
             while (true)
             {
@@ -460,8 +466,12 @@ namespace GeometryHelper.Dxf.Viewer
             CadDocument document = c.Document;
             Tolerance tolerance = c.Session.Tolerance;
             bool mirrtext = c.Database.Mirrtext;
+
+            // MIRRHATCH 0, AutoCAD's default, keeps the pattern of a hatch as it was; 1 mirrors it with the rest.
+            bool mirrhatch = c.Remembered("mirrhatch", 0.0) >= 0.5;
             Func<DxfEntity, ReadableMirror> readable = entity =>
-                entity is DxfDimension dimension ? ReadableDimension(dimension, mirror, tolerance)
+                entity is DxfHatch hatch ? ReadableHatch(hatch, mirror, mirrhatch)
+                : entity is DxfDimension dimension ? ReadableDimension(dimension, mirror, tolerance)
                 : entity is DxfMLeader mleader ? MLeaderMirror(document, mleader, mirror, mirrtext, tolerance)
                 : entity is DxfBlockReference insert ? InsertMirror(document, insert, mirror, mirrtext, tolerance)
                 : entity is DxfTolerance ? (mirrtext ? null : ReadableTolerance(mirror))

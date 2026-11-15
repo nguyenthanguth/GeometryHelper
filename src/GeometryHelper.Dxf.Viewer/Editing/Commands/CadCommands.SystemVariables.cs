@@ -129,6 +129,18 @@ namespace GeometryHelper.Dxf.Viewer
                 Flag("MIRRTEXT", s => s.Document.Database.Mirrtext, (c, v) => c.Database.Mirrtext = v, "$MIRRTEXT")
             );
 
+            // Whether MIRROR mirrors the pattern of a hatch (1) or keeps it as it was (0), kept by the session.
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "MIRRHATCH",
+                    false,
+                    0,
+                    1,
+                    s => (int)Kept(s, "mirrhatch", 0.0),
+                    (c, v) => c.Remember("mirrhatch", v)
+                )
+            );
+
             // Fillets, chamfers and offsets.
             registry.AddVariable(
                 CadSystemVariable.Number(

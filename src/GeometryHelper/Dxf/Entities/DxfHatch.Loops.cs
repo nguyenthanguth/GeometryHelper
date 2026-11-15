@@ -1454,6 +1454,7 @@ namespace GeometryHelper.Dxf
         )
         {
             var moved = new List<KeyValuePair<int, string>>(groups.Count);
+            bool reflects = ocs.Reflects;
             LoopData loop = LoopData.Read(groups);
             int body = LoopData.Body(groups);
 
@@ -1473,6 +1474,11 @@ namespace GeometryHelper.Dxf
                         );
                         moved[i] = G(10, p.X);
                         moved[i + 1] = G(20, p.Y);
+                    }
+                    else if (reflects && moved[i].Key == 42)
+                    {
+                        // A mirror turns each arc segment the other way round: the sign of its bulge, nought left as written.
+                        moved[i] = G(42, 0.0 - Num(moved[i].Value, 0.0));
                     }
                 }
             }

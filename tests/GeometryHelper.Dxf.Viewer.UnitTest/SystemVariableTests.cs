@@ -268,6 +268,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     "LWDEFAULT",
                     "LWDISPLAY",
                     "LWUNITS",
+                    "MIRRHATCH",
                     "MIRRTEXT",
                     "MLEADERSCALE",
                     "MSLTSCALE",

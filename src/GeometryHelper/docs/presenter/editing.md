@@ -191,6 +191,13 @@ empty is copied with an empty one; one whose dictionary holds only other kinds o
 copied with what is written for those. The copy of an annotative hatch holds a view context, its contexts move with it, and a
 hatch moved in place holds the view context of the place it stood (see "Annotative texts" in the guide to text).
 
+MIRROR keeps the normal of a hatch and reflects its loops and seed points in its plane, as AutoCAD 2021 does. MIRRHATCH, kept
+by the session and 0 as AutoCAD's default is, leaves the lines of the pattern as they were (base, angle and offset, in the record
+and in the contexts of the scales); at 1 they are reflected with the rest (a line at 30 degrees across a line at 45 degrees is a
+line at 60). The direction of the pattern of a context is reflected either way. ROTATE takes its angle from nought up to a whole
+turn, so a turn of 360 degrees touches nothing and the line of a pattern that stood at 30 degrees, turned -30, is written at 360.
+-OBJECTSCALE Add on a hatch writes its view context from its default context as it stands.
+
 At MIRRTEXT 1 an MTEXT along x mirrored across a level line is of normal (0, 0, -1) and is written with no direction
 (group 11), as AutoCAD writes it: a record of no direction reads along the world's x axis put into its plane, here
 (1, 0, 0) turned 180 degrees. A multileader's sizes, the height of its words, its arrows and its landing gap, are kept to

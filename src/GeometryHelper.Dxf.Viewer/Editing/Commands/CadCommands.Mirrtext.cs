@@ -89,6 +89,23 @@ namespace GeometryHelper.Dxf.Viewer
             });
 
         /// <summary>
+        /// How MIRROR moves a hatch under MIRRHATCH, as AutoCAD 2021 moves one (probed in its console, mirror-6 GHM6): its loops and
+        /// seed points reflected in its plane, its normal kept. At 0, AutoCAD's default, the pattern is not mirrored: the lines of
+        /// the pattern, in the record and in the contexts of its scales, stay as they were (the direction of the pattern of a
+        /// context is reflected all the same). At 1 the lines are reflected with the rest, as <c>TransformBy</c> reflects them.
+        /// </summary>
+        private static ReadableMirror ReadableHatch(DxfHatch hatch, GeoTransform3 mirror, bool mirrorPattern)
+        {
+            if (mirrorPattern)
+            {
+                return null;
+            }
+
+            object saved = hatch.SavePattern();
+            return new ReadableMirror(mirror, null, null, then: moved => ((DxfHatch)moved).RestorePattern(saved));
+        }
+
+        /// <summary>
         /// How MIRROR with MIRRTEXT 1 mirrors a TEXT or attribute definition, or the attributes of an INSERT, as AutoCAD 2021
         /// mirrors them (probed in its console, mirror-mleader GHMM1): in their plane, their normal still the drawing's, their
         /// points mirrored, turned to their mirrored upright less a quarter turn, and written backwards, or forwards again
