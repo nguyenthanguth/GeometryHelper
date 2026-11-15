@@ -150,9 +150,13 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         stem elements stopped on the second's mitred element; closed multilines crossed as the run of their segments
         (square crosses 123 -> 3 of 369); cuts at concave corners and MoveVertices shortening rules (staircase 56 -> 0).
         DECIDED: an edge through a closed MLINE's vertex is not trimmed into AutoCAD's duplicated-vertex open MLINE
-  - [ ] (mline8, running) MLINE follow-ups 7: CJ with two joinable corners (117 of 2 232, AutoCAD half-edits); which of two crossings a
-        closed cross breaks (~200 of 900); tees with stems along a segment and stops at non-right corners; 8 of 700
-        moves; OC/MC stray pieces (not copied) (S)
+  - [x] MLINE follow-ups 7 (mline8): on closed MLINEs arcs count the shorter way round from the start (closed crosses
+        198 -> 100 of 900, tees onto closed seconds 201 -> 176); CS and CA cut the shorter way round between the picks
+        whichever comes first (320 -> 57 of 700); MoveVertexAt on the last segment of a closed MLINE (17 -> 0)
+  - [ ] MLINE follow-ups 8: CA at mitred corners (57 of 700: the inner element's cut place); CJ at the pair (148 of 2 000:
+        B left whole, {} and {0,0} records, meetings past a vertex joined); oblique tees' stops at non-right corners
+        (185 of 1 000); "do not intersect" vs Invalid for stems 20 past a vertex; the triangle vertex 3 {0,0}; exact ties;
+        OC/MC stray pieces (not copied) (S)
   - [x] R2.2 HATCH completed (hatch2): -HATCH draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, Boundary
         set, Gap tolerance; Single color gradients (tint as AutoCAD, 45 pairs probed); plain HATCH behind its boundary
         (HPDRAWORDER 3); BOUNDARY refusing ellipse or spline areas; fixed an empty polyline kept by Retain boundary
@@ -817,7 +821,7 @@ the ones wanted.
 - [x] Dimension-word race (race1): CadDimensionWords measured with static fonts and folder that any document's Fonts
       setter overwrote while other tests ran; now each document's own fonts, measurements kept per font set: 3 of 4
       full Viewer runs failed before, 11 of 11 pass after; a repro test of two documents with different font folders
-- [ ] Wall-clock tests 2: UndoReadAheadSpeedTests (50 ms floor) and the ratio tests DisplayPatch, MTextDisplay, Xref
+- [ ] (tests2, running; also MTextLayoutTests' locked temp fonts file) Wall-clock tests 2: UndoReadAheadSpeedTests (50 ms floor) and the ratio tests DisplayPatch, MTextDisplay, Xref
       under heavier load; timing classes in a DisableParallelization collection in the core suite (S)
 - [x] Speed follow-ups 10 (speed11): the 1M MOVE slowdown was real (the patch looked up every handle's insertion point):
       MOVE + display 295 -> 165 ms (net8) / 540 -> 375 (net48); the look and hidden read in one cached walk, handles

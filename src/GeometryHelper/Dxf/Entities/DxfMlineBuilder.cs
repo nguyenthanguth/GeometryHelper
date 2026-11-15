@@ -230,7 +230,13 @@ namespace GeometryHelper.Dxf
         /// closed, cut from (100, 50) to (50, 100) across (100, 100), whose vertex (100, 100) goes to (90, 90), holds 0 and 50
         /// there for its first element where it held 50. The lists of the first segment and the last of a closed multiline,
         /// which join the end of its points to their start, get no nought: the triangle (0, 0), (100, 0), (50, 80) cut across
-        /// (50, 80), whose vertex (100, 0) goes to (90, 0), still holds 47.1699 there for its first element. A closed
+        /// (50, 80), whose vertex (100, 0) goes to (90, 0), still holds 47.1699 there for its first element; but an empty list
+        /// of the last segment (a cut that goes across it from the segment before) gets its nought when the move makes the
+        /// segment before whole (the square of 100 cut from (15, 0) to (15, 100), whose vertex (100, 100) goes to (108, 91),
+        /// holds 0 for both elements at (0, 100) where it held none). A stop that comes to lie at or past the end of a
+        /// segment of a closed multiline is left out, whether its list is odd or even (the six-sided staircase (0, 0), (100, 0),
+        /// (100, 50), (50, 50), (50, 100), (0, 100) cut from (75, 50) to (50, 92), whose vertex (50, 100) goes to (50, 90),
+        /// holds no stretch for the first element at (50, 50) where it held 42). A closed
         /// multiline whose move shortens a segment until a cut that reaches its end starts at the end leaves that stop out (the
         /// six-sided staircase (0, 0), (100, 0), (100, 50), (50, 50), (50, 100), (0, 100) cut across (0, 0) from (0, 10) to
         /// (10, 0), with (0, 0) moved to (0, 10), holds 0 and no longer 0 and 90 on its last segment), and the list that goes on
@@ -391,7 +397,8 @@ namespace GeometryHelper.Dxf
 
                     // On a closed multiline AutoCAD puts no nought in front of the list of the first segment or the last, the
                     // segments that join the end of the points to their start.
-                    bool noughtAllowed = !IsClosed || (i >= 1 && i <= segments - 2);
+                    bool noughtAllowed =
+                        !IsClosed || (i >= 1 && i <= segments - 2) || (i == segments - 1 && tail.Count == 0);
 
                     if (
                         noughtAllowed
@@ -407,13 +414,12 @@ namespace GeometryHelper.Dxf
                     }
 
                     // A last start that now lies at or past the end of the element draws nothing, and AutoCAD leaves it out; on a
-                    // closed multiline, a last stop that now lies at or past the end draws the element to the end, and it is left out
-                    // as well.
+                    // closed multiline, a last stop or start (odd list or even) that now lies at or past the end is left out as well.
                     if (
                         i < segments
                         && tail.Count > 0
                         && tail[tail.Count - 1] > 0.0
-                        && (tail.Count % 2 == 1 ? !IsClosed : IsClosed)
+                        && (tail.Count % 2 == 1 || IsClosed)
                     )
                     {
                         double lengthOfElement = ElementPoint(i, e)

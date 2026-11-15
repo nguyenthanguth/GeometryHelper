@@ -185,8 +185,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// on, but of every pair of segments whose lines meet on both (or past the start of a multiline's first segment or
         /// the end of its last: a closed multiline is taken as the run of its segments from the first to the last, as an open one
         /// is) the one whose meeting is nearest the two picks along the multilines, the distance along the first from its pick and
-        /// along the second from its pick added (a tie goes to the later pair). Two segments in a pair whose lines run parallel are
-        /// not a pair.
+        /// along the second from its pick added (a tie goes to the later pair, and to the earlier where either multiline is
+        /// closed). A closed multiline's distance along itself counts from its start the shorter way round (see
+        /// <see cref="Folded"/>): the rectangle (0, 0)-(200, 0)-(200, 100)-(0, 100) has the crossing of its left edge at (0, 50)
+        /// 550 along its 600, counted as 50. Two segments in a pair whose lines run parallel are not a pair.
         /// </summary>
         /// <param name="first">The first multiline.</param>
         /// <param name="firstPick">Where the first was picked.</param>
@@ -205,8 +207,8 @@ namespace GeometryHelper.Dxf.Viewer
         {
             firstSegment = 0;
             secondSegment = 0;
-            double firstArc = ArcAt(first, firstPick);
-            double secondArc = ArcAt(second, secondPick);
+            double firstArc = Folded(first, ArcAt(first, firstPick));
+            double secondArc = Folded(second, ArcAt(second, secondPick));
             bool found = false;
             bool refused = false;
             double best = 0.0;
@@ -235,10 +237,10 @@ namespace GeometryHelper.Dxf.Viewer
                     if (firstOn && secondOn)
                     {
                         double score =
-                            Math.Abs(firstArc - (ArcStart(first, i) + onFirst))
-                            + Math.Abs(secondArc - (ArcStart(second, j) + onSecond));
+                            Math.Abs(firstArc - Folded(first, ArcStart(first, i) + onFirst))
+                            + Math.Abs(secondArc - Folded(second, ArcStart(second, j) + onSecond));
 
-                        if (!found || score <= best + Tiny)
+                        if (!found || (first.IsClosed || second.IsClosed ? score < best - Tiny : score <= best + Tiny))
                         {
                             found = true;
                             best = score;
@@ -265,7 +267,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// Finds the pair of segments a tee is made at, as AutoCAD 2021 does (not the ones the picks lie on): of every pair of
         /// segments whose lines meet, with the stem met on a segment or run on past the free end of its first or last, and the
         /// second met on a segment or run on past its own free end, the one whose meeting is nearest the picks along the
-        /// multilines, the distance along the stem from its pick and along the second from its pick added. Of two pairs as
+        /// multilines, the distance along the stem from its pick and along the second from its pick added (a closed second's
+        /// distance along itself counted as <see cref="Folded"/> counts it). Of two pairs as
         /// near, where one meets the second on a segment and the other past its free end the one on the earlier segment of
         /// the second wins, else the one whose stem segment is farther from the stem's pick, then the one nearer along the
         /// stem, then the earlier (356 ties probed, 334 so). That pair alone says whether the tee is made: it is <see cref="PairKind.Found"/> where the
@@ -292,7 +295,7 @@ namespace GeometryHelper.Dxf.Viewer
             firstSegment = 0;
             secondSegment = 0;
             double firstArc = ArcAt(first, firstPick);
-            double secondArc = ArcAt(second, secondPick);
+            double secondArc = Folded(second, ArcAt(second, secondPick));
             bool found = false;
             bool refused = false;
             bool bestOn = false;
@@ -334,7 +337,7 @@ namespace GeometryHelper.Dxf.Viewer
                     if (firstOn && (secondOn || secondFree))
                     {
                         double alongStem = Math.Abs(firstArc - (ArcStart(first, i) + onFirst));
-                        double score = alongStem + Math.Abs(secondArc - (ArcStart(second, j) + onSecond));
+                        double score = alongStem + Math.Abs(secondArc - Folded(second, ArcStart(second, j) + onSecond));
                         double pickGap = DistanceToSegment(firstPick, first.Points[i], first.Points[Next(first, i)]);
 
                         // Two pairs as near as each other: where one meets the second on a segment and the other past its free
@@ -408,6 +411,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             return arc;
         }
+
+        /// <summary>
+        /// A distance along a multiline's line from its start as <see cref="FindPair"/> and <see cref="FindTeePair"/> reckon it: on a closed multiline the
+        /// shorter way round to the start, so a point on its last segment lies near the start however long the multiline is.
+        /// </summary>
+        private static double Folded(DxfMlineBuilder mline, double arc) =>
+            mline.IsClosed ? Math.Min(arc, ArcStart(mline, mline.SegmentCount) - arc) : arc;
 
         /// <summary>The distance along a multiline's line from its start to the point of the line nearest a pick.</summary>
         private static double ArcAt(DxfMlineBuilder mline, GeoPoint3 pick)
@@ -1391,12 +1401,22 @@ namespace GeometryHelper.Dxf.Viewer
             mline.SetRuns(segment, element, runs);
         }
 
+        /// <summary>Whether, on a closed multiline, going on from the first pick to the second takes more than half the way round.</summary>
+        private static bool GoesTheLongWay(DxfMlineBuilder mline, GeoPoint3 firstPick, GeoPoint3 secondPick)
+        {
+            double total = ArcStart(mline, mline.SegmentCount);
+            double round = ArcAt(mline, secondPick) - ArcAt(mline, firstPick);
+            round -= Math.Floor(round / total) * total;
+            return round * 2.0 > total + Tiny;
+        }
+
         /// <summary>
         /// Cuts one element, or every element, between the two picks, measured along each element; or welds what is cut between
         /// them back (the stretches there made whole). Where the picks fall on two segments, as AutoCAD 2021 cuts it: from the
         /// first pick to the end of its segment, the segments between whole, and the second pick's segment up to the pick,
         /// going on from the first segment (round past the first vertex of a closed multiline, where AutoCAD starts the cut on
-        /// the first segment at the vertex rather than at the element's start); the picks of an open one taken in its order.
+        /// the first segment at the vertex rather than at the element's start); the picks of an open one taken in its order, and of a
+        /// closed one the shorter way round from one to the other whichever was picked first.
         /// </summary>
         internal static void Cut(
             DxfMlineBuilder mline,
@@ -1409,7 +1429,7 @@ namespace GeometryHelper.Dxf.Viewer
             bool weld
         )
         {
-            if (!mline.IsClosed && secondSegment < segment)
+            if (mline.IsClosed ? GoesTheLongWay(mline, firstPick, secondPick) : secondSegment < segment)
             {
                 int swap = segment;
                 segment = secondSegment;
