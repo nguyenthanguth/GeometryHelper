@@ -1066,6 +1066,52 @@ namespace GeometryHelper.Dxf
                 (record.Key == 0 ? copy._item : copy._item.File.FollowerOf(copy._item, record.Key)).CopiedContexts =
                     record.Value;
             }
+
+            // A HATCH that holds a view context hands a copy of it on, as AutoCAD 2021 clones it (probed: GHM5).
+            if (held != null && _item.Type == "HATCH")
+            {
+                copy.CopiedView = HeldView();
+            }
+        }
+
+        /// <summary>
+        /// The view context of a HATCH's record (the one of ACDB_ANNOTATIONSCALE_VIEW_COLLECTION, or the one the record carries)
+        /// with the name of its entry, as it stands; null where it holds none.
+        /// </summary>
+        private DxfCopiedView HeldView()
+        {
+            DxfItem item = _item;
+
+            if (CopiedView != null)
+            {
+                return CopiedView;
+            }
+
+            string handle = item.CopiedContexts != null ? null : item.File.ExtensionDictionaryOf(item);
+            DxfItem extension = handle == null ? null : item.File.ObjectItem(handle);
+            DxfDBDictionary views = ChildDictionary(
+                ChildDictionary(extension == null ? null : OfObject(extension) as DxfDBDictionary, ContextManagerName),
+                HatchViewCollection
+            );
+
+            if (views == null)
+            {
+                return null;
+            }
+
+            foreach (DxfDBDictionaryEntry entry in views)
+            {
+                if (entry.Value?.Item != null && entry.Value.Item.Type == HatchViewContextType)
+                {
+                    return new DxfCopiedView(
+                        entry.Key,
+                        new List<DxfTypedValue>(entry.Value.Item.File.ObjectGroupsOf(entry.Value.Item)),
+                        true
+                    );
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -1163,9 +1209,17 @@ namespace GeometryHelper.Dxf
             {
                 DxfItem owner = record.Key == 0 ? item : item.File.FollowerOf(item, record.Key);
                 owner.CopiedContexts = null;
+                DxfDBObject carriedBy = owner.Type == "HATCH" ? owner.Wrapper as DxfDBObject : null;
+                DxfCopiedView views = carriedBy?.CopiedView;
+
+                if (carriedBy != null)
+                {
+                    carriedBy.CopiedView = null;
+                }
+
                 DxfFile file = owner.File;
                 DxfItem extension = DxfTable.MakeExtensionDictionary(file, owner, false);
-                DxfItem manager = ((DxfDBDictionary)OfObject(extension)).Add(
+                DxfItem manager = ((DxfDBDictionary)OfObject(extension)).AddSorted(
                     ContextManagerName,
                     "DICTIONARY",
                     OwnedDictionary
@@ -1173,11 +1227,11 @@ namespace GeometryHelper.Dxf
 
                 if (owner.Type == "HATCH")
                 {
-                    WriteHatchView((DxfDBDictionary)OfObject(manager), record.Value, scaleOf);
+                    WriteHatchView((DxfDBDictionary)OfObject(manager), record.Value, views, scaleOf);
                 }
 
                 var scales = (DxfDBDictionary)OfObject(
-                    ((DxfDBDictionary)OfObject(manager)).Add(
+                    ((DxfDBDictionary)OfObject(manager)).AddSorted(
                         DxfObjectContextManager.AnnotationScales,
                         "DICTIONARY",
                         OwnedDictionary
@@ -1213,20 +1267,36 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Gives the copy of an annotative HATCH the view context AutoCAD 2021 gives it (probed in its console, mirror-4 GHM4G,
-        /// GHM4H and GHM4I: COPY, MIRROR, ROTATE and SCALE of hatches of ANSI31, HONEY, SOLID and others): a dictionary
-        /// ACDB_ANNOTATIONSCALE_VIEW_COLLECTION in the manager, before ACDB_ANNOTATIONSCALES, holding under the name of the
-        /// default context one ACDB_HATCHVIEWCONTEXTDATA_CLASS, a second scale's none. It is the default context as the original
-        /// held it, before the copy was moved, with the origin of each pattern line (43, 44) and the direction of the pattern
-        /// (10, 20, 30) nought, and the subclass AcDbHatchViewContextData after it: a 330 of nought, the normal (0, 0, 1), 51 and
-        /// 290 of nought. Nothing where no default context is among those written.
+        /// Gives the copy of an annotative HATCH, or the hatch moved in place, the view context AutoCAD 2021 gives it (probed in
+        /// its console, mirror-4 GHM4G to GHM4I and mirror-5 GHM5: COPY, MOVE, MIRROR, ROTATE and SCALE of hatches of ANSI31,
+        /// HONEY, SOLID and others): a dictionary ACDB_ANNOTATIONSCALE_VIEW_COLLECTION in the manager, before
+        /// ACDB_ANNOTATIONSCALES, holding under the name of the default context one ACDB_HATCHVIEWCONTEXTDATA_CLASS, a second
+        /// scale's none. It is the view context the original held, cloned as it was; an original with none gives the default
+        /// context as it was before the hatch was moved (its pattern lines as they were, the direction of the pattern (10, 20,
+        /// 30) nought), and the subclass AcDbHatchViewContextData after it: a 330 of nought, the normal (0, 0, 1), 51 and 290 of
+        /// nought. Nothing where no default context is among those written.
         /// </summary>
+        /// <param name="manager">The context manager of the copy.</param>
+        /// <param name="contexts">The contexts the copy carried.</param>
+        /// <param name="view">The view context the copy carried, as <see cref="CopiedView"/> holds it; null for none.</param>
+        /// <param name="scaleOf">The scales of the drawing the copy came from named as this drawing's; null where it is this one.</param>
         private static void WriteHatchView(
             DxfDBDictionary manager,
             List<KeyValuePair<string, DxfItem>> contexts,
+            DxfCopiedView view,
             Dictionary<string, string> scaleOf
         )
         {
+            if (view != null)
+            {
+                if (scaleOf == null || scaleOf.ContainsKey(ScaleHandleOf(view.Groups) ?? string.Empty))
+                {
+                    WriteView(manager, view.Name, view.Groups, view.IsView, scaleOf);
+                }
+
+                return;
+            }
+
             foreach (KeyValuePair<string, DxfItem> context in contexts)
             {
                 IReadOnlyList<DxfTypedValue> groups = context.Value.File.ObjectGroupsOf(context.Value);
@@ -1240,48 +1310,66 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                var views = (DxfDBDictionary)OfObject(manager.Add(HatchViewCollection, "DICTIONARY", OwnedDictionary));
-                string zero = Numbers.Exact(0.0);
-                views.Add(context.Key, HatchViewContextType, b =>
+                WriteView(manager, context.Key, groups, false, scaleOf);
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Writes a view context of a HATCH into the manager's ACDB_ANNOTATIONSCALE_VIEW_COLLECTION, made where there is none
+        /// and the one there is replaced: the groups of a view context as they are, or those of a default context with the
+        /// direction of the pattern nought and the subclass of the view after them.
+        /// </summary>
+        private static void WriteView(
+            DxfDBDictionary manager,
+            string name,
+            IReadOnlyList<DxfTypedValue> groups,
+            bool isView,
+            Dictionary<string, string> scaleOf
+        )
+        {
+            var views = (DxfDBDictionary)OfObject(
+                manager.AddSorted(HatchViewCollection, "DICTIONARY", OwnedDictionary)
+            );
+            string zero = Numbers.Exact(0.0);
+            views.Add(name, HatchViewContextType, b =>
+            {
+                string marker = null;
+                bool direction = false;
+
+                foreach (DxfTypedValue group in groups)
                 {
-                    string marker = null;
-                    bool lines = true;
+                    string value = group.Value;
 
-                    foreach (DxfTypedValue group in groups)
+                    if (group.TypeCode == 100)
                     {
-                        string value = group.Value;
+                        marker = value.Trim();
+                    }
+                    else if (
+                        group.TypeCode == 340
+                        && marker == ScaleContextMarker
+                        && scaleOf != null
+                        && scaleOf.TryGetValue(value.Trim(), out string mapped)
+                    )
+                    {
+                        value = mapped;
+                    }
+                    else if (!isView && marker == HatchContextMarker)
+                    {
+                        // The direction of the pattern comes after the scale (40), nought in a view context.
+                        direction |= group.TypeCode == 40;
 
-                        if (group.TypeCode == 100)
-                        {
-                            marker = value.Trim();
-                        }
-                        else if (marker == HatchContextMarker && group.TypeCode == 40)
-                        {
-                            lines = false;
-                        }
-                        else if (
-                            marker == HatchContextMarker
-                            && (
-                                (lines && (group.TypeCode == 43 || group.TypeCode == 44))
-                                || (!lines && (group.TypeCode == 10 || group.TypeCode == 20 || group.TypeCode == 30))
-                            )
-                        )
+                        if (direction && (group.TypeCode == 10 || group.TypeCode == 20 || group.TypeCode == 30))
                         {
                             value = zero;
                         }
-                        else if (
-                            group.TypeCode == 340
-                            && marker == "AcDbAnnotScaleObjectContextData"
-                            && scaleOf != null
-                            && scaleOf.TryGetValue(value.Trim(), out string mapped)
-                        )
-                        {
-                            value = mapped;
-                        }
-
-                        b.Group(group.TypeCode, value);
                     }
 
+                    b.Group(group.TypeCode, value);
+                }
+
+                if (!isView)
+                {
                     b.Group(100, "AcDbHatchViewContextData");
                     b.Group(330, "0");
                     b.Group(10, zero);
@@ -1289,10 +1377,87 @@ namespace GeometryHelper.Dxf
                     b.Group(30, Numbers.Exact(1.0));
                     b.Group(51, zero);
                     b.Group(290, "0");
-                });
-                manager.Item.File.AddClass(HatchViewContextType, "AcDbHatchViewContextData", 1153);
+                }
+            });
+            manager.Item.File.AddClass(HatchViewContextType, "AcDbHatchViewContextData", 1153);
+        }
+
+        /// <summary>
+        /// Takes the view context of a HATCH about to be moved, as AutoCAD 2021 writes it in its TransformBy, which MOVE, ROTATE,
+        /// SCALE, MIRROR and ARRAY call (probed, GHM5: a hatch moved by nought has it too). A hatch in a drawing has its view
+        /// context written from its default context as it stands, replaced where it has one; a copy in no file keeps a copy of
+        /// that context to write when it is added (<see cref="CopiedView"/>), unless it carries its original's view
+        /// context. Nothing for a hatch with no default context.
+        /// </summary>
+        private protected void KeepHatchView()
+        {
+            if (_item == null || _item.Type != "HATCH")
+            {
                 return;
             }
+
+            if (_item.CopiedContexts != null)
+            {
+                if (CopiedView == null)
+                {
+                    foreach (KeyValuePair<string, DxfItem> entry in _item.CopiedContexts)
+                    {
+                        IReadOnlyList<DxfTypedValue> groups = entry.Value.File.ObjectGroupsOf(entry.Value);
+
+                        if (entry.Value.Type == HatchContextType && IsDefaultContext(groups))
+                        {
+                            CopiedView = new DxfCopiedView(entry.Key, new List<DxfTypedValue>(groups), false);
+                            break;
+                        }
+                    }
+                }
+
+                return;
+            }
+
+            if (!_item.File.OpensWithExtensionDictionary(_item))
+            {
+                return;
+            }
+
+            DxfDBDictionary manager = ChildDictionary(ExtensionDictionary, ContextManagerName);
+
+            if (manager == null)
+            {
+                return;
+            }
+
+            foreach (KeyValuePair<string, DxfItem> entry in ContextEntries(_item))
+            {
+                IReadOnlyList<DxfTypedValue> groups = entry.Value.File.ObjectGroupsOf(entry.Value);
+
+                if (entry.Value.Type == HatchContextType && IsDefaultContext(groups))
+                {
+                    WriteView(manager, entry.Key, groups, false, null);
+                    return;
+                }
+            }
+        }
+
+        /// <summary>The records of the contexts of a HATCH's scales, in the order of their dictionary.</summary>
+        private protected List<DxfItem> HatchContexts()
+        {
+            var found = new List<DxfItem>();
+
+            if (_item == null || (_item.CopiedContexts == null && !_item.File.OpensWithExtensionDictionary(_item)))
+            {
+                return found;
+            }
+
+            foreach (KeyValuePair<string, DxfItem> entry in ContextEntries(_item))
+            {
+                if (entry.Value.Type == HatchContextType)
+                {
+                    found.Add(entry.Value);
+                }
+            }
+
+            return found;
         }
 
         /// <summary>
