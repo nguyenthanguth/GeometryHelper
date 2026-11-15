@@ -6,6 +6,34 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** WMFIN gives a pen's or brush's colour the index AutoCAD 2021's console gives it, where it gave the nearest index of the
+colours the indexes show on screen. AutoCAD's own palette for it, found by probing 72 000 colours through the console (a metafile of
+16 000 pens at a time; the header's object count must cover them all), has the 24 hues of ten indexes each at the levels 166, 128, 76
+and 38 of 255 (so 12 is (166, 0, 0), where the screen has (204, 0, 0)) and greys at 84, 118, 152, 187, 221 and 255 for 250 to 255,
+8 and 9 never chosen; the nearest of it by distance in red, green and blue gives AutoCAD's index for 99.7 per cent of the colours
+(the nearest of the screen's colours gave it for 33 per cent of 71 860, the darks and greys worst): dark green (0, 160, 0) is 92 and not 94, mid grey
+(128, 128, 128) is 251 and not 8, (1, 1, 1) and (10, 10, 10) are 7, (170, 85, 85) is 13. The 0.3 per cent left are colours within a
+unit or two of the line between two indexes.
+**FIXED.** WMFIN places a text as AutoCAD 2021 does. The reference point of a text is the top left of its font's cell, and AutoCAD
+puts the baseline the font's Windows ascent times the em below it (0.905 of the em for Arial, 0.8325 for Courier New, 1.0 for
+Tahoma; the guess was 0.9 for every font) and the height of the TEXT at 0.8 of that (0.724, 0.666 and 0.8 of the em; the guess was
+0.72), both in whole units of the file (an Arial of 80 is 72 and 57.6). A text turned a quarter reaches 0.0175 of the em further, one
+turned to any other angle by a measure of its face (0.1525 of the em for Arial, 0.205 for Courier New, 0.05 for Tahoma, 0.1 for a face
+not measured: Arial at 45 degrees is 0.84 of the em high and not 0.72), and one aligned to the bottom of the cell rests on the
+descent times the em times the ascent over the capitals' height. A text aligned to the centre or the right is left justified, as
+AutoCAD leaves it, and starts the width of its text (all of it or half) back from the point, the width being the advances of its
+letters times that same ascent over the capitals (1.26 for Arial): "Hello" in an Arial of 400 starts 1152 back where it was
+justified at the point. The look of a font is told by the face (letters of either case the same), bold at a weight of 700 and not
+600, italic, character set and pitch and family, so that a Russian Arial is `WMF-Arial1` beside the Western `WMF-Arial0` with its
+own character set kept in the style; the bytes of a text are Windows-1252 whatever the character set (80 is the euro sign and not
+a control character). The reader of the metafile now plays SaveDC and RestoreDC (the pen, brush, font, text colour, alignment and
+clip come back; RestoreDC of -1 or of a save's number) where it read them past, so a pen selected between the two no longer stays,
+and IntersectClipRect, which clips the lines as AutoCAD's console does (a line is cut where it crosses the clip, one across the clip
+along one axis and outside along the other is cut across the first only, one that misses the clip is left whole and one that
+runs along an axis and misses it is dropped; a polygon or rectangle is never cut). A window of a width or height below nought
+(the usual y-up metafile) turns the picture over as AutoCAD does: a window of 1 000 by -1 000 puts (100, 100) at (0.883, 0.883), one of
+-1 000 by 1 000 at (-0.5, -0.5), one of -1 000 by -1 000 draws upright with pens of no width. Probed through the console: 772 lines
+cut against one clip (769 of 772 as the rule above), 33 font looks, 610 texts in 24 faces and sizes from 1 to 800 units.
 **CHANGED.** MLEDIT's tees (CT, OT, MT) take the pair of segments AutoCAD 2021 takes where the second has three segments, or the
 meeting lies within the width of a corner: of every pair whose lines meet, the stem met on a segment or run on past the free end of
 its first or last, the second met on a segment or run on past its own free end, the one nearest the picks (the distances along the

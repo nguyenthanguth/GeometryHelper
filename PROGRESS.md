@@ -240,11 +240,13 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] WMFIN (wmf1): our own WMF reader (lines, polygons, rectangles, ellipses, arcs, pies, pens, brushes, fonts,
         text) and WMFIN as AutoCAD (block WMF<n> of inches, "Units: Unitless Conversion:", Explode and REpeat, the
         picture in half the view), WMFBKGND/WMFFOREGND kept; IMPORT still refuses .wmf as AutoCAD does
-  - [ ] (wmf2, running: the WMF parts) Dialogs 12 follow-ups: WMF colour index between primaries (45 probed, no rule; .claude/gk/wmf-notes); text height
-        and baseline per font look; clipping to the window, negative extents, RestoreDC, code pages; WMFOPTS (GUI);
-        raster image quality, PDF layer information and bookmarks (the SkiaSharp writer cannot); .pss location codes 1-3
-        (GUI Save As); Collect in the Leaders panel (after MLEADERCOLLECT); multi-line stamp and "." clearing in the GUI;
-        "match(es) replaced" wording (S)
+  - [x] WMFIN follow-ups (wmf2): AutoCAD's own WMF palette for colours (Euclid nearest, black 7; 71 860 probed colours
+        99.7 % equal, was 33 %); text baseline and height from the font's ascent, centre/right alignment as AutoCAD moves
+        the text; SaveDC/RestoreDC, IntersectClipRect on MoveTo/LineTo (769 of 772 lines), negative window extents
+  - [ ] Dialogs 12 follow-ups: WMF rotated text per face (12-face table), GDI hinting at small sizes, 3 clip cases, an
+        empty face name ("WMF-0"), raster/missing fonts, DBCS charsets; WMFOPTS (GUI); raster image quality, PDF layer
+        information and bookmarks (the SkiaSharp writer cannot); .pss location codes 1-3 (GUI Save As); Collect in the
+        Leaders panel; multi-line stamp and "." clearing in the GUI; "match(es) replaced" wording (S)
 - Round 3, what is left of the gap list (`.claude/gk/leader/pgp-GAP.md`):
   - [x] R3.1 (r31): MLEADERALIGN Parallel, Use current spacing, Spacing and Distribute as AutoCAD (content boxes, the
         reference's landing, prompts and modes); TEXTALIGN Left/Right on a line by the top corners; DIMBREAK Auto cut by
@@ -759,7 +761,7 @@ the ones wanted.
       identical); MinimumColumnWidth counts block cells as AutoCAD; the 4/3 floor for a first-column block cell; ATTDEF
       text counted in block extents as AutoCAD; date letters %C %h %F %r %u %z %Z (AutoCAD's broken %j %U %W keep the
       date)
-- [ ] Tables follow-ups 4: ATTRIB text drawn in a table block cell; AutoCAD measures non-constant attribute words in
+- [ ] (tables8, running) Tables follow-ups 4: ATTRIB text drawn in a table block cell; AutoCAD measures non-constant attribute words in
       Arial metrics (about 1 mm off with SHX); the fit scale of a fitted block with a definition (1.44061 vs ~1.388);
       the other per-cell setters (SetAlignment, SetTextHeight, SetBackgroundColor) still quadratic; dates in autofill;
       DxfTable.Value of a date and SetValue(DateTime); band and size-field sides of up-flowing tables and the drag-only
