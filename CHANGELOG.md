@@ -6,6 +6,22 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The ACAD_TABLE of a table is written from its own bytes by `InsertRows`, `InsertRowsAndInherit`, `InsertColumns`, `InsertColumnsAndInherit`, `DeleteRows`,
+`DeleteColumns`, `SetRowHeight` and `SetColumnWidth`, where each wrote and then read again all of its 56 000 groups (931 cells) when the library had written the record
+whole before: each cell that comes out as it was is copied as it stands, the head and the cells made or changed are written, and the places of the cells are kept for the next
+edit. The layout the table reads takes the cells written one by one since into it (`Own`), so that an edit that still writes the record whole does not read its groups again
+after a text is set; a height or a width set left the table to read the record anew at its next edit, which a merge, a text set or a row put in paid for with 3 to 7 ms. The
+search a merge makes in the file for what else points at a field the merge lets go of (`DxfField.Erase`) reads each record's groups one at a time, none kept, and passes over a
+record whose bytes hold the digits of none of the handles looked for, in either case or with zeros before them; a handle of digits alone is searched for in every record, as before.
+In a table of 49 rows by 19 columns (931 cells) read from a file, medians of 20 edits on .NET Framework 4.8 (.NET 10 in brackets): a row put in takes 2.0 ms (1.35) where it
+took 3.5 ms (2.3), a row put in taking the look of another 2.3 ms (1.4) where 3.7 (2.3), a row taken out 1.9 ms (1.0) where 3.4 (2.2), a column put in 2.3 ms (1.3) where 3.8 (2.5), a
+column taken out 1.65 ms (1.0) where 3.25 (2.0), `SetRowHeight` 0.28 ms (0.19) where 1.4 (0.9) and `SetColumnWidth` 0.33 ms (0.25) where 1.4 (0.8); after a height or a width set, a
+merge takes 0.6 ms (0.8) where 5.7 (3.8), a text set 0.01 ms where 2.5 (1.5), a row put in 1.4 ms (1.6) where 6.7 (4.5); a merge across a cell holding a field 0.9 ms (0.5) where 3.0 (1.8)
+when the handles of its fields hold a letter, and what it took (2.9 ms) where one is of digits alone. Ten rounds of a height set, a merge, a width set, a row
+put in, a text set and the row taken out allocate 151 MB where they allocated 341, 20 rows put in and 20 taken out 199 MB where 293, and 20 merges across a field 49 MB where 175. The saved bytes
+are the same: the hashes of 64 runs of 120 edits with heights and widths set among rows and columns put in and taken out, merges across a field, resets and text set (`DxfSpeed21Tests`), and of
+480 further runs of 150 edits on tables of 6 to 35 rows and 4 to 15 columns, are those of the library before, as is what a field a record points at in any case does to a merge.
+
 **CHANGED.** The edits of a table that go into its TABLECONTENT are written into the bytes of the cells and rows they change, as `MergeCells` is, where each read
 and wrote its 100 000 groups (a table read from a file holds one, from R2007 on): `ResetValue` of a block cell, which takes the block's content out of it,
 `InsertRows`, `InsertRowsAndInherit`, `InsertColumns`, `InsertColumnsAndInherit`, `DeleteRows`, `DeleteColumns`, `SetSize`, and a `MergeCells` that empties a cell holding

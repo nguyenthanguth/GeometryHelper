@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text;
 
 namespace GeometryHelper.Dxf
 {
@@ -613,7 +614,9 @@ namespace GeometryHelper.Dxf
         /// Which of the handles given a record of the file points at, by a pointer as <see cref="PointedAt"/> finds one, its owner
         /// and its reactors aside, and which a FIELD names as one of its own (360, in <paramref name="named"/>); the records of
         /// the handles to leave aside, and those of the types to leave aside, not read.
-        /// One reading of the file for them all, so that the fields of a table of 16 000 cells are judged in one pass.
+        /// One reading of the file for them all, so that the fields of a table of 16 000 cells are judged in one pass. The groups
+        /// of a record are read one at a time, none kept, and a record whose bytes hold the digits of none of the handles, in any
+        /// case (<see cref="HexNeedle"/>), is not read at all, which spares a table's megabytes of bytes their groups.
         /// </summary>
         /// <returns>The handles pointed at, of those given, as they were given, each with the handle of the first record of the
         /// file that points at it (empty for one of no handle).</returns>
@@ -651,6 +654,7 @@ namespace GeometryHelper.Dxf
             }
 
             _wholeReadings++;
+            List<HexNeedle> needles = HexNeedle.Of(wanted.Keys);
 
             foreach (Section section in _sections)
             {
@@ -661,30 +665,34 @@ namespace GeometryHelper.Dxf
 
                 foreach (Rec record in Inside(section))
                 {
-                    if (typesAside.Contains(record.Type))
+                    if (typesAside.Contains(record.Type) || (needles != null && !HexNeedle.MayHold(record, needles)))
                     {
                         continue;
                     }
 
-                    List<Pair> pairs = PairsOf(record);
-                    bool handled = pairs.Count > 1 && pairs[1].Code == 5;
+                    // The groups one at a time, none kept: a record of megabytes (a table's) is not made into a list of its groups
+                    // for each reading of the file.
+                    var walk = new PairWalk(record);
+                    walk.Next(out _);
+                    bool more = walk.Next(out Pair pair);
+                    bool handled = more && pair.Code == 5;
+                    string holder = null;
 
                     if (
                         handled
-                        && TryHex(record.Bytes, pairs[1].ValueStart, pairs[1].ValueEnd, out ulong own)
+                        && TryHex(record.Bytes, pair.ValueStart, pair.ValueEnd, out ulong own)
                         && leftAside.Contains(own)
                     )
                     {
                         continue;
                     }
 
+                    Pair head = pair;
                     bool braced = false;
                     bool owner = false;
 
-                    for (int i = 1; i < pairs.Count; i++)
+                    for (; more; more = walk.Next(out pair))
                     {
-                        Pair pair = pairs[i];
-
                         if (pair.Code == 102)
                         {
                             braced = Text(record, pair).Trim().StartsWith("{", StringComparison.Ordinal);
@@ -716,7 +724,8 @@ namespace GeometryHelper.Dxf
                             && !found.ContainsKey(given)
                         )
                         {
-                            found.Add(given, handled ? Text(record, pairs[1]).Trim() : string.Empty);
+                            holder = holder ?? (handled ? Text(record, head).Trim() : string.Empty);
+                            found.Add(given, holder);
                         }
 
                         // The first FIELD that names it as one of its own fields (360), which can own it.
@@ -730,13 +739,126 @@ namespace GeometryHelper.Dxf
                             && !named.ContainsKey(owned)
                         )
                         {
-                            named.Add(owned, Text(record, pairs[1]).Trim());
+                            holder = holder ?? Text(record, head).Trim();
+                            named.Add(owned, holder);
                         }
                     }
                 }
             }
 
             return found;
+        }
+
+        /// <summary>
+        /// The hexadecimal digits of a handle looked for, to tell a record that cannot point at it from one that may, without
+        /// reading its groups: a pointer is a value of hexadecimal digits (<see cref="TryHex(byte[], int, int, out ulong)"/>, any
+        /// case, zeros before), so a record whose bytes hold the digits of the handle in no case is not read. Searched from the
+        /// digit of a letter, in both of its cases, which the text of a table's records holds rarely, a digit being everywhere.
+        /// </summary>
+        private sealed class HexNeedle
+        {
+            // The letters of a handle in the order they are looked for by: those the markers of a table (CELL, TABLE, ACVALUE,
+            // CONTENT) hold least come first.
+            private const string Rarest = "FBDCAE";
+
+            private readonly byte[] _digits;
+            private readonly int _anchor;
+
+            private HexNeedle(byte[] digits, int anchor)
+            {
+                _digits = digits;
+                _anchor = anchor;
+            }
+
+            /// <summary>The needles of the handles given; null where one of them is of digits alone, which no record is told from by its bytes.</summary>
+            internal static List<HexNeedle> Of(IEnumerable<ulong> handles)
+            {
+                var needles = new List<HexNeedle>();
+
+                foreach (ulong handle in handles)
+                {
+                    byte[] digits = Encoding.ASCII.GetBytes(handle.ToString("X", CultureInfo.InvariantCulture));
+                    int anchor = -1;
+                    int rank = int.MaxValue;
+
+                    for (int i = 0; i < digits.Length; i++)
+                    {
+                        int at = Rarest.IndexOf((char)digits[i]);
+
+                        if (at >= 0 && at < rank)
+                        {
+                            rank = at;
+                            anchor = i;
+                        }
+                    }
+
+                    if (anchor < 0)
+                    {
+                        return null;
+                    }
+
+                    needles.Add(new HexNeedle(digits, anchor));
+                }
+
+                return needles;
+            }
+
+            /// <summary>Whether the bytes of a record hold the digits of one of the handles, in any case.</summary>
+            internal static bool MayHold(Rec record, List<HexNeedle> needles)
+            {
+                foreach (HexNeedle needle in needles)
+                {
+                    byte upper = needle._digits[needle._anchor];
+
+                    if (needle.Holds(record, upper) || needle.Holds(record, (byte)(upper | 0x20)))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            private bool Holds(Rec record, byte anchor)
+            {
+                byte[] bytes = record.Bytes;
+                int at = record.Start;
+
+                while (at < record.End)
+                {
+                    int hit = Array.IndexOf(bytes, anchor, at, record.End - at);
+
+                    if (hit < 0)
+                    {
+                        return false;
+                    }
+
+                    int start = hit - _anchor;
+
+                    if (start >= record.Start && start + _digits.Length <= record.End)
+                    {
+                        int i = 0;
+
+                        while (i < _digits.Length && IsHex(bytes[start + i], _digits[i]))
+                        {
+                            i++;
+                        }
+
+                        if (i == _digits.Length)
+                        {
+                            return true;
+                        }
+                    }
+
+                    at = hit + 1;
+                }
+
+                return false;
+            }
+
+            // One byte of the text and one of the digits looked for, the same digit in either case.
+            private static bool IsHex(byte text, byte digit) =>
+                text == digit || (digit >= 'A' && text == (digit | 0x20));
         }
 
         /// <summary>

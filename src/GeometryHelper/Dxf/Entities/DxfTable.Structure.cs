@@ -2347,7 +2347,10 @@ namespace GeometryHelper.Dxf
         /// 176) of each cell made to agree with the blocks given where it does not already, and the links to data of each made
         /// to agree with the links given, named by their top left cells alone; the groups before its cells and after its last
         /// kept as they are. Nothing is written where the record comes out the same. The marks of the session follow the cells
-        /// from the places given (<see cref="Places"/>), each cell kept where none are given.
+        /// from the places given (<see cref="Places"/>), each cell kept where none are given. Where the record is one this table
+        /// wrote whole and the places of its cells are known (<see cref="CellsToSplice"/>), it is written from its own bytes: each
+        /// cell that comes out as it was copied as it stands, and the head and the cells made or changed written
+        /// (<see cref="SpliceRebuilt"/>), which gives the bytes a writing of every group gives.
         /// </summary>
         private void Rebuild(
             Layout layout,
@@ -2410,35 +2413,282 @@ namespace GeometryHelper.Dxf
             }
 
             int[] owner = Owners(rows, columns, blocks);
+            var starts = new int[cells.Count + 1];
 
             for (int k = 0; k < cells.Count; k++)
             {
+                starts[k] = list.Count;
                 list.AddRange(Rebuilt(cells[k], k, owner[k] < 0 ? null : blocks[owner[k]], columns, anchored[k]));
             }
+
+            starts[cells.Count] = list.Count;
 
             for (int i = layout.CellsEnd; i < g.List.Count; i++)
             {
                 list.Add(g.List[i]);
             }
 
+            // Where the cells are kept as they stand, the record is written from their bytes (SpliceRebuilt); which are kept is
+            // read from the list before it is changed.
+            int[] source = SourceCells(layout, rows, columns, cells.Count, places);
+            CellBytes old = source == null ? null : CellsToSplice(layout);
+            bool[] kept = old == null ? null : KeptCells(layout, list, starts, source);
             g.List.Clear();
             g.List.AddRange(list);
 
             if (!g.Same())
             {
                 CheckEditable();
-                g.Write(Order);
 
-                // The layout read is the list just written, as the record now holds it, in a list of its own: the next reading of
-                // the table does not parse the record again (as the lines of a row written one by one keep it, SetLines).
-                DxfFile.Rec record = Item.File.RecordAt(Item, 0);
-                _layout = new Layout(new DxfDimGroups(g, new List<KeyValuePair<int, string>>(g.List)));
-                _pending.Clear();
-                _layoutBytes = record.Bytes;
-                _layoutStart = record.Start;
-                _layoutEnd = record.End;
+                if (kept != null)
+                {
+                    SpliceRebuilt(layout, old, list, starts, source, kept);
+                }
+                else
+                {
+                    // Every own group of the record is written, as the file writes a group: the record is noted as one written whole.
+                    g.Rewrote = NoteWritten;
+                    g.Write(Order);
+
+                    // The layout read is the list just written, as the record now holds it, in a list of its own: the next reading of
+                    // the table does not parse the record again (as the lines of a row written one by one keep it, SetLines).
+                    DxfFile.Rec record = Item.File.RecordAt(Item, 0);
+                    _layout = new Layout(new DxfDimGroups(g, new List<KeyValuePair<int, string>>(g.List)));
+                    _pending.Clear();
+                    _layoutBytes = record.Bytes;
+                    _layoutStart = record.Start;
+                    _layoutEnd = record.End;
+                }
+
                 EraseFields(held);
                 EraseLinks(linked);
+            }
+        }
+
+        /// <summary>
+        /// Where each cell of the record stands in its bytes (<see cref="AloneCells"/>), the cells kept apart put in the record
+        /// first, where the record is one this table wrote whole and the layout is that of it: the record can then be written from
+        /// its own bytes, those of a cell kept copied as they are. Null where not.
+        /// </summary>
+        private CellBytes CellsToSplice(Layout layout)
+        {
+            CellBytes cells = AloneCells(out _);
+
+            if (cells == null)
+            {
+                return null;
+            }
+
+            // The cells kept apart are in the record now (reading it puts them in), and their places those of it.
+            DxfFile.Rec record = Item.File.RecordAt(Item, 0);
+            return
+                cells.Pending == null
+                && cells.Holds(record)
+                && cells.Rows == layout.Rows
+                && cells.Columns == layout.Columns
+                && cells.From.Length - 1 == layout.CellStart.Count
+                ? cells
+                : null;
+        }
+
+        /// <summary>
+        /// The cell each cell of the table <see cref="Rebuild"/> writes was before: from the places given, the cell of the same
+        /// index where the table keeps its size and none are given; -1 for a cell put in or emptied; null where the cells
+        /// cannot be told.
+        /// </summary>
+        private static int[] SourceCells(Layout layout, int rows, int columns, int count, int[] places)
+        {
+            if (places == null && (rows != layout.Rows || columns != layout.Columns))
+            {
+                return null;
+            }
+
+            var source = new int[count];
+
+            for (int k = 0; k < count; k++)
+            {
+                source[k] =
+                    places == null ? k
+                    : places[k] >= 0 ? places[k]
+                    : -1;
+            }
+
+            return source;
+        }
+
+        /// <summary>
+        /// Whether each cell written (the groups of <paramref name="list"/> from its start in <paramref name="starts"/> to the
+        /// next) is, group for group, the cell it was (<see cref="SourceCells"/>) in the layout read: its groups are read from
+        /// the list before the edit, which has not been changed yet.
+        /// </summary>
+        private static bool[] KeptCells(Layout layout, List<KeyValuePair<int, string>> list, int[] starts, int[] source)
+        {
+            var kept = new bool[source.Length];
+            List<KeyValuePair<int, string>> was = layout.Groups.List;
+
+            for (int k = 0; k < source.Length; k++)
+            {
+                int p = source[k];
+
+                if (p < 0 || p >= layout.CellStart.Count)
+                {
+                    continue;
+                }
+
+                int from = layout.CellStart[p];
+                int to = p + 1 < layout.CellStart.Count ? layout.CellStart[p + 1] : layout.CellsEnd;
+                bool same = to - from == starts[k + 1] - starts[k];
+
+                for (int i = 0; same && i < to - from; i++)
+                {
+                    KeyValuePair<int, string> a = was[from + i];
+                    KeyValuePair<int, string> b = list[starts[k] + i];
+                    same =
+                        a.Key == b.Key
+                        && (
+                            ReferenceEquals(a.Value, b.Value)
+                            || string.Equals(a.Value, b.Value, StringComparison.Ordinal)
+                        );
+                }
+
+                kept[k] = same;
+            }
+
+            return kept;
+        }
+
+        /// <summary>
+        /// Writes the record of cells rows or columns were put in or taken out of: the bytes before its own groups and those after
+        /// its table's own part, and those of every cell kept (<see cref="KeptCells"/>), copied as they stand; the head, the cells
+        /// changed and the table's own part written as the file writes a group, which is what a writing of every group gives, as
+        /// the groups of the record stand as the file writes them. The places of the cells are kept for the record made (not
+        /// those of every group), and the record noted as written whole.
+        /// </summary>
+        private void SpliceRebuilt(
+            Layout layout,
+            CellBytes old,
+            List<KeyValuePair<int, string>> list,
+            int[] starts,
+            int[] source,
+            bool[] kept
+        )
+        {
+            DxfFile file = Item.File;
+            DxfFile.Rec record = file.RecordAt(Item, 0);
+            int cells = source.Length;
+            var b = new DxfFile.Builder(file);
+            b.Reserve(record.End - record.Start + 4096);
+            var from = new int[cells + 1];
+            b.Raw(record, record.Start, record.Start + old.HeadFrom);
+            WriteGroups(b, list, 0, starts[0]);
+            int runFrom = -1;
+            int runTo = -1;
+
+            for (int k = 0; k < cells; k++)
+            {
+                if (!kept[k])
+                {
+                    FlushRun(b, record, ref runFrom, runTo);
+                    from[k] = b.Length;
+                    WriteGroups(b, list, starts[k], starts[k + 1]);
+                    continue;
+                }
+
+                int p = source[k];
+
+                if (runFrom < 0 || old.From[p] != runTo)
+                {
+                    FlushRun(b, record, ref runFrom, runTo);
+                    runFrom = old.From[p];
+                }
+
+                // The cell stands where the bytes of the run, not yet written, will begin, and as far into them as it did.
+                from[k] = b.Length + old.From[p] - runFrom;
+                runTo = old.From[p + 1];
+            }
+
+            FlushRun(b, record, ref runFrom, runTo);
+            from[cells] = b.Length;
+            WriteGroups(b, list, starts[cells], list.Count);
+            b.Raw(record, record.End - old.Trailing, record.End);
+            file.PutRecord(Item, 0, b);
+            Made(layout, from, old, list, starts[cells]);
+        }
+
+        /// <summary>
+        /// Keeps what is known of the record just written whole: the record noted as written whole, the layout read the list
+        /// written, and the places of the cells those given, where the layout places the cells there too.
+        /// </summary>
+        private void Made(Layout layout, int[] from, CellBytes old, List<KeyValuePair<int, string>> list, int cellsEnd)
+        {
+            DxfFile.Rec now = Item.File.RecordAt(Item, 0);
+            NoteWritten(now);
+            var read = new Layout(new DxfDimGroups(layout.Groups, new List<KeyValuePair<int, string>>(list)));
+            _layout = read;
+            _pending.Clear();
+            _layoutBytes = now.Bytes;
+            _layoutStart = now.Start;
+            _layoutEnd = now.End;
+
+            // The last cell ends where the layout says: a group after the cells that its flags take for its own moves it.
+            _cellBytes =
+                read.CellStart.Count == from.Length - 1 && read.CellsEnd == cellsEnd && Holds(read)
+                    ? new CellBytes(now, read.Rows, read.Columns, from, old.HeadFrom, old.Trailing)
+                    : null;
+        }
+
+        /// <summary>
+        /// Writes the groups of the layout at the places given (their positions in its list), which were given other text and
+        /// stay of their codes, into the record: its head written again, in the place of the bytes it was read from, the rest of
+        /// the record copied as it stands, so that the heights of a row set cost a copy of the record's bytes, not a reading and a
+        /// writing of every group of it. The places of the cells are kept for the record made, and the record noted as written
+        /// whole. False, nothing written, where the places of the cells are not known (<see cref="CellsToSplice"/>) or a group
+        /// changed is not of the head.
+        /// </summary>
+        private bool SpliceChanged(Layout layout, List<int> changed)
+        {
+            CellBytes old = CellsToSplice(layout);
+
+            if (old == null || changed.Exists(at => at >= layout.CellStart[0]))
+            {
+                return false;
+            }
+
+            DxfFile file = Item.File;
+            DxfFile.Rec record = file.RecordAt(Item, 0);
+            var b = new DxfFile.Builder(file);
+            b.Reserve(record.End - record.Start + 64);
+            b.Raw(record, record.Start, record.Start + old.HeadFrom);
+            WriteGroups(b, layout.Groups.List, 0, layout.CellStart[0]);
+            int shift = b.Length - old.From[0];
+            b.Raw(record, record.Start + old.From[0], record.End);
+            var from = new int[old.From.Length];
+
+            for (int k = 0; k < from.Length; k++)
+            {
+                from[k] = old.From[k] + shift;
+            }
+
+            file.PutRecord(Item, 0, b);
+            Made(layout, from, old, layout.Groups.List, layout.CellsEnd);
+            return true;
+        }
+
+        private static void FlushRun(DxfFile.Builder b, DxfFile.Rec record, ref int from, int to)
+        {
+            if (from >= 0)
+            {
+                b.Raw(record, record.Start + from, record.Start + to);
+                from = -1;
+            }
+        }
+
+        /// <summary>Writes the groups of a list from one to another as the file writes a group.</summary>
+        private static void WriteGroups(DxfFile.Builder b, List<KeyValuePair<int, string>> list, int from, int to)
+        {
+            for (int i = from; i < to; i++)
+            {
+                b.Group(list[i].Key, list[i].Value);
             }
         }
 

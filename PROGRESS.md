@@ -306,7 +306,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] R2007 dynamic blocks and older-version solids (dwgver4): R2007 keeps constraint groups through VERTEXIDENTIFIER
         and ISDYNAMIC round-trip records (33 of 33 equal to AutoCAD's; 8 samples keep their groups); 3DSOLID/REGION/BODY
         written in R2004, R2007, R2010 (bit-identical to AutoCAD's, MASSPROP equal); R2007 AppInfo written coded 4
-  - [ ] R3.3 follow-ups 5: constraint groups of the v2 layout (an R2018 AutoCAD file) into R2007/R2010; R2000 solids
+  - [ ] (dwgver5, running: v2 groups, R2000 solids) R3.3 follow-ups 5: constraint groups of the v2 layout (an R2018 AutoCAD file) into R2007/R2010; R2000 solids
         (SAT v1 text); an unexplained ErrorStatus 76 seen once; spline solids not placed; R2007 AppInfoHistory and
         SummaryInfo (no version writes SummaryInfo yet); the ISDYNAMIC dimension test is a heuristic (layer + reactor);
         non-ASCII text in pre-2007 DWGs as \U+ escapes; R2000 VIEWPORT entity header handle and frozen-layer code 5;
@@ -840,11 +840,15 @@ the ones wanted.
 - [x] Tables follow-ups 7 (tables8): TABLECONTENT edits (empty, delete, insert, merge, a merge across a field) copy
       untouched rows and write only what changed; 456 block-cell resets 12.1 s / 12.7 GB -> 0.1-0.3 s / 0.5 GB; rows and
       columns in and out 26-40 -> 2.4-4.4 ms; the viewer's InsertRow 52 -> 16 ms; bytes identical (pinned hashes)
-- [ ] Tables follow-ups 8: rows and columns still write the whole ACAD_TABLE record (a lazy layout for Kinds,
-      ContentLooks, NewColumnLooks); DxfField.Erase scanning the whole file (3 ms a field merge); the viewer's
-      RecomputeTableBlock/FitRows dominate its edits and drop the spliced state; unmerge +0.06 ms; in-place vs read-anew
-      differences already in the old library (AC1021 seed 8, linked seed 11, InsertColumns after a title merge); series
-      dates in a daylight-saving zone; a non-Standard style in the console's minimum (GUI); GUI-only sides (S)
+- [x] Tables follow-ups 8 (tables9): row and column edits copy the kept cells from the record's bytes (InsertRows 3.47
+      -> 1.98 ms, net48), SetRowHeight/SetColumnWidth splice the head (1.39 -> 0.28 ms) so the viewer's FitRows keeps
+      the spliced state (a merge after a height 5.66 -> 0.62 ms), Own reads the cells written alone, PointedAmong skips
+      records without the handle's digits; bytes identical (64 pinned, 480 fuzz runs)
+- [ ] Tables follow-ups 9: the lazy layout (Kinds, ContentLooks, NewColumnLooks; ContentInserted copies the 1.1 MB
+      TABLECONTENT, ~1.1 ms an edit); PointedAmong for digit-only handles (an index of pointers to FIELDs); Rebuild's
+      first PlacesOf scan (~5 ms) after a failed splice; CadTableEditor.Redraw not timed end to end; SetFormula and the
+      data-link and cell-kind setters still write the record whole; unmerge +0.06 ms; in-place vs read-anew differences
+      of the old library; series dates in a daylight-saving zone; GUI-only sides (S)
 - [x] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
 
 - [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand

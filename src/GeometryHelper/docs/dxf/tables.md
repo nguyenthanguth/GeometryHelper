@@ -189,9 +189,19 @@ not the reading and the writing of its 100 000 groups. In a table of 49 rows by 
 takes 0.1 to 0.3 s and 0.5 GB on .NET Framework 4.8 (0.13 s on .NET 10) where it took 12.1 s and 12.7 GB (7.0 s); a row put in takes 2.4 ms (3.3 ms) where it took
 25.7 ms (15.2 ms), a row taken out 3.3 ms (3.7 ms) where it took 29.7 ms (18.1 ms), a column put in 4.0 ms (5.7 ms) where it took 40.4 ms (17.4 ms). The layout
 of the ACAD_TABLE is kept after such an edit, as the record's groups the edit wrote, so that the next does not read the record's groups again, and the
-fields a cell lets go of are looked for among the bytes of the cells where their places are known. The ACAD_TABLE of a table with rows and columns put in
-and taken out is still written whole by each edit (2.5 to 4.1 ms for 931 cells), and a merge across a field is dominated by the search the file is
-made for what else points at the field (3 ms). A table of 1 000 cells, each given its text, takes 36 ms on .NET Framework 4.8 (it took
+fields a cell lets go of are looked for among the bytes of the cells where their places are known. The ACAD_TABLE of a table the library wrote whole before
+is written from its own bytes by rows and columns put in and taken out: each cell that comes out as it was is copied as it stands, the head and the cells made
+or changed are written, and the places of the cells are kept for the next edit; the bytes are those a writing of every group gives. On 931 cells (medians of
+20 edits, .NET Framework 4.8 and, in brackets, .NET 10) a row put in takes 2.0 ms (1.35) where it took 3.5 ms (2.3), a row put in taking the look of another 2.3 ms (1.4)
+where 3.7 (2.3), a row taken out 1.9 ms (1.0) where 3.4 (2.2), a column put in 2.3 ms (1.3) where 3.8 (2.5) and a column taken out 1.65 ms (1.0) where 3.25 (2.0). A table
+that has not been written whole is written whole by its first such edit, and from the second on the places of its cells are known. `SetRowHeight` and `SetColumnWidth`
+write their groups into the head the same way, 0.28 and 0.33 ms where each took 1.4, and no longer leave the table to read the record's groups again at its next edit:
+a merge after one takes 0.6 ms where it took 5.7, a text set 0.01 ms where 2.5, a row put in 1.4 ms where 6.7 (which also read the whole of the record again). The
+layout the table reads takes the cells written one by one since into it, so that the edits that still write the record whole do not
+read its groups again after a cell is set. The search the file is made for what else points at a field a merge lets go of reads each record's groups one at a time,
+none kept, and passes over a record whose bytes hold the digits of none of the handles looked for, in either case (a pointer is hexadecimal digits, in any case, with zeros
+before them): a merge across a field takes 0.9 ms where it took 3.0, and allocates 2.1 MB where it allocated 8.4; where any of the handles looked for is of digits
+alone (a field numbered 190, say) every record is read, as before, and the merge takes what it took. A table of 1 000 cells, each given its text, takes 36 ms on .NET Framework 4.8 (it took
 5.3 s), 3 000 cells 0.35 s (48 s). Adding tables one after another costs the same for each: 400 tables of 3 rows and 4 columns, each cell given its text, take
 0.31 s, 1 600 take 1.3 s (25 s), and a table is not counted against the entities of the drawing, which the block it was given a moment
 ago cannot be named by. Copying them to another drawing (`WblockCloneObjects`) takes 80 ms for 400 tables whether the drawing holds
