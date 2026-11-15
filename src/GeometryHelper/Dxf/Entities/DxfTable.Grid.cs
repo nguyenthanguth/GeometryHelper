@@ -892,6 +892,7 @@ namespace GeometryHelper.Dxf
 
             DxfFile.Rec record = file.RecordAt(Item, 0);
             _layout = new Layout(new DxfDimGroups(g, groups));
+            _pending.Clear();
             _layoutBytes = record.Bytes;
             _layoutStart = record.Start;
             _layoutEnd = record.End;

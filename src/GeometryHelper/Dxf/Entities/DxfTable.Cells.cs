@@ -957,7 +957,7 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentException("A format is written on one line.", nameof(format));
             }
 
-            CellView cell = CellToWrite(row, col);
+            CellView cell = CellToEdit(row, col);
             string now = cell.InValue(300) ?? string.Empty;
             int flags = int.TryParse(
                 cell.InValue(93)?.Trim(),
@@ -1091,7 +1091,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the cell holds its text alone, as a file before R2007 writes it, or the table is erased.</exception>
         public void SetDataType(int row, int col, DxfDataType dataType, DxfUnitType unitType)
         {
-            CellView cell = CellToWrite(row, col);
+            CellView cell = CellToEdit(row, col);
             DxfDataType kind = KindOf(cell);
 
             if (kind == dataType && UnitOf(cell) == unitType)
@@ -2021,7 +2021,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the table is erased.</exception>
         public void SetBackgroundColorNone(int row, int col, bool value)
         {
-            CellView cell = CellToWrite(row, col);
+            CellView cell = CellToEdit(row, col);
             string fill = cell.Override(283, 0x02)?.Trim();
             string colour = cell.Override(63, 0x04)?.Trim();
             int flagsCode = Item.File.Supports(1021) ? 91 : 177;
@@ -2434,7 +2434,7 @@ namespace GeometryHelper.Dxf
         public void SetOverrides(int row, int column, int contentIndex, DxfCellProperties overrides)
         {
             CheckContent(contentIndex);
-            CellView cell = CellToWrite(row, column);
+            CellView cell = CellToEdit(row, column);
             int now = cell.Flags ?? cell.Held();
             int named =
                 FlagsOf(overrides)
@@ -2488,7 +2488,7 @@ namespace GeometryHelper.Dxf
         /// </summary>
         internal void TakeOverrides(int row, int column, DxfCellProperties properties)
         {
-            CellView cell = CellToWrite(row, column);
+            CellView cell = CellToEdit(row, column);
             int mask = FlagsOf(properties);
 
             if ((((cell.Flags ?? 0) | cell.Held()) & mask) == 0)

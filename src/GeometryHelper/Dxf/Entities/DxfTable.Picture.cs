@@ -36,7 +36,10 @@ namespace GeometryHelper.Dxf
         /// (an MTEXT at the cell's attachment point, as wide as the cell less its margins) and the block of each block cell (an
         /// INSERT, its extents, turned and scaled, aligned in the cell by its alignment, in from the cell's sides by the margins;
         /// the scale of a cell fitted to its block, <see cref="SetAutoScale(int, int, bool)"/>, the one that fits those extents
-        /// into the cell less its margins: a block 10 by 40 in a cell 30 wide and 8 high is drawn at 0.125), all on layer 0. Each look is the cell's own, else the table's own of its kind of row, else its table
+        /// into the cell less its margins: a block 10 by 40 in a cell 30 wide and 8 high is drawn at 0.125; an ATTRIB follows the
+        /// INSERT for each attribute definition of the block that is not constant, with the value the cell gives it or its own words;
+        /// a block whose definitions the drawing's fonts measure is aligned by the box of their words in Arial and fitted by the wider
+        /// of that and the box of the words in the definitions' own fonts), all on layer 0. Each look is the cell's own, else the table's own of its kind of row, else its table
         /// style's (<see cref="DxfTableStyle"/>), else AutoCAD's Standard's. A table that names no block of the drawing, or one
         /// another entity names too, is given a block of its own. The table of rows 10, 8 and 8 high and columns 40 and 30 wide,
         /// its title merged across, is drawn with 6 lines and 4 texts.
@@ -489,12 +492,19 @@ namespace GeometryHelper.Dxf
 
                         // The block's extents, not its insertion point, are aligned in the cell, in from its sides by the
                         // margins; a block fitted to its cell takes the scale that fits the box they fill, turned, in the cell
-                        // less its margins.
-                        if (TryBlockBox(block, r0, c0, out double[] box))
+                        // less its margins: the wider of the box of the words of its definitions in their own fonts and in Arial.
+                        if (TryBlockBoxes(block, r0, c0, out double[] ink, out double[] box))
                         {
                             if (cell.Whole(174, 0) != 0)
                             {
-                                scale = FittedScale(box, angle, right - left, bottom - top, hMargin, vMargin) ?? scale;
+                                scale = FittedScale(
+                                    Widest(ink, box),
+                                    angle,
+                                    right - left,
+                                    bottom - top,
+                                    hMargin,
+                                    vMargin
+                                ) ?? scale;
                             }
 
                             double[] seen = TurnedBox(box, scale, angle);
@@ -535,6 +545,7 @@ namespace GeometryHelper.Dxf
                             Rotation = turn + angle,
                             ScaleFactors = new GeoVector3(scale, scale, scale),
                         };
+                        AddAttributes(insert, block, r0, c0);
                         texts.Add(insert);
                     }
 
@@ -600,30 +611,35 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// The box the entities of a block fill in its own system, from its base point, as AutoCAD lays a block cell out by:
+        /// The boxes the entities of a block fill in its own system, from its base point, as AutoCAD lays a block cell out by:
         /// the least x and y and the greatest x and y of the extents of its entities, an attribute definition among them as
-        /// the cell shows it (<see cref="AttributeExtents"/>). False where it holds no entity with extents.
+        /// the cell shows it (<see cref="AttributeExtents"/>). <paramref name="ink"/> counts a definition's words in the font of
+        /// its own style, as AutoCAD fits a block to its cell; <paramref name="arial"/> counts those of a definition that is not
+        /// constant in Arial, as AutoCAD asks the room it takes and aligns the block in its cell by: the two are one box for a
+        /// block with no such definition. False where the block holds no entity with extents.
         /// </summary>
-        private bool TryBlockBox(DxfBlockTableRecord block, int row, int column, out double[] box)
+        private bool TryBlockBoxes(DxfBlockTableRecord block, int row, int column, out double[] ink, out double[] arial)
         {
-            box = null;
+            ink = null;
+            arial = null;
 
             foreach (DxfEntity entity in block)
             {
-                GeoAabb3 extents;
+                GeoAabb3 own;
+                GeoAabb3 wide;
 
                 try
                 {
                     if (entity is DxfAttributeDefinition definition)
                     {
-                        if (!AttributeExtents(definition, row, column, out extents))
+                        if (!AttributeExtents(definition, row, column, out own, out wide))
                         {
                             continue;
                         }
                     }
                     else
                     {
-                        extents = entity.GeometricExtents;
+                        own = wide = entity.GeometricExtents;
                     }
                 }
                 catch (InvalidOperationException)
@@ -631,42 +647,63 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                if (box == null)
-                {
-                    box = new[] { extents.Min.X, extents.Min.Y, extents.Max.X, extents.Max.Y };
-                    continue;
-                }
-
-                box[0] = Math.Min(box[0], extents.Min.X);
-                box[1] = Math.Min(box[1], extents.Min.Y);
-                box[2] = Math.Max(box[2], extents.Max.X);
-                box[3] = Math.Max(box[3], extents.Max.Y);
+                Include(ref ink, own);
+                Include(ref arial, wide);
             }
 
-            if (box == null)
+            if (ink == null)
             {
                 return false;
             }
 
             GeoPoint3 origin = block.Origin;
-            box[0] -= origin.X;
-            box[1] -= origin.Y;
-            box[2] -= origin.X;
-            box[3] -= origin.Y;
+
+            foreach (double[] box in new[] { ink, arial })
+            {
+                box[0] -= origin.X;
+                box[1] -= origin.Y;
+                box[2] -= origin.X;
+                box[3] -= origin.Y;
+            }
+
             return true;
         }
 
+        /// <summary>A box widened to hold the extents given; made of them where it is null.</summary>
+        private static void Include(ref double[] box, GeoAabb3 extents)
+        {
+            if (box == null)
+            {
+                box = new[] { extents.Min.X, extents.Min.Y, extents.Max.X, extents.Max.Y };
+                return;
+            }
+
+            box[0] = Math.Min(box[0], extents.Min.X);
+            box[1] = Math.Min(box[1], extents.Min.Y);
+            box[2] = Math.Max(box[2], extents.Max.X);
+            box[3] = Math.Max(box[3], extents.Max.Y);
+        }
+
         /// <summary>
-        /// The box an attribute definition of a block cell's block fills, as AutoCAD 2021 counts it in the block's extents
+        /// The boxes an attribute definition of a block cell's block fills, as AutoCAD 2021 counts it in the block's extents
         /// (probed in its console with margins 1.5): the box of the words the cell shows for it, those the cell gives it
         /// (<see cref="GetBlockAttributeValue"/>) or, where it gives none, the definition's own, measured as
-        /// <see cref="DxfDBText.GeometricExtents"/> measures a text in the fonts of the drawing. A definition drawn from the
-        /// block's own words (a constant one) counts them; one that is invisible, and one whose words are empty, count nothing.
-        /// False for those, and where the words cannot be measured (no font found, or lines of an MTEXT), as before.
+        /// <see cref="DxfDBText.GeometricExtents"/> measures a text in the fonts of the drawing (<paramref name="ink"/>), and
+        /// the same words measured in Arial (<paramref name="arial"/>), which AutoCAD asks the room of a definition that is not
+        /// constant by, whatever the font of its style: "AB" of 2.5 high is 4.17 wide in txt.shx and 4.66 in Arial. A definition
+        /// drawn from the block's own words (a constant one) counts them in its own font in both; one that is invisible, and
+        /// one whose words are empty, count nothing. False for those, and where the words cannot be measured (no font found, or
+        /// lines of an MTEXT); where the drawing finds no arial.ttf the two boxes are one.
         /// </summary>
-        private bool AttributeExtents(DxfAttributeDefinition definition, int row, int column, out GeoAabb3 extents)
+        private bool AttributeExtents(
+            DxfAttributeDefinition definition,
+            int row,
+            int column,
+            out GeoAabb3 ink,
+            out GeoAabb3 arial
+        )
         {
-            extents = default(GeoAabb3);
+            ink = arial = default(GeoAabb3);
 
             if (definition.Invisible)
             {
@@ -683,7 +720,8 @@ namespace GeometryHelper.Dxf
 
             var shown = (DxfAttributeDefinition)definition.Clone();
             shown.TextString = words;
-            extents = shown.GeometricExtents;
+            ink = shown.GeometricExtents;
+            arial = !definition.Constant && shown.TryArialExtents(out GeoAabb3 measured) ? measured : ink;
             return true;
         }
 
@@ -752,8 +790,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// The width and height a block cell's block asks of its cell without its margins, as AutoCAD grows its row and column
-        /// to hold it: the box its extents fill at the cell's scale and turn. False for a cell that holds no block, one fitted to
-        /// its cell, which asks nothing, and a block with no extents.
+        /// to hold it: the box its extents fill at the cell's scale and turn, the words of its definitions in Arial. False for a
+        /// cell that holds no block, one fitted to its cell, which asks nothing, and a block with no extents.
         /// </summary>
         internal bool TryBlockSize(int row, int column, out double width, out double height)
         {
@@ -768,7 +806,7 @@ namespace GeometryHelper.Dxf
 
             DxfBlockTableRecord block = GetBlockTableRecord(row, column);
 
-            if (block == null || !TryBlockBox(block, row, column, out double[] box))
+            if (block == null || !TryBlockBoxes(block, row, column, out _, out double[] box))
             {
                 return false;
             }
@@ -777,6 +815,112 @@ namespace GeometryHelper.Dxf
             width = seen[2] - seen[0];
             height = seen[3] - seen[1];
             return true;
+        }
+
+        /// <summary>
+        /// The width and height a block cell's block fitted to its cell asks of the cell at the scale one pass of AutoCAD's layout
+        /// fits it at, without its margins: the box of its extents with its definitions' words in Arial, turned, at the scale that
+        /// fits the box of the words in their own fonts into the cell as it stands (probed in AutoCAD 2021's console: a block 20
+        /// by 10 with "AB" of 2.5 high at x 22 in a cell 40 wide makes the scale 37 over 26.17, 1.41401, and widens the column to
+        /// hold 26.66 of Arial at that scale, 40.69607). <paramref name="scale"/> is that scale; <paramref name="laid"/> the one
+        /// <see cref="RecomputeTableBlock"/> fits the block at in the cell as it stands, by the wider of the two boxes, which is
+        /// <paramref name="scale"/> where the cell has been widened for the block as above and is its own where it has not. False
+        /// for a cell that holds no block or one that is not fitted, and a block with no extents.
+        /// </summary>
+        internal bool TryFittedSize(
+            int row,
+            int column,
+            out double width,
+            out double height,
+            out double scale,
+            out double laid
+        )
+        {
+            width = 0.0;
+            height = 0.0;
+            scale = 0.0;
+            laid = 0.0;
+            CellView cell = Cell(row, column);
+
+            if (cell.Whole(171, 1) != (int)DxfTableCellType.BlockCell || cell.Whole(174, 0) == 0)
+            {
+                return false;
+            }
+
+            DxfBlockTableRecord block = GetBlockTableRecord(row, column);
+
+            if (block == null || !TryBlockBoxes(block, row, column, out double[] ink, out double[] arial))
+            {
+                return false;
+            }
+
+            DxfCellRange range = GetMergeRange(row, column);
+            double wide = 0.0;
+            double high = 0.0;
+
+            for (int c = range.LeftColumn; c <= range.RightColumn; c++)
+            {
+                wide += ColumnWidth(c);
+            }
+
+            for (int r = range.TopRow; r <= range.BottomRow; r++)
+            {
+                high += RowHeight(r);
+            }
+
+            double angle = BlockRotation(row, column);
+            double? fit = FittedScale(ink, angle, wide, high, HorizontalCellMargin, VerticalCellMargin);
+
+            if (!fit.HasValue)
+            {
+                return false;
+            }
+
+            scale = fit.Value;
+            laid = FittedScale(Widest(ink, arial), angle, wide, high, HorizontalCellMargin, VerticalCellMargin)
+                ?? scale;
+            double[] seen = TurnedBox(arial, scale, angle);
+            width = seen[2] - seen[0];
+            height = seen[3] - seen[1];
+            return true;
+        }
+
+        /// <summary>The box that holds both the boxes given: the least of their lower corners and the greatest of their upper.</summary>
+        private static double[] Widest(double[] one, double[] other) =>
+            new[]
+            {
+                Math.Min(one[0], other[0]),
+                Math.Min(one[1], other[1]),
+                Math.Max(one[2], other[2]),
+                Math.Max(one[3], other[3]),
+            };
+
+        /// <summary>
+        /// Gives an INSERT just made for a block cell its attributes, as AutoCAD 2021 draws them in the table's block: an ATTRIB
+        /// for each definition of the block that is not constant, an invisible one too, in the order of the block, filled from the
+        /// definition as the INSERT command fills one and placed by the INSERT's transformation, its words the value the cell
+        /// gives the definition (<see cref="GetBlockAttributeValue"/>) or the definition's own.
+        /// </summary>
+        private void AddAttributes(DxfBlockReference insert, DxfBlockTableRecord block, int row, int column)
+        {
+            foreach (DxfEntity entity in block)
+            {
+                if (!(entity is DxfAttributeDefinition definition) || definition.Constant)
+                {
+                    continue;
+                }
+
+                var attribute = new DxfAttributeReference();
+                attribute.SetAttributeFromBlock(definition, insert.BlockTransform);
+                string value = GetBlockAttributeValue(row, column, definition);
+
+                if (value != null)
+                {
+                    attribute.TextString = value;
+                }
+
+                insert.AttributeCollection.AppendAttribute(attribute);
+            }
         }
 
         /// <summary>

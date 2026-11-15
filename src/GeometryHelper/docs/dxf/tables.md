@@ -62,6 +62,23 @@ the cell less its margins, 0.125 for that block (5 high within the margins over 
 A block turned by exactly 90, 180 or 270 degrees stands where AutoCAD 2021 puts it, off the aligned box by the block's own
 width and height (0 and minus the width at 90).
 
+The INSERT of a block cell is followed by an ATTRIB for each attribute definition of its block that is not constant, an
+invisible one too, in the order of the block, filled and placed by the INSERT's transformation as the INSERT command fills one
+(`SetAttributeFromBlock`), its words the value the cell gives the definition (`SetBlockAttributeValue`), else the definition's
+own, as AutoCAD 2021 draws them in the table's block: the definition SIZE of BOLT at (22, 0), 2.5 high, in a cell at scale 2 turned 30
+degrees is an ATTRIB 5 high turned 30 degrees, at the definition's place taken by the INSERT's transformation. A constant
+definition has no ATTRIB, and a table drawn again has each once. AutoCAD 2021 lays a block with a definition that is not constant
+out by two boxes (probed in its console, margins 1.5, one pass of its layout). The box the block is aligned in its cell by, and
+the room it takes, are those of the words in Arial (arial.ttf, found in the drawing's `FontSearchPath`), whatever the font of
+the definition's style: AB at 2.5 high is 4.66 wide in Arial and 4.17 in txt.shx, M12 6.79 and 5.83, DEFAULT 15.91 and 16.67. The
+scale that fits the block to its cell comes from the box of the words in the definition's own font: a block 20 by 10 with AB at
+x 22 in a cell 40 wide is fitted at 37 over 26.17, 1.41401, and the column, which that scale gives 26.66 of Arial to hold, is
+widened to 40.69607 by the presenter (`CadTableEditor`), the block filling it from its margin. A constant definition is the same
+box in both, and a block with none has one box. `RecomputeTableBlock` alone, with no layout to widen the column, fits the block
+by the wider of the two boxes, 37 over 26.66, 1.38787, inside the cell. AutoCAD run twice (`GenerateLayout` and
+`RecomputeTableBlock` both) goes on from the widened column, 1.44061 and 41.40525 for that block, and each pass after widens
+it again, 1.8 % a time.
+
 Lines set on the top left cell of a block of merged cells (`SetGridColor`, `SetGridLineWeight`, `SetGridVisibility`) are given to
 the cells along the block's edges, as AutoCAD 2021 reads them from a file: its top over the cells of its first row, its left down
 those of its first column, its bottom along a block of one row and its right down a block of one column; a line another cell
@@ -131,8 +148,13 @@ Building a table cell by cell costs in proportion to the cell, and then to the s
 each. The first edits of a table write its record whole, as the file writes a group; from then on `SetTextString`, `SetValue` and the
 setters of a cell's look (`SetAlignment`, `SetTextHeight`, `SetTextStyle`, `SetContentColor`, `SetBackgroundColor`,
 `SetTextRotation`) read the groups of the cell's own bytes and write them back into their place, and the record's bytes are those a
-writing of every group would give. The last cell of a table, whose end is where the table's own groups begin and which its flags
-decide, is still written through the whole record, as are the setters not listed (a format, a data type, a merge). A table of 1 000
+writing of every group would give, and so do `SetFormat`, `SetDataType`, `SetBackgroundColorNone`, `SetOverrides` and the last cell
+of a table, whose end is where the table's own groups begin and which its flags decide as they stand. The layout the table reads
+(its row types, its own looks of a kind of row) is kept for the record it makes by noting the cell written, put into it when it is
+next read, so that `SetBackgroundColorNone` and `SetOverrides` do not read every group of the record. The setters of a block cell,
+a formula and a merge still write the record whole. Each setter over each of the 1 000 cells of a table of 100 rows by 10
+columns: `SetFormat` 9.6 s now 70 ms, `SetDataType` 9.6 s now 71 ms, `SetBackgroundColorNone` 1.2 s now 11 ms, `SetOverrides`
+14.6 s now 0.55 s on .NET Framework 4.8, the drawing the same to the byte. A table of 1 000
 cells, each given its text, takes 36 ms on .NET Framework 4.8 (it took 5.3 s), 3 000 cells 0.35 s (48 s) and 10 000 cells 3.2 s (the same loop had not ended
 after 15 minutes). Adding tables one after another costs the same for each: 400 tables of 3 rows and 4 columns, each cell given its text, take
 0.31 s, 1 600 take 1.3 s (25 s), and a table is not counted against the entities of the drawing, which the block it was given a moment

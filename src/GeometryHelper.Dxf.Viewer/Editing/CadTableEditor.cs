@@ -946,7 +946,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             Measured(document, table, () =>
             {
-                foreach (KeyValuePair<DxfCellRange, double> ask in RowAsks(document, table, new Looks(table)))
+                foreach (KeyValuePair<DxfCellRange, double> ask in RowAsks(document, table, new Looks(table), null))
                 {
                     if (ask.Key.TopRow == ask.Key.BottomRow)
                     {
@@ -960,7 +960,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// What each block of merged cells (a cell alone is a block of one) asks of the rows it spans, in the order of its top left
         /// cell, row by row: its words as <see cref="CellNeeds"/> measures them, or a block cell's block as it stands (a block
-        /// fitted to its cell asks nothing), the margins above and below in; a cell with no words asks nothing. The first cell of
+        /// fitted to its cell asks nothing, but as <paramref name="fitted"/> says where that is given), the margins above and
+        /// below in; a cell with no words asks nothing. The first cell of
         /// each row also asks, for its row alone, for one line of its text height, as AutoCAD 2021 lays a row out by the one line
         /// of its first cell (a first cell of 6 in a table whose data is 8 high makes its row 11, not the 13.66667 the cells
         /// beside it at 8 would, and a second cell of 12 holding one word makes it 15, its word and the margins).
@@ -968,7 +969,8 @@ namespace GeometryHelper.Dxf.Viewer
         private static List<KeyValuePair<DxfCellRange, double>> RowAsks(
             CadDocument document,
             DxfTable table,
-            Looks style
+            Looks style,
+            Dictionary<int, double[]> fitted
         )
         {
             double hMargin = table.HorizontalCellMargin;
@@ -991,6 +993,14 @@ namespace GeometryHelper.Dxf.Viewer
                         if (table.TryBlockSize(r, c, out _, out double high))
                         {
                             asks.Add(new KeyValuePair<DxfCellRange, double>(block, high + 2.0 * vMargin));
+                        }
+                        else if (
+                            fitted != null
+                            && fitted.TryGetValue(r * table.NumColumns + c, out double[] grows)
+                            && grows[1] > 0.0
+                        )
+                        {
+                            asks.Add(new KeyValuePair<DxfCellRange, double>(block, grows[1]));
                         }
 
                         continue;
@@ -1025,7 +1035,10 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>What each block cell's block asks of the columns it spans: its width as it stands, the margins either side in, as <see cref="RowAsks"/> counts a height; the ranges turned, a row for a column, as <see cref="Wanted"/> takes them.</summary>
-        private static List<KeyValuePair<DxfCellRange, double>> ColumnAsks(DxfTable table)
+        private static List<KeyValuePair<DxfCellRange, double>> ColumnAsks(
+            DxfTable table,
+            Dictionary<int, double[]> fitted
+        )
         {
             double hMargin = table.HorizontalCellMargin;
             var asks = new List<KeyValuePair<DxfCellRange, double>>();
@@ -1050,6 +1063,84 @@ namespace GeometryHelper.Dxf.Viewer
                             )
                         );
                     }
+                    else if (
+                        block.TopRow == r
+                        && block.LeftColumn == c
+                        && fitted.TryGetValue(r * table.NumColumns + c, out double[] grows)
+                        && grows[0] > 0.0
+                    )
+                    {
+                        asks.Add(
+                            new KeyValuePair<DxfCellRange, double>(
+                                new DxfCellRange(block.LeftColumn, block.TopRow, block.RightColumn, block.BottomRow),
+                                grows[0]
+                            )
+                        );
+                    }
+                }
+            }
+
+            return asks;
+        }
+
+        /// <summary>
+        /// What each block cell fitted to its cell asks of the columns and rows it spans where its definitions' words, measured
+        /// in Arial, are wider or higher than the block at the scale one pass of AutoCAD's layout fits it at
+        /// (<see cref="DxfTable.TryFittedSize"/>): the width and the height with the margins in, then the scale it fits at, by the cell's place in the
+        /// table (its row by the columns and its column), each nought where it asks no more than the cell has. Worked out once,
+        /// from the sizes the table has before any grows, as AutoCAD fits the block first and then widens the cell. A fitted
+        /// block asks nothing of the least a drag may go to (<see cref="MinimumColumnWidth(DxfTable, int)"/>).
+        /// </summary>
+        private static Dictionary<int, double[]> FittedAsks(DxfTable table)
+        {
+            var asks = new Dictionary<int, double[]>();
+            double slack = Tolerance.Default.EqualPoint;
+
+            for (int r = 0; r < table.NumRows; r++)
+            {
+                for (int c = 0; c < table.NumColumns; c++)
+                {
+                    DxfCellRange block = table.GetMergeRange(r, c);
+
+                    if (
+                        block.TopRow != r
+                        || block.LeftColumn != c
+                        || table.CellType(r, c) != DxfTableCellType.BlockCell
+                        || !table.TryFittedSize(
+                            r,
+                            c,
+                            out double wide,
+                            out double high,
+                            out double scale,
+                            out double laid
+                        )
+                        || Math.Abs(table.BlockScale(r, c) - laid) <= Tolerance.Default.EqualVector
+                    )
+                    {
+                        continue;
+                    }
+
+                    double across = 0.0;
+                    double down = 0.0;
+
+                    for (int k = block.LeftColumn; k <= block.RightColumn; k++)
+                    {
+                        across += table.ColumnWidth(k);
+                    }
+
+                    for (int k = block.TopRow; k <= block.BottomRow; k++)
+                    {
+                        down += table.RowHeight(k);
+                    }
+
+                    double outerWide = wide + 2.0 * table.HorizontalCellMargin;
+                    double outerHigh = high + 2.0 * table.VerticalCellMargin;
+                    asks[r * table.NumColumns + c] = new[]
+                    {
+                        outerWide > across + slack ? outerWide : 0.0,
+                        outerHigh > down + slack ? outerHigh : 0.0,
+                        scale,
+                    };
                 }
             }
 
@@ -1175,7 +1266,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// "HEA300 S355 with end plates both sides" in a column 30 wide, wrapped to five lines of ghsimplex, makes its row
         /// 45.42857, as AutoCAD 2021 laid them out. A block cell not fitted to its cell asks the box its block's extents fill at the
         /// cell's scale and turn, 43 high for a block 10 by 40 at scale 1, and widens its columns first where it is wider
-        /// (<see cref="ColumnAsks"/>); a fitted one asks nothing.
+        /// (<see cref="ColumnAsks"/>); a fitted one asks nothing, but where its definitions' words are wider or higher in Arial
+        /// than in their own fonts, which it widens its cell by (<see cref="FittedAsks"/>).
         /// </summary>
         internal static void FitRows(CadDocument document, DxfTable table)
         {
@@ -1191,7 +1283,8 @@ namespace GeometryHelper.Dxf.Viewer
                 widths[c] = table.ColumnWidth(c);
             }
 
-            double[] wider = Wanted(widths, ColumnAsks(table));
+            Dictionary<int, double[]> fitted = FittedAsks(table);
+            double[] wider = Wanted(widths, ColumnAsks(table, fitted));
 
             for (int c = 0; c < columns; c++)
             {
@@ -1208,13 +1301,23 @@ namespace GeometryHelper.Dxf.Viewer
                 heights[r] = table.RowHeight(r);
             }
 
-            double[] wanted = Wanted(heights, RowAsks(document, table, new Looks(table)));
+            double[] wanted = Wanted(heights, RowAsks(document, table, new Looks(table), fitted));
 
             for (int r = 0; r < rows; r++)
             {
                 if (wanted[r] > heights[r])
                 {
                     table.SetRowHeight(r, wanted[r]);
+                }
+            }
+
+            // A block fitted to a cell widened or raised for its words keeps the scale the pass fitted it at in the cell (its
+            // 144), as AutoCAD stores it, so that the table drawn again does not take it for a cell that has still to be widened.
+            foreach (int cell in fitted.Keys.OrderBy(k => k))
+            {
+                if (fitted[cell][0] > 0.0 || fitted[cell][1] > 0.0)
+                {
+                    table.SetBlockScale(cell / columns, cell % columns, fitted[cell][2]);
                 }
             }
         }

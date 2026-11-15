@@ -541,7 +541,7 @@ the ones wanted.
       a third of the way round, words in once R x (sweep - 180) >= 2.005 DIMGAP; tar44s 330 -> 114, tar46s 1 483 -> 319,
       tar47s 578 -> 147, tar48s 1 158 -> 299, tar38s 76 -> 30); DIMJUST 1/2 words cutting the arrowhead room (tar45s 41
       -> 0); the bothExtra window past 90 degrees of sweep; 102 older sets byte-identical, 11 better
-- [ ] Associative dimensions follow-ups 10: arrowheads outside with the words outside on reflex arcs (452 of 1 315, by
+- [ ] (assoc10, running) Associative dimensions follow-ups 10: arrowheads outside with the words outside on reflex arcs (452 of 1 315, by
       the arc middle's direction mod 180); text 0.36 symbol room; aligned words and DIMJUST 1/2 outside past a half
       circle (204 of 432); bothExtra amplitude just over 90 degrees (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
@@ -761,11 +761,15 @@ the ones wanted.
       identical); MinimumColumnWidth counts block cells as AutoCAD; the 4/3 floor for a first-column block cell; ATTDEF
       text counted in block extents as AutoCAD; date letters %C %h %F %r %u %z %Z (AutoCAD's broken %j %U %W keep the
       date)
-- [ ] (tables8, running) Tables follow-ups 4: ATTRIB text drawn in a table block cell; AutoCAD measures non-constant attribute words in
-      Arial metrics (about 1 mm off with SHX); the fit scale of a fitted block with a definition (1.44061 vs ~1.388);
-      the other per-cell setters (SetAlignment, SetTextHeight, SetBackgroundColor) still quadratic; dates in autofill;
-      DxfTable.Value of a date and SetValue(DateTime); band and size-field sides of up-flowing tables and the drag-only
-      filter (GUI) (S)
+- [x] Tables follow-ups 4 (tables8): ATTRIBs drawn in a table block cell as AutoCAD writes them; two boxes for a block
+      cell (words in the style's font for the fit scale, in Arial for the room and the alignment; one pass, stored in
+      144: scale and column equal AutoCAD to five places in 6 of 6 cases); SetFormat, SetDataType, SetBackgroundColorNone,
+      SetOverrides and the last cell on the splice path (SetFormat over 1 000 cells 9.6 s -> 70 ms)
+- [ ] Tables follow-ups 5: a dimension test (DimensionTurnedWordsTests ...StandOnALevelLandingTurnedAboutTheMiddleOfTheirStart)
+      gave other coordinates once in a full run (shared font state between parallel tests?); a definition in a non-Standard
+      style counting nothing in the console's minimum (GUI); AutoCAD's endless 1.8 % growth on repeated recomputes (we
+      settle after one pass); SetValueFromText, SetCellType, SetAutoScale, SetBlock*, SetFormula and merges still write
+      the record whole; dates in autofill; DxfTable.Value of a date; GUI-only sides (S)
 - [x] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
 
 - [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand

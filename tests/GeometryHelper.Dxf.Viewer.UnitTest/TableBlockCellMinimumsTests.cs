@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
@@ -327,6 +328,23 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void TheFontsOfTheDocument_MeasureTheAttributeDefinitions_WhereTheDrawingNamesNone()
         {
             DxfDatabase db = Drawing(20, 4, (d, b) => Own(b, "OO"), Fonts.OfTheDocument);
+
+            // The fonts of the document come before those of Windows, so that an arial.ttf of its own (an O 15 wide and 12 high
+            // at 20 high) is the Arial the words are measured in, and no font of the machine changes the numbers: "OO" is 30
+            // wide in Arial where the unifont's ink makes 30 as well (18 + 12).
+            _folder.Write(
+                "arial.ttf",
+                TrueTypeFile.Font(
+                    new List<TrueTypeFile.Letter>
+                    {
+                        new TrueTypeFile.Letter(0, 500, 50, 0, 450, 700),
+                        new TrueTypeFile.Letter('A', 600, 0, 0, 600, 700),
+                        new TrueTypeFile.Letter('O', 525, 0, 0, 525, 420),
+                        new TrueTypeFile.Letter('V', 600, 0, 0, 600, 700),
+                    },
+                    "Arial"
+                )
+            );
             GiveValue(db.ModelSpace.OfType<DxfTable>().First(), "OO");
             CadDocument document = Document(db, Fonts.OfTheDocument);
             string handle = db.ModelSpace.OfType<DxfTable>().First().Handle;

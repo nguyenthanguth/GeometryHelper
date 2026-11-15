@@ -27,52 +27,86 @@ namespace GeometryHelper.Dxf
             get
             {
                 DxfTextLine line = Words(Height, WidthFactor, out _, out _);
+                return line == null ? base.GeometricExtents : ExtentsOf(line);
+            }
+        }
 
-                if (line == null)
+        /// <summary>
+        /// The box the words <paramref name="line"/> holds fill as the text stands, as <see cref="GeometricExtents"/> gives it:
+        /// the box of their ink upright, its four corners slanted by <see cref="Oblique"/>, turned and placed at its
+        /// <see cref="Position"/>.
+        /// </summary>
+        private GeoAabb3 ExtentsOf(DxfTextLine line)
+        {
+            GeoVector3 normal = Normal;
+            GeoPoint3 position = Position;
+            GeoPoint3 at = WorldToOcs(normal, position);
+            double turn = Rotation;
+            double slant = Math.Tan(Oblique);
+            double cos = Math.Cos(turn);
+            double sin = Math.Sin(turn);
+            double minX = position.X,
+                minY = position.Y,
+                minZ = position.Z;
+            double maxX = minX,
+                maxY = minY,
+                maxZ = minZ;
+
+            if (line.Box(out double left, out double right, out double bottom, out double top))
+            {
+                minX = minY = minZ = double.PositiveInfinity;
+                maxX = maxY = maxZ = double.NegativeInfinity;
+
+                foreach (double x in new[] { left, right })
                 {
-                    return base.GeometricExtents;
-                }
-
-                GeoVector3 normal = Normal;
-                GeoPoint3 position = Position;
-                GeoPoint3 at = WorldToOcs(normal, position);
-                double turn = Rotation;
-                double slant = Math.Tan(Oblique);
-                double cos = Math.Cos(turn);
-                double sin = Math.Sin(turn);
-                double minX = position.X,
-                    minY = position.Y,
-                    minZ = position.Z;
-                double maxX = minX,
-                    maxY = minY,
-                    maxZ = minZ;
-
-                if (line.Box(out double left, out double right, out double bottom, out double top))
-                {
-                    minX = minY = minZ = double.PositiveInfinity;
-                    maxX = maxY = maxZ = double.NegativeInfinity;
-
-                    foreach (double x in new[] { left, right })
+                    foreach (double y in new[] { bottom, top })
                     {
-                        foreach (double y in new[] { bottom, top })
-                        {
-                            double u = x + (y * slant);
-                            GeoPoint3 corner = OcsToWorld(
-                                normal,
-                                new GeoPoint3(at.X + (u * cos) - (y * sin), at.Y + (u * sin) + (y * cos), at.Z)
-                            );
-                            minX = Math.Min(minX, corner.X);
-                            minY = Math.Min(minY, corner.Y);
-                            minZ = Math.Min(minZ, corner.Z);
-                            maxX = Math.Max(maxX, corner.X);
-                            maxY = Math.Max(maxY, corner.Y);
-                            maxZ = Math.Max(maxZ, corner.Z);
-                        }
+                        double u = x + (y * slant);
+                        GeoPoint3 corner = OcsToWorld(
+                            normal,
+                            new GeoPoint3(at.X + (u * cos) - (y * sin), at.Y + (u * sin) + (y * cos), at.Z)
+                        );
+                        minX = Math.Min(minX, corner.X);
+                        minY = Math.Min(minY, corner.Y);
+                        minZ = Math.Min(minZ, corner.Z);
+                        maxX = Math.Max(maxX, corner.X);
+                        maxY = Math.Max(maxY, corner.Y);
+                        maxZ = Math.Max(maxZ, corner.Z);
                     }
                 }
-
-                return new GeoAabb3(new GeoPoint3(minX, minY, minZ), new GeoPoint3(maxX, maxY, maxZ));
             }
+
+            return new GeoAabb3(new GeoPoint3(minX, minY, minZ), new GeoPoint3(maxX, maxY, maxZ));
+        }
+
+        /// <summary>
+        /// The box the text's words fill as <see cref="GeometryHelper.Dxf.DxfDBText.GeometricExtents"/> gives it, measured in the
+        /// TrueType font arial.ttf where the drawing's <see cref="DxfDatabase.FontSearchPath"/> finds it, whatever the font of
+        /// the text's style: the words as AutoCAD 2021 measures an attribute definition of a table's block cell, where it
+        /// asks the room a block needs. False where the drawing finds no arial.ttf, or the words are not measured
+        /// (<see cref="IsMeasured"/>).
+        /// </summary>
+        internal bool TryArialExtents(out GeoAabb3 extents)
+        {
+            extents = default(GeoAabb3);
+            DxfFonts fonts = (IsResident ? Item.File : Item.File.Origin)?.Database?.Fonts;
+
+            if (fonts == null || IsMirroredInX || IsMirroredInY || (IsAttribute && Embedded))
+            {
+                return false;
+            }
+
+            DxfTextLine line = fonts.Find("arial.ttf") is DxfTrueTypeFont arial
+                ? DxfFonts.Text(arial, null, TextString, Height, WidthFactor)
+                : null;
+
+            if (line == null)
+            {
+                return false;
+            }
+
+            extents = ExtentsOf(line);
+            return true;
         }
 
         /// <summary>
