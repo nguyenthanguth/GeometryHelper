@@ -2358,16 +2358,16 @@ namespace GeometryHelper.Dxf
                 : (byte)0;
 
         /// <summary>Marks a cell of the layout, by its index, as <see cref="_session"/> says.</summary>
-        private void MarkCell(Layout layout, int index, byte marks)
+        private void MarkCell(Layout layout, int index, byte marks) =>
+            MarkCell(layout.Rows, layout.Columns, index, marks);
+
+        /// <summary>Marks a cell of a table of the rows and columns given, by its index, as <see cref="_session"/> says.</summary>
+        private void MarkCell(int rows, int columns, int index, byte marks)
         {
-            if (
-                _session == null
-                || _sessionColumns != layout.Columns
-                || _session.Length != layout.Rows * layout.Columns
-            )
+            if (_session == null || _sessionColumns != columns || _session.Length != rows * columns)
             {
-                _session = new byte[layout.Rows * layout.Columns];
-                _sessionColumns = layout.Columns;
+                _session = new byte[rows * columns];
+                _sessionColumns = columns;
             }
 
             _session[index] |= marks;

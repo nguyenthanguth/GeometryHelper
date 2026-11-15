@@ -186,6 +186,33 @@ edit they take 90 ms in place of 179 ms (400) and 389 ms in place of 1 690 ms (1
 objects around them. Saved bytes equal before and after in the same saves as above, and in the copies of 25 tables among 120 objects.
 Not changed: the completion of a drawing of 100 000 entities (10 MB) that holds a table still takes 158 ms to save after an edit (169
 ms before), nine tenths of it the reading of the copy it is made on.
+**CHANGED.** Saving a drawing that holds a table or a table style written in the session no longer makes an object of every entity
+of the copy it completes them on, nor a string of the whole file. The copy is opened from the bytes the drawing saves as, not from a
+text made of them and encoded again; its tables are found in its records by handle in one pass, each given the model or paper space
+it stands in, where finding one by `TryGetObject` made the drawing's entities and read the handle of each (most of the 158 ms above);
+and the table style its lines are read against is found among the objects. The file saved is the same to the byte. A drawing of
+100 000 lines (15.3 MB) with a table, saved after an edit, takes 56 ms and 116 MB in place of 216 ms and 188 MB on .NET Framework 4.8
+(41 ms and 115 MB in place of 104 ms and 187 MB on .NET 10), and 20 000 lines (3 MB) 11 ms in place of 36 (9 ms in place of 25). The
+text is still the way where the drawing's text is not its bytes as UTF-8 (a mark at its start, bytes read as the replacement
+character, a code page), and a table of a block is still found among the entities. Not changed: the first save of a drawing indexes
+the entities of the drawing itself, once, as it does for any `GetObject`.
+**CHANGED.** The cells of a table set one after another are written once, when the table's record is next read, and no longer copy
+the record each: the bytes of the cells set are kept apart and put in their places by a read of the table or of its entity, a copy
+or a save, the record's bytes the same as before to the byte. A run of 10 000 cells of a table, each given its text, takes 0.53 s and
+551 MB in place of 6.0 s and 13.5 GB on .NET 10 (0.55 s in place of 3.1 s on .NET Framework 4.8), 5 000 cells 0.31 s and 276 MB in
+place of 1.3 s and 3.5 GB, and one cell among 10 000 0.07 ms in place of 0.22. `SetFormat`, `SetDataType`, `SetBackgroundColorNone`,
+`SetOverrides`, `ResetValue` and `SetCellType` take the same path, where each read and wrote every group of the table's record: 931
+cells' formats take 0.34 s in place of 9.5 s on .NET 10, their kinds of value 0.09 s in place of 11.5 s, their fill 0.07 s in place
+of 1.0 s, their overrides 0.07 s in place of 5.0 s and their reset 0.09 s in place of 10.6 s (16 GB allocated by the format alone
+before, 62 MB now; 0.33 s in place of 14.3 s for the formats on .NET Framework 4.8). The last cell of a table is still written
+through the whole record (35 ms for 10 000 cells on .NET 10, 78 ms on .NET Framework 4.8), as are the setters that ask the table for
+more than their cell holds (the fill of a filled row, an alignment `SetOverrides` gives, a reset of a cell that holds looks of its
+content), which read the record first, and a cell set and read at once costs what it did (9 to 13 ms for 10 000 cells either way).
+`NormalizeEdges`, which gives a table's cells the lines AutoCAD builds when a table is completed, shares one list of lines among the
+cells that have none (400 small tables saved after an edit 48 ms in place of 57 on .NET 10, within the noise of the machine). Saved
+bytes equal before and after in 72 000 saves of random drawings with tables in model space, paper space and a block, edited setter by
+setter and in runs of up to 220 with no read between (30 058 saves of 2 500 drawings on .NET Framework 4.8, 41 762 of 3 500 on
+.NET 10), and in the 501 saves of AutoCAD's 167 sample drawings on both.
 **CHANGED.** A body or a region saved to R2013 or later from ACIS text, or from the binary of another version of the modeler, is
 dated with the date of the SAT's own head (AutoCAD writes none there, so none) and not with the clock, and a body whose extended data
 gives no GUID is given one made of its handle and its data (the first 16 bytes of their SHA-256, as a GUID made of a name) and not at

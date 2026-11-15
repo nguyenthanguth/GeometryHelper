@@ -5444,9 +5444,12 @@ namespace GeometryHelper.Dxf
         /// one another with no comment or group of an application between them, as that method's places are when the record's
         /// groups are all its own.
         /// </summary>
-        internal List<KeyValuePair<int, string>> GroupsBetween(DxfItem item, int index, int from, int to)
+        internal List<KeyValuePair<int, string>> GroupsBetween(DxfItem item, int index, int from, int to) =>
+            GroupsBetween(RecordAt(item, index), from, to);
+
+        /// <summary>The groups of a record between two places of its bytes, counted from its start, as <see cref="GroupsBetween(DxfItem, int, int, int)"/> reads them.</summary>
+        internal List<KeyValuePair<int, string>> GroupsBetween(Rec record, int from, int to)
         {
-            Rec record = RecordAt(item, index);
             var groups = new List<KeyValuePair<int, string>>();
             int at = record.Start + from;
             int end = record.Start + to;
@@ -6245,6 +6248,75 @@ namespace GeometryHelper.Dxf
             }
 
             return written;
+        }
+
+        /// <summary>The bytes of groups as the file writes them, one after another.</summary>
+        internal byte[] BytesOfGroups(IList<KeyValuePair<int, string>> groups)
+        {
+            var b = new Builder(this);
+
+            foreach (KeyValuePair<int, string> group in groups)
+            {
+                b.Group(group.Key, group.Value);
+            }
+
+            return b.ToArray();
+        }
+
+        /// <summary>
+        /// The cells written into the first record of an entity and kept to be put in it when it is next read: null where it has
+        /// none. See <see cref="PendingCells"/>.
+        /// </summary>
+        internal PendingCells PendingOf(DxfItem item) => item.Parent == null ? item.Piece?.Pending : null;
+
+        /// <summary>
+        /// Whether cells written into the first record of an entity may be kept apart (<see cref="PutCell"/>): an entity of
+        /// the file whose records are its own, in a space, not removed, and with no extended data left to be written into them
+        /// (<see cref="TakePendingData"/>).
+        /// </summary>
+        internal bool CanDefer(DxfItem item) =>
+            item.Parent == null
+            && item.Piece != null
+            && item.Space != null
+            && item.PendingRecords == null
+            && !item.IsRemoved;
+
+        /// <summary>
+        /// Keeps the first record of an entity as the one cells are counted from, <paramref name="from"/> being where each
+        /// begins, for <see cref="PutCell"/>; <paramref name="settled"/> is called with the record and the places of the cells
+        /// once the cells are put in it.
+        /// </summary>
+        internal PendingCells BeginPending(DxfItem item, int[] from, Action<Rec, int[]> settled)
+        {
+            var pending = new PendingCells(item.Piece.Records[0], from, settled);
+            item.Piece.Defer(pending);
+            return pending;
+        }
+
+        /// <summary>
+        /// Gives a cell of the first record of an entity the groups written in its place, <paramref name="middle"/> being their
+        /// bytes, to be put in the record when it is next read: what <see cref="SpliceRecord"/> does for a record, without
+        /// the copy of its bytes. The entity is changed as that changes it. False, nothing written, where the names the record
+        /// gives to the INSERTs cannot be kept without reading the record whole (<see cref="SpliceNames"/>): it is then
+        /// written by <see cref="SpliceRecord"/>.
+        /// </summary>
+        internal bool PutCell(DxfItem item, PendingCells pending, int index, byte[] middle)
+        {
+            Editable(item);
+            Rec held = pending.Held(index);
+
+            // The names the record gives to the INSERTs are taken from the bytes written where the file keeps them.
+            if (_insertNames != null && !SpliceNames(held, 0, held.End - held.Start, middle))
+            {
+                return false;
+            }
+
+            pending.Replace(index, middle);
+            UsageChanged();
+            _editCount++;
+            item.Changed(item.Type);
+            TableEdited(item);
+            return true;
         }
 
         /// <summary>

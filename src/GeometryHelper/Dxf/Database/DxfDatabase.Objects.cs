@@ -351,6 +351,33 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// The object of the OBJECTS section of a handle, as <see cref="TryGetObject"/> finds it, without the walk of every
+        /// entity that looks for an entity first: for a handle known to be an object's, such as a table style's. Null where
+        /// there is none, the handle is not hexadecimal, or the object is erased.
+        /// </summary>
+        internal DxfDBObject ObjectByHandle(string handle)
+        {
+            if (
+                handle == null
+                || !ulong.TryParse(
+                    handle.Trim(),
+                    NumberStyles.HexNumber,
+                    CultureInfo.InvariantCulture,
+                    out ulong number
+                )
+                || number == 0
+                || !File.HoldsObjects
+                || !(File.ObjectItem(handle.Trim()) is DxfItem item)
+            )
+            {
+                return null;
+            }
+
+            DxfDBObject found = DxfDBObject.OfObject(item);
+            return found != null && found.IsErased ? null : found;
+        }
+
+        /// <summary>
         /// Gets how many objects the drawing holds, as AutoCAD's <c>ApproxNumObjects</c>: those <see cref="GetObject"/> finds by
         /// handle, the entities of every space and block with their vertices and attributes, the objects of the OBJECTS section,
         /// and the five tables it reads with their records; those erased left out. AutoCAD counts the records of the tables the

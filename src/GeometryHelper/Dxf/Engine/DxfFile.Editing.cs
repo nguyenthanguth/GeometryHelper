@@ -90,12 +90,142 @@ namespace GeometryHelper.Dxf
         /// </summary>
         internal sealed class Piece
         {
+            private List<Rec> _records;
+            private PendingCells _pending;
+
             internal Piece(List<Rec> records)
             {
-                Records = records;
+                _records = records;
             }
 
-            internal List<Rec> Records { get; set; }
+            /// <summary>
+            /// The records, as they stand: the cells a table has had written since its record was last read (<see cref="Defer"/>)
+            /// are put into it first, once, so that whoever reads the records reads those. Set, the records are those given and
+            /// nothing is pending.
+            /// </summary>
+            internal List<Rec> Records
+            {
+                get
+                {
+                    PendingCells pending = Volatile.Read(ref _pending);
+
+                    if (pending != null)
+                    {
+                        lock (pending)
+                        {
+                            if (ReferenceEquals(_pending, pending))
+                            {
+                                _records[0] = pending.Settle(_records[0]);
+                                Volatile.Write(ref _pending, null);
+                            }
+                        }
+                    }
+
+                    return _records;
+                }
+                set
+                {
+                    _pending = null;
+                    _records = value;
+                }
+            }
+
+            /// <summary>The cells written into the first record and not yet put in it; null where there are none.</summary>
+            internal PendingCells Pending => Volatile.Read(ref _pending);
+
+            /// <summary>Keeps cells to be put into the first record when it is next read, the record as it stands now being the one they were counted from.</summary>
+            internal void Defer(PendingCells pending) => Volatile.Write(ref _pending, pending);
+        }
+
+        /// <summary>
+        /// Cells written into the first record of a table, kept as their own bytes and put in their places once, when the record
+        /// is next read or saved: setting the text of each of the 10 000 cells of a table copied the 2.5 MB of its record each
+        /// time, 13.5 GB in all, and costs the bytes of each cell so.
+        /// </summary>
+        internal sealed class PendingCells
+        {
+            private readonly Rec _record;
+            private readonly int[] _from;
+            private readonly byte[][] _put;
+            private int _length;
+
+            /// <summary>
+            /// Keeps the cells of a record, <paramref name="from"/> being where each begins, counted from the record's start (the
+            /// next cell's place being where it ends); the last of them is not one that is written.
+            /// </summary>
+            internal PendingCells(Rec record, int[] from, Action<Rec, int[]> settled)
+            {
+                _record = record;
+                _from = (int[])from.Clone();
+                _put = new byte[from.Length][];
+                _length = record.End - record.Start;
+                Settled = settled;
+            }
+
+            /// <summary>Called with the record once the cells are put in it, and where each cell now begins.</summary>
+            private Action<Rec, int[]> Settled { get; }
+
+            /// <summary>The bytes of the record as they will stand.</summary>
+            internal int Length => _length;
+
+            /// <summary>The bytes given a cell, null where it has been given none.</summary>
+            internal byte[] Put(int index) => _put[index];
+
+            /// <summary>The cell's groups as they are held: those given it, else those of the record's own bytes.</summary>
+            internal Rec Held(int index) =>
+                _put[index] != null
+                    ? new Rec(_put[index], 0, _put[index].Length, _record.Type)
+                    : new Rec(
+                        _record.Bytes,
+                        _record.Start + _from[index],
+                        _record.Start + _from[index + 1],
+                        _record.Type
+                    );
+
+            /// <summary>Gives a cell the bytes to be written in its place.</summary>
+            internal void Replace(int index, byte[] bytes)
+            {
+                int was = _put[index] != null ? _put[index].Length : _from[index + 1] - _from[index];
+                _length += bytes.Length - was;
+                _put[index] = bytes;
+            }
+
+            /// <summary>The record with the cells put in their places, the rest of its bytes copied as they are.</summary>
+            internal Rec Settle(Rec record)
+            {
+                var bytes = new byte[_length];
+                var from = new int[_from.Length];
+                int at = 0;
+                int taken = 0;
+
+                for (int k = 0; k < _from.Length; k++)
+                {
+                    // The bytes between the cells already written, up to this one's start.
+                    int start = _from[k];
+
+                    if (start > taken)
+                    {
+                        Buffer.BlockCopy(_record.Bytes, _record.Start + taken, bytes, at, start - taken);
+                        at += start - taken;
+                        taken = start;
+                    }
+
+                    from[k] = at;
+
+                    if (_put[k] != null)
+                    {
+                        Buffer.BlockCopy(_put[k], 0, bytes, at, _put[k].Length);
+                        at += _put[k].Length;
+                        taken = _from[k + 1];
+                    }
+                }
+
+                int rest = _record.End - _record.Start - taken;
+                Buffer.BlockCopy(_record.Bytes, _record.Start + taken, bytes, at, rest);
+                var settled = new Rec(bytes, 0, bytes.Length, record.Type);
+                Settled?.Invoke(settled, from);
+                return settled;
+            }
         }
 
         /// <summary>
@@ -2297,6 +2427,99 @@ namespace GeometryHelper.Dxf
             }
 
             return handles;
+        }
+
+        /// <summary>
+        /// A file opened from the bytes this one is saved as, as <see cref="DxfFile.Parse(string)"/> opens its text, without the
+        /// text: the same records, with no string of the whole file made and no UTF-8 made of it again. Null where the file's
+        /// text is not its bytes as UTF-8 (a mark at its start, a code page, bytes read as the replacement character), for which
+        /// the text is the way.
+        /// </summary>
+        internal DxfFile CopyFromBytes()
+        {
+            if (
+                _decoding.Start != 0
+                || Warnings.Count != 0
+                || (_decoding.CodePage != null && _decoding.CodePage != "UTF-8")
+            )
+            {
+                return null;
+            }
+
+            Flush();
+
+            using (var saved = new MemoryStream(_length))
+            {
+                if (_slots == null)
+                {
+                    saved.Write(_bytes, 0, _length);
+                }
+                else
+                {
+                    WriteEdited(saved);
+                }
+
+                return OpenText(saved.GetBuffer(), (int)saved.Length);
+            }
+        }
+
+        /// <summary>
+        /// The ACAD_TABLEs of the handles given among the entities of the ENTITIES section of a file as it was read, found in
+        /// its records alone, in one pass: the drawing's entities are not made and no other entity's handle read, which for a
+        /// drawing of 100 000 entities is the most of what finding one table by its handle costs. Each is given a space of its
+        /// kind, model or paper, of its own, so that it is changed as any entity is. A handle with no table of the section
+        /// is not in the result, nor is any where the drawing's entities are made already, or a record has been written in
+        /// (the entities by handle are the way then); the key is the handle as it was given.
+        /// </summary>
+        internal Dictionary<string, DxfItem> TableEntitiesByHandle(List<string> handles)
+        {
+            var found = new Dictionary<string, DxfItem>(StringComparer.OrdinalIgnoreCase);
+
+            if (_drawing.IsValueCreated || _drawingAhead != null || _slots != null)
+            {
+                return found;
+            }
+
+            var wanted = new Dictionary<ulong, string>();
+
+            foreach (string handle in handles)
+            {
+                if (TryHex(handle.Trim(), out ulong key) && key != 0 && !wanted.ContainsKey(key))
+                {
+                    wanted.Add(key, handle);
+                }
+            }
+
+            var model = new List<DxfItem>();
+            var paper = new List<DxfItem>();
+
+            foreach (Section section in _sections)
+            {
+                if (section.Name != "ENTITIES")
+                {
+                    continue;
+                }
+
+                for (int i = section.First + 1; i < section.Last; i++)
+                {
+                    if (
+                        _types[i] == "ACAD_TABLE"
+                        && HandleOf(Original(i), out ulong own)
+                        && wanted.TryGetValue(own, out string handle)
+                        && !found.ContainsKey(handle)
+                    )
+                    {
+                        var item = new DxfItem(this, i, 1, "ACAD_TABLE", null);
+                        item.IsPaper = InPaperSpace(Original(i));
+                        (item.IsPaper ? paper : model).Add(item);
+                        found.Add(handle, item);
+                    }
+                }
+            }
+
+            _ = new DxfSpace(this, model);
+            _ = new DxfSpace(this, paper, DxfSpaceKind.Paper);
+            return found;
         }
 
         /// <summary>

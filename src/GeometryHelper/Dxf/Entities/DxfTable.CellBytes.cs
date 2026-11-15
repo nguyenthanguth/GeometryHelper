@@ -32,8 +32,11 @@ namespace GeometryHelper.Dxf
 
             internal int Columns { get; }
 
-            /// <summary>Where each cell of the record begins, from its start; moved on with every cell written.</summary>
+            /// <summary>Where each cell of the record begins, from its start; moved on with every cell written, or, while cells are pending, when they are put in the record.</summary>
             internal int[] From { get; }
+
+            /// <summary>The cells written and not yet put in the record (<see cref="DxfFile.PendingCells"/>), the places in <see cref="From"/> being those of the record before them; null where there are none.</summary>
+            internal DxfFile.PendingCells Pending { get; set; }
 
             internal byte[] Bytes { get; private set; }
 
@@ -80,6 +83,24 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private CellView CellToEdit(int row, int col) => CellAlone(row, col) ?? ReadToEdit().CellOf(row, col);
 
+        /// <summary>The cell to be changed and written, as <see cref="CellToEdit(int, int)"/> reads it, with the table's rows and columns.</summary>
+        private CellView CellToEdit(int row, int col, out int rows, out int columns)
+        {
+            CellView alone = CellAlone(row, col);
+
+            if (alone != null)
+            {
+                rows = _cellBytes.Rows;
+                columns = _cellBytes.Columns;
+                return alone;
+            }
+
+            Layout layout = ReadToEdit();
+            rows = layout.Rows;
+            columns = layout.Columns;
+            return layout.CellOf(row, col);
+        }
+
         /// <summary>
         /// The cell read from its own bytes, null where they are not known: the record is not one this table wrote whole (its
         /// groups may stand otherwise than the file writes them), holds bytes among its groups that are none of theirs, or the
@@ -94,24 +115,32 @@ namespace GeometryHelper.Dxf
             }
 
             DxfFile file = Item.File;
-            DxfFile.Rec record = file.RecordAt(Item, 0);
-
-            if (!IsWritten(record))
-            {
-                return null;
-            }
-
+            DxfFile.PendingCells pending = file.PendingOf(Item);
             CellBytes cells = _cellBytes;
 
-            if (cells == null || !cells.Holds(record))
+            // Cells this table wrote are kept apart from the record, which is not read: its places are those of the record they
+            // were counted from. Else the record is read, as it stands, which puts in the cells any other kept.
+            if (pending == null || cells == null || !ReferenceEquals(cells.Pending, pending))
             {
-                cells = PlacesOfCells(record);
-                _cellBytes = cells;
-            }
+                DxfFile.Rec record = file.RecordAt(Item, 0);
 
-            if (cells == null)
-            {
-                return null;
+                if (!IsWritten(record))
+                {
+                    return null;
+                }
+
+                if (cells == null || cells.Pending != null || !cells.Holds(record))
+                {
+                    cells = PlacesOfCells(record);
+                    _cellBytes = cells;
+                }
+
+                if (cells == null)
+                {
+                    return null;
+                }
+
+                pending = null;
             }
 
             CheckIndex(row, cells.Rows, nameof(row), "row");
@@ -134,12 +163,18 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
-            List<KeyValuePair<int, string>> groups = file.GroupsBetween(
-                Item,
-                0,
-                cells.From[index],
-                cells.From[index + 1]
-            );
+            List<KeyValuePair<int, string>> groups;
+
+            if (pending != null)
+            {
+                DxfFile.Rec held = pending.Held(index);
+                groups = file.GroupsBetween(held, 0, held.End - held.Start);
+            }
+            else
+            {
+                groups = file.GroupsBetween(Item, 0, cells.From[index], cells.From[index + 1]);
+            }
+
             return new CellView(new DxfDimGroups(groups, made => SpliceCell(cells, index, made)), 0, groups.Count);
         }
 
@@ -178,6 +213,32 @@ namespace GeometryHelper.Dxf
         private void SpliceCell(CellBytes cells, int index, List<KeyValuePair<int, string>> groups)
         {
             DxfFile file = Item.File;
+
+            // Kept apart from the record, which is written once when it is next read, so that a run of cells set costs the bytes
+            // of each, not a copy of the record for each; where the file cannot take the cell so, it is written in its place.
+            if (file.CanDefer(Item))
+            {
+                DxfFile.PendingCells pending = cells.Pending;
+
+                if (pending == null || !ReferenceEquals(file.PendingOf(Item), pending))
+                {
+                    cells.Pending = null;
+                    pending = file.BeginPending(Item, cells.From, (settled, from) => Settled(cells, settled, from));
+                    cells.Pending = pending;
+                }
+
+                if (file.PutCell(Item, pending, index, file.BytesOfGroups(groups)))
+                {
+                    return;
+                }
+            }
+
+            // The cells kept apart are put in the record, and the places of the cells moved with them, before it is written in.
+            if (cells.Pending != null)
+            {
+                file.RecordAt(Item, 0);
+            }
+
             int shift =
                 file.SpliceRecord(Item, 0, cells.From[index], cells.From[index + 1], groups, false)
                 - (cells.From[index + 1] - cells.From[index]);
@@ -188,6 +249,15 @@ namespace GeometryHelper.Dxf
             }
 
             DxfFile.Rec record = file.RecordAt(Item, 0);
+            cells.Held(record);
+            NoteWritten(record);
+        }
+
+        /// <summary>The cells written are put in the record: the places of the cells, and the record, are those they now stand in.</summary>
+        private void Settled(CellBytes cells, DxfFile.Rec record, int[] from)
+        {
+            Array.Copy(from, cells.From, from.Length);
+            cells.Pending = null;
             cells.Held(record);
             NoteWritten(record);
         }
