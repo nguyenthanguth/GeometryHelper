@@ -839,7 +839,15 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the table's record does not hold its cells, heights and widths, or the table is erased.</exception>
         public void MergeCells(DxfCellRange range)
         {
-            Layout layout = Structured();
+            CellBytes alone = AloneCellsToMerge();
+
+            if (alone != null)
+            {
+                MergeAlone(alone, range);
+                return;
+            }
+
+            Layout layout = Structured(true);
             CheckRange(range, layout, nameof(range));
 
             if (range.TopRow == range.BottomRow && range.LeftColumn == range.RightColumn)
@@ -880,7 +888,14 @@ namespace GeometryHelper.Dxf
             if (changed)
             {
                 List<KeyValuePair<int, string>>[] cells = AllSlices(layout);
-                EmptyMerged(layout, cells, range, Item.File.Supports(1021));
+                EmptyMerged(
+                    layout.Rows,
+                    layout.Columns,
+                    new CellSlices(cells),
+                    () => layout,
+                    range,
+                    Item.File.Supports(1021)
+                );
 
                 // The cells it empties are emptied in the session, of no value or not before, on load too (D33c r10, D33d a01,
                 // a06); marked before the writing, so that the layout is not used after it.
@@ -915,14 +930,14 @@ namespace GeometryHelper.Dxf
         /// within the block are kept. The cells given are changed in place.
         /// </summary>
         private void EmptyMerged(
-            Layout layout,
-            List<KeyValuePair<int, string>>[] cells,
+            int rows,
+            int columns,
+            CellSlices cells,
+            Func<Layout> layoutOf,
             DxfCellRange range,
             bool valued
         )
         {
-            int rows = layout.Rows;
-            int columns = layout.Columns;
             int top = range.TopRow;
             int left = range.LeftColumn;
             int bottom = range.BottomRow;
@@ -947,7 +962,7 @@ namespace GeometryHelper.Dxf
                     );
             }
 
-            List<KeyValuePair<int, string>>[] looks = held ? ContentLooks(layout, out moved) : null;
+            List<KeyValuePair<int, string>>[] looks = held ? ContentLooks(layoutOf(), out moved) : null;
 
             for (int row = top; row <= bottom; row++)
             {
@@ -1137,7 +1152,15 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the table's record does not hold its cells, heights and widths, or the table is erased.</exception>
         public void UnmergeCells(DxfCellRange range)
         {
-            Layout layout = Structured();
+            CellBytes alone = AloneCellsToMerge();
+
+            if (alone != null)
+            {
+                UnmergeAlone(alone, range);
+                return;
+            }
+
+            Layout layout = Structured(true);
             CheckRange(range, layout, nameof(range));
             var blocks = new List<DxfCellRange>();
             bool changed = false;
@@ -2292,9 +2315,9 @@ namespace GeometryHelper.Dxf
             && layout.ColumnAt.Count == layout.Columns;
 
         /// <summary>The table's layout read anew to have its structure changed: refused where its record does not hold its cells, heights and widths.</summary>
-        private Layout Structured()
+        private Layout Structured(bool noting = false)
         {
-            Layout layout = ReadToWrite();
+            Layout layout = noting ? ReadToEdit() : ReadToWrite();
 
             if (!Holds(layout))
             {
@@ -2390,24 +2413,7 @@ namespace GeometryHelper.Dxf
 
             for (int k = 0; k < cells.Count; k++)
             {
-                List<KeyValuePair<int, string>> cell = cells[k];
-                int b = owner[k];
-
-                if (b < 0)
-                {
-                    cell = Merged(cell, 0, 0, 0);
-                }
-                else
-                {
-                    DxfCellRange block = blocks[b];
-                    bool corner = block.TopRow * columns + block.LeftColumn == k;
-                    cell = corner
-                        ? Merged(cell, 1, block.RightColumn - block.LeftColumn + 1, block.BottomRow - block.TopRow + 1)
-                        : Merged(cell, 1, 0, 0);
-                }
-
-                // A link is named by a text cell alone: a block cell keeps its 340, its block, and a link it is the top left cell of goes.
-                list.AddRange(IsTextCell(cell, 0) ? Linked(cell, anchored[k]) : cell);
+                list.AddRange(Rebuilt(cells[k], k, owner[k] < 0 ? null : blocks[owner[k]], columns, anchored[k]));
             }
 
             for (int i = layout.CellsEnd; i < g.List.Count; i++)

@@ -303,7 +303,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] DWG Save As R2007 (dwgver3): our own Reed-Solomon (two codes, 2 746 AutoCAD blocks re-encoded to the byte) and
         LZ77-21 compressor; the 167-file corpus as AC1021 opens in AutoCAD 2021, 160 at AUDIT 0 and the other 7 with the
         originals' counts; every other version byte-identical (835 files)
-  - [ ] R3.3 follow-ups 4: R2007 keeps dynamic-block constraint groups only with VERTEXIDENTIFIER/ISDYNAMIC records
+  - [ ] (dwgver4, running: R2007 constraint groups, R2004-R2010 solids) R3.3 follow-ups 4: R2007 keeps dynamic-block constraint groups only with VERTEXIDENTIFIER/ISDYNAMIC records
         (write them; 6 samples lose their networks now); R2007 AppInfo/SummaryInfo left out (parity not matched) and a
         picture preview's parity unchecked in AutoCAD's window; 3DSOLID/REGION in R2004-R2010; non-ASCII text in pre-2007
         DWGs as \U+ escapes (would change R2004 bytes); R2000 VIEWPORT entity header handle and frozen-layer code 5;
@@ -829,10 +829,13 @@ the ones wanted.
       patch only their cell (465 cells 4-8 s / 3.7-6.6 GB -> 3-159 ms / 9-86 MB, bytes identical); DxfTable.Value of a
       date is a DateTime and Fill continues date series as AutoCAD 2021 (mktime seconds, last-two step, UTC fields); the
       1.8 % recompute growth not reproduced; the dimension test shares no state (16-thread test added)
-- [ ] (tables7, running) Tables follow-ups 6: merges still rebuild the record (192 merges 1.6 s: cache the block list, splice the edge cells
-      and TABLECONTENT); CadTextInk.FileOf / CadFontMetrics.Of cache a failed font read for the whole process (do not
-      cache IO failures); a series date cell's 93 flags (AutoCAD DXF); series dates in a daylight-saving zone; a
-      definition in a non-Standard style counting nothing in the console's minimum (GUI); GUI-only sides (S)
+- [x] Tables follow-ups 6 (tables7): MergeCells/UnmergeCells splice the range and edge cells and TABLECONTENT (192 merges
+      1.57 s / 1.8 GB -> 68 ms / 53 MB; with TABLECONTENT 5.7 s / 6.8 GB -> 94 ms; bytes identical); a font read that
+      failed by IO is retried, not cached for the process; a filled date's 93 flags kept (not readable via the API)
+- [ ] Tables follow-ups 7: ContentEmptied/ContentDeleted and row/column Insert/Delete still read or rebuild the whole
+      TABLECONTENT/record; a merge emptying a field cell goes the whole way; the viewer's merge not timed; series dates in
+      a daylight-saving zone; a definition in a non-Standard style counting nothing in the console's minimum (GUI);
+      GUI-only sides (S)
 - [x] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
 
 - [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand

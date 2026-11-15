@@ -6,6 +6,28 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** `MergeCells` and `UnmergeCells` are written into the bytes of the cells they change and into those of the table's TABLECONTENT, as the setters
+of one cell are, where each call read every cell, rebuilt the whole record and read and wrote every group of the TABLECONTENT (a table read from a file
+holds one, from R2007 on). The blocks of merged cells are kept from one call to the next, for as long as every cell is as a whole writing leaves it (its
+merging by the blocks, its link by the links of the table; a table that has a cell otherwise is written whole once, which sets it right, and the next
+merge is in place), and are read again once a cell is edited in its kind, merging or link. A merge reads and writes the cells of the range and those
+along its edges, a handful of cells; the TABLECONTENT is read once, the bytes of the cells a merge empties and of its list of merged ranges then
+put in their places and the rest of the record copied. 192 merges of two cells in a table of 49 rows by 19 columns (931 cells), on .NET Framework 4.8 (.NET 10 in
+brackets): 68 ms and 53 MB (57 ms) where they took 1.57 s and 1.8 GB (1.15 s); their 192 unmerges 62 ms and 29 MB (44 ms) where they took 1.57 s and
+1.8 GB (1.17 s); on the table of a file with its TABLECONTENT, 94 ms and 235 MB (86 ms), 130 MB of them the one reading of the TABLECONTENT, where they took
+5.7 s and 6.8 GB (4.2 s), and 55 ms and 196 MB (42 ms) for the unmerges where they took 6.0 s and 7.0 GB (4.3 s). The saved bytes are the same: the hashes of 48
+runs of 120 edits (text cells, text cells of a file with its TABLECONTENT, block cells; four versions, four seeds; merges and unmerges
+among the setters of a cell, formulas, rows and columns put in and taken out) equal those of the library before, and so do 570 runs of 150 to 160 edits
+of the same kind made by a probe on tables of 7 by 5 to 20 by 7 cells (merges and unmerges in the greater part, with and without a TABLECONTENT), and the text
+of runs made in place equals that of the same runs made on a record read anew before each edit, which reads it whole (about 400 runs in 8 sets). A TABLECONTENT whose groups do not
+stand as the file writes them (a comment among them, found once, for the table), and a merge that empties a cell holding a field, which the whole writing erases,
+are written whole as before. The first call on a table whose record the library did not write whole yet writes it whole, and leaves it so that
+the next is in place.
+**FIXED.** The presenter measured every text after one failed read of a font file by the estimate it falls back on, for as long as the process lived: `CadTextInk` (the ink of
+a face) and `CadFontMetrics` (the metrics WMFIN takes) kept the failure of a read of a font file, a TrueType file held open by another program or read while the
+disk was busy among them, as they keep a file that is no font. A read that fails with an `IOException` or a refused access is no longer kept: the next measure reads
+the file again (the face's measure is made anew for the next call, not kept with the failure), while a file that is no font is still kept as none.
+
 **CHANGED.** `SetValueFromText`, `SetAutoScale`, `SetBlockScale`, `SetBlockRotation`, `SetBlockAttributeValue` and `SetFormula` are written
 into the place of the cell's own bytes, as `ResetValue`, `SetCellType` and the lines of a cell are, where each call read and wrote every group
 of the table's record (`SetBlockScale` and `SetBlockRotation` also read the layout of the table to learn the value the cell had; they read
@@ -18,9 +40,6 @@ drawing too). The saved bytes are the same: the hashes of 24 runs of 120 edits (
 with `MergeCells`, `UnmergeCells`, `SetValue`, `ResetValue`, `SetCellType` and the lines of a cell) equal those of the library before, and 240 random
 runs of 60 edits equal the same runs made on a record read anew before each edit, which reads it whole. (Those runs leave the first row alone:
 a table read anew merges across a row whose cells hold no value, as AutoCAD does on load, which a table edited in place does not do again.)
-`MergeCells` and `UnmergeCells` still write the record whole: 192 merges of two cells in a table of 931 cells take 1.6 s and 1.4 GB, 8 ms and 7 MB
-each. A merge reads the blocks of every cell and rewrites the cells along its edges and the table's content, and writing it into the
-bytes of those cells alone would need the blocks kept between calls; it is left.
 **CHANGED.** `DxfTable.Value` of a cell that holds a date or a time is the `DateTime` AutoCAD 2021's console gave (probed, en-US and a zone seven
 hours ahead of Greenwich: 1/1/2020 the 1st of January 2020, 12:30 the 30th of December 1899 at 12:30, 1/1/2020 12:30 and 2/29/2020 23:59 as
 typed, to the second), where it gave the words the cell shows. A date a table cannot read (16 bytes that are no date) still gives its words.

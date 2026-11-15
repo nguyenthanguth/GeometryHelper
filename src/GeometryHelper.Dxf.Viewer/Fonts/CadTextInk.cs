@@ -28,6 +28,7 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly bool _bold;
         private readonly bool _italic;
         private readonly DxfTrueTypeFont _file;
+        private readonly bool _readFailed;
         private readonly Dictionary<int, Letter> _letters = new Dictionary<int, Letter>();
         private readonly Dictionary<double, Dictionary<int, double[]>> _leans =
             new Dictionary<double, Dictionary<int, double[]>>();
@@ -38,7 +39,7 @@ namespace GeometryHelper.Dxf.Viewer
             _face = face;
             _bold = bold;
             _italic = italic;
-            _file = face.Shx == null ? FileOf(CadTrueTypeFonts.PathOf(face.Name, bold, italic)) : null;
+            _file = face.Shx == null ? FileOf(CadTrueTypeFonts.PathOf(face.Name, bold, italic), out _readFailed) : null;
         }
 
         /// <summary>Whether the face is an SHX font.</summary>
@@ -83,7 +84,21 @@ namespace GeometryHelper.Dxf.Viewer
 
             lock (cuts)
             {
-                return cuts[cut] ?? (cuts[cut] = new CadTextInk(face, cut % 2 == 1, cut >= 2));
+                CadTextInk ink = cuts[cut];
+
+                if (ink == null)
+                {
+                    ink = new CadTextInk(face, cut % 2 == 1, cut >= 2);
+
+                    // A file that could not be read for a reason that may pass (it is held open, the disk is slow) is read again by the next
+                    // call, not left unread for as long as the face lives.
+                    if (!ink._readFailed)
+                    {
+                        cuts[cut] = ink;
+                    }
+                }
+
+                return ink;
             }
         }
 
@@ -323,9 +338,15 @@ namespace GeometryHelper.Dxf.Viewer
             return new Letter(glyph.Advance * scale, left * scale, right * scale, bottom * scale, top * scale, true);
         }
 
-        /// <summary>The font of a file, read once; null where there is none, it cannot be read or its outlines are not TrueType's.</summary>
-        private static DxfTrueTypeFont FileOf(string path)
+        /// <summary>
+        /// The font of a file, read once; null where there is none, or its outlines are not TrueType's (kept, as the file is no
+        /// font). A file that cannot be read at all (an <see cref="IOException"/>, as one held open by another program gives, or
+        /// a refused access) is null too, <paramref name="readFailed"/> set, and not kept: it is read again the next time.
+        /// </summary>
+        private static DxfTrueTypeFont FileOf(string path, out bool readFailed)
         {
+            readFailed = false;
+
             if (path == null)
             {
                 return null;
@@ -340,11 +361,14 @@ namespace GeometryHelper.Dxf.Viewer
                         font = DxfTrueTypeFont.Read(File.ReadAllBytes(path));
                     }
                     catch (Exception exception)
-                        when (exception is IOException
-                            || exception is UnauthorizedAccessException
-                            || exception is ArgumentException
-                            || exception is IndexOutOfRangeException
-                        )
+                        when (exception is IOException || exception is UnauthorizedAccessException)
+                    {
+                        GeometryHelperLog.Warn("CadTextInk: the font " + path + " could not be read.", exception);
+                        readFailed = true;
+                        return null;
+                    }
+                    catch (Exception exception)
+                        when (exception is ArgumentException || exception is IndexOutOfRangeException)
                     {
                         GeometryHelperLog.Warn("CadTextInk: the font " + path + " could not be read.", exception);
                         font = null;

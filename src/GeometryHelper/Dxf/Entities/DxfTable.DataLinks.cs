@@ -1432,48 +1432,64 @@ namespace GeometryHelper.Dxf
             {
                 int from = layout.CellStart[k];
                 int to = k + 1 < layout.CellStart.Count ? layout.CellStart[k + 1] : layout.CellsEnd;
-                int at = IsTextCell(layout.Groups.List, from) ? LinkFlagAt(layout.Groups.List, from, to) : -1;
+                LinkedRange link = LinkOf(layout.Groups.List, from, to, k / columns, k % columns, layout.Rows, columns);
 
-                if (at < 0 || LinkRun(layout.Groups.List, at, to) == 0 || layout.Groups.List[at + 1].Key != 340)
+                if (link != null)
                 {
-                    continue;
-                }
-
-                List<KeyValuePair<int, string>> list = layout.Groups.List;
-                string handle = list[at + 1].Value.Trim();
-                int next = at + 2;
-                long rows = 1;
-                long wide = 1;
-
-                if (next < to && list[next].Key == 93)
-                {
-                    rows = Count(list[next].Value);
-                    next++;
-                }
-
-                if (next < to && list[next].Key == 94)
-                {
-                    wide = Count(list[next].Value);
-                }
-
-                int row = k / columns;
-                int column = k % columns;
-
-                if (handle.Length > 0)
-                {
-                    links.Add(
-                        new LinkedRange(
-                            row,
-                            column,
-                            (int)Math.Min(layout.Rows - 1, row + rows - 1),
-                            (int)Math.Min(columns - 1, column + wide - 1),
-                            handle
-                        )
-                    );
+                    links.Add(link);
                 }
             }
 
             return links;
+        }
+
+        /// <summary>
+        /// The link a cell names, as <see cref="Links"/> reads it: the cell's groups are those of <paramref name="list"/> from
+        /// <paramref name="from"/> to <paramref name="to"/>, the cell the one of the row and column given in a table of the rows
+        /// and columns given; null where it names none.
+        /// </summary>
+        private static LinkedRange LinkOf(
+            List<KeyValuePair<int, string>> list,
+            int from,
+            int to,
+            int row,
+            int column,
+            int rows,
+            int columns
+        )
+        {
+            int at = IsTextCell(list, from) ? LinkFlagAt(list, from, to) : -1;
+
+            if (at < 0 || LinkRun(list, at, to) == 0 || list[at + 1].Key != 340)
+            {
+                return null;
+            }
+
+            string handle = list[at + 1].Value.Trim();
+            int next = at + 2;
+            long high = 1;
+            long wide = 1;
+
+            if (next < to && list[next].Key == 93)
+            {
+                high = Count(list[next].Value);
+                next++;
+            }
+
+            if (next < to && list[next].Key == 94)
+            {
+                wide = Count(list[next].Value);
+            }
+
+            return handle.Length > 0
+                ? new LinkedRange(
+                    row,
+                    column,
+                    (int)Math.Min(rows - 1, row + high - 1),
+                    (int)Math.Min(columns - 1, column + wide - 1),
+                    handle
+                )
+                : null;
         }
 
         /// <summary>The handles of the links a layout's cells name, each once, by their top left cells row by row.</summary>

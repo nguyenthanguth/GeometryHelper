@@ -51,7 +51,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The height of the capitals as a part of the em, 0 where the font does not give it: 0.716 for Arial.</summary>
         public double CapHeight { get; private set; }
 
-        /// <summary>Gets the metrics of a font file, null where the file is none, or is no TrueType font.</summary>
+        /// <summary>
+        /// Gets the metrics of a font file, null where the file is none, or is no TrueType font (kept, as the file is no font). A
+        /// file that cannot be read at all (an <see cref="IOException"/>, as one held open by another program gives, or a refused
+        /// access) gives null too, and is read again by the next call.
+        /// </summary>
         /// <param name="path">The file.</param>
         /// <returns>The metrics, or null.</returns>
         public static CadFontMetrics Of(string path)
@@ -65,8 +69,12 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 if (!Cache.TryGetValue(path, out CadFontMetrics metrics))
                 {
-                    metrics = Read(path);
-                    Cache[path] = metrics;
+                    metrics = Read(path, out bool readFailed);
+
+                    if (!readFailed)
+                    {
+                        Cache[path] = metrics;
+                    }
                 }
 
                 return metrics;
@@ -124,8 +132,10 @@ namespace GeometryHelper.Dxf.Viewer
             return 0;
         }
 
-        private static CadFontMetrics Read(string path)
+        private static CadFontMetrics Read(string path, out bool readFailed)
         {
+            readFailed = false;
+
             try
             {
                 using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -251,11 +261,12 @@ namespace GeometryHelper.Dxf.Viewer
                     };
                 }
             }
-            catch (Exception exception)
-                when (exception is IOException
-                    || exception is UnauthorizedAccessException
-                    || exception is ArgumentException
-                )
+            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException)
+            {
+                readFailed = true;
+                return null;
+            }
+            catch (ArgumentException)
             {
                 return null;
             }
