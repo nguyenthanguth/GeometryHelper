@@ -36,21 +36,48 @@ namespace GeometryHelper.Dxf
 
         private readonly DxfFile _ownFile;
         private readonly int _first;
-        private readonly int _count;
         private string _block;
         private object _wrapper;
-        private bool _removed;
         private string _handle;
-        private bool _hidden;
         private DxfFile.Look _look;
         private IReadOnlyList<object> _shapes;
         private Extras _extras;
+
+        // How many records the entity is made of, and in the bits above them whether it was removed, is hidden and is in paper
+        // space: three flags in the four bytes of the count, which took the object from 104 bytes to 96, a million of them in a
+        // drawing of 1 000 000 entities. A flag is changed by a compare and swap, so that two threads changing two of them,
+        // which were three bytes of their own, lose neither.
+        private int _countAndFlags;
+
+        private const int CountMask = 0x0FFFFFFF;
+        private const int PaperFlag = 0x10000000;
+        private const int RemovedFlag = 0x20000000;
+        private const int HiddenFlag = 0x40000000;
+
+        private bool Has(int flag) => (Volatile.Read(ref _countAndFlags) & flag) != 0;
+
+        private void SetFlag(int flag, bool on)
+        {
+            int seen;
+            int set;
+
+            do
+            {
+                seen = Volatile.Read(ref _countAndFlags);
+                set = on ? seen | flag : seen & ~flag;
+
+                if (set == seen)
+                {
+                    return;
+                }
+            } while (Interlocked.CompareExchange(ref _countAndFlags, set, seen) != seen);
+        }
 
         internal DxfItem(DxfFile file, int first, int count, string type, string block)
         {
             _ownFile = file;
             _first = first;
-            _count = count;
+            _countAndFlags = count & CountMask;
             _block = block;
             Type = type;
         }
@@ -360,7 +387,7 @@ namespace GeometryHelper.Dxf
         internal int First => _first;
 
         /// <summary>How many records the entity is made of: one, or a POLYLINE's or an INSERT's with those following it.</summary>
-        internal int Count => _count;
+        internal int Count => Volatile.Read(ref _countAndFlags) & CountMask;
 
         /// <summary>The name of the block the entity is in; null for an entity of the drawing.</summary>
         internal string Block
@@ -497,13 +524,17 @@ namespace GeometryHelper.Dxf
         internal DxfSpace Space { get; set; }
 
         /// <summary>Whether the entity is in paper space.</summary>
-        internal bool IsPaper { get; set; }
+        internal bool IsPaper
+        {
+            get => Has(PaperFlag);
+            set => SetFlag(PaperFlag, value);
+        }
 
         /// <summary>Whether the entity has been removed from its space; a record that follows one, with it.</summary>
         internal bool IsRemoved
         {
-            get => _removed || (Parent != null && Parent.IsRemoved);
-            set => _removed = value;
+            get => Has(RemovedFlag) || (Parent != null && Parent.IsRemoved);
+            set => SetFlag(RemovedFlag, value);
         }
 
         /// <summary>The entity's record has been written anew: its type is that of the new record, and its look and shapes are read again.</summary>
@@ -537,7 +568,7 @@ namespace GeometryHelper.Dxf
         {
             DxfFile.Look look = _file.LookOf(this, out string handle, out bool hidden);
             _handle = handle;
-            _hidden = hidden;
+            SetFlag(HiddenFlag, hidden);
             return Interlocked.CompareExchange(ref _look, look, null) ?? look;
         }
 
@@ -559,7 +590,7 @@ namespace GeometryHelper.Dxf
                     ReadLook();
                 }
 
-                return _hidden;
+                return Has(HiddenFlag);
             }
         }
 

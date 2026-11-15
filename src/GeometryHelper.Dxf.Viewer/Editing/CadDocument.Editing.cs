@@ -361,7 +361,7 @@ namespace GeometryHelper.Dxf.Viewer
                         {
                             if (!_byHandle.ContainsKey(record.Handle))
                             {
-                                _byHandle[record.Handle] = entity;
+                                _byHandle[record.Handle] = entity.Item;
                                 _blockByHandle[record.Handle] = space.Block;
                             }
 
@@ -1419,7 +1419,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             public DxfDatabase Database { get; private set; }
 
-            public Dictionary<string, DxfEntity> ByHandle { get; private set; }
+            public Dictionary<string, DxfItem> ByHandle { get; private set; }
 
             public Dictionary<string, DxfBlockTableRecord> BlockByHandle { get; private set; }
 
@@ -1472,7 +1472,7 @@ namespace GeometryHelper.Dxf.Viewer
                     if (
                         !IndexHandles(
                             blocks,
-                            out Dictionary<string, DxfEntity> byHandle,
+                            out Dictionary<string, DxfItem> byHandle,
                             out Dictionary<string, DxfBlockTableRecord> blockByHandle,
                             () => _dropped,
                             _size

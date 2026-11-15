@@ -393,6 +393,7 @@ namespace GeometryHelper.Dxf
                     (flags & 1) != 0,
                     false,
                     ocs.Normal,
+                    true,
                     out shape,
                     ref opened
                 );

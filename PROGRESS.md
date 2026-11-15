@@ -876,10 +876,14 @@ the ones wanted.
       named entities, copying the rest in whole stretches: display after a one-line MOVE at 1M 93 -> 18 ms (net8) /
       198 -> 22 (net48), ERASE 196 -> 26, COPY 192 -> 25; display lists, bitmaps and saved bytes identical on 167
       samples; the walk kept as the fallback
-- [ ] (speed13, running) Speed follow-ups 12: layer off at 1M (~110 ms: runs of only the switched-off layer emitted without Draw); cold
-      display and REGEN at 1M (draw-bound, ~1.6 us an entity); the heap (627 MB at 1M: DxfItem 104 -> 96 B,
-      DisplayText2 Extra, DxfPolyline's cache fields); dropping the LINE/ARC/CIRCLE shape cache (heap -55 MB but REGEN
-      +27 %: declined); TryChain garbage; read-ahead wrappers; a DWG read stopped mid-way (S)
+- [x] Speed follow-ups 12 (speed13): layer off at 1M 96 -> 36 ms (net8) / 177 -> 78 (net48): runs of only hidden layers
+      copied as empty runs, the box folded on threads, handle strings not read; heap 627 -> 610 MB (DxfItem 104 -> 96 B,
+      a polyline's caches in one lazy object 88 -> 40 B, the read-ahead index holds records); TryChain garbage; display
+      lists, pixels and saved bytes identical on 167 samples
+- [ ] Speed follow-ups 13: cold display (2.2 s at 1M, GC pauses 0.7-0.9 s of it; 840 MB made, 426 MB kept) and REGEN:
+      fuse the per-entity record walks (LookOf 7 %, HasWidthOf 5 %, TryTextGroups 3 %); layer off's remaining 36 ms
+      (DropInsertions 15); OneShape wrappers (18.7 MB), the LWPOLYLINE shape cache (~58 MB: measure dropping it), handle
+      strings (24 MB); a DWG read stopped mid-way (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)

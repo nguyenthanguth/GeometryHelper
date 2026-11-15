@@ -39,20 +39,32 @@ namespace GeometryHelper.Dxf
 
         private static readonly IReadOnlyCollection<int> VertexCodes = Array.AsReadOnly(VertexOrder);
 
-        // The vertices last read and the record they were read from; where each vertex begins in its bytes, and where the run
-        // of them ends, none where they are not spliced; where the count stands, and the count.
-        private List<List<KeyValuePair<int, string>>> _read;
-        private byte[] _readBytes;
-        private int _readStart;
-        private int _readEnd;
-        private List<int> _starts;
-        private int _countFrom;
-        private int _countTo;
-        private int _count;
+        // What was read of the record, in one object made when the polyline is first read by its vertices: a polyline shown and
+        // never asked for one holds one reference where the fields below took 56 bytes of each, 200 000 of them in a drawing of
+        // 1 000 000 entities.
+        private Reading _reading;
 
-        // The normal and the elevation last read for a vertex in the world, with the record they were read from: one object,
-        // made whole before it is kept, so that a thread reading the polyline meets the three of one reading.
-        private Placed _placed;
+        /// <summary>
+        /// The vertices last read and the record they were read from; where each vertex begins in its bytes, and where the run
+        /// of them ends, none where they are not spliced; where the count stands, and the count. The normal and the elevation
+        /// last read for a vertex in the world, with the record they were read from: one object, made whole before it is kept,
+        /// so that a thread reading the polyline meets the three of one reading.
+        /// </summary>
+        private sealed class Reading
+        {
+            internal List<List<KeyValuePair<int, string>>> Read;
+            internal byte[] Bytes;
+            internal int Start;
+            internal int End;
+            internal List<int> Starts;
+            internal int CountFrom;
+            internal int CountTo;
+            internal int Count;
+            internal Placed Placed;
+        }
+
+        private Reading Own() =>
+            Volatile.Read(ref _reading) ?? Interlocked.CompareExchange(ref _reading, new Reading(), null) ?? _reading;
 
         /// <summary>
         /// Initializes a polyline of no vertices, as AutoCAD's <c>new Polyline()</c>, on layer 0 in no file; give it its vertices
@@ -113,7 +125,8 @@ namespace GeometryHelper.Dxf
         {
             GeoPoint2 point = GetPoint2dAt(index);
             DxfFile.Rec record = Item.File.RecordAt(Item, 0);
-            Placed placed = Volatile.Read(ref _placed);
+            Reading reading = Own();
+            Placed placed = Volatile.Read(ref reading.Placed);
 
             // The normal and the elevation are read once for the record as it stands, not again for each vertex asked for.
             if (
@@ -124,7 +137,7 @@ namespace GeometryHelper.Dxf
             )
             {
                 placed = new Placed(Normal, Elevation, record);
-                Volatile.Write(ref _placed, placed);
+                Volatile.Write(ref reading.Placed, placed);
             }
 
             return OcsToWorld(placed.Normal, new GeoPoint3(point.X, point.Y, placed.Elevation));
@@ -1620,13 +1633,19 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The vertices <see cref="Read"/> kept, while the record is the one they were read from; null where none are.</summary>
-        private List<List<KeyValuePair<int, string>>> Kept(DxfFile.Rec record) =>
-            _read != null
-            && ReferenceEquals(record.Bytes, _readBytes)
-            && record.Start == _readStart
-            && record.End == _readEnd
-                ? _read
+        private List<List<KeyValuePair<int, string>>> Kept(DxfFile.Rec record)
+        {
+            Reading reading = Volatile.Read(ref _reading);
+
+            return
+                reading != null
+                && reading.Read != null
+                && ReferenceEquals(record.Bytes, reading.Bytes)
+                && record.Start == reading.Start
+                && record.End == reading.End
+                ? reading.Read
                 : null;
+        }
 
         /// <summary>
         /// Reads the vertices from the record; kept, with where they begin, where they are counted and the count, for the next
@@ -1645,7 +1664,8 @@ namespace GeometryHelper.Dxf
             int stray = 0;
             int counts = 0;
             int countAt = -1;
-            int count = _count;
+            Reading reading = Own();
+            int count = reading.Count;
             bool joined = true;
 
             for (int i = 0; i < groups.Count; i++)
@@ -1688,26 +1708,26 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            _count = count;
+            reading.Count = count;
 
             // The vertices are spliced in place only where their groups are one run of bytes, none of their codes stands
             // outside it, and one count stands before it; any other record is written whole, as the reader would read it.
             if (first >= 0 && last - first + 1 == taken && joined && stray == 0 && counts == 1 && countAt >= 0)
             {
                 starts.Add(places[2 * last + 1]);
-                _starts = starts;
-                _countFrom = places[2 * countAt];
-                _countTo = places[2 * countAt + 1];
+                reading.Starts = starts;
+                reading.CountFrom = places[2 * countAt];
+                reading.CountTo = places[2 * countAt + 1];
             }
             else
             {
-                _starts = null;
+                reading.Starts = null;
             }
 
-            _read = vertices;
-            _readBytes = record.Bytes;
-            _readStart = record.Start;
-            _readEnd = record.End;
+            reading.Read = vertices;
+            reading.Bytes = record.Bytes;
+            reading.Start = record.Start;
+            reading.End = record.End;
             return vertices;
         }
 
@@ -1719,15 +1739,16 @@ namespace GeometryHelper.Dxf
         private bool Splice(int index, int count, List<KeyValuePair<int, string>> made = null)
         {
             List<List<KeyValuePair<int, string>>> read = Read();
+            Reading reading = Own();
 
-            if (_starts == null)
+            if (reading.Starts == null)
             {
                 return false;
             }
 
-            int from = _starts[index];
-            int to = _starts[index + count];
-            int expected = _readEnd - _readStart - (to - from);
+            int from = reading.Starts[index];
+            int to = reading.Starts[index + count];
+            int expected = reading.End - reading.Start - (to - from);
             int written = Item.File.SpliceRecord(
                 Item,
                 0,
@@ -1737,50 +1758,52 @@ namespace GeometryHelper.Dxf
                 true
             );
             expected += written;
-            _starts.RemoveRange(index + 1, count);
+            reading.Starts.RemoveRange(index + 1, count);
             read.RemoveRange(index, count);
 
             if (made != null)
             {
-                _starts.Insert(index + 1, from + written);
+                reading.Starts.Insert(index + 1, from + written);
                 read.Insert(index, made);
             }
 
             Shift(made != null ? index + 2 : index + 1, written - (to - from));
             int number = read.Count;
 
-            if (number != _count)
+            if (number != reading.Count)
             {
                 // The count is no geometry, one group before the vertices.
                 int length = Item.File.SpliceRecord(
                     Item,
                     0,
-                    _countFrom,
-                    _countTo,
+                    reading.CountFrom,
+                    reading.CountTo,
                     new[] { new KeyValuePair<int, string>(90, number.ToString(CultureInfo.InvariantCulture)) },
                     false
                 );
-                Shift(0, length - (_countTo - _countFrom));
-                expected += length - (_countTo - _countFrom);
-                _countTo = _countFrom + length;
-                _count = number;
+                Shift(0, length - (reading.CountTo - reading.CountFrom));
+                expected += length - (reading.CountTo - reading.CountFrom);
+                reading.CountTo = reading.CountFrom + length;
+                reading.Count = number;
             }
 
             // A record that came out other than spliced, as one given extended data in the same writing, is read again.
             DxfFile.Rec record = Item.File.RecordAt(Item, 0);
-            _read = record.End - record.Start == expected ? read : null;
-            _readBytes = record.Bytes;
-            _readStart = record.Start;
-            _readEnd = record.End;
+            reading.Read = record.End - record.Start == expected ? read : null;
+            reading.Bytes = record.Bytes;
+            reading.Start = record.Start;
+            reading.End = record.End;
             return true;
         }
 
         /// <summary>Moves where the vertices from one on begin by some bytes.</summary>
         private void Shift(int from, int by)
         {
-            for (int i = from; i < _starts.Count && by != 0; i++)
+            List<int> starts = Own().Starts;
+
+            for (int i = from; i < starts.Count && by != 0; i++)
             {
-                _starts[i] += by;
+                starts[i] += by;
             }
         }
 

@@ -290,6 +290,37 @@ namespace GeometryHelper.Dxf.Viewer
             return mask;
         }
 
+        /// <summary>
+        /// The bits among <paramref name="among"/> whose layers all satisfy a test: a bit that stands for one layer where the
+        /// layer does, and the last, which the layers beyond the 63rd share, only where every one of them does.
+        /// </summary>
+        internal ulong LayerMaskWhere(Func<string, bool> holds, ulong among)
+        {
+            ulong yes = 0,
+                no = 0;
+
+            foreach (KeyValuePair<string, int> pair in _layerBits)
+            {
+                ulong bit = 1UL << Math.Min(pair.Value, 63);
+
+                if ((bit & among) == 0)
+                {
+                    continue;
+                }
+
+                if (holds(pair.Key))
+                {
+                    yes |= bit;
+                }
+                else
+                {
+                    no |= bit;
+                }
+            }
+
+            return yes & ~no;
+        }
+
         /// <summary>Closes the run of an entity drawn: the items added since <paramref name="start"/>, the layers it read, and the other entities and anonymous blocks it read (null for none).</summary>
         internal void AddRun(string handle, int start, ulong layers, string[] reads) =>
             AddRecord(handle, start, _count - start, layers, reads, _runInserted);
@@ -360,17 +391,110 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            for (int i = 0; i < count; i++)
+            // Where the older list has no run without a handle, none of these has one: its handles are not read.
+            if (from._unnamedRuns != 0)
             {
-                if (string.IsNullOrEmpty(_runs[_runCount + i].Handle))
+                for (int i = 0; i < count; i++)
                 {
-                    _unnamedRuns++;
+                    if (string.IsNullOrEmpty(_runs[_runCount + i].Handle))
+                    {
+                        _unnamedRuns++;
+                    }
                 }
             }
 
             Track(_count, items);
             _count += items;
             _runCount += count;
+            _copiedWhole = true;
+        }
+
+        /// <summary>
+        /// Takes a stretch of runs as <see cref="CopyRuns"/> does, but for each that read one layer of <paramref name="hiding"/>
+        /// and no other: the layer is off, so the entity draws nothing now, and its run is taken as an empty run of the same
+        /// layer that reads nothing else, its insertion points dropped, as drawing the entity again would leave it. One pass
+        /// over the records, the items of each run kept moved by a copy of their own.
+        /// </summary>
+        internal void CopyRunsHiding(DisplayList2 from, int first, int count, ulong hiding)
+        {
+            if (hiding == 0)
+            {
+                CopyRuns(from, first, count);
+                return;
+            }
+
+            if (count <= 0)
+            {
+                return;
+            }
+
+            int end = first + count;
+            int last = end - 1;
+            int start = from._runs[first].Start;
+            int items = from._runs[last].Start + from._runs[last].Count - start;
+
+            if (_count + items > _items.Length)
+            {
+                GrowItems(_count + items);
+            }
+
+            if (_runCount + count > _runs.Length)
+            {
+                Array.Resize(ref _runs, Math.Max(Math.Max(4, _runs.Length * 2), _runCount + count));
+            }
+
+            int at = _count;
+            int run = _runCount;
+            DisplayItem2[] fromItems = from._items;
+            RunRecord[] fromRuns = from._runs;
+            bool unnamed = from._unnamedRuns != 0;
+
+            for (int i = first; i < end; i++)
+            {
+                RunRecord record = fromRuns[i];
+                ulong read = record.Layers;
+
+                if ((read & hiding) != 0 && (read & (read - 1)) == 0)
+                {
+                    DropInsertions(record.Handle, record.Inserted);
+                    NoteDropped(from, i);
+                    _runs[run++] = new RunRecord(record.Handle, at, 0, read, false);
+                    continue;
+                }
+
+                int length = record.Count;
+                _runs[run++] = new RunRecord(record, at - record.Start);
+                Array.Copy(fromItems, record.Start, _items, at, length);
+                at += length;
+            }
+
+            if (from._reads != null)
+            {
+                for (int e = from.FirstRead(first); e < from._reads.Count && from._reads[e].Run <= last; e++)
+                {
+                    ulong read = fromRuns[from._reads[e].Run].Layers;
+
+                    if ((read & hiding) == 0 || (read & (read - 1)) != 0)
+                    {
+                        EnsureReads().Add(new ReadEntry(_runCount + from._reads[e].Run - first, from._reads[e].Reads));
+                    }
+                }
+            }
+
+            if (unnamed)
+            {
+                for (int i = _runCount; i < run; i++)
+                {
+                    if (string.IsNullOrEmpty(_runs[i].Handle))
+                    {
+                        _unnamedRuns++;
+                    }
+                }
+            }
+
+            Track(_count, at - _count);
+            _count = at;
+            _runCount = run;
             _copiedWhole = true;
         }
 
@@ -425,12 +549,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The layers a run read, as <see cref="DisplayRun.Layers"/>.</summary>
         internal ulong RunLayers(int run) => _runs[run].Layers;
 
-        /// <summary>Puts the numbers of the runs that read a layer of a mask into a list, in order.</summary>
-        internal void AddRunsReading(ulong mask, List<int> into)
+        /// <summary>
+        /// Puts the numbers of the runs that read a layer of a mask into a list, in order, but for those that read one layer of
+        /// <paramref name="hiding"/> and no other (see <see cref="CopyRunsHiding"/>).
+        /// </summary>
+        internal void AddRunsReading(ulong mask, List<int> into, ulong hiding)
         {
             for (int i = 0; i < _runCount; i++)
             {
-                if ((_runs[i].Layers & mask) != 0)
+                ulong read = _runs[i].Layers;
+
+                if ((read & mask) != 0 && !((read & hiding) != 0 && (read & (read - 1)) == 0))
                 {
                     into.Add(i);
                 }
@@ -516,14 +645,61 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            DisplayBox box = DisplayBox.Empty;
+            _bounds = BoundsOfItems();
+        }
 
-            for (int i = 0; i < _count; i++)
+        /// <summary>The most items whose box is found by one thread: a longer list is folded in pieces on several, a shorter one is walked, the threads costing more.</summary>
+        private const int MostItemsOnOneThread = 1 << 17;
+
+        /// <summary>
+        /// The box that holds every item: a fold of their boxes, which gives the same box to the bit in any order (the least of
+        /// some numbers is the same wherever it is found), so that a long list is folded in pieces on several threads, each item
+        /// a read of memory that is mostly not in the cache.
+        /// </summary>
+        private DisplayBox BoundsOfItems()
+        {
+            DisplayBox[] parts = new DisplayBox[
+                _count <= MostItemsOnOneThread ? 1 : Math.Min(Environment.ProcessorCount, 8)
+            ];
+
+            if (parts.Length == 1)
             {
-                box = box.Union(BoxOf(_items[i]));
+                parts[0] = BoundsOfItems(_items, 0, _count);
+            }
+            else
+            {
+                int piece = (_count + parts.Length - 1) / parts.Length;
+                DisplayItem2[] items = _items;
+                int count = _count;
+                System.Threading.Tasks.Parallel.For(0, parts.Length, part =>
+                    parts[part] = BoundsOfItems(
+                        items,
+                        Math.Min(part * piece, count),
+                        Math.Min((part + 1) * piece, count)
+                    )
+                );
             }
 
-            _bounds = box;
+            DisplayBox box = DisplayBox.Empty;
+
+            foreach (DisplayBox part in parts)
+            {
+                box = box.Union(part);
+            }
+
+            return box;
+        }
+
+        private static DisplayBox BoundsOfItems(DisplayItem2[] items, int from, int to)
+        {
+            DisplayBox box = DisplayBox.Empty;
+
+            for (int i = from; i < to; i++)
+            {
+                box = box.Union(BoxOf(items[i]));
+            }
+
+            return box;
         }
 
         /// <summary>Whether a box lies wholly inside another, on every side and not touching it; an empty box holds nothing and lies inside.</summary>
@@ -545,12 +721,21 @@ namespace GeometryHelper.Dxf.Viewer
         /// Takes out the insertion points an older list's run of an entity kept, which a patch that draws the entity again, or
         /// does not draw it at all, no longer has: the points were taken whole with the older list.
         /// </summary>
-        internal void DropInsertions(DisplayRun run)
+        internal void DropInsertions(DisplayRun run) => DropInsertions(run.Handle, run.Inserted);
+
+        /// <summary>As <see cref="DropInsertions(DisplayRun)"/>, for a run of an older list given by its number, which makes no <see cref="DisplayRun"/> of it.</summary>
+        internal void DropInsertions(DisplayList2 older, int run)
         {
-            if (run.Inserted && !string.IsNullOrEmpty(run.Handle) && _insertions.ContainsKey(run.Handle))
+            RunRecord record = older._runs[run];
+            DropInsertions(record.Handle, record.Inserted);
+        }
+
+        private void DropInsertions(string handle, bool inserted)
+        {
+            if (inserted && !string.IsNullOrEmpty(handle) && _insertions.ContainsKey(handle))
             {
                 OwnInsertions();
-                _insertions.Remove(run.Handle);
+                _insertions.Remove(handle);
             }
         }
 

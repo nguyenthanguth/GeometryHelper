@@ -236,6 +236,41 @@ ACIS body, whose bytes are not the same from one run to the next in any build) a
 MOVEs and ERASEs, a COPY, a layer off and on and a REGEN, item for item and field for field, under .NET 8 and .NET Framework 4.8, and
 the pixels of the 167 samples and of a generated drawing of 100 000 entities in three views, plain, selected, highlighted and with a hover.
 
+A layer switched off at 1 000 000 entities is patched in 36 ms where it took 96 (.NET 8; 78 where 177 under .NET Framework 4.8). The
+runs of the entities that read the layer, a third of the drawing, were each drawn again, an entity made of its record, its layer read and
+found off, and nothing drawn. The runs that read the layer and no other (the bit of a layer in the masks of the runs stands for one layer,
+or for all of the layers beyond the 63rd, which share the last bit, and then counts only where every one of them is off) are no longer among
+the runs drawn again: the pass that copies the runs between those that are takes each of them as an empty run of the same layer, as `Draw`
+would leave it, its insertion points dropped, and reads nothing of its record. A run that read another layer besides (an INSERT on the
+layer switched off whose block holds entities on others is drawn again, and ends as one that read the one layer), a run an edit names, and a
+run that read what another drew are drawn again as before. The pass reads no handle, whose string is a read of memory for each of the
+million runs: the count of runs without a handle is asked of the older list, which has none, and a run's handle is read only where it
+kept an insertion point. The box a patch that dropped more than 64 runs finds again from every item is folded in pieces on up to eight
+threads for a list of more than 131 072 items (the box of a few items is found by one thread): the least of some numbers is the same in
+whatever order it is found, so the box is the one a single fold gives, to the bit, with zeros of either sign. The layer switched on draws
+the third of the entities again and takes what it took (0.5 s), as does a REGEN (0.76 s) and the cold display (2.2 s). Of the cold display
+the collector's pauses are 0.7 to 0.9 s: it makes 840 MB of objects, 426 MB of which stay, in 49 collections, one for each 17 MB of new
+objects, and every collection carries the survivors a generation on. With a first generation of 256 MB (the environment variable
+`DOTNET_GCgen0size=0x10000000`, which a host process sets and a library does not) the pauses are 0.36 s and the display 1.8 s.
+
+The heap of a displayed drawing of 1 000 000 entities is 610 MB where 627 (.NET Framework 4.8: 618 where 635), 17 MB less in the objects
+of a drawing as it was read: a `DxfItem` takes 96 bytes where it took 104 (its removed, hidden and in-paper-space flags are bits of the
+word that holds its count of records, set by a compare and swap), and a `DxfPolyline` holds one reference to what it was read by (its
+vertices, where each begins, its count, its normal), made when a vertex is asked for, where its eight fields took 56 bytes of each of the
+200 000 polylines (8 MB). A `DisplayText2` stays at 128 bytes: its fields take 109 and the object rounds up to 8, so that only a whole
+field (8 bytes) moved to the `Extra` that few texts have, the rotation say, would take 8 bytes off every text and put 72 on every text
+that has one. The index of handles of a drawing read ahead for an undo (up to three are held beside the one shown) holds the record
+of each entity and not the object made for it, the object being made where the handle is asked for, as the index of the shown drawing
+does: a heap of 1 235 MB where 1 357 after a MOVE of one line with the drawings of the undo and the redo read ahead, and three moves with
+their undos and redos allocate 6.1 GB where 6.5. The reader of a closed polyline from its bytes keeps the lists of vertices it made where
+none lies on the one before, not copied, and makes the normals of the edges by a loop and not a closure and a converted list: 1 040 bytes
+a read where 1 408 (.NET Framework 4.8), 839 MB of garbage where 915 for the cold display of 1 000 000 entities (.NET 8). Display lists,
+their boxes, insertion points, the bytes a drawing saves and the pixels are those they were: 167 samples of AutoCAD (cold, after a MOVE, an
+ERASE, a layer off and on, a REGEN and the layouts; the bytes saved but for the one with an ACIS body that differs on every run, as before),
+item for item and field for field under .NET 8 and .NET Framework 4.8, and the pixels of the 167 samples in two views, plain, selected and
+highlighted, under .NET 8. (Of two passes with the older build the first differed from the second in the pixels of 11 files, every
+display list the same; the new build equals the second, as two more runs of the older build over those 11 do. The first pass is not explained.)
+
 `PrepareDisplay(space, progress, cancellationToken)` makes the list and the pick index of a space ahead, item for item the
 list `GetDisplay` makes, telling `progress` the share of the space's entities drawn every 4 096 of them and stopping, with
 an `OperationCanceledException`, when the token is cancelled; a list stopped is not kept, and is made whole when next
