@@ -73,6 +73,28 @@ the next is in place.
 a face) and `CadFontMetrics` (the metrics WMFIN takes) kept the failure of a read of a font file, a TrueType file held open by another program or read while the
 disk was busy among them, as they keep a file that is no font. A read that fails with an `IOException` or a refused access is no longer kept: the next measure reads
 the file again (the face's measure is made anew for the next call, not kept with the failure), while a file that is no font is still kept as none.
+**FIXED.** Arc length dimensions (DIMARC) in the presenter put the arc point where AutoCAD 2021 does for words outside an arc of more than
+half a circle, and lay the words next to a ray (DIMJUST 1 and 2) on a small arc by the chords AutoCAD lays them by (measured on its console;
+the counts are differing pictures, before and after). Past a half turn the words stand in the half turn left over, and the arc point is two
+thirds of the way round where their middle is nearer the first end than the second (the short way round about the vertex), a third where it
+is nearer the second, whichever end they hang on to: the arc of 1 from 0 through 181 degrees, aligned words, put 0.31 out has it at 60.3
+degrees, at 0.32 out at 120.7 (DIMJUST 1 the other way round), through 200 degrees the change comes between 0.36 and 0.37. It was two thirds
+for aligned words (a third for DIMJUST 1) and a third for level ones whatever the distance. It holds in all 1 969 pictures of the probes with
+the words outside, the level words whose box has a hair inside the arc (two thirds) among them. Words standing on the arc next to a ray lay the
+arrowhead, the gap after it, the half of their box with its gap and the gap besides it by a chord each, not by the cube of two of them over
+24 radii squared, which fell 4 degrees short round an arc of 0.3 radius: the arc of 1 from 0 through 225 degrees put 0.3 out, DIMJUST 1, words
+"3.9270" 0.75 wide, stand 170.5 degrees from the second ray and are turned 324.49 degrees (the cube 166.5 and 328.47), at 0.45 out 108.0 and
+27.0, as AutoCAD draws them. Sets (differing, before then after): aligned words and DIMJUST 1 and 2 past a half circle (432) 204, now 36; the
+same to 0.01 in the distance (5 508) 2 691, now 228; level words, the distance finely (4 284) 208, now 199; where the words stop going outside
+(1 488) 126, now 116; the direction by 5 degrees (1 296) 192, now 185; the sizes of the box and gap (456) 112, now 104; DIMJUST words on arcs
+of 1, 3 and 10 (216) 4, now 1. Of the 115 sets of probes with AutoCAD's pictures 7 are nearer, none is worse, 108 have the same count, and of
+the 2 668 pictures that came right none that was right came wrong (13 sets differ in their numbers by less than 0.001, from the chords). Not
+changed: the arrowheads that stand out with level words outside (the lower edge: 48 of the 1 969 pictures differ, 13 of them where DIMGAP 0.18
+without the arc symbol wants the edge 2.3 degrees higher while DIMGAP 0.18 with it wants none, 16 where the box is near an arrowhead and the
+arrowheads stay in at a middle direction of 125 to 150 degrees), and where the words come in on arcs of 181 to 200 degrees (AutoCAD brings
+them in one or two hundredths of the distance later than the room asks, by 0.015 to 0.04 of room at 181 degrees, 0.001 to 0.025 at 190 and
+0.04 to 0.066 at 200, not one amount; and both arrowheads in, which want 0.04 to 0.07 less room than the fit gives with the arc symbol
+and from 0.026 less to 0.04 more without it as the sweep goes from 181 to 225 degrees: the 228 left of the 5 508).
 
 **CHANGED.** `SetValueFromText`, `SetAutoScale`, `SetBlockScale`, `SetBlockRotation`, `SetBlockAttributeValue` and `SetFormula` are written
 into the place of the cell's own bytes, as `ResetValue`, `SetCellType` and the lines of a cell are, where each call read and wrote every group

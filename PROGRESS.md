@@ -602,9 +602,13 @@ the ones wanted.
       the words' box comes within 0.9 DIMGAP of an arrowhead and the middle direction passes a box- and radius-dependent
       edge (tar48s 299 -> 70, tar46s 319 -> 208, tar53s 345 -> 192); the symbol room by DIMGAP (tar56s 315 -> 240); the
       bothExtra plateau (tar58s 94 -> 56); 104 older sets byte-identical, 9 nearer
-- [ ] (assoc12, running) Associative dimensions follow-ups 11: the arrowheads-out lower edge (41 of 1 929); p10 of aligned and DIMJUST words
-      outside past a half circle (tar52s 204, tar55s 156 a hundredth or two off); DIMJUST words' rotation; words-in
-      thresholds a step late at 181-200 degrees (S)
+- [x] Associative dimensions follow-ups 11 (assoc12): the arc point of words outside past a half turn by which end the
+      words' middle is nearer (1 969 of 1 969 pictures), DIMJUST words on the arc by chord turns: tar55s 2 691 -> 228,
+      tar52s 204 -> 36 differing pictures, 2 668 came right and none wrong
+- [ ] Associative dimensions follow-ups 12: the arrowheads-out lower edge (48 of 1 969: DIMGAP 0.18 without the symbol
+      wants 2.3 degrees more; an upper edge of the near window at 125-150 degrees); words-in thresholds at 181-200
+      degrees (extra room 0.0006-0.066, no rule; all 228 tar55s left); DIMJUST words on arcs at radius 3 (one state
+      flip) (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
       back of its arrowhead; DIMTVP; the box of DIMGAP below zero (526 AutoCAD pictures compared, 511 match)
 - [x] Dimensions: words measured by the drawing's fonts in the pictures (the main gap left); DIMTEDIT on angular and

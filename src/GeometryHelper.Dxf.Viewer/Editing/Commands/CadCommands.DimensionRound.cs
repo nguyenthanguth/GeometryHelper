@@ -1809,7 +1809,32 @@ namespace GeometryHelper.Dxf.Viewer
                                 + (height + over + 2.0 * gap) * Math.Abs(Math.Cos(lies))
                             ) / 2.0
                             : (width + before) / 2.0 + gap;
-                    side += (arrow * arrow * arrow + half * half * half) / (24.0 * radius * radius * radius);
+                    // That is the first term of the chords' own turn, which the small arcs need whole where the words stand on the arc:
+                    // the arrowhead, the gap after it, the half of the box (the gap in it) and the gap besides it each laid by a chord
+                    // of its own: the arc of 1 from 0 to 225 degrees put 0.3 out, DIMJUST 1, aligned words "3.9270" 0.75 wide, stand
+                    // 170.5 degrees from the second ray as AutoCAD 2021 draws them (the cube put them 166.5, 4 degrees off, and turned
+                    // them 4 degrees too far), at 0.45 out 108.0 (the cube 107.6) and at 0.8 out to 0.03 degrees. Words above the arc
+                    // (DIMTAD 1) stand as the cube of the arrowhead and the half with its gap has them (arcs of 3 put 1.5 and 2.4 out).
+                    double piece = Math.Min(half, placeNeed / 2.0);
+                    double rest = placeNeed / 2.0 - piece;
+                    double chords =
+                        ChordTurn(radius, arrow)
+                        + ChordTurn(radius, gap)
+                        + ChordTurn(radius, piece)
+                        + (rest > 0.0 ? ChordTurn(radius, rest) : 0.0);
+
+                    if (
+                        onInside
+                        && Math.Max(Math.Max(arrow, gap), Math.Max(piece, rest)) < 2.0 * radius
+                        && chords < Math.PI
+                    )
+                    {
+                        side = chords;
+                    }
+                    else
+                    {
+                        side += (arrow * arrow * arrow + half * half * half) / (24.0 * radius * radius * radius);
+                    }
                 }
                 double theta =
                     side > 0.0 && style.Dimjust == 1 ? to - side
@@ -2074,13 +2099,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                         if (reflex && !second)
                         {
-                            // Past a half turn they go the other way, by the sign of the sine of the same direction, and the arc point
-                            // is a third of the way round: probed with arcs of 1 from 0 to 180 degrees by 30 and from 0 to 350 by
-                            // 10, sweeps 181 to 300, put 0.3 to 1.2 out, in 770 pictures with the words outside the end was always
-                            // the first, the words went the other way in 768 and the arc point stood a third round in 751 (those
-                            // 19 were at the edge of the fit, the words all but in).
+                            // Past a half turn they go the other way, by the sign of the sine of the same direction: probed with
+                            // arcs of 1 from 0 to 180 degrees by 30 and from 0 to 350 by 10, sweeps 181 to 300, put 0.3 to 1.2 out,
+                            // in 770 pictures with the words outside the end was always the first and the words went the other way
+                            // in 768. Where the arc point stands is told below, by where the words end up.
                             flat = -flat;
-                            wordsFirst = false;
                         }
                     }
 
@@ -2114,6 +2137,20 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     at = point + way * (gap + width / 2.0) + up * (on ? onOffset : upSide * lift);
+                }
+
+                if (arcLength && reflex && (!style.Dimtoh || !second))
+                {
+                    // Past a half turn AutoCAD 2021 writes the arc point two thirds of the way round where the middle of the words
+                    // stands nearer the first end of the arc than the second, a third where it stands nearer the second, by the
+                    // angle about the vertex each end is from it the short way round (the words stand in the half turn left over,
+                    // or, with their box all but in, a hair inside the arc), whichever end they hang on to: probed with arcs of 1
+                    // from 0, 100 and 250 degrees, sweeps 181 to 250, put 0.3 to 0.8 out by 0.01, aligned (DIMJUST 0, 1 and 2),
+                    // DIMARCSYM 2 and 0, and with the words level: all of the 1 969 pictures with the words outside, where a third
+                    // (two thirds for aligned words, a third for DIMJUST 1) whatever the distance had 36 of 72 wrong in the
+                    // first and 6 to 20 of 326 to 556 in the others.
+                    double around = Math.Atan2(at.Y - vertex.Y, at.X - vertex.X);
+                    wordsFirst = ApartRoundTheCircle(around, from) < ApartRoundTheCircle(around, to);
                 }
             }
 
@@ -2231,6 +2268,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>1 between two angles, falling to 0 over 1.5 degrees outside them.</summary>
         private static double Window(double degrees, double low, double high) =>
             Math.Max(0.0, Math.Min(1.0, Math.Min((degrees - low + 0.75) / 1.5, (high + 0.75 - degrees) / 1.5)));
+
+        /// <summary>How far apart two directions are the short way round: up to half a turn.</summary>
+        private static double ApartRoundTheCircle(double a, double b) =>
+            Math.Abs(Math.IEEERemainder(a - b, 2.0 * Math.PI));
 
         /// <summary>The angle about the centre of a chord of a length on a circle of a radius: half a turn for a chord past its width.</summary>
         private static double ChordTurn(double radius, double length) =>
