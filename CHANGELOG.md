@@ -6,6 +6,35 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** MLEDIT's tees (CT, OT, MT) take the pair of segments AutoCAD 2021 takes where the second has three segments, or the
+meeting lies within the width of a corner: of every pair whose lines meet, the stem met on a segment or run on past the free end of
+its first or last, the second met on a segment or run on past its own free end, the one nearest the picks (the distances along the
+stem and along the second added) alone says whether the tee is made or `These multilines do not intersect.` (the second met past its
+free end), where it was the nearest pair that could be made, a pair past the free end being ignored. Where no pair can be made the
+tee is `Invalid operation on a self intersecting multiline.` if any pair has the stem run on to a second met past a vertex of its own
+on an end segment, or the stem met past a vertex of its own and the second past its free end, and no longer only the nearest pair of
+all. Two pairs as near as each other go to the one on the earlier segment of the second where one is met past the free end, else to
+the one whose stem segment is farther from the stem's pick, then the nearer along the stem, then the earlier (334 of 356 such tees as
+AutoCAD). Each element of the stem stops at the second's near element on the piece of its mitred path nearest the segment of the pair,
+so that within the width of a corner of the second the elements stop on different segments (the stem (100, 150)-(160, 150)-(160, 250)
+onto (70, 40)-(70, 120)-(30, 120)-(30, 240) starts its elements 20 and 60 along from (30, 150)). 8 253 random tees of stems of one or two
+segments onto seconds of two or three whose picks lie clear of the other multiline: 1 847 differed from AutoCAD before, 598 now (the
+rest: stems that run along a segment of the second, and the stops of the elements at corners of other than right angles); 6 tees
+that matched before no longer do.
+**CHANGED.** MLEDIT's crosses (CC, OC, MC) take a closed multiline as AutoCAD 2021 does when no pair of segments can be made: as the
+run of its segments from the first to the last, its first segment run on past its start and its last past its end and no other, so a
+second that meets the square (0, 0)-(100, 0)-(100, 100)-(0, 100) past (100, 0) on the line of its bottom edge is `These multilines do
+not intersect.` (a vertical x = 102 to 140 from y = -60 to 60) where it was `Invalid operation on a self intersecting multiline.`, and
+the same past (0, 0) or the corners between the edges that go on is still the refusal (a horizontal y = -40 across x = 60 to 160). 369
+crosses of the square 123 differed from AutoCAD before and 3 now; 900 random crosses of a square, a rectangle and a triangle 263 and
+212 (the rest: which of two crossings AutoCAD breaks, and cuts it writes at a vertex).
+**CHANGED.** A grip or STRETCH that moves a vertex of a closed multiline cut across a vertex, and MLEDIT's CS and CA at a concave corner,
+follow AutoCAD 2021 where a move shortens a segment until a cut that reaches its end starts at the end (the stop is left out and the next
+list gains a nought: the six-sided staircase cut across (0, 0) with its vertex (0, 0) moved to (0, 10) holds `{0}` on its last segment
+where it held `{0, 90}`), a move carries the start of a cut back past the start of its segment (the list stays at nought, not below it
+and not nought twice), and a cut whose picks lie beyond the end of a mitred element's stretch (the staircase cut from (60, 50) to
+(50, 60) across its concave corner) takes nothing out of the element. 288 moves of the staircase and 700 of four shapes: 107 differed
+from AutoCAD before and 8 now, none that was equal changed.
 **FIXED.** Saved as R12 (`DxfDatabase.Save` with "AC1009"), more of a drawing is as AutoCAD 2021's own R12 (found by probing its
 console, `Database.DxfIn` of side databases then `DxfOut` at R12; 398 code-built cases of fills, patterns and MTEXT runs, 350 of
 them equal AutoCAD's record for record where 328 did, none that was equal regressing, and a further 285 cases of notches, big-font

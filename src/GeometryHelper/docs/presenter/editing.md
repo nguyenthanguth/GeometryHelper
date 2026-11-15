@@ -267,10 +267,16 @@ both (or past a free end, as above) AutoCAD 2021 takes the pair whose meeting is
 multiline from its pick added to that along the second from its pick, the later pair where two are as near (the L above and
 the Z (50, -30)-(50, 30)-(150, 30), picked at (20, 0) and (130, 30), are crossed at (100, 30), though the first pick is on the L's
 first segment, which meets the Z's first at (50, 0) as well). Where no pair can be made the lines may still meet past a vertex of one multiline's
-first or last segment (any segment of a closed one) while the other runs on past its free end: a cross says `Invalid
+first or last segment while the other runs on past its free end: a cross says `Invalid
 operation on a self intersecting multiline.` and a corner joint says nothing and puts that first multiline's start caps off,
 as AutoCAD does; any other miss is `These multilines do not intersect.` (the L crossed by (30, -60)-(30, -40)-(xe, -40) is
-refused as self intersecting for xe up to 99.9 and does not meet it at 100). A cross whose break lies wholly past the free end
+refused as self intersecting for xe up to 99.9 and does not meet it at 100). AutoCAD takes a closed multiline as the run of
+its segments from the first to the last, as it takes an open one: its first segment is run on past its start and its last past
+its end, and no other, so that for the square (0, 0)-(100, 0)-(100, 100)-(0, 100) a vertical (x, -60)-(x, 60) is crossed up to
+x = 80 and refused as self intersecting from 82 to 100 (within the width of the corner), and past the corner (100, 0), on the line
+of the first side beyond its end, is `These multilines do not intersect.` (x = 102 to 140), where a horizontal (60, y)-(160, y) across
+the right side is `Invalid operation on a self intersecting multiline.` for every y below 20, those past the corner (100, 0) among them
+(369 crosses of the square, 120 that differed now 3). A cross whose break lies wholly past the free end
 of the last segment (the L crossed by the horizontal (30, 140)-(110, 140)) takes nothing out of it: AutoCAD writes that break
 inside out and draws a stray piece there, which the presenter does not copy. CS, CA and
 WA from one segment to another cut from the first pick to the end of its segment, the segments between whole and the next
@@ -288,18 +294,26 @@ picks has its top element whole and its bottom one drawn only from 0 to 20 on th
 cut finds nothing there, as nothing is drawn.
 
 The tees work on a pair of segments as the crosses do, found a little differently (AutoCAD 2021's numbers at scale 20). The stem is
-run on past the free end of its first or last segment, and the second must be met on one of its segments (the end of its last
-is not on it): of the pairs that can be made, the one whose meeting is nearest the picks is taken, and the end of the stem kept
+run on past the free end of its first or last segment, and the second is met on one of its segments (the end of its last
+is not on it) or run on past its own free end: of those pairs the one whose meeting is nearest the picks is taken (the distance
+along the stem from its pick added to that along the second from its pick), and that pair alone says whether the tee is made, or
+`These multilines do not intersect.` where the second is met past its free end. Two pairs as near as each other (a stem that runs along
+a segment of the second between them) go to the one on the earlier segment of the second where one meets it on a segment and the
+other past its free end, else to the one whose stem segment is farther from the stem's pick, then the nearer along the stem, then the earlier,
+as 334 of 356 such tees did. The end of the stem kept
 is the one on the side of the meeting its pick is on (the stem (30, -60)-(30, -100)-(80, -100) picked on its second segment at
 (55, -100), onto (0, 0)-(100, 0), has its start moved to (30, 0) with both elements starting 20 along, at the second's near
-edge). Where none can be made, the nearest pair of all says what is said: the stem run on past its free end to a second that is
-met past a vertex of its own on an end segment, or a stem that is met past a vertex of its own while the second is met past its free end
-(the stem (130, -100)-(130, -60)-(180, -60) onto (0, 0)-(100, 0), whose line x = 130 meets the second past its end), is `Invalid
-operation on a self intersecting multiline.`, the stem's start caps put off and nothing else changed; every other miss, such as the
+edge). Where none can be made, it is `Invalid operation on a self intersecting multiline.` if any pair has the stem run on past
+its free end to a second that is met past a vertex of its own on an end segment, or a stem that is met past a vertex of its own while
+the second is met past its free end (the stem (130, -100)-(130, -60)-(180, -60) onto (0, 0)-(100, 0), whose line x = 130 meets the
+second past its end), the stem's start caps put off and nothing else changed; every other miss, such as the
 stem (130, -60)-(130, -100)-(180, -100) run on to the same line, is `These multilines do not intersect.`. A pick on the very point
 the lines meet keeps the start of that multiline in a corner joint; the same multiline picked twice is nothing said for a cross or a
 tee (AutoCAD asks for the first again) and `These multilines do not intersect.` for a corner joint. A break across the second that
-reaches the end of its last segment leaves nothing beyond it, as a cross's does.
+reaches the end of its last segment leaves nothing beyond it, as a cross's does. Each element of the stem stops at
+the second's near element wherever the two meet: on the piece of that element's mitred path nearest the segment of the pair, which within the width
+of a corner of the second is not the segment itself (the stem (100, 150)-(160, 150)-(160, 250) onto (70, 40)-(70, 120)-(30, 120)-(30, 240), picked at (113, 150) and (30, 223), has its
+first element start 20 along from (30, 150) and its second 60, where it meets the first side's outer element at x = 90; 8 253 tees of stems of one or two segments onto seconds of two or three whose picks lie clear of the other multiline, 1 847 of them differing from AutoCAD before and 598 now).
 
 A cross near a corner breaks each element on the segment of its own line the crossing is nearest the picks on, so that within the
 width of a multiline of a corner the elements of one crossing are broken on different segments: a break that runs past the end of
@@ -323,7 +337,14 @@ list as it was, and no stretch goes below nought. A closed multiline is moved th
 square of 100 cut from (100, 50) to (50, 100) across (100, 100), whose vertex (100, 100) goes to (90, 90), holds 0 and 50 there for
 its first element where it held 50), but for the first segment and the last, which join the end of the points to their start:
 AutoCAD puts no nought in front of their lists (the triangle (0, 0)-(100, 0)-(50, 80) cut from (75, 40) to (25, 40) across (50, 80),
-whose vertex (100, 0) goes to (90, 0), still holds `{47.1699}` at (50, 80)). STRETCH moves the vertices inside its window the same way, and the whole multiline where all are
+whose vertex (100, 0) goes to (90, 0), still holds `{47.1699}` at (50, 80)). A closed multiline whose move shortens a segment until a cut that reaches its end starts at the
+end leaves that stop out, the element drawn to the end (the six-sided staircase (0, 0)-(100, 0)-(100, 50)-(50, 50)-(50, 100)-(0, 100)
+cut across (0, 0) from (0, 10) to (10, 0), whose vertex (0, 0) goes to (0, 10), holds `{0}` and no longer `{0, 90}` on its last segment) and the list that goes on
+across the next vertex then gets its nought (`{0, 10}`), where a move that carries the start of a cut that goes on across a vertex back past the start of the segment
+leaves that list at nought and neither a start of nought twice nor one below it. MLEDIT's CS and CA take nothing out of an element where the picks lie beyond
+the end of its stretch, as at the concave corner (50, 50) of the staircase, cut from (60, 50) to (50, 60), where the second element of the third side runs
+50 along from the outer corner (120, 70) and the cut starts at 60 (288 moves of the staircase and 700 of four shapes probed,
+107 differed from AutoCAD before and 8 now). STRETCH moves the vertices inside its window the same way, and the whole multiline where all are
 inside. TRIM and EXTEND work on a multiline as AutoCAD 2021 does: an edge counts only where it crosses every element as many
 times (one that meets some element more often than another leaves the multiline as it is), each element at its own hit, which
 near a corner can be on different segments: the edge (120, -30)-(95, 20) meets the top element of (0, 0)-(100, 0)-(100, 100) at

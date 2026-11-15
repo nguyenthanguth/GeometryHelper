@@ -146,9 +146,13 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] MLINE follow-ups 5 (mline6): tees by AutoCAD's pair scan (600 held-out tees 184 -> 79 differing); crosses
         broken per element near corners (1 674 crosses 662 -> 486, 25 staircase corner breaks equal); the same MLINE
         picked twice; the CJ tie; closed MoveVertexAt with no nought on the end segments; harness .claude/gk/mline6-harness
-  - [ ] MLINE follow-ups 6: tees onto three-segment seconds (78 of 321); closed-square crosses past a corner (120 of 369);
-        CJ with two joinable corners (47 of 500); OC/MC stray pieces (not copied); six-sided staircase concave moves (4);
-        closed-trim end-stop ties (no tie data yet) (S)
+  - [x] MLINE follow-ups 6 (mline7): tees choose among all pairs as AutoCAD (8 253 clean rows 1 847 -> 598 differing),
+        stem elements stopped on the second's mitred element; closed multilines crossed as the run of their segments
+        (square crosses 123 -> 3 of 369); cuts at concave corners and MoveVertices shortening rules (staircase 56 -> 0).
+        DECIDED: an edge through a closed MLINE's vertex is not trimmed into AutoCAD's duplicated-vertex open MLINE
+  - [ ] MLINE follow-ups 7: CJ with two joinable corners (117 of 2 232, AutoCAD half-edits); which of two crossings a
+        closed cross breaks (~200 of 900); tees with stems along a segment and stops at non-right corners; 8 of 700
+        moves; OC/MC stray pieces (not copied) (S)
   - [x] R2.2 HATCH completed (hatch2): -HATCH draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, Boundary
         set, Gap tolerance; Single color gradients (tint as AutoCAD, 45 pairs probed); plain HATCH behind its boundary
         (HPDRAWORDER 3); BOUNDARY refusing ellipse or spline areas; fixed an empty polyline kept by Retain boundary
@@ -363,7 +367,7 @@ User note 2026-11-12 evening (note.md 1-14):
       to R2013: 262 -> 182 ms, 142 -> 90 MB on net48); the extension dictionary spliced into a table record as bytes;
       KnowHandles without a pairs list; saved bytes identical in 72 174 fuzz saves per runtime. The OBJECTS index was not
       the cost of saving (AddObject already updates it): the tables x objects cost is in cloning
-- [ ] DXF versions follow-ups 11: cloning's NamedPath/uncached Objects() on the origin per pointer (WblockCloneObjects
+- [ ] (dxfver11, running: cloning, cell-by-cell building, completion fixed cost, determinism) DXF versions follow-ups 11: cloning's NamedPath/uncached Objects() on the origin per pointer (WblockCloneObjects
       of 400 tables 500 vs 280 ms by the objects around them); building a table cell by cell is O(cells) per
       SetTextString (0.4 ms a cell at 1 000 cells); the fixed cost of completing a drawing with one table (~130 ms on 11
       MB); NormalizeEdges and ListForRecompose O(tables^2); DateTime.Now and Guid making the ACIS R2013 conversion
@@ -785,7 +789,7 @@ the ones wanted.
       GeoPolygonArc3 built in arrays (0.61 -> 0.37 us, 2 168 -> 624 B), small per-build caches: 100k INSERTs 1 115 -> 858
       ms (net8) / 2 057 -> 1 494 (net48), 100k mixed 247 -> 217 / 449 -> 345, garbage down a fifth to a third; display
       lists, saved bytes and pixels identical on 171 drawings; benchmarks' 34 signatures match
-- [ ] Speed follow-ups 10: MOVE + display at 1M possibly a few % slower after speed10 (recheck on a quiet machine);
+- [ ] (speed11, running) Speed follow-ups 10: MOVE + display at 1M possibly a few % slower after speed10 (recheck on a quiet machine);
       BlockTableRecord.Origin cached by EditCount; LookOf (11 %) and IsHidden allocating strings; KnowHandles/PairsOf in
       the open; unlike-scale INSERTs making arcs into ellipses (15x per INSERT); AddInsertionPoint and PlainStyleOf
       lookups; dropping the LINE/ARC/CIRCLE shape cache; TryChain garbage; DxfPolyline's 8 cache fields; DisplayText2's

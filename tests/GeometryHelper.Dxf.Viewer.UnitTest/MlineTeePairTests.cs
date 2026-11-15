@@ -24,9 +24,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
     /// that reaches the end of its last segment leaves nothing beyond it, as a cross's does. Each row is the option, the
     /// points of the first multiline, those of the second, where each is picked, and what AutoCAD answered: its message, then
     /// the two multilines each as its flags and its vertices with the stretches of each element after the offset in braces,
-    /// as <see cref="MlineJoinNearCornerTests"/> writes them. Rows where the meeting is within the width of a multiline of a
-    /// corner of a three-segment second, or two multilines run into each other, are left out: AutoCAD's rule there is not
-    /// copied.
+    /// as <see cref="MlineJoinNearCornerTests"/> writes them. Rows where two multilines run into each other are left out;
+    /// meetings near a corner of a three-segment second are in <see cref="MlineTeeThreeSegmentTests"/>.
     /// </summary>
     public class MlineTeePairTests
     {

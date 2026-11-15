@@ -230,7 +230,12 @@ namespace GeometryHelper.Dxf
         /// closed, cut from (100, 50) to (50, 100) across (100, 100), whose vertex (100, 100) goes to (90, 90), holds 0 and 50
         /// there for its first element where it held 50. The lists of the first segment and the last of a closed multiline,
         /// which join the end of its points to their start, get no nought: the triangle (0, 0), (100, 0), (50, 80) cut across
-        /// (50, 80), whose vertex (100, 0) goes to (90, 0), still holds 47.1699 there for its first element.
+        /// (50, 80), whose vertex (100, 0) goes to (90, 0), still holds 47.1699 there for its first element. A closed
+        /// multiline whose move shortens a segment until a cut that reaches its end starts at the end leaves that stop out (the
+        /// six-sided staircase (0, 0), (100, 0), (100, 50), (50, 50), (50, 100), (0, 100) cut across (0, 0) from (0, 10) to
+        /// (10, 0), with (0, 0) moved to (0, 10), holds 0 and no longer 0 and 90 on its last segment), and the list that goes on
+        /// across the next vertex gets its nought; a move that carries the start of a cut that goes on across a vertex back past
+        /// the start of its segment leaves that list at nought, not below it and not nought twice.
         /// </summary>
         /// <param name="index">The index of the point, from nought.</param>
         /// <param name="point">Where it goes.</param>
@@ -369,7 +374,10 @@ namespace GeometryHelper.Dxf
                                 continue;
                             }
 
-                            tail[k] = IsClosed ? tail[k] - shift : Math.Max(0.0, tail[k] - shift);
+                            // The cut that goes on across the vertex, moved back past the start of the segment, is no cut
+                            // of this segment: its list starts at nought.
+                            tail[k] =
+                                IsClosed && !(goesOn && k == 0) ? tail[k] - shift : Math.Max(0.0, tail[k] - shift);
                         }
 
                         if (IsClosed && i < segments)
@@ -385,14 +393,28 @@ namespace GeometryHelper.Dxf
                     // segments that join the end of the points to their start.
                     bool noughtAllowed = !IsClosed || (i >= 1 && i <= segments - 2);
 
-                    if (noughtAllowed && goesOn && before >= 0 && nowDrawn[before][e] && !endsDrawn[before][e])
+                    if (
+                        noughtAllowed
+                        && goesOn
+                        && before >= 0
+                        && nowDrawn[before][e]
+                        && !endsDrawn[before][e]
+                        && (tail.Count == 0 || tail[0] > 0.0)
+                    )
                     {
                         tail.Insert(0, 0.0);
                         readAgain[e] = true;
                     }
 
-                    // A last start that now lies at or past the end of the element draws nothing, and AutoCAD leaves it out.
-                    if (!IsClosed && i < segments && tail.Count % 2 == 1 && tail[tail.Count - 1] > 0.0)
+                    // A last start that now lies at or past the end of the element draws nothing, and AutoCAD leaves it out; on a
+                    // closed multiline, a last stop that now lies at or past the end draws the element to the end, and it is left out
+                    // as well.
+                    if (
+                        i < segments
+                        && tail.Count > 0
+                        && tail[tail.Count - 1] > 0.0
+                        && (tail.Count % 2 == 1 ? !IsClosed : IsClosed)
+                    )
                     {
                         double lengthOfElement = ElementPoint(i, e)
                             .GetVectorTo(ElementPoint((i + 1) % n, e))
