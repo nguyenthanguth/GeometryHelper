@@ -188,9 +188,12 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         the run-on with a level landing and the straight leader from the middle (0 wrong of 6 480 bisected probes; the
         leader's reach floor exact); runs made an arrowhead long; the doubled line only with the middle leader; words on a
         level line past an end; tw17/20/23-26/29-31 now 0, tw28 4240 -> 7 ties; harness .claude/gk/annot-harness7
-  - [ ] (annot8, running) Annotative objects 5e: tw19's 64 level words put out by the fit (run to the knee where run_k > 0; s120 l5 n15-16
-        has no rule); tw27's 20 (words over the line by 2.25: arrowheads out and the line twice, or a 6.63 break); exact
-        ties (tw18 2, tw22 1, tw28 7) (S)
+  - [x] Annotative objects 5e (annot8): level words too high for a leader run the line on to the knee's level with a
+        landing (tw19 64 -> 0, tw32 590 -> 0 of 1 152); words over the line break it by the chord of their grown box, or
+        turn the arrowheads out (tw27 20 -> 1); the run to the point's level for words between the extension lines; words
+        put out by the fit and then turned; harness .claude/gk/annot-harness8
+  - [ ] Annotative objects 5f: words exactly on an extension line (tw34 288, tw35 106: AutoCAD's side by rounding);
+        words turned 90 on a line at 20 degrees (tw33 6); exact ties (tw18 2, tw22 1, tw28 7) (S)
   - [x] R2.2 follow-ups (hatch3): -HATCH draW boundary Arc (all AutoCAD's options and prompts), HPGAPTOL bridges along a
         loose end to a piece or another end's ray, Boundary set falling back as AutoCAD; gradient channels truncated (0 of
         1101 wrong), one-colour tint in the core (DxfHatch.TintedColour)
@@ -807,6 +810,7 @@ the ones wanted.
       test whose limit was under ~10x its quiet time; the highlight test asks for a thread speed-up only when its threads
       really run at once; under an 18-thread CPU burner core timing tests 0 -> 20 of 20 runs, Viewer speed tests 2 -> 10
       of 10; a 4 s slow-down still fails them. Convention for new timing tests: SpeedGuard with a 10x limit or a ratio
+- [ ] (race1, running) Dimension-picture tests failing now and then in full Viewer runs with other coordinates, a different one each time (shared font state between parallel tests suspected) (S)
 - [ ] Wall-clock tests 2: UndoReadAheadSpeedTests (50 ms floor) and the ratio tests DisplayPatch, MTextDisplay, Xref
       under heavier load; timing classes in a DisableParallelization collection in the core suite (S)
 - [x] Speed follow-ups 10 (speed11): the 1M MOVE slowdown was real (the patch looked up every handle's insertion point):

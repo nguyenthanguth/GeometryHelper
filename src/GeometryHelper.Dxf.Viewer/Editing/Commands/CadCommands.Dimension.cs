@@ -1712,7 +1712,55 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (off <= arrow + gap || tooHigh)
                 {
+                    // Level or turned words with no leader of their own: the line is run on to the level of the knee the leader would
+                    // have had, where that level lies beyond the nearer end, and a level landing leaves from there (an arrowhead
+                    // long for turned words, whose middle stands a gap and half their width past it).
+                    if (tooHigh && Math.Abs(along.Y) > 1E-9)
+                    {
+                        double reachLevel = (knee.Y - q1.Y) / along.Y;
+                        bool pastSecond = reachLevel > length / 2.0;
+                        double run = pastSecond ? reachLevel - length : -reachLevel;
+
+                        if (run > NearZero)
+                        {
+                            GeoPoint2 endPoint = pastSecond ? q2 : q1;
+                            GeoVector2 runs = pastSecond ? along : -along;
+                            double least = arrowsOut ? 2.0 * arrow : arrow;
+                            GeoPoint2 bend = endPoint + runs * Math.Max(run, least);
+
+                            if (!arrowsOut || run > 2.0 * arrow)
+                            {
+                                layout.Outside.Add(
+                                    new KeyValuePair<GeoPoint2, GeoPoint2>(
+                                        endPoint + runs * (arrowsOut ? 2.0 * arrow : 0.0),
+                                        bend
+                                    )
+                                );
+                            }
+
+                            layout.Outside.Add(
+                                new KeyValuePair<GeoPoint2, GeoPoint2>(
+                                    bend,
+                                    bend
+                                        + landing
+                                            * (onLanding || wordsAngle.HasValue ? arrow : arrow + width + 2.0 * gap)
+                                )
+                            );
+                            layout.At = bend + landing * (arrow + gap + width / 2.0) + upward * offLine;
+                            layout.Start = wordsAngle.HasValue
+                                ? (GeoPoint2?)null
+                                : bend + landing * (arrow + gap) + upward * offLine;
+                            return layout;
+                        }
+                    }
+
                     layout.At = knee + landing * start2 + upward * offLine;
+
+                    if (tooHigh && arrowsOut && Math.Abs(along.Y) > 1E-9)
+                    {
+                        layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(q1, q2));
+                    }
+
                     return layout;
                 }
 
@@ -1971,6 +2019,38 @@ namespace GeometryHelper.Dxf.Viewer
             double slack = move == 1 ? NearZero : -NearZero;
             bool turnedOut = false;
 
+            // Turned words put over or under the line under DIMTMOVE 1 break it where it runs through their box (half their width
+            // and the gap along them, half their height and the gap across) by the chord through their middle, centred on the middle
+            // of what the line takes of the box, not on the foot of their point: "100" turned 20 on a line at 30 degrees breaks it
+            // 6.63 wide centred 0.18 further on for words 1 under it, 1.69 and 2.37 further for words 2 and 2.25 over it.
+            bool chord = false;
+            double chordMiddle = 0.0;
+
+            if (move == 1 && turnedHalf.HasValue)
+            {
+                var wordsAlong = new GeoVector2(Math.Cos(turnedAngle), Math.Sin(turnedAngle));
+                var wordsAcross = new GeoVector2(-wordsAlong.Y, wordsAlong.X);
+                var toBox = at - q1;
+                chord = LineThroughBox(
+                    new GeoVector2(
+                        along.X * wordsAlong.X + along.Y * wordsAlong.Y,
+                        along.X * wordsAcross.X + along.Y * wordsAcross.Y
+                    ),
+                    new GeoVector2(
+                        toBox.X * wordsAlong.X + toBox.Y * wordsAlong.Y,
+                        toBox.X * wordsAcross.X + toBox.Y * wordsAcross.Y
+                    ),
+                    width / 2.0 + gap,
+                    height / 2.0 + gap,
+                    out double enters,
+                    out double leaves
+                );
+                chordMiddle = (enters + leaves) / 2.0;
+
+                // Only what the line has of the box counts: a box that meets it past an end leaves it whole.
+                chord = chord && leaves > NearZero && enters < length - NearZero;
+            }
+
             if (zoned && move == 0)
             {
                 // Under 0 the point past an end and within the zone is moved out to the zone's edge on its side (the point on the
@@ -1996,19 +2076,18 @@ namespace GeometryHelper.Dxf.Viewer
                 && Takes(t, half, arrow)
                 && Takes(t, half, length - arrow);
 
-            if (
-                zoned
-                && !covers
-                && t > NearZero
-                && t < length - NearZero
-                && (t < zone + slack || t > length - zone + NearZero)
-            )
+            // Where the chord's break would take part of an arrowhead the arrowheads turn out, and the line stays whole.
+            bool inZone = chord
+                ? chordMiddle - half < arrow - NearZero || chordMiddle + half > length - arrow + NearZero
+                : t < zone + slack || t > length - zone + NearZero;
+
+            if (zoned && !covers && t > NearZero && t < length - NearZero && inZone)
             {
                 // Words on the line, between the extension lines and in the zone, turn the arrowheads out (and leave the line
                 // whole under 1 and 2); words above it, clear of the arrowheads, do not.
                 double centre = move == 0 ? offLine : across + (move == 1 ? offLine : 0.0);
 
-                if (Math.Abs(centre) < height / 2.0 + gap - NearZero)
+                if (chord || Math.Abs(centre) < height / 2.0 + gap - NearZero)
                 {
                     turnedOut = true;
 
@@ -2066,7 +2145,9 @@ namespace GeometryHelper.Dxf.Viewer
             // is run on up to 5.5 across with the words 8 past. The landing is never shorter than an arrowhead and neither is the
             // run: a run of 2.04 on a line at 140 degrees is made 2.5, the landing and the words moving with its end. "100" put 8
             // past the end of an upright line of 40 and 5 over it has its line run on to 48 and a landing of 2.5 (the words move
-            // out by 0.765); on a line at 30 degrees the landing is 6.735 and they stay.
+            // out by 0.765); on a line at 30 degrees the landing is 6.735 and they stay. The run is made for words between the
+            // extension lines too, where the level of their point lies beyond that of the nearer end: "100" put 2 along a line
+            // of 40 at 30 degrees and 3 under it has the line run on backwards 3.196 and a landing of 2.735.
             bool beyondEnds = t > length - NearZero || t < -NearZero;
             bool inReach = Math.Abs(across) < gap + Math.Max(arrow, height / 2.0 + beyond) - NearZero;
 
@@ -2088,7 +2169,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            if (move == 1 && turnedHalf.HasValue && (beyondEnds || !inReach))
+            if (move == 1 && turnedHalf.HasValue)
             {
                 for (int tip = 0; tip < 2; tip++)
                 {
@@ -2126,6 +2207,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(bend + shift, stop + shift));
                     layout.At = new GeoPoint2(stop.X - side * need, stop.Y + offLine) + shift;
+                    layout.Doubled = false;
                     return;
                 }
             }
@@ -2185,15 +2267,17 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
+            double breakAt = chord ? chordMiddle : t;
+
             if (
-                crossing
+                (move == 1 && turnedHalf.HasValue ? chord : crossing)
                 && (move == 2 || onLine)
                 && !turnedOut
                 && !covers
-                && !(zoned && Straddles(t, half, first, length - first))
+                && !(zoned && Straddles(breakAt, half, first, length - first))
             )
             {
-                layout.Middle = foot;
+                layout.Middle = chord ? q1 + along * chordMiddle : foot;
                 layout.Break = half;
             }
         }
