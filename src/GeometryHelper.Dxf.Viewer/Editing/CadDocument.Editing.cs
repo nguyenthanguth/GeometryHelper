@@ -924,7 +924,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Saves the drawing to a file in a version of AutoCAD, as AutoCAD 2021's Save Drawing As does with the type chosen: a DWG
-        /// of R2000 (AC1015), R2004 (AC1018), R2010 (AC1024), R2013 (AC1027) or R2018 (AC1032) where the name ends in .dwg, as
+        /// of R2000 (AC1015), R2004 (AC1018), R2007 (AC1021), R2010 (AC1024), R2013 (AC1027) or R2018 (AC1032) where the name ends in .dwg, as
         /// <see cref="GeometryHelper.Dwg.DwgWriter"/> writes it; else a DXF of R12 (AC1009), R2000 (AC1015), R2004 (AC1018), R2007
         /// (AC1021), R2010 (AC1024), R2013 (AC1027) or R2018 (AC1032), as <see cref="DxfDatabase.Save(string, string)"/> writes it;
         /// the version is kept in <see cref="SaveVersion"/>, so that <see cref="Save"/> writes it again, as AutoCAD's QSAVE keeps the

@@ -568,6 +568,40 @@ namespace GeometryHelper.UnitTest.Dwg
         }
 
         [Fact]
+        public void AConstraintGroup_IsLeftOutOfADwgOfR2007_WhereNoXRecordHoldsTheVertexIdentifiers()
+        {
+            // A file of R2007 has no identifier of a vertex in a LWPOLYLINE: AutoCAD 2007 keeps them in an extended record, and
+            // AUDIT of 2021 finds an error in each group whose polylines have none (34 in the 5 groups of a sample drawing
+            // written from R2018, 0 with the groups left out).
+            DwgDrawing drawing = DwgDrawing.Parse(Drawing(Group, out _), null);
+            DwgFileWriter.Write(drawing, "AC1021", out DwgFileWriter writer);
+
+            Assert.Contains("ACDBASSOC2DCONSTRAINTGROUP", writer.LeftOut.Keys);
+        }
+
+        [Fact]
+        public void AConstraintGroup_IsKeptInADwgOfR2007_WhereAnXRecordHoldsTheVertexIdentifiers()
+        {
+            // The record AutoCAD 2007 writes with the identifiers of a polyline: VERTEXIDENTIFIER and the count and the
+            // identifiers as bytes.
+            string text = Drawing(
+                dictionary =>
+                    Group(dictionary)
+                    + Object(
+                        "XRECORD",
+                        "F3F0",
+                        "F300",
+                        "100=AcDbXrecord|280=1|102=VERTEXIDENTIFIER|310=0100000015000000"
+                    ),
+                out _
+            );
+            DwgDrawing drawing = DwgDrawing.Parse(text, null);
+            DwgFileWriter.Write(drawing, "AC1021", out DwgFileWriter writer);
+
+            Assert.DoesNotContain("ACDBASSOC2DCONSTRAINTGROUP", writer.LeftOut.Keys);
+        }
+
+        [Fact]
         public void AConstraintGroupOfR2010_IsReadBackWithEveryNode()
         {
             // The group and its nodes in the layout of AutoCAD 2010's DWG, written to a DWG of R2010 and read back.

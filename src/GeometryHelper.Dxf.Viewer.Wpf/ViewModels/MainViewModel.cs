@@ -1268,7 +1268,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         if (dwg == null && dxf != "AC1032" && CadDrawingFile.IsDwgName(path))
                         {
                             throw new NotSupportedException(
-                                "A DWG is written as AutoCAD 2018 (AC1032), 2013 (AC1027), 2010 (AC1024), 2004 (AC1018) or 2000 (AC1015) only, not as a DXF of "
+                                "A DWG is written as AutoCAD 2018 (AC1032), 2013 (AC1027), 2010 (AC1024), 2007 (AC1021), 2004 (AC1018) or 2000 (AC1015) only, not as a DXF of "
                                     + dxf
                                     + "."
                             );
@@ -1326,7 +1326,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Makes what the Save As dialog of the drawing shown offers, as AutoCAD 2021's Save Drawing As: the DWG types
-        /// <see cref="CadExportJob.DwgSaveTypes"/> (2018, 2013, 2010, 2004, 2000), then a DXF of each version
+        /// <see cref="CadExportJob.DwgSaveTypes"/> (2018, 2013, 2010, 2007, 2004, 2000), then a DXF of each version
         /// <see cref="DxfDatabase.Save(string, string)"/> writes, as "AutoCAD 2013/LT2013 DXF (*.dxf)" for AC1027, the newest
         /// first; the type of the drawing's file chosen first: the DWG of the version it was last saved as where the DWG writer
         /// writes it, else AutoCAD 2018, for a drawing opened from a DWG and for a new one (Drawing1.dwg), the DXF of the version

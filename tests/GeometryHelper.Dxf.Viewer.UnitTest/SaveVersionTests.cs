@@ -129,13 +129,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             File.WriteAllText(path, "kept");
 
             Assert.Throws<NotSupportedException>(() => document.SaveAs(path, "AC1014", null));
-            Assert.Throws<NotSupportedException>(() => document.SaveAs(path, "AC1021", null));
+            Assert.Throws<NotSupportedException>(() => document.SaveAs(path, "AC1012", null));
 
             Assert.Equal("kept", File.ReadAllText(path));
             Assert.Null(document.SaveVersion);
 
-            // AutoCAD 2018 and the four before it that the writer knows are written.
-            foreach (string version in new[] { "AC1032", "AC1027", "AC1024", "AC1018", "AC1015" })
+            // AutoCAD 2018 and the five before it that the writer knows are written.
+            foreach (string version in new[] { "AC1032", "AC1027", "AC1024", "AC1021", "AC1018", "AC1015" })
             {
                 document.SaveAs(path, version, null);
                 Assert.Equal(version, CadDrawingFile.Open(path).Version);

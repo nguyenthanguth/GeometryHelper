@@ -374,8 +374,8 @@ where AC1018 took 747 to 796 ms in the same runs. A small drawing of a few hundr
 [`DwgWriter`](xref:GeometryHelper.Dwg.DwgWriter)`.Write` writes a `DxfDatabase`, with every record it holds, or the
 shapes of a `DxfDocument`, as the drawing [`DxfWriter`](xref:GeometryHelper.Dxf.DxfWriter) makes of them, to a path or a
 stream. The file is of AC1032, the version AutoCAD 2018 and later save in, unless a version is given: AC1027 (AutoCAD 2013), AC1024
-(2010), AC1018 (2004) and AC1015 (2000) are written too, and another version is refused with a `NotSupportedException` that
-names it (AC1021 waits for a container of its own). A drawing of a later version is made into the DXF of the version first,
+(2010), AC1021 (2007), AC1018 (2004) and AC1015 (2000) are written too, and another version is refused with a `NotSupportedException` that
+names it. A drawing of a later version is made into the DXF of the version first,
 as `DxfDatabase.Save(path, version)` gives it, and what AutoCAD keeps in such a file in its own way is put in as AutoCAD puts
 it: the multileaders and their styles with the extended data `ACAD_MLEADERVER` (before R2010), the texts of the
 proxy graphics of a table or a multileader in 8 bits (type 11) and not in 16 (type 38) in R2004, the fields in the form before
@@ -426,6 +426,46 @@ and the classes the two that decided it (the objects, their map and the rest wer
 drawing opens, whatever release the header names. The writer now gives both as AutoCAD does (the reader looks for the long where the
 release is past 3), and the 36 drawings of the tests and of the samples written as R2013 open, with `AUDIT` finding 0 errors in
 29 of them and in the others the 24, 24, 2, 2, 32, 32 and 10 of their originals.
+
+The file of AutoCAD 2007 (AC1021) is a container of its own, the one `DwgContainer` reads in DwgContainer.R2007.cs, and the writer
+(`DwgContainerWriter21`) makes it from the other end. A file header of 0x80 bytes (the version, the maintenance release 50, the
+code page, and the place of the preview) is followed at 0x80 by the header proper of 0x400 bytes: 0x110 bytes that name the places
+and CRCs of the page map and the section map, compressed, behind a CRC, a key and the CRC of the compressed data, and coded by
+Reed-Solomon (255, 239) in three blocks laid one byte after the other; what AutoCAD leaves in the 259 bytes after them, its memory,
+is written as zeros. Then come the pages from 0x480: the page map and its copy, the data pages of each section in turn, the section
+map and its copy, and at the end a copy of the 0x400 bytes of the header. A map is compressed and repeated as often as its place
+takes (the first copy is read); a data page of the objects, the header variables, the classes, the object map, the template, the
+free space, the revision history or the auxiliary header (coding 4) is compressed where that makes it shorter, coded by
+Reed-Solomon (255, 251) in blocks laid one byte after the other, and takes 255 bytes of every 251 of its data, to a multiple of 32;
+the preview (coding 1) is stored as it is, with the parity of each of its blocks of 251 bytes after it. Both codes were found by
+taking the blocks of AutoCAD's own files of R2007 and testing which field and which roots make them codewords: the header and the
+maps use the field `x^8 + x^6 + x^5 + x^3 + 1` with the roots 2^239 to 2^254, the data pages `x^8 + x^4 + x^3 + x^2 + 1` with 2^251
+to 2^254, and the 2 746 codings of the header, the maps and the data pages in 171 files of AutoCAD 2021 (its 167 SaveAs of the
+samples and the tests, and 4 test drawings of R2007) are coded again by `DwgReedSolomon` to the byte. The compression is the variant of
+LZ77 `DwgLz21` reads, written by a search of the longest copy of 3 bytes or more from up to 65 535 bytes back
+(`DwgLz21.Compress`; the result is read back before it is used, and a page that does not get shorter is stored as it is, as
+AutoCAD stores one).
+
+AutoCAD 2021 refused the first files with `ErrorStatus` 434 (an unsupported file format) before it read a page, and each refusal
+named a rule the format does not state: it reads the header proper only where its data is compressed (the stored form, a negative
+length, is refused), reads the section map only where it is compressed, and wants the size a page names in the section map to be the
+size of its data (a size of the page of its section is refused, though AutoCAD's own files hold other numbers there). It also checks
+the parity of the application information and of its history against parity made from the bytes its own memory held after the
+data, which no other program can write: those two sections are left out, as is the summary information, and the preview is written
+only where the drawing has a picture (found by putting AutoCAD's own pages into the writer's container one section at a time, which
+opened, and the writer's own pages of those two, which did not). The objects are encoded as those of R2010 are, with the fields
+R2010 added left out, and a drawing of R2010 or later is made into the DXF of R2007 first, as for R2004. A 3DSOLID and a REGION are
+left out of a file of R2007 as of R2004 and R2010 (only R2013 and later write them). The free-space section is the 53 bytes AutoCAD
+2021 writes into a file of R2007 (numbers of 32 bits), and the auxiliary header names the version of the file (27, 50) between two
+of the application (33, 174). The constraint groups of a dynamic block (ACDBASSOC2DCONSTRAINTGROUP, with the network, actions and
+dependencies that go with them) are left out of a file of R2007 made from a later version: AutoCAD keeps the identifiers of the
+vertices of a polyline there in an extended record (the XRECORD `VERTEXIDENTIFIER` in the dictionary `ACAD_XREC_ROUNDTRIP` in the
+extension dictionary of each LWPOLYLINE) and marks each dimension of a constraint invisible with a record `ISDYNAMIC`, which the DXF
+of R2007 does not give, and AUDIT finds an error in each group without them (34 for the 5 groups of Architectural - Imperial, 0
+once they are left out); a drawing that holds such a record, as AutoCAD's own files of R2007 do, keeps its groups. The 167 drawings
+of AutoCAD 2021's samples and of the tests, each written as R2007 and opened in AutoCAD 2021 with `AUDIT`: all 167 open, 160 with 0
+errors, the other 7 with the errors of their originals (24, 24, 2, 2, 32, 32 and 10), and the 4 tables that had 6 each have none;
+the files of the other versions are the same bytes as before.
 
 The file of AutoCAD 2000 (AC1015) is not laid out in pages as the later versions are: a header of 0x61 bytes (the version, the
 maintenance release 15, the place of the preview, the code page, six locators of a section's number, place and size, a check sum

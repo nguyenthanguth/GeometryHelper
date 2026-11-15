@@ -31,6 +31,7 @@ namespace GeometryHelper.Dxf.Viewer
             new KeyValuePair<string, string>(Dwg, "AC1032"),
             new KeyValuePair<string, string>("AutoCAD 2013/LT2013 Drawing (*.dwg)", "AC1027"),
             new KeyValuePair<string, string>("AutoCAD 2010/LT2010 Drawing (*.dwg)", "AC1024"),
+            new KeyValuePair<string, string>("AutoCAD 2007/LT2007 Drawing (*.dwg)", "AC1021"),
             new KeyValuePair<string, string>("AutoCAD 2004/LT2004 Drawing (*.dwg)", "AC1018"),
             new KeyValuePair<string, string>("AutoCAD 2000/LT2000 Drawing (*.dwg)", "AC1015"),
         };
@@ -38,7 +39,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Gets the DWG types of AutoCAD 2021's Save Drawing As that the DWG writer writes, the newest first, each a version
         /// <see cref="GeometryHelper.Dwg.DwgWriter"/> writes: "AutoCAD 2018 Drawing (*.dwg)", then 2013/LT2013, 2010/LT2010,
-        /// 2004/LT2004 and 2000/LT2000.
+        /// 2007/LT2007, 2004/LT2004 and 2000/LT2000.
         /// </summary>
         public static IReadOnlyList<string> DwgSaveTypes { get; } =
             Array.AsReadOnly(DwgTypes.Select(t => t.Key).ToArray());
