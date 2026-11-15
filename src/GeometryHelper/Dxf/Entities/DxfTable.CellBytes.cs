@@ -33,8 +33,11 @@ namespace GeometryHelper.Dxf
 
             internal int Columns { get; }
 
-            /// <summary>Where each cell of the record begins, from its start, and where the last ends; moved on with every cell written.</summary>
+            /// <summary>Where each cell of the record begins, from its start, and where the last ends; moved on with every cell written, or, while cells are pending, when they are put in the record.</summary>
             internal int[] From { get; }
+
+            /// <summary>The cells written and not yet put in the record (<see cref="DxfFile.PendingCells"/>), the places in <see cref="From"/> being those of the record before them; null where there are none.</summary>
+            internal DxfFile.PendingCells Pending { get; set; }
 
             internal byte[] Bytes { get; private set; }
 
@@ -95,24 +98,32 @@ namespace GeometryHelper.Dxf
             }
 
             DxfFile file = Item.File;
-            DxfFile.Rec record = file.RecordAt(Item, 0);
-
-            if (!IsWritten(record))
-            {
-                return null;
-            }
-
+            DxfFile.PendingCells pending = file.PendingOf(Item);
             CellBytes cells = _cellBytes;
 
-            if (cells == null || !cells.Holds(record))
+            // Cells this table wrote are kept apart from the record, which is not read: its places are those of the record they
+            // were counted from. Else the record is read, as it stands, which puts in the cells any other kept.
+            if (pending == null || cells == null || !ReferenceEquals(cells.Pending, pending))
             {
-                cells = PlacesOfCells(record);
-                _cellBytes = cells;
-            }
+                DxfFile.Rec record = file.RecordAt(Item, 0);
 
-            if (cells == null)
-            {
-                return null;
+                if (!IsWritten(record))
+                {
+                    return null;
+                }
+
+                if (cells == null || cells.Pending != null || !cells.Holds(record))
+                {
+                    cells = PlacesOfCells(record);
+                    _cellBytes = cells;
+                }
+
+                if (cells == null)
+                {
+                    return null;
+                }
+
+                pending = null;
             }
 
             CheckIndex(row, cells.Rows, nameof(row), "row");
@@ -130,12 +141,18 @@ namespace GeometryHelper.Dxf
                 );
             }
 
-            List<KeyValuePair<int, string>> groups = file.GroupsBetween(
-                Item,
-                0,
-                cells.From[index],
-                cells.From[index + 1]
-            );
+            List<KeyValuePair<int, string>> groups;
+
+            if (pending != null)
+            {
+                DxfFile.Rec held = pending.Held(index);
+                groups = file.GroupsBetween(held, 0, held.End - held.Start);
+            }
+            else
+            {
+                groups = file.GroupsBetween(Item, 0, cells.From[index], cells.From[index + 1]);
+            }
+
             return new CellView(new DxfDimGroups(groups, made => SpliceCell(cells, index, made)), 0, groups.Count);
         }
 
@@ -178,6 +195,37 @@ namespace GeometryHelper.Dxf
         private void SpliceCell(CellBytes cells, int index, List<KeyValuePair<int, string>> groups)
         {
             DxfFile file = Item.File;
+
+            // Kept apart from the record, which is written once when it is next read, so that a run of cells set costs the bytes
+            // of each, not a copy of the record for each; where the file cannot take the cell so, it is written in its place.
+            if (file.CanDefer(Item))
+            {
+                DxfFile.PendingCells pending = cells.Pending;
+
+                if (pending == null || !ReferenceEquals(file.PendingOf(Item), pending))
+                {
+                    cells.Pending = null;
+
+                    // Whether the layout read last is that of the record the cells are written into: the cells are then noted.
+                    DxfFile.Rec held = file.RecordAt(Item, 0);
+                    _noting = HeldLayout(held) || HeldPatched(held);
+                    pending = file.BeginPending(Item, cells.From, (settled, from) => Settled(cells, settled, from));
+                    cells.Pending = pending;
+                }
+
+                if (file.PutCell(Item, pending, index, file.BytesOfGroups(groups)))
+                {
+                    Note(index, groups);
+                    return;
+                }
+            }
+
+            // The cells kept apart are put in the record, and the places of the cells moved with them, before it is written in.
+            if (cells.Pending != null)
+            {
+                file.RecordAt(Item, 0);
+            }
+
             DxfFile.Rec before = file.RecordAt(Item, 0);
             bool layoutHeld = HeldLayout(before) || HeldPatched(before);
             int shift =
@@ -196,10 +244,26 @@ namespace GeometryHelper.Dxf
             // The layout read before, if it is of the record as it stood: the cell's groups are noted, to be put into it when it
             // is next read, so that reading it does not read every group of the record again, and a run of cells written with no
             // reading between them costs it a note each.
-            if (!layoutHeld || index >= _layout.CellStart.Count || _pending.Count >= MostPending)
+            _noting = layoutHeld;
+
+            if (Note(index, groups))
             {
+                NotedIn(record);
+            }
+        }
+
+        // Whether the cells written are being noted for the layout (SpliceCell, Note): the layout read last is that of the record
+        // they were written into, and no more than MostPending have been noted.
+        private bool _noting;
+
+        /// <summary>Notes a cell written, its place and its groups, to be put into the layout read last when it is next read; false, the notes dropped, where the layout is not the record's or there are too many.</summary>
+        private bool Note(int index, List<KeyValuePair<int, string>> groups)
+        {
+            if (!_noting || index >= _layout.CellStart.Count || _pending.Count >= MostPending)
+            {
+                _noting = false;
                 _pending.Clear();
-                return;
+                return false;
             }
 
             _pending.Add(
@@ -208,6 +272,12 @@ namespace GeometryHelper.Dxf
                     new List<KeyValuePair<int, string>>(groups)
                 )
             );
+            return true;
+        }
+
+        /// <summary>Takes the record as the one the cells noted were written into.</summary>
+        private void NotedIn(DxfFile.Rec record)
+        {
             _pendingBytes = record.Bytes;
             _pendingStart = record.Start;
             _pendingEnd = record.End;
@@ -263,6 +333,25 @@ namespace GeometryHelper.Dxf
 
             _pending.Clear();
             return new Layout(new DxfDimGroups(groups, list));
+        }
+
+        /// <summary>The cells written are put in the record: the places of the cells, and the record, are those they now stand in.</summary>
+        private void Settled(CellBytes cells, DxfFile.Rec record, int[] from)
+        {
+            Array.Copy(from, cells.From, from.Length);
+            cells.Pending = null;
+            cells.Held(record);
+            NoteWritten(record);
+
+            // The cells noted are those the record now holds: the layout read last is patched with them when it is next read.
+            if (_noting && _pending.Count > 0)
+            {
+                NotedIn(record);
+            }
+            else
+            {
+                _pending.Clear();
+            }
         }
     }
 }

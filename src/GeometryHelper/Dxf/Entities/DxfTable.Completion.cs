@@ -628,6 +628,9 @@ namespace GeometryHelper.Dxf
 
         private static string[] EdgeHeld(string[][] cell, int edge) => cell?[edge];
 
+        // The lines wanted of a cell that is to have none: one list for every such cell, which is only read.
+        private static readonly string[][] NoEdges = new string[4][];
+
         // The flags of the lines of a cell (colour, lineweight and showing of its four edges), as one mask.
         private static int EdgeBits =>
             CellView.EdgeFlags(0) | CellView.EdgeFlags(1) | CellView.EdgeFlags(2) | CellView.EdgeFlags(3);
@@ -644,9 +647,7 @@ namespace GeometryHelper.Dxf
         {
             int rows = layout.Rows;
             int columns = layout.Columns;
-            DxfTableStyle style = Item.File.Database.TryGetObject(styleHandle, out DxfDBObject found)
-                ? found as DxfTableStyle
-                : null;
+            DxfTableStyle style = Item.File.Database.ObjectByHandle(styleHandle) as DxfTableStyle;
             var wanted = new string[rows * columns][][];
 
             // What the style gives the line between rows of two kinds, read once for each pair of kinds.
@@ -667,7 +668,6 @@ namespace GeometryHelper.Dxf
             {
                 for (int c = 0; c < columns; c++)
                 {
-                    var edges = new string[4][];
                     bool aside =
                         sets[r * columns + c]
                         || (r > 0 && sets[(r - 1) * columns + c])
@@ -678,9 +678,11 @@ namespace GeometryHelper.Dxf
 
                     if (!aside && !boundary)
                     {
-                        wanted[r * columns + c] = edges;
+                        wanted[r * columns + c] = NoEdges;
                         continue;
                     }
+
+                    var edges = new string[4][];
 
                     for (int edge = 0; edge < 4; edge++)
                     {

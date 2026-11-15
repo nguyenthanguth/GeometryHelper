@@ -64,7 +64,12 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
-            DxfDatabase copy = Parse(File.ToText());
+            // The copy is opened from the bytes the file saves as, where they are its text; the text is the way where they are not.
+            DxfFile bytes = File.CopyFromBytes();
+            DxfDatabase copy = bytes != null ? new DxfDatabase(bytes) : Parse(File.ToText());
+
+            // The tables written are found in the copy's records, not among its every entity.
+            Dictionary<string, DxfItem> tables = copy.File.TableEntitiesByHandle(written);
             var styles = new List<string>();
             bool made = false;
 
@@ -75,11 +80,17 @@ namespace GeometryHelper.Dxf
             {
                 foreach (string handle in written)
                 {
-                    if (
-                        copy.TryGetObject(handle, out DxfDBObject found)
-                        && found is DxfTable table
-                        && table.MakeContent(out string style)
-                    )
+                    DxfDBObject found = tables.TryGetValue(handle, out DxfItem item)
+                        ? DxfEntity.Of(item)
+                        : copy.ObjectByHandle(handle)
+                            ?? (copy.TryGetObject(handle, out DxfDBObject other) ? other : null);
+
+                    if (found != null && found.IsErased)
+                    {
+                        found = null;
+                    }
+
+                    if (found is DxfTable table && table.MakeContent(out string style))
                     {
                         made = true;
 
@@ -96,11 +107,7 @@ namespace GeometryHelper.Dxf
 
                 foreach (string handle in styles)
                 {
-                    if (
-                        copy.TryGetObject(handle, out DxfDBObject found)
-                        && found is DxfTableStyle style
-                        && style.MakeCellStyleMap()
-                    )
+                    if (copy.ObjectByHandle(handle) is DxfTableStyle style && style.MakeCellStyleMap())
                     {
                         made = true;
                     }

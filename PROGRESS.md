@@ -377,12 +377,16 @@ User note 2026-11-12 evening (note.md 1-14):
       adding 1 600 tables 25.2 s -> 1.3 s (style reads cached); ListForRecompose flushed once; ACIS R2013 saves
       deterministic (the SAT head's empty date, the source's or a hashed GUID; AutoCAD reads all 24 checks, AUDIT 0);
       saved bytes identical (27 168 fuzz saves)
-- [ ] (dxfver12, running: completion copy, record copies per cell edit, remaining setters) DXF versions follow-ups 12: the copy Complete() reads builds the whole entity index (~40 % of completing a large
-      drawing); each cell edit still copies the record (3 s for 10 000 cells: deferred write); SetFormat, SetDataType,
-      SetBackgroundColorNone, SetOverrides and the last cell on the splice path; NormalizeEdges (~70 us a table); the
-      new DxfSpeed11Tests timing bounds (to flaky1's pattern); real TABLEGEOMETRY and row heights (font metrics); native
-      R2000/R2004 table drawings; block-cell, field and link content; hidden bottom/left lines in R2000/R2004; tolerant
-      sweep_sur; blend/network surfaces and helix sweeps (M)
+- [x] DXF versions follow-ups 12 (dxfver12): cell edits held as pending bytes beside the record and put in once (10 000
+      SetTextString 3.6 s / 13.5 GB -> 0.44 s / 491 MB), one mechanism with tables8's last-cell splice; the completed
+      copy opened from bytes and its tables found by handle (save after an edit of 100 000 lines + a table 157 -> 52 ms);
+      NormalizeEdges' style by handle; saved bytes identical (71 000 fuzz saves, 167 samples)
+- [ ] DXF versions follow-ups 13: ResetValue and SetCellType still whole-record (931 resets 8-10 s; the last cell's end
+      from a fresh parse of the tail would allow them); the first save's index of the original's entities (~55 ms at
+      100 000); the copy's open walk (25-30 ms for 15 MB); the SetGridColor family copying the record per call;
+      MTextLayoutTests' shared temp fonts file locked between parallel tests; real TABLEGEOMETRY and row heights (font
+      metrics); native R2000/R2004 table drawings; block-cell, field and link content; hidden bottom/left lines in
+      R2000/R2004; tolerant sweep_sur; blend/network surfaces and helix sweeps (M)
 - [x] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)
 - [x] XCLIP follow-ups: grips on the clip boundary (corners/vertices and the flip arrow, as AutoCAD's GetGripPoints); EXPLODE ignores the clip (probed, already so); the grip crosshair pull looked at in the running app
 - [x] XCLIP follow-ups 2 (xclip3; REFEDIT by refedit): Clipdepth cuts the block in the display (slab along the clip
@@ -468,7 +472,7 @@ the ones wanted.
       chord at the radius (the arc unrolled), with the diagonal 0.7 of a landing's sagitta flatter; used from 5.5
       landings out (e11 165 -> 92, e12 164 -> 69, te11 162 -> 75, e13 94 -> 66); dims12's table kept nearer; e1 0 -> 2
       (mirror probes 0.016 off the edge); harness dims-harness19
-- [ ] Dimension follow-ups 16: arcs nearer than 5.5 landings (the rule still worse than the table there); e1's two mirror
+- [ ] (dims16, running) Dimension follow-ups 16: arcs nearer than 5.5 landings (the rule still worse than the table there); e1's two mirror
       probes; a2's one SHX probe; t9/t10/t11 short vs wide landing (0.43 rms with nine terms, no clean law); d2 R6/R7
       ties, t6's diameter turned 6.9 degrees, words on an aligned extension line (noise) (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc

@@ -246,6 +246,32 @@ edit they take 90 ms in place of 179 ms (400) and 389 ms in place of 1 690 ms (1
 objects around them. Saved bytes equal before and after in the same saves as above, and in the copies of 25 tables among 120 objects.
 Not changed: the completion of a drawing of 100 000 entities (10 MB) that holds a table still takes 158 ms to save after an edit (169
 ms before), nine tenths of it the reading of the copy it is made on.
+**CHANGED.** Saving a drawing that holds a table or a table style written in the session no longer makes an object of every entity
+of the copy it completes them on, nor a string of the whole file. The copy is opened from the bytes the drawing saves as, not from a
+text made of them and encoded again; its tables are found in its records by handle in one pass, each given the model or paper space
+it stands in, where finding one by `TryGetObject` made the drawing's entities and read the handle of each (most of the 158 ms above);
+and the table style its lines are read against is found among the objects. The file saved is the same to the byte. A drawing of
+100 000 lines (15.3 MB) with a table, saved after an edit, takes 52 ms and 116 MB in place of 157 ms and 188 MB on .NET Framework 4.8
+(39 ms and 115 MB in place of 89 ms and 187 MB on .NET 10), and 20 000 lines (3 MB) 11 ms in place of 26 (9 ms in place of 24). The
+text is still the way where the drawing's text is not its bytes as UTF-8 (a mark at its start, bytes read as the replacement
+character, a code page), and a table of a block is still found among the entities. Not changed: the first save of a drawing indexes
+the entities of the drawing itself, once, as it does for any `GetObject`.
+**CHANGED.** The cells of a table set one after another are written once, when the table's record is next read, and no longer copy
+the record each: the bytes of the cells set (by the setters that write a cell's own bytes, the last cell and `SetFormat`,
+`SetDataType`, `SetBackgroundColorNone` and `SetOverrides` among them) are kept apart and put in their places by a read of the table
+or of its entity, a copy or a save, the record's bytes the same as before to the byte. The cells noted for the layout the table reads
+last are noted as before, and the layout is patched with them when the record is put together. A run of 10 000 cells of a table, each
+given its text, takes 0.37 s and 477 MB in place of 4.3 s and 13.5 GB on .NET 10 (0.44 s and 491 MB in place of 3.6 s and 13.5 GB on
+.NET Framework 4.8), 5 000 cells 0.24 s and 239 MB in place of 0.92 s and 3.5 GB, one cell among 10 000 0.05 ms in place of 0.19, and
+the last cell of a table of 10 000, set once, no longer copies its 2.5 MB (0.1 ms in place of 0.2). `ResetValue` and `SetCellType` are
+not on this path: written cell by cell they leave the table's record as a writing of every group of it would not, the last cell's end
+being decided by the flags it holds (two of the fuzz's seeds differed in the bytes of the last cell), so they still write the whole
+record (931 resets take 8.0 s, `SetCellType` 0.65 s). `NormalizeEdges`, which gives a table's cells the lines AutoCAD builds when a
+table is completed, shares one list of lines among the cells that have none (400 small tables saved after an edit 44 ms in place of
+52 on .NET 10, within the noise of the machine). Saved bytes equal before and after in 71 000 saves of random drawings with tables in
+model space, paper space and a block, edited setter by setter and in runs of up to 220 with no read between (29 910 saves of 2 500
+drawings on .NET Framework 4.8, 41 734 of 3 500 more on .NET 10, and the 2 500 of the first on .NET 10 again), and in the 501 saves of
+AutoCAD's 167 sample drawings on both.
 **CHANGED.** A body or a region saved to R2013 or later from ACIS text, or from the binary of another version of the modeler, is
 dated with the date of the SAT's own head (AutoCAD writes none there, so none) and not with the clock, and a body whose extended data
 gives no GUID is given one made of its handle and its data (the first 16 bytes of their SHA-256, as a GUID made of a name) and not at
