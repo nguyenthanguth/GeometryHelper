@@ -1246,10 +1246,15 @@ degrees or 259 to 288 for "1.0472" and its symbol, 64 to 114 for a single digit 
 chord: arcs of 10 put 12 out, DIMASZ 0.36, take words and both arrowheads from a chord of 2.35 from 70 degrees, 2.22 from 66 and
 from 96; the same window holds for DIMDEC 2, 3 and 6, the symbol and a box of 1.01, 1.13 and 1.51). On sweeps from 90 to 115 degrees
 it is still wanted, the window moved down to smaller directions of the arc's middle by 0.214 degrees for each degree of sweep from 13,
-0.45 of the words' height at 100 degrees and 0.39 at 110: the arc of 1 through 100 degrees from 10 put 1.12 out (DIMARCSYM 0) has its
+0.2475 of the words' height at 100 degrees and less as the sweep widens, the whole 0.45 within 5 degrees of the window's edges (0.45,
+fitted with the put distance by 0.02, was too much for the middle of it; by 0.01 the arc of 1 from 25 degrees through 98 puts both
+arrowheads between the rays from 1.16 and through 100 from 1.14):
+the arc of 1 through 100 degrees from 10 put 1.12 out (DIMARCSYM 0) has its
 arrowheads outside, from 1.14 between the rays, where the words alone gave 1.09. On sweeps from 100 to 165 degrees the symbol takes more room as the sweep widens, by the
 words' height (0.09 of it at 100 degrees, 0.24 at 150, 0.32 at 165, scaling with the text) and the sine of the direction of the arc's middle (the arc of 1 through 150 degrees from 10 keeps
-"2.6180" with the symbol between its rays from 0.70 out, not from 0.68). Level words outside stand past the first end of the arc
+"2.6180" with the symbol between its rays from 0.70 out, not from 0.68); the height counts for more by 4.3 units for each unit DIMGAP is short of half the
+text's height (and for less for each unit past it), DIMASZ taking no part: the arc of 1 through 120 degrees from 10 keeps its words in from 1.34 out for text 0.36 and
+DIMGAP 0.045, from 1.01 out for text 0.18 and DIMGAP 0.18. Level words outside stand past the first end of the arc
 (the second for DIMJUST 1), to the right where the arc, a third of the way round, stands above the horizontal and to the left where it
 stands below it, the room of the arc symbol between the landing and them whichever side (the arc of 1 through 179.99 degrees put 0.45
 out has its words to the left from 170 degrees, where the end points up but the arc a third along has dropped, and to the right from
@@ -1282,7 +1287,15 @@ between the rays or not, once the arc beyond the half circle is two gaps long, w
 (radius times the sweep past 180 degrees, 2.005 DIMGAP: the arc of 1 from 0 through 210 degrees has "3.6652" outside at 0.3 and in the
 middle of the arc from 0.35, where 0.35 times 30 degrees is 0.18; DIMGAP 0.18 moves it to 0.7, text 0.36 and DIMASZ 0.36 leave it),
 and both arrowheads with them once it is two gaps and two arrowheads long (through 270 degrees from 0.35 out, where the room between
-the rays gave 0.42).
+the rays gave 0.42). Level words outside take the arrowheads out with them where the box of the words (the symbol before them
+counted, no gap) comes within 0.9 gaps of an arrowhead that would stand in, and the arc's middle, to the half turn, points from
+a direction on: 101.5 degrees for a box (the words, the symbol and two gaps) 0.93 wide, 30 degrees less for each unit wider and 40
+more for each unit the radius is past 0.3 (in text heights, scaled with the text; not below 100.2 up to 185 degrees of sweep): the arc of 1 through 181 degrees put 0.45 out has
+its arrowheads outside from 20 to 30 degrees from the horizontal, in at 10 and 40, with the symbol from 10 to 30. The landing is then
+as with them in, an arrowhead along the arc from the first end, not two: from 20 degrees put 0.3 out, no symbol, the words stand at
+(-0.353, -0.0772). Not as AutoCAD yet: the arc point of aligned words outside such an arc, which is a third of the way round near the
+arc and two thirds a few hundredths further out (from 0.32 at 181 degrees to 0.37 at 200), and where the arrowheads and aligned
+words come in, which AutoCAD puts one or two hundredths further out for sweeps near 181 to 200 degrees.
 Level words off the arc (DIMTAD 2 and 3) fit by the same box without the gap at either end of the arc: their width, the symbol
 before them and two gaps times the sine of the direction of the arc's middle, plus their height, the symbol over them and two
 gaps times its cosine (an arc of 10 from 15 degrees put 12 out, DIMTAD 2, takes its words "0.6400" between its extension lines

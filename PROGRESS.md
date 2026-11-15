@@ -552,9 +552,13 @@ the ones wanted.
       a third of the way round, words in once R x (sweep - 180) >= 2.005 DIMGAP; tar44s 330 -> 114, tar46s 1 483 -> 319,
       tar47s 578 -> 147, tar48s 1 158 -> 299, tar38s 76 -> 30); DIMJUST 1/2 words cutting the arrowhead room (tar45s 41
       -> 0); the bothExtra window past 90 degrees of sweep; 102 older sets byte-identical, 11 better
-- [ ] (assoc10, running) Associative dimensions follow-ups 10: arrowheads outside with the words outside on reflex arcs (452 of 1 315, by
-      the arc middle's direction mod 180); text 0.36 symbol room; aligned words and DIMJUST 1/2 outside past a half
-      circle (204 of 432); bothExtra amplitude just over 90 degrees (S)
+- [x] Associative dimensions follow-ups 10 (assoc10): arrowheads out with level words outside past a half circle when
+      the words' box comes within 0.9 DIMGAP of an arrowhead and the middle direction passes a box- and radius-dependent
+      edge (tar48s 299 -> 70, tar46s 319 -> 208, tar53s 345 -> 192); the symbol room by DIMGAP (tar56s 315 -> 240); the
+      bothExtra plateau (tar58s 94 -> 56); 104 older sets byte-identical, 9 nearer
+- [ ] Associative dimensions follow-ups 11: the arrowheads-out lower edge (41 of 1 929); p10 of aligned and DIMJUST words
+      outside past a half circle (tar52s 204, tar55s 156 a hundredth or two off); DIMJUST words' rotation; words-in
+      thresholds a step late at 181-200 degrees (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
       back of its arrowhead; DIMTVP; the box of DIMGAP below zero (526 AutoCAD pictures compared, 511 match)
 - [x] Dimensions: words measured by the drawing's fonts in the pictures (the main gap left); DIMTEDIT on angular and
@@ -827,7 +831,7 @@ the ones wanted.
       MOVE + display 295 -> 165 ms (net8) / 540 -> 375 (net48); the look and hidden read in one cached walk, handles
       found by the open's walk (1M open 896 -> 503 ms), block origins cached, unlike-scale arcs and circles sampled once
       per block shape (20k unlike INSERTs 3 511 -> 406 ms); display lists, saved bytes and pixels identical on 179 drawings
-- [ ] Speed follow-ups 11: the remaining ~165 ms of a 1M patch (re-lists 1M wrappers, copies 1.78M items: per-block
+- [ ] (speed12, running) Speed follow-ups 11: the remaining ~165 ms of a 1M patch (re-lists 1M wrappers, copies 1.78M items: per-block
       bounds and whole-range copies); merging the shape read and HasWidthOf walks into the look walk; AddInsertionPoint's
       two lookups; dropping the LINE/ARC/CIRCLE shape cache; TryChain garbage; DxfPolyline's 8 cache fields; DisplayText2's
       two-tier Extra; DxfItem 104 -> 96 B; read-ahead wrappers; a DWG read stopped mid-way (S)
