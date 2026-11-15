@@ -766,19 +766,31 @@ namespace GeometryHelper.Dxf.Viewer
             /// <summary>
             /// Whether level words inside a radius or a diameter (DIMTAD 1 and 4) keep to its line, standing level with a landing an
             /// arrowhead long, or leave it for a wider landing, above or below. AutoCAD 2021 keeps them where the line, whole, has
-            /// two arrowheads of room (and the words' height more on a line that runs down) and, on a slanting line, the width of
-            /// the words and a gap as well, as far as it leans toward level: a radius of 8 with "R8" at 30 degrees does not keep
-            /// them (it would need 5 + 4.66 across), at 60 degrees it does (5 + 2.3). On a line within 15 degrees of level only the
-            /// arrowheads and the height count. Fitted over 17 000 probes (98 of 100 right; wide words on steep lines are the
-            /// ones it misses). A line within 15 degrees of level of exactly that length does not keep them: a radius of 5 under
+            /// room for two arrowheads, 0.3 of an arrowhead more as the line leans from upright (over the first 22 degrees), 1.125
+            /// of the words' height on a line that runs down and, on a slanting line, the width of the words times the cosine of
+            /// its lean (0.3 plus 0.65 of the cosine more, 0.4 on a line that runs down) and a gap times the cosine and a quarter:
+            /// a radius of 8 with "R8" (4.04 wide) at 30 degrees does not keep them (it would need 5.75 + 3.02 + 0.7), at 60
+            /// degrees it does (5.75 + 1.26 + 0.47). On a line within 15 degrees of level only two arrowheads and the height
+            /// count. Fitted over the 17 000 pictures of t9, t10 and t11 (words "R5" to "R55.5555", DIMASZ 1.5 to 4, DIMGAP 0.3
+            /// to 1.5, DIMTXT 1.8 to 3.5, at 20 to 340 degrees): 244 of them it gets wrong where the width and a gap times the
+            /// cosine got 758 (the pictures that differed from AutoCAD's: 34 of 1 292, 216 of 6 438 and 554 of 9 460 before, 19,
+            /// 80 and 140 now). A line within 15 degrees of level of exactly that length does not keep them: a radius of 5 under
             /// DIMASZ 2.5 or of 8 under DIMASZ 4, put at half the radius 10, 170, 190 and 350 degrees, with words 1.8, 2.5 and 3.5
             /// high, left them off the line 14 times of 16 (the two that kept them are float noise in AutoCAD); steeper, at 90
             /// degrees, all 4 kept them.
             /// </summary>
             private bool KeepsToLine(double lineLength, double across, bool runsDown, bool nearlyLevel)
             {
-                double need =
-                    2.0 * _arrow + (runsDown ? _height : 0.0) + (nearlyLevel ? 0.0 : (_width + _gap) * across);
+                // The lean from upright takes the room in over its first 22 degrees (a line more upright than that keeps its words
+                // with little more than the two arrowheads).
+                double ramp = Math.Min(1.0, across / 0.375);
+                double need = nearlyLevel
+                    ? 2.0 * _arrow + (runsDown ? _height : 0.0)
+                    : 2.0 * _arrow
+                        + 0.3 * _arrow * ramp
+                        + (runsDown ? 1.125 * _height : 0.0)
+                        + _width * across * (0.3 + across * (runsDown ? 0.4 : 0.65))
+                        + _gap * (across + 0.25 * ramp);
                 return nearlyLevel ? lineLength > need + 1E-9 : !(lineLength < need - 1E-9);
             }
 
@@ -1029,14 +1041,76 @@ namespace GeometryHelper.Dxf.Viewer
         private static readonly double[] ExeReachRight = { 1.70, 1.692, 1.648, 1.566, 1.424, 1.255, 1.134, 1.0 };
         private static readonly double[] ExeReachLeft = { 1.65, 1.594, 1.429, 1.295, 1.149, 1.098, 1.134, 1.0 };
 
-        // An arc this many landings out or more has the leader of its words read by WordsStayOnTheArc, a nearer one by the fit.
-        private const double BigArc = 5.5;
+        // An arc this many landings out or more has the leader of its words read by WordsStayOnTheArc, a nearer one by the fit: the
+        // nearest arcs AutoCAD 2021 was probed on are 2.6 landings out (DIMSCALE 2 at 30 out).
+        private const double NearestArc = 2.5;
+
+        // What AutoCAD 2021's band of an angle's words has over WordsStayOnTheArc's distances, in units of the landing's sagitta
+        // (room * room / radius), by the direction of the point from the vertex at every 10 degrees from 0, the point inside the
+        // circle or outside it; read between the nodes. Chosen to leave the fewest probes wrong (see WordsStayOnTheArc).
+        private static readonly double[,] ArcCorrections =
+        {
+            { -0.05, -0.10 }, // 0
+            { -0.10, 0.00 }, // 10
+            { -0.10, 0.30 }, // 20
+            { -0.10, 0.20 }, // 30
+            { 0.30, 0.15 }, // 40
+            { 0.25, 0.05 }, // 50
+            { 0.10, 0.05 }, // 60
+            { 0.00, 0.00 }, // 70
+            { -0.20, -0.10 }, // 80
+            { -0.20, -0.10 }, // 90
+            { -0.45, -0.10 }, // 100
+            { -0.45, -0.10 }, // 110
+            { -0.25, 0.00 }, // 120
+            { -0.05, 0.35 }, // 130
+            { 0.10, 0.00 }, // 140
+            { 0.05, 0.50 }, // 150
+            { 0.00, 0.00 }, // 160
+            { -0.30, -0.25 }, // 170
+            { -0.25, -0.10 }, // 180
+            { 0.35, 0.10 }, // 190
+            { 0.35, 0.35 }, // 200
+            { 0.35, 0.25 }, // 210
+            { 0.25, 0.25 }, // 220
+            { 0.00, 0.10 }, // 230
+            { -0.35, 0.00 }, // 240
+            { -0.45, -0.10 }, // 250
+            { -0.50, -0.20 }, // 260
+            { -0.15, 0.00 }, // 270
+            { -0.20, -0.10 }, // 280
+            { 0.00, 0.00 }, // 290
+            { 0.10, 0.05 }, // 300
+            { 0.15, 0.15 }, // 310
+            { 0.25, 0.25 }, // 320
+            { 0.25, 0.40 }, // 330
+            { 0.00, 0.20 }, // 340
+            { 0.00, 0.10 }, // 350
+        };
+
+        private static double ArcCorrection(GeoPoint2 vertex, GeoPoint2 at, bool inside)
+        {
+            int side = inside ? 0 : 1;
+            double degrees = Math.Atan2(at.Y - vertex.Y, at.X - vertex.X) * 180.0 / Math.PI;
+
+            if (degrees < 0.0)
+            {
+                degrees += 360.0;
+            }
+
+            double place = degrees / 10.0;
+            int i = Math.Min((int)Math.Floor(place), ArcCorrections.GetLength(0) - 1);
+            double t = place - i;
+            return ArcCorrections[i, side] * (1.0 - t)
+                + ArcCorrections[(i + 1) % ArcCorrections.GetLength(0), side] * t;
+        }
 
         /// <summary>
-        /// Whether the words of an angle put at <paramref name="at"/> get no leader on a large arc: AutoCAD 2021 keeps them on it
-        /// where some point of the circle (<paramref name="radius"/> about <paramref name="vertex"/>) has the sum of its distances to
-        /// two opposite corners of the box the words and their landing take no more than twice that box's half width
-        /// <paramref name="room"/> (half the words, a gap and an arrowhead) and DIMEXE (<paramref name="beyond"/>). The box is
+        /// Whether the words of an angle put at <paramref name="at"/> get no leader: AutoCAD 2021 keeps them on its arc where some
+        /// point of the circle (<paramref name="radius"/> about <paramref name="vertex"/>) has the sum of its distances to two
+        /// opposite corners of the box the words and their landing take no more than twice that box's half width
+        /// <paramref name="room"/> (half the words, a gap and an arrowhead) and DIMEXE (<paramref name="beyond"/>), and
+        /// <see cref="ArcCorrection"/> (the nearer the arc, the more of the landing's sagitta). The box is
         /// <paramref name="room"/> either side of the point and half <paramref name="height"/> up and down, and the diagonal runs
         /// up to the right where the point lies right of and above the arc's middle (<paramref name="middle"/>), or left of and
         /// below it, else down to the right.
@@ -1053,10 +1127,23 @@ namespace GeometryHelper.Dxf.Viewer
         /// is flatter by 0.7 of the sagitta <c>room * room / radius</c> of a landing, up or down. AutoCAD 2021's band of the
         /// words "60°" is centred out of the circle by about half that sagitta (0.6 out at 30 out, 0.37 at 45, 0.2 at 90,
         /// where the words stand above the vertex, none where they stand beside it), where the sum of straight distances had it
-        /// centred on the circle. Of AutoCAD 2021's pictures of an angle of 60 degrees, the probes where the leader presence
-        /// differed (the exact directions 30, 90, 150, 270 and 330 degrees left out): 38 out 94 of 6 499 before, 66 now; 45 out
-        /// 165 of 6 984 (12 styles) before, 92 now (Arial 162 and 75); 60 out 164 and 69; 90 out 73 and 28; 240 out 28 and 8
-        /// (12 styles 47 and 18; Arial 16 and 6, 43 and 10), and 2 more of the 3 492 along 240 out, where there were none.
+        /// centred on the circle.
+        /// </para>
+        /// <para>
+        /// What that left on the arcs nearer than 5.5 landings (30 out for "60°" of 2.5-high words is 5.4 of Arial's landing of
+        /// 5.58, and 4.0 of a landing of 7.5 for 4-high words) is the same sagitta again, by the direction of the point: AutoCAD
+        /// 2021's band is up to 0.35 of it wider than the rule inside the circle near 40 and 200 degrees, and up to 0.5 narrower
+        /// near 100 and 260 degrees, so <see cref="ArcCorrection"/> adds that (at every 10 degrees, inside and outside the
+        /// circle) to the twice the half width; the band narrows as the point rises from the vertex's level to the height of the
+        /// arc's middle (by 1.6 sagittas on the left inside, 0.7 on the left outside and 0.9 on the right outside, and wider by
+        /// 1.0 on the right inside, times the rise over the middle's rise), and the diagonal turns over at that height, the
+        /// height itself included. All of these are in units of the landing's sagitta and so fall away as one over the radius:
+        /// they move the band 0.06 at 240 out. Of AutoCAD 2021's pictures of an angle of 60 degrees, the probes where the
+        /// leader presence differed (the exact directions 30, 90, 150, 270 and 330 degrees left out), before and now: 30 out
+        /// 106 of 6 984 (12 styles) and 63 (Arial 103 and 57), 58 of 5 670 and 29 (Arial 82 and 17), 130 of 6 860 and 93 (Arial
+        /// 108 and 75); 38 out 66 of 6 499 and 19, 45 out 92 and 19 of 6 984 (Arial 75 and 24), 60 out 69 and 21, 90 out 28 and 6,
+        /// 240 out 8 and 6 (Arial 6 and 7; the 12 styles 18 and 10, Arial 10 and 14: probes within 0.03 of the edge, where the
+        /// correction is least sure), and 2 and 1 of the 3 492 along 240 out.
         /// </para>
         /// </remarks>
         private static bool WordsStayOnTheArc(
@@ -1070,7 +1157,8 @@ namespace GeometryHelper.Dxf.Viewer
         )
         {
             double lift =
-                ((at.X > middle.X) == (at.Y > middle.Y) ? 1.0 : -1.0) * (height / 2.0 - 0.7 * room * room / radius);
+                ((at.X > middle.X) == (at.Y > middle.Y - 1E-9) ? 1.0 : -1.0)
+                * (height / 2.0 - 0.7 * room * room / radius);
             double firstX = at.X - room - vertex.X;
             double firstY = at.Y - lift - vertex.Y;
             double secondX = at.X + room - vertex.X;
@@ -1126,7 +1214,17 @@ namespace GeometryHelper.Dxf.Viewer
 
             // The sum is held to 0.04 less than twice the half width and DIMEXE, which is where AutoCAD's edges lay between the
             // probes (0.25 apart) of 12 sets: the 0.04 took 568 wrong probes of 77 000 to 474.
-            return Math.Min(best, Sum((low + high) / 2.0)) <= 2.0 * (room + beyond) - 0.04 + 1E-9;
+            double away = Math.Sqrt((at.X - vertex.X) * (at.X - vertex.X) + (at.Y - vertex.Y) * (at.Y - vertex.Y));
+            bool inside = away < radius;
+            double rise = at.Y - vertex.Y;
+            double middleRise = middle.Y - vertex.Y;
+            double lower = middleRise > 1E-9 && rise > 0.0 && rise < middleRise - 1E-9 ? rise / middleRise : 0.0;
+            double narrowing =
+                inside ? (at.X < vertex.X ? -1.6 : 1.0)
+                : at.X < vertex.X ? -0.7
+                : -0.9;
+            double correction = (ArcCorrection(vertex, at, inside) + narrowing * lower) * room * room / radius;
+            return Math.Min(best, Sum((low + high) / 2.0)) <= 2.0 * (room + beyond) - 0.04 + correction + 1E-9;
         }
 
         /// <summary>
@@ -1559,10 +1657,11 @@ namespace GeometryHelper.Dxf.Viewer
                     // the arc, rays or arrowheads followed both edges): a5 49 differing of 2 938 to 33, a7 101 of 5 832 to 71, and
                     // the styles above by a quarter. Probed at arcs of 240 out, where the circle is nearly straight, the rule
                     // is the sum of a circle point's distances to two opposite corners of the words' box grown by the landing
-                    // staying within twice that half width and DIMEXE, with the curve of the arc in it as WordsStayOnTheArc
-                    // has it; it is read from 5.5 landings out. Nearer, even with the curve fitted to those arcs alone (30 out:
-                    // 142 wrong of 6 984, 104 of 5 670 and 183 of 6 860 in three sets of probes) it is worse than this fit (106,
-                    // 58 and 135), so those arcs keep the fit.
+                    // staying within twice that half width and DIMEXE, with the curve of the arc in it, and what the nearer
+                    // arcs showed besides, as WordsStayOnTheArc has it: it is read from 2.5 landings out (30 out with DIMSCALE 2
+                    // is the nearest probed), where it beats this fit in every style (30 out: 106 wrong
+                    // of 6 984 here, 63 there, and 58 of 5 670 and 130 of 6 860 against 29 and 93). The fit stays for arc
+                    // length dimensions and arcs nearer than that.
                     double distance = (at - vertex).Length;
                     double offArc = distance - radius;
                     double leans = distance > 1E-12 ? Math.Abs(at.X - vertex.X) / distance : 1.0;
@@ -1602,7 +1701,7 @@ namespace GeometryHelper.Dxf.Viewer
                             straight
                                 ? offArc > StraightEdge(6.356, 0.48, scale, width, gap, arrow, beyond, height)
                                     || offArc < -StraightEdge(5.831, 0.456, scale, width, gap, arrow, beyond, height)
-                            : !arcLength && radius >= BigArc * landingLen
+                            : !arcLength && radius >= NearestArc * landingLen
                                 ? !WordsStayOnTheArc(vertex, radius, start, at, landingLen, height, beyond)
                             : offArc > outerEdge || offArc < -innerEdge
                         )

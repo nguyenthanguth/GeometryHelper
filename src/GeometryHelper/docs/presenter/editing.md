@@ -1105,15 +1105,25 @@ between them is what the first form of the rule took, and it is up to 1.5 off on
 as much as 1 over the radius times the landing squared), and the diagonal is flatter by 0.7 of the sagitta of a landing, the
 landing squared over the radius, up or down. AutoCAD 2021's band of "60°" is centred out of the circle by about half that sagitta
 (0.6 out at 30 out, 0.37 at 45, 0.2 at 90) where the words stand above the vertex, and on it where they stand beside it, which the
-straight distances had centred on it all round. The rule reads arcs of 5.5 landings out or more (31 for "60°" of 2.5-high Arial
-with a gap of 0.625 and arrowheads of 2.5, a landing of 5.58); the probes where the leader presence differed, at an angle of 60
-degrees with its words put every 0.25 round it at 5 degrees' steps, the five exact directions 30, 90, 150, 270 and 330 degrees
-left out: 94 of 6 499 at an arc of 38 out by the fit or the straight rule and 66 now, 165 of 6 984 at 45 (12 styles of DIMASZ, DIMTXT,
-DIMGAP, DIMADEC, DIMEXE, DIMEXO and DIMSCALE) and 92 now (Arial 162 and 75), 164 and 69 at 60, 73 and 28 at 90, 28 and 8 at 240
-(12 styles 47 and 18; Arial 16 and 6, 12 styles 43 and 10); along the arc of 240 at heights from -60 to 180 the straight rule had
-none wrong of 3 492 and this has 2. Nearer arcs keep the fit, as do the words of an arc length dimension: fitted to the probes at
-30 out alone the rule is worse than the fit (142 wrong of 6 984, 104 of 5 670 and 183 of 6 860 in three sets of probes against 106,
-58 and 135), and arrowheads and words that make the landing long (DIMSCALE 2 reaches 4 landings at 45 out) are worse by it too.
+straight distances had centred on it all round. The rule reads arcs of 2.5 landings out or more (14 out for "60°" of 2.5-high Arial
+with a gap of 0.625 and arrowheads of 2.5, a landing of 5.58; the nearest arcs probed are 2.6 landings out); the probes where the leader presence differed, at an angle of 60 degrees with its words put every 0.25 round it at 5 degrees'
+steps, the five exact directions 30, 90, 150, 270 and 330 degrees left out: 94 of 6 499 at an arc of 38 out by the fit or the straight
+rule and 19 now, 165 of 6 984 at 45 (12 styles of DIMASZ, DIMTXT, DIMGAP, DIMADEC, DIMEXE, DIMEXO and DIMSCALE) and 19 now (Arial
+162 and 24), 164 and 21 at 60, 73 and 6 at 90, 28 and 6 at 240 (12 styles 47 and 10; Arial 16 and 7, 12 styles 43 and 14); along the
+arc of 240 at heights from -60 to 180 the straight rule had none wrong of 3 492 and this has 1. At an arc of 30 out, where the rule
+had been worse than the fit (142 wrong of 6 984, 104 of 5 670 and 183 of 6 860 against 106, 58 and 135), what was left is the
+landing's sagitta (the landing squared over the radius) again, by the direction of the point: inside the circle the band is up to
+0.35 of it wider than the rule near 40 and 200 degrees and up to 0.5 narrower near 100 and 260, outside it up to 0.5 wider or 0.25
+narrower, which the rule takes at every 10 degrees (read between them); the band narrows as the point rises from the vertex's level to
+the height of the arc's middle, by 1.6 sagittas on the left inside, 0.7 on the left outside and 0.9 on the right outside, wider by 1.0
+on the right inside, times the rise over the middle's rise; and the diagonal of the box turns over at that height, the height itself
+included. Both are one over the radius times the landing squared, so they move the band 0.06 at 240 out; at 30 out the leader
+presence differs in 63 of 6 984 (106 by the fit; Arial 57 and 103), 29 of 5 670 (58; Arial 17 and 82) and 93 of 6 860 (130; Arial 75
+and 108), and in every style of the 12 no more than by the fit (the wide words of DIMSCALE 2, which put 2.6 landings out, 14 against
+23). Words exactly above or below the vertex keep their landing under them, and the words of an arc length dimension and arcs
+nearer than 2.5 landings keep the fit. At 240 out the Arial probes go from 6 to 7 differing of 6 499 and from 10 to 14 of 6 984 (probes within 0.03 of the edge);
+the jump of the band at the height of the arc's
+middle, in AutoCAD's pictures of an angle at 30 out, is 66 of 558 pictures differing before and 70 now (SHX) and 66 and 64 (Arial).
 The sum is held to 0.04 less than twice the half width and DIMEXE, which is where AutoCAD's edges lay between probes 0.25 apart.
 A radius or a diameter put inside under 1 keeps its words as DIMATFIT 3 does, whatever DIMATFIT; under 2, words on its line over a
 radius's centre or over the rim, from inside or out (a diameter's from the back of its arrowhead in), put the arrowheads
@@ -1147,14 +1157,17 @@ diameters and radii by 21 angles, 166 differing down to 8, and 0 with the points
 them; with the SHX font 156 down to 12 and 8, the ties of "R6" and "R7" straight up falling either way); a radius picked at 30 degrees under DIMTMOVE 1 with level words, the point put 150 degrees round, has its line
 run on through the centre to the height of the point and the words stand level there, group 11 the end of the line.
 Level words under DIMTAD 1 and 4 put inside a radius or a diameter under DIMATFIT 3 keep to the line, level with a landing an
-arrowhead long, only where it has the room: two arrowheads (and the height of the words on a line that runs down) and, as
-the line leans from upright, the width of the words and a gap times the cosine of its angle from level; a diameter has its
-whole length. Else they stand above (DIMTAD 4: below) a landing an arrowhead, a gap and the words long, at the same place
-along it: "R8" put 4 out at 30 degrees has its landing from 2.598 to -4.563 (7.161) and the words 1.9 above it at -2.545,
-at 60 degrees the landing 2.5 long and the words on it. Within 15 degrees of level only the arrowheads and the height
-count, and the landing is the words and a gap long. Under DIMTMOVE 1 words put behind the centre of a radius (or outside
-the circle and behind it, for a diameter) stand above a landing of the words and a gap, as past the rim. Fitted over
-17 000 probes (98 of 100 right; wide words on steep lines are the ones it misses). A line of exactly two arrowheads does not
+arrowhead long, only where it has the room: two arrowheads, 0.3 of an arrowhead more as the line leans from upright (over its
+first 22 degrees), 1.125 of the words' height on a line that runs down and, as the line leans, the width of the words times the
+cosine of its angle from level (0.3 plus 0.65 of the cosine more, 0.4 on a line that runs down) and a gap times the cosine and a
+quarter; a diameter has its whole length. Else they stand above (DIMTAD 4: below) a landing an arrowhead, a gap and the words
+long, at the same place along it: "R8" put 4 out at 30 degrees has its landing from 2.598 to -4.563 (7.161) and the words 1.9
+above it at -2.545, at 60 degrees the landing 2.5 long and the words on it. Within 15 degrees of level only the arrowheads and the
+height count, and the landing is the words and a gap long. Under DIMTMOVE 1 words put behind the centre of a radius (or outside
+the circle and behind it, for a diameter) stand above a landing of the words and a gap, as past the rim. Fitted over the 17 000
+pictures of "R5" to "R55.5555" put at half the radius, with DIMASZ 1.5 to 4, DIMGAP 0.3 to 1.5 and DIMTXT 1.8 to 3.5, at 20 to 340
+degrees (those that differed from AutoCAD's: 34 of 1 292 before, 19 now; 216 of 6 438 and 80; 554 of 9 460 and 140; the width and a
+gap times the cosine had asked wide words on steep lines too much room). A line of exactly two arrowheads does not
 keep them (a radius of 5 under DIMASZ 2.5 or of 8 under DIMASZ 4 put at half the radius 10, 170, 190 and 350 degrees left them
 off 14 times of 16; the other two are float noise in AutoCAD). Not followed: a diameter of 6 put out at 1.6 times its radius
 keeps its words on the line at steep angles (80 to 100, 260 to 280), as diameters of 4 to 12 do in windows of angle that

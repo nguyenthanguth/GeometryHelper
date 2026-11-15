@@ -6,6 +6,29 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The rule behind the leader band of an angle's words reads every arc from 2.5 landings out (it was 5.5), where the fit it
+replaced was worse in 11 of the 12 styles probed at 30 out. What the rule had left at 30 out is the landing's sagitta (the landing squared
+over the radius) again, by the direction of the point and the side of the circle (a table at every 10 degrees: up to 0.35 of it wider than
+the rule near 40 degrees inside, 0.5 narrower near 100 and 260 degrees inside), by the rise of the point from the vertex's level to the
+height of the arc's middle (the band narrows 1.6 sagittas on the left inside, 0.7 and 0.9 on the left and right outside, and widens 1.0 on
+the right inside) and by the diagonal of the box turning over at that height, the height itself included; they fall away as one over the
+radius (0.06 at 240 out). Leader presence differing in AutoCAD 2021's pictures of an angle of 60 degrees, the five exact directions
+left out, before and now: 30 out 106 of 6 984 and 63 (12 styles; Arial 103 and 57), 58 of 5 670 and 29 (Arial 82 and 17), 130 of 6 860
+and 93 (Arial 108 and 75), 38 out 66 of 6 499 and 19, 45 out 92 and 19 (Arial 75 and 24), 60 out 69 and 21, 90 out 28 and 6 of 6 499,
+240 out 8 and 6 (Arial 6 and 7; 12 styles 18 and 10, Arial 10 and 14: probes within 0.03 of the edge) and 2 and 1 of the 3 492 along it,
+55 and 54 of 24 056; of the older sets of pictures differing from AutoCAD's: a5 30 of 2 938 to 18, a6 11 of 2 346 to 5, a4 4 of 712 to 3,
+a 2 of 96 to 0, a2 1 of 112 to 0 (its SHX probe), ta9 12 of 972 to 5, a7 65 of 5 832 to 36 (Arial 88 to 23), aq 132 of 6 860 to 94 (Arial
+111 to 77), the jump at the arc's middle (d1, SHX, and td1, Arial, of 558 each) 66 to 70 and 66 to 64, and ta8 0 to 1 of 165; the other
+sets (the angle's words moved, the DIMTEDIT sets, the arc length ones and every radius and diameter set but those below) are what they
+were byte for byte (a3 and a3g, which have no pictures of AutoCAD's, changed with it). The unit tests that state a probe of AutoCAD's
+each (DimensionFollowUps8Tests, 11 and 15) still hold. The arcs nearer than 2.5 landings keep the fit, and so do the words of an arc
+length dimension.
+**FIXED.** Level words inside a radius or a diameter keep to their line by a better law: two arrowheads (and 0.3 of an arrowhead more as
+the line leans from upright over its first 22 degrees), 1.125 of the words' height on a line that runs down, the width of the words times
+(0.3 + 0.65 of the cosine of the line's lean, 0.4 running down) times that cosine and a gap times the cosine and a quarter, in place of
+the width and a gap times the cosine. Of AutoCAD 2021's pictures of "R5" to "R55.5555" put at half the radius, those differing from its
+own: t9 34 of 1 292 to 19, t10 216 of 6 438 to 80, t11 554 of 9 460 to 140, and t6 1 of 1 584 unchanged; a radius of 8 with "R8" at 50
+degrees leaves its line (8.17 asked of it, 8.0 before), and a diameter of 16 with words 3.5 high at 210 degrees keeps it (15.3 asked, 16.7).
 **NEW.** The INSERT of a block cell in a table's block (`DxfTable.RecomputeTableBlock`, and every redraw of the presenter) is followed by
 an ATTRIB for each attribute definition of its block that is not constant, as AutoCAD 2021's console draws them: filled and placed
 by the INSERT's transformation as the INSERT command fills one, in the order of the block, an invisible definition's invisible, its words
