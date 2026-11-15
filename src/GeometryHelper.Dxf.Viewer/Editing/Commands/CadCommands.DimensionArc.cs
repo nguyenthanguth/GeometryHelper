@@ -21,6 +21,20 @@ namespace GeometryHelper.Dxf.Viewer
         private const double RadialFrom = Math.PI / 2.0 - 1E-6;
 
         /// <summary>
+        /// The angle of sweep from which an arc length dimension is laid out as past a half turn: half a turn less a thousandth of a
+        /// millionth of a radian (arcs from 10 degrees of 179.9999 degrees, 1.7 millionths short, are not, those of 180 degrees
+        /// through ten-decimal radians, 0.00001 millionths over, are).
+        /// </summary>
+        private const double ReflexFrom = Math.PI - 1E-9;
+
+        /// <summary>
+        /// <see cref="ReflexFrom"/> for an arc that starts at 0 degrees, which AutoCAD 2021 keeps laid out as under half a turn
+        /// until it is a few millionths of a radian over (the arcs of 1 from 0 through 180.0001 degrees, 1.7 millionths over, are
+        /// still, through 180.001, 17 millionths, are not; from any other start, 10 to 350 degrees, 180 degrees already is not).
+        /// </summary>
+        private const double ReflexFromZero = Math.PI + 5E-6;
+
+        /// <summary>
         /// DIMARC: an arc or the arc segment of a polyline (picked on it), then where the dimension goes, with Mtext and Text for
         /// its words, Angle for theirs, Partial for the length between two points of the arc, and Leader (No leader) for a leader
         /// from the words to the arc, offered where the arc sweeps more than 90 degrees. A point in the sector the arc does not

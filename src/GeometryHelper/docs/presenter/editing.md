@@ -1133,7 +1133,10 @@ alone from 1.85, and both from 1.95; and with the arc symbol before them, aligne
 take (0.85 of their height; level words the same, but only where the arc's middle points within a window about the vertical, 75 to 102
 degrees or 259 to 288 for "1.0472" and its symbol, 64 to 114 for a single digit and its symbol, the symbol then lying along the
 chord: arcs of 10 put 12 out, DIMASZ 0.36, take words and both arrowheads from a chord of 2.35 from 70 degrees, 2.22 from 66 and
-from 96). On sweeps from 100 to 165 degrees the symbol takes more room as the sweep widens, by the
+from 96; the same window holds for DIMDEC 2, 3 and 6, the symbol and a box of 1.01, 1.13 and 1.51). On sweeps from 90 to 115 degrees
+it is still wanted, the window moved down to smaller directions of the arc's middle by 0.214 degrees for each degree of sweep from 13,
+0.45 of the words' height at 100 degrees and 0.39 at 110: the arc of 1 through 100 degrees from 10 put 1.12 out (DIMARCSYM 0) has its
+arrowheads outside, from 1.14 between the rays, where the words alone gave 1.09. On sweeps from 100 to 165 degrees the symbol takes more room as the sweep widens, by the
 words' height (0.09 of it at 100 degrees, 0.24 at 150, 0.32 at 165, scaling with the text) and the sine of the direction of the arc's middle (the arc of 1 through 150 degrees from 10 keeps
 "2.6180" with the symbol between its rays from 0.70 out, not from 0.68). Level words outside stand past the first end of the arc
 (the second for DIMJUST 1), to the right where the arc, a third of the way round, stands above the horizontal and to the left where it
@@ -1146,13 +1149,29 @@ the middle where the arc is short: level words of 2.0944 and the symbol, on the 
 out, stand 3.0088 from the centre across and 1.9766 up for DIMJUST 1, to 0.001 as AutoCAD (before, 0.013 off). AutoCAD lays the
 arrowhead and the half of the words next to it by chords, not arcs, so the words stand a cube of each over 24 radii squared further
 along (0.00125 for the arc of 3 through 40 degrees put 2.4 out, DIMJUST 1, aligned words with the symbol: 0.63 for their half, 0.18
-for the arrowhead): 76 of 216 and 280 of 384 such pictures differed, now 18 and 4.
+for the arrowhead): 76 of 216 and 280 of 384 such pictures differed, now 18 and 4. Where the break of the arc about such words
+reaches an arrowhead's room, both arrowheads go outside and the arc is not drawn: "4.1888" level by the second ray of the arc of 3
+through 80 degrees from 10 put 1.8 out, DIMJUST 1, has them outside, as at 85 and 90, but between the rays at 75, the break ending 2.9
+degrees short of the arrowhead's back. Aligned, such words read as the middle of the arc reads, not by their own tangent: the arc of 3
+through 70 degrees from 135 put 1.8 out has "3.6652" by the second ray turned 96 degrees, where the tangent there at 276 would read
+upright.
 A dimension put on its arc has its extension lines run in from the ends where two arrowheads fit between them, out where they
 do not, and one scaled until its arc point is nearer the centre than the arc is, as AutoCAD 2021 keeps the arc moved in,
 is measured on that arc (the arc of 1 through 20 degrees put 1.2 out and scaled by 5 reads 1.7453, not the rest of the circle).
 A sweep counts as 90 degrees, and its extension lines run from the centre, from a millionth of a radian short of it (an arc of 1
 from 0 to 1.570796 radians, put 0.8 out, has its arc point at 30 degrees on the circle of 0.8, the point (0.6928, 0.4); one
 to 1.5707952268, a tenth of a millionth further short, moves its arc in along the middle and has it at (0.7246, 0.3586)).
+An arc of more than half a circle (from a thousandth of a millionth of a radian short of 180 degrees; one that starts at 0 degrees,
+from 5 millionths over, as AutoCAD keeps that as under half a circle until then) is laid out another way. Level words outside
+still stand past the first end, but run out the other way, to the right where the arc a third of the way round stands below the
+horizontal and to the left where it stands above, and the arc point is a third of the way round, never two thirds: the arc of 1
+through 180.0001 degrees put 0.45 out, no symbol, has from 140 degrees its words at (0.4397, 0.4012) and its arc point at (-0.4229,
+-0.1539), from 20 degrees its words at (-0.1942, -0.0241), where one of 179.99 degrees has them the other way. The words stay in,
+between the rays or not, once the arc beyond the half circle is two gaps long, whatever they, the arrowheads or the symbol take
+(radius times the sweep past 180 degrees, 2.005 DIMGAP: the arc of 1 from 0 through 210 degrees has "3.6652" outside at 0.3 and in the
+middle of the arc from 0.35, where 0.35 times 30 degrees is 0.18; DIMGAP 0.18 moves it to 0.7, text 0.36 and DIMASZ 0.36 leave it),
+and both arrowheads with them once it is two gaps and two arrowheads long (through 270 degrees from 0.35 out, where the room between
+the rays gave 0.42).
 Level words off the arc (DIMTAD 2 and 3) fit by the same box without the gap at either end of the arc: their width, the symbol
 before them and two gaps times the sine of the direction of the arc's middle, plus their height, the symbol over them and two
 gaps times its cosine (an arc of 10 from 15 degrees put 12 out, DIMTAD 2, takes its words "0.6400" between its extension lines
