@@ -16,6 +16,7 @@
 
     <ItemGroup>
         <Compile Include="..\GeometryHelper.UnitTest\Dxf\DxfDimensionDrawings.cs" Link="DxfDimensionDrawings.cs" />
+        <Compile Include="..\GeometryHelper.UnitTest\Dxf\TrueTypeFile.cs" Link="TrueTypeFile.cs" />
     </ItemGroup>
 
     <ItemGroup>

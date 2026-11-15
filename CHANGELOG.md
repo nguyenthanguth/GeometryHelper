@@ -6,6 +6,37 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The INSERT of a block cell in a table's block (`DxfTable.RecomputeTableBlock`, and every redraw of the presenter) is followed by
+an ATTRIB for each attribute definition of its block that is not constant, as AutoCAD 2021's console draws them: filled and placed
+by the INSERT's transformation as the INSERT command fills one, in the order of the block, an invisible definition's invisible, its words
+the value the cell gives the definition (`SetBlockAttributeValue`) or the definition's own, empty where those are. BOLT's SIZE at (22, 0),
+2.5 high, in a cell at scale 2 turned 30 degrees is an ATTRIB 5 high turned 30 degrees; a constant definition has none; a table drawn
+twice has each ATTRIB once, and the drawing reads back byte for byte. The table's block had the INSERT alone, and the words of the
+attribute were never drawn.
+**CHANGED.** A block cell's block with an attribute definition that is not constant is laid out by two boxes, as AutoCAD 2021 lays it
+out (probed in its console, margins 1.5, some 200 tables; the scale and the column of 6 fitted blocks after one pass of its layout, the
+least column of 4 blocks not fitted and the place of the ATTRIB of 4 compared with this library's are equal to the fifth place). The room the block takes (`CadTableEditor.MinimumColumnWidth`, the least
+a drag of a column or row goes to, what a block not fitted asks of its column and row) and the box it is aligned in its cell by are
+those of the words in Arial, whatever the font of the definition's style (a Times style, or txt.shx, or simplex: AB at 2.5 high 4.66
+wide, M12 6.79, DEFAULT 15.91, rotated, oblique and width factor kept; a constant definition is measured in its own font, as was
+said, and one that is invisible or of no words counts none); where the drawing, the document and Windows find no arial.ttf the words are
+measured in their own fonts, as before. The scale that fits the block to its cell comes from the box of the words in the definition's own
+font, in one pass: AB at x 22 beside a block 20 by 10 in a cell 40 wide is fitted at 37 over 26.17, 1.41401, and the column, which
+that scale gives 26.66 of Arial to hold, is widened to 40.69607 (a block fitted to a cell 40 by 30 was drawn at 1.38787, 37 over the
+26.66 of Arial, and its column was not widened), the scale kept in the cell's 144 as AutoCAD stores it, so that a table drawn again
+does not widen it again; a column set to another width is fitted anew. AutoCAD run twice (its `GenerateLayout` then
+`RecomputeTableBlock`) gives 1.44061 and 41.40525, and widens the column 1.8 % more with each pass for ever; the presenter does one pass
+and settles. `DxfTable.RecomputeTableBlock` alone, with no layout to widen the column, fits the block by the wider of the two boxes, 37
+over 26.66, 1.38787, inside the cell. The least a column may be dragged to ignores a fitted block, as AutoCAD's does (9, with a
+definition or none).
+**CHANGED.** `SetFormat`, `SetDataType`, `SetBackgroundColorNone`, `SetOverrides` and the last cell of a table write the bytes of
+their cell alone into the record, as `SetTextString` and the setters of a cell's look did, where each read and wrote every group of
+it, and the layout the table reads is kept for the record that makes by noting the cell written and putting it in when it is next
+read. Over each of the 1 000 cells of a table of 100 rows by 10 columns on .NET Framework 4.8: `SetFormat` 9.6 s to 70 ms,
+`SetDataType` 9.6 s to 71 ms, `SetBackgroundColorNone` 1.2 s to 11 ms, `SetOverrides` 14.6 s to 0.55 s; 300 settings of the last
+cell of that table: `SetBackgroundColorNone` 3.6 s to 87 ms, `SetTextString` 5.0 s to 20 ms. The drawing is the same to the byte
+(150 steps of random settings, merges and the last cell, each compared with the record written whole); `SetTextString` and the
+setters of a cell's look cost what they did.
 **CHANGED.** MLEDIT's tees (CT, OT, MT) take the pair of segments AutoCAD 2021 takes where the second has three segments, or the
 meeting lies within the width of a corner: of every pair whose lines meet, the stem met on a segment or run on past the free end of
 its first or last, the second met on a segment or run on past its own free end, the one nearest the picks (the distances along the

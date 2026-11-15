@@ -1551,10 +1551,21 @@ the text height and the margins, 9, fitted or not (a block 2 by 2 in rows of 3 m
 definition of the block are in its extents, as AutoCAD 2021 counts them: those the cell gives it, else its own, none where
 they are empty or the definition is invisible, a constant definition its own whatever the cell gives (a block 20 by 4 and a definition at x 22
 of words 15.9 wide makes a column 40.9 wide at 2.5 high, 22 + 15.9 and the margins), measured in the fonts of the drawing, or
-of the document where the drawing names none; a definition whose font is not found is left out, as it was. AutoCAD
-measures the words of a definition that is not constant in a TrueType font (4.66, 6.79 and 15.91 wide for AB, M12 and
-DEFAULT at 2.5, where the txt.shx the table draws them in makes 4.17, 5.83 and 16.67), which the presenter does not: it
-measures them in the drawing's own, so that a column is off by a millimetre or less. A cell written in a table of 100 rows of 20 columns
+of the document where the drawing names none; a definition whose font is not found is left out, as it was. AutoCAD lays a
+block out by two boxes where its definition is not constant. The room it takes, the least a column or row of an unfitted block
+may be and the box the block is aligned in its cell by, is the box of the words in Arial (arial.ttf, found in the fonts of the
+drawing, the document and Windows), whatever the font of the definition's style: 4.66, 6.79 and 15.91 wide for AB, M12 and
+DEFAULT at 2.5, where txt.shx makes 4.17, 5.83 and 16.67, a block 20 by 10 with AB at x 22 asking a column of 22 + 4.66 and the
+margins, 29.66. The scale that fits a block to its cell comes from the box of the words in the definition's own font, in one
+pass of AutoCAD's layout: the block with AB, in a cell 40 wide, is fitted at 37 over 26.17, 1.41401, and the column, which that
+scale gives 26.66 of Arial to hold, is widened to 40.69607, where the block fills it by its Arial box (a constant definition is
+the same box in both, and a block with none has one). The presenter does that pass, and draws a block fitted in a cell it has
+not widened at the scale that fits the wider of the two boxes, 1.38787, inside it; it asks nothing of the least a drag of the
+column goes to, as AutoCAD's MinimumColumnWidth does not. AutoCAD run twice (its `GenerateLayout` and `RecomputeTableBlock`
+both) goes on from the widened column, 1.44061 and 41.40525 for that block, and a third time further, 1.8 % a pass: the
+presenter does it once and keeps the scale in the cell's 144, as AutoCAD stores it, so that a table drawn again finds the block
+fitted to its widened cell and does not widen it again; a column set to another width is fitted anew. Each ATTRIB of the INSERT
+in the table's block is drawn at the scale and turn of the block. A cell written in a table of 100 rows of 20 columns
 is written and drawn in about 50 ms.
 
 TABLEEXPORT (Export of a table's right-click menu) asks `Select a table:` (asked again, `Object selected is not a table.`,
