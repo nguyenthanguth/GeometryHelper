@@ -486,15 +486,6 @@ namespace GeometryHelper.Dxf.Viewer
             _lastLayerName = null;
             _lastLayerShared = null;
             _building = list;
-            IReadOnlyList<DisplayRun> runs = older?.Runs;
-            Dictionary<string, int> byHandle = null;
-
-            // The runs of the older list the entities met: the insertion points of a run not met, of an entity erased or hidden
-            // since, are not carried on.
-            var met = runs == null ? null : new System.Collections.BitArray(runs.Count);
-            int metCount = 0;
-            int next = 0;
-            HashSet<string> keys = runs == null ? null : KeysOf(runs, handles);
 
             // The entities the Block Editor's visibility state hides are not drawn, nor picked; those it shows are, though the
             // block keeps them invisible as its first state hides them.
@@ -505,56 +496,99 @@ namespace GeometryHelper.Dxf.Viewer
 
             try
             {
-                IReadOnlyList<DxfEntity> content = ContentOf(space)?.Entities;
-                int walked = 0;
+                // The entities in the order they are drawn: the draw order's where the block has one or the Block Editor hides
+                // some, else the records of the block as they stand, an entity made of a record only where it is drawn.
+                IReadOnlyList<DxfEntity> content = null;
+                DxfItem[] items = null;
+                DxfSpace source = null;
+                int version = 0;
+                bool hasColumns = false;
 
-                foreach (DxfEntity entity in (IEnumerable<DxfEntity>)content ?? space)
+                if (hidden == null && shown == null)
                 {
-                    if ((++walked & ReportEvery) == 0)
+                    try
                     {
-                        Cancellation.ThrowIfCancellationRequested();
-                        Progress?.Report(content == null ? 0.0 : (double)walked / content.Count);
+                        content = space.DrawOrderTable?.GetFullDrawOrder();
+                    }
+                    catch (Exception)
+                    {
+                        // A draw order that cannot be read leaves the block in its own order.
+                    }
+                }
+                else
+                {
+                    content = ContentOf(space)?.Entities;
+                }
+
+                if (content == null && hidden == null && shown == null)
+                {
+                    if (older != null && TryPatchInPlace(space, older, list, handles, layers, root))
+                    {
+                        list.EndPatch(older);
+                        list.AnnotativeSeen = _sawAnnotative || older.AnnotativeSeen;
+
+                        if (isModel)
+                        {
+                            _modelCache = list;
+                            _scaledModels = null;
+                        }
+
+                        return list;
                     }
 
-                    string handle = HandleOf(entity);
+                    items = space.WalkedItems(out source, out version, out hasColumns);
+                }
+                else if (content == null)
+                {
+                    content = new List<DxfEntity>(space);
+                }
+
+                Dictionary<string, int> byHandle = null;
+
+                // The runs of the older list the entities met: the insertion points of a run not met, of an entity erased or hidden
+                // since, are not carried on.
+                int runCount = older == null ? 0 : older.RunCount;
+                bool[] met = older == null ? null : new bool[runCount];
+                int metCount = 0;
+                int next = 0;
+                HashSet<string> keys = older == null ? null : KeysOf(older, handles);
+                bool[] readsKey = older == null ? null : RunsReading(older, keys);
+                HandleFilter filter = handles == null || handles.Count == 0 ? null : new HandleFilter(handles);
+                List<int> skipped = null;
+
+                // The runs of the older list taken whole, in a stretch of runs that follow one another there: a stretch is taken
+                // by one copy when the next entity is drawn again or the walk is done.
+                int stretchFirst = 0,
+                    stretchCount = 0;
+                int total = items != null ? items.Length : content.Count;
+
+                for (int index = 0; index < total; index++)
+                {
+                    if (((index + 1) & ReportEvery) == 0)
+                    {
+                        Cancellation.ThrowIfCancellationRequested();
+                        Progress?.Report((double)(index + 1) / total);
+                    }
+
+                    DxfItem item = items == null ? null : items[index];
+                    DxfEntity entity = items == null ? content[index] : null;
+                    string handle = items == null ? HandleOf(entity) : HandleOf(item);
 
                     if (hidden != null && handle != null && hidden.Contains(handle))
                     {
                         continue;
                     }
 
-                    if (runs != null && !string.IsNullOrEmpty(handle))
+                    if (older != null && !string.IsNullOrEmpty(handle))
                     {
                         // The entities stand in the older list's order but where an edit added or erased one, so its runs
                         // are walked along with them, and looked up by handle only once the two part.
-                        int found = -1;
-                        DisplayRun run = default;
+                        int found = Locate(older, handle, next, ref skipped, ref byHandle, out bool twice);
 
-                        if (
-                            next < runs.Count
-                            && string.Equals((run = runs[next]).Handle, handle, StringComparison.OrdinalIgnoreCase)
-                        )
+                        if (twice)
                         {
-                            found = next;
-                        }
-                        else
-                        {
-                            byHandle = byHandle ?? RunsByHandle(runs);
-
-                            if (byHandle == null)
-                            {
-                                // Two entities of one handle out of their order: the runs cannot be told apart.
-                                return Patch(space, isModel, null, null, 0);
-                            }
-
-                            if (!byHandle.TryGetValue(handle, out found))
-                            {
-                                found = -1;
-                            }
-                            else
-                            {
-                                run = runs[found];
-                            }
+                            // Two entities of one handle out of their order: the runs cannot be told apart.
+                            return Patch(space, isModel, null, null, 0);
                         }
 
                         if (found >= 0)
@@ -568,46 +602,76 @@ namespace GeometryHelper.Dxf.Viewer
                             }
 
                             if (
-                                (run.Layers & layers) == 0
-                                && (handles == null || !handles.Contains(handle))
-                                && !Reads(run, keys)
+                                (older.RunLayers(found) & layers) == 0
+                                && (filter == null || !filter.MayContain(handle) || !handles.Contains(handle))
+                                && (readsKey == null || !readsKey[found])
                             )
                             {
-                                list.CopyRun(older, run);
+                                if (stretchCount > 0 && found == stretchFirst + stretchCount)
+                                {
+                                    stretchCount++;
+                                }
+                                else
+                                {
+                                    list.CopyRuns(older, stretchFirst, stretchCount);
+                                    stretchFirst = found;
+                                    stretchCount = 1;
+                                }
+
                                 continue;
                             }
 
                             // Drawn again: its points are those it keeps now.
-                            list.DropInsertions(run);
+                            list.DropInsertions(older.RunAt(found));
+                            list.NoteDropped(older, found);
                         }
                     }
 
-                    int start = list.Count;
-                    _runLayers = 0;
-                    _runReads = null;
-
-                    try
-                    {
-                        Draw(entity, root, list, null, shown != null && handle != null && shown.Contains(handle));
-                    }
-                    catch (Exception)
-                    {
-                        // One entity that cannot be drawn never stops the others.
-                    }
-
-                    list.AddRun(handle, start, _runLayers, _runReads?.ToArray());
+                    list.CopyRuns(older, stretchFirst, stretchCount);
+                    stretchCount = 0;
+                    DrawRun(
+                        entity,
+                        item,
+                        handle,
+                        root,
+                        list,
+                        shown != null && handle != null && shown.Contains(handle)
+                    );
                 }
 
+                list.CopyRuns(older, stretchFirst, stretchCount);
+
                 // An entity erased or hidden since the older list was made leaves its points behind in the copy of the older list's.
-                if (met != null && metCount < met.Count)
+                if (met != null && metCount < runCount)
                 {
-                    for (int i = 0; i < met.Count; i++)
+                    for (int i = 0; i < runCount; i++)
                     {
                         if (!met[i])
                         {
-                            list.DropInsertions(runs[i]);
+                            list.DropInsertions(older.RunAt(i));
+                            list.NoteDropped(older, i);
                         }
                     }
+                }
+
+                if (older != null)
+                {
+                    list.EndPatch(older);
+                }
+
+                // Every entity of the block was walked, in the order its records stand: the next patch can find the entity of a
+                // run by its place, while the block's entities are the same ones.
+                if (
+                    items != null
+                    && !hasColumns
+                    && source != null
+                    && source.Version == version
+                    && list.IsTiled
+                    && list.RunCount == items.Length
+                )
+                {
+                    list.SourceSpace = source;
+                    list.SourceVersion = version;
                 }
             }
             finally
@@ -639,7 +703,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// and other entities those entities read when they were drawn, so that a copy of a dimension, which shares its
         /// original's picture, is drawn again when the original moves the picture. Null where no handle is named.
         /// </summary>
-        private static HashSet<string> KeysOf(IReadOnlyList<DisplayRun> runs, ISet<string> handles)
+        private static HashSet<string> KeysOf(DisplayList2 older, ISet<string> handles)
         {
             if (handles == null || handles.Count == 0)
             {
@@ -648,36 +712,43 @@ namespace GeometryHelper.Dxf.Viewer
 
             var keys = new HashSet<string>(handles, StringComparer.OrdinalIgnoreCase);
 
-            for (int i = 0; i < runs.Count; i++)
+            for (int entry = 0; entry < older.ReadingRuns; entry++)
             {
-                DisplayRun run = runs[i];
+                string handle = older.RunHandle(older.ReadRun(entry));
 
-                if (run.Reads != null && !string.IsNullOrEmpty(run.Handle) && handles.Contains(run.Handle))
+                if (!string.IsNullOrEmpty(handle) && handles.Contains(handle))
                 {
-                    keys.UnionWith(run.Reads);
+                    keys.UnionWith(older.ReadOf(entry));
                 }
             }
 
             return keys;
         }
 
-        /// <summary>Whether a run read one of the keys an edit can have changed.</summary>
-        private static bool Reads(DisplayRun run, HashSet<string> keys)
+        /// <summary>The runs of the older list that read one of the keys an edit can have changed, marked; null where none did.</summary>
+        private static bool[] RunsReading(DisplayList2 older, HashSet<string> keys)
         {
-            if (run.Reads == null || keys == null)
+            if (keys == null)
             {
-                return false;
+                return null;
             }
 
-            foreach (string read in run.Reads)
+            bool[] reading = null;
+
+            for (int entry = 0; entry < older.ReadingRuns; entry++)
             {
-                if (keys.Contains(read))
+                foreach (string read in older.ReadOf(entry))
                 {
-                    return true;
+                    if (keys.Contains(read))
+                    {
+                        reading = reading ?? new bool[older.RunCount];
+                        reading[older.ReadRun(entry)] = true;
+                        break;
+                    }
                 }
             }
 
-            return false;
+            return reading;
         }
 
         /// <summary>Notes that the entity being drawn read an anonymous block or another entity, by its handle.</summary>
@@ -709,14 +780,453 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>The place of each run by its handle; null where two runs share a handle.</summary>
-        private static Dictionary<string, int> RunsByHandle(IReadOnlyList<DisplayRun> runs)
+        /// <summary>The handle of an entity given by its record; null for none, or for one whose record cannot be read, which is drawn anew.</summary>
+        private static string HandleOf(DxfItem item)
         {
-            var byHandle = new Dictionary<string, int>(runs.Count, StringComparer.OrdinalIgnoreCase);
-
-            for (int i = 0; i < runs.Count; i++)
+            try
             {
-                string handle = runs[i].Handle;
+                return item.Handle;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        private static bool SameHandle(string run, string handle) =>
+            ReferenceEquals(run, handle) || string.Equals(run, handle, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>How many runs ahead of the next one are looked at for an entity whose handle is not the next run's: an entity erased leaves its run just ahead of the entity that followed it.</summary>
+        private const int Lookahead = 16;
+
+        /// <summary>How many runs passed over are kept to be looked at again, before the runs are looked up by handle instead.</summary>
+        private const int MostSkipped = 64;
+
+        /// <summary>
+        /// The run of the older list that an entity of a handle is, -1 where it has none: the next run where the handle is its,
+        /// else the first of the few runs ahead of it, else one passed over, else by the handle of every run, which is only made
+        /// where the runs ahead are too many to look at. <paramref name="twice"/> is set where two runs share a handle, which
+        /// cannot be told apart by it.
+        /// </summary>
+        private static int Locate(
+            DisplayList2 older,
+            string handle,
+            int next,
+            ref List<int> skipped,
+            ref Dictionary<string, int> byHandle,
+            out bool twice
+        )
+        {
+            twice = false;
+            int count = older.RunCount;
+
+            if (next < count && SameHandle(older.RunHandle(next), handle))
+            {
+                return next;
+            }
+
+            if (byHandle == null)
+            {
+                int end = Math.Min(count, next + 1 + Lookahead);
+
+                for (int i = next + 1; i < end; i++)
+                {
+                    if (SameHandle(older.RunHandle(i), handle))
+                    {
+                        skipped = skipped ?? new List<int>();
+
+                        for (int passed = next; passed < i; passed++)
+                        {
+                            skipped.Add(passed);
+                        }
+
+                        return i;
+                    }
+                }
+
+                if (end >= count && (skipped == null || skipped.Count <= MostSkipped))
+                {
+                    // Every run still ahead has been looked at: the entity is one of those passed over, or new.
+                    if (skipped != null)
+                    {
+                        foreach (int passed in skipped)
+                        {
+                            if (SameHandle(older.RunHandle(passed), handle))
+                            {
+                                return passed;
+                            }
+                        }
+                    }
+
+                    return -1;
+                }
+
+                byHandle = RunsByHandle(older);
+
+                if (byHandle == null)
+                {
+                    twice = true;
+                    return -1;
+                }
+            }
+
+            return byHandle.TryGetValue(handle, out int found) ? found : -1;
+        }
+
+        /// <summary>Draws an entity and closes its run: its record, where the entity is not made yet; the run is kept whether it draws or not.</summary>
+        private void DrawRun(DxfEntity entity, DxfItem item, string handle, Frame root, DisplayList2 list, bool shown)
+        {
+            int start = list.Count;
+            _runLayers = 0;
+            _runReads = null;
+
+            try
+            {
+                Draw(entity ?? DxfEntity.Of(item), root, list, null, shown);
+            }
+            catch (Exception)
+            {
+                // One entity that cannot be drawn never stops the others.
+            }
+
+            list.AddRun(handle, start, _runLayers, _runReads?.ToArray());
+        }
+
+        /// <summary>The most entities an edit may name for a patch to find their places among the runs, each by a walk of the block's records.</summary>
+        private const int MostNamed = 12;
+
+        /// <summary>
+        /// Draws a space again from the list made of it, without walking its entities, where the entities are the ones the
+        /// list was made from but for those erased and those added: the list kept the block's records and their version, which
+        /// counts each entity added and each erased, and an entity added stands last. Then the run of an entity is the run at
+        /// its place, allowing for the runs of those erased, so that the entities an edit names, those that read a layer it
+        /// changed and those that read what the named ones drew are found by their places, drawn again and the runs between
+        /// them taken by stretches, the entities added drawn last. False, with nothing done, where that cannot be known: no
+        /// handle index to find the named entities by, many of them, an entity added or erased that no handle names, one with no
+        /// handle, or an MTEXT that lists linked columns, which the walk of the block leaves out.
+        /// </summary>
+        private bool TryPatchInPlace(
+            DxfBlockTableRecord space,
+            DisplayList2 older,
+            DisplayList2 list,
+            ISet<string> handles,
+            ulong layers,
+            Frame root
+        )
+        {
+            DxfSpace entities = space.EntitySpace;
+
+            if (
+                entities == null
+                || _document == null
+                || !ReferenceEquals(older.SourceSpace, entities)
+                || !older.IsTiled
+                || older.UnnamedRuns != 0
+            )
+            {
+                return false;
+            }
+
+            // Each entity added to the space or erased from it since the list was made moved the version by one, and an entity
+            // added stands last: so how many were added and how many erased follow from the two counts, the entities added are
+            // the last of the space, and the runs of those erased are the ones no entity stands at.
+            int steps = entities.Version - older.SourceVersion;
+            int gain = entities.Count - older.RunCount;
+
+            if (steps < 0 || ((steps + gain) & 1) != 0)
+            {
+                return false;
+            }
+
+            int added = (steps + gain) / 2;
+            int erased = (steps - gain) / 2;
+            int head = entities.Count - added;
+
+            if (added < 0 || erased < 0 || erased > MostNamed || head < 0 || head != older.RunCount - erased)
+            {
+                return false;
+            }
+
+            HashSet<DxfItem> last = null;
+
+            if (added > MostNamed)
+            {
+                last = new HashSet<DxfItem>();
+
+                for (int i = head; i < entities.Count; i++)
+                {
+                    last.Add(entities[i]);
+                }
+            }
+
+            var existing = new List<KeyValuePair<int, DxfItem>>();
+            var gone = new List<DxfItem>();
+
+            if (handles != null)
+            {
+                foreach (string handle in handles)
+                {
+                    if (!_document.TryPeekKept(handle, out DxfEntity named))
+                    {
+                        return false;
+                    }
+
+                    if (named == null)
+                    {
+                        continue;
+                    }
+
+                    DxfItem item = named.Item;
+
+                    if (DxfBlockTableRecord.ListsLinkedColumns(item))
+                    {
+                        return false;
+                    }
+
+                    if (item.IsRemoved)
+                    {
+                        gone.Add(item);
+                        continue;
+                    }
+
+                    // An entity added is drawn anew whatever is said of it; any other is found among the entities before them.
+                    if (
+                        added > 0
+                        && (last != null ? last.Contains(item) : entities.IndexOf(item, head, entities.Count) >= 0)
+                    )
+                    {
+                        continue;
+                    }
+
+                    int place = entities.IndexOf(item, 0, head);
+
+                    if (place >= 0)
+                    {
+                        if (existing.Count >= MostNamed)
+                        {
+                            return false;
+                        }
+
+                        existing.Add(new KeyValuePair<int, DxfItem>(place, item));
+                    }
+                }
+            }
+
+            // The runs of the entities erased, by their handles: one walk of the runs finds them all.
+            List<int> goneRuns = gone.Count == 0 ? new List<int>() : RunsOf(older, gone);
+
+            if (goneRuns == null || goneRuns.Count != erased)
+            {
+                return false;
+            }
+
+            // The run of an entity before the erased: its place plus the erased runs that stood at or before it.
+            var dirty = new List<int>(goneRuns);
+
+            foreach (KeyValuePair<int, DxfItem> pair in existing)
+            {
+                int run = pair.Key;
+
+                foreach (int away in goneRuns)
+                {
+                    if (away <= run)
+                    {
+                        run++;
+                    }
+                }
+
+                if (!SameHandle(older.RunHandle(run), HandleOf(pair.Value)))
+                {
+                    return false;
+                }
+
+                dirty.Add(run);
+            }
+
+            bool[] readsKey = RunsReading(older, KeysOf(older, handles));
+
+            if (readsKey != null)
+            {
+                for (int run = 0; run < readsKey.Length; run++)
+                {
+                    if (readsKey[run])
+                    {
+                        dirty.Add(run);
+                    }
+                }
+            }
+
+            if (layers != 0)
+            {
+                older.AddRunsReading(layers, dirty);
+            }
+
+            // The runs that read a layer come in order, and are most of them where a layer is switched.
+            for (int i = 1; i < dirty.Count; i++)
+            {
+                if (dirty[i - 1] > dirty[i])
+                {
+                    dirty.Sort();
+                    break;
+                }
+            }
+
+            int taken = 0;
+            int before = -1;
+
+            foreach (int run in dirty)
+            {
+                if (run == before)
+                {
+                    continue;
+                }
+
+                before = run;
+                list.CopyRuns(older, taken, run - taken);
+
+                // Drawn again, or gone: its points are those it keeps now, none for an entity erased.
+                list.DropInsertions(older.RunAt(run));
+                list.NoteDropped(older, run);
+
+                if (!goneRuns.Contains(run))
+                {
+                    int current = run;
+
+                    foreach (int away in goneRuns)
+                    {
+                        if (away < run)
+                        {
+                            current--;
+                        }
+                    }
+
+                    DxfItem again = entities[current];
+                    DrawRun(null, again, HandleOf(again), root, list, false);
+                }
+
+                taken = run + 1;
+            }
+
+            list.CopyRuns(older, taken, older.RunCount - taken);
+
+            // The entities added stand last, in the order they were added.
+            for (int i = head; i < entities.Count; i++)
+            {
+                DxfItem fresh = entities[i];
+                DrawRun(null, fresh, HandleOf(fresh), root, list, false);
+            }
+
+            if (list.IsTiled && list.RunCount == entities.Count)
+            {
+                list.SourceSpace = entities;
+                list.SourceVersion = entities.Version;
+            }
+
+            list.PatchedInPlace = true;
+            return true;
+        }
+
+        /// <summary>
+        /// A quick look at whether an entity's handle can be one of those an edit named, by its last two letters: false is
+        /// sure, true is to be asked of the set. Handles are told apart by their letters whatever the case, as the set tells
+        /// them, so a handle with a letter beyond ASCII is always asked.
+        /// </summary>
+        private sealed class HandleFilter
+        {
+            private readonly bool[] _ends = new bool[1024];
+            private readonly bool _always;
+
+            public HandleFilter(IEnumerable<string> handles)
+            {
+                foreach (string handle in handles)
+                {
+                    if (
+                        handle == null
+                        || handle.Length < 2
+                        || handle[handle.Length - 1] >= 0x80
+                        || handle[handle.Length - 2] >= 0x80
+                    )
+                    {
+                        _always = true;
+                        return;
+                    }
+
+                    _ends[Key(handle)] = true;
+                }
+            }
+
+            public bool MayContain(string handle)
+            {
+                if (
+                    _always
+                    || handle.Length < 2
+                    || handle[handle.Length - 1] >= 0x80
+                    || handle[handle.Length - 2] >= 0x80
+                )
+                {
+                    return true;
+                }
+
+                return _ends[Key(handle)];
+            }
+
+            private static int Key(string handle) =>
+                ((handle[handle.Length - 1] & 0x1F) << 5) | (handle[handle.Length - 2] & 0x1F);
+        }
+
+        /// <summary>
+        /// The runs of the older list that stand for some entities, in order, found in one walk of the runs by the handles the
+        /// entities have; null where one has none. An entity that has no run is simply not among them.
+        /// </summary>
+        private static List<int> RunsOf(DisplayList2 older, List<DxfItem> items)
+        {
+            var handles = new List<string>(items.Count);
+
+            foreach (DxfItem item in items)
+            {
+                string handle = HandleOf(item);
+
+                if (string.IsNullOrEmpty(handle))
+                {
+                    return null;
+                }
+
+                handles.Add(handle);
+            }
+
+            var filter = new HandleFilter(handles);
+            var runs = new List<int>(handles.Count);
+
+            for (int run = 0; run < older.RunCount && runs.Count < handles.Count; run++)
+            {
+                string handle = older.RunHandle(run);
+
+                if (!filter.MayContain(handle))
+                {
+                    continue;
+                }
+
+                foreach (string wanted in handles)
+                {
+                    if (SameHandle(handle, wanted))
+                    {
+                        runs.Add(run);
+                        break;
+                    }
+                }
+            }
+
+            return runs;
+        }
+
+        /// <summary>The place of each run by its handle; null where two runs share a handle.</summary>
+        private static Dictionary<string, int> RunsByHandle(DisplayList2 older)
+        {
+            var byHandle = new Dictionary<string, int>(older.RunCount, StringComparer.OrdinalIgnoreCase);
+
+            for (int i = 0; i < older.RunCount; i++)
+            {
+                string handle = older.RunHandle(i);
 
                 if (string.IsNullOrEmpty(handle))
                 {

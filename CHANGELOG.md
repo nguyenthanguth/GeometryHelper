@@ -6,6 +6,22 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The display of a large drawing after an edit no longer walks its entities where it can tell where the edit was: a MOVE of one
+line at 1 000 000 entities is shown in 18 ms where it took 93 (.NET 8) and 22 where 198 (.NET Framework 4.8), an ERASE of one in 26 ms
+where 196 and 25 where 278, a COPY of one in 25 ms where 192 and 30 where 283; at 100 000 entities 1.4 ms where 7.8, 1.9 where 13.8 and
+2.3 where 13.7 (.NET 8). A display list keeps the list of entities it was drawn from and its version (the space of a drawing counts up
+each entity added or erased; an entity added stands last), and holds its runs, items and box in arrays, so that a patch finds the
+entities the edit names by their places, drawn again or dropped, takes the runs between them by one copy of their items and one of
+their records, and draws the entities added last; its box is the older list's grown by the items drawn again, to the bit, unless one of
+the items drawn again or dropped has a side level with a side of the box, or more than 64 runs were dropped (a layer switched), when it
+is found again from every item as before. Where the places cannot be told (an undo or a redo, many entities named, an entity added or
+erased that no handle names, no handle, a draw order, the Block Editor, an MTEXT with linked columns) the patch still walks the entities,
+but by their records, not by an object made for each, and takes the runs it keeps in stretches (a COPY at 1 000 000 entities 74 ms
+where 245 even then). The cold display, a layer switched and a REGEN are as they were within the noise (1 000 000 entities displayed in
+2.4 s, regenerated in 0.76 s, .NET 8); the shapes of a LINE, an ARC and a CIRCLE are still kept (not keeping them is 55 MB less heap and
+27 per cent more on a REGEN and a layer switched on). Display lists, saved bytes and pixels identical on 167 AutoCAD samples (the four
+with an ACIS body save other bytes each run in any build) and generated drawings, under both runtimes. No public signature changed.
+
 **NEW.** The INSERT of a block cell in a table's block (`DxfTable.RecomputeTableBlock`, and every redraw of the presenter) is followed by
 an ATTRIB for each attribute definition of its block that is not constant, as AutoCAD 2021's console draws them: filled and placed
 by the INSERT's transformation as the INSERT command fills one, in the order of the block, an invisible definition's invisible, its words
