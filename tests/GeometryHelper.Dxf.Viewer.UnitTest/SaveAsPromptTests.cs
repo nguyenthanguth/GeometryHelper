@@ -106,7 +106,6 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
         [Theory]
         [InlineData("R14", "AutoCAD R14(LT98/LT97) Drawing")]
-        [InlineData("2000", "AutoCAD 2000(LT2000) Drawing")]
         [InlineData("2007(LT2007)", "AutoCAD 2007(LT2007) Drawing")]
         public void AFormatOfTheDwgTheWriterDoesNotWrite_IsRefused_AndNothingIsWritten(string typed, string name)
         {
@@ -117,7 +116,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.False(session.IsRunning);
             Assert.Contains(
                 name
-                    + " (*.dwg) is not written: a DWG is saved as AutoCAD 2018, 2013, 2010 or 2004 (2018, 2013, 2010, 2004).",
+                    + " (*.dwg) is not written: a DWG is saved as AutoCAD 2018, 2013, 2010, 2004 or 2000 (2018, 2013, 2010, 2004, 2000).",
                 session.History
             );
             Assert.False(document.HasFile);
@@ -127,6 +126,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [InlineData("2013", "AC1027")]
         [InlineData("lt2010", "AC1024")]
         [InlineData("2004(LT2004)", "AC1018")]
+        [InlineData("2000", "AC1015")]
         public void AnOlderFormatOfTheDwg_ThenAName_SavesADwgOfThatVersion(string typed, string version)
         {
             CadCommandSession session = NewDwg(out CadDocument document);

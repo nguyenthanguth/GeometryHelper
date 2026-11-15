@@ -56,6 +56,7 @@ namespace GeometryHelper.Dwg
         private DwgBitWriter _handles;
         private DwgRecord _record;
         private Dictionary<ulong, DwgRecord> _leaders;
+        private Dictionary<ulong, KeyValuePair<ulong, ulong>> _links;
 
         /// <summary>
         /// An encoder of the records of <paramref name="drawing"/> into objects of <paramref name="version"/> (such as 1032),
@@ -953,10 +954,17 @@ namespace GeometryHelper.Dwg
                 _data.Bit(_record.Type == "REGION" || _record.Type == "3DSOLID" || _record.Type == "BODY");
             }
 
+            ulong previous = 0;
+            ulong next = 0;
+            bool noLinks = false;
+
             if (!R2004Plus)
             {
-                // No links: AutoCAD finds the next entity of an owner from the owner's list from R2004, and before from these.
-                _data.Bit(false);
+                // The links to the entity before and after in its owner's list, which AutoCAD finds from the owner's list from
+                // R2004 and keeps in the entities before; left out where they are the handles one before and one after.
+                Links(out previous, out next);
+                noLinks = previous != 0 && next != 0 && previous + 1 == _record.Handle && next - 1 == _record.Handle;
+                _data.Bit(noLinks);
             }
 
             if (mode == 0)
@@ -966,10 +974,10 @@ namespace GeometryHelper.Dwg
 
             WriteReactors();
 
-            if (!R2004Plus)
+            if (!R2004Plus && !noLinks)
             {
-                _handles.Handle(4, 0);
-                _handles.Handle(4, 0);
+                _handles.RelativeHandle(_record.Handle, previous);
+                _handles.RelativeHandle(_record.Handle, next);
             }
 
             WriteEntityColour(all);
@@ -1035,6 +1043,49 @@ namespace GeometryHelper.Dwg
             if (hasPlotStyle || nullPlotStyle)
             {
                 H(5, hasPlotStyle ? plotStyle : 0);
+            }
+        }
+
+        /// <summary>
+        /// The handles of the written entities before and after the entity in the list it is in (the entities of its block, the
+        /// vertices or attributes of its POLYLINE or INSERT, whose SEQEND is in no list and has none); 0 for the first's before and the last's after.
+        /// </summary>
+        private void Links(out ulong previous, out ulong next)
+        {
+            if (_links == null)
+            {
+                _links = new Dictionary<ulong, KeyValuePair<ulong, ulong>>();
+
+                foreach (List<DwgRecord> list in _drawing.Owned.Values)
+                {
+                    LinkList(list);
+                }
+
+                foreach (DwgRecord holder in _drawing.All)
+                {
+                    if (holder.Owned != null)
+                    {
+                        LinkList(holder.Owned);
+                    }
+                }
+            }
+
+            _links.TryGetValue(_record.Handle, out KeyValuePair<ulong, ulong> pair);
+            previous = pair.Key;
+            next = pair.Value;
+        }
+
+        /// <summary>Records the neighbours of each written entity of a list.</summary>
+        private void LinkList(List<DwgRecord> list)
+        {
+            list = list.FindAll(entity => _written.Contains(entity.Handle));
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                _links[list[i].Handle] = new KeyValuePair<ulong, ulong>(
+                    i > 0 ? list[i - 1].Handle : 0,
+                    i + 1 < list.Count ? list[i + 1].Handle : 0
+                );
             }
         }
 

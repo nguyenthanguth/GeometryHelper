@@ -100,8 +100,8 @@ namespace GeometryHelper.UnitTest.Dwg
 
             using (var stream = new MemoryStream())
             {
-                var refused = Assert.Throws<NotSupportedException>(() => DwgWriter.Write(database, stream, "AC1015"));
-                Assert.Contains("AC1015", refused.Message);
+                var refused = Assert.Throws<NotSupportedException>(() => DwgWriter.Write(database, stream, "AC1021"));
+                Assert.Contains("AC1021", refused.Message);
                 Assert.Equal(0, stream.Length);
             }
         }

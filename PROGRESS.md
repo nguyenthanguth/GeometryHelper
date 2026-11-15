@@ -297,11 +297,14 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] DXF Save As older versions as the DWG path (dxfconv1): ACAD_MLEADERVER on multileaders before R2010, no
         LWPOLYLINE vertex ids before R2010, \U+ escapes as letters from R2007; the DWG path uses the converter (501 DWG
         rewrites byte-identical); DXF output equals AutoCAD 2021 DXFOUT on these points
-  - [ ] (dwgver2, running: DWG R2000) R3.3 follow-ups 2: DWG R2000 (container written, AutoCAD refuses: DIMSTYLE extra bit, LAYOUT 2 null handles,
-        DICTIONARY AUDIT errors; patch in scratch\dwgver1\r2000-wip-with-all-changes.patch) and R2007 (Reed-Solomon, LZ21);
-        -BOUNDARY Region islands and its message (GUI); UNION/SUBTRACT taking the first picked region (selection is kept
-        sorted); a region's grips and UNION's colour reset checked in the GUI; spline edges and non-planar faces; orphan
-        ACDSRECORDs; a parse cache for thousands of regions (M)
+  - [x] DWG Save As R2000 (dwgver2): the 167-file corpus written as AC1015 opens in AutoCAD 2021, 160 at AUDIT 0 and the
+        other 7 with the originals' counts; fixed entity links, MTEXT, DIMSTYLE and LAYOUT bits; R2004+ output unchanged
+        (668 files byte-identical)
+  - [ ] R3.3 follow-ups 3: DWG R2007 (Reed-Solomon, LZ21); non-ASCII text in pre-2007 DWGs as \U+ escapes (AutoCAD's
+        R2004 form; would change R2004 bytes); R2000 VIEWPORT entity header handle and frozen-layer code 5; dictionaries
+        naming left-out objects; -BOUNDARY Region islands and its message (GUI); UNION/SUBTRACT taking the first picked
+        region (selection is kept sorted); a region's grips and UNION's colour reset checked in the GUI; spline edges and
+        non-planar faces; orphan ACDSRECORDs; a parse cache for thousands of regions (M)
 - Round 4, the follow-ups listed below (Dimension, Grips, Dialogs, Xrefs, Layouts, Table editing, PLOT, DXF versions, R12,
   VPCLIP, LAYERP), taken top to bottom, basics first.
   - [x] Dialogs 5 (dialogs5, design v139-v140): Multiline Style (with New/Modify page, Load), Multiline Edit Tools, the
@@ -438,7 +441,7 @@ the ones wanted.
       has one); COPY/MIRROR/ARRAY keep a plain entity's extension dictionary with its entries deep-copied and pointers
       translated, as AutoCAD; an annotative HATCH copy gets its ACDB_HATCHVIEWCONTEXTDATA_CLASS; the MLeader 45-degree
       tolerance is still needed (pinned by a test)
-- [ ] MIRROR follow-ups 5: a hatch copy's scale context moved with it (43 origin, 10/20/30 direction, 53 and 45/46 turned
+- [ ] (mirror5, running) MIRROR follow-ups 5: a hatch copy's scale context moved with it (43 origin, 10/20/30 direction, 53 and 45/46 turned
       or scaled, as AutoCAD); the view context on an annotative hatch moved in place by MOVE; outside 350/360 targets
       cloned with the copy; dictionary entries sorted by name (S)
 - [x] Drafting aids: TK (TRACKING); check TT with OTRACK off, "(need YZ):" input and Enter at a modifier prompt

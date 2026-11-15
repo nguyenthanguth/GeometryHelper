@@ -176,6 +176,24 @@ namespace GeometryHelper.Dwg
             return preview.ToArray();
         }
 
+        /// <summary>
+        /// The preview of a file of AutoCAD 2000 that has no picture, as AutoCAD 2021 writes it: the header of 80 zero bytes
+        /// (kind 1) alone, 126 bytes with the sentinels, whose data begins at <paramref name="address"/> in the file.
+        /// </summary>
+        public static byte[] BuildEmpty(long address)
+        {
+            var preview = new MemoryStream();
+            preview.Write(Start, 0, Start.Length);
+            preview.Write(BitConverter.GetBytes(1 + 9 + HeaderSize), 0, 4);
+            preview.WriteByte(1);
+            preview.WriteByte(HeaderKind);
+            preview.Write(BitConverter.GetBytes((int)(address + Start.Length + 5 + 9)), 0, 4);
+            preview.Write(BitConverter.GetBytes(HeaderSize), 0, 4);
+            preview.Write(new byte[HeaderSize], 0, HeaderSize);
+            preview.Write(End, 0, End.Length);
+            return preview.ToArray();
+        }
+
         private static bool Matches(byte[] file, long at, byte[] sentinel)
         {
             for (int i = 0; i < sentinel.Length; i++)

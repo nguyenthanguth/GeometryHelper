@@ -26,8 +26,8 @@ namespace GeometryHelper.Dxf.Viewer
             new Format("AC1032", "2018(LT2018)", "2018", "LT2018", "2018(LT2018)"),
         };
 
-        // The formats of the DWG the prompt lists, as the version it stands for, how it is listed and how it is typed. R14, 2000
-        // and 2007 are listed as AutoCAD lists them and refused, since the DWG writer writes 2004 and later only.
+        // The formats of the DWG the prompt lists, as the version it stands for, how it is listed and how it is typed. R14
+        // and 2007 are listed as AutoCAD lists them and refused, since the DWG writer writes 2000, 2004, 2010, 2013 and 2018 only.
         private static readonly Format[] DwgChoices =
         {
             new Format("AutoCAD R14(LT98/LT97) Drawing", "R14(LT98&LT97)", "R14", "LT98", "LT97", "R14(LT98&LT97)"),
@@ -82,7 +82,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// SAVEAS: the window's Save Drawing As dialog; with FILEDIA 0 or no window, "Current file format" and "Enter file format
-        /// [R14(LT98&amp;LT97)/2000(LT2000)/.../2018(LT2018)/Dxf/Template/Standards] &lt;2018&gt;:", the DWG of AutoCAD 2018, 2013, 2010 or 2004 and
+        /// [R14(LT98&amp;LT97)/2000(LT2000)/.../2018(LT2018)/Dxf/Template/Standards] &lt;2018&gt;:", the DWG of AutoCAD 2018, 2013, 2010, 2004 or 2000 and
         /// Dxf the formats it writes; Dxf asks its settings, the version among them, then the file, which is handed to the window to
         /// save, or saved here with no window.
         /// </summary>
@@ -159,7 +159,7 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     c.Write(
                         dwg[0].Key
-                            + " (*.dwg) is not written: a DWG is saved as AutoCAD 2018, 2013, 2010 or 2004 (2018, 2013, 2010, 2004)."
+                            + " (*.dwg) is not written: a DWG is saved as AutoCAD 2018, 2013, 2010, 2004 or 2000 (2018, 2013, 2010, 2004, 2000)."
                     );
                     yield break;
                 }

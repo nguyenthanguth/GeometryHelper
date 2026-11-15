@@ -19,6 +19,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             "AutoCAD 2013/LT2013 Drawing (*.dwg)",
             "AutoCAD 2010/LT2010 Drawing (*.dwg)",
             "AutoCAD 2004/LT2004 Drawing (*.dwg)",
+            "AutoCAD 2000/LT2000 Drawing (*.dwg)",
             "AutoCAD 2018 DXF (*.dxf)",
             "AutoCAD 2013/LT2013 DXF (*.dxf)",
             "AutoCAD 2010/LT2010 DXF (*.dxf)",
@@ -50,12 +51,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Theory]
-        [InlineData("AC1032", 4)]
-        [InlineData("AC1027", 5)]
-        [InlineData("AC1024", 6)]
-        [InlineData("AC1021", 7)]
-        [InlineData("AC1018", 8)]
-        [InlineData("AC1015", 9)]
+        [InlineData("AC1032", 5)]
+        [InlineData("AC1027", 6)]
+        [InlineData("AC1024", 7)]
+        [InlineData("AC1021", 8)]
+        [InlineData("AC1018", 9)]
+        [InlineData("AC1015", 10)]
         public void SaveAs_OffersTheDwgAndEveryDxfVersion_TheTypeOfTheDrawingsOwnVersionChosen(
             string version,
             int chosen
@@ -80,9 +81,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             {
                 MainViewModel model = Opened(folder, "AC1032");
 
-                Assert.True(model.SaveAs(Path.Combine(folder.FullPath, "old.dxf"), Types[7]));
+                Assert.True(model.SaveAs(Path.Combine(folder.FullPath, "old.dxf"), Types[8]));
 
-                Assert.Equal(Types[7], model.CreateSaveAsJob().FileType);
+                Assert.Equal(Types[8], model.CreateSaveAsJob().FileType);
                 Assert.Equal(Types, model.CreateSaveAsJob().FileTypes);
             }
         }
@@ -116,7 +117,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     {
                         CadExportJob job = model.CreateSaveAsJob();
                         job.FileName = path;
-                        job.FileType = Types[4 + Array.IndexOf(Versions, Versions[i])];
+                        job.FileType = Types[5 + Array.IndexOf(Versions, Versions[i])];
                         model.SaveAs(job.FileName, job.FileType);
                     };
 
@@ -138,7 +139,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 MainViewModel model = Opened(folder, "AC1032");
                 string path = Path.Combine(folder.FullPath, "plan2010.dxf");
 
-                Assert.True(model.SaveAs(path, Types[6]));
+                Assert.True(model.SaveAs(path, Types[7]));
                 model.Document.ModelSpace.Block.AppendEntity(
                     new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(10, 50, 0))
                 );
@@ -156,7 +157,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             using (var folder = new TestFolder())
             {
                 MainViewModel model = Opened(folder, "AC1032");
-                Assert.True(model.SaveAs(Path.Combine(folder.FullPath, "a.dxf"), Types[7]));
+                Assert.True(model.SaveAs(Path.Combine(folder.FullPath, "a.dxf"), Types[8]));
                 string dwg = Path.Combine(folder.FullPath, "a.dwg");
 
                 Assert.True(model.SaveAs(dwg, Types[0]));
@@ -174,7 +175,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 MainViewModel model = Opened(folder, "AC1032");
                 string dwg = Path.Combine(folder.FullPath, "a.dwg");
 
-                Assert.False(model.SaveAs(dwg, Types[6]));
+                Assert.False(model.SaveAs(dwg, Types[7]));
 
                 Assert.False(File.Exists(dwg));
                 Assert.Contains(model.History, l => l.StartsWith("Cannot save " + dwg + ":", StringComparison.Ordinal));
@@ -208,7 +209,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.True(model.Open(folder.WriteText("styled.dxf", text.Insert(line, style))));
                 string path = Path.Combine(folder.FullPath, "styled2000.dxf");
 
-                Assert.True(model.SaveAs(path, Types[9]));
+                Assert.True(model.SaveAs(path, Types[10]));
 
                 Assert.Contains(model.History, l => l.Contains("VISUALSTYLE 1") && l.Contains("AC1015"));
                 Assert.DoesNotContain("VISUALSTYLE", File.ReadAllText(path));

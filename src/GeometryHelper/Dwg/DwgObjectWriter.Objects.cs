@@ -712,11 +712,12 @@ namespace GeometryHelper.Dwg
             H(4, block);
             H(4, layout.Handle(331));
 
+            // The base UCS and the named UCS, which no DXF group names, from R2000 on.
+            H(5, 0);
+            H(5, 0);
+
             if (R2004Plus)
             {
-                H(5, 0);
-                H(5, 0);
-
                 foreach (DwgRecord viewport in viewports)
                 {
                     H(4, viewport.Handle);
