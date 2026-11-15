@@ -385,10 +385,13 @@ User note 2026-11-12 evening (note.md 1-14):
       SetTextString 3.6 s / 13.5 GB -> 0.44 s / 491 MB), one mechanism with tables8's last-cell splice; the completed
       copy opened from bytes and its tables found by handle (save after an edit of 100 000 lines + a table 157 -> 52 ms);
       NormalizeEdges' style by handle; saved bytes identical (71 000 fuzz saves, 167 samples)
-- [ ] (dxfver13, running: ResetValue/SetCellType, first-save index, open walk, SetGridColor, MTextLayout lock) DXF versions follow-ups 13: ResetValue and SetCellType still whole-record (931 resets 8-10 s; the last cell's end
-      from a fresh parse of the tail would allow them); the first save's index of the original's entities (~55 ms at
-      100 000); the copy's open walk (25-30 ms for 15 MB); the SetGridColor family copying the record per call;
-      MTextLayoutTests' shared temp fonts file locked between parallel tests; real TABLEGEOMETRY and row heights (font
+- [x] DXF versions follow-ups 13 (dxfver13): ResetValue, SetCellType and the SetGridColor family patch only the cells
+      they change (931 resets 4.0 s / 6.3 GB -> 4 ms / 6 MB; 931 SetGridColor 206 -> 16 ms; 10 000 cells' lines 11.7 s ->
+      82 ms); the first save finds written tables in one walk (57 -> 9 ms at 100 000); a stale last-cell end that put a
+      text into the table's own value fixed (60 of 4 000 fuzz seeds); MTextLayout fonts already per test
+- [ ] DXF versions follow-ups 14: the copy's open walk (25-30 ms for 15 MB); table-level SetGridColor(color, borders,
+      rows) still whole-record; the session-made first save (~110 ms at 100 000); first read of a native table
+      (PlacesOfCells); a SetCellType speed test (block cell built in code); real TABLEGEOMETRY and row heights (font
       metrics); native R2000/R2004 table drawings; block-cell, field and link content; hidden bottom/left lines in
       R2000/R2004; tolerant sweep_sur; blend/network surfaces and helix sweeps (M)
 - [x] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)

@@ -6,6 +6,35 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A text set in the last cell of a table could be written into the table's own groups. The last cell of a table ends where the
+table's own groups begin, which the flags it holds decide (an override its flags give it is its own, the same override of the table's is
+not), and the library kept that place from the first reading of the record; an edit of the cell that changed its flags left the place
+behind, so that the next edit read the groups of the table as the cell's. On a table of 2 rows and 2 columns, `SetGridColor(1, 1,
+HorizontalBottom, ...)`, `SetOverrides(1, 1, 0, 0x3F)` and `SetTextString(1, 1, "zzz")` left `TextString(1, 1)` empty on .NET Framework 4.8
+and .NET 10, the text having gone into the value that follows the cell, the table's own; it reads "zzz" now. The end of the last cell is found
+again from the record after each write of the cell, as a reading of the record places it, the last cell still written by its own bytes (1 000
+calls on the last cell of a table of 1 000 cells stay within 4 s, as before). Found by making the same random edits on a record read anew
+before each of them, which reads it whole: 60 of 4 000 random drawings (109 of their 99 000 saved lines) differed, on both runtimes, in the
+bytes of a last cell; the saved bytes now equal those of the whole reading in 14 000 random drawings (49 870 saves on .NET 10) and in 316
+saves of the 30 drawings with tables among AutoCAD's 167 sample drawings; on .NET Framework 4.8 the same 60 drawings differ from before. Nine runs of 60
+edits of every setter that writes a cell, the last cell among them, in `DxfSpeed13Tests`, 7 of them differing before, and the three versions of the table of 2 rows and 2 columns above.
+**CHANGED.** `ResetValue`, `SetCellType` and the lines of a cell (`SetGridColor`, `SetGridLineWeight`, `SetGridVisibility` and
+`SetGridProperty` of a cell) are written into the place of the cell's own bytes, as `SetTextString`, `SetFormat` and the other setters of a
+cell are: the bytes of the cells they change are kept apart from the record and put in once when it is next read, where each call read and
+wrote every group of the record or copied its bytes, its groups and the places of its groups. The reset of each of the 931 cells of a table of
+49 rows by 19 columns takes 4 ms and 6 MB in place of 4.0 s and 6.3 GB on .NET Framework 4.8 (9 ms and 5 MB in place of 3.3 s and 6.2 GB on
+.NET 10), the lines (the bottom and right of each) 16 ms and 19 MB in place of 206 ms and 673 MB (24 ms and 16 MB in place of 146 ms and 415
+MB), their showing 24 ms and 49 MB in place of 295 ms and 814 MB (50 ms and 40 MB in place of 180 ms and 499 MB); 10 000 cells, 50 rows by 200 columns, take 33 ms and 62 MB for the reset and
+82 ms and 204 MB for the lines (98 ms and 57 MB, 0.21 s and 174 MB on .NET 10, where the lines took 11.7 s and 46 GB). The cells a call needs
+(the cells beside the one set, the cells of a merged block) are read from their own bytes, each once; a cell whose content's looks are weighed
+by `ResetValue` takes the rows of the table from the layout read last. A record written otherwise than whole by the library (a table read
+from a file and not yet edited) is read and written as before. The saved bytes are the same: the hashes of the 931 resets and of the lines
+and their showing agree with those of the library before, the fuzz above, and the tests of `DxfSpeed12Tests` and `DxfTableCellSetterSpliceTests`.
+**CHANGED.** The first save after an edit of a drawing that holds a table written in the session no longer indexes every entity of the
+drawing by its handle to ask whether the table needs its content made: the tables written are found among the records by their type, in one
+walk that reads the handle of no other entity (`TryGetObject` made the index, 55 ms of the first save for 100 000 lines). A drawing of
+100 000 lines (10 MB) with a table, opened, enumerated and saved after one edit, takes 9 ms and 40 MB for the first save in place of 57 ms and 52
+MB on .NET Framework 4.8 (9 ms in place of 60 on .NET 10); the file saved is the same to the byte (hash 939605231CB81D...).
 **FIXED.** The rule behind the leader band of an angle's words reads every arc from 2.5 landings out (it was 5.5), where the fit it
 replaced was worse in 11 of the 12 styles probed at 30 out. What the rule had left at 30 out is the landing's sagitta (the landing squared
 over the radius) again, by the direction of the point and the side of the circle (a table at every 10 degrees: up to 0.35 of it wider than

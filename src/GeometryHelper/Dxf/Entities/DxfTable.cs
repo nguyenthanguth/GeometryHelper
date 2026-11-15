@@ -1963,6 +1963,24 @@ namespace GeometryHelper.Dxf
             }
         }
 
+        /// <summary>A cell's row and column checked against the table's rows and columns and the cells its record holds, as <see cref="Layout.CellOf"/> checks them.</summary>
+        private static void CheckCell(int row, int col, int rows, int columns, int count)
+        {
+            CheckIndex(row, rows, nameof(row), "row");
+            CheckIndex(col, columns, nameof(col), "column");
+
+            if (row * columns + col >= count)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(row),
+                    row,
+                    "The table's record holds "
+                        + count.ToString(CultureInfo.InvariantCulture)
+                        + " cells, fewer than its rows by its columns."
+                );
+            }
+        }
+
         private static void CheckContent(int contentIndex)
         {
             if (contentIndex != 0)
@@ -2041,7 +2059,7 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The table's head and cells, as the list of its own groups places them.</summary>
-        private sealed class Layout
+        private sealed class Layout : ICells
         {
             internal Layout(DxfDimGroups groups)
             {
@@ -2074,7 +2092,8 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
-                CellsEnd = CellStart.Count == 0 ? head.To : EndOfLast(CellStart[CellStart.Count - 1], sub.To);
+                CellsEnd =
+                    CellStart.Count == 0 ? head.To : EndOfLast(groups.List, CellStart[CellStart.Count - 1], sub.To);
             }
 
             // The groups of a cell before its own overrides: its kind, flags, merging, turn, field, text, block and attributes.
@@ -2128,8 +2147,10 @@ namespace GeometryHelper.Dxf
             /// Where the last cell ends and the table's own part begins: after its head, its value (301 to 304) and the overrides
             /// its flags give it, each once; the first group of no cell, or an override its flags do not give, is the table's. The
             /// link to data of a text cell, straight after its odd 92 (340, 93, 94, 96), is the cell's; a 93 anywhere else is not.
+            /// The groups are a list's, the cell's first at <paramref name="from"/>, read up to <paramref name="to"/>: the table's
+            /// own, or those of a cell as it is to be written with those that follow it.
             /// </summary>
-            private int EndOfLast(int from, int to)
+            internal static int EndOfLast(List<KeyValuePair<int, string>> list, int from, int to)
             {
                 int? flags = null;
                 var taken = new HashSet<int>();
@@ -2137,11 +2158,11 @@ namespace GeometryHelper.Dxf
 
                 while (i < to)
                 {
-                    int code = Groups.List[i].Key;
+                    int code = list[i].Key;
 
-                    if (code == 301 && Groups.List[i].Value.Trim() == "CELL_VALUE")
+                    if (code == 301 && list[i].Value.Trim() == "CELL_VALUE")
                     {
-                        while (i < to && Groups.List[i].Key != 304)
+                        while (i < to && list[i].Key != 304)
                         {
                             i++;
                         }
@@ -2156,7 +2177,7 @@ namespace GeometryHelper.Dxf
                             (code == 177 || code == 91)
                             && flags == null
                             && int.TryParse(
-                                Groups.List[i].Value.Trim(),
+                                list[i].Value.Trim(),
                                 NumberStyles.Integer,
                                 CultureInfo.InvariantCulture,
                                 out int read
@@ -2166,7 +2187,7 @@ namespace GeometryHelper.Dxf
                             flags = read;
                         }
 
-                        i += code == 92 && IsTextCell(Groups.List, from) ? 1 + LinkRun(Groups.List, i, to) : 1;
+                        i += code == 92 && IsTextCell(list, from) ? 1 + LinkRun(list, i, to) : 1;
                         continue;
                     }
 
@@ -2231,23 +2252,17 @@ namespace GeometryHelper.Dxf
             /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's.</exception>
             internal CellView CellOf(int row, int col)
             {
-                CheckIndex(row, Rows, nameof(row), "row");
-                CheckIndex(col, Columns, nameof(col), "column");
-                int index = row * Columns + col;
-
-                if (index >= CellStart.Count)
-                {
-                    throw new ArgumentOutOfRangeException(
-                        nameof(row),
-                        row,
-                        "The table's record holds "
-                            + CellStart.Count.ToString(CultureInfo.InvariantCulture)
-                            + " cells, fewer than its rows by its columns."
-                    );
-                }
-
+                CheckCell(row, col, Rows, Columns, CellStart.Count);
                 return CellAt(row, col);
             }
+
+            int ICells.Rows => Rows;
+
+            int ICells.Columns => Columns;
+
+            int ICells.Count => CellStart.Count;
+
+            CellView ICells.CellAt(int row, int col) => CellAt(row, col);
 
             /// <summary>The cell of a row and a column, from its 171 to the next cell's, the last up to the table's own part.</summary>
             internal CellView CellAt(int row, int col)
