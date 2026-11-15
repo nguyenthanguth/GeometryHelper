@@ -6,6 +6,36 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Arc length dimensions (DIMARC) in the presenter put the arrowheads outside with the words on arcs of more than half a
+circle where AutoCAD 2021 does, and follow it on the room the arc symbol takes at wide sweeps and just past 90 degrees (measured on
+its console: some 19 600 more dimensions made by both; the counts are differing pictures before and after). Level words outside such
+an arc take both arrowheads out with them where the box of the words (the symbol before them counted) stands within 0.9 DIMGAP of an
+arrowhead that would stand in, and the arc's middle, to the half turn, points from a direction on: 101.5 degrees for a box (words,
+symbol and two gaps) 0.93 wide, 30 degrees less for each unit wider, and 40 more for each unit the radius is past 0.3 (in text
+heights, so scaled with the text); not below 100.2 degrees up to 185 degrees of sweep. The arc of 1 through 181 degrees put 0.45 out
+has its arrowheads outside from 20 to 30 degrees from the horizontal (with the symbol, from 10 to 30), in at 10 and at 40, and the
+same half a turn on; a wider DIMGAP keeps them out further (DIMGAP 0.18, symbol, through 204 degrees from 0: out to 0.68, in from
+0.70; DIMGAP 0.09 to 0.42). Their landing is then an arrowhead along the arc from the first ray, not two: from 20 degrees put 0.3
+out, no symbol, the words stand at (-0.353, -0.0772). Of the 1 929 pictures with the words outside that fitted this, 669 have the
+arrowheads out too, which all differed before, and 41 differ from the rule. Sets (differing, before then after): sweeps 181 to 350 (1 296)
+114, now 87; the distance finely, sweeps 181 to 300 (4 284) 319, now 208; where the words stop going outside (1 488) 147, now 126; the
+text, DIMGAP and DIMASZ variants (2 576) 299, now 70; the direction by 5 degrees, sweeps 181, 200 and 215 (1 296, new) 345, now 192;
+the sizes of the box and gap at 200 degrees (456, new) 199, now 112; exact half circles (288, 252) 29, now 12 and 30, now 14. The arc
+symbol's room at wide sweeps (100 to 165 degrees, DIMARCSYM 0, level words) counts for more by 4.3 units for each unit DIMGAP is short
+of half the text's height and for less past it, DIMASZ taking no part: the arc of 1 through 120 degrees from 10 keeps its words in
+from 1.34 out for text 0.36 and DIMGAP 0.045, from 1.01 out for text 0.18 and DIMGAP 0.18 (7 236 pictures, new: 315, now 240; the
+arcs of 1 and 3, text 0.18 and 0.36, 8 440: 140, now 113). The room both arrowheads want beside level words with the symbol on sweeps
+from 90 to 115 degrees is 0.55 of what was fitted (0.2475 of the words' height at 100 degrees, not 0.45) within the window of the
+arc's middle direction, and the whole of it within 5 degrees of its edges, as probed again with the put distance by 0.01 where the
+earlier fit used 0.02: arcs of 1 from 0 to 60 degrees, sweeps 90.01 to 98 (3 315, new) 154, now 115, and from 20 to 30 degrees,
+sweeps 98 to 114 (1 836, new) 94, now 56; the old probe of 10 074 270, now 256. Aligned words and DIMJUST 1 and 2 past a half circle
+were probed to 0.01 (arcs of 1 from 0, 100 and 250 degrees, sweeps 181 to 250, 5 508 pictures): where the words and arrowheads come in
+is AutoCAD's in 5 352, the 156 others standing one or two hundredths in the distance off; not changed. Every other set of
+probes, of the 113 older ones, is as it was or nearer (104 of the 113 byte for byte; better: a5 33 to 30, aq 137 to 132, taq 126 to
+111, tar24 862 to 858, tar24s 74 to 70, tw17 6 to 0, with the three above; none worse). Not as AutoCAD yet: the lower edge of the middle direction for the
+arrowheads outside (it moves with the distance, the box and the sweep; 41 of 1 929), the arc point of aligned words outside such an
+arc (a third of the way round near the arc, two thirds a few hundredths further out: from 0.32 at 181 degrees to 0.37 at 200; DIMJUST
+1 and 2 have more changes of it), and the words' rotation and place beside a ray, a few thousandths off.
 **CHANGED.** WMFIN gives a pen's or brush's colour the index AutoCAD 2021's console gives it, where it gave the nearest index of the
 colours the indexes show on screen. AutoCAD's own palette for it, found by probing 72 000 colours through the console (a metafile of
 16 000 pens at a time; the header's object count must cover them all), has the 24 hues of ten indexes each at the levels 166, 128, 76

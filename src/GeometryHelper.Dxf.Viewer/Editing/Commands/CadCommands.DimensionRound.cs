@@ -1032,6 +1032,10 @@ namespace GeometryHelper.Dxf.Viewer
         // An arc this many landings out or more has the leader of its words read by WordsStayOnTheArc, a nearer one by the fit.
         private const double BigArc = 5.5;
 
+        // How much of the room the symbol takes on wide sweeps (AngularLaidOut, symbolBend) is lost for each unit DIMGAP is past
+        // half the words' height, and gained for each unit short of it.
+        private const double GapBend = 4.3;
+
         /// <summary>
         /// Whether the words of an angle put at <paramref name="at"/> get no leader on a large arc: AutoCAD 2021 keeps them on it
         /// where some point of the circle (<paramref name="radius"/> about <paramref name="vertex"/>) has the sum of its distances to
@@ -1308,6 +1312,7 @@ namespace GeometryHelper.Dxf.Viewer
                         + (radius * between - 2.0 * radius * Math.Sin(between / 2.0)) / 3.0
                 : 2.0 * radius + (radius * between - 2.0 * radius) / 3.0;
             DxfMText text = (DxfMText)Words(style, default, 0.0, height, words, scale);
+            double written = height;
             // The words laid out as high as the font measures them, past the height their text is written with.
             double width = WordsWidth(style, words, height, out height);
             var round = new RoundWords(style, scale, height, gap, width);
@@ -1365,20 +1370,20 @@ namespace GeometryHelper.Dxf.Viewer
                     // the arc's middle as the sweep widens, 0.214 degrees for each degree of sweep from 13 (the arcs of 10 above):
                     // probed with arcs of 1 from 0 to 180 degrees by 2.5, sweeps 100 and 110, DIMARCSYM 0, put 0.5 to 1.4 out by
                     // 0.02, both arrowheads came in 0.04 to 0.06 further out than the words alone gave them room for the middle
-                    // directions 56 to 83 degrees at 100 degrees of sweep and 55 to 80 at 110 (0.45 of the words' height, 0.39),
-                    // and none at 90 (0.005 nearer) or from 120 on (the arc from 10 to 130 put 0.7 out takes them as it should).
+                    // directions 56 to 83 degrees at 100 degrees of sweep and 55 to 80 at 110 (0.45 of the words' height, 0.39), and
+                    // none from 120 on (the arc from 10 to 130 put 0.7 out takes them as it should). Probed again with the put
+                    // distance by 0.01 (arcs of 1 from 0 to 60 degrees by 5, sweeps 90.01 to 98 and from 20 to 30 degrees, sweeps 98 to
+                    // 114, 5 151 pictures; DIMARCSYM 0), both arrowheads came in 0.01 to 0.04 earlier than that across the window, but
+                    // not within 5 degrees of its edges (from 7.5 to 10 degrees and from 30 to 32.5 for the sweep of 100): the amount
+                    // is 0.55 of it, 0.2475 of the words' height at 100 degrees, with the whole of it at the edges. 248 of the 5 151
+                    // differed, now 171.
                     double degrees = sweep * 180.0 / Math.PI;
                     double wanted = Math.Max(0.0, 0.45 - 0.006 * (degrees - 100.0));
-                    bothExtra =
-                        degrees >= 116.0
-                            ? 0.0
-                            : height
-                                * wanted
-                                * LevelAlongChord(
-                                    from + sweep / 2.0,
-                                    width + before + 2.0 * gap,
-                                    0.214 * (degrees - 13.2)
-                                );
+                    double box = width + before + 2.0 * gap;
+                    double moved = 0.214 * (degrees - 13.2);
+                    double window = LevelAlongChord(from + sweep / 2.0, box, moved);
+                    double inner = LevelAlongChord(from + sweep / 2.0, box, moved, 5.0);
+                    bothExtra = degrees >= 116.0 ? 0.0 : height * wanted * (0.55 * window + 0.45 * (window - inner));
                 }
             }
 
@@ -1397,7 +1402,8 @@ namespace GeometryHelper.Dxf.Viewer
                 double tallest = before / 1.8;
                 double past = sweep - 100.0 * Math.PI / 180.0;
                 double sine = levelInside ? Math.Abs(Math.Sin(from + sweep / 2.0)) : 1.0;
-                symbolBend = Math.Max(0.0, 0.092 + 0.0602 * past + 0.124 * past * past) * sine * tallest;
+                double size = Math.Max(0.0, tallest + GapBend * (written / 2.0 - gap));
+                symbolBend = Math.Max(0.0, 0.092 + 0.0602 * past + 0.124 * past * past) * sine * size;
             }
 
             double needFit = needText + symbolBend;
@@ -1845,9 +1851,81 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 // Outside past the first ray (the second for DIMJUST 1): the arc run on, then a line along it to the words.
                 bool second = style.Dimjust == 1;
+                bool arrowsBeside = false;
                 wordsFirst = !second;
+
+                // Level words past a half turn that the arrowheads inside would stand too near send the arrowheads outside as well:
+                // probed with arcs of 1 from 0 to 355 degrees by 5, sweeps 181 to 250, put 0.3 to 1.2 out, with and without the
+                // symbol, and by the text, arrowhead and gap sizes (1 929 pictures with the words outside, 669 of them with the
+                // arrowheads out too), they went out where the words' box (the symbol before them counted) came within 0.9 gaps of
+                // an arrowhead standing in and the arc's middle pointed, to the half turn, from a direction on: 101.5 degrees for
+                // a box (the words, the symbol and two gaps) 0.93 wide, 30 degrees less for each unit wider, and 40 more for each
+                // unit the radius is past 0.3 (all measured at text 0.18 high, here in text heights). 41 of the 1 929 differed
+                // from that, 669 from keeping the arrowheads in.
+                if (arrowsInside && arcLength && !turned.HasValue && style.Dimtoh && reflex && !second && !noRoom)
+                {
+                    double flatNow = -GoesRight(from, sweep);
+                    double upNow =
+                        tad == 4 ? -1.0
+                        : tad == 2 ? Sign(away.Y)
+                        : 1.0;
+                    double shiftNow = round.On(false) ? onOffset : upNow * lift;
+                    GeoPoint2 beside =
+                        vertex
+                        + Heading(from - ChordTurn(radius, arrow)) * radius
+                        + new GeoVector2(flatNow * (arrow + gap + before + width / 2.0), shiftNow);
+                    double middleDegrees = middle * 180.0 / Math.PI;
+                    middleDegrees -= Math.Floor(middleDegrees / 180.0) * 180.0;
+                    double lowest =
+                        101.5 - 5.5 * ((width + before + 2.0 * gap) / height - 5.06) + 7.35 * (radius / height - 1.63);
+
+                    if (sweep < 185.0 * Math.PI / 180.0)
+                    {
+                        // Just past the half turn it is not lower than 100.2: the arc of 1 from 10 degrees through 180, 180.0001
+                        // and 180.01 (a middle at exactly 100), put 0.3 to 0.51 out, keeps the arrowheads in, through 181 (100.5) it
+                        // takes them out.
+                        lowest = Math.Max(lowest, 100.2);
+                    }
+
+                    if (
+                        middleDegrees >= lowest
+                        && (
+                            ArrowHeadNear(
+                                vertex,
+                                radius,
+                                from,
+                                1.0,
+                                trim1,
+                                beside.X - width / 2.0 - before,
+                                beside.Y - height / 2.0,
+                                beside.X + width / 2.0,
+                                beside.Y + height / 2.0,
+                                0.9 * gap
+                            )
+                            || ArrowHeadNear(
+                                vertex,
+                                radius,
+                                to,
+                                -1.0,
+                                trim2,
+                                beside.X - width / 2.0 - before,
+                                beside.Y - height / 2.0,
+                                beside.X + width / 2.0,
+                                beside.Y + height / 2.0,
+                                0.9 * gap
+                            )
+                        )
+                    )
+                    {
+                        arrowsInside = false;
+                        arrowsBeside = true;
+                    }
+                }
+
+                // The landing of such words stays an arrowhead from the arc with the arrowheads outside beside it, as with them in:
+                // the arc of 1 from 20 degrees through 181, put 0.3 out, has its landing 14.9 degrees before the first ray.
                 double clear =
-                    !arrowsInside ? 2.0 * arrow
+                    !arrowsInside && !arrowsBeside ? 2.0 * arrow
                     : noRoom ? 0.0
                     : arrow;
                 double run = clear > 0.0 ? ChordTurn(radius, clear) : 0.0;
@@ -1892,9 +1970,7 @@ namespace GeometryHelper.Dxf.Viewer
                         // An arc length dimension's go by the direction of its first end (the arc's start): to the right where it
                         // points up from the horizontal, to the left where it points down, the other way round past the second
                         // ray (DIMJUST 1); and the room of the arc symbol stands before the words on either side of the landing.
-                        double goes = from + sweep / 3.0;
-                        double s = Math.Sin(goes);
-                        flat = s > 1E-9 || (s >= -1E-9 && Math.Cos(goes) > 0.0) ? 1.0 : -1.0;
+                        flat = GoesRight(from, sweep);
                         flat = second ? -flat : flat;
 
                         if (reflex && !second)
@@ -2030,7 +2106,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// it for the room both arrowheads need beside them: 1 for an arc whose middle points within a window about 90 degrees
         /// (the upper half) or 275 (the lower), 0 elsewhere, falling over 1.5 degrees at either edge. The window is narrower
         /// for a longer box (<paramref name="box"/>, the words, the symbol and two gaps): 74.6 to 101.6 degrees for 1.26 (and
-        /// 259 to 288), 64 to 114 for 0.58.
+        /// 259 to 288), 64 to 114 for 0.58. <paramref name="inset"/> takes that many degrees off either edge.
         /// </summary>
         /// <remarks>
         /// Probed with arcs of 10 from 64 to 104 and 170 to 345 degrees put 12 out (DIMASZ 0.2 and 0.36, chords 1.5 to 2.7 by
@@ -2041,11 +2117,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// had it from 65 to 110: the window's half width is fitted as 4.65 degrees and 11.15 over the box, its middle as 91
         /// less 2.3 times the box, from those two.
         /// </remarks>
-        private static double LevelAlongChord(double toward, double box, double moved = 0.0)
+        private static double LevelAlongChord(double toward, double box, double moved = 0.0, double inset = 0.0)
         {
             double degrees = toward * 180.0 / Math.PI;
             degrees -= Math.Floor(degrees / 360.0) * 360.0;
-            double half = 4.65 + 11.15 / Math.Max(box, 0.1);
+            double half = 4.65 + 11.15 / Math.Max(box, 0.1) - inset;
             double centre = 91.0 - 2.3 * box - moved;
             return Math.Max(
                 Window(degrees, centre - half, centre + half),
@@ -2084,6 +2160,67 @@ namespace GeometryHelper.Dxf.Viewer
             && theta > from + 1E-9
             && theta < to - 1E-9
             && ((breakFrom < firstBack && breakTo > from) || (breakTo > secondBack && breakFrom < to));
+
+        /// <summary>
+        /// 1 where the level words of an arc length dimension outside the arc go to the right of their landing, -1 to the left:
+        /// by the sine of the direction a third of the way round the arc, to the right where it points up.
+        /// </summary>
+        private static double GoesRight(double from, double sweep)
+        {
+            double goes = from + sweep / 3.0;
+            double s = Math.Sin(goes);
+            return s > 1E-9 || (s >= -1E-9 && Math.Cos(goes) > 0.0) ? 1.0 : -1.0;
+        }
+
+        /// <summary>
+        /// Whether an arrowhead standing in at the end of the arc (<paramref name="angle"/>, its back <paramref name="sign"/> times
+        /// its length along the arc) comes within <paramref name="within"/> of the box of words: the arrowhead a triangle a third
+        /// as wide as it is long.
+        /// </summary>
+        private static bool ArrowHeadNear(
+            GeoPoint2 vertex,
+            double radius,
+            double angle,
+            double sign,
+            double length,
+            double left,
+            double bottom,
+            double right,
+            double top,
+            double within
+        )
+        {
+            if (length <= 0.0)
+            {
+                return false;
+            }
+
+            GeoPoint2 tip = vertex + Heading(angle) * radius;
+            GeoPoint2 back = vertex + Heading(angle + sign * ChordTurn(radius, length)) * radius;
+            GeoVector2 along = UnitOf(tip - back);
+            GeoVector2 side = new GeoVector2(-along.Y, along.X) * (length / 6.0);
+            GeoPoint2[] corners = { tip, back + side, back - side };
+
+            for (int i = 0; i < 3; i++)
+            {
+                GeoPoint2 p = corners[i];
+                GeoVector2 s = corners[(i + 1) % 3] - p;
+
+                for (int k = 0; k <= 16; k++)
+                {
+                    GeoPoint2 q = p + s * (k / 16.0);
+                    double dx = Math.Max(Math.Max(left - q.X, q.X - right), 0.0);
+                    double dy = Math.Max(Math.Max(bottom - q.Y, q.Y - top), 0.0);
+
+                    if (Math.Sqrt(dx * dx + dy * dy) < within)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
 
         /// <summary>An angle brought within a turn above <paramref name="from"/>, so that it can be compared with the sweep that starts there.</summary>
         private static double AlongSweep(double angle, double from)
