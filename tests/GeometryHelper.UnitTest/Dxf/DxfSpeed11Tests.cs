@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -135,25 +134,32 @@ namespace GeometryHelper.UnitTest.Dxf
         public void TheTextOfEveryCellOfATableOf1500Cells_SetOneByOne_TakesSecondsNotMinutes()
         {
             // Each cell cost a reading and a writing of every group of the record: 8 ms at 1 000 cells, 12 s for these 1 500.
-            DxfDatabase db = Metric();
-            var table = new DxfTable(new GeoPoint3(0, 0, 0), 150, 10, 9.0, 30.0);
-            db.ModelSpace.AppendEntity(table);
-            var clock = Stopwatch.StartNew();
-
-            for (int r = 0; r < 150; r++)
-            {
-                for (int c = 0; c < 10; c++)
+            DxfTable table = null;
+            SpeedGuard.AssertWithin(
+                5,
+                () =>
                 {
-                    table.SetTextString(r, c, "cell " + (r * 10 + c));
-                }
-            }
+                    DxfDatabase db = Metric();
+                    table = new DxfTable(new GeoPoint3(0, 0, 0), 150, 10, 9.0, 30.0);
+                    db.ModelSpace.AppendEntity(table);
 
-            clock.Stop();
+                    return table;
+                },
+                made =>
+                {
+                    for (int r = 0; r < 150; r++)
+                    {
+                        for (int c = 0; c < 10; c++)
+                        {
+                            made.SetTextString(r, c, "cell " + (r * 10 + c));
+                        }
+                    }
+                }
+            );
 
             Assert.Equal("cell 1234", table.TextString(123, 4));
             Assert.Equal("cell 1499", table.TextString(149, 9));
             Assert.Equal("cell 0", table.TextString(0, 0));
-            Assert.True(clock.Elapsed < TimeSpan.FromSeconds(5), "took " + clock.Elapsed);
         }
 
         [Fact]

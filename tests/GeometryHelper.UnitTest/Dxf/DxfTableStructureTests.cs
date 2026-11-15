@@ -1492,25 +1492,32 @@ namespace GeometryHelper.UnitTest.Dxf
                 + "142\n40.0\n142\n30.0\n"
                 + cells
                 + " 40\n1.5\n  0\nENDSEC\n  0\nEOF\n";
-            DxfDatabase db = DxfDatabase.Parse(text);
-            DxfTable table = Table(db);
-            var watch = System.Diagnostics.Stopwatch.StartNew();
+            DxfDatabase db = null;
+            SpeedGuard.AssertWithin(
+                10,
+                () =>
+                {
+                    db = DxfDatabase.Parse(text);
 
-            table.InsertRowsAndInherit(8000, 0, 16000);
-            table.DeleteRows(8000, 16000);
-            table.InsertColumns(1, 20.0, 1);
-            table.SetGridProperty(
-                table.Cells,
-                DxfGridLineType.AllGridLines,
-                new DxfGridPropertyParameter { PropertyMask = DxfGridProperties.Color, Color = Aci(1) }
-            );
-            table.MergeCells(new DxfCellRange(16000, 0, 16000, 2));
-            table.Fill(new DxfCellRange(1, 1, 16000, 1), new DxfCellRange(0, 1, 0, 1), DxfTableFillOptions.CopyFormat);
-
-            watch.Stop();
-            Assert.True(
-                watch.Elapsed.TotalSeconds < 10.0,
-                "Six changes of the structure of 32 002 cells took " + watch.Elapsed.TotalSeconds + " s."
+                    return Table(db);
+                },
+                table =>
+                {
+                    table.InsertRowsAndInherit(8000, 0, 16000);
+                    table.DeleteRows(8000, 16000);
+                    table.InsertColumns(1, 20.0, 1);
+                    table.SetGridProperty(
+                        table.Cells,
+                        DxfGridLineType.AllGridLines,
+                        new DxfGridPropertyParameter { PropertyMask = DxfGridProperties.Color, Color = Aci(1) }
+                    );
+                    table.MergeCells(new DxfCellRange(16000, 0, 16000, 2));
+                    table.Fill(
+                        new DxfCellRange(1, 1, 16000, 1),
+                        new DxfCellRange(0, 1, 0, 1),
+                        DxfTableFillOptions.CopyFormat
+                    );
+                }
             );
             DxfTable read = Reread(db);
             Assert.Equal(16001, read.NumRows);

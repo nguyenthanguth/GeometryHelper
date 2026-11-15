@@ -51,13 +51,11 @@ namespace GeometryHelper.UnitTest.Solid
             // way they face, and the groups by their normals.
             List<GeoPoint3> points = OnASphere(24000);
 
-            var watch = Stopwatch.StartNew();
-            GeoSolid3 hull = ConvexHull3.Of(points, Thousandth);
-            watch.Stop();
+            GeoSolid3 hull = null;
+            SpeedGuard.AssertWithin(6, () => hull = ConvexHull3.Of(points, Thousandth));
 
             Assert.True(hull.IsClosed(Thousandth));
             Assert.InRange(hull.GetVolume(Thousandth), 0.99 * 4.0 / 3.0 * Math.PI * 1E6, 4.0 / 3.0 * Math.PI * 1E6);
-            Assert.True(watch.Elapsed.TotalSeconds < 6, watch.Elapsed.ToString());
         }
 
         [Fact]

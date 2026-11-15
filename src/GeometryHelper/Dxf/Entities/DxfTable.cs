@@ -65,6 +65,15 @@ namespace GeometryHelper.Dxf
         private int _layoutStart;
         private int _layoutEnd;
 
+        // The cells written into the record's bytes (SpliceCell) since the layout was read, each its place and its groups, in the
+        // order they were written, and the record they left: put into the layout when it is next read (Patched).
+        private const int MostPending = 128;
+        private readonly List<KeyValuePair<int, List<KeyValuePair<int, string>>>> _pending =
+            new List<KeyValuePair<int, List<KeyValuePair<int, string>>>>();
+        private byte[] _pendingBytes;
+        private int _pendingStart;
+        private int _pendingEnd;
+
         // The record the table's lines were last written into by SetLines, whose own groups all stand as the file writes a group
         // (what rewriting every group would leave them as), and where each stands in it: two byte places to a group, its start
         // and the start of the next, from the record's start. Null once the record is another (WrittenRecord, SpliceLines).
@@ -1735,7 +1744,7 @@ namespace GeometryHelper.Dxf
                 || _layoutEnd != record.End
             )
             {
-                _layout = new Layout(Own());
+                _layout = Patched(record) ?? new Layout(Own());
                 _layoutBytes = record.Bytes;
                 _layoutStart = record.Start;
                 _layoutEnd = record.End;

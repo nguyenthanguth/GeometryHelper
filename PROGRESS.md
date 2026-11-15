@@ -188,9 +188,12 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         the run-on with a level landing and the straight leader from the middle (0 wrong of 6 480 bisected probes; the
         leader's reach floor exact); runs made an arrowhead long; the doubled line only with the middle leader; words on a
         level line past an end; tw17/20/23-26/29-31 now 0, tw28 4240 -> 7 ties; harness .claude/gk/annot-harness7
-  - [ ] (annot8, running) Annotative objects 5e: tw19's 64 level words put out by the fit (run to the knee where run_k > 0; s120 l5 n15-16
-        has no rule); tw27's 20 (words over the line by 2.25: arrowheads out and the line twice, or a 6.63 break); exact
-        ties (tw18 2, tw22 1, tw28 7) (S)
+  - [x] Annotative objects 5e (annot8): level words too high for a leader run the line on to the knee's level with a
+        landing (tw19 64 -> 0, tw32 590 -> 0 of 1 152); words over the line break it by the chord of their grown box, or
+        turn the arrowheads out (tw27 20 -> 1); the run to the point's level for words between the extension lines; words
+        put out by the fit and then turned; harness .claude/gk/annot-harness8
+  - [ ] Annotative objects 5f: words exactly on an extension line (tw34 288, tw35 106: AutoCAD's side by rounding);
+        words turned 90 on a line at 20 degrees (tw33 6); exact ties (tw18 2, tw22 1, tw28 7) (S)
   - [x] R2.2 follow-ups (hatch3): -HATCH draW boundary Arc (all AutoCAD's options and prompts), HPGAPTOL bridges along a
         loose end to a piece or another end's ray, Boundary set falling back as AutoCAD; gradient channels truncated (0 of
         1101 wrong), one-colour tint in the core (DxfHatch.TintedColour)
@@ -374,7 +377,7 @@ User note 2026-11-12 evening (note.md 1-14):
       adding 1 600 tables 25.2 s -> 1.3 s (style reads cached); ListForRecompose flushed once; ACIS R2013 saves
       deterministic (the SAT head's empty date, the source's or a hashed GUID; AutoCAD reads all 24 checks, AUDIT 0);
       saved bytes identical (27 168 fuzz saves)
-- [ ] DXF versions follow-ups 12: the copy Complete() reads builds the whole entity index (~40 % of completing a large
+- [ ] (dxfver12, running: completion copy, record copies per cell edit, remaining setters) DXF versions follow-ups 12: the copy Complete() reads builds the whole entity index (~40 % of completing a large
       drawing); each cell edit still copies the record (3 s for 10 000 cells: deferred write); SetFormat, SetDataType,
       SetBackgroundColorNone, SetOverrides and the last cell on the splice path; NormalizeEdges (~70 us a table); the
       new DxfSpeed11Tests timing bounds (to flaky1's pattern); real TABLEGEOMETRY and row heights (font metrics); native
@@ -541,7 +544,7 @@ the ones wanted.
       a third of the way round, words in once R x (sweep - 180) >= 2.005 DIMGAP; tar44s 330 -> 114, tar46s 1 483 -> 319,
       tar47s 578 -> 147, tar48s 1 158 -> 299, tar38s 76 -> 30); DIMJUST 1/2 words cutting the arrowhead room (tar45s 41
       -> 0); the bothExtra window past 90 degrees of sweep; 102 older sets byte-identical, 11 better
-- [ ] Associative dimensions follow-ups 10: arrowheads outside with the words outside on reflex arcs (452 of 1 315, by
+- [ ] (assoc10, running) Associative dimensions follow-ups 10: arrowheads outside with the words outside on reflex arcs (452 of 1 315, by
       the arc middle's direction mod 180); text 0.36 symbol room; aligned words and DIMJUST 1/2 outside past a half
       circle (204 of 432); bothExtra amplitude just over 90 degrees (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
@@ -761,11 +764,15 @@ the ones wanted.
       identical); MinimumColumnWidth counts block cells as AutoCAD; the 4/3 floor for a first-column block cell; ATTDEF
       text counted in block extents as AutoCAD; date letters %C %h %F %r %u %z %Z (AutoCAD's broken %j %U %W keep the
       date)
-- [ ] (tables8, running) Tables follow-ups 4: ATTRIB text drawn in a table block cell; AutoCAD measures non-constant attribute words in
-      Arial metrics (about 1 mm off with SHX); the fit scale of a fitted block with a definition (1.44061 vs ~1.388);
-      the other per-cell setters (SetAlignment, SetTextHeight, SetBackgroundColor) still quadratic; dates in autofill;
-      DxfTable.Value of a date and SetValue(DateTime); band and size-field sides of up-flowing tables and the drag-only
-      filter (GUI) (S)
+- [x] Tables follow-ups 4 (tables8): ATTRIBs drawn in a table block cell as AutoCAD writes them; two boxes for a block
+      cell (words in the style's font for the fit scale, in Arial for the room and the alignment; one pass, stored in
+      144: scale and column equal AutoCAD to five places in 6 of 6 cases); SetFormat, SetDataType, SetBackgroundColorNone,
+      SetOverrides and the last cell on the splice path (SetFormat over 1 000 cells 9.6 s -> 70 ms)
+- [ ] Tables follow-ups 5: a dimension test (DimensionTurnedWordsTests ...StandOnALevelLandingTurnedAboutTheMiddleOfTheirStart)
+      gave other coordinates once in a full run (shared font state between parallel tests?); a definition in a non-Standard
+      style counting nothing in the console's minimum (GUI); AutoCAD's endless 1.8 % growth on repeated recomputes (we
+      settle after one pass); SetValueFromText, SetCellType, SetAutoScale, SetBlock*, SetFormula and merges still write
+      the record whole; dates in autofill; DxfTable.Value of a date; GUI-only sides (S)
 - [x] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
 
 - [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand
@@ -799,7 +806,13 @@ the ones wanted.
       GeoPolygonArc3 built in arrays (0.61 -> 0.37 us, 2 168 -> 624 B), small per-build caches: 100k INSERTs 1 115 -> 858
       ms (net8) / 2 057 -> 1 494 (net48), 100k mixed 247 -> 217 / 449 -> 345, garbage down a fifth to a third; display
       lists, saved bytes and pixels identical on 171 drawings; benchmarks' 34 signatures match
-- [ ] (flaky1, running) Wall-clock tests that fail under load (DisplayPatchSpeedTests, SelectObjectsOptionsTests' fence/polygon timing, Spline2TinyAndHugePartnersTests' petal curve, others): make them robust without losing what they guard (S)
+- [x] Wall-clock tests made robust (flaky1): SpeedGuard.AssertWithin (best of three after a full GC) for every timing
+      test whose limit was under ~10x its quiet time; the highlight test asks for a thread speed-up only when its threads
+      really run at once; under an 18-thread CPU burner core timing tests 0 -> 20 of 20 runs, Viewer speed tests 2 -> 10
+      of 10; a 4 s slow-down still fails them. Convention for new timing tests: SpeedGuard with a 10x limit or a ratio
+- [ ] (race1, running) Dimension-picture tests failing now and then in full Viewer runs with other coordinates, a different one each time (shared font state between parallel tests suspected) (S)
+- [ ] Wall-clock tests 2: UndoReadAheadSpeedTests (50 ms floor) and the ratio tests DisplayPatch, MTextDisplay, Xref
+      under heavier load; timing classes in a DisableParallelization collection in the core suite (S)
 - [x] Speed follow-ups 10 (speed11): the 1M MOVE slowdown was real (the patch looked up every handle's insertion point):
       MOVE + display 295 -> 165 ms (net8) / 540 -> 375 (net48); the look and hidden read in one cached walk, handles
       found by the open's walk (1M open 896 -> 503 ms), block origins cached, unlike-scale arcs and circles sampled once

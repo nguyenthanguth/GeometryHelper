@@ -6,6 +6,66 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The INSERT of a block cell in a table's block (`DxfTable.RecomputeTableBlock`, and every redraw of the presenter) is followed by
+an ATTRIB for each attribute definition of its block that is not constant, as AutoCAD 2021's console draws them: filled and placed
+by the INSERT's transformation as the INSERT command fills one, in the order of the block, an invisible definition's invisible, its words
+the value the cell gives the definition (`SetBlockAttributeValue`) or the definition's own, empty where those are. BOLT's SIZE at (22, 0),
+2.5 high, in a cell at scale 2 turned 30 degrees is an ATTRIB 5 high turned 30 degrees; a constant definition has none; a table drawn
+twice has each ATTRIB once, and the drawing reads back byte for byte. The table's block had the INSERT alone, and the words of the
+attribute were never drawn.
+**CHANGED.** A block cell's block with an attribute definition that is not constant is laid out by two boxes, as AutoCAD 2021 lays it
+out (probed in its console, margins 1.5, some 200 tables; the scale and the column of 6 fitted blocks after one pass of its layout, the
+least column of 4 blocks not fitted and the place of the ATTRIB of 4 compared with this library's are equal to the fifth place). The room the block takes (`CadTableEditor.MinimumColumnWidth`, the least
+a drag of a column or row goes to, what a block not fitted asks of its column and row) and the box it is aligned in its cell by are
+those of the words in Arial, whatever the font of the definition's style (a Times style, or txt.shx, or simplex: AB at 2.5 high 4.66
+wide, M12 6.79, DEFAULT 15.91, rotated, oblique and width factor kept; a constant definition is measured in its own font, as was
+said, and one that is invisible or of no words counts none); where the drawing, the document and Windows find no arial.ttf the words are
+measured in their own fonts, as before. The scale that fits the block to its cell comes from the box of the words in the definition's own
+font, in one pass: AB at x 22 beside a block 20 by 10 in a cell 40 wide is fitted at 37 over 26.17, 1.41401, and the column, which
+that scale gives 26.66 of Arial to hold, is widened to 40.69607 (a block fitted to a cell 40 by 30 was drawn at 1.38787, 37 over the
+26.66 of Arial, and its column was not widened), the scale kept in the cell's 144 as AutoCAD stores it, so that a table drawn again
+does not widen it again; a column set to another width is fitted anew. AutoCAD run twice (its `GenerateLayout` then
+`RecomputeTableBlock`) gives 1.44061 and 41.40525, and widens the column 1.8 % more with each pass for ever; the presenter does one pass
+and settles. `DxfTable.RecomputeTableBlock` alone, with no layout to widen the column, fits the block by the wider of the two boxes, 37
+over 26.66, 1.38787, inside the cell. The least a column may be dragged to ignores a fitted block, as AutoCAD's does (9, with a
+definition or none).
+**CHANGED.** `SetFormat`, `SetDataType`, `SetBackgroundColorNone`, `SetOverrides` and the last cell of a table write the bytes of
+their cell alone into the record, as `SetTextString` and the setters of a cell's look did, where each read and wrote every group of
+it, and the layout the table reads is kept for the record that makes by noting the cell written and putting it in when it is next
+read. Over each of the 1 000 cells of a table of 100 rows by 10 columns on .NET Framework 4.8: `SetFormat` 9.6 s to 70 ms,
+`SetDataType` 9.6 s to 71 ms, `SetBackgroundColorNone` 1.2 s to 11 ms, `SetOverrides` 14.6 s to 0.55 s; 300 settings of the last
+cell of that table: `SetBackgroundColorNone` 3.6 s to 87 ms, `SetTextString` 5.0 s to 20 ms. The drawing is the same to the byte
+(150 steps of random settings, merges and the last cell, each compared with the record written whole); `SetTextString` and the
+setters of a cell's look cost what they did.
+**FIXED.** Words put out by the fit on a slanting line and kept level by DIMTOH, and turned words put between the extension lines, under
+DIMTMOVE 1 in the presenter, follow AutoCAD 2021 where they had no leader or the wrong break (probed on its console, sets tw19, tw27,
+tw32 to tw35 of the annotative round, differing pictures before and after). Level words so high that no leader goes with them (the
+half of their box across the line reaches twice the leader's rise) are put out to the level of the knee the leader would have had,
+where the line, run on, reaches it: the knee stands 4.117 over the middle of the line (the words' height, DIMEXE and half a gap) and the
+line reaches that level 4.117 cot s - l / 2 beyond the nearer end (4.63 for a line of 5 at 30 degrees, 1.62 at 45, 1.35 at 120 degrees,
+2.63 for a line of 9 at 30 degrees). Where that is more than nothing the line is run on to it, an arrowhead at least and two where the
+arrowheads stand out on a short line of their own (a line of 5 at 30 degrees: no run, the level landing leaves from the end of that
+short line; a line of 2 at 30 degrees with 24 digits: a run of 6.13 from where it ends; a line of 12: the run of 1.13 made 2.5), and a
+level landing leaves from the bend, an arrowhead and the words and their gaps long under DIMTAD 1 (30.394 for 14 digits) and an
+arrowhead long under DIMTAD 0, the words starting an arrowhead and a gap along it; the line between the extension lines is drawn once.
+Where the line never reaches that level (9 digits on a line of 5 at 60 degrees, 8 at 75) the words stand where they did, and the line
+between the extension lines is now drawn twice where the arrowheads stand out. tw19 64 -> 0 of 1 024 pictures that differed, and 590 -> 0
+of the 1 152 of tw32 (lines of 2 to 12 at 20 to 65 degrees and their mirrors, 12, 16 and 24 digits, DIMTAD 1 and 0). Words put out
+by the fit and then turned (DIMTEDIT Angle) on a slanting line do the same where their box is as high: the line run on to the knee's
+level, a landing an arrowhead long whatever DIMTAD says, their middle a gap and half their width past it and level with it (tw33,
+432 pictures of lines of 3, 5 and 9 at 20 to 150 degrees, 116 -> 6; what is left is words turned 90 on a line at 20 degrees, which
+AutoCAD lands to the other side and puts lower). Turned words put
+within the leader's reach of the line (3.125 or less over it or under it) break it by their chord (6.63 for "100" turned 20 on a line
+at 30 degrees) centred on the middle of what the line takes of their box (half the width and a gap along them, half the height and a
+gap across), not on the foot of their point: 0.18 on for words 1 under it, 0.18 back for 1 over it, 1.69 on for 2 over it and 2.37 for
+2.25 over it, where the box only grazes it; a box that meets the line past its end leaves it whole, and where the break would take
+part of an arrowhead (it starts less than 2.5 from the end) the arrowheads turn out and the line is whole, drawn twice (tw27 20 -> 1
+of 738). The run to the level of the point, which was for words past an end alone, is now made for turned words between the extension
+lines as well where that level lies beyond the nearer end ("100" turned 20 put 2 along a line of 40 at 30 degrees and 3 under it: the
+line run on backwards 3.196 and a landing of 2.735; 1 under it and 1.5 along, 0.116 below the level of the start: the arrowheads turn
+out, the run is made two arrowheads and the words move down 2.384 to its level, the line drawn once). Probes of turned words in the
+span: tw34 (3 510 pictures, slopes 30 to 135, angles 20, 45 and 90, across -3 to 4) 1 688 -> 288 differing, tw35 (2 028, near both ends)
+809 -> 106; what is left are words exactly on an extension line or on the line past an end.
 **CHANGED.** WMFIN gives a pen's or brush's colour the index AutoCAD 2021's console gives it, where it gave the nearest index of the
 colours the indexes show on screen. AutoCAD's own palette for it, found by probing 72 000 colours through the console (a metafile of
 16 000 pens at a time; the header's object count must cover them all), has the 24 hues of ten indexes each at the levels 166, 128, 76
@@ -191,28 +251,27 @@ of the copy it completes them on, nor a string of the whole file. The copy is op
 text made of them and encoded again; its tables are found in its records by handle in one pass, each given the model or paper space
 it stands in, where finding one by `TryGetObject` made the drawing's entities and read the handle of each (most of the 158 ms above);
 and the table style its lines are read against is found among the objects. The file saved is the same to the byte. A drawing of
-100 000 lines (15.3 MB) with a table, saved after an edit, takes 56 ms and 116 MB in place of 216 ms and 188 MB on .NET Framework 4.8
-(41 ms and 115 MB in place of 104 ms and 187 MB on .NET 10), and 20 000 lines (3 MB) 11 ms in place of 36 (9 ms in place of 25). The
+100 000 lines (15.3 MB) with a table, saved after an edit, takes 52 ms and 116 MB in place of 157 ms and 188 MB on .NET Framework 4.8
+(39 ms and 115 MB in place of 89 ms and 187 MB on .NET 10), and 20 000 lines (3 MB) 11 ms in place of 26 (9 ms in place of 24). The
 text is still the way where the drawing's text is not its bytes as UTF-8 (a mark at its start, bytes read as the replacement
 character, a code page), and a table of a block is still found among the entities. Not changed: the first save of a drawing indexes
 the entities of the drawing itself, once, as it does for any `GetObject`.
 **CHANGED.** The cells of a table set one after another are written once, when the table's record is next read, and no longer copy
-the record each: the bytes of the cells set are kept apart and put in their places by a read of the table or of its entity, a copy
-or a save, the record's bytes the same as before to the byte. A run of 10 000 cells of a table, each given its text, takes 0.53 s and
-551 MB in place of 6.0 s and 13.5 GB on .NET 10 (0.55 s in place of 3.1 s on .NET Framework 4.8), 5 000 cells 0.31 s and 276 MB in
-place of 1.3 s and 3.5 GB, and one cell among 10 000 0.07 ms in place of 0.22. `SetFormat`, `SetDataType`, `SetBackgroundColorNone`,
-`SetOverrides`, `ResetValue` and `SetCellType` take the same path, where each read and wrote every group of the table's record: 931
-cells' formats take 0.34 s in place of 9.5 s on .NET 10, their kinds of value 0.09 s in place of 11.5 s, their fill 0.07 s in place
-of 1.0 s, their overrides 0.07 s in place of 5.0 s and their reset 0.09 s in place of 10.6 s (16 GB allocated by the format alone
-before, 62 MB now; 0.33 s in place of 14.3 s for the formats on .NET Framework 4.8). The last cell of a table is still written
-through the whole record (35 ms for 10 000 cells on .NET 10, 78 ms on .NET Framework 4.8), as are the setters that ask the table for
-more than their cell holds (the fill of a filled row, an alignment `SetOverrides` gives, a reset of a cell that holds looks of its
-content), which read the record first, and a cell set and read at once costs what it did (9 to 13 ms for 10 000 cells either way).
-`NormalizeEdges`, which gives a table's cells the lines AutoCAD builds when a table is completed, shares one list of lines among the
-cells that have none (400 small tables saved after an edit 48 ms in place of 57 on .NET 10, within the noise of the machine). Saved
-bytes equal before and after in 72 000 saves of random drawings with tables in model space, paper space and a block, edited setter by
-setter and in runs of up to 220 with no read between (30 058 saves of 2 500 drawings on .NET Framework 4.8, 41 762 of 3 500 on
-.NET 10), and in the 501 saves of AutoCAD's 167 sample drawings on both.
+the record each: the bytes of the cells set (by the setters that write a cell's own bytes, the last cell and `SetFormat`,
+`SetDataType`, `SetBackgroundColorNone` and `SetOverrides` among them) are kept apart and put in their places by a read of the table
+or of its entity, a copy or a save, the record's bytes the same as before to the byte. The cells noted for the layout the table reads
+last are noted as before, and the layout is patched with them when the record is put together. A run of 10 000 cells of a table, each
+given its text, takes 0.37 s and 477 MB in place of 4.3 s and 13.5 GB on .NET 10 (0.44 s and 491 MB in place of 3.6 s and 13.5 GB on
+.NET Framework 4.8), 5 000 cells 0.24 s and 239 MB in place of 0.92 s and 3.5 GB, one cell among 10 000 0.05 ms in place of 0.19, and
+the last cell of a table of 10 000, set once, no longer copies its 2.5 MB (0.1 ms in place of 0.2). `ResetValue` and `SetCellType` are
+not on this path: written cell by cell they leave the table's record as a writing of every group of it would not, the last cell's end
+being decided by the flags it holds (two of the fuzz's seeds differed in the bytes of the last cell), so they still write the whole
+record (931 resets take 8.0 s, `SetCellType` 0.65 s). `NormalizeEdges`, which gives a table's cells the lines AutoCAD builds when a
+table is completed, shares one list of lines among the cells that have none (400 small tables saved after an edit 44 ms in place of
+52 on .NET 10, within the noise of the machine). Saved bytes equal before and after in 71 000 saves of random drawings with tables in
+model space, paper space and a block, edited setter by setter and in runs of up to 220 with no read between (29 910 saves of 2 500
+drawings on .NET Framework 4.8, 41 734 of 3 500 more on .NET 10, and the 2 500 of the first on .NET 10 again), and in the 501 saves of
+AutoCAD's 167 sample drawings on both.
 **CHANGED.** A body or a region saved to R2013 or later from ACIS text, or from the binary of another version of the modeler, is
 dated with the date of the SAT's own head (AutoCAD writes none there, so none) and not with the clock, and a body whose extended data
 gives no GUID is given one made of its handle and its data (the first 16 bytes of their SHA-256, as a GUID made of a name) and not at

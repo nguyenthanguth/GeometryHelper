@@ -1407,7 +1407,8 @@ namespace GeometryHelper.Dxf.Viewer
             // and 0.18, DIMTXT 0.18 and 0.36, DIMASZ 0.18 and 0.36, the distance that first took the words (those that would not
             // fit between the rays) ran with radius times the sweep past 180 degrees at 0.1805 for DIMGAP 0.09 and 0.36 for 0.18
             // in every one of them.
-            bool reflex = arcLength && !turned.HasValue && sweep >= (Math.Abs(from) < 1E-12 ? ReflexFromZero : ReflexFrom);
+            bool reflex =
+                arcLength && !turned.HasValue && sweep >= (Math.Abs(from) < 1E-12 ? ReflexFromZero : ReflexFrom);
             bool pastHalf = reflex && radius * (sweep - Math.PI) >= 2.005 * gap;
             bool pastBoth = reflex && radius * (sweep - Math.PI) >= 2.005 * gap + 1.003 * needArrows;
 

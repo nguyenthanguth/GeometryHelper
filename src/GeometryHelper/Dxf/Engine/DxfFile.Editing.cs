@@ -151,7 +151,7 @@ namespace GeometryHelper.Dxf
 
             /// <summary>
             /// Keeps the cells of a record, <paramref name="from"/> being where each begins, counted from the record's start (the
-            /// next cell's place being where it ends); the last of them is not one that is written.
+            /// next cell's place being where it ends, the last place being where the last cell ends).
             /// </summary>
             internal PendingCells(Rec record, int[] from, Action<Rec, int[]> settled)
             {

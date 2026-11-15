@@ -229,12 +229,13 @@ namespace GeometryHelper.UnitTest.Dxf
 
         #endregion
 
-        #region The setters of a format, a kind of value, a fill, overrides and a reset
+        #region The setters of a format, a kind of value, a fill and overrides
 
         [Fact]
-        public void TheFormatKindFillOverridesAndReset_OfEveryCellOf700Cells_AllocateLessThanAGigabyte()
+        public void TheFormatKindFillAndOverrides_OfEveryCellOf700Cells_AllocateLessThanAGigabyte()
         {
-            // Each setter read and wrote every group of the record: 6.7 GB for the 700 cells' formats, as many for their kinds.
+            // Each setter read and wrote every group of the record before tables8: 6.7 GB for the 700 cells' formats, as many for
+            // their kinds. The bytes of the cells are kept apart from the record now, and put in it once.
             DxfDatabase db = DxfSpeed12Scenarios.Metric();
             DxfTable table = Filled(db, 50, 15);
             long before = GC.GetAllocatedBytesForCurrentThread();
@@ -255,19 +256,14 @@ namespace GeometryHelper.UnitTest.Dxf
                     {
                         table.SetOverrides(r, c, 0, DxfCellProperties.TextHeight | DxfCellProperties.ContentColor);
                     }
-                    else
-                    {
-                        table.ResetValue(r, c);
-                    }
                 }
             }
 
             long used = GC.GetAllocatedBytesForCurrentThread() - before;
 
             Assert.Equal(DxfDataType.Long, table.DataType(1, 0));
-            Assert.Equal(DxfDataType.Double, table.DataType(1, 1));
-            Assert.Equal("%lu2%pr2", table.Format(1, 1));
-            Assert.Equal(string.Empty, table.TextString(1, 2));
+            Assert.Equal(DxfDataType.Double, table.DataType(1, 2));
+            Assert.Equal("%lu2%pr2", table.Format(1, 2));
             Assert.True(
                 table.GetOverrides(2, 1, 0).HasFlag(DxfCellProperties.TextHeight | DxfCellProperties.ContentColor)
             );

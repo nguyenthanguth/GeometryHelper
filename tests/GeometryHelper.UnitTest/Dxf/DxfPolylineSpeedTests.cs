@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using System.Globalization;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 using Xunit;
@@ -17,21 +15,26 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void TenThousandVerticesAddedOneByOneToAPolylineInADrawing_TakeUnderTwoAndAHalfSeconds()
         {
-            var database = new DxfDatabase("AC1027");
-            var polyline = new DxfPolyline();
-            database.ModelSpace.AppendEntity(polyline);
-            var watch = Stopwatch.StartNew();
+            DxfPolyline polyline = null;
+            SpeedGuard.AssertWithin(
+                2.5,
+                () =>
+                {
+                    var database = new DxfDatabase("AC1027");
+                    polyline = new DxfPolyline();
+                    database.ModelSpace.AppendEntity(polyline);
 
-            for (int i = 0; i < 10000; i++)
-            {
-                polyline.AddVertexAt(i, new GeoPoint2(i, i % 7), 0, 0, 0);
-            }
-
-            watch.Stop();
-            Assert.True(
-                watch.Elapsed.TotalSeconds < 2.5,
-                "10 000 vertices took " + watch.Elapsed.TotalSeconds.ToString(CultureInfo.InvariantCulture) + " s."
+                    return polyline;
+                },
+                added =>
+                {
+                    for (int i = 0; i < 10000; i++)
+                    {
+                        added.AddVertexAt(i, new GeoPoint2(i, i % 7), 0, 0, 0);
+                    }
+                }
             );
+
             Assert.Equal(10000, polyline.NumberOfVertices);
             Assert.True(polyline.GetPoint2dAt(9999).IsEqualTo(new GeoPoint2(9999, 3), Tolerance.Default));
         }

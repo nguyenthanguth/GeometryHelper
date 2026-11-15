@@ -835,13 +835,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         /// <summary>A DIMALIGNED of the given length from the origin along <paramref name="slope"/> degrees, its line 30 off, under DIMTOH and DIMTIH, DIMTMOVE 1.</summary>
-        private static DxfDimension LevelWordsOnASlope(double slope, double length, string words)
+        private static DxfDimension LevelWordsOnASlope(double slope, double length, string words, int tad = 1)
         {
             CadCommandSession session = Probe(v =>
             {
                 v["Dimtmove"] = 1;
                 v["Dimtoh"] = true;
                 v["Dimtih"] = true;
+                v["Dimtad"] = tad;
             });
             Run(session, "DAL", P(0, 0), Frame(slope, length, 0), "Text", words, Frame(slope, length / 2.0, 30));
             return session.Document.ModelSpace.Block.OfType<DxfDimension>().Last();
@@ -872,6 +873,229 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             HasFramedLine(dimension, 30, 4.5, 30, 4.5, 34.117);
             HasFramedLine(dimension, 30, 4.5, 34.117, -11.2595, 43.2158);
             Near(Frame(30, -2.4286, 40.3139).X, Frame(30, -2.4286, 40.3139).Y, Words(dimension).Location);
+        }
+
+        /// <summary>The copies of the line between the extension lines that a dimension draws: from the first point's offset to the second's.</summary>
+        private static int CopiesOfTheLine(DxfDimension dimension, double slope, double length)
+        {
+            GeoPoint2 from = Frame(slope, 0, 30);
+            GeoPoint2 to = Frame(slope, length, 30);
+            return Lines(dimension).Count(l => Joins(l, from.X, from.Y, to.X, to.Y));
+        }
+
+        [Theory]
+        [InlineData(30, 5, 14, -36.734, 30.981, -6.340, -22.787, 32.883)]
+        [InlineData(45, 5, 10, -36.768, 28.284, -14.142, -26.705, 30.187)]
+        [InlineData(120, 5, 15, -55.846, -19.330, -23.481, -40.913, -17.428)]
+        public void LevelWordsTooHighForALineWithItsArrowheadsOut_RunItOnToTheLevelOfTheKnee_AndStandOnALevelLandingFromThere(
+            double slope,
+            double length,
+            int digits,
+            double landX,
+            double landY,
+            double bendX,
+            double wordsX,
+            double wordsY
+        )
+        {
+            // AutoCAD 2021 (probe tw19, 30 of its 64 cases that differed; tw32, 1 152 cases): the leader's knee is 4.117 over the middle
+            // of the line (the words' height, DIMEXE and half a gap); the line, run on, reaches that level run_k = 4.117 cot s - l / 2
+            // beyond the nearer end (4.63 for a line of 5 at 30 degrees, 1.62 at 45 degrees, 1.35 at 120 degrees). The bend is at
+            // least two arrowheads out (5 for 2.5), the end of the short line the arrowhead stands on, so nothing more is drawn
+            // to it; a level landing leaves from there towards the knee's side, an arrowhead and the words and their gaps long
+            // (W + 3.74 for "12345678901234", W 26.66), the words starting an arrowhead and a gap along it, and the line between
+            // the extension lines is drawn once, not twice as it is with the leader from the middle.
+            DxfDimension dimension = LevelWordsOnASlope(slope, length, "1234567890123456".Substring(0, digits));
+
+            HasLine(dimension, landX, landY, bendX, landY);
+            Near(wordsX, wordsY, Words(dimension).Location);
+            Assert.Equal(1, CopiesOfTheLine(dimension, slope, length));
+        }
+
+        [Theory]
+        [InlineData(30, 2, -8.938, 29.481, -7.958, 30.046, -57.776, -34.117, 31.948)]
+        [InlineData(30, 12, -4.608, 31.981, -2.443, 33.231, -52.260, -28.601, 35.133)]
+        public void LevelWordsTooHighForALine_RunMoreThanTheArrowheadsNeedOrLessThanOne_StartTheLandingAtTheEndOfTheRun(
+            double slope,
+            double length,
+            double runFromX,
+            double runFromY,
+            double bendX,
+            double bendY,
+            double landingToX,
+            double wordsX,
+            double wordsY
+        )
+        {
+            // AutoCAD 2021 (probe tw32): 24 digits on a line of 2 at 30 degrees: the run of 6.13 to the knee's level (4.117 cot 30
+            // less 1) goes on from the end of the short line of the arrowhead (7 on) to 8.131; on a line of 12, which has its
+            // arrowheads in, the run (1.13) is made an arrowhead long, 14.5, and starts at the line's end.
+            DxfDimension dimension = LevelWordsOnASlope(slope, length, "123456789012345678901234");
+
+            HasLine(dimension, runFromX, runFromY, bendX, bendY);
+            HasLine(dimension, landingToX, bendY, bendX, bendY);
+            Near(wordsX, wordsY, Words(dimension).Location);
+        }
+
+        [Theory]
+        [InlineData(30, 5, 60, 1, -8.840, -6.340, 30.981, -24.733)]
+        [InlineData(30, 5, 60, 0, -8.840, -6.340, 30.981, -24.733)]
+        [InlineData(45, 5, 20, 1, -16.642, -14.142, 28.284, -32.536)]
+        [InlineData(120, 3, 20, 1, -25.981, -23.481, -19.330, -41.874)]
+        public void TurnedWordsTooHighForASlantingLine_PutOutByTheFit_RunItOnToTheLevelOfTheKnee_AndStandAtTheEndOfAnArrowheadLongLanding(
+            double slope,
+            double length,
+            double angle,
+            int tad,
+            double landFromX,
+            double landToX,
+            double landY,
+            double wordsX
+        )
+        {
+            // AutoCAD 2021 (probe tw33, 432 pictures, 116 of which differed): the words typed as 16 digits, put out by the fit and then
+            // turned (DIMTEDIT Angle), reach too high across the line for a leader as level ones do, and the line is run on to the knee's
+            // level in the same way (two arrowheads at least where the arrowheads stand on a short line of their own); the landing
+            // is an arrowhead long whatever DIMTAD says, and the words stand level with it, centred a gap and half their width
+            // past its end, turned to their angle.
+            CadCommandSession session = Probe(v =>
+            {
+                v["Dimtmove"] = 1;
+                v["Dimtad"] = tad;
+            });
+            Run(
+                session,
+                "DAL",
+                P(0, 0),
+                Frame(slope, length, 0),
+                "Text",
+                "1234567890123456",
+                Frame(slope, length / 2.0, 30)
+            );
+            DxfDimension dimension = session.Document.ModelSpace.Block.OfType<DxfDimension>().Last();
+            Run(
+                session,
+                "DIMTEDIT",
+                new[] { dimension.Handle },
+                "A",
+                angle.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            );
+
+            HasLine(dimension, landFromX, landY, landToX, landY);
+            Near(wordsX, landY, Words(dimension).Location);
+        }
+
+        [Fact]
+        public void LevelWordsTooHighForALineWithItsArrowheadsIn_RunItOnToTheLevelOfTheKnee()
+        {
+            // AutoCAD 2021 (probe tw19): 14 digits on a line of 9 at 30 degrees: the run of 2.63 (7.13 less 4.5) from the end of the
+            // line to the knee's level, the landing 30.394 long from there to a gap past the words.
+            DxfDimension dimension = LevelWordsOnASlope(30, 9, "12345678901234");
+
+            HasLine(dimension, -7.206, 30.481, -4.927, 31.796);
+            HasLine(dimension, -35.321, 31.796, -4.927, 31.796);
+            Near(-21.374, 33.698, Words(dimension).Location);
+        }
+
+        [Fact]
+        public void LevelWordsTooHighForALine_UnderDimtad0_LandAnArrowheadLongAndStandOnTheLevel()
+        {
+            // AutoCAD 2021 (probe tw19, DIMTAD 0): the landing is an arrowhead long (2.5), the words start an arrowhead and a gap
+            // past the bend and stand level with it.
+            DxfDimension dimension = LevelWordsOnASlope(30, 5, "12345678901234", 0);
+
+            HasLine(dimension, -8.840, 30.981, -6.340, 30.981);
+            Near(-22.787, 30.981, Words(dimension).Location);
+        }
+
+        [Fact]
+        public void LevelWordsTooHighForALine_ThatNeverReachesTheKneesLevel_DrawTheLineTwiceAndGoNoFurther()
+        {
+            // AutoCAD 2021 (probe tw19): 9 digits on a line of 5 at 60 degrees: the knee's level lies 0.12 short of the line's end
+            // (4.117 cot 60 is 2.377, the half of the line 2.5), so there is nothing to run on to: the words stand centred where
+            // they would start, and the arrowheads standing out the line between the extension lines is drawn twice (once at 45
+            // degrees, where a run is made).
+            DxfDimension dimension = LevelWordsOnASlope(60, 5, "123456789");
+
+            Near(-28.921, 21.126, Words(dimension).Location);
+            Assert.Equal(2, CopiesOfTheLine(dimension, 60, 5));
+        }
+
+        [Theory]
+        [InlineData(0.5, -1, 16.861, 23.492, 2.820, 35.115)]
+        [InlineData(0.5, 1, 16.509, 23.139, 1.821, 36.847)]
+        [InlineData(0.5, 2.25, 19.049, 25.680, 1.196, 37.929)]
+        public void WordsTurned20_PutWithinTheLeadersReachOfALineOf40At30Degrees_BreakItAboutTheMiddleOfTheChordTheirBoxTakes(
+            double along,
+            double across,
+            double fromX,
+            double toX,
+            double wordsX,
+            double wordsY
+        )
+        {
+            // AutoCAD 2021 (probes tw27, tw34; 3 510 and 738 cases): under DIMTMOVE 1 words put 3.125 or less over or under the line
+            // stand where they were put and break the line by 6.63, but about the middle of what the line takes of their box (half
+            // 3.275 along them, half 1.9 across, the gaps in), not about the foot of their point: 0.18 on for words 1 under it,
+            // 0.18 back for 1 over it, 2.37 on for 2.25 over it, where the box only grazes it.
+            CadCommandSession session = Probe(v => v["Dimtmove"] = 1);
+            DxfDimension dimension = MovedAndTurnedOnASlope(session, 30, 40, along, across, 20);
+            GeoPoint2 start = Frame(30, 2.5, 30);
+            GeoPoint2 end = Frame(30, 37.5, 30);
+
+            HasLine(dimension, start.X, start.Y, Frame(30, fromX, 30).X, Frame(30, fromX, 30).Y);
+            HasLine(dimension, end.X, end.Y, Frame(30, toX, 30).X, Frame(30, toX, 30).Y);
+            Near(wordsX, wordsY, Words(dimension).Location);
+        }
+
+        [Fact]
+        public void WordsTurned20_PutBetweenTheExtensionLinesBelowTheLevelOfTheStartOfALine_RunTheLineOnBackwardsToTheirLevel()
+        {
+            // AutoCAD 2021 (probe tw35, 2 028 cases, and tw34): the run to the level of the point is not for words past an end only:
+            // "100" turned 20 put 2 along a line of 40 at 30 degrees and 3 under it lies 2.6 below the level of its start, so the line
+            // is run on backwards 3.196 to that level (the leader from the middle would be 20), and a level landing of 2.735 comes back
+            // from there to a gap short of the words, which stay on their point.
+            CadCommandSession session = Probe(v => v["Dimtmove"] = 1);
+            DxfDimension dimension = MovedAndTurnedOnASlope(session, 30, 40, 0.05, -3, 20);
+
+            HasFramedLine(dimension, 30, 0, 30, -3.196, 30);
+            HasLine(dimension, -15.033, 24.383, -17.768, 24.383);
+            Near(-11.768, 24.383, Words(dimension).Location);
+        }
+
+        [Fact]
+        public void WordsTurned20_PutBetweenTheExtensionLinesJustBelowTheLevelOfTheStart_TurnTheArrowheadsOutAndRunTheLineOnTwoArrowheads()
+        {
+            // AutoCAD 2021 (probe tw35): "100" turned 20 put 1.5 along a line of 40 at 30 degrees and 1 under it lies 0.116 below the
+            // level of its start: the arrowheads turn out, the run is made the two arrowheads of the short line they stand on (5), the
+            // landing starts there and the words move to its level (2.384 lower than their point), and the line between the
+            // extension lines is drawn once, not twice.
+            CadCommandSession session = Probe(v => v["Dimtmove"] = 1);
+            DxfDimension dimension = MovedAndTurnedOnASlope(session, 30, 40, 0.0375, -1, 20);
+
+            HasLine(dimension, -16.830, 23.481, -19.330, 23.481);
+            Near(-13.565, 23.481, Words(dimension).Location);
+            Assert.Equal(1, CopiesOfTheLine(dimension, 30, 40));
+        }
+
+        [Fact]
+        public void WordsTurned20_PutOver2OfALineOf40At30DegreesWhereTheirBreakWouldTakeAnArrowhead_TurnTheArrowheadsOutAndDrawTheLineTwice()
+        {
+            // AutoCAD 2021 (probe tw27): "100" turned 20, put 2.25 over the line 2 along it: the break (6.63 wide, centred 2.37
+            // on) would take the first arrowhead, so the arrowheads stand out and the line is whole, drawn twice; put 4 along it
+            // the break starts at 3.05, clear of the arrowhead (2.5), and is made with the arrowheads in.
+            CadCommandSession session = Probe(v => v["Dimtmove"] = 1);
+            DxfDimension taken = MovedAndTurnedOnASlope(session, 30, 40, 0.05, 2.25, 20);
+
+            Assert.Equal(2, CopiesOfTheLine(taken, 30, 40));
+            HasFramedLine(taken, 30, 42.5, 30, 45, 30);
+            Near(-14.393, 28.929, Words(taken).Location);
+
+            session = Probe(v => v["Dimtmove"] = 1);
+            DxfDimension clear = MovedAndTurnedOnASlope(session, 30, 40, 0.1, 2.25, 20);
+
+            Assert.Equal(0, CopiesOfTheLine(clear, 30, 40));
+            HasFramedLine(clear, 30, 2.5, 30, 3.049, 30);
         }
 
         [Theory]

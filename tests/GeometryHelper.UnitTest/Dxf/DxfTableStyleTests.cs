@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
@@ -295,12 +294,9 @@ namespace GeometryHelper.UnitTest.Dxf
             }
 
             table.RecomputeTableBlock();
-            var watch = Stopwatch.StartNew();
-            table.RecomputeTableBlock();
-            watch.Stop();
+            SpeedGuard.AssertWithin(1, () => table.RecomputeTableBlock());
 
             Assert.Equal(1980, table.BlockTableRecord.OfType<DxfMText>().Count());
-            Assert.True(watch.ElapsedMilliseconds < 1000, "Drawn in " + watch.ElapsedMilliseconds + " ms.");
         }
 
         /// <summary>

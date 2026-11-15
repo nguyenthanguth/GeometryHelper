@@ -62,6 +62,23 @@ the cell less its margins, 0.125 for that block (5 high within the margins over 
 A block turned by exactly 90, 180 or 270 degrees stands where AutoCAD 2021 puts it, off the aligned box by the block's own
 width and height (0 and minus the width at 90).
 
+The INSERT of a block cell is followed by an ATTRIB for each attribute definition of its block that is not constant, an
+invisible one too, in the order of the block, filled and placed by the INSERT's transformation as the INSERT command fills one
+(`SetAttributeFromBlock`), its words the value the cell gives the definition (`SetBlockAttributeValue`), else the definition's
+own, as AutoCAD 2021 draws them in the table's block: the definition SIZE of BOLT at (22, 0), 2.5 high, in a cell at scale 2 turned 30
+degrees is an ATTRIB 5 high turned 30 degrees, at the definition's place taken by the INSERT's transformation. A constant
+definition has no ATTRIB, and a table drawn again has each once. AutoCAD 2021 lays a block with a definition that is not constant
+out by two boxes (probed in its console, margins 1.5, one pass of its layout). The box the block is aligned in its cell by, and
+the room it takes, are those of the words in Arial (arial.ttf, found in the drawing's `FontSearchPath`), whatever the font of
+the definition's style: AB at 2.5 high is 4.66 wide in Arial and 4.17 in txt.shx, M12 6.79 and 5.83, DEFAULT 15.91 and 16.67. The
+scale that fits the block to its cell comes from the box of the words in the definition's own font: a block 20 by 10 with AB at
+x 22 in a cell 40 wide is fitted at 37 over 26.17, 1.41401, and the column, which that scale gives 26.66 of Arial to hold, is
+widened to 40.69607 by the presenter (`CadTableEditor`), the block filling it from its margin. A constant definition is the same
+box in both, and a block with none has one box. `RecomputeTableBlock` alone, with no layout to widen the column, fits the block
+by the wider of the two boxes, 37 over 26.66, 1.38787, inside the cell. AutoCAD run twice (`GenerateLayout` and
+`RecomputeTableBlock` both) goes on from the widened column, 1.44061 and 41.40525 for that block, and each pass after widens
+it again, 1.8 % a time.
+
 Lines set on the top left cell of a block of merged cells (`SetGridColor`, `SetGridLineWeight`, `SetGridVisibility`) are given to
 the cells along the block's edges, as AutoCAD 2021 reads them from a file: its top over the cells of its first row, its left down
 those of its first column, its bottom along a block of one row and its right down a block of one column; a line another cell
@@ -129,27 +146,26 @@ a second save of those 10 000 cells as R2018 takes 6 ms, until a garbage collect
 
 Building a table cell by cell costs in proportion to the cell. The first edits of a table write its record whole, as the file
 writes a group; from then on `SetTextString`, `SetValue` and the setters of a cell's look (`SetAlignment`, `SetTextHeight`,
-`SetTextStyle`, `SetContentColor`, `SetBackgroundColor`, `SetTextRotation`), of a cell's kind of value and fill (`SetFormat`,
-`SetDataType`, `SetBackgroundColorNone`, `SetCellType`), `SetOverrides` and `ResetValue` read the groups of the cell's own bytes and
-write them back as that cell's own bytes, and the record's bytes are those a writing of every group would give. The bytes of the cells
-are kept apart from the record and put in their places once, when the record is next read (a read of the table or of its entity, a
-copy, a save): a run of 10 000 cells set one after another allocates 550 MB where each cell copied the 2.5 MB of the record, 13.5 GB
-in all. A setter that asks the table for what it holds beyond the cell (`SetBackgroundColorNone` of a filled row, the alignment
-`SetOverrides` gives, a reset of a cell that holds looks of its content) reads the table's record for it, which puts the cells kept
-in it first. The last cell of a table, whose end is where the table's own groups begin and which its flags decide, is still written
-through the whole record (35 ms for the 10 000 cells on .NET 10, 78 ms on .NET Framework 4.8), as are the setters not listed (a merge, a block's scale). A table of 1 000
-cells, each given its text, takes 36 ms on .NET Framework 4.8 (it took 5.3 s), 3 000 cells 0.35 s (48 s) and 10 000 cells 0.55 s
-(the same loop had not ended after 15 minutes, and took 3.1 s before the cells were kept apart); the format of each of 931 cells takes
-0.33 s (it took 14.3 s), their kind of value 0.05 s (14.4 s), their fill 0.05 s (1.1 s), their overrides 0.06 s (6.6 s) and their reset
-0.05 s (14.6 s). Adding tables one after another costs the same for each: 400 tables of 3 rows and 4 columns, each cell given its text, take
+`SetTextStyle`, `SetContentColor`, `SetBackgroundColor`, `SetTextRotation`), `SetFormat`, `SetDataType`, `SetBackgroundColorNone`,
+`SetOverrides` and the last cell of a table (whose end is where the table's own groups begin, which its flags decide as they stand)
+read the groups of the cell's own bytes and write them back as that cell's own bytes, and the record's bytes are those a writing of
+every group would give. The bytes of the cells are kept apart from the record and put in their places once, when the record is next
+read (a read of the table or of its entity, a copy, a save): a run of 10 000 cells set one after another takes 0.44 s and allocates
+491 MB on .NET Framework 4.8 (0.37 s and 477 MB on .NET 10) where each cell copied the 2.5 MB of the record, 3.6 s and 13.5 GB. The
+layout the table reads (its row types, its own looks of a kind of row) is kept for the record the cells make by noting each cell
+written, put into it when it is next read, so that `SetBackgroundColorNone` and `SetOverrides` do not read every group of the record.
+The setters of a block cell, a formula, a merge, `SetCellType` and `ResetValue` still write the record whole (the reset of each of 931
+cells takes 8 to 10 s): written cell by cell they leave the table's record other than a writing of every group would, where the last
+cell's end is decided by the flags it holds. A table of 1 000 cells, each given its text, takes 36 ms on .NET Framework 4.8 (it took
+5.3 s), 3 000 cells 0.35 s (48 s). Adding tables one after another costs the same for each: 400 tables of 3 rows and 4 columns, each cell given its text, take
 0.31 s, 1 600 take 1.3 s (25 s), and a table is not counted against the entities of the drawing, which the block it was given a moment
 ago cannot be named by. Copying them to another drawing (`WblockCloneObjects`) takes 80 ms for 400 tables whether the drawing holds
 5 000 other objects or 20 000 (it took 0.98 s and 4.8 s): the names under which the named object dictionary holds each object, which
 the pointers of a copied table are resolved by, are found for every object once for the call. A drawing of 100 000 entities that holds
 a table pays for the copy its content is made on when it is saved after an edit, which is opened from the bytes the drawing saves as
 (no string of the whole file is made of them) and in which the tables written are found in its records by handle, one pass, each given
-the space of its kind (the drawing's entities are not made, nor the handle of each read): 56 ms for the 15 MB on .NET Framework 4.8
-where it took 216 ms (41 ms where it took 104 on .NET 10), and 11 ms for 20 000 entities (3 MB) where it took 36.
+the space of its kind (the drawing's entities are not made, nor the handle of each read): 52 ms for the 15 MB on .NET Framework 4.8
+where it took 157 ms (39 ms where it took 89 on .NET 10), and 11 ms for 20 000 entities (3 MB) where it took 26.
 The table of a block is found among the entities of the copy, as before, and a drawing whose text is not its bytes as UTF-8 (a
 mark at its start, bytes read as the replacement character, a code page) makes the copy of its text.
 

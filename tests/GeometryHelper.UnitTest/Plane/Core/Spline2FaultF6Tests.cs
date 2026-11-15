@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Linq;
 using GeometryHelper;
 using GeometryHelper.Geometry;
@@ -325,13 +324,11 @@ namespace GeometryHelper.UnitTest.Plane
             // Each meeting that is one only to the snap is checked against the meetings to the digits round it, not against all 131 073.
             GeoSpline2 arc = GeoSpline2.FromArc(new GeoArc2(P(1E6, 1E6), 100, 0.3, 2.3));
             GeoPolyline2 chain = arc.Flatten(2E-8);
-            var watch = Stopwatch.StartNew();
-
-            GeoPoint2[] places = arc.GetIntersections(chain, Thousandth);
+            GeoPoint2[] places = null;
+            SpeedGuard.AssertWithin(6, () => places = arc.GetIntersections(chain, Thousandth));
 
             Assert.Equal(65537, chain.Vertices.Count);
             Assert.True(places.Length >= chain.Vertices.Count);
-            Assert.InRange(watch.Elapsed.TotalSeconds, 0.0, 6.0);
         }
 
         /// <summary>
