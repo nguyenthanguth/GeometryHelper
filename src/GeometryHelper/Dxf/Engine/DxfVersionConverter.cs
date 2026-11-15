@@ -649,7 +649,9 @@ namespace GeometryHelper.Dxf
             // The objects made on the way (the round trip of a style going down) join the others.
             Find("OBJECTS")?.Records.AddRange(_added);
             Clean();
+            MLeadersVersion();
             Classes();
+            Letters();
         }
 
         private Section Find(string name)
