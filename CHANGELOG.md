@@ -35,6 +35,41 @@ where it held `{0, 90}`), a move carries the start of a cut back past the start 
 and not nought twice), and a cut whose picks lie beyond the end of a mitred element's stretch (the staircase cut from (60, 50) to
 (50, 60) across its concave corner) takes nothing out of the element. 288 moves of the staircase and 700 of four shapes: 107 differed
 from AutoCAD before and 8 now, none that was equal changed.
+**FIXED.** Arc length dimensions (DIMARC) in the presenter follow AutoCAD 2021 where the last round left them, on arcs of more than
+half a circle, on words next to a ray whose box meets an arrowhead, and on the room both arrowheads want a little past 90 degrees of
+sweep (measured on its console, some 36 000 more dimensions made by both; the sets listed are differing pictures of those probed,
+before and after). An arc of 180 degrees or more (from a thousandth of a millionth of a radian short of it; AutoCAD keeps an arc
+that starts at 0 degrees as under 180 until it is 5 millionths over, so the arc of 1 from 0 through 180.0001 degrees is still laid
+out as before and through 180.001 is not) puts its level words outside the other way, to the right where the arc a third of the way
+round stands below the horizontal and to the left where above, and its arc point a third of the way round, never two thirds: the
+arc of 1 through 180.0001 degrees from 140 put 0.45 out has its words at (0.4397, 0.4012) and its arc point at (-0.4229, -0.1539), from
+20 degrees its words at (-0.1942, -0.0241), where 179.99 degrees has them the other way (770 pictures with the words outside, 751
+as this, the others at the edge of the fit). The words stay in, where they would not fit between the rays, once the arc beyond the
+half circle is two gaps long, whatever the words, the arrowheads or the symbol take (radius times the sweep past 180 degrees, 2.005
+DIMGAP: the arc of 1 from 0 through 210 degrees has "3.6652" outside at 0.3 and in the middle of the arc from 0.35, where 0.35 times 30
+degrees is 0.18; DIMGAP 0.18 moves that to 0.7, text 0.36 and DIMASZ 0.36 leave it), and both arrowheads with them once it is two
+gaps and two arrowheads long (through 270 degrees from 0.35, where the room between the rays gave 0.42). The arc of 1 through
+179.99 to 181 degrees put 0.45 out from 0 to 350 degrees: 252 pictures, 76 differed, now 30; 288 of the same at exact half circles, 68, now 29; the arcs of 1 from 10 and 100 degrees through 90 to 180, 5 152, 151, now
+74; sweeps 181 to 350 from 0 to 350 degrees (1 296) 330, now 114; the distance finely, sweeps 181 to 300 (4 284) 1 483, now 319; where
+the words stop going outside, sweeps 200 to 230 (1 488) 578, now 147; the text, DIMGAP and DIMASZ variants of the same (2 576) 1 158,
+now 299; aligned words and DIMJUST 1 and 2 past a half circle (432) 258, now 204. Words next to a ray (DIMJUST 1 and 2) whose break of
+the arc reaches an arrowhead's room send both arrowheads outside, the arc not drawn, as AutoCAD does: "4.1888" level by the second
+ray of the arc of 3 through 80 degrees from 10 put 1.8 out has them outside, as at 85 and 90, and between the rays at 75; and aligned
+they read as the middle of the arc reads, not by their own tangent: the arc of 3 through 70 degrees from 135 put 1.8 out has "3.6652"
+turned 96 degrees, not 276 (the arc of 3, DIMJUST 1 and 2, level and aligned, put 0.5 to 0.95 out, 216 pictures: 18 differed, now 4;
+the same by symbols, text sizes and arrowheads, 384: 4, now 0; the older probe of 108: 1, now 0; arcs of 3 from 10 to 200 degrees,
+sweeps 50 to 110, level and aligned, 520: 41, now 0). The room both arrowheads need beside level words with the symbol lasts past 90
+degrees to about 115, its window of the arc's middle direction moving down 0.214 degrees for each degree of sweep from 13: the arc of 1
+through 100 degrees from 10 put 1.12 out (DIMARCSYM 0) has its arrowheads outside, from 1.14 between the rays, where the words alone
+gave 1.09 (arcs from 0 to 180 degrees, sweeps 100 and 110, 10 074 pictures: 286 differed, now 270; the arcs of 1 and 3, text 0.18 and
+0.36, 8 440: 161, now 140). The window for arcs of 10 itself stands as it was: DIMDEC 2, 3 and 6 (a box of 1.01, 1.13 and 1.51 with
+the symbol and gaps) put 12 out, DIMASZ 0.36, from 30 to 138 degrees, 15 762 pictures, differ in 259 only by one step of 0.02 in
+chord. Not as AutoCAD yet: words outside with the arrowheads outside too (452 of 1 315 pictures with the words outside: AutoCAD
+draws the arrowheads outside as well where the arc's middle points, to the half turn, about 120 to 160 degrees with no symbol and
+about 100 with it, and keeps them in elsewhere, the arrowheads' room not a function of the distance there); the
+symbol's room at text 0.36 high (the distance the words first came in ran 0.02 to 0.04 later than the fit); aligned words and DIMJUST
+1 and 2 outside past a half circle. Every other set of probes, of the 113
+older ones, is as it was or nearer (102 of the 113 byte for byte, none further off).
 **FIXED.** Saved as R12 (`DxfDatabase.Save` with "AC1009"), more of a drawing is as AutoCAD 2021's own R12 (found by probing its
 console, `Database.DxfIn` of side databases then `DxfOut` at R12; 398 code-built cases of fills, patterns and MTEXT runs, 350 of
 them equal AutoCAD's record for record where 328 did, none that was equal regressing, and a further 285 cases of notches, big-font

@@ -1358,6 +1358,28 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 double alongChord = levelInside ? LevelAlongChord(from + sweep / 2.0, width + before + 2.0 * gap) : 1.0;
                 bothExtra = 0.85 * height * alongChord * Math.Max(0.0, 1.0 - sweep / (Math.PI / 2.0));
+
+                if (levelInside && sweep >= Math.PI / 2.0)
+                {
+                    // Past 90 degrees the room is still wanted for a while, by a window that has moved on to smaller directions of
+                    // the arc's middle as the sweep widens, 0.214 degrees for each degree of sweep from 13 (the arcs of 10 above):
+                    // probed with arcs of 1 from 0 to 180 degrees by 2.5, sweeps 100 and 110, DIMARCSYM 0, put 0.5 to 1.4 out by
+                    // 0.02, both arrowheads came in 0.04 to 0.06 further out than the words alone gave them room for the middle
+                    // directions 56 to 83 degrees at 100 degrees of sweep and 55 to 80 at 110 (0.45 of the words' height, 0.39),
+                    // and none at 90 (0.005 nearer) or from 120 on (the arc from 10 to 130 put 0.7 out takes them as it should).
+                    double degrees = sweep * 180.0 / Math.PI;
+                    double wanted = Math.Max(0.0, 0.45 - 0.006 * (degrees - 100.0));
+                    bothExtra =
+                        degrees >= 116.0
+                            ? 0.0
+                            : height
+                                * wanted
+                                * LevelAlongChord(
+                                    from + sweep / 2.0,
+                                    width + before + 2.0 * gap,
+                                    0.214 * (degrees - 13.2)
+                                );
+                }
             }
 
             // From 90 degrees up, the symbol before the words takes more and more room as the sweep widens, by the words' height
@@ -1380,6 +1402,15 @@ namespace GeometryHelper.Dxf.Viewer
 
             double needFit = needText + symbolBend;
 
+            // An arc of more than half a turn keeps its words in once the arc beyond the half turn is two gaps long, whatever
+            // the words, the arrowheads or the symbol take: probed with arcs of 1 from 0 degrees, sweeps 204 to 222, DIMGAP 0.09
+            // and 0.18, DIMTXT 0.18 and 0.36, DIMASZ 0.18 and 0.36, the distance that first took the words (those that would not
+            // fit between the rays) ran with radius times the sweep past 180 degrees at 0.1805 for DIMGAP 0.09 and 0.36 for 0.18
+            // in every one of them.
+            bool reflex = arcLength && !turned.HasValue && sweep >= (Math.Abs(from) < 1E-12 ? ReflexFromZero : ReflexFrom);
+            bool pastHalf = reflex && radius * (sweep - Math.PI) >= 2.005 * gap;
+            bool pastBoth = reflex && radius * (sweep - Math.PI) >= 2.005 * gap + 1.003 * needArrows;
+
             bool textInside;
             bool arrowsInside;
             bool arrowsLeftOut = false;
@@ -1395,7 +1426,7 @@ namespace GeometryHelper.Dxf.Viewer
                 arrowsInside = true;
                 arrowsLeftOut = needBoth > room && style.Dimsoxd;
             }
-            else if (needFit + bothExtra <= roomBetween)
+            else if ((needFit + bothExtra <= roomBetween) || pastBoth)
             {
                 textInside = true;
                 arrowsInside = true;
@@ -1421,7 +1452,7 @@ namespace GeometryHelper.Dxf.Viewer
                         // arcs of 10 put 12 out, DIMASZ 0.5 (1 for two arrowheads) and words 0.79 with their gaps, the arrowheads
                         // from a chord of 1.0 to 1.8 with the words outside, those under DIMASZ 0.36 (0.72) leaving the words in.
                         bool arrowsFirst = needArrows <= room && needArrows > needFit && needFit > roomBetween;
-                        textInside = needFit <= room && !arrowsFirst;
+                        textInside = (needFit <= room && !arrowsFirst) || pastHalf;
                         arrowsInside = !textInside && needArrows <= room;
                         break;
                 }
@@ -1680,6 +1711,19 @@ namespace GeometryHelper.Dxf.Viewer
                     : middle;
                 wordsFirst = theta < middle - 1E-9;
                 double tangent = Readable(theta + Math.PI / 2.0);
+
+                if (arcLength && (style.Dimjust == 1 || style.Dimjust == 2))
+                {
+                    // Words by a ray read the way those in the middle of the arc would, whichever way their own tangent points:
+                    // "3.6652" aligned by the second ray of an arc of 3 from 135 to 205 degrees, its tangent there at 276 degrees,
+                    // is turned to 96 by AutoCAD 2021, as the middle's at 260 is turned to 80.
+                    double own = theta + Math.PI / 2.0;
+                    double across = middle + Math.PI / 2.0;
+                    tangent =
+                        Math.Atan2(Math.Sin(own), Math.Cos(own))
+                        + (Math.Cos(Readable(across) - across) < 0.0 ? Math.PI : 0.0);
+                }
+
                 GeoPoint2 point = vertex + Heading(theta) * radius;
                 var up = new GeoVector2(-Math.Sin(tangent), Math.Cos(tangent));
                 double upSide =
@@ -1731,6 +1775,30 @@ namespace GeometryHelper.Dxf.Viewer
                         out breakFrom,
                         out breakTo
                     );
+
+                    // Words by a ray (DIMJUST 1 and 2) whose break reaches an arrowhead's room send both arrowheads outside, the arc
+                    // not drawn: "4.1888" level by the second ray of an arc of 3 from 10 to 90 degrees stands with the arc leaving
+                    // its box just where the arrowhead's back is, and AutoCAD 2021 draws the arrowheads outside from 80 degrees of
+                    // sweep (the arrowhead in at 75, the break ending 2.9 degrees short of it).
+                    if (
+                        arcLength
+                        && !turned.HasValue
+                        && (style.Dimjust == 1 || style.Dimjust == 2)
+                        && CutsArrows(
+                            breakFrom,
+                            breakTo,
+                            AlongSweep(theta, from),
+                            from,
+                            to,
+                            from + (trim1 > 0.0 ? ChordTurn(radius, trim1) : 0.0),
+                            to - (trim2 > 0.0 ? ChordTurn(radius, trim2) : 0.0)
+                        )
+                    )
+                    {
+                        arrowsInside = false;
+                        breakFrom = 0.0;
+                        breakTo = 0.0;
+                    }
                 }
             }
             else if (style.Dimtmove != 0 && !style.Dimtoh)
@@ -1827,6 +1895,17 @@ namespace GeometryHelper.Dxf.Viewer
                         double s = Math.Sin(goes);
                         flat = s > 1E-9 || (s >= -1E-9 && Math.Cos(goes) > 0.0) ? 1.0 : -1.0;
                         flat = second ? -flat : flat;
+
+                        if (reflex && !second)
+                        {
+                            // Past a half turn they go the other way, by the sign of the sine of the same direction, and the arc point
+                            // is a third of the way round: probed with arcs of 1 from 0 to 180 degrees by 30 and from 0 to 350 by
+                            // 10, sweeps 181 to 300, put 0.3 to 1.2 out, in 770 pictures with the words outside the end was always
+                            // the first, the words went the other way in 768 and the arc point stood a third round in 751 (those
+                            // 19 were at the edge of the fit, the words all but in).
+                            flat = -flat;
+                            wordsFirst = false;
+                        }
                     }
 
                     var x = new GeoVector2(flat, 0.0);
@@ -1961,12 +2040,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// had it from 65 to 110: the window's half width is fitted as 4.65 degrees and 11.15 over the box, its middle as 91
         /// less 2.3 times the box, from those two.
         /// </remarks>
-        private static double LevelAlongChord(double toward, double box)
+        private static double LevelAlongChord(double toward, double box, double moved = 0.0)
         {
             double degrees = toward * 180.0 / Math.PI;
             degrees -= Math.Floor(degrees / 360.0) * 360.0;
             double half = 4.65 + 11.15 / Math.Max(box, 0.1);
-            double centre = 91.0 - 2.3 * box;
+            double centre = 91.0 - 2.3 * box - moved;
             return Math.Max(
                 Window(degrees, centre - half, centre + half),
                 Window(degrees, centre + 185.4 - half, centre + 185.4 + half)

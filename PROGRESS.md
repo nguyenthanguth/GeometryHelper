@@ -240,7 +240,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] WMFIN (wmf1): our own WMF reader (lines, polygons, rectangles, ellipses, arcs, pies, pens, brushes, fonts,
         text) and WMFIN as AutoCAD (block WMF<n> of inches, "Units: Unitless Conversion:", Explode and REpeat, the
         picture in half the view), WMFBKGND/WMFFOREGND kept; IMPORT still refuses .wmf as AutoCAD does
-  - [ ] Dialogs 12 follow-ups: WMF colour index between primaries (45 probed, no rule; .claude/gk/wmf-notes); text height
+  - [ ] (wmf2, running: the WMF parts) Dialogs 12 follow-ups: WMF colour index between primaries (45 probed, no rule; .claude/gk/wmf-notes); text height
         and baseline per font look; clipping to the window, negative extents, RestoreDC, code pages; WMFOPTS (GUI);
         raster image quality, PDF layer information and bookmarks (the SkiaSharp writer cannot); .pss location codes 1-3
         (GUI Save As); Collect in the Leaders panel (after MLEADERCOLLECT); multi-line stamp and "." clearing in the GUI;
@@ -531,9 +531,13 @@ the ones wanted.
       wide sweeps with the arc symbol (tar41s 208 -> 21, tar39s 92 -> 10); level words outside by sin(from + sweep/3);
       bothExtra as a window on the arc middle's direction (tar42s 31 -> 2); the text-rounding cases were the probe's
       six-decimal radians (tar30s 73 -> 1); harness .claude/gk/assoc-harness8
-- [ ] (assoc9, running) Associative dimensions follow-ups 9: sweeps of 180 degrees or more (tar38s 76 of 252, tar24s ~100); level words
-      with DIMJUST 1 at sweep 80 (arrowheads out in AutoCAD); DIMARCSYM 0 a10 100 degrees (0.05 later); the bothExtra
-      window rests on two widths; text 0.36 under-corrected by 0.02-0.04 (S)
+- [x] Associative dimensions follow-ups 9 (assoc9): arc-length sweeps of 180 degrees or more as AutoCAD (words outside
+      a third of the way round, words in once R x (sweep - 180) >= 2.005 DIMGAP; tar44s 330 -> 114, tar46s 1 483 -> 319,
+      tar47s 578 -> 147, tar48s 1 158 -> 299, tar38s 76 -> 30); DIMJUST 1/2 words cutting the arrowhead room (tar45s 41
+      -> 0); the bothExtra window past 90 degrees of sweep; 102 older sets byte-identical, 11 better
+- [ ] Associative dimensions follow-ups 10: arrowheads outside with the words outside on reflex arcs (452 of 1 315, by
+      the arc middle's direction mod 180); text 0.36 symbol room; aligned words and DIMJUST 1/2 outside past a half
+      circle (204 of 432); bothExtra amplitude just over 90 degrees (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
       back of its arrowhead; DIMTVP; the box of DIMGAP below zero (526 AutoCAD pictures compared, 511 match)
 - [x] Dimensions: words measured by the drawing's fonts in the pictures (the main gap left); DIMTEDIT on angular and
