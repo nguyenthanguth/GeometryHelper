@@ -6,6 +6,29 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DwgWriter` writes a 3DSOLID, a REGION and a BODY into a DWG of R2000, which left them out. The entity holds the SAT text of ACIS 4.00
+itself, as AutoCAD 2000's file keeps it: the flag of not empty, a bit AutoCAD 2000 sets to 1 where later versions leave it at 0, the version
+1, the text in blocks of at most 4 096 bytes each with its size ahead of it and a 0 after the last, and the wireframe of a new solid (no
+count of materials, no history handle). The lines are the groups of the DXF with a caret held alone and a line that starts with a space
+starting with a tab, each ended by a carriage return and a line feed. AutoCAD's own DWG of R2000 of a box 30 by 20 by 10, a region and two
+spline solids (the second of 9 836 bytes of text in blocks of 4 096, 4 096 and 1 644) are read and written again to the very bytes of each
+entity (4 of 4). The solids of the box, sphere, cylinder and region of the DXF of R2004, R2010, R2013 and R2018, of a box with a region,
+and of a plate 400 by 400 with 400 holes, written to R2000, open in AutoCAD 2021 with `AUDIT` at 0 errors and `MASSPROP` gives them what it
+gives the original and its own SaveAs to R2000 (9 087.1384 for the three solids, area 153.9380 and perimeter 43.9823 for the region; 6 000
+and 314.1593; 1 398 938.0702). A solid whose ACIS cannot be put as 4.00 (the 2 spline solids of the DXF of R2004, R2007 and R2010) is left
+out of R2000 as before. Of 1 080 files (the 167 drawings of the corpus and 13 saved by AutoCAD as R2018, each written as the six versions)
+1 056 are the same bytes as before; the 24 others are the 8 of R2000 that hold bodies and the 16 of R2007 and R2010 of the next entry.
+
+**FIXED.** The constraint groups of a dynamic block of the second layout (ACDBASSOC2DCONSTRAINTGROUP of a drawing AutoCAD 2018 saved) were left
+out of a DWG of R2010 and R2007, with the network that listed them, the evaluation graph and the dependencies of the block. They are
+written in the first layout, as AutoCAD 2021 does when it saves such a drawing in those versions: the action at version 1 without its four
+numbers more, the two numbers and the flag after the next identifier left out, and the nodes by identifier, each with its class as a text,
+its identifier, its byte and what its class holds (a circle and an arc with three reals, where the second layout has a fourth, 0 in every
+sample). The 34 groups of the 8 `Dynamic Blocks` samples that hold some, saved by AutoCAD as R2018 and written as R2010 and R2007, open with
+`AUDIT` at the errors of AutoCAD's own R2010 file of each (0, 2 in each Civil, 10 in Mechanical - Metric), AutoCAD's DXF of the files holds
+every group of the R2018 file group for group, and the data of each group equals the data of the group in AutoCAD's own DWG of R2010, bit for
+bit (the handles of the actions a group owns come in AutoCAD's own order there). A test that expected the groups to be left out changed.
+
 **CHANGED.** The edits of a table that go into its TABLECONTENT are written into the bytes of the cells and rows they change, as `MergeCells` is, where each read
 and wrote its 100 000 groups (a table read from a file holds one, from R2007 on): `ResetValue` of a block cell, which takes the block's content out of it,
 `InsertRows`, `InsertRowsAndInherit`, `InsertColumns`, `InsertColumnsAndInherit`, `DeleteRows`, `DeleteColumns`, `SetSize`, and a `MergeCells` that empties a cell holding

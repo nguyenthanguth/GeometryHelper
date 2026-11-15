@@ -175,11 +175,7 @@ namespace GeometryHelper.Dwg
                     (type == "VISUALSTYLE" && !IsListedVisualStyle(record) && RoundTripOfVisualStyle(record) == null)
                     || (
                         type == "ACDBASSOC2DCONSTRAINTGROUP"
-                        && (
-                            (!R2013Plus && IsConstraintGroup2(record))
-                            || !NodesAreKnown(record)
-                            || (!R2010Plus && !HoldsRoundTripOf2007)
-                        )
+                        && (!NodesAreKnown(record) || (!R2010Plus && !HoldsRoundTripOf2007))
                     )
                     ? -1
                     : number;
