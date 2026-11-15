@@ -266,7 +266,12 @@ corner joint do not work on the segments the picks lie on: of every pair of segm
 both (or past a free end, as above) AutoCAD 2021 takes the pair whose meeting is nearest the picks, the distance along the first
 multiline from its pick added to that along the second from its pick, the later pair where two are as near (the L above and
 the Z (50, -30)-(50, 30)-(150, 30), picked at (20, 0) and (130, 30), are crossed at (100, 30), though the first pick is on the L's
-first segment, which meets the Z's first at (50, 0) as well). Where no pair can be made the lines may still meet past a vertex of one multiline's
+first segment, which meets the Z's first at (50, 0) as well). A closed multiline's distance along itself counts from its start the
+shorter way round, so that a crossing near its last segment counts as near its start: the rectangle (0, 0)-(200, 0)-(200, 100)-(0, 100)
+crossed by the horizontal (-20, 50)-(220, 50), picked on its bottom edge at (70, 0), has the left edge broken (550 along the 600, counted
+as 50) where the second is picked at (175, 50) and the right edge where it is picked at (185, 50), and two crossings as near as each
+other go to the earlier segment of a closed multiline (the later of an open one; 900 random crosses of a square, a rectangle and a
+triangle 183 differed from AutoCAD before and 85 now). Where no pair can be made the lines may still meet past a vertex of one multiline's
 first or last segment while the other runs on past its free end: a cross says `Invalid
 operation on a self intersecting multiline.` and a corner joint says nothing and puts that first multiline's start caps off,
 as AutoCAD does; any other miss is `These multilines do not intersect.` (the L crossed by (30, -60)-(30, -40)-(xe, -40) is
@@ -280,7 +285,10 @@ the right side is `Invalid operation on a self intersecting multiline.` for ever
 of the last segment (the L crossed by the horizontal (30, 140)-(110, 140)) takes nothing out of it: AutoCAD writes that break
 inside out and draws a stray piece there, which the presenter does not copy. CS, CA and
 WA from one segment to another cut from the first pick to the end of its segment, the segments between whole and the next
-segment up to the second pick: CA from (50, 0) to (100, 50) on (0, 0)-(100, 0)-(100, 100) at scale 20 leaves the first segment
+segment up to the second pick (on a closed multiline the shorter way round between the picks, whichever is picked first: the
+square of 100 cut from (30, 100) to (50, 0) leaves the top edge cut for 30, the left edge cut whole and the bottom one for 50, and
+the same where the picks are given the other way round, the 220 through (100, 100) and (100, 0) being the longer; 700 random cuts of
+six closed shapes, each followed by a moved vertex, 320 differed from AutoCAD before and 57 now, all of them CA at mitred corners): CA from (50, 0) to (100, 50) on (0, 0)-(100, 0)-(100, 100) at scale 20 leaves the first segment
 drawn to 50 and the second from 50 (70 for the bottom element, which starts at the outer corner); round the first vertex of a
 closed one AutoCAD starts the cut on the first segment at the vertex, so that a stub of the outer element is left at the
 corner, and the presenter does the same. A merged cross or tee of four elements breaks the elements pair by pair from the
@@ -296,7 +304,9 @@ cut finds nothing there, as nothing is drawn.
 The tees work on a pair of segments as the crosses do, found a little differently (AutoCAD 2021's numbers at scale 20). The stem is
 run on past the free end of its first or last segment, and the second is met on one of its segments (the end of its last
 is not on it) or run on past its own free end: of those pairs the one whose meeting is nearest the picks is taken (the distance
-along the stem from its pick added to that along the second from its pick), and that pair alone says whether the tee is made, or
+along the stem from its pick added to that along the second from its pick, a closed second's distance along itself counted from its
+start the shorter way round as the crosses count it: 600 random tees onto a square, a rectangle and a triangle 201 differed from AutoCAD
+before and 176 now), and that pair alone says whether the tee is made, or
 `These multilines do not intersect.` where the second is met past its free end. Two pairs as near as each other (a stem that runs along
 a segment of the second between them) go to the one on the earlier segment of the second where one meets it on a segment and the
 other past its free end, else to the one whose stem segment is farther from the stem's pick, then the nearer along the stem, then the earlier,
@@ -337,7 +347,11 @@ list as it was, and no stretch goes below nought. A closed multiline is moved th
 square of 100 cut from (100, 50) to (50, 100) across (100, 100), whose vertex (100, 100) goes to (90, 90), holds 0 and 50 there for
 its first element where it held 50), but for the first segment and the last, which join the end of the points to their start:
 AutoCAD puts no nought in front of their lists (the triangle (0, 0)-(100, 0)-(50, 80) cut from (75, 40) to (25, 40) across (50, 80),
-whose vertex (100, 0) goes to (90, 0), still holds `{47.1699}` at (50, 80)). A closed multiline whose move shortens a segment until a cut that reaches its end starts at the
+whose vertex (100, 0) goes to (90, 0), still holds `{47.1699}` at (50, 80)), except that an empty list on the last segment (a cut that
+goes across it from the segment before) gets its nought when the move makes the segment before whole (the square of 100 cut from (15, 0)
+to (15, 100), whose vertex (100, 100) goes to (108, 91), holds `{0}` for both elements at (0, 100) where it held `{}`). A stop that comes
+to lie at or past the end of a segment of a closed multiline is left out, an odd list or an even (the six-sided staircase (0, 0)-(100, 0)-(100, 50)-(50, 50)-(50, 100)-(0, 100) cut from
+(75, 50) to (50, 92), whose vertex (50, 100) goes to (50, 90), holds `{}` for the first element at (50, 50) where it held `{42}`). A closed multiline whose move shortens a segment until a cut that reaches its end starts at the
 end leaves that stop out, the element drawn to the end (the six-sided staircase (0, 0)-(100, 0)-(100, 50)-(50, 50)-(50, 100)-(0, 100)
 cut across (0, 0) from (0, 10) to (10, 0), whose vertex (0, 0) goes to (0, 10), holds `{0}` and no longer `{0, 90}` on its last segment) and the list that goes on
 across the next vertex then gets its nought (`{0, 10}`), where a move that carries the start of a cut that goes on across a vertex back past the start of the segment

@@ -123,6 +123,28 @@ where it held `{0, 90}`), a move carries the start of a cut back past the start 
 and not nought twice), and a cut whose picks lie beyond the end of a mitred element's stretch (the staircase cut from (60, 50) to
 (50, 60) across its concave corner) takes nothing out of the element. 288 moves of the staircase and 700 of four shapes: 107 differed
 from AutoCAD before and 8 now, none that was equal changed.
+**CHANGED.** MLEDIT's crosses (CC, OC, MC) and tees (CT, OT, MT) count a closed multiline's distance along itself from
+its start the shorter way round when they take the pair of segments nearest the picks, as AutoCAD 2021 does, so that a crossing on its last
+segment counts as near its start: the rectangle (0, 0)-(200, 0)-(200, 100)-(0, 100) crossed by the horizontal (-20, 50)-(220, 50), picked on its
+bottom edge at (70, 0), has its left edge broken (550 along the 600, counted as 50) where the second is picked at (175, 50) and its right edge
+where it is picked at (185, 50), as all 992 probed picks of a square and of rectangles of three heights do; two crossings as near as each other go to
+the earlier segment of a closed multiline (an open one's still go to the later). 900 random crosses of a square, a rectangle and a triangle: 198
+differed from AutoCAD before and 100 now (a second set of 900, 183 and 85; 600 closed multilines crossed by a bent second, 154 and 97; 600 tees onto
+a closed second, 201 and 176; 4 to 13 rows in a set that matched before no longer do, all exact ties AutoCAD breaks the other way, and none
+of the tees), the rest chiefly the stray piece OC and MC leave past the second's end (not copied) and the
+cuts AutoCAD writes across a corner. Open multilines are as before (7 000 random crosses, corner joints and tees, none changed).
+**CHANGED.** MLEDIT's CS and CA between two picks on different segments of a closed multiline cut the shorter way round, whichever pick is
+given first, as AutoCAD 2021 does, where they cut forward from the first pick whatever its length: the square of 100 cut from (50, 0) to (30, 100)
+cuts the top edge for 30, the left edge whole and the bottom one for 50 (180), not the 220 through the right edge. 700 random cuts of six closed
+shapes, each followed by a moved vertex: 320 differed from AutoCAD before and 57 now, none of them CS (all CA at a mitred corner, where AutoCAD
+takes the cut of the inner element from another place than the presenter).
+**CHANGED.** A grip or STRETCH that moves a vertex of a closed multiline cut across its last vertex gives the empty list of the last segment
+its nought when the move makes the segment before whole (the square of 100 cut from (15, 0) to (15, 100), whose vertex (100, 100) goes to
+(108, 91), holds `{0}` for both elements at (0, 100) where it held `{}`), and leaves out a stop of an odd list that comes to lie at or past the
+end of its segment as it did an even one (the staircase (0, 0)-(100, 0)-(100, 50)-(50, 50)-(50, 100)-(0, 100) cut from (75, 50) to (50, 92), whose
+vertex (50, 100) goes to (50, 90), holds `{}` for the first element at (50, 50) where it held `{42}`). 700 cuts and moves: 17 differed from
+AutoCAD after the move where the cut was right, none now; the 687 moves of the last round: 32 differed before and 31 now (the
+cuts AutoCAD writes at the concave corner of the staircase, left), none that was equal changed.
 **FIXED.** Arc length dimensions (DIMARC) in the presenter follow AutoCAD 2021 where the last round left them, on arcs of more than
 half a circle, on words next to a ray whose box meets an arrowhead, and on the room both arrowheads want a little past 90 degrees of
 sweep (measured on its console, some 36 000 more dimensions made by both; the sets listed are differing pictures of those probed,
