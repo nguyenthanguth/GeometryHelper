@@ -16,11 +16,14 @@ namespace GeometryHelper.Dxf.Viewer
     /// contents a gap apart along it, the one picked staying where it is and the others following it in the order they stand
     /// along the direction; Distribute spaces them evenly between two points, the first one's left middle on the first point and
     /// the last one's on the second; make leader segments Parallel turns each leader about its arrowhead to run the way the one
-    /// picked runs, its length kept, its content moving with it. A content stands in a box of its words' width and height and
-    /// the landing gap before and after them (a block's extents), measured in the drawing's fonts, and the gaps are measured
-    /// between those boxes: words 1.14 wide in a style of a landing gap of 0.09, a spacing of 20 puts the next box 21.32
-    /// beyond the first. A content whose arrowhead stands past the middle of its box once it is moved has its leader turned to
-    /// meet it on the other side, the words or block staying where they are.
+    /// picked runs, its length kept, its content moving with it (of several lines to one landing, the one lying most nearly
+    /// along the dogleg's axis). A content stands in a box of its words' width and height and the landing gap before and after
+    /// them (a block's extents), measured in the drawing's fonts, and the gaps are measured between those boxes, along the
+    /// line, from where the second just clears the first (<see cref="Clearance"/>): words 1.14 wide in a style of a landing gap
+    /// of 0.09, a spacing of 20 along a level line puts the next box 21.32 beyond the first. A content whose arrowhead stands
+    /// past the middle of its box once it is moved has its leader turned to meet it on the other side, the words or block
+    /// staying where they are; of several leader lines the lines whose arrowheads stand on the other side go to a new leader
+    /// there and the others stay.
     /// </summary>
     /// <remarks>
     /// AutoCAD's console reads a typed point of Distribute or Specify direction shifted by the arrowhead of the first
@@ -208,7 +211,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             Dictionary<string, GeoVector2> moves;
-            Dictionary<string, KeyValuePair<bool, double>> turns;
+            Dictionary<string, MLeaderTurn> turns;
 
             using (Measuring(c.Document))
             {
@@ -262,6 +265,12 @@ namespace GeometryHelper.Dxf.Viewer
             /// <summary>The height of the box, the words' own.</summary>
             public double Height;
 
+            /// <summary>How far the box reaches above the anchor: the half of the first line's height, a block's half height.</summary>
+            public double Up;
+
+            /// <summary>How far the box reaches below the anchor: the rest of the height.</summary>
+            public double Down;
+
             /// <summary>The width of the words' ink alone, nought for a block.</summary>
             public double Ink;
 
@@ -290,6 +299,8 @@ namespace GeometryHelper.Dxf.Viewer
                         Centre = new GeoPoint2((blockLeft + right) / 2.0, middle.Y),
                         Width = right - blockLeft,
                         Height = high - low,
+                        Up = (high - low) / 2.0,
+                        Down = (high - low) / 2.0,
                         IsBlock = true,
                     };
                     return true;
@@ -335,6 +346,8 @@ namespace GeometryHelper.Dxf.Viewer
                 Centre = new GeoPoint2(left + width / 2.0, at.Value.Y - high2 / 2.0),
                 Width = width,
                 Height = high2,
+                Up = middleDown,
+                Down = high2 - middleDown,
                 Ink = wide,
             };
             return true;
@@ -481,7 +494,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             for (int i = 0; i < items.Count; i++)
             {
-                wanted[i] = Dot(items[i].Value.Centre, along);
+                wanted[i] = Dot(items[i].Value.Anchor, along);
             }
 
             if (spacing.HasValue)
@@ -502,26 +515,20 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
 
-                double cursor = Dot(pivot.Centre, along);
-                double previous = Extent(pivot, along) / 2.0;
-                bool start = fixedAt >= 0;
+                ContentBox previous = pivot;
+                double cursor = Dot(pivot.Anchor, along);
 
                 foreach (int i in order)
                 {
-                    double half = Extent(items[i].Value, along) / 2.0;
+                    ContentBox box = items[i].Value;
 
-                    if (start)
+                    if (i != fixedAt)
                     {
-                        wanted[i] = cursor;
-                        start = false;
-                    }
-                    else
-                    {
-                        cursor += previous + half + spacing.Value;
-                        wanted[i] = cursor;
+                        cursor += Clearance(previous, box, along) + spacing.Value;
                     }
 
-                    previous = half;
+                    wanted[i] = cursor;
+                    previous = box;
                 }
             }
 
@@ -561,7 +568,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             for (int i = 0; i + 1 < items.Count; i++)
             {
-                total += Extent(items[i].Value, along);
+                total += Clearance(items[i].Value, items[i + 1].Value, along);
             }
 
             double gap = items.Count > 1 ? (length - total) / (items.Count - 1) : 0.0;
@@ -569,9 +576,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             for (int i = 0; i < items.Count; i++)
             {
-                double extent = Extent(items[i].Value, along);
-                AddMove(moves, items[i], along, across, start + extent / 2.0, lineAt);
-                start += extent + gap;
+                AddMove(moves, items[i], along, across, start, lineAt);
+
+                if (i + 1 < items.Count)
+                {
+                    start += Clearance(items[i].Value, items[i + 1].Value, along) + gap;
+                }
             }
 
             return moves;
@@ -603,24 +613,51 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static double Dot(GeoPoint2 p, GeoVector2 v) => p.X * v.X + p.Y * v.Y;
 
-        /// <summary>How far a box reaches along a direction, corner to corner.</summary>
-        private static double Extent(ContentBox box, GeoVector2 along) =>
-            Math.Abs(along.X) * box.Width + Math.Abs(along.Y) * box.Height;
+        /// <summary>
+        /// How far along a direction the anchor of a box stands from the anchor of the box before it once the two just clear
+        /// each other, as AutoCAD 2021 measures the gaps of Distribute and Spacing: the second box slid along the line from the
+        /// first until it is past the first's right edge (past its own right edge where the line runs to the left) or past its
+        /// top or bottom edge, whichever comes first. Two boxes 16.013 and 1.013 wide and 2.5 high on a line at 45 degrees
+        /// clear each other 3.535 along it, the height deciding; on a level line 16.013, the width.
+        /// </summary>
+        private static double Clearance(ContentBox before, ContentBox after, GeoVector2 along)
+        {
+            double sideways = double.MaxValue;
+            double upwards = double.MaxValue;
 
-        /// <summary>Notes the move that stands a content's box centre at a place along the line and its landing on the line.</summary>
+            if (along.X > 1E-9)
+            {
+                sideways = before.Width / along.X;
+            }
+            else if (along.X < -1E-9)
+            {
+                sideways = after.Width / -along.X;
+            }
+
+            if (along.Y > 1E-9)
+            {
+                upwards = (before.Up + after.Down) / along.Y;
+            }
+            else if (along.Y < -1E-9)
+            {
+                upwards = (before.Down + after.Up) / -along.Y;
+            }
+
+            return Math.Min(sideways, upwards);
+        }
+
+        /// <summary>Notes the move that stands a content's anchor at a place along the line and its landing on the line.</summary>
         private static void AddMove(
             Dictionary<string, GeoVector2> moves,
             KeyValuePair<DxfMLeader, ContentBox> item,
             GeoVector2 along,
             GeoVector2 across,
-            double centreAt,
+            double anchorAt,
             double lineAt
         )
         {
             ContentBox box = item.Value;
-            var offset = new GeoVector2(box.Anchor.X - box.Centre.X, box.Anchor.Y - box.Centre.Y);
-            double alongLanding = centreAt + Dot(offset, along);
-            GeoPoint2 target = new GeoPoint2(0.0, 0.0) + along * alongLanding + across * lineAt;
+            GeoPoint2 target = new GeoPoint2(0.0, 0.0) + along * anchorAt + across * lineAt;
             var move = new GeoVector2(target.X - box.Anchor.X, target.Y - box.Anchor.Y);
 
             if (move.Length > 1E-9)
@@ -644,14 +681,14 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            IReadOnlyList<int> lines = reference.GetLeaderLineIndexes(reference.GetLeaderIndexes()[0]);
+            int referenceLeader = reference.GetLeaderIndexes()[0];
 
-            if (lines.Count == 0)
+            if (reference.GetLeaderLineIndexes(referenceLeader).Count == 0)
             {
                 return;
             }
 
-            GeoVector2 way = Leg(reference, lines[0]);
+            GeoVector2 way = Leg(reference, StraightestLine(reference, referenceLeader));
 
             if (way.Length < 1E-9)
             {
@@ -675,7 +712,7 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                int line = member.GetLeaderLineIndexes(indexes[0])[0];
+                int line = StraightestLine(member, indexes[0]);
                 GeoVector2 leg = Leg(member, line);
                 GeoPoint3 arrow = member.GetFirstVertex(line);
                 GeoPoint3 end = member.GetLastVertex(line);
@@ -708,7 +745,7 @@ namespace GeometryHelper.Dxf.Viewer
                     if (!s.IsHandled(p.Key.Handle))
                     {
                         var member = (DxfMLeader)s.Document.FindEntity(p.Key.Handle);
-                        member.SetLastVertex(member.GetLeaderLineIndexes(member.GetLeaderIndexes()[0])[0], p.Value);
+                        member.SetLastVertex(StraightestLine(member, member.GetLeaderIndexes()[0]), p.Value);
                     }
                 }
             });
@@ -717,6 +754,49 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 c.Write(result.Message);
             }
+        }
+
+        /// <summary>
+        /// The leader line of a leader that make leader segments Parallel turns, and takes the direction from: of several lines
+        /// to one landing, as AutoCAD 2021 takes it, the one that lies the most nearly along the dogleg's axis (a leader whose
+        /// dogleg runs along x and whose arrowheads are at 150, 170 and 210 degrees from the landing turns the one at 170, 10
+        /// degrees from the axis where the others are 30; of arrowheads at 20 and 135 degrees it turns the one at 20, whichever
+        /// side of the landing the arrowhead is on); the first when there is no dogleg to go by or two lines lie alike.
+        /// </summary>
+        private static int StraightestLine(DxfMLeader mleader, int leader)
+        {
+            IReadOnlyList<int> lines = mleader.GetLeaderLineIndexes(leader);
+            GeoVector3 dogleg = mleader.GetDogleg(leader);
+            double back = Math.Sqrt(dogleg.X * dogleg.X + dogleg.Y * dogleg.Y);
+            int best = lines[0];
+
+            if (back < 1E-9 || lines.Count == 1)
+            {
+                return best;
+            }
+
+            double bestDot = double.MinValue;
+
+            foreach (int line in lines)
+            {
+                GeoVector2 leg = Leg(mleader, line);
+
+                if (leg.Length < 1E-9)
+                {
+                    continue;
+                }
+
+                // The straight one lies the most nearly along the dogleg's axis, whichever way it runs along it.
+                double dot = Math.Abs(leg.X * dogleg.X + leg.Y * dogleg.Y) / (leg.Length * back);
+
+                if (dot > bestDot + 1E-9)
+                {
+                    bestDot = dot;
+                    best = line;
+                }
+            }
+
+            return best;
         }
 
         /// <summary>The way a leader line runs, from its arrowhead to the end of its leader.</summary>
@@ -730,17 +810,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Which contents have their leader turned to the other side once they are moved, and to which: a content whose
         /// arrowhead stands past the middle of its box, which is the left of it for a leader on the right, as AutoCAD 2021 turns
-        /// them (the box the one picked stays out of). Only a multileader of one leader line is turned, its words held at their top
-        /// left or top right, or a block.
+        /// them (the box the one picked stays out of); of several leader lines to one landing, one arrowhead on the other side
+        /// of the middle turns it. Only a multileader of one leader is turned, its words held at their top left or top right, or
+        /// a block.
         /// </summary>
-        private static Dictionary<string, KeyValuePair<bool, double>> MLeaderTurns(
+        private static Dictionary<string, MLeaderTurn> MLeaderTurns(
             IReadOnlyList<DxfMLeader> members,
             DxfDatabase database,
             IReadOnlyDictionary<string, GeoVector2> moves,
             DxfMLeader reference
         )
         {
-            var turns = new Dictionary<string, KeyValuePair<bool, double>>(StringComparer.OrdinalIgnoreCase);
+            var turns = new Dictionary<string, MLeaderTurn>(StringComparer.OrdinalIgnoreCase);
 
             foreach (DxfMLeader member in members)
             {
@@ -754,7 +835,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 IReadOnlyList<int> leaders = member.GetLeaderIndexes();
 
-                if (leaders.Count != 1 || member.GetLeaderLineIndexes(leaders[0]).Count != 1)
+                if (leaders.Count != 1 || member.GetLeaderLineIndexes(leaders[0]).Count == 0)
                 {
                     continue;
                 }
@@ -796,16 +877,49 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 double centre = box.Centre.X + (moves.TryGetValue(member.Handle, out GeoVector2 move) ? move.X : 0.0);
-                double arrow = member.GetFirstVertex(member.GetLeaderLineIndexes(leaders[0])[0]).X;
-                bool wanted = arrow > centre + 1E-9;
 
-                if (wanted != onRight)
+                // Each line goes to the side of the words its arrowhead is on: the lines whose arrowheads are on the other side
+                // than the leader is turn to it, all of them (the leader is turned) or some (they go to a new leader on that
+                // side, the others staying): a leader on the left of the words with arrowheads at -30 and 40 and the middle of
+                // the box at 17 keeps the first line and sends the second to a new leader on the right.
+                IReadOnlyList<int> lines = member.GetLeaderLineIndexes(leaders[0]);
+                var across = new List<int>();
+
+                foreach (int line in lines)
                 {
-                    turns[member.Handle] = new KeyValuePair<bool, double>(wanted, box.Ink);
+                    if ((member.GetFirstVertex(line).X > centre + 1E-9) != onRight)
+                    {
+                        across.Add(line);
+                    }
+                }
+
+                if (across.Count > 0)
+                {
+                    turns[member.Handle] = new MLeaderTurn(
+                        !onRight,
+                        box.Ink,
+                        across.Count == lines.Count ? null : across
+                    );
                 }
             }
-
             return turns;
+        }
+
+        /// <summary>The side a leader is turned to, the width of the words' ink, and the lines that go to the other side (all of them where null).</summary>
+        private sealed class MLeaderTurn
+        {
+            public MLeaderTurn(bool onRight, double ink, List<int> lines)
+            {
+                OnRight = onRight;
+                Ink = ink;
+                Lines = lines;
+            }
+
+            public bool OnRight { get; }
+
+            public double Ink { get; }
+
+            public List<int> Lines { get; }
         }
 
         /// <summary>Moves the content of each multileader by its own vector, with its landing, and turns the leaders that are to meet their content on the other side, as one edit of the command.</summary>
@@ -813,7 +927,7 @@ namespace GeometryHelper.Dxf.Viewer
             CadCommandContext c,
             IReadOnlyList<DxfMLeader> members,
             IReadOnlyDictionary<string, GeoVector2> moves,
-            IReadOnlyDictionary<string, KeyValuePair<bool, double>> turns
+            IReadOnlyDictionary<string, MLeaderTurn> turns
         )
         {
             if (moves.Count == 0 && turns.Count == 0)
@@ -850,9 +964,9 @@ namespace GeometryHelper.Dxf.Viewer
                         member.MoveMLeader(new GeoVector3(by.X, by.Y, 0.0), DxfMoveType.MoveContentAndDoglegPoints);
                     }
 
-                    if (turns.TryGetValue(handle, out KeyValuePair<bool, double> turn))
+                    if (turns.TryGetValue(handle, out MLeaderTurn turn))
                     {
-                        member.SwitchSide(turn.Key, turn.Value);
+                        member.SwitchSide(turn.OnRight, turn.Ink, turn.Lines);
                     }
                 }
             });

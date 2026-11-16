@@ -25,9 +25,14 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <param name="onRight">Whether the leader is to meet the content on its right.</param>
         /// <param name="width">The width of the words' ink, from where they start, as AutoCAD's ActualWidth.</param>
+        /// <param name="lines">The indexes of the leader's lines whose arrowheads are on the other side, or null for all of them.
+        /// Where they are some of the lines, as AutoCAD 2021 does when the arrowheads of a leader stand on both sides of the
+        /// content, they go to a new leader on that side (the next index, landed as the turned leader would be) and the words
+        /// are held as they were, the leader keeping the others (arrowheads at -30 and 40 with the middle of the box at 17: the
+        /// line of -30 stays on the leader on the left, the line of 40 goes to a new leader on the right).</param>
         /// <returns>False, and nothing changed, where the MULTILEADER has not one leader that meets its content on the other
         /// side along the plane's x axis, words held at their top left or top right, or a block.</returns>
-        internal bool SwitchSide(bool onRight, double width)
+        internal bool SwitchSide(bool onRight, double width, ICollection<int> lines = null)
         {
             Rec rec = Read();
             Ctx ctx = Context(rec);
@@ -48,9 +53,20 @@ namespace GeometryHelper.Dxf
 
             GeoVector3 dogleg = onRight ? x.Negate() : x;
             int index = leader.Index + 1;
+            bool split = lines != null && lines.Count < leader.Lines.Count;
+
+            if (lines != null && lines.Count == 0)
+            {
+                return false;
+            }
 
             if (HasSection(ctx, 296, BlockCodes))
             {
+                if (split)
+                {
+                    return false;
+                }
+
                 PutPoint(leader.Head, 11, Pt(dogleg), LeaderOrder);
                 LandAnew(rec, ctx, new List<LeaderPart> { leader });
                 Put(leader.Head, 90, index.ToString(CultureInfo.InvariantCulture), LeaderOrder);
@@ -91,6 +107,22 @@ namespace GeometryHelper.Dxf
             GeoPoint3 landing = onRight
                 ? place.Add(x.Multiply(gap + length)).Add(y.Multiply(-belowRight))
                 : place.Add(x.Multiply(-(gap + length))).Add(y.Multiply(-belowLeft));
+
+            if (split)
+            {
+                // The words stay as they are held; some lines go to a new leader on the other side.
+                AddLeaderAt(rec, ctx, landing, dogleg);
+                LeaderPart added = ctx.Leaders[ctx.Leaders.Count - 1];
+
+                foreach (LinePart line in leader.Lines.FindAll(l => lines.Contains(l.Index)))
+                {
+                    leader.Lines.Remove(line);
+                    added.Lines.Add(line);
+                }
+
+                Write(rec);
+                return true;
+            }
 
             Put(ctx.Head, 176, (onRight ? 2 : 0).ToString(CultureInfo.InvariantCulture), ContextOrder);
             PutPoint(ctx.Head, 10, inkLeft.Add(x.Multiply(-gap)).Add(y.Multiply(-belowLeft)), ContextOrder);

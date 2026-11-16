@@ -282,14 +282,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 inside = 0,
                 touched = 0;
 
-            // Alone each takes under 100 ms. The limit of a second is wide for a busy machine, against a sweep gone quadratic, and
-            // each is asked up to three times, so that one stall of the machine does not fail the test.
+            // Alone each takes under 100 ms (40, 81 and 78). The limit of three seconds is wide for a busy machine (one beside
+            // other builds took 1.26 s, fifteen times as long, against the old limit of a second), against a sweep gone
+            // quadratic, of which one call takes more than three minutes at this size; and each is asked up to three times, so
+            // that one stall of the machine does not fail the test.
             index.Fence(fence);
-            long fenceMs = (long)SpeedGuard.AssertWithin(1, () => fenced = index.Fence(fence).Count).TotalMilliseconds;
+            long fenceMs = (long)SpeedGuard.AssertWithin(3, () => fenced = index.Fence(fence).Count).TotalMilliseconds;
             long windowMs = (long)
-                SpeedGuard.AssertWithin(1, () => inside = index.WindowPolygon(ring).Count).TotalMilliseconds;
+                SpeedGuard.AssertWithin(3, () => inside = index.WindowPolygon(ring).Count).TotalMilliseconds;
             long crossingMs = (long)
-                SpeedGuard.AssertWithin(1, () => touched = index.CrossingPolygon(ring).Count).TotalMilliseconds;
+                SpeedGuard.AssertWithin(3, () => touched = index.CrossingPolygon(ring).Count).TotalMilliseconds;
             _output.WriteLine(
                 "Fence: "
                     + fenceMs

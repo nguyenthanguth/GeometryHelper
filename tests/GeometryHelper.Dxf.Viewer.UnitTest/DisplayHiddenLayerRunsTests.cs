@@ -260,37 +260,57 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         /// <summary>
         /// A layer switched off at 300 000 entities is shown in a twelfth of what a REGEN takes or less: the entities of the layer
         /// are not read from their records, drawn and found to have nothing to draw. (The same work took a ninth of a REGEN and
-        /// more before; the limit is the ratio, which a busy machine moves less than it moves a time.)
+        /// more before; the limit is the ratio, which a busy machine moves less than it moves a time.) A REGEN and the layer are
+        /// timed one after the other in each round, up to ten rounds, and the shortest of each is compared: a stall or a build
+        /// beside the test only lengthens a run, so the shortest of each is the one the load did not touch, and the two are
+        /// taken from the same stretch of time, where a REGEN timed once at the start and the layer later, under another load,
+        /// makes the ratio of two loads. (Alone: a REGEN 330 ms and the layer 16 ms, a twentieth; the older work that drew the
+        /// entities of the layer again 50 to 86 ms, a ninth or more, which fails it.)
         /// </summary>
         [Fact]
         public void ALayerSwitchedOffAtThreeHundredThousandEntities_IsShownInATwelfthOfARegen()
         {
             CadDocument document = Open(BigDrawing.Text(300000));
             document.GetDisplay(document.ModelSpace);
-            double regen = double.MaxValue;
+            const int rounds = 10;
+            var regens = new List<double>();
+            var hiddens = new List<double>();
 
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < rounds; i++)
             {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
                 document.Regen();
                 var watch = System.Diagnostics.Stopwatch.StartNew();
                 document.GetDisplay(document.ModelSpace);
-                regen = Math.Min(regen, watch.Elapsed.TotalSeconds);
+                regens.Add(watch.Elapsed.TotalMilliseconds);
+
+                // Each round starts with the layer on and drawn, and switches it off: only the display after that is timed.
+                Assert.True(CadLayerEditor.SetOn(document, "Steel", true).Succeeded);
+                document.GetDisplay(document.ModelSpace);
+                Assert.True(CadLayerEditor.SetOn(document, "Steel", false).Succeeded);
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+                watch.Restart();
+                document.GetDisplay(document.ModelSpace);
+                hiddens.Add(watch.Elapsed.TotalMilliseconds);
+
+                if (hiddens.Min() * 12.0 < regens.Min())
+                {
+                    return;
+                }
             }
 
-            SpeedGuard.AssertWithin(
-                regen / 12.0,
-                () =>
-                {
-                    // Each run starts with the layer on and drawn, and switches it off: only the display after that is timed.
-                    Assert.True(CadLayerEditor.SetOn(document, "Steel", true).Succeeded);
-                    document.GetDisplay(document.ModelSpace);
-                    Assert.True(CadLayerEditor.SetOn(document, "Steel", false).Succeeded);
-                    GC.Collect();
-
-                    return document;
-                },
-                d => d.GetDisplay(d.ModelSpace),
-                6
+            Assert.Fail(
+                "The layer took more than a twelfth of a REGEN in each of "
+                    + rounds
+                    + " rounds. REGEN: "
+                    + string.Join(", ", regens.Select(t => t.ToString("0.0", CultureInfo.InvariantCulture) + " ms"))
+                    + "; the layer off: "
+                    + string.Join(", ", hiddens.Select(t => t.ToString("0.0", CultureInfo.InvariantCulture) + " ms"))
+                    + "."
             );
         }
     }

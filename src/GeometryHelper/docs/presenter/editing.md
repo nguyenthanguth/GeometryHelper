@@ -2470,18 +2470,34 @@ once chosen); the mode is kept for the next run and written as `Current mode: Di
 ("Specify spacing <0.000000>:") puts the contents a gap apart along it: the one picked stays, the others follow it in the
 order they stand along the direction, and the gap is measured between their boxes, each the width and height of the words
 with the landing gap before and after them: words 1.14, 0.06 and 2.34 wide with a landing gap of 0.09 and a spacing of 20 put
-the landings 21.32 and 20.24 apart, up the page 0.18 and 0.18 for words 0.18 high. Distribute asks two points ("Specify
+the landings 21.32 and 20.24 apart, up the page 0.18 and 0.18 for words 0.18 high. On a slanting line the gap is measured
+along the line, from where the second box just clears the first: slid along the line from the first it is clear once it is
+past the first's right edge (past its own right edge where the line runs to the left) or past the first's top or bottom,
+whichever comes first, not by the sum of their reaches. Boxes 16 by 2.5 and 4 by 1 clear each other 3.5355 along a line at
+45 degrees (the height decides) and 16 along a level one, and three block contents 16 by 2.5, 4 by 1 and 10 by 5 with a
+spacing of 5 along a line at 58.9 degrees through the 4 by 1 one picked have the 16 by 2.5 one 7.04 along it from the
+picked one (2.04 to clear it and 5) and the 10 by 5 one 16.42 (4.38 and 5 further), as AutoCAD 2021 stands them.
+Distribute asks two points ("Specify
 first point or [Options]:", "Specify second point:") and puts the left middle of the first content's box on the first point
 and that of the last one on the second, in the order their left edges stand along the line, the gaps between the boxes in
-between all the same. make leader segments Parallel asks only for the
-multileader to align to and turns each other multileader's first leader line about its arrowhead to run the way that one
-runs, its length kept, the content and landing moving with its end (arrowheads at (70, 30) and (130, 10), leaders of 58.31 and
-31.62, follow a leader at 45 degrees to (111.2311, 71.2311) and (152.3607, 32.3607)). Where a content ends up with its
+between all the same, measured as for Spacing: those three blocks distributed from (0, 0) to (100, 100) have their left
+middles at (0, 0), (49.375, 49.375) and (100, 100), from (0, 0) to (200, 0) at 0, 106 and 200. make leader segments
+Parallel asks only for the
+multileader to align to and turns each other multileader's leader line about its arrowhead to run the way that one's runs,
+its length kept, the content and landing moving with its end (arrowheads at (70, 30) and (130, 10), leaders of 58.31 and
+31.62, follow a leader at 45 degrees to (111.2311, 71.2311) and (152.3607, 32.3607)). Of several lines to one landing it is
+the line that lies most nearly along the dogleg's axis that counts, in the one picked and in the others, whichever side of the
+landing its arrowhead is on (a leader whose dogleg runs along x and whose arrowheads are at 150, 170 and 210 degrees from the
+landing turns the one at 170), the first of lines alike; the others only follow the landing. Where a content ends up with its
 arrowhead past the middle of its box the leader is turned to meet it on the other side, the words or the block staying where
 they are, as AutoCAD 2021 does: TWO from an arrowhead at (30, 0) aligned to a box starting at 10.36 is held at its top right
 at 10.99 (its ink from 10.45), its dogleg runs against x ending 0.09 past the words, its landing a dogleg further; one that
-lands to the left of an arrowhead before the middle of its box is held at its top left. Only a multileader of one leader line
-is turned.
+lands to the left of an arrowhead before the middle of its box is held at its top left. Each line of a leader goes to the side
+of the words its arrowhead is on: a leader of two lines with arrowheads at -30 and 40 and the middle of its box at 17 keeps
+the line of -30 on the left and sends the line of 40 to a new leader on the right (the next index, its dogleg against x, the
+landing a dogleg past the words' ink and a landing gap), the words held as they were; with both arrowheads on the other side
+the leader is turned whole. Only a multileader of one leader is turned or split, its words held at their top left or top
+right, or a block.
 
 MLEADERCOLLECT (MLC) takes "Select multileaders:" (multileaders of words, other objects and multileaders on a locked layer are
 not collected: `2 were filtered out`, `1 was on a locked layer.`; with none left it asks again) and then "Specify collected
