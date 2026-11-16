@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Runtime.CompilerServices;
 
 namespace GeometryHelper.Dwg
 {
@@ -50,6 +51,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>A group whose value is plain ASCII.</summary>
+        [MethodImpl(DwgJit.Hot)]
         public void Write(int code, string value)
         {
             Code(code);
@@ -58,6 +60,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>A group whose value is a whole number.</summary>
+        [MethodImpl(DwgJit.Hot)]
         public void Write(int code, long value)
         {
             Code(code);
@@ -66,6 +69,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>A group whose value is a number, written with the 17 digits that bring every double back.</summary>
+        [MethodImpl(DwgJit.Hot)]
         public void Write(int code, double value)
         {
             Code(code);
@@ -74,6 +78,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>A group whose value is a handle, in hex.</summary>
+        [MethodImpl(DwgJit.Hot)]
         public void WriteHandle(int code, ulong handle)
         {
             Code(code);
@@ -98,6 +103,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>A group whose value is a text of the DWG, as its bytes.</summary>
+        [MethodImpl(DwgJit.Hot)]
         public void Write(int code, byte[] text)
         {
             Code(code);
@@ -272,6 +278,7 @@ namespace GeometryHelper.Dwg
             return digits;
         }
 
+        [MethodImpl(DwgJit.Hot)]
         private static byte[] Escape(byte[] text)
         {
             int extra = 0;
@@ -313,6 +320,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>Makes room for <paramref name="extra"/> more bytes, the array doubling where it is full.</summary>
+        [MethodImpl(DwgJit.Hot)]
         private void Reserve(int extra)
         {
             if (_length > _buffer.Length - extra)
@@ -335,6 +343,7 @@ namespace GeometryHelper.Dwg
             _length += count;
         }
 
+        [MethodImpl(DwgJit.Hot)]
         private void Code(int code)
         {
             Whole(code);
@@ -342,6 +351,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>A whole number in decimal.</summary>
+        [MethodImpl(DwgJit.Hot)]
         private void Whole(long value)
         {
             if (value == long.MinValue)
@@ -376,6 +386,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>A double as <see cref="Number"/> gives it, the whole ones, which are most, with no string made.</summary>
+        [MethodImpl(DwgJit.Hot)]
         private void Real(double value)
         {
             // The nought and the whole numbers under 1E15: their digits and ".0". Negative nought is left to
@@ -393,9 +404,229 @@ namespace GeometryHelper.Dwg
                 return;
             }
 
-            Ascii(Number(value));
+            if (!Fraction(value))
+            {
+                Ascii(Number(value));
+            }
         }
 
+        /// <summary>
+        /// The share of half the distance to its neighbour, as one over this, that a text of 15 digits has to be off by from
+        /// half way for the parse of .NET Framework, which is not exact, to be trusted to read it as the exact sum does: 1/16,
+        /// where the parse was seen off by 0.005 at most.
+        /// </summary>
+        private const ulong ParseNoise = 16;
+
+        /// <summary>The fives to the power of their index, up to the power 22 (5 to the 22 is 2 384 185 791 015 625).</summary>
+        private static readonly ulong[] Fives = MakeFives();
+
+        private static ulong[] MakeFives()
+        {
+            var fives = new ulong[23];
+            fives[0] = 1;
+
+            for (int i = 1; i < fives.Length; i++)
+            {
+                fives[i] = fives[i - 1] * 5;
+            }
+
+            return fives;
+        }
+
+        /// <summary>The product of two numbers of 64 bits as one of 128, its high and low halves.</summary>
+        [MethodImpl(DwgJit.Hot)]
+        private static void Multiply(ulong a, ulong b, out ulong high, out ulong low)
+        {
+            ulong aLow = a & 0xFFFFFFFF;
+            ulong aHigh = a >> 32;
+            ulong bLow = b & 0xFFFFFFFF;
+            ulong bHigh = b >> 32;
+            ulong lowLow = aLow * bLow;
+            ulong lowHigh = aLow * bHigh;
+            ulong highLow = aHigh * bLow;
+            ulong middle = (lowLow >> 32) + (lowHigh & 0xFFFFFFFF) + (highLow & 0xFFFFFFFF);
+
+            low = (lowLow & 0xFFFFFFFF) | (middle << 32);
+            high = (aHigh * bHigh) + (lowHigh >> 32) + (highLow >> 32) + (middle >> 32);
+        }
+
+        /// <summary>
+        /// A number that is not whole, from 0.0001 up to 1E14 in size, as <see cref="Number"/> gives it, in whole-number
+        /// arithmetic and with no string made: its 15 digits where they bring it back, else its 17, the zeros at the end cut.
+        /// A double is a whole number over a power of two, so its digits are worked out exactly: the number times
+        /// ten to the power of the scale is its mantissa times five to that power, over two to the power of the difference
+        /// of the exponents. Whether the 15 digits bring the number back is whether they lie within half the distance to
+        /// its neighbour. False where the number is out of those bounds, a power of two (whose neighbour below is half as
+        /// far), or exactly half way between two texts, which are left to <see cref="Number"/>.
+        /// </summary>
+        [MethodImpl(DwgJit.Hot)]
+        private bool Fraction(double value)
+        {
+            double size = Math.Abs(value);
+
+            if (!(size >= 1E-4 && size < 1E14))
+            {
+                return false;
+            }
+
+            long bits = BitConverter.DoubleToInt64Bits(size);
+            ulong mantissa = (ulong)(bits & 0xFFFFFFFFFFFFFL);
+
+            if (mantissa == 0)
+            {
+                return false;
+            }
+
+            mantissa |= 1UL << 52;
+
+            // The number is mantissa over two to the power of power.
+            int power = 1075 - (int)(bits >> 52);
+
+            // The scale that makes 17 digits of it: from the first digit's place, 16 - floor(log10), tried once more either way.
+            int scale = 16 - (int)Math.Floor(Math.Log10(size));
+            ulong floor = 0;
+            ulong rest = 0;
+            int shift = 0;
+            ulong five = 0;
+
+            for (int attempt = 0; ; attempt++)
+            {
+                shift = power - scale;
+
+                if (scale < 2 || scale >= Fives.Length || shift < 1 || shift > 50 || attempt == 3)
+                {
+                    return false;
+                }
+
+                five = Fives[scale];
+                Multiply(mantissa, five, out ulong high, out ulong low);
+
+                if ((high >> shift) != 0)
+                {
+                    return false;
+                }
+
+                floor = (high << (64 - shift)) | (low >> shift);
+                rest = low & ((1UL << shift) - 1);
+
+                if (floor < 10000000000000000UL)
+                {
+                    scale++;
+                }
+                else if (floor >= 100000000000000000UL)
+                {
+                    scale--;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            // The 15 digits: the 17 cut by two, rounded by what is left of the number as well as by the two digits cut.
+            ulong cut = floor / 100;
+            ulong digits = floor - (cut * 100);
+
+            if (digits == 50 && rest == 0)
+            {
+                return false;
+            }
+
+            ulong fifteen = cut + (digits > 50 || (digits == 50 && rest > 0) ? 1UL : 0UL);
+            long difference = (((long)(fifteen * 100) - (long)floor) << shift) - (long)rest;
+            long distance = difference < 0 ? -difference : difference;
+
+            // Twice the distance over five is the share of half the distance to the neighbour that the 15 digits are off by.
+            ulong share = 2 * (ulong)distance;
+
+            if (share == five)
+            {
+                return false;
+            }
+
+            if (!ShortestRoundTrip && (share > five ? share - five : five - share) * ParseNoise < five)
+            {
+                // .NET Framework tries the 15 digits back through a parse that is not exact: it takes the 64 bits of the number
+                // through tables of the powers of ten, which are not, and so reads a text a hair either side of half way to the
+                // neighbour as the other number once in a thousand (off by up to 0.005 of the half-distance in 40 million
+                // tried). The old text is the 17 digits where that parse missed, so the numbers that close are left to it.
+                return false;
+            }
+
+            if (share < five)
+            {
+                Fixed(value < 0, fifteen, scale - 2);
+                return true;
+            }
+
+            ulong half = 1UL << (shift - 1);
+
+            if (rest == half)
+            {
+                return false;
+            }
+
+            Fixed(value < 0, floor + (rest > half ? 1UL : 0UL), scale);
+            return true;
+        }
+
+        /// <summary>The number <paramref name="digits"/> over ten to the power of <paramref name="scale"/> as decimal text, the zeros at the end cut.</summary>
+        [MethodImpl(DwgJit.Hot)]
+        private void Fixed(bool negative, ulong digits, int scale)
+        {
+            while (scale > 0 && digits % 10 == 0)
+            {
+                digits /= 10;
+                scale--;
+            }
+
+            int count = 1;
+
+            for (ulong rest = digits / 10; rest != 0; rest /= 10)
+            {
+                count++;
+            }
+
+            // A sign, the digits, a point, and under 1 the "0" and the zeros between the point and the first digit.
+            Reserve(Math.Max(count, scale) + 4);
+
+            if (negative)
+            {
+                _buffer[_length++] = (byte)'-';
+            }
+
+            int total =
+                scale == 0 ? count
+                : count > scale ? count + 1
+                : scale + 2;
+            int at = _length + total;
+
+            _length = at;
+
+            for (int place = 0; place < count; place++)
+            {
+                if (place == scale && place > 0)
+                {
+                    _buffer[--at] = (byte)'.';
+                }
+
+                _buffer[--at] = (byte)('0' + (int)(digits % 10));
+                digits /= 10;
+            }
+
+            if (count <= scale)
+            {
+                for (int zeros = count; zeros < scale; zeros++)
+                {
+                    _buffer[--at] = (byte)'0';
+                }
+
+                _buffer[--at] = (byte)'.';
+                _buffer[--at] = (byte)'0';
+            }
+        }
+
+        [MethodImpl(DwgJit.Hot)]
         private void Ascii(string text)
         {
             Reserve(text.Length);
@@ -406,6 +637,7 @@ namespace GeometryHelper.Dwg
             }
         }
 
+        [MethodImpl(DwgJit.Hot)]
         private void Line()
         {
             Reserve(2);

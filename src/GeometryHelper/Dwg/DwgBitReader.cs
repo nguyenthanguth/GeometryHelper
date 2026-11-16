@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 
 namespace GeometryHelper.Dwg
 {
@@ -104,6 +105,7 @@ namespace GeometryHelper.Dwg
         public long Remaining => _end - _position;
 
         /// <summary>B: one bit.</summary>
+        [MethodImpl(DwgJit.Hot)]
         public bool Bit()
         {
             if (_position >= _end)
@@ -117,6 +119,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>BB: two bits, the first the higher.</summary>
+        [MethodImpl(DwgJit.Hot)]
         public int Bits2() => (int)Bits(2);
 
         /// <summary>3B: up to three bits, read while each bit is set; the bits read so far make the number.</summary>
@@ -139,6 +142,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>The next <paramref name="count"/> bits (at most 32) as one number, the first bit the highest.</summary>
+        [MethodImpl(DwgJit.Hot)]
         public uint Bits(int count)
         {
             // The bits are taken from the bytes they lie in at once where they are all there, one bit at a time only where
@@ -171,6 +175,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>RC: one byte.</summary>
+        [MethodImpl(DwgJit.Hot)]
         public byte RawChar()
         {
             if (_position + 8 > _end)
@@ -191,6 +196,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>The next <paramref name="count"/> bytes.</summary>
+        [MethodImpl(DwgJit.Hot)]
         public byte[] Bytes(int count)
         {
             if (count < 0 || _position + (count * 8L) > _end)
@@ -209,6 +215,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>RS: a 16-bit number, low byte first.</summary>
+        [MethodImpl(DwgJit.Hot)]
         public int RawShort()
         {
             int low = RawChar();
@@ -216,6 +223,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>RL: a 32-bit number, low byte first.</summary>
+        [MethodImpl(DwgJit.Hot)]
         public int RawLong()
         {
             int value = RawChar();
@@ -225,6 +233,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>RD: a 64-bit IEEE number, low byte first.</summary>
+        [MethodImpl(DwgJit.Hot)]
         public double RawDouble()
         {
             long bits = 0;
@@ -264,6 +273,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>BS: a bit short. Two bits say what follows: 00 a raw short, 01 one byte, 10 nothing (0), 11 nothing (256).</summary>
+        [MethodImpl(DwgJit.Hot)]
         public int BitShort()
         {
             switch (Bits2())
@@ -280,6 +290,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>BL: a bit long. Two bits say what follows: 00 a raw long, 01 one byte, 10 nothing (0); 11 is not used.</summary>
+        [MethodImpl(DwgJit.Hot)]
         public int BitLong()
         {
             switch (Bits2())
@@ -310,6 +321,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>BD: a bit double. Two bits say what follows: 00 a raw double, 01 nothing (1.0), 10 nothing (0.0); 11 is not used.</summary>
+        [MethodImpl(DwgJit.Hot)]
         public double BitDouble()
         {
             switch (Bits2())
@@ -330,6 +342,7 @@ namespace GeometryHelper.Dwg
         /// the first four of the default's eight, 10 six bytes (the fifth and sixth of the default, then its first four),
         /// 11 a raw double.
         /// </summary>
+        [MethodImpl(DwgJit.Hot)]
         public double BitDoubleDefault(double defaultValue)
         {
             int kind = Bits2();
@@ -374,6 +387,7 @@ namespace GeometryHelper.Dwg
         /// MC: a modular char. Bytes of seven bits each, the low group first, the high bit of a byte saying another follows;
         /// in the last byte bit 0x40 is the sign where <paramref name="signed"/> is true.
         /// </summary>
+        [MethodImpl(DwgJit.Hot)]
         public long ModularChar(bool signed = true)
         {
             long value = 0;
@@ -406,6 +420,7 @@ namespace GeometryHelper.Dwg
         /// MS: a modular short. Raw shorts of fifteen bits each, the low group first, the high bit of a short saying
         /// another follows.
         /// </summary>
+        [MethodImpl(DwgJit.Hot)]
         public long ModularShort()
         {
             long value = 0;
@@ -435,6 +450,7 @@ namespace GeometryHelper.Dwg
         public ulong Handle(ulong reference = 0) => Handle(reference, out _);
 
         /// <summary>As <see cref="Handle(ulong)"/>, also giving the code of the reference.</summary>
+        [MethodImpl(DwgJit.Hot)]
         public ulong Handle(ulong reference, out int code)
         {
             code = (int)Bits(4);
@@ -471,6 +487,7 @@ namespace GeometryHelper.Dwg
         /// TV before R2007: a bit short giving the count of bytes, then the bytes in the drawing's code page. The count
         /// takes in the zero that ends the text; the text is returned up to it.
         /// </summary>
+        [MethodImpl(DwgJit.Hot)]
         public byte[] Text()
         {
             int count = BitShort();
@@ -497,6 +514,7 @@ namespace GeometryHelper.Dwg
         /// TU from R2007: a bit short giving the count of UTF-16 characters, then the characters, two bytes each, low byte
         /// first. The text is returned as UTF-8, up to the first zero character; a lone half of a pair becomes U+FFFD.
         /// </summary>
+        [MethodImpl(DwgJit.Hot)]
         public byte[] TextUnicode() => Utf16(BitShort());
 
         /// <summary>The text of an XRECORD or of extended data from R2007: a raw short giving the count of UTF-16 characters, then the characters; as <see cref="TextUnicode"/>.</summary>
@@ -521,6 +539,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>OT from R2010: two bits, then 00 one byte, 01 one byte above 0x1F0, 10 or 11 a raw short.</summary>
+        [MethodImpl(DwgJit.Hot)]
         public int ObjectType()
         {
             switch (Bits2())
@@ -535,12 +554,15 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>BT from R2000: a bit, set for a thickness of 0, else a bit double follows.</summary>
+        [MethodImpl(DwgJit.Hot)]
         public double BitThickness() => Bit() ? 0.0 : BitDouble();
 
         /// <summary>BE from R2000: a bit, set for the extrusion (0, 0, 1), else three bit doubles follow.</summary>
+        [MethodImpl(DwgJit.Hot)]
         public double[] BitExtrusion() => Bit() ? new[] { 0.0, 0.0, 1.0 } : Point3();
 
         /// <summary>3BD: three bit doubles.</summary>
+        [MethodImpl(DwgJit.Hot)]
         public double[] Point3()
         {
             double x = BitDouble();

@@ -387,6 +387,19 @@ process and 0.74 s the next under .NET 8 (1.53 s and 1.42 s under .NET Framework
 (2.18 s and 2.05 s): the DXF it is turned into is written in one array and read in place, and is byte for byte what it
 was.
 
+A DWG of 4 096 objects or more has its objects decoded on up to eight threads (as many as the machine has), 512 at a
+time, each thread with a reader of its own; the objects are put back in the order of the file, so the DXF is the same
+bytes on one thread or eight, the first broken object told is the first of the file, and a stopped token is answered at
+the next object. A smaller file is decoded by the thread that reads it. The numbers of the DXF that are not whole are
+written as bytes, in whole-number arithmetic, under every runtime (a coordinate of three decimals in 81 ns where 381 under
+.NET Framework 4.8, 52 ns where 118 under .NET 8), the handles written are kept in a table made once for the count of
+objects, and the methods the objects pass through by the hundred thousand are compiled fully at their first call under
+.NET Core. A DWG of 300 000 lines and circles with coordinates of three decimals (11.2 MB, 41 MB as DXF) opens in 0.65 s
+the first time in a process and 0.56 s the next under .NET 8 (0.88 s and 0.72 s under .NET Framework 4.8), where it took
+1.28 s and 0.64 s (1.35 s and 1.15 s), medians of 9 runs. On one thread, four and eight the first opening takes 0.76,
+0.60 and 0.60 s (.NET 8) and 0.92, 0.81 and 0.82 s (.NET Framework); the next one gains nothing under .NET 8 (0.59, 0.57
+and 0.60 s), where the collector, one thread, walks the objects as they are kept, and 0.1 s under .NET Framework.
+
 ## Writing DWG files
 
 [`DwgWriter`](xref:GeometryHelper.Dwg.DwgWriter)`.Write` writes a `DxfDatabase`, with every record it holds, or the
