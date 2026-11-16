@@ -193,7 +193,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Moves, turns, scales or mirrors the solid, as AutoCAD's <c>TransformBy</c>, as ezdxf carries one: each corner the record
         /// gives taken from the old plane to the world, moved, and into the plane of the new normal, square to where the old
-        /// plane's axes go; the thickness scaled with it. The record is written once.
+        /// plane's axes go, or under a mirror the image of the old normal, as AutoCAD takes it; the thickness scaled with it. The
+        /// record is written once.
         /// </summary>
         /// <param name="transform">The transformation.</param>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
@@ -211,7 +212,7 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            var ocs = new DxfOcsTransform(Normal, transform);
+            var ocs = DxfOcsTransform.OfImage(Normal, transform);
             var parts = new List<KeyValuePair<int, string>[]>();
 
             for (int i = 0; i < 4; i++)

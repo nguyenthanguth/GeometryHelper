@@ -779,6 +779,15 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
+            // A mirror keeps the words readable, as AutoCAD 2021's TransformBy keeps them, where the drawing's fonts measure them:
+            // the text is turned over in its own plane first, so that what is mirrored is a turn and a move (TurnedOver).
+            GeoTransform3 turned = transform.GetDeterminant() < 0.0 ? TurnedOver(transform) : null;
+
+            if (turned != null)
+            {
+                transform = transform.Multiply(turned);
+            }
+
             KeyValuePair<int, string>[] groups = TransformGroups(transform);
             List<DxfTypedValue> embedded = IsAttribute ? EmbeddedMoved(transform) : null;
 

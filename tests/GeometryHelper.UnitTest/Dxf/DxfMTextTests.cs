@@ -1029,10 +1029,12 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AnMTextAlongX_MirroredAcrossALevelLine_IsWrittenWithNoDirection_AsAutoCadWritesIt()
+        public void AnMTextAlongX_MirroredAcrossALevelLine_ReadsAlongXHeldByItsBottomLeft_AsAutoCadsTransformByMakesIt()
         {
-            // AutoCAD 2021 (mirror-3 GHM3B, MIRRTEXT 1 across y = 100): an MTEXT along x mirrored is of normal (0, 0, -1) and
-            // reads along (1, 0, 0) still, written with no 11, its Rotation 180 degrees.
+            // AutoCAD 2021's TransformBy (mirror-8, an MTEXT along x at (100, 10) mirrored across y = 100): the words stay
+            // readable, the MTEXT turned over across its baseline before the mirror, so that it still reads along (1, 0, 0), its
+            // normal still (0, 0, 1) and written with no 11, held by its bottom left where it was held by its top left, at
+            // (100, 190). (MIRROR with MIRRTEXT 1 mirrors it in its plane instead: see the presenter's tests.)
             var db = new DxfDatabase("AC1027");
             var mtext = new DxfMText();
             db.ModelSpace.AppendEntity(mtext);
@@ -1043,9 +1045,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfMText again = ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), mtext.Handle);
             Assert.DoesNotContain("\n 11\n", "\n" + string.Join("\n", Record(db, mtext.Handle)) + "\n");
-            Near(new GeoVector3(0, 0, -1), again.Normal);
+            Near(new GeoVector3(0, 0, 1), again.Normal);
             Near(new GeoVector3(1, 0, 0), again.Direction);
-            Assert.True(Math.Abs(Math.PI - again.Rotation) < 1E-12);
+            Assert.Equal(0.0, again.Rotation, 12);
+            Assert.Equal(DxfAttachmentPoint.BottomLeft, again.Attachment);
             Near(new GeoPoint3(100, 190, 0), again.Location);
         }
 

@@ -1446,15 +1446,23 @@ namespace GeometryHelper.Dxf
 
             MoveContexts(transform, ocs, elevation, factor, turn, conformal);
 
-            if (record.Text(41) != null && !IsSolidFill)
+            // The scale of the pattern (41) goes with the scale of the transformation, but a mirror leaves it as it was, whether
+            // it scales too or not, as AutoCAD 2021 leaves it (a mirror scaled by 2: 2 stays 2, where a scaling alone makes it 4).
+            if (record.Text(41) != null && !IsSolidFill && !reflects)
             {
                 record.Set(41, Real(Num(record.Text(41), 1.0) * factor));
             }
 
             // AutoCAD leaves the pattern angle of a hatch it reflects as it was, and turns it with one it turns.
+            // A hatch pointing down, of normal (0, 0, -1), turned about x by exactly half a circle in its own plane, as by 300
+            // degrees, comes out pointing down still, and AutoCAD 2021 writes its pattern angle turned by -180 where the turn
+            // comes out +180 by arithmetic: 30 becomes -150, not 210 (probed over turns of 190 to 350 degrees about x of 18
+            // hatches, the change of sign at 270 where the new normal turns down). Any other half turn is written as it comes.
             if (record.Text(52) != null && !IsSolidFill && !reflects)
             {
-                record.Set(52, Real(Num(record.Text(52), 0.0) + turn));
+                double half =
+                    Math.Abs(turn - 180.0) <= 1E-9 && normal.Z < 0.0 && ocs.NewExtrusion.Z < 0.0 ? -180.0 : turn;
+                record.Set(52, Real(Num(record.Text(52), 0.0) + half));
             }
 
             List<KeyValuePair<int, string>> seeds = SeedGroups(record);
