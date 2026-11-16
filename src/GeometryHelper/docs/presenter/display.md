@@ -590,6 +590,65 @@ closes (group 90 flags 1 and 2, 45 the factor, 63 and 421 the colour), one undo 
 the flags out and keeps the rest of the record. The mask is public as
 [`CadMTextMask`](xref:GeometryHelper.Dxf.Viewer.CadMTextMask).
 
+The Symbol menu of the Insert panel has AutoCAD 2021's twenty-one items in its order: Degrees `%%d`, Plus/Minus `%%p`,
+Diameter `%%c`, Almost Equal `\U+2248`, Angle `\U+2220`, Boundary Line `\U+E100`, Centerline `\U+2104`, Delta `\U+0394`,
+Electrical Phase `\U+0278`, Flow Line `\U+E101`, Identity `\U+2261`, Initial Length `\U+E200`, Monument Line `\U+E102`,
+Not Equal `\U+2260`, Ohm `\U+2126`, Omega `\U+03A9`, Plate/Property Line `\U+214A`, Subscript 2 `\U+2082`, Squared
+`\U+00B2`, Cubed `\U+00B3` and Non-breaking Space (a hard space, typed as Ctrl+Shift+Space too). A symbol is one place of
+the words, shown as its letter and written as its code, so "A" and "B" with Ohm between write `A\U+2126B`. The four
+symbols of AutoCAD's own fonts (Boundary Line, Flow Line, Monument Line, Initial Length, in the private-use area) are
+written as AutoCAD writes them and drawn as the font has them; the presenter's fonts have none of them. Other… opens a
+character map of the font of the letters at the caret (the style's, an SHX style taking Arial): the characters the font
+has a glyph for, listed by character set (Basic Latin is 95 characters in Arial), Select, or a double click, adds the one
+picked to Characters to copy, and Copy puts those on the clipboard, to be pasted into the words with Ctrl+V, as the
+Windows character map AutoCAD 2021 hands over to does. The map is public as
+`CharacterMapViewModel` of the window project.
+
+Match on the Formatting panel is AutoCAD 2021's Match Text Formatting: it takes up the look of the letters selected, or of
+the letters typed next where none are, and the next letters selected (by the mouse, or a double click on a word) are given
+all of it, the font, bold, italic, the lines, the colour, the height, the slant, the tracking and the width, as one step of
+the editor's undo; with the brush up the pointer is a pen, and Esc puts it down before it asks about the changes
+([`CadMTextEditor.BeginMatch`](xref:GeometryHelper.Dxf.Viewer.CadMTextEditor.BeginMatch*),
+[`ApplyMatch`](xref:GeometryHelper.Dxf.Viewer.CadMTextEditor.ApplyMatch*)). The paragraph's own codes (alignment, indents,
+spacing) are not matched. AutoCAPS on the Tools panel turns the letters typed, pasted or imported into capitals while it
+is on, `abc` with "def" typed after it becoming `abcDEF`, and leaves the words already there to Change Case. Import Text
+asks for a `.txt` or `.rtf` file (32 KB at most, as AutoCAD 2021 asks: a larger file is refused with "Import Text: The
+file is over 32 KB" in the command line's history) and puts its words in at the caret, over the selection, as one step of
+the editor's undo ([`CadMTextImport`](xref:GeometryHelper.Dxf.Viewer.CadMTextImport)). A text file is read by its byte
+order mark, else as UTF-8 where it is valid UTF-8, else as Latin-1, each line a paragraph, in the look of the letters typed
+there. An RTF (told by its start, whatever its name) keeps the font where it is not the document's default, bold, italic,
+underline, strikethrough, the colour (as a true colour) and the size (the MTEXT's height times its ratio to the size of
+the first letters, 24 half-points and 48 making 2.5 and 5), the paragraphs of `\par` and `\line`, tabs, the quotes,
+dashes and bullet, and the letters of `\'hh` and `\uN`. It drops the paragraph formatting (alignment, indents, tab stops,
+spacing, lists), tables, pictures and objects, headers, footers and footnotes, hyperlinks (their words stay) and every
+other character effect (small capitals, superscripts, highlight, spacing).
+
+Find & Replace on the Tools panel, and Ctrl+H in the words, opens the editor's own Find and Replace dialog, which stays
+open beside the words (the match is shown selected in them) and closes with the editor: Find what, Replace with, the
+options Match case, Whole words only, Use wildcards (`*`, `?`, `#`, `@`, `[AB]` and the back quote of FIND), Match diacritics
+and Match half/full width forms, and Find Next, Replace and Replace All. Find Next selects the next match after the
+selection and goes round to the start; Replace puts the replacement in place of the match selected, in the look of its
+first letter, and selects the next, or, where the selection is no match, only selects one; Replace All is one step of the
+editor's undo and does not search what it put in, so "a" replaced by "aa" in "aaa" gives six. With no option set a
+search ignores capitals, finds "cafe" in "café" and "ABC" in "ＡＢＣ", and finds "bolt" inside "bolted"; a symbol or a stack
+counts as one place that no words match ([`CadMTextFindOptions`](xref:GeometryHelper.Dxf.Viewer.CadMTextFindOptions)).
+
+Spell Check on the Text Editor tab underlines in red, wavy, each word not in the dictionary as the words are typed,
+checked as Check Spelling checks them (a word of one letter, in capitals or with a digit is passed over); a right-click
+on one gives the words nearest it (a swap of two letters first, then letters missing, then letters added, then the more
+common word: "wrold" gives world, "Helo" Hello, "recieve" receive), Add Word and Ignore All, before the editor's own
+menu, a suggestion put in place of the word as one step of the editor's undo. The toggle on the panel turns the underline
+off. Edit Dictionaries shows the main dictionary (the built-in English one) and the custom dictionary file, with Add and
+Delete for its words, each written to the file at once; Add Word and Check Spelling's Add to Dictionary write to the same
+file, `sample.cus` in the settings folder (`%AppData%\GeometryHelper\Drawing`), a text file of words one to a line, as
+AutoCAD's `sample.cus`; a line that starts with # is a comment, and Delete leaves the other lines as they are. The
+built-in dictionary is the SCOWL word lists of Kevin Atkinson in American and British spelling, 92 465 words in a
+file of 270 KB inside the library (its notice is in `THIRD-PARTY-NOTICES.md`), with the drafting terms the library had
+before, and the endings -s, -es, -ed, -ing, -ly, -er, -est and 's tried; it is read when the first word is checked, in
+about 25 ms (.NET Framework 4.8), and the words nearest one take 6 to 30 ms to find (a text of 7 600 places is checked in 2.4 ms). The check is public as
+[`CadSpellDictionary`](xref:GeometryHelper.Dxf.Viewer.CadSpellDictionary), and SPELL, which has the same dictionary,
+starts with the same custom file where the window sets one (`CadCommandSession.SpellDictionaryPath`).
+
 Esc ends an edit in place as AutoCAD 2021 ends it. In the edit box of a single-line text it drops what was typed: a
 TEXT that read "ROOM 1" and was typed over as "ROOM 2" still reads "ROOM 1", and nothing is added to the undo list. In
 the MTEXT editor with nothing changed it closes the editor; with changes it asks Multiline Text - Unsaved Changes, "Do

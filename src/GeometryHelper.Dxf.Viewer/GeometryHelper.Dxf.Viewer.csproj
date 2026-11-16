@@ -14,6 +14,13 @@
     </ItemGroup>
 
     <ItemGroup>
+        <EmbeddedResource
+            Include="Text\english-words.txt.gz"
+            LogicalName="GeometryHelper.Dxf.Viewer.english-words.txt.gz"
+        />
+    </ItemGroup>
+
+    <ItemGroup>
         <InternalsVisibleTo Include="GeometryHelper.Dxf.Viewer.UnitTest" />
         <InternalsVisibleTo Include="GeometryHelper.Dxf.Viewer.Wpf" />
     </ItemGroup>

@@ -37,11 +37,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>
     /// The MTEXT editor of the window: the words being edited (<see cref="CadMTextEditor"/>) with the frame's width,
     /// justification and line spacing, and the contextual Text Editor tab as the design draws it: Style (the style, Annotative
-    /// greyed, the height), Formatting (bold, italic, strikethrough, underline, overline, the font, the colour, upper and lower
-    /// case, clear formatting, oblique, tracking and width), Paragraph (justification, the paragraphs' line spacing with
+    /// greyed, the height), Formatting (bold, italic, strikethrough, underline, overline, Match, the font, the colour, upper and
+    /// lower case, clear formatting, oblique, tracking and width), Paragraph (justification, the paragraphs' line spacing with
     /// More… and Clear Paragraph Spacing, the five alignments, the launcher of the Paragraph dialog, bullets and numbering),
-    /// Insert (Columns with Column Settings, the Symbol menu; field greyed), Spell Check greyed, Tools (Find and
-    /// Replace), Options (ruler, undo, redo) and Close Text Editor. The ruler's drags, the dialogs and the menus are each
+    /// Insert (Columns with Column Settings, the Symbol menu with its character map; field greyed), Spell Check (the red
+    /// underline and Edit Dictionaries), Tools (Find and Replace, Import Text, AutoCAPS), Options (ruler, undo, redo) and Close Text Editor. The ruler's drags, the dialogs and the menus are each
     /// one step of the editor's undo. Close writes the words in AutoCAD's codes and the box (width, height, columns) as the
     /// answer of the prompt that opened the editor, one undo step of the drawing; Esc asks whether to keep them.
     /// </summary>
@@ -54,11 +54,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private readonly MainViewModel _model;
         private bool _isRulerShown = true;
-        private bool _isFindShown;
         private string _find = string.Empty;
         private string _replace = string.Empty;
-        private bool _matchCase;
+        private readonly CadMTextFindOptions _findOptions = new CadMTextFindOptions();
         private string _findMessage = string.Empty;
+        private bool _isSpellCheckOn = true;
+        private int _spellStamp;
+        private string _spelledText;
+        private int _spelledStamp = -1;
+        private IReadOnlyList<CadMisspelledWord> _misspelled = Array.Empty<CadMisspelledWord>();
         private int _attachment;
         private double _lineSpacing;
         private bool _boxChanged;
@@ -124,18 +128,34 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Color("Magenta", 6),
                 Color("White", 7),
             };
+            // AutoCAD 2021's Symbol menu in its order: Degrees, Plus/Minus and Diameter as the % codes, the rest as \U+ codes.
             Symbols = new[]
             {
-                new TextEditorChoice("Degree", "%%d", new[] { "°", "%%d" }),
-                new TextEditorChoice("Plus/Minus", "%%p", new[] { "±", "%%p" }),
-                new TextEditorChoice("Diameter", "%%c", new[] { "Ø", "%%c" }),
-                new TextEditorChoice("Almost Equal", "\\U+2248", new[] { "≈", "\\U+2248" }),
-                new TextEditorChoice("Angle", "\\U+2220", new[] { "∠", "\\U+2220" }),
-                new TextEditorChoice("Centre Line", "\\U+2104", new[] { "℄", "\\U+2104" }),
-                new TextEditorChoice("Delta", "\\U+0394", new[] { "Δ", "\\U+0394" }),
-                new TextEditorChoice("Not Equal", "\\U+2260", new[] { "≠", "\\U+2260" }),
-                new TextEditorChoice("Square", "\\U+00B2", new[] { "²", "\\U+00B2" }),
-                new TextEditorChoice("Non-breaking Space", "Ctrl+Shift+Space", new[] { " ", null }),
+                Percent("Degrees", 'd', 0xB0),
+                Percent("Plus/Minus", 'p', 0xB1),
+                Percent("Diameter", 'c', 0xD8),
+                Unicode("Almost Equal", 0x2248),
+                Unicode("Angle", 0x2220),
+                Unicode("Boundary Line", 0xE100),
+                Unicode("Centerline", 0x2104),
+                Unicode("Delta", 0x0394),
+                Unicode("Electrical Phase", 0x0278),
+                Unicode("Flow Line", 0xE101),
+                Unicode("Identity", 0x2261),
+                Unicode("Initial Length", 0xE200),
+                Unicode("Monument Line", 0xE102),
+                Unicode("Not Equal", 0x2260),
+                Unicode("Ohm", 0x2126),
+                Unicode("Omega", 0x03A9),
+                Unicode("Plate/Property Line", 0x214A),
+                Unicode("Subscript 2", 0x2082),
+                Unicode("Squared", 0x00B2),
+                Unicode("Cubed", 0x00B3),
+                new TextEditorChoice(
+                    "Non-breaking Space",
+                    "Ctrl+Shift+Space",
+                    new[] { char.ConvertFromUtf32(0xA0), null }
+                ),
             };
             Justifications = new[]
             {
@@ -166,13 +186,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             SymbolCommand = new DelegateCommand(p => InsertSymbol(p as TextEditorChoice));
             JustifyCommand = new DelegateCommand(p => Justify(p as TextEditorChoice));
             LineSpacingCommand = new DelegateCommand(p => SetLineSpacing(p as TextEditorChoice));
-            FindNextCommand = new DelegateCommand(_ =>
-                FindMessage = Editor.FindNext(_find, _matchCase) ? string.Empty : "\"" + _find + "\" was not found."
-            );
-            ReplaceAllCommand = new DelegateCommand(_ =>
-                FindMessage =
-                    Editor.ReplaceAll(_find, _replace, _matchCase).ToString(CultureInfo.InvariantCulture) + " replaced."
-            );
+            FindNextCommand = new DelegateCommand(_ => FindNext());
+            ReplaceCommand = new DelegateCommand(_ => Replace());
+            ReplaceAllCommand = new DelegateCommand(_ => ReplaceAll());
+            FindReplaceCommand = new DelegateCommand(_ => ShowFindReplace());
+            MatchCommand = new DelegateCommand(_ => Editor.BeginMatch());
+            ImportTextCommand = new DelegateCommand(_ => ImportText());
+            EditDictionariesCommand = new DelegateCommand(_ => ShowDictionaries());
             UndoCommand = new DelegateCommand(_ => Editor.Undo());
             RedoCommand = new DelegateCommand(_ => Editor.Redo());
             CloseCommand = new DelegateCommand(_ => _model.CloseTextEditor(true));
@@ -371,13 +391,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set => Set(ref _isRulerShown, value);
         }
 
-        /// <summary>Gets or sets whether Find and Replace is open.</summary>
-        public bool IsFindShown
-        {
-            get => _isFindShown;
-            set => Set(ref _isFindShown, value);
-        }
-
         /// <summary>Gets or sets the words Find and Replace looks for.</summary>
         public string FindText
         {
@@ -385,7 +398,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set => Set(ref _find, value ?? string.Empty);
         }
 
-        /// <summary>Gets or sets what Replace All puts in their place.</summary>
+        /// <summary>Gets or sets what Replace and Replace All put in their place.</summary>
         public string ReplaceText
         {
             get => _replace;
@@ -395,8 +408,56 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets whether capitals must match.</summary>
         public bool MatchCase
         {
-            get => _matchCase;
-            set => Set(ref _matchCase, value);
+            get => _findOptions.MatchCase;
+            set
+            {
+                _findOptions.MatchCase = value;
+                Raise(nameof(MatchCase));
+            }
+        }
+
+        /// <summary>Gets or sets whether a match must be whole words.</summary>
+        public bool WholeWords
+        {
+            get => _findOptions.WholeWords;
+            set
+            {
+                _findOptions.WholeWords = value;
+                Raise(nameof(WholeWords));
+            }
+        }
+
+        /// <summary>Gets or sets whether the words searched for are a wildcard pattern (<c>*</c>, <c>?</c>, <c>#</c>, <c>@</c>, <c>[AB]</c>).</summary>
+        public bool UseWildcards
+        {
+            get => _findOptions.UseWildcards;
+            set
+            {
+                _findOptions.UseWildcards = value;
+                Raise(nameof(UseWildcards));
+            }
+        }
+
+        /// <summary>Gets or sets whether accents must match.</summary>
+        public bool MatchDiacritics
+        {
+            get => _findOptions.MatchDiacritics;
+            set
+            {
+                _findOptions.MatchDiacritics = value;
+                Raise(nameof(MatchDiacritics));
+            }
+        }
+
+        /// <summary>Gets or sets whether half-width and full-width forms must match.</summary>
+        public bool MatchHalfFullWidth
+        {
+            get => _findOptions.MatchHalfFullWidth;
+            set
+            {
+                _findOptions.MatchHalfFullWidth = value;
+                Raise(nameof(MatchHalfFullWidth));
+            }
         }
 
         /// <summary>Gets what Find and Replace last found or replaced.</summary>
@@ -405,6 +466,63 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get => _findMessage;
             private set => Set(ref _findMessage, value);
         }
+
+        /// <summary>Gets or sets AutoCAPS, the toggle of the Tools panel: letters typed, pasted or imported go in as capitals.</summary>
+        public bool IsAutoCaps
+        {
+            get => Editor.AutoCaps;
+            set
+            {
+                Editor.AutoCaps = value;
+                Raise(nameof(IsAutoCaps));
+            }
+        }
+
+        /// <summary>Gets whether Match Text Formatting waits for letters to be selected: the brush of the Formatting panel is picked up.</summary>
+        public bool IsMatching => Editor.IsMatching;
+
+        /// <summary>Gets or sets whether the words not in the dictionary are underlined in red, the Spell Check toggle of the tab; on until set, as AutoCAD's.</summary>
+        public bool IsSpellCheckOn
+        {
+            get => _isSpellCheckOn;
+            set
+            {
+                if (Set(ref _isSpellCheckOn, value))
+                {
+                    Raise(nameof(Misspelled));
+                }
+            }
+        }
+
+        /// <summary>Gets the words of the editor that are not in the dictionary, to be underlined; none while Spell Check is off or there is no window dictionary.</summary>
+        public IReadOnlyList<CadMisspelledWord> Misspelled
+        {
+            get
+            {
+                CadSpellDictionary dictionary = _model?.SpellDictionary;
+
+                if (!_isSpellCheckOn || dictionary == null)
+                {
+                    return Array.Empty<CadMisspelledWord>();
+                }
+
+                string text = Editor.Text;
+
+                if (_spelledStamp != _spellStamp || !string.Equals(text, _spelledText, StringComparison.Ordinal))
+                {
+                    _misspelled = dictionary.Check(Editor);
+                    _spelledText = text;
+                    _spelledStamp = _spellStamp;
+                }
+
+                return _misspelled;
+            }
+        }
+
+        /// <summary>Raised when the editor closes, so that a dialog of its own (Find and Replace) closes with it.</summary>
+        public event EventHandler Closed;
+
+        internal void RaiseClosed() => Closed?.Invoke(this, EventArgs.Empty);
 
         /// <summary>Gets whether the last change can be taken back.</summary>
         public bool CanUndo => Editor.CanUndo;
@@ -436,8 +554,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets Find and Replace's Find Next.</summary>
         public ICommand FindNextCommand { get; }
 
+        /// <summary>Gets Find and Replace's Replace: the match selected is replaced and the next one selected.</summary>
+        public ICommand ReplaceCommand { get; }
+
         /// <summary>Gets Find and Replace's Replace All.</summary>
         public ICommand ReplaceAllCommand { get; }
+
+        /// <summary>Gets the Tools panel's Find &amp; Replace, and Ctrl+H in the words: the Find and Replace dialog of the editor.</summary>
+        public ICommand FindReplaceCommand { get; }
+
+        /// <summary>Gets the Formatting panel's Match: the look of the letters selected is taken up for the next letters selected.</summary>
+        public ICommand MatchCommand { get; }
+
+        /// <summary>Gets the Tools panel's Import Text: a text or RTF file put in at the caret.</summary>
+        public ICommand ImportTextCommand { get; }
+
+        /// <summary>Gets the Spell Check panel's Edit Dictionaries: the custom words added and deleted.</summary>
+        public ICommand EditDictionariesCommand { get; }
 
         /// <summary>Gets the editor's Undo.</summary>
         public ICommand UndoCommand { get; }
@@ -733,7 +866,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// Gets the items of a menu of the tab: Symbol (each symbol with its code, Other greyed), Justification and Line Spacing
+        /// Gets the items of a menu of the tab: Symbol (each symbol with its code, Other… opening the character map), Justification and Line Spacing
         /// (the one set ticked), Case (UPPERCASE, lowercase), Clear (Remove Character Formatting), Bullets (Off, Numbered,
         /// Lettered and Bulleted, the labels every selected paragraph has ticked; Start, Continue and the two Allow items grey),
         /// Editor (the editor's right-click, its Bullets and Lists the same items with no list ticked).
@@ -751,12 +884,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                             new[]
                             {
                                 new CadMenuItemViewModel(string.Empty, null),
-                                new CadMenuItemViewModel(
-                                    "Other…",
-                                    () => { },
-                                    false,
-                                    "The character map is not built yet"
-                                ),
+                                new CadMenuItemViewModel("Other…", () => ShowCharacterMap()),
                             }
                         )
                         .ToList();
@@ -983,6 +1111,189 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Edit.NewLineSpacing = _lineSpacing;
         }
 
+        /// <summary>Find and Replace's Find Next: the next match of <see cref="FindText"/> selected, the search going round to the start; <see cref="FindMessage"/> says where none is found.</summary>
+        public void FindNext()
+        {
+            if (_find.Length == 0)
+            {
+                FindMessage = string.Empty;
+                return;
+            }
+
+            FindMessage = Editor.FindNext(_find, _findOptions) ? string.Empty : "\"" + _find + "\" was not found.";
+        }
+
+        /// <summary>
+        /// Find and Replace's Replace: where the match selected is of <see cref="FindText"/> it is replaced by
+        /// <see cref="ReplaceText"/> and the next match is selected; else the next match is selected, as Find Next does.
+        /// </summary>
+        public void Replace()
+        {
+            if (_find.Length == 0)
+            {
+                FindMessage = string.Empty;
+                return;
+            }
+
+            bool replaced = Editor.Replace(_find, _replace, _findOptions);
+            bool next = Editor.SelectionLength > 0;
+            FindMessage =
+                replaced ? (next ? "Replaced." : "Replaced. No more matches.")
+                : next ? string.Empty
+                : "\"" + _find + "\" was not found.";
+        }
+
+        /// <summary>Find and Replace's Replace All: every match of <see cref="FindText"/> replaced, one step of the editor's undo; <see cref="FindMessage"/> says how many.</summary>
+        public void ReplaceAll()
+        {
+            if (_find.Length == 0)
+            {
+                FindMessage = string.Empty;
+                return;
+            }
+
+            FindMessage =
+                Editor.ReplaceAll(_find, _replace, _findOptions).ToString(CultureInfo.InvariantCulture) + " replaced.";
+        }
+
+        /// <summary>Opens the editor's Find and Replace dialog where the window shows it (<see cref="MainViewModel.ShowMTextFindReplace"/>).</summary>
+        /// <returns>Whether a dialog was shown.</returns>
+        public bool ShowFindReplace()
+        {
+            if (_model?.ShowMTextFindReplace == null)
+            {
+                return false;
+            }
+
+            _model.ShowMTextFindReplace(this);
+            return true;
+        }
+
+        /// <summary>
+        /// Import Text: asks for a .txt or .rtf file where the window shows its file dialog
+        /// (<see cref="MainViewModel.AskImportTextFile"/>) and puts its words in at the caret.
+        /// </summary>
+        /// <returns>Whether words were put in.</returns>
+        public bool ImportText() => ImportText(_model?.AskImportTextFile?.Invoke());
+
+        /// <summary>
+        /// Puts the words of a file in at the caret, over the selection, as one step of the editor's undo
+        /// (<see cref="CadMTextImport"/>); a file that cannot be read, or is over 32 KB, is said so in the command line's history.
+        /// </summary>
+        /// <param name="path">The .txt or .rtf file; null or empty does nothing.</param>
+        /// <returns>Whether words were put in.</returns>
+        public bool ImportText(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                return false;
+            }
+
+            try
+            {
+                Editor.InsertContent(CadMTextImport.FromFile(path, Editor.Height));
+                return true;
+            }
+            catch (Exception e)
+                when (e is System.IO.IOException
+                    || e is UnauthorizedAccessException
+                    || e is ArgumentException
+                    || e is NotSupportedException
+                )
+            {
+                GeometryHelperLog.Warn("TextEditorViewModel: the text of " + path + " was not imported.", e);
+                _model?.Say("Import Text: " + e.Message);
+                return false;
+            }
+        }
+
+        /// <summary>Opens Edit Dictionaries where the window shows it (<see cref="MainViewModel.ShowDictionaries"/>); the words are checked again once it closes.</summary>
+        /// <returns>Whether a dialog was shown.</returns>
+        public bool ShowDictionaries()
+        {
+            CadSpellDictionary dictionary = _model?.SpellDictionary;
+
+            if (dictionary == null || _model.ShowDictionaries == null)
+            {
+                return false;
+            }
+
+            _model.ShowDictionaries(new SpellDictionariesViewModel(dictionary));
+            SpellChanged();
+            return true;
+        }
+
+        /// <summary>Opens the character map of the font of the letters where the window shows it (<see cref="MainViewModel.ShowCharacterMap"/>): the Symbol menu's Other….</summary>
+        /// <returns>Whether a dialog was shown.</returns>
+        public bool ShowCharacterMap()
+        {
+            if (_model?.ShowCharacterMap == null)
+            {
+                return false;
+            }
+
+            _model.ShowCharacterMap(new CharacterMapViewModel(IsShxFont ? "Arial" : Font));
+            return true;
+        }
+
+        /// <summary>
+        /// The items the right-click puts over the editor's menu on a word not in the dictionary: the words nearest it, Add
+        /// Word and Ignore All; each suggestion puts its word in place of it, one step of the editor's undo.
+        /// </summary>
+        /// <param name="place">The place clicked.</param>
+        /// <returns>The items, ending with a separator; none where no misspelled word is there.</returns>
+        public IReadOnlyList<CadMenuItemViewModel> SpellMenu(int place)
+        {
+            CadSpellDictionary dictionary = _model?.SpellDictionary;
+            CadMisspelledWord word = Misspelled.FirstOrDefault(w => place >= w.Start && place <= w.Start + w.Length);
+
+            if (word == null || dictionary == null)
+            {
+                return Array.Empty<CadMenuItemViewModel>();
+            }
+
+            var items = new List<CadMenuItemViewModel>();
+            IReadOnlyList<string> suggestions = dictionary.Suggest(word.Word);
+
+            foreach (string suggestion in suggestions)
+            {
+                string chosen = suggestion;
+                items.Add(new CadMenuItemViewModel(chosen, () => Editor.ReplaceText(word.Start, word.Length, chosen)));
+            }
+
+            if (suggestions.Count == 0)
+            {
+                items.Add(new CadMenuItemViewModel("(no suggestions)", () => { }, false));
+            }
+
+            items.Add(CadMenuItemViewModel.Separator());
+            items.Add(new CadMenuItemViewModel("Add Word", () =>
+                {
+                    string failed = dictionary.Add(word.Word);
+
+                    if (failed != null)
+                    {
+                        _model.Say(failed);
+                    }
+
+                    SpellChanged();
+                }));
+            items.Add(new CadMenuItemViewModel("Ignore All", () =>
+                {
+                    dictionary.IgnoreAll(word.Word);
+                    SpellChanged();
+                }));
+            items.Add(CadMenuItemViewModel.Separator());
+            return items;
+        }
+
+        /// <summary>The dictionary changed (a word added, ignored or deleted): the words are checked again and the underlines drawn anew.</summary>
+        private void SpellChanged()
+        {
+            _spellStamp++;
+            Raise(nameof(Misspelled));
+        }
+
         private void Toggle(string what)
         {
             CadMTextLook look = Editor.CurrentLook;
@@ -1089,6 +1400,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     nameof(IsDistributed),
                     nameof(CanUndo),
                     nameof(CanRedo),
+                    nameof(IsMatching),
                     nameof(IsModified),
                     nameof(Width),
                 }
@@ -1096,6 +1408,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 Raise(name);
             }
+        }
+
+        /// <summary>A symbol written as a % code: shown as its letter, written <c>%%d</c>.</summary>
+        private static TextEditorChoice Percent(string name, char letter, int code) =>
+            new TextEditorChoice(name, "%%" + letter, new[] { char.ConvertFromUtf32(code), "%%" + letter });
+
+        /// <summary>A symbol written as a Unicode code: shown as its letter, written <c>\U+2248</c>.</summary>
+        private static TextEditorChoice Unicode(string name, int code)
+        {
+            string written = "\\U+" + code.ToString("X4", CultureInfo.InvariantCulture);
+            return new TextEditorChoice(name, written, new[] { char.ConvertFromUtf32(code), written });
         }
 
         private static TextEditorChoice Color(string name, int index, int rgb = int.MinValue) =>

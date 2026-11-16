@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace GeometryHelper.Dxf.Viewer
 {
@@ -33,6 +34,7 @@ namespace GeometryHelper.Dxf.Viewer
         private List<char> _alignments = new List<char>();
         private List<string> _paragraphCodes = new List<string>();
         private CadMTextLook _pending;
+        private CadMTextLook _matchLook;
         private State _changeStart;
         private bool _changed;
 
@@ -609,6 +611,11 @@ namespace GeometryHelper.Dxf.Viewer
             RemoveSelection();
             text = text.Replace("\r\n", "\n").Replace('\r', '\n');
 
+            if (AutoCaps)
+            {
+                text = text.ToUpperInvariant();
+            }
+
             foreach (char c in text)
             {
                 if (c == '\n')
@@ -802,30 +809,71 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="find">The words.</param>
         /// <param name="matchCase">Whether capitals must match.</param>
         /// <returns>Whether they were found.</returns>
-        public bool FindNext(string find, bool matchCase)
+        public bool FindNext(string find, bool matchCase) =>
+            FindNext(find, new CadMTextFindOptions { MatchCase = matchCase });
+
+        /// <summary>
+        /// Finds the next match of words after the selection, or the caret, the search going round to the start, and selects it:
+        /// Find and Replace's Find Next. A symbol or a stack counts as one place, which no words match.
+        /// </summary>
+        /// <param name="find">The words, or a wildcard pattern where <see cref="CadMTextFindOptions.UseWildcards"/> is set.</param>
+        /// <param name="options">How they are matched.</param>
+        /// <returns>Whether a match was found; false for no words, or a pattern that cannot be read.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the options are null.</exception>
+        public bool FindNext(string find, CadMTextFindOptions options)
         {
-            if (string.IsNullOrEmpty(find))
+            Regex pattern = FindPattern(find, options, out string places);
+
+            if (pattern == null)
             {
                 return false;
             }
 
-            string text = Text;
-            StringComparison comparison = matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-            int from = Math.Min(text.Length, SelectionStart + SelectionLength);
-            int found = text.IndexOf(find, from, comparison);
+            int from = Math.Min(places.Length, SelectionStart + SelectionLength);
 
-            if (found < 0)
-            {
-                found = text.IndexOf(find, 0, comparison);
-            }
-
-            if (found < 0)
+            if (
+                !FindFrom(places, pattern, from, out int start, out int length)
+                && !FindFrom(places, pattern, 0, out start, out length)
+            )
             {
                 return false;
             }
 
-            Select(found, find.Length);
+            Select(start, length);
             return true;
+        }
+
+        /// <summary>
+        /// Find and Replace's Replace: where the selection is a match of the words it is replaced, in the look of its first
+        /// letter and as one undo step, and the next match is selected; else the next match is selected, as Find Next does,
+        /// and nothing is replaced.
+        /// </summary>
+        /// <param name="find">The words, or a wildcard pattern where <see cref="CadMTextFindOptions.UseWildcards"/> is set.</param>
+        /// <param name="replace">What they become; null is nothing.</param>
+        /// <param name="options">How they are matched.</param>
+        /// <returns>Whether a match was replaced.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the options are null.</exception>
+        public bool Replace(string find, string replace, CadMTextFindOptions options)
+        {
+            Regex pattern = FindPattern(find, options, out string places);
+
+            if (pattern == null)
+            {
+                return false;
+            }
+
+            Match selected = SelectionLength > 0 ? pattern.Match(places, SelectionStart) : Match.Empty;
+            bool replaced = selected.Success && selected.Index == SelectionStart && selected.Length == SelectionLength;
+
+            if (replaced)
+            {
+                Save();
+                ReplaceRange(SelectionStart, SelectionLength, replace);
+                Raise();
+            }
+
+            FindNext(find, options);
+            return replaced;
         }
 
         /// <summary>Replaces every match of words with others, each in the look of the letter it starts at, as one change; Find and Replace's Replace All.</summary>
@@ -833,23 +881,29 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="replace">What they become; null is nothing.</param>
         /// <param name="matchCase">Whether capitals must match.</param>
         /// <returns>How many were replaced.</returns>
-        public int ReplaceAll(string find, string replace, bool matchCase)
-        {
-            if (string.IsNullOrEmpty(find))
-            {
-                return 0;
-            }
+        public int ReplaceAll(string find, string replace, bool matchCase) =>
+            ReplaceAll(find, replace, new CadMTextFindOptions { MatchCase = matchCase });
 
-            StringComparison comparison = matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+        /// <summary>
+        /// Replaces every match of words with others, each in the look of the letter it starts at, as one undo step: Find and
+        /// Replace's Replace All. The text put in is not searched again, so that replacing "a" with "aa" ends.
+        /// </summary>
+        /// <param name="find">The words, or a wildcard pattern where <see cref="CadMTextFindOptions.UseWildcards"/> is set.</param>
+        /// <param name="replace">What they become; null is nothing.</param>
+        /// <param name="options">How they are matched.</param>
+        /// <returns>How many were replaced.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the options are null.</exception>
+        public int ReplaceAll(string find, string replace, CadMTextFindOptions options)
+        {
             int count = 0;
             int from = 0;
             bool saved = false;
 
             while (true)
             {
-                int found = Text.IndexOf(find, from, comparison);
+                Regex pattern = FindPattern(find, options, out string places);
 
-                if (found < 0)
+                if (pattern == null || !FindFrom(places, pattern, from, out int start, out int length))
                 {
                     break;
                 }
@@ -860,25 +914,7 @@ namespace GeometryHelper.Dxf.Viewer
                     saved = true;
                 }
 
-                CadMTextLook look = _cells[found].Look;
-                Anchor = found;
-                Caret = found + find.Length;
-                RemoveSelection();
-
-                foreach (char c in replace ?? string.Empty)
-                {
-                    if (c == '\n')
-                    {
-                        InsertBreak();
-                    }
-                    else
-                    {
-                        _cells.Insert(Caret, new Cell(c.ToString(), look, null));
-                        Caret++;
-                    }
-                }
-
-                Anchor = Caret;
+                ReplaceRange(start, length, replace);
                 from = Caret;
                 count++;
             }
@@ -889,6 +925,279 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return count;
+        }
+
+        /// <summary>
+        /// Gets whether Match Text Formatting waits for letters to give a look to: <see cref="BeginMatch"/> was called and
+        /// neither <see cref="ApplyMatch"/> nor <see cref="CancelMatch"/> has ended it.
+        /// </summary>
+        public bool IsMatching => _matchLook != null;
+
+        /// <summary>
+        /// Starts Match Text Formatting, the brush of the Formatting panel: takes the look of the selected letters, or of the
+        /// letters typed next where none are selected, for <see cref="ApplyMatch"/> to give to the letters selected next.
+        /// </summary>
+        public void BeginMatch()
+        {
+            _matchLook = CurrentLook;
+            Raise();
+        }
+
+        /// <summary>Ends Match Text Formatting with nothing given.</summary>
+        public void CancelMatch()
+        {
+            if (_matchLook != null)
+            {
+                _matchLook = null;
+                Raise();
+            }
+        }
+
+        /// <summary>
+        /// Gives the look <see cref="BeginMatch"/> took to the selected letters, all of it (the font, bold, italic, underline,
+        /// overline, strikethrough, colour, height, slant, tracking and width), one undo step, and ends Match Text Formatting.
+        /// Nothing is done where no letters are selected, and the brush waits.
+        /// </summary>
+        /// <returns>Whether a look was given.</returns>
+        public bool ApplyMatch()
+        {
+            if (_matchLook == null || SelectionLength == 0)
+            {
+                return false;
+            }
+
+            CadMTextLook look = _matchLook;
+            _matchLook = null;
+            Restyle(l => look);
+            return true;
+        }
+
+        /// <summary>
+        /// Gets or sets AutoCAPS: while on, letters typed, pasted or imported go in as capitals. Letters already there are not
+        /// changed (Change Case does that); the setting is not an undo step.
+        /// </summary>
+        public bool AutoCaps { get; set; }
+
+        /// <summary>
+        /// Puts the words of a file at the caret, over the selection, in the looks they come with: Import Text. The paragraphs
+        /// and runs are those <see cref="CadMTextImport"/> reads from a text or an RTF file; a run with no look of its own takes
+        /// the look of the letters typed there. One undo step.
+        /// </summary>
+        /// <param name="content">The words, as <see cref="CadMTextImport"/> reads them.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the content is null.</exception>
+        public void InsertContent(CadMTextContent content)
+        {
+            if (content == null)
+            {
+                throw new ArgumentNullException(nameof(content));
+            }
+
+            if (
+                content.Paragraphs.Count == 0
+                || (content.Paragraphs.Count == 1 && content.Paragraphs[0].Runs.Count == 0)
+            )
+            {
+                return;
+            }
+
+            Save();
+            CadMTextLook typing = TypingLook;
+            RemoveSelection();
+
+            for (int p = 0; p < content.Paragraphs.Count; p++)
+            {
+                if (p > 0)
+                {
+                    InsertBreak();
+                }
+
+                foreach (CadMTextRun run in content.Paragraphs[p].Runs)
+                {
+                    string text = AutoCaps && run.Code == null ? run.Text.ToUpperInvariant() : run.Text;
+
+                    if (run.Code != null)
+                    {
+                        _cells.Insert(Caret, new Cell(text, run.Look.IsPlain ? typing : run.Look, run.Code));
+                        Caret++;
+                        continue;
+                    }
+
+                    foreach (char c in text)
+                    {
+                        if (c == '\t' || !char.IsControl(c))
+                        {
+                            _cells.Insert(Caret, new Cell(c.ToString(), run.Look.IsPlain ? typing : run.Look, null));
+                            Caret++;
+                        }
+                    }
+                }
+            }
+
+            Anchor = Caret;
+            _pending = null;
+            Raise();
+        }
+
+        /// <summary>
+        /// Puts words in the place of some places, in the look of the first of them, as one undo step, the caret after the
+        /// words: a suggestion of the spell check picked from the menu. AutoCAPS does not change them.
+        /// </summary>
+        /// <param name="start">The first place.</param>
+        /// <param name="length">How many places.</param>
+        /// <param name="text">The words; a line feed is a new paragraph; null is nothing.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the places are not all among the words'.</exception>
+        public void ReplaceText(int start, int length, string text)
+        {
+            if (start < 0 || length < 0 || start + length > _cells.Count)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(start),
+                    start,
+                    "The words have "
+                        + _cells.Count
+                        + " places; "
+                        + length
+                        + " from "
+                        + start
+                        + " are not all among them."
+                );
+            }
+
+            Save();
+            ReplaceRange(start, length, text);
+            _pending = null;
+            Raise();
+        }
+
+        /// <summary>Whether a place holds a symbol or a stack, written as a code of its own.</summary>
+        internal bool HasCodeAt(int index) => index >= 0 && index < _cells.Count && _cells[index].Code != null;
+
+        /// <summary>The words as one letter to a place, a line feed for a break and a placeholder for a symbol or stack of more than one letter, so that an index into it is a place.</summary>
+        private string Places()
+        {
+            var builder = new StringBuilder(_cells.Count);
+
+            foreach (Cell cell in _cells)
+            {
+                builder.Append(
+                    cell.Break ? '\n'
+                    : cell.Text.Length == 1 ? cell.Text[0]
+                    : '\uFFFC'
+                );
+            }
+
+            return builder.ToString();
+        }
+
+        /// <summary>The expression a search looks for, over the words folded as the options say; null for no words or a pattern that cannot be read.</summary>
+        private Regex FindPattern(string find, CadMTextFindOptions options, out string places)
+        {
+            if (options == null)
+            {
+                throw new ArgumentNullException(nameof(options));
+            }
+
+            places = Fold(Places(), options);
+
+            if (string.IsNullOrEmpty(find))
+            {
+                return null;
+            }
+
+            try
+            {
+                return CadFind.Pattern(
+                    Fold(find, options),
+                    new CadFindOptions
+                    {
+                        MatchCase = options.MatchCase,
+                        WholeWords = options.WholeWords,
+                        UseWildcards = options.UseWildcards,
+                    }
+                );
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>The first match from a place that is not empty.</summary>
+        private static bool FindFrom(string places, Regex pattern, int from, out int start, out int length)
+        {
+            for (
+                Match match = pattern.Match(places, Math.Min(from, places.Length));
+                match.Success;
+                match = match.NextMatch()
+            )
+            {
+                if (match.Length > 0)
+                {
+                    start = match.Index;
+                    length = match.Length;
+                    return true;
+                }
+            }
+
+            start = 0;
+            length = 0;
+            return false;
+        }
+
+        /// <summary>The words with each letter folded as the options say, one for one: an accented letter as its plain one unless diacritics match, a full-width or half-width form as its ordinary one unless those match.</summary>
+        private static string Fold(string text, CadMTextFindOptions options)
+        {
+            if (options.MatchDiacritics && options.MatchHalfFullWidth)
+            {
+                return text;
+            }
+
+            var folded = new StringBuilder(text.Length);
+
+            foreach (char c in text)
+            {
+                char f = c;
+
+                if (!options.MatchHalfFullWidth && (c == '\u3000' || (c >= '\uFF01' && c <= '\uFFEE')))
+                {
+                    string wide = c.ToString().Normalize(NormalizationForm.FormKC);
+                    f = wide.Length == 1 ? wide[0] : c;
+                }
+
+                if (!options.MatchDiacritics && f >= '\u00C0')
+                {
+                    string plain = f.ToString().Normalize(NormalizationForm.FormD);
+                    f = plain.Length > 1 ? plain[0] : f;
+                }
+
+                folded.Append(f);
+            }
+
+            return folded.ToString();
+        }
+
+        /// <summary>Takes the places out and puts the words in their place, each line feed a new paragraph, in the look of the first place taken out; the caret after them.</summary>
+        private void ReplaceRange(int start, int length, string replace)
+        {
+            CadMTextLook look = start < _cells.Count && !_cells[start].Break ? _cells[start].Look : CadMTextLook.Plain;
+            Anchor = start;
+            Caret = start + length;
+            RemoveSelection();
+
+            foreach (char c in replace ?? string.Empty)
+            {
+                if (c == '\n')
+                {
+                    InsertBreak();
+                }
+                else
+                {
+                    _cells.Insert(Caret, new Cell(c.ToString(), look, null));
+                    Caret++;
+                }
+            }
+
+            Anchor = Caret;
         }
 
         /// <summary>Takes the last change back.</summary>

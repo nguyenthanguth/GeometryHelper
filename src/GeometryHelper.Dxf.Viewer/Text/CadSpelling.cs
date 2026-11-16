@@ -1,17 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
     /// The words SPELL checks: the words of a TEXT or an MTEXT (the format codes of an MTEXT and the <c>%%</c> codes of a TEXT
-    /// left out), a small built-in list of English words and drafting terms (about 700, with the plain endings -s, -es, -ed,
-    /// -ing, -ly, -er, -est and 's tried), a custom dictionary of words one to a line, and the words nearest a misspelled one.
-    /// A word of one letter, with a digit in it or in capitals is passed over, as AutoCAD's Check Spelling Settings pass
-    /// over words in uppercase and words with numbers.
+    /// left out), the built-in English dictionary (the SCOWL word lists in American and British spelling, about 90 000 words
+    /// sorted by how common they are, with some 700 drafting terms; the plain endings -s, -es, -ed, -ing, -ly, -er, -est and
+    /// 's are tried), a custom dictionary of words one to a line, and the words nearest a misspelled one. A word of one
+    /// letter, with a digit in it or in capitals is passed over, as AutoCAD's Check Spelling Settings pass over words in
+    /// uppercase and words with numbers.
     /// </summary>
     internal static class CadSpelling
     {
@@ -31,62 +34,110 @@ namespace GeometryHelper.Dxf.Viewer
             internal string Text { get; }
         }
 
-        private static readonly HashSet<string> Builtin = new HashSet<string>(
-            (
-                "a about above across add after again against all also always an and any are around as at away "
-                + "back be because been before below between both but by can cannot could do does down during each "
-                + "end even every few first for from front get give go good had has have he her here high his how if "
-                + "in into is it its just keep last left less like long low made make many may more most must my near "
-                + "need never new next no not now of off old on once one only or other our out over own part per "
-                + "right same see set she should side since so some such than that the their them then there these "
-                + "they this those through to too top two under up upon use used very was we well were what when "
-                + "where which while who why will with within without would yes you your zero three four five six "
-                + "seven eight nine ten hundred thousand third second fourth fifth hello world word text note notes "
-                + "name date number title page sheet scale size type value list line lines point points area length "
-                + "width height depth thickness diameter radius angle degree degrees distance level plan section "
-                + "detail details elevation view views drawing drawings model layout layer layers block blocks "
-                + "dimension dimensions style styles font fonts color colour material materials steel concrete "
-                + "timber wood iron aluminium aluminum stainless galvanized galvanised painted welded welds weld "
-                + "bolt bolts nut nuts washer washers plate plates beam beams column columns brace braces bracing "
-                + "channel angle angles pipe pipes tube tubes bar bars rod rods rebar mesh slab slabs wall walls "
-                + "floor floors roof roofs foundation foundations footing footings pile piles base bottom top "
-                + "center centre centreline centerline edge edges corner corners hole holes slot slots gap gaps "
-                + "joint joints connection connections splice supports support bearing grout anchor anchors "
-                + "stiffener stiffeners flange flanges web webs cleat cleats lug lugs stud studs shear moment load "
-                + "loads dead live wind seismic design designed check checked approved approve issue issued revision "
-                + "revisions revised drawn project client contract contractor engineer engineers architect "
-                + "architects general notes typical typ minimum maximum min max nominal actual required optional "
-                + "note refer refers reference references see schedule table tables item items mark marks "
-                + "quantity quantities weight weights mass total unit units metric imperial millimetre millimetres "
-                + "millimeter millimeters metre metres meter meters inch inches foot feet yard yards "
-                + "tolerance tolerances finish finishes surface surfaces coating coatings paint primer "
-                + "galvanizing hot dip cold formed rolled cut cuts cutting drill drilled drilling bend bent "
-                + "bending fit fitted fitting fixed fix fixing install installed installation erect erected "
-                + "erection assembly assemble assembled fabricate fabricated fabrication shop site field "
-                + "supply supplied provide provided include included including excluding exclude unless "
-                + "otherwise specified specification specifications standard standards code codes grade grades "
-                + "class classes strength yield ultimate tensile compression compressive tension tensile "
-                + "stress strain deflection limit limits span spans clear opening openings door doors window "
-                + "windows stair stairs ramp ramps rail rails handrail handrails ladder ladders platform "
-                + "platforms grating grid grids axis axes north south east west up down left right inside outside "
-                + "internal external interior exterior upper lower middle mid end ends start starts finish "
-                + "begin begins number numbers sequence order orders position positions place placed placing "
-                + "locate located location locations dimension dimensions mark marked marking mirror mirrored "
-                + "rotate rotated move moved copy copied array arrays copy hidden visible hatch hatched fill "
-                + "solid pattern patterns text mtext leader leaders arrow arrows tick ticks symbol symbols "
-                + "legend key keys sample example examples true false on off yes none all any each both either "
-                + "neither first second last next previous current original new existing proposed demolish "
-                + "demolished remove removed removal replace replaced replacement add added addition additional "
-                + "extra spare future provision provisions allow allowed allowance allowances clearance clearances "
-                + "overall approx approximate approximately equal equals equally spaced spacing space spaces "
-                + "centres centers staggered continuous continuously intermittent full partial penetration "
-                + "fillet butt lap seam seams flat round square rectangular circular oval hexagon hexagonal "
-                + "taper tapered chamfer chamfers radius radii curve curved arc arcs straight horizontal vertical "
-                + "diagonal parallel perpendicular normal tangent tangents intersect intersection intersections "
-                + "please thank thanks name names company address phone email fax web page pages of the and or"
-            ).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries),
-            StringComparer.OrdinalIgnoreCase
+        // The drafting terms and British spellings the app had before the main dictionary, kept as it lacks some of them.
+        private static readonly string[] Legacy = (
+            "a about above across add after again against all also always an and any are around as at away "
+            + "back be because been before below between both but by can cannot could do does down during each "
+            + "end even every few first for from front get give go good had has have he her here high his how if "
+            + "in into is it its just keep last left less like long low made make many may more most must my near "
+            + "need never new next no not now of off old on once one only or other our out over own part per "
+            + "right same see set she should side since so some such than that the their them then there these "
+            + "they this those through to too top two under up upon use used very was we well were what when "
+            + "where which while who why will with within without would yes you your zero three four five six "
+            + "seven eight nine ten hundred thousand third second fourth fifth hello world word text note notes "
+            + "name date number title page sheet scale size type value list line lines point points area length "
+            + "width height depth thickness diameter radius angle degree degrees distance level plan section "
+            + "detail details elevation view views drawing drawings model layout layer layers block blocks "
+            + "dimension dimensions style styles font fonts color colour material materials steel concrete "
+            + "timber wood iron aluminium aluminum stainless galvanized galvanised painted welded welds weld "
+            + "bolt bolts nut nuts washer washers plate plates beam beams column columns brace braces bracing "
+            + "channel angle angles pipe pipes tube tubes bar bars rod rods rebar mesh slab slabs wall walls "
+            + "floor floors roof roofs foundation foundations footing footings pile piles base bottom top "
+            + "center centre centreline centerline edge edges corner corners hole holes slot slots gap gaps "
+            + "joint joints connection connections splice supports support bearing grout anchor anchors "
+            + "stiffener stiffeners flange flanges web webs cleat cleats lug lugs stud studs shear moment load "
+            + "loads dead live wind seismic design designed check checked approved approve issue issued revision "
+            + "revisions revised drawn project client contract contractor engineer engineers architect "
+            + "architects general notes typical typ minimum maximum min max nominal actual required optional "
+            + "note refer refers reference references see schedule table tables item items mark marks "
+            + "quantity quantities weight weights mass total unit units metric imperial millimetre millimetres "
+            + "millimeter millimeters metre metres meter meters inch inches foot feet yard yards "
+            + "tolerance tolerances finish finishes surface surfaces coating coatings paint primer "
+            + "galvanizing hot dip cold formed rolled cut cuts cutting drill drilled drilling bend bent "
+            + "bending fit fitted fitting fixed fix fixing install installed installation erect erected "
+            + "erection assembly assemble assembled fabricate fabricated fabrication shop site field "
+            + "supply supplied provide provided include included including excluding exclude unless "
+            + "otherwise specified specification specifications standard standards code codes grade grades "
+            + "class classes strength yield ultimate tensile compression compressive tension tensile "
+            + "stress strain deflection limit limits span spans clear opening openings door doors window "
+            + "windows stair stairs ramp ramps rail rails handrail handrails ladder ladders platform "
+            + "platforms grating grid grids axis axes north south east west up down left right inside outside "
+            + "internal external interior exterior upper lower middle mid end ends start starts finish "
+            + "begin begins number numbers sequence order orders position positions place placed placing "
+            + "locate located location locations dimension dimensions mark marked marking mirror mirrored "
+            + "rotate rotated move moved copy copied array arrays copy hidden visible hatch hatched fill "
+            + "solid pattern patterns text mtext leader leaders arrow arrows tick ticks symbol symbols "
+            + "legend key keys sample example examples true false on off yes none all any each both either "
+            + "neither first second last next previous current original new existing proposed demolish "
+            + "demolished remove removed removal replace replaced replacement add added addition additional "
+            + "extra spare future provision provisions allow allowed allowance allowances clearance clearances "
+            + "overall approx approximate approximately equal equals equally spaced spacing space spaces "
+            + "centres centers staggered continuous continuously intermittent full partial penetration "
+            + "fillet butt lap seam seams flat round square rectangular circular oval hexagon hexagonal "
+            + "taper tapered chamfer chamfers radius radii curve curved arc arcs straight horizontal vertical "
+            + "diagonal parallel perpendicular normal tangent tangents intersect intersection intersections "
+            + "please thank thanks name names company address phone email fax web page pages of the and or"
+        ).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+        private const string ResourceName = "GeometryHelper.Dxf.Viewer.english-words.txt.gz";
+
+        // The main dictionary: each word (looked up in either case) with its tier, 0 the most common words, 1 and 2 the less
+        // common and 3 the names; read from the embedded list when first asked.
+        private static readonly Lazy<Dictionary<string, int>> Main = new Lazy<Dictionary<string, int>>(
+            LoadMain,
+            LazyThreadSafetyMode.ExecutionAndPublication
         );
+
+        /// <summary>Gets how many words the built-in dictionary holds.</summary>
+        internal static int MainCount => Main.Value.Count;
+
+        private static Dictionary<string, int> LoadMain()
+        {
+            var words = new Dictionary<string, int>(130000, StringComparer.OrdinalIgnoreCase);
+
+            using (Stream stream = typeof(CadSpelling).Assembly.GetManifestResourceStream(ResourceName))
+            {
+                if (stream != null)
+                {
+                    using (var zip = new GZipStream(stream, CompressionMode.Decompress))
+                    using (var reader = new StreamReader(zip, new UTF8Encoding(false)))
+                    {
+                        int tier = 0;
+
+                        for (string line = reader.ReadLine(); line != null; line = reader.ReadLine())
+                        {
+                            if (line.Length > 1 && line[0] == '=')
+                            {
+                                tier = line[1] - '0';
+                            }
+                            else if (line.Length > 0)
+                            {
+                                words[line] = tier;
+                            }
+                        }
+                    }
+                }
+            }
+
+            foreach (string word in Legacy)
+            {
+                words[word] = 0;
+            }
+
+            return words;
+        }
+
+        private static bool InMain(string word) => Main.Value.ContainsKey(word);
 
         private static readonly string[] Endings =
         {
@@ -207,7 +258,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return true;
             }
 
-            if (Builtin.Contains(word))
+            if (InMain(word))
             {
                 return true;
             }
@@ -234,11 +285,7 @@ namespace GeometryHelper.Dxf.Viewer
                         continue;
                     }
 
-                    if (
-                        Builtin.Contains(stem)
-                        || Builtin.Contains(stem + "e")
-                        || (custom != null && custom.Contains(stem))
-                    )
+                    if (InMain(stem) || InMain(stem + "e") || (custom != null && custom.Contains(stem)))
                     {
                         return true;
                     }
@@ -247,7 +294,7 @@ namespace GeometryHelper.Dxf.Viewer
                     if (
                         stem.Length > 2
                         && stem[stem.Length - 1] == stem[stem.Length - 2]
-                        && Builtin.Contains(stem.Substring(0, stem.Length - 1))
+                        && InMain(stem.Substring(0, stem.Length - 1))
                     )
                     {
                         return true;
@@ -255,7 +302,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (ending == "ies" || ending == "ied")
                     {
-                        if (Builtin.Contains(stem + "y"))
+                        if (InMain(stem + "y"))
                         {
                             return true;
                         }
@@ -268,42 +315,117 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// The words nearest a misspelled one, at most five: those of the built-in and custom words within one change of its
-        /// letters (two for a word of five or more), the nearest first, then the shortest, then in ordinal order; in the case
-        /// the word begins with.
+        /// letters (two for a word of five or more), the nearest first; of those as near, two neighbours swapped ("wrold" to
+        /// "world"), then letters missing ("helo" to "hello"), then letters added, then any other change, then the more common word (the tiers
+        /// of the dictionary), then the shorter, then in ordinal order; in the case the word begins with.
         /// </summary>
         internal static List<string> Suggest(string word, IEnumerable<string> custom)
         {
             int allowed = word.Length >= 5 ? 2 : 1;
-            var found = new List<KeyValuePair<string, int>>();
+            var found = new List<Suggestion>();
             string lower = word.ToLowerInvariant();
 
-            foreach (
-                string candidate in Builtin
-                    .Concat(custom ?? Enumerable.Empty<string>())
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-            )
+            void Consider(string candidate, int tier)
             {
                 if (Math.Abs(candidate.Length - lower.Length) > allowed)
                 {
-                    continue;
+                    return;
                 }
 
-                int distance = Distance(lower, candidate.ToLowerInvariant(), allowed);
+                int distance = Distance(lower, candidate, allowed);
 
                 if (distance <= allowed)
                 {
-                    found.Add(new KeyValuePair<string, int>(candidate.ToLowerInvariant(), distance));
+                    found.Add(new Suggestion(candidate, distance, Slip(lower, candidate), tier));
+                }
+            }
+
+            foreach (KeyValuePair<string, int> pair in Main.Value)
+            {
+                Consider(pair.Key.ToLowerInvariant(), pair.Value);
+            }
+
+            foreach (string candidate in custom ?? Enumerable.Empty<string>())
+            {
+                string small = candidate.ToLowerInvariant();
+
+                if (!InMain(small))
+                {
+                    Consider(small, 0);
                 }
             }
 
             bool capital = char.IsUpper(word[0]);
             return found
-                .OrderBy(p => p.Value)
-                .ThenBy(p => p.Key.Length)
-                .ThenBy(p => p.Key, StringComparer.Ordinal)
+                .OrderBy(s => s.Distance)
+                .ThenBy(s => s.Slip)
+                .ThenBy(s => s.Tier)
+                .ThenBy(s => s.Word.Length)
+                .ThenBy(s => s.Word, StringComparer.Ordinal)
                 .Take(5)
-                .Select(p => capital ? char.ToUpperInvariant(p.Key[0]) + p.Key.Substring(1) : p.Key)
+                .Select(s => capital ? char.ToUpperInvariant(s.Word[0]) + s.Word.Substring(1) : s.Word)
                 .ToList();
+        }
+
+        /// <summary>A word near a misspelled one: how near, the kind of slip it is (see <c>Slip</c>), how common.</summary>
+        private readonly struct Suggestion
+        {
+            internal Suggestion(string word, int distance, int slip, int tier)
+            {
+                Word = word;
+                Distance = distance;
+                Slip = slip;
+                Tier = tier;
+            }
+
+            internal string Word { get; }
+
+            internal int Distance { get; }
+
+            internal int Slip { get; }
+
+            internal int Tier { get; }
+        }
+
+        /// <summary>
+        /// The kind of slip that makes a misspelled word of a candidate: two neighbours swapped (0), letters missing from the
+        /// word (1), letters added to it (2), or any other change (3).
+        /// </summary>
+        private static int Slip(string word, string candidate)
+        {
+            if (word.Length == candidate.Length)
+            {
+                int first = 0;
+
+                while (first < word.Length && word[first] == candidate[first])
+                {
+                    first++;
+                }
+
+                return
+                    first + 1 < word.Length
+                    && word[first] == candidate[first + 1]
+                    && word[first + 1] == candidate[first]
+                    && string.CompareOrdinal(word, first + 2, candidate, first + 2, word.Length) == 0
+                    ? 0
+                    : 3;
+            }
+
+            string shorter = word.Length < candidate.Length ? word : candidate;
+            string longer = word.Length < candidate.Length ? candidate : word;
+            int at = 0;
+
+            foreach (char c in longer)
+            {
+                if (at < shorter.Length && shorter[at] == c)
+                {
+                    at++;
+                }
+            }
+
+            return at < shorter.Length ? 3
+                : word.Length < candidate.Length ? 1
+                : 2;
         }
 
         /// <summary>The number of insertions, deletions, substitutions and swaps of neighbours that turn one word into another; above the limit where it is more.</summary>

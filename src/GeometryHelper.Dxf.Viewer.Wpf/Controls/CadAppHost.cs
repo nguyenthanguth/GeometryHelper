@@ -146,6 +146,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 Clipboard = new CadWindowsClipboard(),
                 FilterListsPath = Path.Combine(PluginFolder, "filter.nfl"),
+                SpellDictionaryPath = Path.Combine(Path.GetDirectoryName(GlobalSettings.DefaultPath), "sample.cus"),
             };
             var window = new CadAppWindow(model, AppName);
 

@@ -29,8 +29,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <para>
     /// Keys as AutoCAD's editor: letters type, Enter a new paragraph, Backspace and Delete, the arrows, Home and End (Shift
     /// selecting) along the lines as they wrap, Ctrl+A, Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+Z and Ctrl+Y, Ctrl+C, Ctrl+X and Ctrl+V as
-    /// plain text, Alt+Enter a column break in an MTEXT in columns, Ctrl+Enter closes keeping the words, Esc puts back a drag
-    /// of the ruler or else asks (<see cref="EscapePressed"/>). In a table cell, as AutoCAD's:
+    /// plain text, Alt+Enter a column break in an MTEXT in columns, Ctrl+H the Find and Replace dialog, Ctrl+Enter closes
+    /// keeping the words, Esc puts back a drag of the ruler, or puts down the Match Text Formatting brush, or else asks
+    /// (<see cref="EscapePressed"/>). Words not in the dictionary are underlined in red and a right-click on one gives the words
+    /// nearest it first (<see cref="TextEditorViewModel.SpellMenu"/>); with the Match brush up the letters selected by the mouse
+    /// take its look. In a table cell, as AutoCAD's:
     /// Tab keeps the words and goes to the next cell, Shift+Tab to the one before, Enter to the one below, and Alt+Enter starts
     /// a new paragraph.
     /// </para>
@@ -56,6 +59,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             new Pen(new SolidColorBrush(Color.FromRgb(0x1A, 0x1E, 0x24)), 1.0)
         );
         private static readonly Pen Caret = FreezePen(new Pen(Brushes.White, 2.0));
+        private static readonly Pen SpellPen = FreezePen(
+            new Pen(new SolidColorBrush(Color.FromRgb(0xFF, 0x4D, 0x4D)), 1.0)
+        );
 
         private readonly Dictionary<int, Brush> _brushes = new Dictionary<int, Brush>();
         private readonly Dictionary<int, Pen> _pens = new Dictionary<int, Pen>();
@@ -323,6 +329,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _lastFrame = _thisFrame;
                 _thisFrame = drawn;
                 _thisFrame.Clear();
+                DrawSpelling(dc);
 
                 if (IsKeyboardFocused && _model.Editor.SelectionLength == 0)
                 {
@@ -375,7 +382,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 // The ruler's own menu, Set Mtext Width and Height; elsewhere the editor's.
                 bool onRuler = _model.IsRulerShown && at.Y >= 0.0 && at.Y <= RulerHeight;
-                ShowMenu(_model.Menu(onRuler ? "Ruler" : "Editor"));
+                IReadOnlyList<CadMenuItemViewModel> items = _model.Menu(onRuler ? "Ruler" : "Editor");
+
+                // On a word not in the dictionary the words nearest it, Add Word and Ignore All come first.
+                if (!onRuler)
+                {
+                    IReadOnlyList<CadMenuItemViewModel> spelling = _model.SpellMenu(PlaceAt(at));
+
+                    if (spelling.Count > 0)
+                    {
+                        items = spelling.Concat(items).ToList();
+                    }
+                }
+
+                ShowMenu(items);
                 e.Handled = true;
                 return;
             }
@@ -414,6 +434,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             else if (e.ClickCount == 2)
             {
                 SelectWord(PlaceAt(at));
+                GiveMatchedLook();
             }
             else
             {
@@ -475,7 +496,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             Cursor =
                 part == MTextRulerPart.Height ? Cursors.SizeNS
-                : part == MTextRulerPart.None ? Cursors.IBeam
+                : part == MTextRulerPart.None ? (_model.IsMatching ? Cursors.Pen : Cursors.IBeam)
                 : part == MTextRulerPart.Ruler || part == MTextRulerPart.TypeBox ? Cursors.Arrow
                 : Cursors.SizeWE;
         }
@@ -506,8 +527,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 InvalidateVisual();
             }
 
+            bool wasSelecting = _selecting;
             _selecting = false;
             ReleaseMouseCapture();
+
+            if (wasSelecting)
+            {
+                GiveMatchedLook();
+            }
+        }
+
+        /// <summary>Match Text Formatting: the letters just selected take the look the brush picked up, and the brush is put down.</summary>
+        private void GiveMatchedLook()
+        {
+            if (_model != null && _model.Editor.IsMatching)
+            {
+                _model.Editor.ApplyMatch();
+            }
         }
 
         /// <inheritdoc/>
@@ -561,6 +597,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         _oldOutline = Rect.Empty;
                         ReleaseMouseCapture();
                         InvalidateVisual();
+                        return true;
+                    }
+
+                    // Esc with the Match brush up puts it down, as AutoCAD's does, before it asks about the changes.
+                    if (editor.IsMatching)
+                    {
+                        editor.CancelMatch();
                         return true;
                     }
 
@@ -657,6 +700,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 case System.Windows.Input.Key.A:
                     editor.SelectAll();
+                    return true;
+                case System.Windows.Input.Key.H:
+                    _model.FindReplaceCommand.Execute(null);
                     return true;
                 case System.Windows.Input.Key.B:
                     _model.ToggleCommand.Execute("Bold");
@@ -1083,6 +1129,63 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        /// <summary>
+        /// The spell check's red wavy underline under each word not in the dictionary (<see cref="TextEditorViewModel.Misspelled"/>),
+        /// along the foot of each line the word is on.
+        /// </summary>
+        private void DrawSpelling(DrawingContext dc)
+        {
+            IReadOnlyList<CadMisspelledWord> words = _model.Misspelled;
+
+            foreach (CadMisspelledWord word in words)
+            {
+                int q = word.Start;
+                int end = Math.Min(word.Start + word.Length, _model.Editor.Length);
+
+                while (q < end)
+                {
+                    int line = _layout.LineOfPlace(q);
+                    double x0 = PixelX(_layout.XOf(q));
+                    double x1 = PixelX(_layout.RightOf(q));
+
+                    while (q + 1 < end && _layout.LineOfPlace(q + 1) == line)
+                    {
+                        q++;
+                        x1 = PixelX(_layout.RightOf(q));
+                    }
+
+                    Squiggle(dc, x0, x1, PixelY(_layout.BottomOf(line)) - 1.0);
+                    q++;
+                }
+            }
+        }
+
+        /// <summary>A wavy line from one x to another, 4 pixels to a wave and 3 high, its lowest point on y.</summary>
+        private static void Squiggle(DrawingContext dc, double x0, double x1, double y)
+        {
+            if (!(x1 - x0 >= 1.0))
+            {
+                return;
+            }
+
+            var geometry = new StreamGeometry();
+
+            using (StreamGeometryContext g = geometry.Open())
+            {
+                g.BeginFigure(new Point(x0, y), false, false);
+                bool up = true;
+
+                for (double x = x0 + 2.0; x < x1 + 2.0; x += 2.0)
+                {
+                    g.LineTo(new Point(Math.Min(x, x1), up ? y - 3.0 : y), true, false);
+                    up = !up;
+                }
+            }
+
+            geometry.Freeze();
+            dc.DrawGeometry(null, SpellPen, geometry);
+        }
+
         /// <summary>A mask: in the canvas's black where it takes the drawing's background, else in its colour.</summary>
         private void DrawFill(DrawingContext dc, DisplayFill2 fill)
         {
@@ -1295,6 +1398,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             )
             {
                 Restale();
+            }
+            else if (
+                e.PropertyName == nameof(TextEditorViewModel.IsSpellCheckOn)
+                || e.PropertyName == nameof(TextEditorViewModel.Misspelled)
+            )
+            {
+                InvalidateVisual();
             }
         }
 

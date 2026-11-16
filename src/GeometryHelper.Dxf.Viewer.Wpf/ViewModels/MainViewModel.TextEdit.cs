@@ -59,6 +59,45 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets what shows the ruler's Set Mtext Width and Set Mtext Height, true for OK; null where no window shows them.</summary>
         public Func<MTextSizeViewModel, bool> AskMTextSize { get; set; }
 
+        /// <summary>Gets or sets what shows the MTEXT editor's Find and Replace, which stays open beside the editor and closes with it; null where no window shows it.</summary>
+        public Action<TextEditorViewModel> ShowMTextFindReplace { get; set; }
+
+        /// <summary>Gets or sets what asks for the .txt or .rtf file of Import Text and gives its path; null for none picked, or where no window asks.</summary>
+        public Func<string> AskImportTextFile { get; set; }
+
+        /// <summary>Gets or sets what shows the Symbol menu's character map, which Select and Copy put characters on the clipboard from; null where no window shows it.</summary>
+        public Action<CharacterMapViewModel> ShowCharacterMap { get; set; }
+
+        /// <summary>Gets or sets what shows Edit Dictionaries, the custom words added and deleted; null where no window shows it.</summary>
+        public Action<SpellDictionariesViewModel> ShowDictionaries { get; set; }
+
+        private CadSpellDictionary _spellDictionary;
+        private string _spellDictionaryPath;
+
+        /// <summary>
+        /// Gets or sets the custom dictionary file of the spell check, AutoCAD's <c>sample.cus</c> form of words one to a line:
+        /// the MTEXT editor's Spell Check panel, SPELL and Check Spelling read it and add to it; null, until set, keeps the
+        /// words for the session only. The window sets the file in its settings folder.
+        /// </summary>
+        public string SpellDictionaryPath
+        {
+            get => _spellDictionaryPath;
+            set
+            {
+                _spellDictionaryPath = value;
+                _spellDictionary = null;
+
+                foreach (KnownFile file in _files.Values.Where(f => f.Session != null))
+                {
+                    file.Session.SpellDictionaryPath = value;
+                }
+            }
+        }
+
+        /// <summary>Gets the dictionary the MTEXT editor's spell check looks words up in: the built-in English one and the custom file <see cref="SpellDictionaryPath"/>.</summary>
+        public CadSpellDictionary SpellDictionary =>
+            _spellDictionary ?? (_spellDictionary = new CadSpellDictionary(_spellDictionaryPath));
+
         /// <summary>Gets the contextual Text Editor tab, shown while an MTEXT is being written or edited.</summary>
         public CadWorkspaceExtension TextEditorTab
         {
@@ -262,6 +301,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             _inPlace = now;
+            _textEditor?.RaiseClosed();
 
             if (now != null && now.Kind == CadInPlaceKind.MText)
             {

@@ -133,6 +133,20 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
+        /// <summary>Takes a custom dictionary file as the one the dialog starts with: read where it exists, else only named, so that Add to Dictionary makes it.</summary>
+        /// <param name="path">The file.</param>
+        public void UseDictionary(string path)
+        {
+            if (File.Exists(path))
+            {
+                LoadDictionary(path);
+            }
+            else
+            {
+                CustomDictionary = path;
+            }
+        }
+
         /// <summary>
         /// Starts the check where <see cref="Where"/> says, from its first text: the first word not in the dictionary waits, or
         /// the check is complete. Words already changed keep their changes and are not asked again.
