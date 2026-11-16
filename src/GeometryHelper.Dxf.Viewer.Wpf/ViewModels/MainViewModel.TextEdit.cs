@@ -53,6 +53,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets what shows the MTEXT editor's Column Settings dialog, true for OK; null where no window shows it.</summary>
         public Func<ColumnSettingsViewModel, bool> ShowColumnSettings { get; set; }
 
+        /// <summary>Gets or sets what shows the MTEXT editor's Background Mask dialog, true for OK; null where no window shows it.</summary>
+        public Func<MTextMaskViewModel, bool> ShowBackgroundMask { get; set; }
+
         /// <summary>Gets or sets what shows the ruler's Set Mtext Width and Set Mtext Height, true for OK; null where no window shows them.</summary>
         public Func<MTextSizeViewModel, bool> AskMTextSize { get; set; }
 

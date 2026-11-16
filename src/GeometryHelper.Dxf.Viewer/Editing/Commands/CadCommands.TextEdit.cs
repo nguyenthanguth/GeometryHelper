@@ -318,6 +318,13 @@ namespace GeometryHelper.Dxf.Viewer
                     );
                 }
 
+                if (edit.NewMask != null)
+                {
+                    planned.Add(
+                        new CadEditRecord(CadEditRecordKind.PropertyChanged, edit.Handle, "Background mask", null, null)
+                    );
+                }
+
                 if (edit.NewFrame != null)
                 {
                     planned.Add(
@@ -348,7 +355,7 @@ namespace GeometryHelper.Dxf.Viewer
             return done;
         }
 
-        /// <summary>Gives an MTEXT the width, attachment and line spacing its editor set, the attachment point kept where it is.</summary>
+        /// <summary>Gives an MTEXT the width, attachment, line spacing and background mask its editor set, the attachment point kept where it is.</summary>
         internal static void ApplyBox(DxfMText mtext, CadInPlaceEdit edit)
         {
             if (edit.NewWidth.HasValue && edit.NewWidth.Value >= 0.0)
@@ -364,6 +371,22 @@ namespace GeometryHelper.Dxf.Viewer
             if (edit.NewLineSpacing.HasValue && edit.NewLineSpacing.Value >= 0.25 && edit.NewLineSpacing.Value <= 4.0)
             {
                 mtext.LineSpacingFactor = edit.NewLineSpacing.Value;
+            }
+
+            if (edit.NewMask != null)
+            {
+                try
+                {
+                    edit.NewMask.ApplyTo(mtext);
+                }
+                catch (InvalidOperationException exception)
+                {
+                    // A file older than R2004 has no background to give.
+                    GeometryHelperLog.Warn(
+                        "CadCommands: the MTEXT editor's background mask was not written.",
+                        exception
+                    );
+                }
             }
         }
 

@@ -82,6 +82,7 @@ namespace GeometryHelper.Dxf.Viewer
         );
         private readonly double _ltScale;
         private readonly int _pdmode;
+        private readonly int _attmode;
         private readonly double _pdsize;
         private double _pointViewHeight = 1.0;
         private readonly DisplayStyle _defaultStyle = new DisplayStyle(0xFFFFFF, 0.0, null);
@@ -204,6 +205,16 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 _pdmode = 0;
                 _pdsize = 0.0;
+            }
+
+            // How attributes are shown, read once the same way: ATTDISP makes a new builder.
+            try
+            {
+                _attmode = host == null ? database.Attmode : host._attmode;
+            }
+            catch (Exception)
+            {
+                _attmode = 1;
             }
 
             foreach (DxfLayerTableRecord layer in database.LayerTable)
@@ -2844,7 +2855,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// The ATTRIBs of an INSERT, its values, as a title block shows them: each a text where the file places it, in the
         /// space of the INSERT (its own place, turn and scale are in the ATTRIB already), under the frame the INSERT is in,
-        /// picked as the INSERT, ByBlock taking the INSERT's look; an invisible one left out. A MINSERT shows them once.
+        /// picked as the INSERT, ByBlock taking the INSERT's look; an invisible one left out, as ATTMODE 1 has it (every one is shown under 2,
+        /// none under 0). A MINSERT shows them once.
         /// </summary>
         private void DrawAttributes(
             DxfBlockReference reference,
@@ -2866,7 +2878,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 try
                 {
-                    if (!attribute.IsErased && !attribute.Invisible)
+                    if (!attribute.IsErased && (_attmode == 2 || (_attmode == 1 && !attribute.Invisible)))
                     {
                         Draw(
                             scaled == 1.0 ? attribute : AttributeAt(attribute, reference.Position, scaled),
@@ -3187,7 +3199,9 @@ namespace GeometryHelper.Dxf.Viewer
                     vertical = 3;
                     break;
                 default:
-                    vertical = 0;
+                    // Middle (72 of 4) holds the text by the middle of its words up and down as well as across, as AutoCAD
+                    // 2021's JUSTIFYTEXT writes it: "HELLO" 5 high and 23.33 wide from (10, 10) is held by (21.67, 12.5).
+                    vertical = read.HorizontalMode == DxfTextHorizontalMode.TextMid ? 2 : 0;
                     break;
             }
 

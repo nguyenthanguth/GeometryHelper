@@ -1,0 +1,144 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.MTextMaskWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="Background Mask"
+    Width="340"
+    SizeToContent="Height"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <local:RgbBrushConverter x:Key="RgbBrush" />
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close, same as Cancel"
+                    />
+                    <TextBlock Text="Background Mask" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button
+                            Style="{StaticResource StylePrimaryButton}"
+                            Content="OK"
+                            Padding="14,5"
+                            Margin="0,0,8,0"
+                            Click="OnOk"
+                            IsDefault="True"
+                        />
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Cancel"
+                            Padding="14,5"
+                            Click="OnCancel"
+                            IsCancel="True"
+                        />
+                    </StackPanel>
+                    <TextBlock
+                        Text="{Binding Notice}"
+                        Foreground="#FF8A7A"
+                        TextWrapping="Wrap"
+                        VerticalAlignment="Center"
+                        Margin="0,0,12,0"
+                    />
+                </DockPanel>
+            </Border>
+            <StackPanel Margin="16,12">
+                <CheckBox
+                    Style="{StaticResource BlockCheck}"
+                    Content="Use background mask"
+                    IsChecked="{Binding UseMask, Mode=TwoWay}"
+                    AutomationProperties.Name="Use background mask"
+                />
+                <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Border Offset Factor" Margin="0">
+                    <DockPanel IsEnabled="{Binding IsOffsetEnabled}">
+                        <TextBlock
+                            DockPanel.Dock="Right"
+                            Style="{StaticResource StyleLabel}"
+                            Foreground="{StaticResource GhTextMuted}"
+                            Text="× text height, 1.0 to 5.0"
+                            VerticalAlignment="Center"
+                            Margin="10,0,0,0"
+                        />
+                        <TextBox
+                            Tag="Offset"
+                            Width="80"
+                            HorizontalAlignment="Left"
+                            Style="{StaticResource BlockNumber}"
+                            Text="{Binding OffsetText, UpdateSourceTrigger=PropertyChanged}"
+                            AutomationProperties.Name="Border offset factor"
+                        />
+                    </DockPanel>
+                </HeaderedContentControl>
+                <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Fill Color" Margin="0,8,0,0">
+                    <StackPanel>
+                        <CheckBox
+                            Style="{StaticResource BlockCheck}"
+                            Content="Use drawing background color"
+                            IsEnabled="{Binding IsDrawingBackgroundEnabled}"
+                            IsChecked="{Binding UseDrawingBackground, Mode=TwoWay}"
+                            AutomationProperties.Name="Use drawing background color"
+                        />
+                        <DockPanel IsEnabled="{Binding IsColorEnabled}">
+                            <TextBlock
+                                Style="{StaticResource StyleLabel}"
+                                Text="Color:"
+                                VerticalAlignment="Center"
+                                Width="54"
+                            />
+                            <Button
+                                Style="{StaticResource GhFlatButton}"
+                                Padding="4,3"
+                                HorizontalContentAlignment="Left"
+                                Command="{Binding PickColorCommand}"
+                                ToolTip="Select Color…"
+                                AutomationProperties.Name="Fill color"
+                            >
+                                <StackPanel Orientation="Horizontal">
+                                    <Border
+                                        Width="36"
+                                        Height="16"
+                                        Margin="0,0,8,0"
+                                        BorderBrush="{StaticResource GhBorder}"
+                                        BorderThickness="1"
+                                        Background="{Binding ColorRgb, Converter={StaticResource RgbBrush}}"
+                                    />
+                                    <TextBlock Text="{Binding ColorText}" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </DockPanel>
+                    </StackPanel>
+                </HeaderedContentControl>
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</Window>

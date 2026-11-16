@@ -1134,7 +1134,7 @@
                         </Style>
                     </local:RibbonStrip.Resources>
 
-                    <!-- Style: the style, Annotative (off), the height; Mask greyed. -->
+                    <!-- Style: the style, Annotative (off), the height, Mask (Background Mask). -->
                     <local:RibbonPanel Title="Style" MinFullWidth="200" Icon="{StaticResource IconStyle}">
                         <StackPanel Orientation="Horizontal">
                             <Button
@@ -1170,7 +1170,8 @@
                                     Style="{StaticResource SmallButton}"
                                     Tag="{StaticResource IconField}"
                                     Content="Mask"
-                                    ToolTip="Background mask is not built yet"
+                                    Command="{Binding MaskCommand}"
+                                    ToolTip="Background Mask: a filled box behind the words"
                                 />
                             </StackPanel>
                         </StackPanel>
@@ -1341,9 +1342,14 @@
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
-                                <Border Style="{StaticResource ValueBox}" ToolTip="Background mask is not built yet">
-                                    <TextBlock Text="Background mask…" Foreground="{StaticResource GhTextMuted}" />
-                                </Border>
+                                <Button
+                                    Style="{StaticResource EditorMenuButton}"
+                                    Content="Background mask…"
+                                    Margin="0"
+                                    HorizontalContentAlignment="Left"
+                                    Command="{Binding MaskCommand}"
+                                    ToolTip="Background Mask: a filled box behind the words"
+                                />
                             </StackPanel>
                         </StackPanel>
                     </local:RibbonPanel>

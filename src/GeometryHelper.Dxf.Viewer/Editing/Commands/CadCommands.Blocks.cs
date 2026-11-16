@@ -2360,7 +2360,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (c.Input.Is("No"))
             {
-                c.Write("Global editing of attribute values is not built here: edit them one at a time.");
+                foreach (CadPrompt prompt in AttributeEditGlobal(c))
+                {
+                    yield return prompt;
+                }
+
                 yield break;
             }
 
@@ -2376,40 +2380,14 @@ namespace GeometryHelper.Dxf.Viewer
             yield return CadPrompt.ForString("Enter attribute value specification", "*");
             Regex values = Wildcard(c.Input.Kind == CadInputKind.Text ? c.Input.Text : "*");
             yield return CadPrompt.ForSelection("Select Attributes");
-            var found = new List<KeyValuePair<string, string>>();
-
-            foreach (string handle in c.Input.Handles)
-            {
-                if (c.Document.FindEntity(handle) is DxfBlockReference insert && blocks.IsMatch(insert.Name))
-                {
-                    // An INSERT a click picked gives the attribute clicked alone, as AutoCAD's; one a window took, those inside the
-                    // window (or touched by a crossing box); one another option took whole, all of them.
-                    List<GeoPoint2> clicks = c
-                        .Input.Clicks.Where(p => string.Equals(p.Key, handle, StringComparison.OrdinalIgnoreCase))
-                        .Select(p => p.Value)
-                        .ToList();
-                    List<Tuple<DisplayBox, bool>> windows = c
-                        .Input.Windows.Where(w => string.Equals(w.Item1, handle, StringComparison.OrdinalIgnoreCase))
-                        .Select(w => Tuple.Create(w.Item2, w.Item3))
-                        .ToList();
-                    HashSet<string> clicked =
-                        clicks.Count > 0 ? ClickedAttributes(c, insert, clicks)
-                        : windows.Count > 0 ? WindowedAttributes(c, insert, windows)
-                        : null;
-
-                    foreach (DxfAttributeReference attribute in insert.AttributeCollection)
-                    {
-                        if (
-                            (clicked == null || clicked.Contains(attribute.Handle))
-                            && tags.IsMatch(attribute.Tag)
-                            && values.IsMatch(attribute.TextString ?? string.Empty)
-                        )
-                        {
-                            found.Add(new KeyValuePair<string, string>(handle, attribute.Handle));
-                        }
-                    }
-                }
-            }
+            List<KeyValuePair<string, string>> found = MatchingAttributes(
+                c,
+                c.Input.Handles,
+                blocks,
+                tags,
+                values,
+                true
+            );
 
             c.Write(found.Count.ToString(CultureInfo.InvariantCulture) + " attributes selected.");
             string[] options = { "Value", "Position", "Height", "Angle", "Style", "Layer", "Color", "Next" };

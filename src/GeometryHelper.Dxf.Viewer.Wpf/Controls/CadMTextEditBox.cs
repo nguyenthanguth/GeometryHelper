@@ -737,6 +737,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     _layout = new CadMTextEditorLayout(_document, _model.Edit);
                 }
 
+                _layout.SetMask(_model.Mask);
                 _layout.Update(_model.Editor, _model.Attachment, _model.LineSpacing, DefaultRgb, LayerRgb);
                 _stale = false;
             }

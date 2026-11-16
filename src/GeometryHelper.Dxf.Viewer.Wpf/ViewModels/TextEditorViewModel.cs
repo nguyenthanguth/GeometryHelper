@@ -62,6 +62,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private int _attachment;
         private double _lineSpacing;
         private bool _boxChanged;
+        private CadMTextMask _mask;
+        private readonly CadMTextMask _originalMask;
 
         internal TextEditorViewModel(
             MainViewModel model,
@@ -77,6 +79,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _lineSpacing = lineSpacing > 0.0 ? lineSpacing : 1.0;
             StyleFont = styleFont;
             StyleIsShx = styleIsShx;
+
+            // The mask of the MTEXT edited; none for an MTEXT being made or a table cell.
+            _originalMask =
+                edit.Handle != null && !edit.IsTableCell && model?.Document?.FindEntity(edit.Handle) is DxfMText masked
+                    ? CadMTextMask.Of(masked)
+                    : new CadMTextMask(false, CadMTextMask.DefaultOffsetFactor, false, null);
+            _mask = _originalMask;
             int column = (edit.Attachment - 1) % 3;
 
             // The box of the MTEXT edited, its columns kept; of an MTEXT being made, the columns MTEXT's Columns option gave or
@@ -439,8 +448,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets Close Text Editor: the words kept.</summary>
         public ICommand CloseCommand { get; }
 
-        /// <summary>Gets whether anything was changed: the words, the width, the justification or the line spacing.</summary>
-        public bool IsModified => Editor.IsModified || _boxChanged || !Editor.Frame.Equals(Editor.OriginalFrame);
+        /// <summary>Gets whether anything was changed: the words, the width, the justification, the line spacing or the background mask.</summary>
+        public bool IsModified =>
+            Editor.IsModified
+            || _boxChanged
+            || !_mask.Equals(_originalMask)
+            || !Editor.Frame.Equals(Editor.OriginalFrame);
 
         /// <summary>Gets the Paragraph panel's launcher, Line Spacing › More… and the editor's right-click › Paragraph…: the Paragraph dialog.</summary>
         public ICommand ParagraphCommand => new DelegateCommand(_ => ShowParagraph(false));
@@ -460,6 +473,42 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             var dialog = new ParagraphViewModel(Editor, ColumnRoom(), Decimals, lineSpacing);
             return _model.ShowParagraph(dialog) && dialog.Applied;
+        }
+
+        /// <summary>Gets the background mask the words are shown on: the MTEXT's own until Background Mask sets another.</summary>
+        public CadMTextMask Mask => _mask;
+
+        /// <summary>Gets the command of the Style panel's Mask button and the Background mask… box: the Background Mask dialog.</summary>
+        public ICommand MaskCommand => new DelegateCommand(_ => ShowBackgroundMask(), _ => !Edit.IsTableCell);
+
+        /// <summary>
+        /// Opens the Background Mask dialog over the mask the words stand on, where the window shows it
+        /// (<see cref="MainViewModel.ShowBackgroundMask"/>); OK sets it as the mask of the MTEXT, shown at once and written
+        /// with the words.
+        /// </summary>
+        /// <returns>Whether OK was pressed.</returns>
+        public bool ShowBackgroundMask()
+        {
+            if (Edit.IsTableCell || _model?.ShowBackgroundMask == null)
+            {
+                return false;
+            }
+
+            var dialog = new MTextMaskViewModel(_mask);
+
+            if (!_model.ShowBackgroundMask(dialog) || dialog.Result == null)
+            {
+                return false;
+            }
+
+            if (!dialog.Result.Equals(_mask))
+            {
+                _mask = dialog.Result;
+                Raise(nameof(Mask));
+                Refresh();
+            }
+
+            return true;
         }
 
         /// <summary>Opens Column Settings over the MTEXT where the window shows it (<see cref="MainViewModel.ShowColumnSettings"/>); OK sets the columns as one step of the editor's undo.</summary>
@@ -668,6 +717,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             var layout = new CadMTextEditorLayout(document, Edit);
+            layout.SetMask(_mask);
             layout.Update(Editor, _attachment, _lineSpacing, 0xFFFFFF, 0xFFFFFF);
             return layout;
         }
@@ -913,6 +963,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     Edit.NewFrame = frame;
                 }
+            }
+
+            if (!_mask.Equals(_originalMask))
+            {
+                Edit.NewMask = _mask;
             }
 
             if (!_boxChanged)
