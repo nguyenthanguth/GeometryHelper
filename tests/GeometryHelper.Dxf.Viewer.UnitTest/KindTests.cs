@@ -428,7 +428,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             );
             database.ModelSpace.AppendEntity(wipeout);
 
-            DisplayFill2 mask = Assert.IsType<DisplayFill2>(Assert.Single(Display(database).Items));
+            DisplayFill2 mask = Assert.Single(Display(database).Items.OfType<DisplayFill2>());
 
             Assert.True(mask.IsMask);
             Assert.True(mask.Contains(20, 15));

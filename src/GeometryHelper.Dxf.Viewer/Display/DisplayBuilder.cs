@@ -144,6 +144,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Whether the frames of images are drawn (IMAGEFRAME 1 or 2), as AutoCAD 2021 draws them until set off.</summary>
         private readonly bool _imageFrames = true;
 
+        /// <summary>Whether the frames of wipeouts are drawn (WIPEOUTFRAME 1 or 2), as AutoCAD 2021 draws them until set off.</summary>
+        private readonly bool _wipeoutFrames = true;
+
         /// <summary>The document's VISRETAIN: whether the records of the layers of its references give every property (1), or only those changed since they were last read (0).</summary>
         private readonly bool _visretain;
 
@@ -221,6 +224,21 @@ namespace GeometryHelper.Dxf.Viewer
             catch (Exception)
             {
                 _imageFrames = true;
+            }
+
+            try
+            {
+                if (
+                    database.NamedObjectsDictionary?.Contains("ACAD_WIPEOUT_VARS") == true
+                    && database.NamedObjectsDictionary.GetAt("ACAD_WIPEOUT_VARS") is DxfWipeoutVariables wipeouts
+                )
+                {
+                    _wipeoutFrames = wipeouts.ShowFrames;
+                }
+            }
+            catch (Exception)
+            {
+                _wipeoutFrames = true;
             }
         }
 

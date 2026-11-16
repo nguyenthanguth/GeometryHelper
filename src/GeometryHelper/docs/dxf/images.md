@@ -75,6 +75,14 @@ their plane: the rectangle (-30, -10) to (10, 20) in the square of side 40 at (-
 280 of 0, shows its whole frame, the origin of its plane among it where `SetFrom` put the frame there, as AutoCAD 2021
 gives it.
 
+Whether the frames of the wipeouts are shown is kept in the variables of wipeouts,
+[`DxfWipeoutVariables`](xref:GeometryHelper.Dxf.DxfWipeoutVariables) (the entry ACAD_WIPEOUT_VARS of the named object
+dictionary), the way the frames of images are in `DxfRasterVariables`: `DxfWipeoutVariables.GetWipeoutVariables(db)` makes
+them where the drawing has none, as AutoCAD 2021 does when WIPEOUT Frames is first used or the first wipeout is made, frames
+shown (70 of 1), and `ShowFrames` writes 70 as 0 or 1. WIPEOUTFRAME 2, the frames shown and not plotted, is written as 1.
+AutoCAD's WIPEOUT command frames the points it is given in the square on their own box, at its lowest corner, where `SetFrom`
+lays the square on the box and the origin both.
+
 ### Moving and copying
 
 - `TransformBy` takes any transformation, as AutoCAD 2021 does: scaled 2 along x alone, the picture is 80 by 30; sheared,

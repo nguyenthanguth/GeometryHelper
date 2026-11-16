@@ -2988,7 +2988,7 @@ namespace GeometryHelper.Dxf
         /// The variables of wipeouts (ACAD_WIPEOUT_VARS) made where the drawing has none, as AutoCAD 2021 gives a drawing it opens
         /// with wipeouts: frames shown (70 of 1), its class listed as AutoCAD lists it.
         /// </summary>
-        private void WipeoutVariables()
+        internal void WipeoutVariables()
         {
             DxfDBDictionary root = Database?.NamedObjectsDictionary;
 
