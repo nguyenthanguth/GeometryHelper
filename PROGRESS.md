@@ -759,17 +759,17 @@ Wave 1 (High):
 - [ ] (text1, running) MTEXT Background Mask dialog and the editor's Mask button (S)
 - [ ] (text1, running) SCALETEXT, JUSTIFYTEXT, TXT2MTXT (S/S/M)
 - [ ] (text1, running) ATTDISP; -ATTEDIT global edit (S)
-- [ ] (layer1, running) LAYMRG, LAYDEL, LAYCUR, COPYTOLAYER (S each)
+- [x] (layer1) LAYMRG, LAYDEL, LAYCUR, COPYTOLAYER (S each)
 - [ ] Layer manager: Plot, Transparency, Description, Plot Style columns; property and group filters (M)
-- [ ] (layer1, running) -DIMSTYLE (Save, Restore, STatus, Variables, Apply, ?) and DIMUPDATE (S)
+- [x] (layer1) -DIMSTYLE (Save, Restore, STatus, Variables, Apply, ?) and DIMUPDATE (S)
 - [ ] Plot style tables from .ctb/.stb files and the Plot Style Table Editor (M-L)
 - [ ] PUBLISH: batch plot of several drawings and layouts to one PDF or a printer (M)
 - [ ] Drawing templates: NEW from a chosen .dwt/.dxf, QNEW, Save As .dwt (M)
 - [x] (modify1: Table, BATTMAN, BEDIT, QuickCalc, Select Similar, Add Selected, annotation scale items, Save As Other Formats; the rest have no command yet) Wire up greyed buttons and menu items whose commands exist (BEDIT, BATTMAN, TABLE, QuickCalc, Quick Properties,
       annotation scale items) (S)
 - [x] F2 text window (TEXTSCR), the command history (modify1; dialogs to add to the Design artifact)
-- [ ] More transparent commands ('DIST, 'ID, 'LAYER, 'COLOR, 'UNITS, 'QUICKCALC) and variables typed transparently (S)
-- [ ] Common system variables typable: TRIMEXTENDMODE, LUNITS/LUPREC/AUNITS/AUPREC/INSUNITS, ANGBASE/ANGDIR, PLINEWID,
+- [ ] (vars1, running) More transparent commands ('DIST, 'ID, 'LAYER, 'COLOR, 'UNITS, 'QUICKCALC) and variables typed transparently (S)
+- [ ] (vars1, running) Common system variables typable: TRIMEXTENDMODE, LUNITS/LUPREC/AUNITS/AUPREC/INSUNITS, ANGBASE/ANGDIR, PLINEWID,
       PLINEGEN, HPNAME/HPSCALE/HPANG/HPLAYER, DIMLAYER, DELOBJ, SAVETIME, FILLMODE and others (M)
 
 Wave 2 (Medium): BLEND; XLINE Offset; associative arrays and ARRAYEDIT; REVERSE, SETBYLAYER, CHPROP; BURST and TXTEXP;

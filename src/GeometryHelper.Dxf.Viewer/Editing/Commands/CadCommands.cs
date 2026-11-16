@@ -107,6 +107,9 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("LAYUNISO", LayerUnisolate));
             registry.Add(new CadCommand("LAYERP", LayerPrevious));
             registry.Add(new CadCommand("LAYERPMODE", LayerPreviousMode));
+            AddLayerMergeTo(registry);
+            AddLayerCopyTo(registry);
+            AddDimStyleTypedTo(registry);
             registry.Add(new CadCommand("VPLAYER", ViewportLayer));
             registry.Add(new CadCommand("LAYVPI", LayerViewportIsolate));
             registry.Add(new CadCommand("VPSCALE", ViewportScale));

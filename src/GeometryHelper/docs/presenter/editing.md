@@ -233,7 +233,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 272 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 281 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -243,14 +243,14 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | shapes and hatching | SOLID, REGION, HATCH, HATCHSETORIGIN, -HATCH (Properties, Select objects, draW boundary, remove Boundaries, Advanced: Boundary set, Retain boundary, Island detection, Style, Associativity, Gap tolerance, separate Hatches; DRaw order, Origin, ANnotative, hatch COlor, LAyer, Transparency, Undo), GRADIENT, HATCHEDIT, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Fit data: Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance; Close, Open, Join, Move vertex, Refine: Add, Delete, Elevate order, Move, Weight; rEverse, convert to Polyline, Undo), CLASSICINSERT |
 | multilines | MLINE (Justification, Scale, STyle; Close, Undo), MLEDIT (CC, OC, MC, CT, OT, MT, CJ, AV, DV, CS, CA, WA; Undo), MLSTYLE (?, Current, New, Modify, Rename, Delete, Load, Save), and the variables CMLJUST, CMLSCALE and CMLSTYLE (see [Multilines](#multilines)) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
-| layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
+| layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, LAYMRG and -LAYMRG (Name, Undo), LAYDEL and -LAYDEL (Name, Undo), LAYCUR, COPYTOLAYER and -COPYTOLAYER (?, =, Displacement, eXit), VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, SELECTSIMILAR (SEttings), ADDSELECTED, TEXTSCR, UNITS, -UNITS, SCRIPT, SAVE, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?), QUICKCALC, CAL, QUICKPROPERTIES |
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too; a spline made a polyline within a precision), REVCLOUDPROPERTIES (Arc length), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN, CHANGE (Properties: Color, Elev, LAyer, LType, ltScale, LWeight, Thickness, TRansparency, Material, Annotative) |
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a name typed may be a wildcard and every attributed block it matches is synced; what is picked that is no block, or a block with no attribute definitions, refused and another asked for, in the words of AutoCAD's own table of strings; an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, ATTEXT, -ATTEXT (Cdf, Sdf, Dxf, Objects), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK, REFEDIT, -REFEDIT (Ok, Next; All, Nested), REFSET (Add, Remove), REFCLOSE (Save, Discard), and the variables REFEDITNAME and XFADECTL |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | annotation | DIMOVERRIDE (Clear overrides), TEXTALIGN (alIgnment, Options, Point), MLEADEREDIT (Remove leaders, Add leaders), MLEADERALIGN (Options), MLEADERCOLLECT (Vertical, Horizontal, Wrap), ATTIPEDIT, SPELL (All, Dictionary) (see [Annotation commands](#annotation-commands)) |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT, EXPORT, -EXPORT (Dwf, dwfX, Pdf) ([Plotting](plot.md)) |
-| dimension | DIM (Angular, Baseline, Continue, Ordinate, aliGn, Distribute, Layer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE, DIMCENTER, CENTERMARK, CENTERLINE |
+| dimension | DIM (Angular, Baseline, Continue, Ordinate, aliGn, Distribute, Layer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE, DIMCENTER, CENTERMARK, CENTERLINE, -DIMSTYLE (ANnotative, Save, Restore, STatus, Variables, Apply, ?), DIMUPDATE |
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT, TABLEEXPORT |
 | selection | QSELECT, FILTER, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP |
 | OLE objects | INSERTOBJ (a bitmap or a PNG, as a static picture), and the variables OLEFRAME, OLEHIDE and OLEQUALITY (see OLE objects below) |
@@ -2645,6 +2645,24 @@ DIMSCALE 2 typed in that order give a linear dimension of the overrides `40 77`,
 Clear overrides takes every override of the objects selected away, as `SetFromStyle` does; objects of another kind are left
 alone. Enter at a value keeps the one shown and writes no override.
 
+-DIMSTYLE writes the current style and its overrides, as AutoCAD 2021 does (probed in its console): `Current dimension style:
+ISO-25   Annotative: No`, then, where the dimension variables of the drawing differ from the style's own, `Current dimension
+overrides:` and one line for each, ` DIMTXT      5.0000` (the name set in twelve places, the value as LIST writes it). It then
+asks `Enter a dimension style option [ANnotative/Save/Restore/STatus/Variables/Apply/?] <Restore>:`. Save asks `Enter name for
+new dimension style or [?]:` and keeps the variables, overrides and all, as a style that becomes the current one, with no
+override left; a name the drawing has asks `That name is already in use, redefine it? <N>:` (Y redefines it, the dimensions drawn
+in it drawn again) and a name with a character a style cannot hold says `Invalid style name.`. ANnotative asks `Create annotative
+dimension style [Yes/No] <Yes>:` and then the name, as Save, and asks the option again. Restore asks `Enter a dimension style
+name, [?] or <select dimension>:`: a name makes that style current (`Unknown dimension style.` for one the drawing has not) and
+Enter asks `Select dimension:`, whose style and overrides become the current ones. STatus lists DIMASO, DIMSTYLE and every
+variable with its value and what it is (`DIMASZ      2.5000               Arrow size`); Variables lists those of a style the same
+way, or, with Enter and a dimension picked, `Dimension style: ISO-25` and the overrides the dimension holds. Apply, and
+DIMUPDATE (the Update of the Annotate tab), ask `Select objects:` and give the current style and the overrides to the
+dimensions, leaders and feature control frames selected, each drawn anew, one undo step: with DIMTXT 6 set over a style of 2.5, a
+dimension selected has its words 6 high, and the overrides it holds are the variables that differ from the style. ? asks `Enter
+dimension style(s) to list <*>:` and lists the styles that match, an annotative one marked. DIMALTMZF, DIMALTMZS, DIMMZF and
+DIMMZS, which AutoCAD lists, are not kept by the library and are not listed.
+
 TEXTALIGN (TA) keeps AutoCAD's settings: "Current settings: Align = Left, Spacing Mode = Current Vertical" and "Select text
 objects to align [alIgnment/Options]:". alIgnment asks "Select alignment direction [Left/Center/Right/TL/TC/TR/ML/MC/MR/BL/BC/BR]
 <Left>:", Options "Enter an option [Distribute/Set spacing/current Vertical/current Horizontal] <current Vertical>:" (Set spacing
@@ -3789,6 +3807,35 @@ ones, checked in its console; Defpoints is renamed, as -RENAME and entmod rename
 
 A layer turned off or frozen takes its entities out of the display lists; a locked layer keeps them drawn but out of any
 selection a command gathers. `IsLocked(database, name)` asks.
+
+LAYMRG and LAYDEL (and -LAYMRG and -LAYDEL, which are the same here) ask as AutoCAD 2021's command line forms do (probed in
+its console): `Select object on layer to merge or [Name]:`, which takes an object on each layer or a name, until Enter; after
+the first layer `[Name/Undo]`, and each answer is followed by `Selected layers: DOOR,TRIM.`; Undo takes the last one out. Name
+asks `Enter layer name or [?]:` (? lists the layers that match, one on a line); a name the drawing has not says `Invalid Layer
+name.` and asks again. The current layer is refused (`Cannot merge current layer.`, `Cannot delete current layer.`), and so is
+layer 0 (`Cannot delete layer "0".`). LAYMRG then asks `Select object on target layer or [Name]:` (the layer itself again says
+`Cannot merge a layer with itself. Layer DOOR is already selected.`), both write a warning, `You are about to merge layer "DOOR"
+into layer "WALL".` or `You are about to delete layer "B" from this drawing.` (several: `You are about to merge 2 layers into
+layer "E".`, or `the following layers` with each name on a line), and ask `Do you wish to continue? [Yes/No] <No>:`; with No,
+`Operation aborted.`. With Yes, LAYMRG puts every object of the layers merged on the target (model space, the layouts, every
+block's definition and the attributes of block references), LAYDEL erases every object on them, and both delete the layers
+(`Deleting layer "DOOR".`, `1 layer deleted.`), one undo step. A layer a viewport of a layout freezes is thawed there first. The
+dialogs the plain names open in AutoCAD are not built: LAYMRG and LAYDEL ask on the command line. A drawing with a line on
+WALL, a line and a circle on DOOR and a block holding a line on DOOR has all four on WALL after DOOR is merged into it.
+[`CadLayerEditor.Merge(document, names, target)`](xref:GeometryHelper.Dxf.Viewer.CadLayerEditor.Merge*)
+and
+[`DeleteWithObjects(document, names)`](xref:GeometryHelper.Dxf.Viewer.CadLayerEditor.DeleteWithObjects*)
+do the same without the questions; they refuse layer 0, Defpoints, the current layer and a layer of an xref.
+
+LAYCUR asks `Select objects to be changed to the current layer:` and puts them on the current layer, saying `2 objects changed
+to layer "B" (the current layer).` (for one, as AutoCAD words it, `One object changed to layer B (the current layer).`);
+objects on a locked layer are left, with `1 was on a locked layer.`. COPYTOLAYER (and -COPYTOLAYER) asks `Select objects to
+copy:`, then `Specify the destination layer name or [?/= (select object)] <0>:` with the current layer as Enter: a name, ? for
+the list, or = to take the layer of an object picked. A name the drawing has not asks `The layer 'Cable' does not exist. Do you
+want to create it? [Yes/No]:`. The copies are made on the layer at once (`1 object(s) copied and placed on layer "Steel".`) and
+`Specify base point or [Displacement/eXit] <eXit>:` moves them: two points (the second, or Enter, `use first point as
+displacement`), or Displacement and a vector; eXit leaves them where the originals stand. The copy and the move are one undo
+step. A name with a character a layer name cannot hold says `Invalid characters in layer name.` and asks again.
 
 ### Layers in the viewports of a layout
 
