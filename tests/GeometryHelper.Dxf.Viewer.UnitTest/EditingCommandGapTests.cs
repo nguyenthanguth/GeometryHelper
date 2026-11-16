@@ -28,7 +28,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Blank();
 
             CadCommandSession session = Start(document, "XL");
-            Assert.Equal("Specify a point or [Hor/Ver/Ang/Bisect]:", session.PromptText);
+            Assert.Equal("Specify a point or [Hor/Ver/Ang/Bisect/Offset]:", session.PromptText);
             Run(session, P(0, 0));
             Assert.Equal("Specify through point:", session.PromptText);
             Run(session, P(10, 0), P(0, 10), Enter);

@@ -45,6 +45,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Whether the face is an SHX font.</summary>
         internal bool IsShx => _face.Shx != null;
 
+        /// <summary>The TrueType file the letters are read from; null for an SHX font and where no file is found.</summary>
+        internal DxfTrueTypeFont TrueType => _file;
+
         /// <summary>Whether the ink of the letters is read, from an SHX font or a TrueType file; false where only their widths are known.</summary>
         internal bool IsRead => _face.Shx != null || _file != null;
 

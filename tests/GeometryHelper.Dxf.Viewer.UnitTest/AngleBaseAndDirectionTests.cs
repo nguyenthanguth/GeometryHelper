@@ -139,7 +139,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = North();
 
             CadCommandSession session = Start(document, "XLINE", "A");
-            Assert.Equal("Enter angle of xline (90):", session.PromptText);
+            Assert.Equal("Enter angle of xline (90) or [Reference]:", session.PromptText);
             Run(session, "30", P(0, 0), Enter);
 
             DxfXline line = Assert.Single(All<DxfXline>(document.ModelSpace));
