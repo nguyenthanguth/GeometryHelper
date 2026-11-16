@@ -8,7 +8,8 @@ namespace GeometryHelper.Dxf.Viewer
         // angle of 60 degrees whose first ray stands at 15, 30, ... 345 degrees (the table of ArcCorrections is the one at 0): a row for
         // each direction of the point from the vertex at every 10 degrees, inside the circle and outside it. Chosen for each first ray
         // to leave the fewest of the 3 298 probes of AutoCAD 2021's pictures of it wrong (o1 and o3 of the dims18 harness: "60°" put every
-        // 0.25 off an arc of 30 at 36 directions); between the first rays the rows are read linearly.
+        // 0.25 off an arc of 30 at 36 directions); between the first rays the rows are read linearly. An angle of another size is read
+        // at the first ray of the angle of 60 degrees with its middle: its middle's direction less 30 degrees.
         private static readonly double[,] OrientedCorrections =
         {
             { -0.45, -0.10 }, // 15, 0
@@ -843,49 +844,50 @@ namespace GeometryHelper.Dxf.Viewer
 
         // What the band has over the rule on arcs under 5.1 landings out, by direction as ArcCorrections is, in units of the landing's
         // sagitta times how far the landing is over the radius past 0.1944 (an arc of 5.14 landings): fitted to AutoCAD 2021's pictures of
-        // an angle of 60 degrees from 0 with its arc 8, 10, 12, 14, 16 and 20 out (1.4 to 3.4 landings of 5.83), "60°" put every 0.25.
+        // an angle of 60 degrees from 0 with its arc 8, 10, 12, 14, 16 and 20 out (1.4 to 3.4 landings of 5.83), "60°" put every 0.25, and
+        // across landings: DIMASZ 4, DIMTXT 4 and 1.8 and DIMSCALE 2, Arial 2.5 and 4 high and DIMSCALE 2, arcs 1.5 to 4.5 landings out.
         private static readonly double[,] NearCorrections =
         {
-            { 3.90, 0.10 }, // 0
-            { 3.90, 0.10 }, // 10
-            { 3.90, 0.20 }, // 20
-            { 3.80, 0.40 }, // 30
-            { 3.90, 0.50 }, // 40
-            { 2.90, 0.50 }, // 50
-            { 2.00, 0.10 }, // 60
+            { 4.00, 0.10 }, // 0
+            { 4.00, 0.00 }, // 10
+            { 4.00, 0.20 }, // 20
+            { 3.80, 0.50 }, // 30
+            { 3.50, 0.40 }, // 40
+            { 2.30, 0.50 }, // 50
+            { 1.90, 0.10 }, // 60
             { 1.00, 0.30 }, // 70
-            { 0.60, 0.60 }, // 80
-            { 0.30, 0.50 }, // 90
+            { 0.30, 0.60 }, // 80
+            { -0.40, 0.20 }, // 90
             { 0.00, 0.50 }, // 100
-            { -0.10, 0.50 }, // 110
-            { -0.90, 0.40 }, // 120
-            { -0.80, 0.30 }, // 130
-            { 0.00, 1.20 }, // 140
-            { -0.80, -0.30 }, // 150
-            { -1.60, 0.80 }, // 160
-            { -1.50, 0.00 }, // 170
+            { -0.30, 0.60 }, // 110
+            { -0.50, 0.40 }, // 120
+            { -0.60, -0.20 }, // 130
+            { -0.50, 1.20 }, // 140
+            { -1.10, -0.30 }, // 150
+            { -1.80, 0.80 }, // 160
+            { -0.90, 0.00 }, // 170
             { 0.60, 0.10 }, // 180
-            { 0.00, 0.20 }, // 190
-            { -0.40, 0.10 }, // 200
+            { 0.30, 0.20 }, // 190
+            { -0.10, 0.10 }, // 200
             { -0.90, 0.20 }, // 210
-            { -1.10, 0.30 }, // 220
-            { -0.90, 0.30 }, // 230
-            { -0.60, 0.40 }, // 240
-            { -0.10, 0.50 }, // 250
-            { 0.60, 0.90 }, // 260
-            { 0.70, 0.90 }, // 270
-            { 0.80, 0.90 }, // 280
-            { 1.00, 0.30 }, // 290
+            { -1.10, 0.20 }, // 220
+            { -1.20, 0.30 }, // 230
+            { -0.40, 0.40 }, // 240
+            { -0.20, 0.60 }, // 250
+            { 0.30, 0.90 }, // 260
+            { -0.70, -0.20 }, // 270
+            { 0.70, 0.60 }, // 280
+            { 1.10, 0.30 }, // 290
             { 2.00, 0.10 }, // 300
-            { 3.40, 0.20 }, // 310
-            { 3.60, 0.30 }, // 320
+            { 3.20, 0.20 }, // 310
+            { 3.80, 0.20 }, // 320
             { 3.90, -0.10 }, // 330
             { 4.00, 0.30 }, // 340
-            { 3.90, 0.20 }, // 350
+            { 4.00, 0.20 }, // 350
         };
 
         // The scalars of the narrowing as the point rises to the height of the arc's middle, for arcs under 5.1 landings out: on the left
         // inside, on the right inside, on the left outside, on the right outside (the same units).
-        private static readonly double[] NearNarrowing = { 4.6, 3.0, 1.6, 0.8 };
+        private static readonly double[] NearNarrowing = { 5.0, 2.8, 1.6, 1.0 };
     }
 }

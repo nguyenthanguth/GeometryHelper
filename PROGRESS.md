@@ -557,9 +557,14 @@ the ones wanted.
       10, d1 70 -> 11, p1 326 -> 4); the angular band read per first ray (13 first rays: 741 of 42 874 -> 43), faded as
       1/radius past 16 landings, and fitted on arcs from 1.3 landings (near arcs 1 060 -> 415); 76 of 111 sets unchanged,
       none with more pictures differing but te11 24 -> 26 and e1 1 -> 2
-- [ ] (dims19, running) Dimension follow-ups 18: first-ray tables for angles of other sizes (90, 120, 30 degrees); the near table fitted
-      at a landing of 5.83 only (te11); d1's leader jump at the arc middle's height (11 left); d2 R6/R7 SHX on-landing
-      window; t6's turned diameter and words on an extension line at distance 0 (AutoCAD's rounding) (S)
+- [x] Dimension follow-ups 18 (dims19): the angular band read at the angle's middle less 30 degrees, so other sizes get
+      it (wrong leaders: 30 degrees 188 -> 13, 90 degrees 208 -> 25, 120 722 -> 345, 150 848 -> 373); the near table
+      fitted across landings (e8 48 -> 37, te11 26 -> 22, o6 1 590 -> 1 486); 103 sets byte for byte; aq 78 -> 81 and
+      o2 413 -> 432 the only ones worse
+- [ ] Dimension follow-ups 19: the words' width in the band ("120°", DIMADEC words with a first ray other than 0; 380 of
+      26 384 wrong); the DIMTXT 4 near rings (words, arrowhead and gap as separate terms); d1/aq/taq's jump at the arc
+      middle's height (parked after 4 attempts); a3g changed with no AutoCAD picture; d2 R6/R7 SHX window; t6's turned
+      diameter and words on an extension line at distance 0 (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
       ends in a fuzz join (20 cases to 1E-10) (S)
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in
@@ -576,7 +581,7 @@ the ones wanted.
 - [x] PEDIT/REVCLOUD follow-ups 3 (pedit4): REVCLOUD tiny shapes (2-vertex clouds, "Invalid shape" below 6), the four
       REVCLOUD* variables, Arc length setting MIN/MAX, the first cloud setting APPROXARCLEN, Modify making a new handle;
       -VPORTS ? and Delete with *Multiple, as AutoCAD; variance-1 arcs are random in AutoCAD (no match possible)
-- [ ] PEDIT/REVCLOUD follow-ups 4: PEDIT spline counts PARKED after 3 rounds (52 of 238 differ, ours 1-22 more; also for
+- [ ] (pedit5, running) PEDIT/REVCLOUD follow-ups 4: PEDIT spline counts PARKED after 3 rounds (52 of 238 differ, ours 1-22 more; also for
       control-point splines; AutoCAD's tolerance c/(p+1)^2 with c = 1/max|P''| when the maximum is at an end, 0.06-3.9 %
       above at an inner knot; p=0 F gives 8 vs our 7); REVCLOUDGRIPS without effect yet; a tiny Modify path not probed;
       GUI-only: Freehand spacing, first arc length in layout viewports, REFEDIT's line order and kept handles,

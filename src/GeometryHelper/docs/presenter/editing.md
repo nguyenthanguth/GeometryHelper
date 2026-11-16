@@ -1176,15 +1176,32 @@ its arc 8, 10, 12, 14, 16 and 20 out, "60°" put every 0.25 at 36 directions (17
 rule with the first table alone had 1 238 wrong, the fit of the nearer arcs 1 060 (293, 276, 199 and 146 at 8 to 14 out) and this 415
 (154, 92, 61, 44, 39 and 25). It reaches the arcs of 30 out whose landing is longer too (DIMASZ 4, DIMGAP 1.5, DIMSCALE 2): e8 63 to
 48 of 6 984 differing, aq 93 to 75 and taq 75 to 63 of 6 860.
+That fit saw one landing, and lost on others (te11 24 to 26), so the second table and its scalars are fitted again across landings:
+the rings of 8 to 20 out, rings 1.5 to 4.5 landings out with DIMASZ 4, DIMTXT 4 and 1.8 and DIMSCALE 2 (SHX) and with Arial 2.5 and 4
+high and at DIMSCALE 2 (114 000 probes), and the arcs of 30 and 45 out. Leader presence differing from AutoCAD's pictures, before and
+now: e8 48 to 37 of 6 984 (Arial 50 to 38), e11 18 to 14 (Arial 26 to 22), taq 63 to 61 of 6 860, SHX's other landings 1 590 to
+1 486 and Arial's 1 029 to 951; worse: aq 75 to 78 and the rings of 8 to 20 out 413 to 432 of 17 612. The rings of DIMTXT 4 (words 4
+high, arrowheads 2.5) stay about 7 per cent wrong at 1.5 landings out: no table of this form follows them. The jump of the band at the
+height of an arc's middle keeps 11 of 558 pictures differing (Arial 2): a profile of the narrowing, a power of the rise, a distance
+in landings instead of the share of the middle's height and a landing power each traded against aq and taq, and no rule was found.
 An angle whose first ray stands elsewhere than at 0 degrees has another band: AutoCAD 2021 draws the leader of "60°" round an angle
 from 30 to 90 degrees up to 2.5 sooner or later than round one from 0 on the same directions (inside the circle near the arc's middle
 and mirrored, 1 to 2.5 wider on some directions, 0.5 to 1.75 narrower on others, in blocks that are the same over several first rays and
 change between 15 degrees' steps). OrientedCorrections holds the table of ArcCorrections for the first ray at every 15 degrees from 15 to
 345, fitted to 79 000 probes of "60°" put every 0.25 at 36 directions round angles of 60 degrees at 30 out; the rows are read linearly
-between the first rays, and the first ray of any angle is the one it is read by (angles of other sizes were not probed). The probes
+between the first rays, and the first ray of an angle of 60 degrees is the one it is read by. The probes
 wrong: 709 of 36 278 (first rays at 30 to 330 degrees) are 27 now; 741 of 42 874 (first rays at 15 degrees' steps from 0) are 43; read
 from the first rays of 30 degrees' steps only, the 15 between them had 731 of 39 576 and have 275, so a first ray between two of 15
 is read about that well; and at 60 out (first rays at 30, 120, 210 and 300), 161 of 13 192 and 81.
+An angle of another size is read as the angle of 60 degrees with the same middle, that is by the direction of its middle less 30
+degrees (the first ray itself where it is 60 wide): "30°", "90°", "120°" and "150°" put every 0.25 at 36 directions round angles of
+those sizes from 0, 45, 90, ... 315 degrees, their arc 30 out (26 384 probes of each size), had 188, 208, 722 and 848 probes wrong
+read by the first ray and have 13, 25, 349 and 380 read by the middle (by the second ray 192, 187, 616 and 838; an index moved a
+twentieth of the sweep's excess over 60 degrees from the middle leaves 44 to 59 wrong at 30 and 90 degrees, so the middle is
+the index, not near it). The 1.4 per cent left at 120 and 150 degrees is the words' width, not the angle: "120°" (7.08 wide, 4
+characters) put round an angle of 60 degrees has 371 of 25 481 wrong where "60°" has 27 of 36 278, so the band of words of other
+widths than "60°" with a first ray elsewhere than 0 is still the table of the narrow words. The pictures differing from AutoCAD's of
+the angles of two lines and three points given the other way round and reflex (p2) are 17 of 576 before and 6 now.
 The sum is held to 0.04 less than twice the half width and DIMEXE, which is where AutoCAD's edges lay between probes 0.25 apart.
 A radius or a diameter put inside under 1 keeps its words as DIMATFIT 3 does, whatever DIMATFIT; under 2, words on its line over a
 radius's centre or over the rim, from inside or out (a diameter's from the back of its arrowhead in), put the arrowheads
