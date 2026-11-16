@@ -289,6 +289,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                 // A viewport clipped by an entity follows the entity: its frame is the box of the entity again.
                 followed.AddRange(CadViewportClips.Follow(this, planned, scope.Records));
+
+                // A dimension or multileader broken at objects follows them: the breaks are made again where they cross it now.
+                followed.AddRange(CadBreakFollow.Follow(this, planned, scope.Records));
             }
             catch (Exception exception)
             {

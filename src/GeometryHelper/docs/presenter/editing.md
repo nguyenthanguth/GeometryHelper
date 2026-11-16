@@ -1403,7 +1403,8 @@ drawn 1.5 times the height of the words; Remove takes it out. DIMEDIT Oblique sl
 an aligned dimension to the angle typed, from the x axis, and keeps it as AutoCAD 2021 keeps it, from the dimension line
 (group 52, Oblique): 60 typed for a dimension rotated 30 is kept as 30, for an aligned one from (0, 100) to (100, 150) as
 33.435, and -30 for a level one as 330. DIMBREAK keeps its breaks as AutoCAD 2021 keeps them, a BREAKDATA under
-ACAD_BREAKDATA in the dimension's extension dictionary: Auto one break for each object that crosses the dimension, naming
+ACAD_BREAKDATA in the dimension's extension dictionary: Auto one break for each object whose box meets the dimension's,
+whether it crosses a line of it or not, the newest first, naming
 it (the object naming the BREAKDATA among its reactors), Manual the two points picked and the line they break (0 and 1
 the extension lines, 3 the dimension line); Remove takes it out. Where the style keeps no break size, a break is 0.125
 wide, or 3.75 in a drawing of MEASUREMENT 1, times DIMSCALE (0.25 at a scale of 2, 0.0625 at 0.5), as AutoCAD 2021 breaks it.
@@ -1430,7 +1431,24 @@ the crossing (a line from (0, 0) to (100, -1.25) crossed at x 40 is broken from 
 Manual breaks the leader line and the segment nearest the first point from the foot of the first point to the foot of the
 second, held at the ends of the line where one falls beyond and nothing broken where it falls past a vertex between two
 segments; breaks that meet are one; Remove takes them out. The breaks are kept in the leader line as AutoCAD 2021 keeps
-them (90, 11 and 12 of its LEADER_LINE) and drawn from there. DIMJOGGED (DJO, JOG) draws a jogged radius of an arc or a
+them (90, 11 and 12 of its LEADER_LINE) and drawn from there. The breaks of an Auto follow what they were made at, as AutoCAD
+2021 draws a dimension or a multileader again from its BREAKDATA after an edit: a line at x 30 across a level dimension from (0, 0)
+to (100, 0), its line at y 20, moved 10 to the right breaks the dimension line at x 40 and no longer at 30; moved off it, the
+line is whole and the BREAKDATA still names it; erased, it is taken out of the BREAKDATA, which goes with the last; the
+dimension itself moved, turned or scaled is broken again where the lines named cross it now (moved 10 up, at x 30 on its line
+at y 30; moved 50 to the right, away from the line, whole). An object the BREAKDATA does not name breaks nothing, wherever it
+is drawn or moved to later; Auto names every object whose box meets the dimension's (a line from (10, 0.5) to (20, 15)
+inside the box of the level dimension above crosses nothing, is named all the same, and breaks the dimension line from
+16.489 to 16.614 where it is moved 10 up), AutoCAD taking about a pixel of its view beyond the box where the presenter, with no
+view, takes none. Another dimension breaks one at the lines of its picture. A break by hand goes with the dimension, its points
+carried where it is moved or turned (from (60, 20) to (70, 20), moved 10 to the right, kept from (70, 20) to (80, 20)); a
+multileader keeps the points as picked and takes their feet on its leader line again where it is moved. Auto breaks the arc
+of an angular dimension and of an arc length one as it breaks a line, a gap of the break size along the arc (0.125 on an arc of
+84.85 at 45 degrees leaves arcs from 0.002121 to 0.784662 and from 0.786135 to 1.568675 radians), and the leader of an ordinate
+dimension where a line crosses it. Manual on an ordinate or an arc length dimension is not AutoCAD's yet: it keeps the line
+nearest the middle of the points (AutoCAD's keeps the leader of an ordinate as 0, the arc's rays as 0 and 1, and puts the
+points on the middle of the line or the arc's end). DIMBREAK Multiple takes dimensions and multileaders both, then
+asks `Select object to break dimensions or [Auto/Remove] <Auto>:`. DIMJOGGED (DJO, JOG) draws a jogged radius of an arc or a
 circle, its line from a centre put in place of one off the drawing: along the radius's parallel, across at DIMJOGANG and
 on to the rim, the jog half way between the two lines. A circle of 50 about the origin, its centre drawn at (0, -100),
 its words put at (30, 0) and its jog at (15, -50) has its lines from (0, -100) to (65, -100), on to (-35, 0) and on to the

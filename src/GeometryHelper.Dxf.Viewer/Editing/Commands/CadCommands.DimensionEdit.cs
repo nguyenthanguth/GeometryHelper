@@ -284,46 +284,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (c.Input.Is("Multiple"))
             {
-                yield return CadPrompt.ForSelection("Select dimensions");
-
-                if (c.Input.Kind != CadInputKind.Selection)
+                foreach (CadPrompt prompt in DimBreakMany(c))
                 {
-                    yield break;
-                }
-
-                IReadOnlyList<string> handles = c.Input.Handles;
-                yield return CadPrompt.ForKeyword("Enter an option", new[] { "Break", "Remove" }, "Break");
-
-                if (!c.Input.Is("Break") && !c.Input.Is("Remove"))
-                {
-                    yield break;
-                }
-
-                bool remove = c.Input.Is("Remove");
-                List<DxfDimension> many = Changeable(c, handles, "Dimension break", d => true);
-                CadEditResult result = ChangeDimensions(
-                    c,
-                    many,
-                    "Dimension break",
-                    remove ? "Remove" : "Auto",
-                    d =>
-                    {
-                        if (remove)
-                        {
-                            ForgetBreaks(d);
-                        }
-                        else
-                        {
-                            BreakAtWithin(c, d, null);
-                            RedrawAnnotativeBreaks(d);
-                        }
-                    },
-                    remove
-                );
-
-                if (result != null && result.Succeeded)
-                {
-                    c.Write(Modified(many.Count));
+                    yield return prompt;
                 }
 
                 yield break;
@@ -452,7 +415,12 @@ namespace GeometryHelper.Dxf.Viewer
         {
             using (Measuring(c.Document))
             {
-                KeepObjectBreaks(dimension, BreakAt(dimension, Cutters(c.Document, c.Space, dimension, picked), null));
+                List<DxfEntity> cutters = Cutters(c.Document, c.Space, dimension, picked);
+                List<DxfEntity> crossed = BreakAt(dimension, cutters, null);
+                KeepObjectBreaks(
+                    dimension,
+                    picked == null ? NamedByAuto(PictureBox(dimension), cutters, crossed) : crossed
+                );
             }
         }
 
@@ -1183,10 +1151,30 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
+        /// Whether an object can break a dimension or a multileader, as AutoCAD 2021 breaks them (probed in its console): a line,
+        /// polyline, circle, arc, ellipse, spline, xline, ray, TEXT, MTEXT, block reference or another dimension; a hatch, a
+        /// point and a solid are none, a hatch only by its boundary where that is drawn.
+        /// </summary>
+        private static bool IsCutter(DxfEntity entity) =>
+            entity is DxfLine
+            || entity is DxfPolyline
+            || entity is DxfCircle
+            || entity is DxfArc
+            || entity is DxfEllipse
+            || entity is DxfSpline
+            || entity is DxfXline
+            || entity is DxfRay
+            || entity is DxfDBText
+            || entity is DxfMText
+            || entity is DxfBlockReference
+            || entity is DxfDimension;
+
+        /// <summary>
         /// The objects that break a dimension, sorted by handle: those picked, or every line, polyline, circle, arc, ellipse,
-        /// spline, xline, ray, TEXT, MTEXT and block reference of the space but the dimension itself (AutoCAD 2021 breaks at all of them, probed
-        /// in its console: a TEXT 2.5 high across an extension line breaks it over its box and the break size either side, a
-        /// block at the shapes of it; a hatch is none, only its boundary where that is drawn).
+        /// spline, xline, ray, TEXT, MTEXT, block reference and other dimension of the space but the dimension itself (AutoCAD
+        /// 2021 breaks at all of them, probed in its console: a TEXT 2.5 high across an extension line breaks it over its box
+        /// and the break size either side, a block at the shapes of it, another dimension at the lines of its picture; a
+        /// hatch is none, only its boundary where that is drawn).
         /// </summary>
         private static List<DxfEntity> Cutters(
             CadDocument document,
@@ -1201,24 +1189,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfEntity entity in from)
             {
-                if (
-                    entity != null
-                    && !ReferenceEquals(entity, dimension)
-                    && !entity.IsErased
-                    && (
-                        entity is DxfLine
-                        || entity is DxfPolyline
-                        || entity is DxfCircle
-                        || entity is DxfArc
-                        || entity is DxfEllipse
-                        || entity is DxfSpline
-                        || entity is DxfXline
-                        || entity is DxfRay
-                        || entity is DxfDBText
-                        || entity is DxfMText
-                        || entity is DxfBlockReference
-                    )
-                )
+                if (entity != null && !ReferenceEquals(entity, dimension) && !entity.IsErased && IsCutter(entity))
                 {
                     cutters.Add(entity);
                 }
@@ -1344,6 +1315,61 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
+            // The arc of an angular or an arc length dimension is broken the same way, a gap of the break size along it.
+            foreach (
+                DxfArc arc in picture
+                    .OfType<DxfArc>()
+                    .Where(a =>
+                        !a.IsErased
+                        && a.Radius > 1E-12
+                        && !string.Equals(a.Layer, "Defpoints", StringComparison.OrdinalIgnoreCase)
+                    )
+                    .ToList()
+            )
+            {
+                GeoPoint2 centre = P2(arc.Center) + shift;
+                double sweep = CadGrips.Sweep(arc.StartAngle, arc.EndAngle);
+                double half = size / 2.0 / arc.Radius;
+                var gaps = new List<KeyValuePair<double, double>>();
+
+                foreach (KeyValuePair<DxfEntity, DxfEntity> shape in shapes)
+                {
+                    DxfEntity owner = shape.Key;
+                    DxfEntity cutter = shape.Value;
+                    bool words = cutter is DxfDBText || cutter is DxfMText;
+                    List<double> at = words
+                        ? TextOnArc(centre, arc.Radius, arc.StartAngle, sweep, cutter)
+                        : ArcCrossings(centre, arc.Radius, arc.StartAngle, sweep, cutter);
+
+                    if (at.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    if (!crossed.Contains(owner))
+                    {
+                        crossed.Add(owner);
+                    }
+
+                    if (words)
+                    {
+                        gaps.Add(new KeyValuePair<double, double>(at[0] - half, at[at.Count - 1] + half));
+                    }
+                    else
+                    {
+                        foreach (double t in at)
+                        {
+                            gaps.Add(new KeyValuePair<double, double>(t - half, t + half));
+                        }
+                    }
+                }
+
+                if (gaps.Count > 0)
+                {
+                    CutArc(picture, arc, gaps);
+                }
+            }
+
             crossed.Sort((x, y) => cutters.IndexOf(x).CompareTo(cutters.IndexOf(y)));
             return crossed;
         }
@@ -1425,6 +1451,28 @@ namespace GeometryHelper.Dxf.Viewer
             int depth
         )
         {
+            if (entity is DxfDimension other)
+            {
+                // Another dimension breaks at the lines and arcs of its picture, put where it stands.
+                GeoTransform3 standing = GeoTransform3.Translation(other.DimBlockPosition.ToVector());
+
+                foreach (DxfEntity inner in other.DimBlock ?? Enumerable.Empty<DxfEntity>())
+                {
+                    if (
+                        (inner is DxfLine || inner is DxfArc)
+                        && !inner.IsErased
+                        && !string.Equals(inner.Layer, "Defpoints", StringComparison.OrdinalIgnoreCase)
+                    )
+                    {
+                        DxfEntity copy = inner.Clone();
+                        copy.TransformBy(standing);
+                        shapes.Add(new KeyValuePair<DxfEntity, DxfEntity>(owner, copy));
+                    }
+                }
+
+                return;
+            }
+
             if (!(entity is DxfBlockReference insert))
             {
                 shapes.Add(new KeyValuePair<DxfEntity, DxfEntity>(owner, entity));

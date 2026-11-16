@@ -507,6 +507,52 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
+        public void ALinearDimensionWhoseRecordHasNoGroup50_TurnedThirtyDegrees_MeasuresAlongThirtyDegrees()
+        {
+            // AutoCAD 2021 leaves group 50 out of a DIMLINEAR drawn level. Turned about z the dimension has to be written with it, or
+            // it measures along x again wherever it is drawn anew, here after the turn of a dimension that keeps breaks.
+            var made = new DxfDatabase("AC1027");
+            var picture = new DxfBlockTableRecord { Name = "*D" };
+            made.BlockTable.Add(picture);
+            picture.AppendEntity(new DxfLine(new GeoPoint3(0, 10, 0), new GeoPoint3(100, 10, 0)));
+            made.ModelSpace.AppendEntity(
+                new DxfRotatedDimension(
+                    0.0,
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(100, 0, 0),
+                    new GeoPoint3(100, 10, 0),
+                    string.Empty,
+                    null
+                )
+                {
+                    DimBlock = picture,
+                }
+            );
+            string text = made.ToText().Replace("\r", string.Empty);
+            string without = System.Text.RegularExpressions.Regex.Replace(
+                text,
+                @" 50\n[^\n]*\n(?=100\nAcDbRotatedDimension)",
+                string.Empty
+            );
+            Assert.NotEqual(text, without);
+            DxfDatabase db = DxfDatabase.Parse(without);
+            DxfRotatedDimension level = db.ModelSpace.OfType<DxfRotatedDimension>().Single();
+            Assert.Equal(0.0, level.Rotation);
+
+            level.TransformBy(GeoTransform3.Translation(new GeoVector3(5, 20, 0)));
+            Assert.Equal(0.0, level.Rotation);
+
+            level.TransformBy(GeoTransform3.RotationZ(30.0 * Math.PI / 180.0));
+
+            Assert.Equal(30.0 * Math.PI / 180.0, level.Rotation, 12);
+            Assert.Equal(
+                30.0 * Math.PI / 180.0,
+                DxfDatabase.Parse(db.ToText()).ModelSpace.OfType<DxfRotatedDimension>().Single().Rotation,
+                12
+            );
+        }
+
+        [Fact]
         public void ADimensionInATiltedPlane_TurnedAboutZ_KeepsItsTextWhereTheTurnTakesIt()
         {
             DxfDatabase db = DxfDatabase.Parse(DxfDimensionDrawings.R2018);
