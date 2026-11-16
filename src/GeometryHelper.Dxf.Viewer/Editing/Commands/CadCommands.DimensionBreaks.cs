@@ -62,44 +62,19 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// The box a dimension's picture fills where it stands, its points of definition among it, as AutoCAD 2021's
         /// <c>GeometricExtents</c> of a dimension (a level dimension from (0, 0) to (100, 0), its line at y 20, fills
-        /// (0, 0) to (100, 20.18)); empty for a dimension with no picture.
+        /// (0, 0) to (100, 20.18)), which <see cref="DxfDimension.GeometricExtents"/> gives; empty for a dimension with no
+        /// picture.
         /// </summary>
         private static GeoAabb3 PictureBox(DxfDimension dimension)
         {
-            GeoAabb3 box = GeoAabb3.Empty;
-            DxfBlockTableRecord picture = dimension.DimBlock;
-
-            if (picture == null)
+            try
             {
-                return box;
+                return dimension.GeometricExtents;
             }
-
-            GeoVector3 shift = dimension.DimBlockPosition.ToVector();
-
-            foreach (DxfEntity entity in picture)
+            catch (InvalidOperationException)
             {
-                if (entity.IsErased)
-                {
-                    continue;
-                }
-
-                try
-                {
-                    GeoAabb3 one = entity.GeometricExtents;
-
-                    if (!one.IsEmpty)
-                    {
-                        one = new GeoAabb3(one.Min.Add(shift), one.Max.Add(shift));
-                        box = box.IsEmpty ? one : box.Union(one);
-                    }
-                }
-                catch (Exception ex) when (ex is InvalidOperationException || ex is NotSupportedException)
-                {
-                    // An entity with no extents adds nothing to the box.
-                }
+                return GeoAabb3.Empty;
             }
-
-            return box;
         }
 
         /// <summary>The box of an object that breaks a dimension or a multileader; empty where it has none (an xline or a ray has none that is bounded).</summary>
@@ -304,11 +279,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Carries the breaks a dimension keeps by hand with it where it is moved, turned or scaled: their points go where the
         /// dimension's go, as AutoCAD 2021 keeps them (a break from (60, 20) to (70, 20) of a level dimension moved 10 to the
-        /// right is kept from (70, 20) to (80, 20)). A multileader keeps the points as picked.
+        /// right is kept from (70, 20) to (80, 20)). A multileader keeps the points as picked. A dimension scaled is drawn
+        /// again, as AutoCAD 2021 draws it (its style's offsets and arrowheads are not scaled with it): a level dimension from
+        /// (0, 0) to (100, 0) with a break by hand, scaled by 2, has its extension lines from 0.0625 off its points up to 0.18
+        /// past its line at y 40, where the picture scaled would have them from 0.125 to 0.36 past.
         /// </summary>
-        internal static void CarryManualBreaks(DxfEntity entity, GeoTransform3 transform)
+        internal static void CarryManualBreaks(CadDocument document, DxfEntity entity, GeoTransform3 transform)
         {
-            if (!(entity is DxfDimension))
+            if (!(entity is DxfDimension dimension))
             {
                 return;
             }
@@ -330,6 +308,60 @@ namespace GeometryHelper.Dxf.Viewer
                     )
                     .ToList()
             );
+
+            // The breaks at objects are drawn again by the follow that comes after every edit.
+            GeoPoint3 origin = transform.Transform(new GeoPoint3(0.0, 0.0, 0.0));
+
+            if (
+                !breaks.Exists(b => b.ObjectHandle != null)
+                && Math.Abs(origin.GetVectorTo(transform.Transform(new GeoPoint3(1.0, 0.0, 0.0))).Length - 1.0) > 1E-9
+            )
+            {
+                using (Measuring(document))
+                {
+                    Redraw(dimension);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gives the copy of a dimension, made by <paramref name="transform"/>, breaks of its own, as AutoCAD 2021's COPY does:
+        /// a BREAKDATA naming the same objects as the original's (each of them names it among its reactors in turn), the points
+        /// of a break by hand carried by the move, and the copy drawn again where it keeps a break at an object, so that it is
+        /// broken where those objects cross it now and not where they crossed the original. A level dimension from (0, 0) to
+        /// (100, 0), its line at y 20, broken at a line at x 30, copied 100 to the right, is whole: the line does not cross it,
+        /// though it is named in the copy's BREAKDATA.
+        /// </summary>
+        internal static void CopyBreaks(
+            CadDocument document,
+            DxfEntity original,
+            DxfEntity copy,
+            GeoTransform3 transform
+        )
+        {
+            if (!(copy is DxfDimension))
+            {
+                return;
+            }
+
+            List<DimensionBreak> breaks = StoredBreaks(original);
+
+            if (breaks.Count == 0)
+            {
+                return;
+            }
+
+            StoreBreaks(
+                copy,
+                breaks
+                    .Select(b =>
+                        b.ObjectHandle != null
+                            ? b
+                            : new DimensionBreak(b.Line, transform.Transform(b.First), transform.Transform(b.Second))
+                    )
+                    .ToList()
+            );
+            FollowBreaks(document, copy);
         }
 
         /// <summary>Keeps a break at each object given that crosses the dimension, after those it keeps, an object kept already not again.</summary>

@@ -19,12 +19,16 @@ namespace GeometryHelper.Dxf.Viewer
     /// (0, 0) to (100, 0) with its line at y 20 broken from (30, 21) to (40, 25) has its dimension line out from 30 to 40; broken
     /// from (0, 10) to (100, 10) it has its first extension line cut at y 10 and no more, the second point carried onto it. Where
     /// both fall off the stretch, nothing is cut, whichever sides they are. On an arc both must fall within it, else it stays
-    /// whole. The centre marks of a radius or a diameter are not lines that break.
+    /// whole. The centre marks of a radius or a diameter are not lines that break. The leader of an ordinate is 0 (a leader
+    /// jogged to the side has three legs, 0 the leg from the point, 1 the jog, 2 the last leg), the extension lines of an arc
+    /// length dimension 0 at the first end of the length and 1 at the second, and its arc 3: the X ordinate of (20, 30) with its
+    /// leader to (20, 200), broken from (60, 70) to (60, 90), has its leader cut from 70 to 90, 91 of 0.
     /// </para>
     /// <para>
     /// Where AutoCAD runs in a view, a point picked near a point of the dimension it is attached to (an extension line's origin,
-    /// the dimension line's point) is taken for that point, within some pixels of the screen; the presenter takes the points as
-    /// they are given, its own snaps being the user's to ask for.
+    /// the dimension line's point) is taken for that point, within some pixels of the screen, and one picked near the leader of
+    /// an ordinate or an extension line of an arc length dimension (some 15 units of a window 700 across) is moved to its middle
+    /// or its end; the presenter takes the points as they are given, its own snaps being the user's to ask for.
     /// </para>
     /// </remarks>
     internal static partial class CadCommands
@@ -202,6 +206,12 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfLineAngularDimension2 _:
                     AddAngularLines(dimension, found, arcs, shift, tolerance);
                     break;
+                case DxfOrdinateDimension ordinate:
+                    AddOrdinateLines(P2(ordinate.DefiningPoint), lines, found, shift, tolerance);
+                    break;
+                case DxfArcDimension arcLength:
+                    AddArcLengthLines(arcLength, found, arcs, shift, tolerance);
+                    break;
                 default:
                     return found;
             }
@@ -348,11 +358,18 @@ namespace GeometryHelper.Dxf.Viewer
                 To = double.MinValue,
             };
 
+            TakeArcs(arc, arcs, shift, tolerance);
+            found.Add(arc);
+        }
+
+        /// <summary>Gathers into the arc of a dimension the pieces of the picture that lie on it (the same centre and radius), and where they run from and to.</summary>
+        private static void TakeArcs(BreakableLine arc, List<DxfArc> arcs, GeoVector2 shift, double tolerance)
+        {
             foreach (DxfArc part in arcs)
             {
                 if (
-                    ((P2(part.Center) + shift) - vertex).Length > tolerance
-                    || Math.Abs(part.Radius - radius) > tolerance
+                    ((P2(part.Center) + shift) - arc.Origin).Length > tolerance
+                    || Math.Abs(part.Radius - arc.Radius) > tolerance
                 )
                 {
                     continue;
@@ -363,7 +380,124 @@ namespace GeometryHelper.Dxf.Viewer
                 arc.From = Math.Min(arc.From, start);
                 arc.To = Math.Max(arc.To, start + CadGrips.Sweep(part.StartAngle, part.EndAngle));
             }
+        }
 
+        /// <summary>
+        /// The legs of an ordinate dimension's leader, numbered as AutoCAD numbers them: 0 the first and on, three for a leader
+        /// jogged to the side (the leg from the point, the jog, the last leg), one for a straight one. A leg is the pieces of
+        /// the picture that lie along one line, however many a break left of it; the legs go in the order they stand from the
+        /// point measured, the nearest first.
+        /// </summary>
+        private static void AddOrdinateLines(
+            GeoPoint2 feature,
+            List<DxfLine> lines,
+            List<BreakableLine> found,
+            GeoVector2 shift,
+            double tolerance
+        )
+        {
+            var legs = new List<BreakableLine>();
+            var near = new List<double>();
+
+            foreach (DxfLine line in lines)
+            {
+                GeoPoint2 a = P2(line.StartPoint) + shift;
+                GeoPoint2 b = P2(line.EndPoint) + shift;
+                double length = (b - a).Length;
+
+                if (length <= tolerance)
+                {
+                    continue;
+                }
+
+                int leg = legs.FindIndex(l =>
+                    Math.Abs(Cross(a - l.Origin, l.Way)) <= tolerance
+                    && Math.Abs(Cross(b - l.Origin, l.Way)) <= tolerance
+                );
+                double nearest = Math.Min((a - feature).Length, (b - feature).Length);
+
+                if (leg < 0)
+                {
+                    legs.Add(new BreakableLine { Origin = a, Way = (b - a) / length });
+                    near.Add(nearest);
+                }
+                else
+                {
+                    near[leg] = Math.Min(near[leg], nearest);
+                }
+            }
+
+            int number = 0;
+
+            foreach (int leg in Enumerable.Range(0, legs.Count).OrderBy(i => near[i]).ThenBy(i => i))
+            {
+                legs[leg].Index = number++;
+                found.Add(legs[leg]);
+            }
+        }
+
+        /// <summary>
+        /// The two extension lines and the arc of an arc length dimension, numbered as AutoCAD numbers them: 0 the line at the
+        /// first end of the length, 1 the one at the second, 3 the dimension's arc. The lines run along the middle of the arc
+        /// below 90 degrees of sweep and from the centre from 90 up, as the picture draws them (<see cref="ArcLength"/>).
+        /// </summary>
+        private static void AddArcLengthLines(
+            DxfArcDimension dimension,
+            List<BreakableLine> found,
+            List<DxfArc> arcs,
+            GeoVector2 shift,
+            double tolerance
+        )
+        {
+            if (
+                !ArcLengthSector(
+                    dimension,
+                    out double radius,
+                    out double start,
+                    out double sweep,
+                    out double distance,
+                    out _
+                )
+            )
+            {
+                return;
+            }
+
+            GeoPoint2 center = P2(dimension.CenterPoint);
+            bool radial = sweep >= RadialFrom;
+            GeoVector2 bisector = Heading(start + sweep / 2.0);
+            GeoPoint2[] ends = { P2(dimension.XLine1Point), P2(dimension.XLine2Point) };
+
+            for (int i = 0; i < 2; i++)
+            {
+                GeoVector2 outward = ends[i] - center;
+                found.Add(
+                    new BreakableLine
+                    {
+                        Index = i,
+                        Origin = ends[i],
+                        Way = radial ? outward / outward.Length : bisector,
+                    }
+                );
+            }
+
+            // The dimension's arc, about the centre of the arc measured from 90 degrees up or put out beyond it, else about the
+            // point the middle of the arc is moved in to.
+            GeoPoint2 middle = radial || distance >= radius ? center : center + bisector * (distance - radius);
+            double size = radial || distance >= radius ? distance : radius;
+            GeoPoint2 tip = radial
+                ? center + Heading(start) * size
+                : AlongTo(center + Heading(start) * radius, bisector, middle, size);
+            var arc = new BreakableLine
+            {
+                Index = 3,
+                Origin = middle,
+                Radius = size,
+                Base = Math.Atan2(tip.Y - middle.Y, tip.X - middle.X),
+                From = double.MaxValue,
+                To = double.MinValue,
+            };
+            TakeArcs(arc, arcs, shift, tolerance);
             found.Add(arc);
         }
 
