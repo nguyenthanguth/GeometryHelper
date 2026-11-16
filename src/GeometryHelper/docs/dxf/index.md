@@ -137,7 +137,7 @@ to R2007 and R2004, whose style says nothing of how a property is set, also the 
 give the edges no colour, no jitter and no overhang (every property the parent's but their edge modifiers) come back as they
 were; a style of R2010 going to R2007 is given the flags, a style of R2007 going to R2010 loses them. The 24 visual styles of a
 drawing AutoCAD wrote come out of every version in the others as AutoCAD writes them, group for group and with their round trip
-(8 pairs of versions of drawings of 24 and 25 styles), the extension dictionary of a style going to R2013 taken out. A table or a style written in the session is given the round trip AutoCAD builds of it when it saves, the TABLECONTENT, the
+(8 pairs of versions of drawings of 24 and 25 styles), the extension dictionary of a style going to R2013 taken out. The display name and the flags of a detail or section view style (300 and 90 of its `AcDbModelDocViewStyle`, which R2018 holds in the style) are kept going down to R2013 and before in an extension dictionary of the style, the xrecord `ACAD_XREC_ROUNDTRIP` of `DISPLAYNAME` (1) and `FLAGS` (90), and taken back going up, the dictionary taken out. A table or a style written in the session is given the round trip AutoCAD builds of it when it saves, the TABLECONTENT, the
 TABLEGEOMETRY and the map of cell styles, before it goes down or stays (see [tables](tables.md#saving-tables-made-in-code)); the round trip of a table read
 from a file and not written to is not made going down: AutoCAD reads the table of the older form as the table it holds.
 

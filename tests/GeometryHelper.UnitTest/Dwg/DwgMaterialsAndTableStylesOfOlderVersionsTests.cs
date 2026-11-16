@@ -91,8 +91,10 @@ namespace GeometryHelper.UnitTest.Dwg
                 Assert.DoesNotContain(left.Keys, key => string.Equals(key, kept, StringComparison.Ordinal));
             }
 
-            // What is left is the tables (R2010 and later), the visual styles and the view styles of R2013 and later.
-            Assert.Contains("VISUALSTYLE", left.Keys);
+            // What is left is the tables (R2010 and later); the visual styles and the view styles are written (see
+            // DwgStylesOfOlderVersionsTests).
+            Assert.Contains("ACAD_TABLE", left.Keys);
+            Assert.DoesNotContain("VISUALSTYLE", left.Keys);
         }
 
         [Theory]

@@ -158,6 +158,18 @@ namespace GeometryHelper.Dwg
         /// </summary>
         private void WriteVisualStyle()
         {
+            if (!R2010Plus)
+            {
+                WriteVisualStyleOfR2007();
+                return;
+            }
+
+            if (!R2013Plus)
+            {
+                WriteVisualStyleOfR2010();
+                return;
+            }
+
             DwgGroups style = _record.Of("AcDbVisualStyle");
             var groups = new List<KeyValuePair<int, string>>(style.All);
             DwgRecord roundTrip = RoundTripOfVisualStyle(_record);
@@ -209,6 +221,128 @@ namespace GeometryHelper.Dwg
                         _data.BitShort(DwgRecord.Int(value));
                         break;
                 }
+            }
+        }
+
+        /// <summary>
+        /// A colour of a visual style's property: its index (and in R2004 and later its true colour, the group 358 past the
+        /// index's own, where the style gives one); 257, no colour, is the CMC with the flag byte 0xC8.
+        /// </summary>
+        private void WriteStyleColour(DwgGroups style, int code)
+        {
+            int index = style.Int(code, 7);
+            int rgb = style.Has(code + 358) ? style.Int(code + 358) : -1;
+
+            if (R2004Plus && index == 257 && rgb < 0)
+            {
+                _data.BitShort(0);
+                _data.BitLong(unchecked((int)0xC8000000));
+                _data.RawChar(0);
+                return;
+            }
+
+            WriteColour(index, rgb);
+        }
+
+        /// <summary>
+        /// A VISUALSTYLE of R2000, R2004 and R2007, each property in a place of its own as <c>ReadVisualStyle2007</c> reads
+        /// them (the DXF of those versions gives them in groups of their own): the face's lighting, colour and mono colour, the
+        /// edges and the display; the sign of the opacity and the specular level is as the DXF gives it.
+        /// </summary>
+        private void WriteVisualStyleOfR2007()
+        {
+            DwgGroups style = _record.Of("AcDbVisualStyle");
+            T(style.Text(2));
+            _data.BitLong(style.Int(70));
+            _data.BitLong(style.Int(71));
+            _data.BitLong(style.Int(72));
+            _data.BitLong(style.Int(73));
+            _data.BitDouble(style.Double(40));
+            _data.BitDouble(style.Double(41));
+            WriteStyleColour(style, 63);
+            _data.BitLong(style.Int(90));
+            _data.BitLong(style.Int(74));
+            _data.BitLong(style.Int(91));
+            WriteStyleColour(style, 64);
+            WriteStyleColour(style, 65);
+            _data.BitLong(style.Int(75));
+            _data.BitDouble(style.Double(42));
+            _data.BitLong(style.Int(92));
+            WriteStyleColour(style, 66);
+            _data.BitDouble(style.Double(43));
+            _data.BitLong(style.Int(76));
+            _data.BitLong(style.Int(77));
+            _data.BitLong(style.Int(78));
+            WriteStyleColour(style, 67);
+            _data.BitLong(style.Int(79));
+            _data.RawChar(style.Int(170));
+            _data.BitLong(style.Int(171));
+            _data.Bit(style.Int(290) != 0);
+            _data.BitLong(style.Int(174));
+            _data.BitLong(style.Int(175));
+            _data.BitLong(style.Int(93));
+            _data.BitLong((int)style.Double(44));
+            _data.BitLong(style.Int(173));
+
+            if (R2007Plus)
+            {
+                _data.BitDouble(style.Double(45));
+            }
+
+            _data.Bit(style.Int(291) != 0);
+        }
+
+        /// <summary>
+        /// A VISUALSTYLE of R2010: its type, version and whether it is for AutoCAD's own use, then its 28 properties, each a
+        /// value and how it is applied (176), in the order and kinds of <see cref="DwgObjectReader.VisualStyleKinds"/>.
+        /// </summary>
+        private void WriteVisualStyleOfR2010()
+        {
+            DwgGroups style = _record.Of("AcDbVisualStyle");
+            T(style.Text(2));
+            _data.BitLong(style.Int(70));
+            _data.BitShort(style.Int(177, 2));
+            _data.Bit(style.Int(291) != 0);
+            var groups = new List<KeyValuePair<int, string>>(style.All);
+            int[] codes = DwgObjectReader.VisualStyleCodes2010;
+
+            for (int i = 0; i < codes.Length; i++)
+            {
+                int code = codes[i];
+
+                switch (DwgObjectReader.VisualStyleKinds[i])
+                {
+                    case '9':
+                        _data.BitLong(style.Int(code));
+                        break;
+                    case '4':
+                        _data.BitDouble(style.Double(code));
+                        break;
+                    case '6':
+                        WriteStyleColour(style, code);
+                        break;
+                    default:
+                        _data.Bit(style.Int(code) != 0);
+                        break;
+                }
+
+                // The 176 after the property: the nth of the style's own, in the order of the properties.
+                int at = groups.FindIndex(g => g.Key == code);
+                int next = at + 1;
+
+                if (
+                    at >= 0
+                    && DwgObjectReader.VisualStyleKinds[i] == '6'
+                    && next < groups.Count
+                    && groups[next].Key == code + 358
+                )
+                {
+                    next++;
+                }
+
+                _data.BitShort(
+                    at >= 0 && next < groups.Count && groups[next].Key == 176 ? DwgRecord.Int(groups[next].Value) : 1
+                );
             }
         }
 
