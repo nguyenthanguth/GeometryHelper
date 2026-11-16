@@ -760,11 +760,11 @@ Wave 1 (High):
 - [x] (text1) SCALETEXT, JUSTIFYTEXT, TXT2MTXT (S/S/M)
 - [x] (text1) ATTDISP; -ATTEDIT global edit (S)
 - [x] (layer1) LAYMRG, LAYDEL, LAYCUR, COPYTOLAYER (S each)
-- [ ] Layer manager: Plot, Transparency, Description, Plot Style columns; property and group filters (M)
+- [ ] (layermgr1, running) Layer manager: Plot, Transparency, Description, Plot Style columns; property and group filters (M)
 - [x] (layer1) -DIMSTYLE (Save, Restore, STatus, Variables, Apply, ?) and DIMUPDATE (S)
-- [ ] Plot style tables from .ctb/.stb files and the Plot Style Table Editor (M-L)
-- [ ] PUBLISH: batch plot of several drawings and layouts to one PDF or a printer (M)
-- [ ] (files1, running) Drawing templates: NEW from a chosen .dwt/.dxf, QNEW, Save As .dwt (M)
+- [ ] (plotstyle1, running) Plot style tables from .ctb/.stb files and the Plot Style Table Editor (M-L)
+- [ ] (publish1, running) PUBLISH: batch plot of several drawings and layouts to one PDF or a printer (M)
+- [x] Drawing templates: NEW with Select Template, QNEW, SAVEAS .dwt, Template settings (files1). Follow-up: Save As dialog to switch to the template folder when .dwt is picked.
 - [x] (modify1: Table, BATTMAN, BEDIT, QuickCalc, Select Similar, Add Selected, annotation scale items, Save As Other Formats; the rest have no command yet) Wire up greyed buttons and menu items whose commands exist (BEDIT, BATTMAN, TABLE, QuickCalc, Quick Properties,
       annotation scale items) (S)
 - [x] F2 text window (TEXTSCR), the command history (modify1; dialogs to add to the Design artifact)

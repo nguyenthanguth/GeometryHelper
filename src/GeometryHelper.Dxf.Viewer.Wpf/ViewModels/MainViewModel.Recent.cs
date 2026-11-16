@@ -355,8 +355,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         Entry(
                             "Drawing Template",
                             IconSaveAs,
-                            "Save as a template for new drawings (not built yet)",
-                            null
+                            "Save as a template for new drawings, a DWG with the extension .dwt (SAVEAS Template)",
+                            () => _model.SaveAsTemplate(),
+                            open
                         ),
                         Entry(
                             "Other Formats",
@@ -660,7 +661,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             var items = new List<AppMenuItemViewModel>
             {
-                Entry("Drawing", IconNew, "A new empty drawing of the metric template (NEW)", () => model.NewDrawing()),
+                Entry(
+                    "Drawing",
+                    IconNew,
+                    "A new drawing from a template chosen in Select Template, or with none (NEW)",
+                    () => model.NewDrawingChoosingTemplate()
+                ),
             };
 
             CadNewDocumentOffer offer = model.NewDocumentOffer;

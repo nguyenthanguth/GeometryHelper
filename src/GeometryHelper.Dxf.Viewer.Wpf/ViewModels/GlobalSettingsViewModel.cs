@@ -820,7 +820,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["MLSTYLE"] = "Make and set multiline styles",
             ["MSPACE"] = "Work in model space through a viewport",
             ["MTEDIT"] = "Edit paragraph text",
-            ["NEW"] = "Start a new drawing",
+            ["NEW"] = "Start a new drawing from a template",
+            ["QNEW"] = "Start a new drawing from the default template",
             ["OFFSET"] = "Copy an object at a distance",
             ["OOPS"] = "Bring back the last erased objects",
             ["OVERKILL"] = "Delete duplicate and overlapping objects",
@@ -973,7 +974,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 ),
                 new GlobalSettingCategory(
                     "Save and export",
-                    "Where drawings are saved, how often a drawing with changes is saved aside and how many backups are kept."
+                    "Where drawings are saved, how often a drawing with changes is saved aside and how many backups are kept; and the templates: the folder NEW's Select Template starts in, and the template QNEW starts a new drawing from (empty, the built-in metric template), as AutoCAD's Template Settings of its Files tab."
                 ),
             };
             CategoryCommand = new DelegateCommand(p =>
@@ -1527,6 +1528,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         Text("Save folder", () => s.SaveFolder, v => s.SaveFolder = v),
                         Number("Autosave every", "min", () => s.AutosaveMinutes, v => s.AutosaveMinutes = Whole(v)),
                         Number("Backups kept", null, () => s.BackupsKept, v => s.BackupsKept = Whole(v)),
+                    }
+                ),
+                new GlobalSettingSection(
+                    "Template settings",
+                    new[]
+                    {
+                        Text("Template folder (TEMPLATEPATH)", () => s.TemplateFolder, v => s.TemplateFolder = v),
+                        Info("Where it is left empty", null, () => GlobalSettings.DefaultTemplateFolder),
+                        Text("Default template for QNEW", () => s.QnewTemplate, v => s.QnewTemplate = v),
                     }
                 ),
             };

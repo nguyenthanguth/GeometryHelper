@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using GeometryHelper.Dxf;
 
@@ -68,6 +69,153 @@ namespace GeometryHelper.Dxf.Viewer
             Pin(database, "$DIMTXSTY", 7, "Standard");
             Pin(database, "$DIMSTYLE", 2, DimensionStyle);
             return database;
+        }
+
+        /// <summary>
+        /// Makes a new drawing of the presenter's own imperial template, as AutoCAD's "Open with no Template - Imperial" starts
+        /// one (the settings of acad.dwt, not its file): R2013 in inches, MEASUREMENT 0, its limits a sheet of 12 by 9, its text
+        /// 0.2 high, and its dimensions drawn in Standard, arrowheads and text 0.18, four decimal places and a decimal point.
+        /// The layer 0, the linetypes, the text styles Standard and Annotative are those of <see cref="CreateMetric"/>.
+        /// </summary>
+        /// <returns>The drawing.</returns>
+        public static DxfDatabase CreateImperial()
+        {
+            var database = new DxfDatabase("AC1027");
+            Pin(database, "$MEASUREMENT", 70, "0");
+            Pin(database, "$INSUNITS", 70, "1");
+            Pin(database, "$LUNITS", 70, "2");
+            Pin(database, "$LUPREC", 70, "4");
+            Pin(database, "$AUNITS", 70, "0");
+            Pin(database, "$AUPREC", 70, "0");
+            Pin(database, "$LTSCALE", 40, 1.0);
+            Pin(database, "$PDMODE", 70, "0");
+            Pin(database, "$PDSIZE", 40, 0.0);
+            Pin(database, "$TEXTSIZE", 40, 0.2);
+            database.SetHeader("$LIMMIN", new DxfTypedValue(10, "0.0"), new DxfTypedValue(20, "0.0"));
+            database.SetHeader("$LIMMAX", new DxfTypedValue(10, "12.0"), new DxfTypedValue(20, "9.0"));
+            Pin(database, "$TEXTSTYLE", 7, "Standard");
+            Pin(database, "$CELTYPE", 6, "ByLayer");
+            Pin(database, "$CLAYER", 8, "0");
+
+            database.TextStyleTable["Standard"].FileName = "arial.ttf";
+
+            var annotative = new DxfTextStyleTableRecord { Name = "Annotative", FileName = "arial.ttf" };
+            database.TextStyleTable.Add(annotative);
+            annotative.Annotative = DxfAnnotativeStates.True;
+
+            // The library's new drawing has ISO-25 current; AutoCAD's own Standard, current here, is written into the header.
+            Pin(database, "$DIMTXSTY", 7, "Standard");
+            database.SetDimstyleData(database.DimStyleTable["Standard"]);
+            database.Dimstyle = "Standard";
+            return database;
+        }
+
+        /// <summary>The file types a template is chosen among, as the Select Template dialog lists them.</summary>
+        public static readonly IReadOnlyList<string> Extensions = new[] { ".dwt", ".dwg", ".dxf" };
+
+        /// <summary>
+        /// Lists the templates of a folder: the .dwt, .dwg and .dxf files in it, not those of its subfolders, by name (letters
+        /// of either case the same, then as written) and then by extension; empty where the folder is not there.
+        /// </summary>
+        /// <param name="folder">The folder.</param>
+        /// <returns>The full paths of the files.</returns>
+        public static IReadOnlyList<string> FindIn(string folder)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
+                {
+                    return Array.Empty<string>();
+                }
+
+                return Directory
+                    .EnumerateFiles(folder)
+                    .Where(f => Extensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase))
+                    .OrderBy(f => Path.GetFileNameWithoutExtension(f), StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(f => Path.GetFileNameWithoutExtension(f), StringComparer.Ordinal)
+                    .ThenBy(f => Path.GetExtension(f).ToLowerInvariant(), StringComparer.Ordinal)
+                    .ToList();
+            }
+            catch (Exception exception)
+                when (exception is IOException
+                    || exception is UnauthorizedAccessException
+                    || exception is ArgumentException
+                    || exception is NotSupportedException
+                )
+            {
+                return Array.Empty<string>();
+            }
+        }
+
+        /// <summary>
+        /// Reads the description of a template, the text AutoCAD's Template Options writes into a DWG's template section. A
+        /// file that is no DWG (a DXF), one with no description, and one that cannot be read have none.
+        /// </summary>
+        /// <param name="file">The path of the template.</param>
+        /// <returns>The description; empty where there is none.</returns>
+        public static string DescriptionOf(string file)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(file) || !File.Exists(file) || !CadDrawingFile.IsDwg(file))
+                {
+                    return string.Empty;
+                }
+
+                return GeometryHelper.Dwg.DwgContainer.Read(File.ReadAllBytes(file)).TemplateDescription;
+            }
+            catch (Exception exception) when (!(exception is OutOfMemoryException))
+            {
+                // A description shown beside a file in a list: a file that does not read has none, and the list goes on.
+                GeometryHelperLog.Debug("CadTemplate: no description read from " + file + ": " + exception.Message);
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Finds the file of a template named as typed: as typed, else in the template folder; a name with no extension is given
+        /// .dwt, as AutoCAD does.
+        /// </summary>
+        /// <param name="typed">The name or path.</param>
+        /// <param name="folder">The template folder.</param>
+        /// <returns>The full path of the file; null where there is none.</returns>
+        public static string Find(string typed, string folder)
+        {
+            string name = (typed ?? string.Empty).Trim().Trim('"');
+
+            if (name.Length == 0)
+            {
+                return null;
+            }
+
+            if (!Path.HasExtension(name))
+            {
+                name += ".dwt";
+            }
+
+            try
+            {
+                if (File.Exists(name))
+                {
+                    return Path.GetFullPath(name);
+                }
+
+                if (!Path.IsPathRooted(name) && !string.IsNullOrWhiteSpace(folder))
+                {
+                    string inFolder = Path.Combine(folder, name);
+                    return File.Exists(inFolder) ? Path.GetFullPath(inFolder) : null;
+                }
+            }
+            catch (Exception exception)
+                when (exception is ArgumentException
+                    || exception is NotSupportedException
+                    || exception is PathTooLongException
+                )
+            {
+                return null;
+            }
+
+            return null;
         }
 
         /// <summary>

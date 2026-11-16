@@ -298,37 +298,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// Makes a new empty drawing and shows it, as AutoCAD's NEW: a drawing of R2013 of the presenter's metric template
-        /// (<see cref="CadTemplate"/>, the settings of acadiso.dwt: millimetres, ISO-25) with the layer 0, the layers of Global
-        /// settings (<see cref="CadTemplate.AddLayers"/>, the current layer staying 0) and Layout1, named Drawing1.dwg, then Drawing2.dwg, as AutoCAD's DWGNAME of a new drawing, so that Save As offers a DWG first; listed
-        /// under Open drawings until it is saved to a file of its own.
+        /// Makes a new drawing and shows it, as AutoCAD's QNEW: of the default template of Global settings (Default Template
+        /// File Name for QNEW) where one is set and found (<see cref="NewDrawingFrom"/>), else of the presenter's metric
+        /// template (<see cref="CadTemplate"/>, the settings of acadiso.dwt: millimetres, ISO-25) with the layer 0, the layers of
+        /// Global settings (<see cref="CadTemplate.AddLayers"/>, the current layer staying 0) and Layout1
+        /// (<see cref="NewDrawingWithNoTemplate"/>), named Drawing1.dwg, then Drawing2.dwg, as AutoCAD's DWGNAME of a new
+        /// drawing, so that Save As offers a DWG first; listed under Open drawings until it is saved to a file of its own.
         /// </summary>
         /// <returns>The document.</returns>
         public CadDocument NewDrawing()
         {
-            string name;
-
-            do
-            {
-                _newDrawings++;
-                name = "Drawing" + _newDrawings.ToString(CultureInfo.InvariantCulture) + ".dwg";
-            } while (
-                _files.ContainsKey(name)
-                || _files.Values.Any(f =>
-                    f.Document != null && string.Equals(f.Document.Title, name, StringComparison.OrdinalIgnoreCase)
-                )
-            );
-
-            // The template's GRIDMODE is the window's, so that a new drawing shows the grid as Global settings say.
-            DxfDatabase database = CadTemplate.CreateMetric();
-            database.ViewportTable["*Active"].GridEnabled = _settings.Grid;
-
-            // The layers of Global settings (Layers, colours and lines), with their colours, linetypes, lineweights and plot flags;
-            // the current layer stays 0.
-            CadTemplate.AddLayers(database, _settings.Layers);
-            CadDocument document = CadDocument.From(database, name);
-            OpenDocument(document, name);
-            return document;
+            string template = FindQnewTemplate();
+            return (template == null ? null : NewDrawingFrom(template)) ?? NewDrawingWithNoTemplate(true);
         }
 
         /// <summary>Runs a line of the command line from a button, as "ZOOM 2X": the command named started, ending any running, then each word after it given to its prompts.</summary>
@@ -405,13 +386,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// The commands of the window this file adds: NEW, PROPERTIESCLOSE, RIBBON, RIBBONCLOSE, INPUTSEARCHOPTIONS and -INPUTSEARCHOPTIONS
+        /// The commands of the window this file adds: NEW and QNEW (see <c>MainViewModel.Templates.cs</c>), PROPERTIESCLOSE, RIBBON, RIBBONCLOSE, INPUTSEARCHOPTIONS and -INPUTSEARCHOPTIONS
         /// (the command line's Input Search Options), the six toggles of the status bar, DYN the last, and DSETTINGS with
         /// AutoCAD's aliases DS and OS.
         /// </summary>
         private void AddWindowCommands(CadCommandRegistry registry)
         {
             registry.Add(new CadCommand("NEW", NewBody));
+            registry.Add(new CadCommand("QNEW", QnewBody));
             registry.Add(new CadCommand("PROPERTIESCLOSE", PropertiesCloseBody));
             registry.Add(new CadCommand("RIBBON", RibbonBody));
             registry.Add(new CadCommand("RIBBONCLOSE", RibbonCloseBody));
@@ -459,13 +441,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             RaiseSpace();
             RebuildRows();
-        }
-
-        /// <summary>NEW: a new empty drawing, shown once the command has ended.</summary>
-        private IEnumerable<CadPrompt> NewBody(CadCommandContext c)
-        {
-            _afterCommand = () => NewDrawing();
-            return Array.Empty<CadPrompt>();
         }
 
         /// <summary>PROPERTIESCLOSE: Properties hidden.</summary>

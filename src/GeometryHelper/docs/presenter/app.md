@@ -42,7 +42,7 @@ width factor of drawing text. A file that holds them keeps them, and OK writes t
 | Text and fonts | the UI font, chosen from the font families installed on Windows (each shown in its own face) or typed; what Esc in the MTEXT editor with changes does (Hidden messages); the replacement font of a font not found (FONTALT), the font mapping file (FONTMAP) and the fonts drawn in others | UI font Inter, Esc asks, `ghsimplex`, no mapping file, no substitutions |
 | Folder preference | the font search folders and the support file search folders (linetypes and hatch patterns), each in order | none |
 | Shortcuts | the aliases and the keys | AutoCAD's (see [Editing](editing.md#aliases-and-keys)) |
-| Save and export | the save folder, autosave, backups | empty, which is the user's Documents (a new model drawing goes into its folder `GeometryHelper Drawing`), 10 minutes, 3 backups |
+| Save and export | the save folder, autosave, backups; Template settings: the template folder and the default template for QNEW (see [Drawing templates](#drawing-templates)) | empty, which is the user's Documents (a new model drawing goes into its folder `GeometryHelper Drawing`), 10 minutes, 3 backups; template folder empty, which is `%AppData%\GeometryHelper\Drawing\Template`, no default template for QNEW, which is the built-in metric one |
 | Drawing text (file only) | the font a style's missing font is drawn in where the replacement is not found either, the heights and the width factor of drawing text: TEXT and MTEXT start from the text height and write the width factor, and DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER and DIMANGULAR write their text at the text height | drawing font Arial, text 2.5, titles 5, width factor 0.8 |
 
 On the Shortcuts page a Keys cell takes the keys pressed in it, as the shortcut key box of AutoCAD's Customize User
@@ -190,8 +190,9 @@ The presenter opens a DWG of AutoCAD 2000 to 2018 as it opens a DXF, read by the
   as well, its own. With FILEDIA 0 SAVEAS asks on the command line what the dialog would, in AutoCAD 2021's words: "Current file
   format: AutoCAD 2018 Drawing" and "Enter file format [R14(LT98&LT97)/2000(LT2000)/2004(LT2004)/2007(LT2007)/2010(LT2010)/2013(LT2013)/2018(LT2018)/Dxf/Template/Standards]
   &lt;2018&gt;:", Dxf as the default for a drawing that is a DXF. 2018, 2013, 2010, 2007, 2004 and 2000 (or their LT names, or the listed form) are the DWG of that version; R14
-  and Template and Standards are refused with a line ("AutoCAD R14(LT98/LT97) Drawing (*.dwg) is not written: a DWG is saved as
-  AutoCAD 2018, 2013, 2010, 2007, 2004 or 2000 (2018, 2013, 2010, 2007, 2004, 2000).") and the command ends. Dxf asks its settings, "Current DXF settings: Precision= 16 Format= ASCII
+  and Standards are refused with a line ("AutoCAD R14(LT98/LT97) Drawing (*.dwg) is not written: a DWG is saved as
+  AutoCAD 2018, 2013, 2010, 2007, 2004 or 2000 (2018, 2013, 2010, 2007, 2004, 2000).") and the command ends; Template saves a
+  drawing template (see [Drawing templates](#drawing-templates)). Dxf asks its settings, "Current DXF settings: Precision= 16 Format= ASCII
   Preview= No Version= 2018" and "Enter decimal places of accuracy (0 to 16) or [Version] &lt;16&gt;:", where Version asks "Enter version
   [R12(LT2)/2000(LT2000)/2004(LT2004)/2007(LT2007)/2010(LT2010)/2013(LT2013)/2018(LT2018)] &lt;2018&gt;:" (R14 refused, "R14 is not written: a
   DXF is saved as R12 or R2000 and later."); the places of accuracy are not set (coordinates are written in full, said for a
@@ -211,18 +212,56 @@ The presenter opens a DWG of AutoCAD 2000 to 2018 as it opens a DXF, read by the
   palette's Other drawing, as a DXF is; WBLOCK writes a DWG where the file named ends in .dwg.
 - Autosave keeps its copies of a DWG as DXF files beside it, the DWG's extension kept in their name:
   `plan.dwg.autosave1.dxf` for `plan.dwg`, where `plan.dxf` beside it has `plan.autosave1.dxf`.
-- A new drawing (NEW, Ctrl+N) is named Drawing1.dwg, then Drawing2.dwg, as AutoCAD names its own, so that Save As and
-  QSAVE offer it as a DWG first. It has the layer 0 and the layers of Global settings > Layers, colours and lines, each
+- A new drawing (NEW, QNEW, Ctrl+N) is named Drawing1.dwg, then Drawing2.dwg, as AutoCAD names its own, so that Save As and
+  QSAVE offer it as a DWG first. Of the presenter's own template (Open with no Template - Metric, what QNEW starts where no
+  default template is set) it has the layer 0 and the layers of Global settings > Layers, colours and lines, each
   with its colour (a true colour), linetype, lineweight and plot flag: Hidden is #9AA4B1 in HIDDEN at 0.18 mm, Centre
   #F85149 in CENTER at 0.18 mm, Viewport is not plotted, and the linetypes HIDDEN and CENTER come with them from the
   presenter's own set. A linetype that set does not hold is not made up: the layer is Continuous. The current layer stays 0,
-  and a drawing opened from a file is left as it is.
+  and a drawing opened from a file is left as it is. A new drawing of a template file has what the template has instead
+  (see [Drawing templates](#drawing-templates)).
+
+### Drawing templates
+
+A template is a drawing whose layers, styles, blocks, layouts with their page setups and variables every new drawing takes.
+AutoCAD's `.dwt` is a DWG with that extension; a `.dwg` or a `.dxf` is as good a template.
+
+- **NEW** shows Select Template (FILEDIA 1): the templates of the template folder listed, each a `.dwt`, `.dwg` or `.dxf` by
+  name with what it is, the first selected and its description (the text its Template Options kept) under the list, Open to
+  start from the one selected (a double click too), Browse… for a file in another folder (Drawing Template, Drawing and DXF
+  types), and Open with no Template - Metric or Imperial. The new drawing is untitled, Drawing1.dwg and on, takes the
+  template as it is (the layers of Global settings are not added to it) and is listed under Open drawings until it is
+  saved. The metric one has millimetres, ISO-25 and limits of 420 by 297; the imperial one inches, the dimension style
+  Standard (arrowheads and text 0.18, four places) and limits of 12 by 9. A template that cannot be read is said on the
+  command line and starts nothing; Cancel starts nothing. The application menu's New › Drawing shows the same dialog; with
+  no drawing open NEW needs none. With no dialog to show, NEW starts the drawing QNEW does.
+- With FILEDIA 0 NEW asks "Enter template file name or [. (for none)] <acadiso.dwt>:" (the default template of Global
+  settings where one is set): the file as typed, else in the template folder, `.dwt` given to a name with no extension,
+  Enter taking the default, `acadiso` and `acad` standing for the built-in metric and imperial templates where no file of
+  the name is found, and a period asking "Enter measurement [English/Metric] <Metric>:" for a drawing of no template. A file
+  not found is said, `"office.dwt": Can't find file.`
+- **QNEW** (and the New button of the quick access bar, Ctrl+N and the start screen's Blank drawing) starts the drawing
+  from the default template of Global settings (Save and export > Template settings > Default template for QNEW) without
+  asking, the built-in metric template where none is set; one set but not found is said, "The default template office.dwt
+  for QNEW is not found; the built-in template is used.", and the built-in one used.
+- **SAVEAS to a template**: Save Drawing As lists AutoCAD Drawing Template (*.dwt) after the DWG types, and the
+  application menu's Save As › Drawing Template opens it with that type chosen, in the template folder (made where it is
+  missing) and the drawing's name given `.dwt`. A name ending in `.dwt` saved with the DWG type is a template too. Template
+  Options asks the description and the measurement (English or Metric, the drawing's own offered; New Layer Notification
+  is shown greyed, the presenter keeps no reconciled layers); OK writes a DWG of AutoCAD 2018 with the description in its
+  template section and MEASUREMENT as chosen, and the drawing is then known by that file, as AutoCAD's is (Save writes it
+  again, the description kept; `CadDocument.SaveAsTemplate`, `CadDocument.TemplateDescription`, `CadTemplate.DescriptionOf`).
+  With FILEDIA 0, SAVEAS Template asks "Save drawing as <Drawing1.dwt>:" ("other.dwg" becomes "other.dwt"), "Enter template
+  description:" (Enter for none) and "Enter measurement [English/Metric] <Metric>:".
+- The template folder is the one of Global settings (Save and export > Template settings > Template folder, TEMPLATEPATH),
+  `%AppData%\GeometryHelper\Drawing\Template` where it is empty; nothing is put in it, and the built-in templates need none.
 
 With FILEDIA 0 a command asks on the command line for the file it would show a file dialog for, as AutoCAD 2021 asks:
 
 | Command | Asks | Then |
 |---|---|---|
-| QSAVE of a drawing with no file, SAVEAS | Enter file format [...] &lt;2018&gt;:, for Dxf its settings, then Save drawing as &lt;Drawing1.dwg&gt;: | saves there; a name with no extension takes the format's: .dwg for 2018, .dxf for Dxf |
+| QSAVE of a drawing with no file, SAVEAS | Enter file format [...] &lt;2018&gt;:, for Dxf its settings, then Save drawing as &lt;Drawing1.dwg&gt;: | saves there; a name with no extension takes the format's: .dwg for 2018, .dxf for Dxf; Template asks the file, a description and the measurement, and saves a .dwt |
+| NEW | Enter template file name or [. (for none)] &lt;acadiso.dwt&gt;: | starts the drawing from that template, or of none (a period) |
 | DXFOUT | Enter DXF file name &lt;Drawing1&gt;:, then the DXF settings | writes the copy, the drawing keeps its file |
 | XATTACH | Enter name of file to attach: | the Attach External Reference dialog shown with the file; a file not found said, no dialog |
 | IMAGEATTACH | Enter image file name to attach: | the Attach Image dialog shown with the picture |
@@ -427,9 +466,9 @@ shows its list at the right; a click on the item runs the first entry of its lis
 
 | Item | Entries |
 |---|---|
-| New | Drawing (NEW); the entry of the new document an extension offers, where one does |
+| New | Drawing (NEW, Select Template); the entry of the new document an extension offers, where one does |
 | Open | Drawing (the Open dialog, Ctrl+O) |
-| Save As | Drawing (SAVEAS), Other Formats (EXPORT, as Export's); Drawing Template greyed |
+| Save As | Drawing (SAVEAS), Drawing Template (SAVEAS with the template type chosen), Other Formats (EXPORT, as Export's) |
 | Import | Other Formats (IMPORT): AutoCAD 2021's PDF and DGN have no command here and are left out |
 | Export | DWF and DWFx (EXPORTDWF, EXPORTDWFX, which say there is no writer), PDF (EXPORTPDF), PNG, JPG and BMP (PNGOUT, JPGOUT, BMPOUT), Block or objects to a DXF (WBLOCK), Other Formats (EXPORT); AutoCAD 2021's 3D DWF, DGN and FBX have no command here and are left out |
 | Print | Plot (PLOT), Plot Preview (PREVIEW), Page Setup (PAGESETUP); Batch Plot and Manage Plot Styles greyed |

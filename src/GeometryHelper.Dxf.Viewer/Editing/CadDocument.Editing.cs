@@ -951,7 +951,14 @@ namespace GeometryHelper.Dxf.Viewer
 
             try
             {
-                LeftOutOfDwg = CadDrawingFile.Save(Database, full, version, said, progress);
+                LeftOutOfDwg = CadDrawingFile.Save(
+                    Database,
+                    full,
+                    version,
+                    said,
+                    progress,
+                    CadDrawingFile.IsTemplateName(full) ? TemplateDescription : null
+                );
             }
             finally
             {
@@ -979,6 +986,54 @@ namespace GeometryHelper.Dxf.Viewer
                 )
             );
         }
+
+        /// <summary>
+        /// Saves the drawing as a drawing template, as AutoCAD 2021's Save Drawing As does with the type AutoCAD Drawing Template
+        /// (*.dwt) and its Template Options: a DWG of AutoCAD 2018 with the extension .dwt (given where the name ends otherwise),
+        /// the description kept in the file's template section and MEASUREMENT set as chosen. The drawing is then known by the
+        /// template's file, as AutoCAD's is, and <see cref="Save"/> writes it again with the same description.
+        /// </summary>
+        /// <param name="path">The path of the file.</param>
+        /// <param name="description">The description of the template; null or empty for none.</param>
+        /// <param name="metric">Whether the template is metric (MEASUREMENT 1) or English (MEASUREMENT 0).</param>
+        /// <param name="progress">What is told how far it has got, on this thread; null for nothing.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when a group of edits is open.</exception>
+        public void SaveAsTemplate(string path, string description, bool metric, IProgress<double> progress)
+        {
+            if (path == null)
+            {
+                throw new ArgumentNullException(nameof(path));
+            }
+
+            if (_groupDepth > 0)
+            {
+                throw new InvalidOperationException("A command is running: end it before saving.");
+            }
+
+            string file = CadDrawingFile.IsTemplateName(path) ? path : Path.ChangeExtension(path, ".dwt");
+            string was = TemplateDescription;
+            DxfMeasurementValue measurement = Database.Measurement;
+            TemplateDescription = (description ?? string.Empty).Trim();
+            Database.Measurement = metric ? DxfMeasurementValue.Metric : DxfMeasurementValue.English;
+
+            try
+            {
+                SaveAs(file, null, progress);
+            }
+            catch
+            {
+                TemplateDescription = was;
+                Database.Measurement = measurement;
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Gets the description of the template the drawing was last saved as by <see cref="SaveAsTemplate"/>, written again when
+        /// it is saved to a file ending in .dwt; empty where it was not.
+        /// </summary>
+        public string TemplateDescription { get; private set; } = string.Empty;
 
         /// <summary>
         /// Writes a copy of the drawing as a DXF of a version, as AutoCAD's <c>DXFOUT</c> does: the drawing keeps its file, its

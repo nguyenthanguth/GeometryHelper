@@ -120,6 +120,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Whether a name ends in .dwg, of either case.</summary>
         internal static bool IsDwgName(string path) => HasExtension(path, ".dwg");
 
+        /// <summary>Whether a name ends in .dwt, of either case: the drawing template, a DWG with that extension.</summary>
+        internal static bool IsTemplateName(string path) => HasExtension(path, ".dwt");
+
         /// <summary>Whether the DWG writer writes the version, as AC1024: those <see cref="CadExportJob.DwgSaveTypes"/> lists.</summary>
         internal static bool IsDwgVersion(string version) => CadExportJob.DwgTypeOfVersion(version) != null;
 
@@ -146,11 +149,25 @@ namespace GeometryHelper.Dxf.Viewer
             string version,
             IList<string> told,
             IProgress<double> progress
+        ) => Save(database, path, version, told, progress, null);
+
+        /// <summary>
+        /// Saves a database as <see cref="Save(DxfDatabase, string, string, IList{string}, IProgress{double})"/> does; a name
+        /// ending in .dwt is written as a DWG too, the drawing template of AutoCAD, with <paramref name="templateDescription"/>
+        /// in its template section (null or empty for none).
+        /// </summary>
+        internal static string Save(
+            DxfDatabase database,
+            string path,
+            string version,
+            IList<string> told,
+            IProgress<double> progress,
+            string templateDescription
         )
         {
             progress?.Report(0.0);
 
-            if (!IsDwgName(path))
+            if (!IsDwgName(path) && !IsTemplateName(path))
             {
                 if (version == null)
                 {
@@ -184,7 +201,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             try
             {
-                bytes = DwgWriter.ToDwg(database.ToText(), version ?? DwgWriter.DefaultVersion, out left, progress);
+                bytes = DwgWriter.ToDwg(
+                    database.ToText(),
+                    version ?? DwgWriter.DefaultVersion,
+                    out left,
+                    progress,
+                    templateDescription
+                );
             }
             catch (Exception exception)
                 when (!(exception is OutOfMemoryException || exception is NotSupportedException))
