@@ -309,7 +309,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] R2007/R2010 constraint groups of the second layout and R2000 solids (dwgver5): a v2 group written in the v1
         layout AutoCAD writes below R2013 (34 of 34 groups' data bits equal to AutoCAD's R2010; AUDIT as AutoCAD's own);
         3DSOLID/REGION/BODY in R2000 as SAT 4.00 text in 4 096-byte blocks (bytes equal to AutoCAD's; MASSPROP equal)
-  - [ ] R3.3 follow-ups 6: DXF saves of R2007/R2010 still hold the second-layout group text (AutoCAD's DXF holds v1);
+  - [ ] (dxfconv2, running: DXF v1 groups, owned-action order) R3.3 follow-ups 6: DXF saves of R2007/R2010 still hold the second-layout group text (AutoCAD's DXF holds v1);
         R2000 spline solids not placed as ACIS 4.00; a constraint circle's fourth real dropped going down; AutoCAD's order
         of owned actions and stretch-action entities (22 BLOCKSTRETCHACTION); an unexplained ErrorStatus 76; R2007
         AppInfoHistory and SummaryInfo; the ISDYNAMIC heuristic; non-ASCII text in pre-2007 DWGs as \U+ escapes; R2000
@@ -519,7 +519,7 @@ the ones wanted.
 - [x] Dimension follow-ups 16 (dims16): one angle-band rule from 2.5 landings out, with a sagitta correction table by
       direction (e8 106 -> 63, a7 58 -> 29, aq 130 -> 93, e11 92 -> 19, e13 66 -> 19); level words inside a circle by a
       new KeepsToLine law (t9 34 -> 19, t10 216 -> 80, t11 554 -> 140); a2's SHX probe fixed; e1 2 -> 1
-- [ ] Dimension follow-ups 17: te5 10 -> 14 and te3 6 -> 7 (R240 Arial probes within 0.03 of the edge), d1 66 -> 70
+- [ ] (dims18, running) Dimension follow-ups 17: te5 10 -> 14 and te3 6 -> 7 (R240 Arial probes within 0.03 of the edge), d1 66 -> 70
       (SHX jump probes below the arc middle), ta8 0 -> 1 after dims16; the table fitted at one 60-degree angle along +X
       (other orientations extrapolated); arcs nearer than 2.5 landings; d2 R6/R7 ties, t6's turned diameter, words on an
       aligned extension line (S)
@@ -846,11 +846,14 @@ the ones wanted.
       -> 1.98 ms, net48), SetRowHeight/SetColumnWidth splice the head (1.39 -> 0.28 ms) so the viewer's FitRows keeps
       the spliced state (a merge after a height 5.66 -> 0.62 ms), Own reads the cells written alone, PointedAmong skips
       records without the handle's digits; bytes identical (64 pinned, 480 fuzz runs)
-- [ ] Tables follow-ups 9: the lazy layout (Kinds, ContentLooks, NewColumnLooks; ContentInserted copies the 1.1 MB
-      TABLECONTENT, ~1.1 ms an edit); PointedAmong for digit-only handles (an index of pointers to FIELDs); Rebuild's
-      first PlacesOf scan (~5 ms) after a failed splice; CadTableEditor.Redraw not timed end to end; SetFormula and the
-      data-link and cell-kind setters still write the record whole; unmerge +0.06 ms; in-place vs read-anew differences
-      of the old library; series dates in a daylight-saving zone; GUI-only sides (S)
+- [x] Tables follow-ups 9 (tables10): pointers to a field with a digit-only handle found by a whole-line search (10
+      merges read 1 375 -> 10 records; a merge across field 700000 3.4 -> 1.3 ms), a merge no longer copies the 1.1 MB
+      TABLECONTENT twice, smaller allocations; SetFormula and the cell setters were already spliced; lazy layout and
+      unmerge parked (0.1 ms, a flat-record copy)
+- [ ] Tables follow-ups 10: RemoveDataLink/SetDataLink read and write the whole TABLECONTENT (8-24 ms at 300 rows):
+      read links from the kept grid; the first merge of a file's table reads TABLECONTENT (10-45 ms: a lazy
+      ContentBytesOf); Own()'s two list copies (1.8 MB) an edit; Item.Handle re-walks the table record after each edit;
+      1-2 digit handles still read every record; series dates in a daylight-saving zone; GUI-only sides (S)
 - [x] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
 
 - [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand
@@ -917,7 +920,7 @@ the ones wanted.
       cache in the display, LINE/ARC/CIRCLE/polyline straight to shapes, DrawText's cleaning without garbage: cold
       display at 1M 1 037 -> 858 ms (net8), REGEN 453 -> 391 ms, garbage 533 -> 452 MB; lists, pixels, saved bytes and
       540 000 loops' areas identical
-- [ ] Speed follow-ups 15: REGEN's text group walk (28 % of a text REGEN; parked: per-text slots break the heap rule);
+- [ ] (speed16, running) Speed follow-ups 15: REGEN's text group walk (28 % of a text REGEN; parked: per-text slots break the heap rule);
       remaining cold garbage at 1M (DisplayArc2 79 MB, DisplayPolyline2 56 MB, double[] 55 MB, handle strings 40 MB, a
       loop's GeoPoint3[]/GeoVector3[] 48 MB with a 112-byte normals array of a flat loop); DxfEntity wrappers (~50 MB);
       a DWG read stopped mid-way (S)

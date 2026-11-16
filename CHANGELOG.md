@@ -6,6 +6,20 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The search of the file for what else points at a field a cell lets go of (`DxfField.Erase`, behind a merge across a field, a text set or a reset over one, and `SetFormula` over another
+formula) passes over the records that cannot point at a handle of digits alone, as it did for a handle with a letter in it. A pointer's value is the handle's digits with nothing but zeros, spaces and
+tabs before them and spaces, tabs and the end of the line after them, so only a record whose bytes hold the digits as the whole of a value line is read group by group; a number that holds the same
+digits (`190.5`, `1190`) is not one. Up to four such handles of three digits or more are looked for in one search; a handle of one or two digits, or more than four of digits alone, have every record read,
+as before. In a table of 49 rows by 19 columns (931 cells) read from a file, ten merges across a cell holding a field numbered from 700000 read 10 records group by group where they read 1 375, each
+taking 1.3 ms on .NET Framework 4.8 (1.8 ms on .NET 10) where it took 3.4 ms (3.6), and a field numbered 190 takes 1.9 ms (1.6) where it took 4.7 (2.8); a field with a letter in its handle takes what it took
+(1.5 ms, 1.0 on .NET 10), and a text set over a cell holding a field, whose handles run from digits alone to a letter among them, takes 1.7 ms (1.4) where it took 3.0 (2.5) (medians of three runs on a machine other work
+shared). The cell that a row or a column put in is made of, 49 groups of a TABLECONTENT, is copied from one made once, not written out group by group with a number formatted for each, the layout kept for the record
+a row or a column put in made is the list the edit built, not a copy of it, and the table's extension dictionary is read from the record the cells a merge wrote were counted from, not from the record put together
+with them, a copy of its 1.1 MB: twenty rows put in and twenty taken out of the 931 cells allocate 186.8 MB where they allocated 199.6, eight columns put in and eight taken out 94.8 MB where 100.2, and twenty merges
+each followed by an unmerge 61.9 MB where 66.9. The saved bytes are the same: the hashes of 48 runs of 120 edits among fields numbered from 9000 and from 70000, those of the 64 runs of `DxfSpeed21Tests`, and of 21 000
+searches among records made at random (the handles looked for of digits alone, of digits and letters, and of one or two digits; pointers with zeros, spaces and tabs before and after, in either case, and numbers that
+only look like them) are those of the library before (`DxfSpeed22Tests`).
+
 **CHANGED.** The ACAD_TABLE of a table is written from its own bytes by `InsertRows`, `InsertRowsAndInherit`, `InsertColumns`, `InsertColumnsAndInherit`, `DeleteRows`,
 `DeleteColumns`, `SetRowHeight` and `SetColumnWidth`, where each wrote and then read again all of its 56 000 groups (931 cells) when the library had written the record
 whole before: each cell that comes out as it was is copied as it stands, the head and the cells made or changed are written, and the places of the cells are kept for the next

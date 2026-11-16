@@ -165,6 +165,9 @@ namespace GeometryHelper.Dxf
             /// <summary>Called with the record once the cells are put in it, and where each cell now begins.</summary>
             private Action<Rec, int[]> Settled { get; }
 
+            /// <summary>The record the cells were counted from, which holds the groups before the cells as they stand once the cells are put in it.</summary>
+            internal Rec Base => _record;
+
             /// <summary>The bytes of the record as they will stand.</summary>
             internal int Length => _length;
 

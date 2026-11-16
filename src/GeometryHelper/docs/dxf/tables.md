@@ -200,8 +200,12 @@ a merge after one takes 0.6 ms where it took 5.7, a text set 0.01 ms where 2.5, 
 layout the table reads takes the cells written one by one since into it, so that the edits that still write the record whole do not
 read its groups again after a cell is set. The search the file is made for what else points at a field a merge lets go of reads each record's groups one at a time,
 none kept, and passes over a record whose bytes hold the digits of none of the handles looked for, in either case (a pointer is hexadecimal digits, in any case, with zeros
-before them): a merge across a field takes 0.9 ms where it took 3.0, and allocates 2.1 MB where it allocated 8.4; where any of the handles looked for is of digits
-alone (a field numbered 190, say) every record is read, as before, and the merge takes what it took. A table of 1 000 cells, each given its text, takes 36 ms on .NET Framework 4.8 (it took
+before them): a merge across a field takes 0.9 ms where it took 3.0, and allocates 2.1 MB where it allocated 8.4. A handle of digits alone (a field numbered 190, say)
+has no letter to look for, and is looked for as the whole of a value line: its digits with nothing but zeros, spaces and tabs before them on the line and nothing but spaces,
+tabs and the end of the line after them, which a number holding the same digits (190.5, 1190) does not make, so that the records of the file that hold no such line are not
+read either. Up to four such handles of three digits or more are looked for in one search; a handle of one or two digits, or more than four of digits alone, have every
+record read, as before. A merge across a field numbered 700000 takes 1.3 ms where it took 3.4 on .NET Framework 4.8 (1.8 ms where it took 3.6 on .NET 10), one numbered 190
+1.9 ms where it took 4.7 (1.6 where 2.8), and a text set over a cell that holds a field the same; ten such merges read 10 records group by group where they read 1 375. A table of 1 000 cells, each given its text, takes 36 ms on .NET Framework 4.8 (it took
 5.3 s), 3 000 cells 0.35 s (48 s). Adding tables one after another costs the same for each: 400 tables of 3 rows and 4 columns, each cell given its text, take
 0.31 s, 1 600 take 1.3 s (25 s), and a table is not counted against the entities of the drawing, which the block it was given a moment
 ago cannot be named by. Copying them to another drawing (`WblockCloneObjects`) takes 80 ms for 400 tables whether the drawing holds

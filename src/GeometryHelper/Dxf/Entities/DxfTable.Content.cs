@@ -543,7 +543,14 @@ namespace GeometryHelper.Dxf
         /// <summary>Where the 92 after a cell's custom data stands, odd; -1 where it is even or the cell has none.</summary>
         private static int LinkFlagOf(List<KeyValuePair<int, string>> cell)
         {
-            int end = cell.FindIndex(g => g.Key == 309 && g.Value.Trim() == "DATAMAP_END");
+            int end = 0;
+
+            while (end < cell.Count && !(cell[end].Key == 309 && cell[end].Value.Trim() == "DATAMAP_END"))
+            {
+                end++;
+            }
+
+            end = end < cell.Count ? end : -1;
 
             if (end < 0 || end + 1 >= cell.Count || cell[end + 1].Key != 92)
             {
@@ -1070,7 +1077,23 @@ namespace GeometryHelper.Dxf
         /// A cell of a TABLECONTENT as AutoCAD 2021 writes one of no content (the cells of the row it put in): of the state 0,
         /// its custom data of one checksum, the one given, its 92 of 0, no content, its format of nought.
         /// </summary>
-        private static List<KeyValuePair<int, string>> CellGroups(string checksum) =>
+        private static List<KeyValuePair<int, string>> CellGroups(string checksum)
+        {
+            var groups = new List<KeyValuePair<int, string>>(NoContentCell);
+
+            if (!string.Equals(checksum, "0.0", StringComparison.Ordinal))
+            {
+                groups[ChecksumAt] = new KeyValuePair<int, string>(140, checksum);
+            }
+
+            return groups;
+        }
+
+        // The cell of no content with its checksum of 0.0, made once and copied for each cell put in, and where its checksum stands.
+        private static readonly KeyValuePair<int, string>[] NoContentCell = MadeCellGroups("0.0").ToArray();
+        private const int ChecksumAt = 12;
+
+        private static List<KeyValuePair<int, string>> MadeCellGroups(string checksum) =>
             new List<KeyValuePair<int, string>>
             {
                 new KeyValuePair<int, string>(300, "CELL"),
