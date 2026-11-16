@@ -1371,8 +1371,16 @@ more for each unit the radius is past 0.3 (in text heights, scaled with the text
 its arrowheads outside from 20 to 30 degrees from the horizontal, in at 10 and 40, with the symbol from 10 to 30. The landing is then
 as with them in, an arrowhead along the arc from the first end, not two: from 20 degrees put 0.3 out, no symbol, the words stand at
 (-0.353, -0.0772). Not as AutoCAD yet: the arc point of aligned words outside such an arc, which is a third of the way round near the
-arc and two thirds a few hundredths further out (from 0.32 at 181 degrees to 0.37 at 200), and where the arrowheads and aligned
-words come in, which AutoCAD puts one or two hundredths further out for sweeps near 181 to 200 degrees.
+arc and two thirds a few hundredths further out (from 0.32 at 181 degrees to 0.37 at 200).
+Aligned words past the half circle fit what they take against the room a little differently from the arc, by the width of the words
+and DIMGAP (and with the symbol, DIMASZ): the arc of 1 from 0 through 200 degrees with the symbol before the words (DIMARCSYM 0)
+takes its arrowheads in with them from 0.65 out, not from 0.67, and without the symbol it takes its words in from 0.47, not from
+0.45, and its arrowheads from 0.50 (sweeps to 230 degrees, text 0.18 and 0.36, DIMASZ 0.18 and 0.36, DIMGAP 0.09 and 0.18; one step
+of 0.01 in the put distance off now and then). The words by a ray (DIMJUST 1 and 2) on arcs of 90 to 140 degrees take their
+arrowheads in as much sooner: aligned from 0.93 out on the arc of 1 from 10 through 130 degrees, level ones (DIMJUST 1) from 0.95,
+where they took 0.94 and 0.96. Not as AutoCAD yet: where the arrowheads go outside with level words outside (the lower edge of the
+window, which the text, the gap, the arrowhead and the sweep all move by a few degrees), the words in by the room of level words on
+arcs of 90 to 140 degrees by a step, and the words by a ray at 210 degrees and more standing a few thousandths off.
 Level words off the arc (DIMTAD 2 and 3) fit by the same box without the gap at either end of the arc: their width, the symbol
 before them and two gaps times the sine of the direction of the arc's middle, plus their height, the symbol over them and two
 gaps times its cosine (an arc of 10 from 15 degrees put 12 out, DIMTAD 2, takes its words "0.6400" between its extension lines
