@@ -152,6 +152,10 @@ namespace GeometryHelper.UnitTest.Dwg
                     + "|90=0"
             );
 
+        /// <summary>A network record whose last number, 0, is made 1 and followed by the soft pointer <paramref name="action"/>.</summary>
+        private static string WithSecondList(string network, string action) =>
+            network.Substring(0, network.Length - "90\n0\n".Length) + "90\n1\n330\n" + action + "\n";
+
         private static string Variable(
             string handle,
             string network,
@@ -373,6 +377,35 @@ namespace GeometryHelper.UnitTest.Dwg
             Assert.Equal("2", ActionVersion(back, "F200"));
             Assert.Equal("2", ActionVersion(back, "F203"));
             Assert.Equal(5, Kept(text, back, "F200", "F201", "F202", "F203", "F204"));
+        }
+
+        [Theory]
+        [InlineData("AC1032", 1032)]
+        [InlineData("AC1027", 1027)]
+        [InlineData("AC1024", 1024)]
+        public void ANetworkWithASecondListOfOneAction_KeepsTheListAsAutoCADsApiMadeNetworkHasIt(
+            string version,
+            int target
+        )
+        {
+            // AutoCAD 2021's own network of a drawing made through its API (one variable) ends 90=1 330=<the variable>: the
+            // second list of soft pointers the reader dropped, so that the DXF held 24 groups where AutoCAD's holds 25.
+            string text = Drawing(
+                dictionary =>
+                    Variable("F104", "F103", "2", "90=4", "90=0")
+                    + WithSecondList(NetworkOf("2", "F103", dictionary, "F104"), "F104"),
+                out _
+            );
+            DwgDrawing drawing = DwgDrawing.Parse(text, null);
+            byte[] back = DwgReader.ToDxf(DwgFileWriter.Write(drawing, version, out _));
+            List<KeyValuePair<int, string>> groups = DwgAnswerKey
+                .Parse(back)
+                .Single(r => Handle(r) == "F103")
+                .Groups.ToList();
+
+            Assert.Equal(new KeyValuePair<int, string>(330, "F104"), groups[groups.Count - 1]);
+            Assert.Equal(1, int.Parse(groups[groups.Count - 2].Value.Trim(), CultureInfo.InvariantCulture));
+            Assert.Equal(1, Kept(target, text, back, "F103"));
         }
 
         [Fact]

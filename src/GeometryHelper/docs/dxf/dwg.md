@@ -208,6 +208,11 @@ below). The network and the variable are of the version 2 of an
 action (the four numbers more) in a DWG of R2013 and later, and of the version 1 before, whichever version the groups give,
 as AutoCAD 2021 writes them: its own R2018, R2013, R2010 and R2007 files of Architectural - Metric hold them at 2, 2, 1 and
 1, and the 6 networks and 35 variables of a drawing saved by AutoCAD 2010 and written to R2018 are the bits of AutoCAD's own.
+A network ends with a second list of soft pointers (`330`) behind its last number, which is its count: 0 in every network
+of the samples and 1 in one AutoCAD makes through its API, which lists its action there again (`90 1`, `330 82`). The reader
+dropped the pointer, so that the DXF of a network made by the API held 24 groups where AutoCAD's holds 25; both are read and
+written now, and the network of each of the four drawings made through the API is AutoCAD's own bytes (the writer left the second pointer out of
+the handle stream).
 The largest real number, which AutoCAD keeps for a value not yet set, is in its DXF `1.797693134862314E+99`, and so it is
 read: its digits as the runtime writes them rounded past the largest number and could not be read back, which stopped the
 whole DWG from being read.
@@ -501,12 +506,49 @@ that says it is referenced, set on every record AutoCAD writes; a dimension styl
 the handles of its base UCS and its named UCS (null); an MTEXT holds the bit after its line spacing factor. The objects written so
 equal AutoCAD's own bytes (the table records, the dimension style, the layouts, the vertices and the SEQEND, the LINE, CIRCLE,
 ELLIPSE, SPLINE, RAY and XLINE, 2 of 3 MTEXT objects of `text`), but where AutoCAD kept an extrusion (0, 0, 1) in full on an
-entity a probe had set it on (it is 6 bits longer: the ARC, SOLID, TRACE and TEXT of the test drawings) and the dictionaries that
-list the objects the writer leaves out (the materials, the visual styles and the table styles are not written before R2010).
+entity a probe had set it on (it is 6 bits longer: the ARC, SOLID, TRACE and TEXT of the test drawings) and the dictionaries of the
+visual styles and of the view styles, which list objects the writer leaves out (a visual style is not written before R2013 and a detail
+or section view style not before R2018; the materials and the table styles are, see below).
 The 167 drawings of AutoCAD 2021's samples and of the tests, each written as R2000 and opened in AutoCAD 2021 with `AUDIT`: all 167
 open, 160 with 0 errors, the other 7 with the errors of their originals (24, 24, 2, 2, 32, 32 and 10), and the 4 tables that had 6
-each have none. A text beyond the code page is written as its UTF-8 bytes in R2000 as in R2004 (AutoCAD's own file keeps
-`\U+1EBF` there), a fault of both that is left.
+each have none.
+
+The texts of a DWG of AutoCAD 2004 or before are in the bytes of the drawing's code page, a letter beyond it as an escape
+(`\U+1EDB`; a letter of a multibyte page as its two bytes): AutoCAD's own R2000 file `text` keeps "café" as the byte 0xE9 and
+"Tiếng Việt 日本語" as `Ti\U+1EBFng Vi\U+1EC7t \U+65E5\U+672C\U+8A9E`. The writer gave UTF-8 bytes there, which AutoCAD 2021 read in
+the page: its DXF of the R2000 file written from `text` held "Tiáº¿ng Viá»‡t cafÃ© æ—¥æœ¬èªž Ã˜ Â±" for "Tiếng Việt café 日本語 Ø ±". The writer gives
+a text as the DXF of that page gives it (`DwgDrawing.PageBytes`, the page `$DWGCODEPAGE` names, ANSI_1252 where it names none, a letter the
+page lacks as its escape) in the objects, the extended data, the XRECORDs, the field values, the linetype texts and the header, and
+names the page's number in the byte before the text of extended data (30 for ANSI_1252, as it always did): a drawing of ANSI_1251 holds
+"Привет" as six bytes and the "é" beside it as `\U+00E9`. AutoCAD's DXF of the R2000 file written from `text` has the two lines of
+letters of its DXF of its own file byte for byte (they were the two lines of "Tiáº¿ng" and the like before), and both files read back as the letters typed. Of
+the 167 drawings of AutoCAD 2021's samples and of the tests written as R2000 and as R2004, 143 were the same bytes as before this
+change alone (those whose texts are all ASCII) and the other 24, which hold a letter beyond ASCII, differed in their texts alone;
+R2007 and later, whose strings are UTF-16, are the same bytes.
+
+A file of R2000 holds a viewport entity header for each viewport AutoCAD has numbered (group 69 over 0), a table of them as an object of
+its own (type 0x46, the handle B where the drawing has none and the header variable of the viewport entities names it) and the viewport
+names its header (the pointer after its clip boundary) and writes its frozen layers as hard pointers (code 5, where R2004 and later
+write them as soft pointers, code 4). The writer gave the viewport no header and the layers as soft pointers, and the viewport objects of
+AutoCAD's own R2000 file of `vports` (4 numbered viewports and a fifth with no number, which has no header) were not its bytes. The
+table lists an entry that names no viewport first and then one for each numbered viewport in the order of the numbers, as AutoCAD's two
+files of that drawing list them (5 entries); each entry is a table record with no name that points back at its viewport (type 0x47), and
+the entries are written from the handles past every handle the drawing names, those of the records left out too (from the last handle written they met the handles of the visual styles that are left out, and the dictionary of the visual styles then named headers: AUDIT found `eNotThatKindOfClass` twice or three times in each of 13 of the sample drawings). A drawing with no numbered viewport has no table, as before. The
+five viewport objects of `vports` are AutoCAD's own bits and handle codes but for the numbers of the headers they name, and its table
+and entries have the structure of AutoCAD's own (a name left empty, where AutoCAD gave the first of one of its files the name "1" and
+chained the headers, which depends on the viewport that was current when it was saved).
+
+The materials and the table styles of R2000, R2004 and R2007 are written. A material of R2000 and R2004 is what one of R2007 is without
+its last six values (the translucence, self-illumination and reflectivity, and the illumination model, channels and mode): the three materials
+of AutoCAD's own R2000 file `text`, and of its R2004 file of `props`, are its bytes, and so are the dictionary that names them. A table
+style of R2000 to R2007 is its description, flow, flags, margins, the two bits and the rows of data, title and header, each a height,
+alignment, two colours, a bit, six borders (and from R2007 a data type, a unit type and a format) and the pointer to its text style, its
+colours in the form of R2004 as the reader takes them; its cell styles are the CELLSTYLEMAP, an object of its own under the dictionary
+`ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP` of the style's extension dictionary, a count and then each cell style with its id, kind and
+name. The table style, its two dictionaries and the cell style map of AutoCAD's own R2000 files `text` and `tables` and of its R2004 file
+`props` are its bytes (the table style of `table`, which two tables name, lacks one reactor, the tables not being written before R2010).
+The writer left them out before: a table style was counted among the types left out of a file of R2000, R2004 and R2007 and the
+dictionaries of the materials and of the table styles came out empty.
 
 | Part | Written |
 |---|---|

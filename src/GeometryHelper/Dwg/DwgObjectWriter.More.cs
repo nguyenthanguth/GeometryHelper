@@ -290,14 +290,14 @@ namespace GeometryHelper.Dwg
 
             foreach (ulong layer in layers)
             {
-                H(4, layer);
+                H(R2004Plus ? 4 : 5, layer);
             }
 
             H(5, viewport.Handle(340));
 
             if (!R2004Plus)
             {
-                H(5, 0);
+                H(5, ViewportHeaders.TryGetValue(_record.Handle, out ulong header) ? header : 0);
             }
 
             H(5, viewport.Handle(345));

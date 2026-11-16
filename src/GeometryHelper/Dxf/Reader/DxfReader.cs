@@ -232,6 +232,17 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>
+            /// The decoding whose <see cref="Encode"/> gives the bytes of a text in the code page <paramref name="named"/>
+            /// (<c>ANSI_1252</c>, <c>ANSI_932</c>), for the texts of a DWG of AutoCAD 2004 or before; where the runtime has not
+            /// that page every letter beyond ASCII comes out as its escape.
+            /// </summary>
+            internal static TextDecoding OfPage(string named)
+            {
+                var none = new TextDecoding(0, Latin1, false, null);
+                return none.WithLetters("AC1018", named) ?? none;
+            }
+
+            /// <summary>
             /// The bytes of a file given as its text, for <see cref="DxfFile"/>, as AutoCAD would have saved them: UTF-8 where it
             /// is all ASCII, has the mark of UTF-8 at its start or is of R2007 or later; else in the code page its header names,
             /// ANSI_1252 where it names none, a letter the page lacks written as its escape (<c>\U+0110</c>), and every letter

@@ -71,7 +71,7 @@ namespace GeometryHelper.Dwg
 
         /// <summary>
         /// A MATERIAL, from the groups DXF gives where they differ from a new material's: its name and description, its
-        /// colours and maps, and the settings of R2007 (the reader's <c>ReadMaterial</c> gives the defaults).
+        /// colours and maps, and from R2007 its settings (the reader's <c>ReadMaterial</c> gives the defaults).
         /// </summary>
         private void WriteMaterial()
         {
@@ -90,12 +90,17 @@ namespace GeometryHelper.Dwg
             WriteMaterialMap(material, 143, 179, 8, 270, 271, 272, 144);
             _data.BitDouble(material.Double(145, 1.0));
             WriteMaterialMap(material, 146, 273, 9, 274, 275, 276, 147);
-            _data.BitDouble(material.Double(148));
-            _data.BitDouble(material.Double(149));
-            _data.BitDouble(material.Double(468));
-            _data.BitLong(material.Int(93));
-            _data.BitLong(material.Int(94, 127));
-            _data.BitLong(material.Int(282));
+
+            // The settings of R2007 (the last six values) are not in a file of R2000 or R2004.
+            if (R2007Plus)
+            {
+                _data.BitDouble(material.Double(148));
+                _data.BitDouble(material.Double(149));
+                _data.BitDouble(material.Double(468));
+                _data.BitLong(material.Int(93));
+                _data.BitLong(material.Int(94, 127));
+                _data.BitLong(material.Int(282));
+            }
         }
 
         private void WriteMaterialColour(DwgGroups material, int way, int factor, int colour)
@@ -552,10 +557,10 @@ namespace GeometryHelper.Dwg
                     }
                     else
                     {
-                        byte[] encoded = Encoding.UTF8.GetBytes(text);
+                        byte[] encoded = _drawing.PageBytes(text);
                         bytes.Add((byte)encoded.Length);
                         bytes.Add((byte)(encoded.Length >> 8));
-                        bytes.Add(30);
+                        bytes.Add((byte)DwgFileWriter.CodePageNumber(_drawing.CodePage));
                         bytes.AddRange(encoded);
                     }
                 }

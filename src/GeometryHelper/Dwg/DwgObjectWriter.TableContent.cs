@@ -977,7 +977,7 @@ namespace GeometryHelper.Dwg
             _data.BitDouble(format.Rotation);
             _data.BitDouble(format.Scale);
             _data.BitLong(format.Alignment);
-            WriteRawColour(format.Colour);
+            WriteRawColour(format.Colour, true);
             H(5, format.TextStyle);
             _data.BitDouble(format.Height);
         }
@@ -994,7 +994,7 @@ namespace GeometryHelper.Dwg
 
             _data.BitLong(style.Overrides);
             _data.BitLong(style.Merge);
-            WriteRawColour(style.Background);
+            WriteRawColour(style.Background, true);
             _data.BitLong(style.Layout);
             WriteContentFormat(style.Format);
             _data.BitShort(style.MarginFlags);
@@ -1020,11 +1020,82 @@ namespace GeometryHelper.Dwg
 
                 _data.BitLong(border.Overrides);
                 _data.BitLong(border.Type);
-                WriteRawColour(border.Colour);
+                WriteRawColour(border.Colour, true);
                 _data.BitLong(border.LineWeight);
                 H(5, border.Linetype);
                 _data.BitLong(border.Invisible);
                 _data.BitDouble(border.Spacing);
+            }
+        }
+
+        /// <summary>
+        /// A TABLESTYLE before R2010, the mirror of the reader's: its description, flow, flags, margins and the two bits that
+        /// suppress the title and the header, then its data, title and header rows, each a height, alignment, text colour,
+        /// fill, whether it is filled and six borders, from R2007 also a data type, a unit type and a format; each row's text
+        /// style is a pointer. The colours are of the form of R2004 in every version, as the reader takes them.
+        /// </summary>
+        private void WriteTableStyleOfR2007()
+        {
+            var style = new Cursor(_record.Of("AcDbTableStyle"));
+            style.Int(280);
+            T(style.Text(3));
+            _data.BitShort(style.Int(70));
+            _data.BitShort(style.Int(71));
+            _data.BitDouble(style.Double(40, 0.06));
+            _data.BitDouble(style.Double(41, 0.06));
+            _data.Bit(style.Int(280) != 0);
+            _data.Bit(style.Int(281) != 0);
+            var textStyles = new ulong[3];
+
+            for (int row = 0; row < 3; row++)
+            {
+                // A row that names no text style is one AUDIT cannot repair: it has Standard.
+                textStyles[row] = _drawing.HandleOf("STYLE", style.At(7) ? style.Text(7) : "Standard");
+                _data.BitDouble(style.Double(140));
+                _data.BitShort(style.Int(170));
+                WriteColour(style.Int(62), -1, null, true);
+                WriteColour(style.Int(63, 7), -1, null, true);
+                _data.Bit(style.Int(283) != 0);
+                int dataType = style.Int(90, 512);
+                int unitType = style.Int(91);
+                string format = style.Text(1);
+
+                for (int i = 0; i < 6; i++)
+                {
+                    _data.BitShort(style.Int(274 + i, -2));
+                    _data.Bit(style.Int(284 + i, 1) != 0);
+                    WriteColour(style.Int(64 + i), -1, null, true);
+                }
+
+                if (R2007Plus)
+                {
+                    _data.BitLong(dataType);
+                    _data.BitLong(unitType);
+                    T(format);
+                }
+            }
+
+            foreach (ulong textStyle in textStyles)
+            {
+                H(5, textStyle);
+            }
+        }
+
+        /// <summary>
+        /// The CELLSTYLEMAP of a table style of R2007 and before, the mirror of the reader's: a count, then each cell style,
+        /// its id, kind and name.
+        /// </summary>
+        private void WriteCellStyleMap()
+        {
+            List<NamedCellStyle> named = CellStylesIn(_record);
+            _data.BitLong(named.Count);
+
+            foreach (NamedCellStyle one in named)
+            {
+                WriteCellStyle(one.Style);
+                _data.BitLong(one.Id);
+                _data.BitLong(one.Kind);
+                T(one.Name);
             }
         }
 
@@ -1135,13 +1206,14 @@ namespace GeometryHelper.Dwg
         /// </summary>
         private List<NamedCellStyle> CellStylesOf(DwgRecord style)
         {
-            var named = new List<NamedCellStyle>();
             DwgRecord map = EntryOf(_drawing.Find(style.XDictionary), 3, "ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP");
+            return map == null || map.Type != "CELLSTYLEMAP" ? new List<NamedCellStyle>() : CellStylesIn(map);
+        }
 
-            if (map == null || map.Type != "CELLSTYLEMAP")
-            {
-                return named;
-            }
+        /// <summary>The cell styles of a CELLSTYLEMAP, in its order; none where its groups are not of AutoCAD's order.</summary>
+        private List<NamedCellStyle> CellStylesIn(DwgRecord map)
+        {
+            var named = new List<NamedCellStyle>();
 
             try
             {

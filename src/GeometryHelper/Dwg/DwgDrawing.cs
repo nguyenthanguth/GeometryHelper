@@ -535,6 +535,38 @@ namespace GeometryHelper.Dwg
             return groups == null || groups.Count == 0 ? otherwise : groups[0].Value;
         }
 
+        /// <summary>
+        /// The code page the DWG of this drawing names, as its header does (<c>ANSI_1252</c>); ANSI_1252 where the header names
+        /// none or one the file has no number for.
+        /// </summary>
+        public string CodePage
+        {
+            get
+            {
+                string named = HeaderText("DWGCODEPAGE", "ANSI_1252").Trim().ToUpperInvariant();
+                return DwgFileWriter.CodePageNumber(named) == 30 ? "ANSI_1252" : named;
+            }
+        }
+
+        /// <summary>
+        /// A text as a DWG of AutoCAD 2004 or before holds it: in the bytes of the drawing's code page, a letter beyond it as
+        /// its escape (<c>\U+1EDB</c> for "ớ" under ANSI_1252, which holds "é" as the byte 0xE9), as AutoCAD writes it.
+        /// </summary>
+        public byte[] PageBytes(string text)
+        {
+            text = text ?? string.Empty;
+            bool ascii = true;
+
+            foreach (char c in text)
+            {
+                ascii &= c < 0x80;
+            }
+
+            return ascii
+                ? System.Text.Encoding.ASCII.GetBytes(text)
+                : DxfReader.TextDecoding.OfPage(CodePage).Encode(text);
+        }
+
         /// <summary>The handle of the record of the table <paramref name="table"/> (such as <c>LAYER</c>) named <paramref name="name"/>, in any case; 0 where there is none.</summary>
         public ulong HandleOf(string table, string name)
         {

@@ -318,12 +318,15 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         3 196 of 3 204 objects equal to its DXF; AcConcentricConstraint, AcConstrainedEllipse and
         AcConstrainedBoundedEllipse read and written in DXF and DWG (AutoCAD's own bytes); DwgReader.ToDxf already names
         the DWG's own version. DECIDED: no repair of old saves on a same-version Save (keeps "same version, same bytes")
-  - [ ] R3.3 follow-ups 8: an API-made ACDBASSOCNETWORK read with 24 groups where AutoCAD has 25 (a trailing 330);
-        node classes still unknown stay as they are; the remaining stretch/group orders (AutoCAD's state); R2000 spline
-        solids; an unexplained ErrorStatus 76; R2007 AppInfoHistory and SummaryInfo; the ISDYNAMIC heuristic; non-ASCII
-        text in pre-2007 DWGs as \U+ escapes; R2000 VIEWPORT entity header handle and frozen-layer code 5; dictionaries
-        naming left-out objects; region GUI checks; spline edges and non-planar faces; orphan ACDSRECORDs; a parse cache
-        for thousands of regions (M)
+  - [x] Older DWG versions closer to AutoCAD (dxfconv4): an API-made network's second list read and written (AutoCAD's
+        bytes, 4 of 4); texts of R2000/R2004 in the drawing's code page with \U+ escapes (AutoCAD reads them back; was
+        mojibake); R2000 viewport entity headers and frozen layers by code 5; MATERIAL in R2000/R2004 and the table style
+        with its CELLSTYLEMAP in R2000-R2007 (bit-equal to AutoCAD's); corpus AUDIT as before, R2010+ byte-identical
+  - [ ] R3.3 follow-ups 9: visual styles before R2013 and the detail/section view styles before R2018 (ACAD_VISUALSTYLE
+        left empty); an empty VP_ENT_HDR_CTRL in every R2000 file; R2007 table styles compared by DXFOUT, not only AUDIT;
+        R2000 spline solids; the remaining stretch/group orders (AutoCAD's state); unknown node classes; an unexplained
+        ErrorStatus 76; R2007 AppInfoHistory and SummaryInfo; the ISDYNAMIC heuristic; region GUI checks; spline edges
+        and non-planar faces; orphan ACDSRECORDs; a parse cache for thousands of regions (M)
   - [x] Dialogs 5 (dialogs5, design v139-v140): Multiline Style (with New/Modify page, Load), Multiline Edit Tools, the
         Hatch dialog's third column (one-colour gradient, colours, layer, transparency, origin, gap), Plot Stamp and PLOT's
         "Plot stamp on", Image Adjust, Attribute Extraction, Xbind
@@ -491,7 +494,7 @@ the ones wanted.
       window corners and fence points as AutoCAD 2021 (the Shift+right-click menu shown there); a typed point on
       nothing starts the window; the refusals of POLYGON, -ARRAY, ARRAYRECT/POLAR, DIVIDE, MEASURE, CHAMFER, FILLET in
       AutoCAD's words, asked again
-- [ ] Aids-vars follow-ups 3: a typed point after an object snap override is snapped in AutoCAD ("No Endpoint found for
+- [ ] (aids4, running) Aids-vars follow-ups 3: a typed point after an object snap override is snapped in AutoCAD ("No Endpoint found for
       specified point."); a one-object prompt's second refusal line; window-corner and fence refusal wording; CIRCLE,
       DONUT and UNDO refusals and UNDO's options; ARRAYRECT's prompt text (Enter the number of columns, <eXit>,
       Associative = Yes); SCALE's factor prompt without a default (S)
