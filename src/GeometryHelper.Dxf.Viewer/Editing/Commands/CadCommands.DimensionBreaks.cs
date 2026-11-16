@@ -60,7 +60,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Keeps a break at each object given that crosses the dimension, after those it keeps, an object kept already not again.</summary>
-        private static void KeepObjectBreaks(DxfDimension dimension, List<DxfEntity> crossed)
+        private static void KeepObjectBreaks(DxfEntity dimension, List<DxfEntity> crossed)
         {
             List<DimensionBreak> breaks = StoredBreaks(dimension);
             bool added = false;
@@ -85,17 +85,16 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>Keeps a break between two points, after those the dimension keeps, on the line they break.</summary>
-        private static void KeepManualBreak(DxfDimension dimension, GeoPoint2 first, GeoPoint2 second)
+        /// <summary>Keeps a break between two points, after those the dimension keeps, on the line they broke (<see cref="ManualBreak"/>).</summary>
+        private static void KeepManualBreak(DxfEntity dimension, GeoPoint2 first, GeoPoint2 second, int line)
         {
             List<DimensionBreak> breaks = StoredBreaks(dimension);
-            var middle = new GeoPoint2((first.X + second.X) / 2.0, (first.Y + second.Y) / 2.0);
-            breaks.Add(new DimensionBreak(LineBroken(dimension, middle), P3(first), P3(second)));
+            breaks.Add(new DimensionBreak(line, P3(first), P3(second)));
             StoreBreaks(dimension, breaks);
         }
 
         /// <summary>Takes out every break the dimension keeps (DIMBREAK Remove).</summary>
-        private static void ForgetBreaks(DxfDimension dimension) => StoreBreaks(dimension, new List<DimensionBreak>());
+        private static void ForgetBreaks(DxfEntity dimension) => StoreBreaks(dimension, new List<DimensionBreak>());
 
         /// <summary>
         /// Breaks a dimension's picture drawn anew where the dimension keeps breaks: at each object it names that is still in the
@@ -141,7 +140,14 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 if (stored.ObjectHandle == null)
                 {
-                    BreakAt(dimension, null, new[] { P2(stored.First), P2(stored.Second) }, block, dimscale);
+                    ManualBreak(
+                        dimension,
+                        block ?? dimension.DimBlock,
+                        P2(stored.First),
+                        P2(stored.Second),
+                        stored.Line >= 0 ? stored.Line : (int?)null,
+                        dimscale
+                    );
                 }
             }
         }
@@ -159,7 +165,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The breaks a dimension keeps, in their order; none where it keeps no BREAKDATA.</summary>
-        private static List<DimensionBreak> StoredBreaks(DxfDimension dimension)
+        private static List<DimensionBreak> StoredBreaks(DxfEntity dimension)
         {
             var breaks = new List<DimensionBreak>();
             DxfDBObject data = BreakData(dimension);
@@ -229,7 +235,7 @@ namespace GeometryHelper.Dxf.Viewer
                 : 0.0;
 
         /// <summary>The BREAKDATA of a dimension, under ACAD_BREAKDATA in its extension dictionary; null where it has none.</summary>
-        private static DxfDBObject BreakData(DxfDimension dimension)
+        private static DxfDBObject BreakData(DxfEntity dimension)
         {
             DxfDBDictionary dictionary = dimension.Item == null ? null : dimension.ExtensionDictionary;
             DxfDBObject data =
@@ -243,7 +249,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// BREAKDATA, and no extension dictionary where it holds nothing else. Nothing is kept in a file older than AutoCAD 2008
         /// (AC1021), which has no BREAKDATA: the picture alone is broken there.
         /// </summary>
-        private static void StoreBreaks(DxfDimension dimension, List<DimensionBreak> breaks)
+        private static void StoreBreaks(DxfEntity dimension, List<DimensionBreak> breaks)
         {
             DxfFile file = dimension.Item?.File;
 
@@ -328,51 +334,6 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 file.SetReactor(found.Item, breakData, present);
             }
-        }
-
-        /// <summary>
-        /// The line of a dimension a break between two points is on, as AutoCAD numbers it (91): 0 and 1 the first and second
-        /// extension lines of a linear or an aligned dimension, where the middle of the two points lies nearer one of them than
-        /// the dimension line; else 3, the dimension line, as AutoCAD writes for a radius and an angle too.
-        /// </summary>
-        private static int LineBroken(DxfDimension dimension, GeoPoint2 middle)
-        {
-            GeoPoint2 p1;
-            GeoPoint2 p2;
-            GeoPoint2 onLine;
-
-            if (dimension is DxfRotatedDimension rotated)
-            {
-                p1 = P2(rotated.XLine1Point);
-                p2 = P2(rotated.XLine2Point);
-                onLine = P2(rotated.DimLinePoint);
-            }
-            else if (dimension is DxfAlignedDimension aligned)
-            {
-                p1 = P2(aligned.XLine1Point);
-                p2 = P2(aligned.XLine2Point);
-                onLine = P2(aligned.DimLinePoint);
-            }
-            else
-            {
-                return 3;
-            }
-
-            double angle = LineAngleOf(dimension);
-            var along = new GeoVector2(Math.Cos(angle), Math.Sin(angle));
-            double oblique = ObliqueOf(dimension);
-            GeoPoint2 q1 = Foot(p1, onLine, along, oblique);
-            GeoPoint2 q2 = Foot(p2, onLine, along, oblique);
-            double toLine = Math.Abs(Cross(middle - q1, along));
-            double toFirst = SegmentDistance(p1, q1, middle);
-            double toSecond = SegmentDistance(p2, q2, middle);
-
-            if (toFirst < toLine && toFirst <= toSecond)
-            {
-                return 0;
-            }
-
-            return toSecond < toLine ? 1 : 3;
         }
     }
 }

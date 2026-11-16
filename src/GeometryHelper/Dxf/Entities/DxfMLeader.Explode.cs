@@ -62,7 +62,10 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the multileader has no context data, which AutoCAD draws it from;
         /// or is a copy in no file whose content or arrows are a block the drawing it was copied from has erased since, the
         /// handle of the block said.</exception>
-        public override IReadOnlyList<DxfEntity> Explode()
+        public override IReadOnlyList<DxfEntity> Explode() => ExplodeParts(false);
+
+        /// <summary>What <see cref="Explode"/> gives, the lines of the leaders cut at their breaks where <paramref name="broken"/> says (<see cref="ExplodeBroken"/>).</summary>
+        private IReadOnlyList<DxfEntity> ExplodeParts(bool broken)
         {
             Rec rec = Read();
             Ctx ctx = Context(rec);
@@ -227,18 +230,31 @@ namespace GeometryHelper.Dxf
                             Give(spline, lineWeight);
                         }
                     }
-                    else if (DxfLeader.PlanePolyline(vertices, normal, tolerance) is DxfPolyline polyline)
-                    {
-                        Give(polyline, lineWeight);
-                    }
                     else
                     {
-                        // Off the multileader's plane, which a polyline cannot hold: a LINE between each two points.
-                        for (int i = 0; i + 1 < vertices.Count; i++)
+                        List<DxfLeaderBreak> cuts = broken ? line.Breaks() : null;
+
+                        // Each stretch the breaks leave, or the whole line where it has none.
+                        foreach (
+                            List<GeoPoint3> stretch in cuts != null && cuts.Count > 0
+                                ? Pieces(vertices, cuts)
+                                : new List<List<GeoPoint3>> { vertices }
+                        )
                         {
-                            if (vertices[i].DistanceTo(vertices[i + 1]) > tolerance)
+                            if (DxfLeader.PlanePolyline(stretch, normal, tolerance) is DxfPolyline polyline)
                             {
-                                Give(new DxfLine(vertices[i], vertices[i + 1]), lineWeight);
+                                Give(polyline, lineWeight);
+                            }
+                            else
+                            {
+                                // Off the multileader's plane, which a polyline cannot hold: a LINE between each two points.
+                                for (int i = 0; i + 1 < stretch.Count; i++)
+                                {
+                                    if (stretch[i].DistanceTo(stretch[i + 1]) > tolerance)
+                                    {
+                                        Give(new DxfLine(stretch[i], stretch[i + 1]), lineWeight);
+                                    }
+                                }
                             }
                         }
                     }

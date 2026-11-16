@@ -336,6 +336,17 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!(c.Document.FindEntity(c.Input.Handles[0]) is DxfDimension dimension))
             {
+                // AutoCAD 2021 takes a multileader at this prompt too.
+                if (c.Document.FindEntity(c.Input.Handles[0]) is DxfMLeader multileader)
+                {
+                    foreach (CadPrompt prompt in DimBreakMLeader(c, multileader))
+                    {
+                        yield return prompt;
+                    }
+
+                    yield break;
+                }
+
                 c.Write("Object selected is not a dimension.");
                 yield break;
             }
@@ -397,8 +408,8 @@ namespace GeometryHelper.Dxf.Viewer
                     Values(first.X, first.Y, second.X, second.Y),
                     d =>
                     {
-                        BreakAt(d, null, new[] { first, second });
-                        KeepManualBreak(d, first, second);
+                        int line = ManualBreak(d, d.DimBlock, first, second, null);
+                        KeepManualBreak(d, first, second, line);
                         RedrawAnnotativeBreaks(d);
                     },
                     false
@@ -1180,7 +1191,7 @@ namespace GeometryHelper.Dxf.Viewer
         private static List<DxfEntity> Cutters(
             CadDocument document,
             CadSpace space,
-            DxfDimension dimension,
+            DxfEntity dimension,
             IReadOnlyList<string> picked
         )
         {
@@ -1687,9 +1698,10 @@ namespace GeometryHelper.Dxf.Viewer
             double t = Cross(p - a, other) / across;
             double u = Cross(p - a, way) / across;
 
-            if (t >= 0.0 && t <= length && u >= 0.0 && u <= 1.0)
+            // The ends of both count, as AutoCAD 2021 breaks at a line that only touches with its end (a thousand-millionth either way for the rounding).
+            if (t >= -1E-9 && t <= length + 1E-9 && u >= -1E-9 && u <= 1.0 + 1E-9)
             {
-                found.Add(t);
+                found.Add(Math.Max(0.0, Math.Min(length, t)));
             }
         }
 
