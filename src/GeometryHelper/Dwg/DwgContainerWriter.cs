@@ -23,10 +23,10 @@ namespace GeometryHelper.Dwg
         private static readonly byte[] Series = MakeSeries();
 
         /// <summary>
-        /// The version and the maintenance release of the application a file of R2000 or R2004 names in its file header as the one
-        /// that saved it, as AutoCAD 2021 names itself in every file it writes of those versions (33 and 174). A file that names
-        /// another is one AutoCAD recomposes the cell styles of its table styles for as it reads it, where it keeps those of a file
-        /// it saved itself.
+        /// The version and the maintenance release of the application a file of R2000, R2004, R2007, R2010 or R2013 names in its file
+        /// header as the one that saved it, as AutoCAD 2021 names itself in every file it writes of those versions (33 and 174). A
+        /// file that names another is one AutoCAD recomposes the cell styles of its table styles for as it reads it, where it keeps
+        /// those of a file it saved itself.
         /// </summary>
         internal const byte SavedByVersion = 33;
 
@@ -203,14 +203,15 @@ namespace GeometryHelper.Dwg
             bytes[0x0B] = (byte)_maintenance;
             bytes[0x0C] = 3;
             Put32(bytes, 0x0D, (uint)AddressOf("AcDb:Preview", pages));
-            bytes[0x11] = (byte)(_version == "AC1018" ? SavedByVersion : DwgVersionNumber(_version));
-            bytes[0x12] = (byte)(_version == "AC1018" ? SavedByMaintenance : _maintenance);
+            bool named = _version == "AC1018" || _version == "AC1024" || _version == "AC1027";
+            bytes[0x11] = (byte)(named ? SavedByVersion : DwgVersionNumber(_version));
+            bytes[0x12] = (byte)(named ? SavedByMaintenance : _maintenance);
             bytes[0x13] = (byte)_codePage;
             bytes[0x14] = (byte)(_codePage >> 8);
 
-            if (_version == "AC1018")
+            if (named)
             {
-                // The file of R2004 AutoCAD 2021 writes names itself twice, as the application that saved it.
+                // The file of R2004, R2010 or R2013 AutoCAD 2021 writes names itself twice, as the application that saved it.
                 bytes[0x16] = SavedByVersion;
                 bytes[0x17] = SavedByMaintenance;
             }

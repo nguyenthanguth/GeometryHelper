@@ -135,7 +135,13 @@ namespace GeometryHelper.Dxf
                 switch (prop.Kind)
                 {
                     case '9':
-                        made.Add(form == 2 ? Whole(90, WholeValue(prop.Value)) : Whole(code, WholeValue(prop.Value)));
+                        // The face lighting model of Realistic is 3 from R2010; R2000 to R2007 have no 3, and AutoCAD saves it as 2.
+                        int whole = WholeValue(prop.Value);
+                        made.Add(
+                            form == 2 ? Whole(90, whole)
+                            : form == 0 && code == 72 && whole > 2 ? Whole(code, 2)
+                            : Whole(code, whole)
+                        );
                         break;
                     case '2':
                         made.Add(form == 2 ? Whole(290, WholeValue(prop.Value)) : Whole(code, WholeValue(prop.Value)));

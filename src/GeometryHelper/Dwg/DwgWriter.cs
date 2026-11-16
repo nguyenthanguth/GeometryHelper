@@ -195,7 +195,7 @@ namespace GeometryHelper.Dwg
             }
 
             var told = new List<string>();
-            string converted = DxfVersionConverter.Convert(text, target, told);
+            string converted = DxfVersionConverter.Convert(text, target, told, null, true);
 
             if (told.Count > 0)
             {

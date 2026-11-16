@@ -109,9 +109,14 @@ namespace GeometryHelper.Dxf
         private string[] _codeLines;
         private int _length;
 
-        private DxfVersionConverter(int target)
+        // Whether the text is made for a DWG, which holds what the DXF of a version leaves out where the version's object has a place
+        // for it (the colours of a detail or section view style, which a DWG of R2000 holds as indexes and its DXF not at all).
+        private readonly bool _forDwg;
+
+        private DxfVersionConverter(int target, bool forDwg)
         {
             _target = target;
+            _forDwg = forDwg;
         }
 
         /// <summary>
@@ -121,11 +126,17 @@ namespace GeometryHelper.Dxf
         /// <param name="target">The version, as 1015 for AC1015.</param>
         /// <param name="said">Where what was left out or replaced is told, a sentence each; null for nowhere.</param>
         /// <param name="fontSearchPath">The folders of the fonts an MTEXT broken into texts for R12 is laid out in, as <see cref="DxfDatabase.FontSearchPath"/>; null for none.</param>
+        /// <param name="forDwg">Whether the text is made to be written as a DWG, which keeps what the DXF of the version leaves out where the DWG has a place for it.</param>
         /// <returns>The text, in the line ends and the padding of the codes of the text given.</returns>
         /// <exception cref="NotSupportedException">Thrown when the file is older than R2000, or names no version.</exception>
         /// <exception cref="FormatException">Thrown when the text is not groups of a code and a value.</exception>
-        internal static string Convert(string text, int target, IList<string> said, string fontSearchPath = null) =>
-            Prepare(text, target, said, fontSearchPath).Write();
+        internal static string Convert(
+            string text,
+            int target,
+            IList<string> said,
+            string fontSearchPath = null,
+            bool forDwg = false
+        ) => Prepare(text, target, said, fontSearchPath, forDwg).Write();
 
         /// <summary>
         /// Gives a DXF file in another version as the bytes <see cref="DxfFile.Parse(string)"/> would keep of the text
@@ -153,12 +164,18 @@ namespace GeometryHelper.Dxf
             out int length,
             out string kept,
             out bool whole
-        ) => Prepare(text, target, said, fontSearchPath).WriteBytes(out length, out kept, out whole);
+        ) => Prepare(text, target, said, fontSearchPath, false).WriteBytes(out length, out kept, out whole);
 
         /// <summary>The converter after it has read the text and given it the form of the version, ready to be written.</summary>
-        private static DxfVersionConverter Prepare(string text, int target, IList<string> said, string fontSearchPath)
+        private static DxfVersionConverter Prepare(
+            string text,
+            int target,
+            IList<string> said,
+            string fontSearchPath,
+            bool forDwg
+        )
         {
-            var converter = new DxfVersionConverter(target);
+            var converter = new DxfVersionConverter(target, forDwg);
 
             if (target == DxfVersions.R12)
             {

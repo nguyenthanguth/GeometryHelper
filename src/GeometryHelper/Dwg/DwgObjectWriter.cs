@@ -502,15 +502,18 @@ namespace GeometryHelper.Dwg
                 case "ACDB_BLOCKREPRESENTATION_DATA":
                     return R2007Plus ? WriteBlockRepresentationData : (Action)null;
                 case "ACAD_TABLE":
-                    return R2010Plus ? WriteTable : (Action)null;
+                    return R2010Plus ? WriteTable : WriteTableBefore2010;
                 case "TABLESTYLE":
                     return R2010Plus ? WriteTableStyle : WriteTableStyleOfR2007;
                 case "CELLSTYLEMAP":
                     return R2010Plus ? (Action)null : WriteCellStyleMap;
                 case "TABLECONTENT":
-                    return R2010Plus ? WriteTableContentObject : (Action)null;
+                    return WriteTableContentObject;
                 case "TABLEGEOMETRY":
-                    return R2010Plus ? WriteTableGeometry : (Action)null;
+                    return WriteTableGeometry;
+                case "DATATABLE":
+                case "ACDBDATATABLE":
+                    return R2007Plus ? (Action)null : WriteDataTable;
                 case "MULTILEADER":
                     return WriteMultiLeader;
                 case "MLEADERSTYLE":

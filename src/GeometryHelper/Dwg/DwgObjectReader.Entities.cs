@@ -1898,8 +1898,7 @@ namespace GeometryHelper.Dwg
         /// <summary>
         /// An ACAD_TABLE before R2007: a block reference to its anonymous block, then its flags, direction, rows and columns
         /// with their sizes, its style, its cells (a text or a block each, with overrides) and the overrides of the whole
-        /// table. DXF writes the overrides' flags (93 to 96) before the sizes. False from R2007, whose cells carry values,
-        /// and from R2010, whose content is a TABLECONTENT of its own; neither is read yet.
+        /// table. DXF writes the overrides' flags (93 to 96) and the overrides before the sizes.
         /// </summary>
         private bool ReadTable()
         {
@@ -1992,6 +1991,9 @@ namespace GeometryHelper.Dwg
             _object.Add(95, borderWeights);
             _object.Add(96, borderVisibility);
 
+            // The overrides of the whole table stand before the sizes in the DXF AutoCAD writes.
+            _object.Body.AddRange(overrides);
+
             foreach (double height in heights)
             {
                 _object.Add(141, height);
@@ -2003,7 +2005,6 @@ namespace GeometryHelper.Dwg
             }
 
             _object.Body.AddRange(cells);
-            _object.Body.AddRange(overrides);
             return true;
         }
 
@@ -2215,7 +2216,8 @@ namespace GeometryHelper.Dwg
                     groups.Add(new DwgGroup(code, ReadColour(true).Index));
                     break;
                 case 'H':
-                    groups.Add(new DwgGroup(code, H()));
+                    // The text style, which DXF names.
+                    groups.Add(new DwgGroup(code, new DwgName(H(), "Standard")));
                     break;
                 default:
                     groups.Add(new DwgGroup(code, _data.BitDouble()));

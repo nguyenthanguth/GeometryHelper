@@ -325,11 +325,15 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] Styles in older DWGs (dxfconv5): VISUALSTYLE in R2000-R2013 (124 of 124 bit-equal to AutoCAD's), detail and section
         view styles in R2000-R2013 with their name round trip (12 of 12), an empty VP_ENT_HDR_CTRL in every R2000 file,
         CELLSTYLEMAPs for table styles in R2000-R2007, R2000/R2004 headers naming AutoCAD 2021; corpus AUDIT as before
-  - [ ] (dxfconv6, running) R3.3 follow-ups 10: R2010/R2013 headers naming the format's own version (33/174 in AutoCAD's own: probe their
-        tables); ACAD_TABLE before R2010 (the table style's reactor); R2000 view style colours (a round-trip record);
-        tcustom's explicit default margins and borders; Realistic's lighting model 2 vs 3; R2000 spline solids; the
-        remaining stretch/group orders; unknown node classes; ErrorStatus 76; R2007 AppInfoHistory and SummaryInfo; the
-        ISDYNAMIC heuristic; region GUI checks; spline edges and non-planar faces; orphan ACDSRECORDs; a parse cache (M)
+  - [x] Tables in older DWGs (dxfconv6): ACAD_TABLE, TABLECONTENT, TABLEGEOMETRY and DATATABLE written in R2000-R2007
+        (AutoCAD's own tables bit-equal; 21 of 21 table files AUDIT 0); R2010/R2013 headers name AutoCAD 2021; R2000
+        view style colours kept as indexes as AutoCAD does; Realistic's lighting model 2 below R2010 as AutoCAD
+  - [ ] R3.3 follow-ups 11: tables with a number, field or general-empty value still fall back to their block in
+        R2000/R2004 (AutoCAD writes them as tables); DATATABLE masks (AutoCAD writes 0 for ttable, tstyles); tcustom's
+        explicit default margins and borders (parked: changes R2010+ output); block and field cells of R2000-R2007 tables
+        not compared with AutoCAD; R2000 view-style colours lost through DXF; R2000 spline solids; the remaining
+        stretch/group orders; unknown node classes; ErrorStatus 76; R2007 AppInfoHistory and SummaryInfo; the ISDYNAMIC
+        heuristic; region GUI checks; spline edges and non-planar faces; orphan ACDSRECORDs; a parse cache (M)
   - [x] Dialogs 5 (dialogs5, design v139-v140): Multiline Style (with New/Modify page, Load), Multiline Edit Tools, the
         Hatch dialog's third column (one-colour gradient, colours, layer, transparency, origin, gap), Plot Stamp and PLOT's
         "Plot stamp on", Image Adjust, Attribute Extraction, Xbind
