@@ -1910,6 +1910,11 @@ namespace GeometryHelper.Dxf.Viewer
             string handle = forcedHandle ?? frame.RootHandle ?? entity.Handle ?? string.Empty;
             DisplayStyle style = StyleOf(entity, frame, layerState);
 
+            if (style.Dashes != null)
+            {
+                style = Continued(style, entity, frame);
+            }
+
             // The curves nearly every drawing is made of, which no case below is about, go to their shapes at once: the cases
             // would test each against some seventeen classes, four of them unsealed, whose casts walk the bases of the entity.
             if (entity is DxfLine || entity is DxfArc || entity is DxfCircle)
@@ -1948,7 +1953,7 @@ namespace GeometryHelper.Dxf.Viewer
                         }
                     }
 
-                    DrawBlock(picture, Affine2.Identity, dimension, frame, list, handle, layerName, style);
+                    DrawBlock(picture, Affine2.Identity, dimension, frame, list, handle, layerName, style, frame.Slabs);
                     return;
                 }
                 case DxfBlockReference reference:
@@ -2131,7 +2136,8 @@ namespace GeometryHelper.Dxf.Viewer
                         list,
                         handle,
                         layerName,
-                        style
+                        style,
+                        ShiftedSlabs(frame.Slabs, at.X, at.Y, at.Z)
                     );
                     return;
                 }
@@ -2311,13 +2317,31 @@ namespace GeometryHelper.Dxf.Viewer
             IReadOnlyList<DxfSpatialFilter.Slab> held = frame.Slabs;
             GeoTransform3 carried = held == null ? null : reference.BlockTransform;
 
+            // The steps from a cell to the next along the columns and the rows lie in the plan, turned by the angle of the array,
+            // unless its plane is tilted out of the plan: they then lean out of it, and a cell stands off by their length in it, at
+            // a height (AutoCAD 2021, PNGOUT: the rows of an array of a plane tilted 45 degrees, 40 apart, stand 28.28 apart).
+            GeoVector3 column = default;
+            GeoVector3 row = default;
+            bool leaning = (columns > 1 || rows > 1) && TryTiltedSteps(reference, out column, out row);
+
             for (int r = 0; r < rows; r++)
             {
                 for (int c = 0; c < columns; c++)
                 {
                     double dx = c * columnSpacing;
                     double dy = r * rowSpacing;
-                    Affine2 placed = own.Then(Affine2.Translation(dx * cos - dy * sin, dx * sin + dy * cos));
+                    double shiftX = dx * cos - dy * sin;
+                    double shiftY = dx * sin + dy * cos;
+                    double shiftZ = 0.0;
+
+                    if (leaning)
+                    {
+                        shiftX = dx * column.X + dy * row.X;
+                        shiftY = dx * column.Y + dy * row.Y;
+                        shiftZ = dx * column.Z + dy * row.Z;
+                    }
+
+                    Affine2 placed = own.Then(Affine2.Translation(shiftX, shiftY));
 
                     // The block clipped (XCLIP) shows inside its boundary alone, the frame of the boundary drawn over it. A clip
                     // tilted out of the block's plane shows the block where its prism cuts the plane, and the frame stands over
@@ -2346,7 +2370,7 @@ namespace GeometryHelper.Dxf.Viewer
                             handle,
                             layerName,
                             style,
-                            PlacedSlabs(held, carried, slab, dx * cos - dy * sin, dx * sin + dy * cos),
+                            PlacedSlabs(held, carried, slab, shiftX, shiftY, shiftZ),
                             levels
                         );
                     }
@@ -2542,7 +2566,7 @@ namespace GeometryHelper.Dxf.Viewer
                 // entities: its base point, not the origin of the block that names it, is what stands at the insertion point.
                 IReadOnlyList<DxfSpatialFilter.Slab> held = frame.Slabs;
                 inner.Slabs = ShiftedSlabs(
-                    PlacedSlabs(held, held == null ? null : reference.BlockTransform, planes, 0.0, 0.0),
+                    PlacedSlabs(held, held == null ? null : reference.BlockTransform, planes, 0.0, 0.0, 0.0),
                     origin.X - basePoint.X,
                     origin.Y - basePoint.Y,
                     origin.Z - basePoint.Z
@@ -2895,6 +2919,15 @@ namespace GeometryHelper.Dxf.Viewer
 
                     try
                     {
+                        List<DxfEntity> prism = levels?.Cut(entity);
+
+                        if (prism != null)
+                        {
+                            levels.Leave(list);
+                            DrawParts(prism, slabs, inner, list, false);
+                            continue;
+                        }
+
                         levels?.Enter(entity, list);
 
                         if (slabs == null)
@@ -2940,6 +2973,15 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (shown[i] >= 0)
                     {
+                        List<DxfEntity> prism = levels?.Cut(entity);
+
+                        if (prism != null)
+                        {
+                            levels.Leave(list);
+                            DrawParts(prism, slabs, inner, list, shown[i] > 0);
+                            continue;
+                        }
+
                         levels?.Enter(entity, list);
 
                         if (slabs == null)

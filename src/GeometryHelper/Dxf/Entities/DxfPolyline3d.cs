@@ -1031,6 +1031,9 @@ namespace GeometryHelper.Dxf
                 new DxfTypedValue(70, closed ? "9" : "8"),
             };
 
+        /// <summary>The chain of the vertices drawn, for the presenter to find where the polyline meets a plane.</summary>
+        internal DxfBulgeChain DrawnChain() => Chain();
+
         /// <summary>The chain of the vertices drawn, those of a fitted polyline's frame left out as the reader leaves them.</summary>
         private DxfBulgeChain Chain()
         {

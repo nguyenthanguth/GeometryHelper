@@ -29,7 +29,9 @@ definition above, and of an ATTRIB AutoCAD wrote with an empty group 1. Setting 
 its place and look, its backslashes and braces written as codes, and its group 1 made to agree: the ATTRIB of three lines set
 to `M24 GALV` is an MTEXT of one line `M24 GALV`, still an attribute of several lines. `UpdateMTextAttribute()` places the MTEXT
 again where the text stands, after the attribute is moved or set from its definition. A MINSERT is a [`DxfMInsertBlock`](xref:GeometryHelper.Dxf.DxfMInsertBlock) with
-its `Columns`, `Rows`, `ColumnSpacing` and `RowSpacing`.
+its `Columns`, `Rows`, `ColumnSpacing` and `RowSpacing`: a cell stands one spacing on along the axes of the INSERT's own plane, turned by its
+angle, so that in the plan an array of a plane tilted 45 degrees about X (its normal (0, -0.7071, 0.7071)), its rows 40 apart, shows them 28.28 apart,
+each 28.28 higher, as AutoCAD 2021 draws them.
 
 ## Clipping an INSERT
 
@@ -52,8 +54,12 @@ extension dictionary as AutoCAD leaves it. A clip turned inside out is kept as a
 extents, as AutoCAD keeps it: [`CadXClips.Inverted`](xref:GeometryHelper.Dxf.Viewer.CadXClips) of the presenter makes it. A
 filter is read from and written to a DWG of R2000 and later with the rest of the objects, and AutoCAD 2021 reads both, its AUDIT
 finding nothing. A boundary in a plane tilted to the drawing's is kept whole; the presenter draws its frame as its projection on the plan and
-the block where the boundary's prism cuts the block's plane, as AutoCAD 2021 does, and its front and back planes cut the block
-in height.
+the block where the boundary's prism cuts the block's plane, as AutoCAD 2021 does (a line or a curve that does not lie flat where its path
+leaves the prism), and its front and back planes cut the block in height: a line, circle, arc, ellipse, spline or polyline, 2D and 3D included, that
+crosses one is cut at it, a dashed one carrying on the pattern of the whole. The boundary and the base point of an external reference
+whose block origin is not the drawing's `Insbase` are a case AutoCAD 2021 moves together (a clip of 20 to 80 on a drawing
+reloaded with its base point at 70 shows from -50 to 10), which the presenter does not yet: its entities move by the difference,
+its boundary stays where the insertion point puts it.
 
 ## Units and extents
 

@@ -1734,6 +1734,9 @@ namespace GeometryHelper.Dxf
             return groups;
         }
 
+        /// <summary>The chain of the vertices drawn, for the presenter to find where the polyline meets a plane.</summary>
+        internal DxfBulgeChain DrawnChain() => Chain();
+
         /// <summary>The chain of the vertices drawn (those of a fitted polyline's frame left out, as the reader leaves them), at the elevation, in the system of the normal.</summary>
         private DxfBulgeChain Chain()
         {
