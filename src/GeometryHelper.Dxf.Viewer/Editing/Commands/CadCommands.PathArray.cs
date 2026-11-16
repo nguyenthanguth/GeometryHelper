@@ -112,6 +112,8 @@ namespace GeometryHelper.Dxf.Viewer
             array.Spacing = wide;
             array.Items = array.MaxItems(wide);
             array.RowSpacing = high;
+            var associative = new Ref<bool>();
+            bool maintainZ = true;
             var count = new Ref<int?>();
             var distance = new Ref<double?>();
 
@@ -131,7 +133,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("ASsociative"))
                 {
-                    foreach (CadPrompt prompt in Associative(c))
+                    foreach (CadPrompt prompt in Associative(c, associative))
                     {
                         yield return prompt;
                     }
@@ -322,6 +324,8 @@ namespace GeometryHelper.Dxf.Viewer
                         "Yes"
                     );
 
+                    maintainZ = !c.Input.Is("No");
+
                     if (c.Input.Is("No"))
                     {
                         c.Write("A path in the plan carries no turn about its own direction: the items keep their Z.");
@@ -335,6 +339,38 @@ namespace GeometryHelper.Dxf.Viewer
                     break;
                 }
 
+                yield break;
+            }
+
+            if (associative.Value && !CadArrays.CanBePath(curve))
+            {
+                associative.Value = false;
+                c.Write("The path is not a line, arc, circle or polyline: the items are made as separate objects.");
+            }
+
+            if (associative.Value && CadCommands.MakeAssociative(c, () => new CadAssocArray
+                    {
+                        Kind = CadArrayKind.Path,
+                        Origin = GeoPoint3.Origin,
+                        BasePoint = array.Base ?? curve.GetPointAtDist(fromEnd ? total : 0.0),
+                        Path = curve,
+                        PathLength = total,
+                        PathClosed = closed,
+                        FromEnd = array.FromEnd,
+                        Divide = array.Divide,
+                        Spacing = array.Spacing,
+                        Items = array.Items,
+                        Tangent = array.Tangent,
+                        TangentAngle = array.TangentAngle,
+                        Align = array.Align,
+                        MaintainZ = maintainZ,
+                        Rows = array.Rows,
+                        RowSpacing = array.RowSpacing,
+                        RowElevation = array.Elevation,
+                        Levels = array.Levels,
+                        LevelSpacing = array.LevelSpacing,
+                    }))
+            {
                 yield break;
             }
 

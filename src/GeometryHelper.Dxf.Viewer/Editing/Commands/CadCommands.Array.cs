@@ -8,9 +8,9 @@ namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
     /// ARRAY, ARRAYRECT, ARRAYPOLAR and -ARRAY as AutoCAD 2021 asks them on the command line, each making its copies as
-    /// separate objects, as AutoCAD does with ARRAYASSOCIATIVITY 0: associative arrays are not built (the path type, ARRAYPATH,
-    /// is in <c>CadCommands.PathArray.cs</c>). The array is made when the options end (eXit or Enter), one undo step; Esc makes
-    /// none.
+    /// separate objects, or, where ASsociative is answered Yes, one associative array (<see cref="CadArrays"/>; the path type,
+    /// ARRAYPATH, is in <c>CadCommands.PathArray.cs</c> and ARRAYEDIT in <c>CadCommands.ArrayEdit.cs</c>). -ARRAY makes separate
+    /// objects only. The array is made when the options end (eXit or Enter), one undo step; Esc makes none.
     /// </summary>
     internal static partial class CadCommands
     {
@@ -131,6 +131,9 @@ namespace GeometryHelper.Dxf.Viewer
                 box.IsEmpty || !(box.Max.Y - box.Min.Y > c.Session.Tolerance.EqualPoint)
                     ? 1.0
                     : 1.5 * (box.Max.Y - box.Min.Y);
+            var associative = new Ref<bool>();
+            GeoPoint2? baseAt = null;
+            double elevation = 0.0;
             var count = new Ref<int?>();
             var distance = new Ref<double?>();
 
@@ -176,7 +179,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("ASsociative"))
                 {
-                    foreach (CadPrompt prompt in Associative(c))
+                    foreach (CadPrompt prompt in Associative(c, associative))
                     {
                         yield return prompt;
                     }
@@ -187,6 +190,12 @@ namespace GeometryHelper.Dxf.Viewer
                 if (c.Input.Is("Base point"))
                 {
                     yield return CadPrompt.ForPoint("Specify base point or", null, new[] { "Key point" }, "centroid");
+
+                    if (c.Input.IsPoint)
+                    {
+                        baseAt = c.Input.Point;
+                    }
+
                     continue;
                 }
 
@@ -262,6 +271,7 @@ namespace GeometryHelper.Dxf.Viewer
                         new[] { "Expression" },
                         Length(0.0)
                     );
+                    elevation = c.Input.Kind == CadInputKind.Number ? c.Input.Number : elevation;
                     Planar(c, 0.0);
                     continue;
                 }
@@ -339,6 +349,29 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
+            if (associative.Value && CadCommands.MakeAssociative(c, () =>
+                {
+                    GeoPoint3 at = baseAt.HasValue ? P3(baseAt.Value) : CentreOf(c);
+                    GeoVector2 along = c.Session.Ucs.ToWorld(new GeoVector2(1.0, 0.0));
+                    return new CadAssocArray
+                    {
+                        Kind = CadArrayKind.Rectangular,
+                        Origin = at,
+                        BasePoint = at,
+                        Columns = columns,
+                        ColumnSpacing = across,
+                        Rows = rows,
+                        RowSpacing = up,
+                        RowElevation = elevation,
+                        Levels = levels,
+                        LevelSpacing = deep,
+                        RowAngle = Math.Atan2(along.Y, along.X),
+                    };
+                }))
+            {
+                yield break;
+            }
+
             Copies(c, c.Selected, Moves());
         }
 
@@ -397,6 +430,8 @@ namespace GeometryHelper.Dxf.Viewer
             int levels = 1;
             double deep = 1.0;
             bool turn = true;
+            var associative = new Ref<bool>();
+            double elevation = 0.0;
             var count = new Ref<int?>();
             var distance = new Ref<double?>();
 
@@ -420,7 +455,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("ASsociative"))
                 {
-                    foreach (CadPrompt prompt in Associative(c))
+                    foreach (CadPrompt prompt in Associative(c, associative))
                     {
                         yield return prompt;
                     }
@@ -517,6 +552,7 @@ namespace GeometryHelper.Dxf.Viewer
                         new[] { "Expression" },
                         Length(0.0)
                     );
+                    elevation = c.Input.Kind == CadInputKind.Number ? c.Input.Number : elevation;
                     Planar(c, 0.0);
                     continue;
                 }
@@ -565,6 +601,25 @@ namespace GeometryHelper.Dxf.Viewer
                     break;
                 }
 
+                yield break;
+            }
+
+            if (associative.Value && CadCommands.MakeAssociative(c, () => new CadAssocArray
+                    {
+                        Kind = CadArrayKind.Polar,
+                        Origin = P3(centre),
+                        BasePoint = P3(basePoint),
+                        Items = items,
+                        Between = Math.Abs(step),
+                        Clockwise = step < 0.0,
+                        Rotate = turn,
+                        Rows = rows,
+                        RowSpacing = apart,
+                        RowElevation = elevation,
+                        Levels = levels,
+                        LevelSpacing = deep,
+                    }))
+            {
                 yield break;
             }
 
@@ -952,15 +1007,30 @@ namespace GeometryHelper.Dxf.Viewer
             });
         }
 
-        private static IEnumerable<CadPrompt> Associative(CadCommandContext c)
+        /// <summary>
+        /// The ASsociative option: whether the array is made as one associative array (Yes), its objects kept in an anonymous
+        /// block with the parameters in the drawing's network, or as separate objects (No, the first answer). A drawing older
+        /// than R2010 holds no associations: Yes is answered by saying so, and the items are made as separate objects.
+        /// </summary>
+        private static IEnumerable<CadPrompt> Associative(CadCommandContext c, Ref<bool> associative)
         {
-            yield return CadPrompt.ForKeyword("Create associative array", new[] { "Yes", "No" }, "No");
+            yield return CadPrompt.ForKeyword(
+                "Create associative array",
+                new[] { "Yes", "No" },
+                associative.Value ? "Yes" : "No"
+            );
 
-            if (c.Input.Is("Yes"))
+            if (c.Input.Kind != CadInputKind.Keyword)
             {
-                c.Write(
-                    "Associative arrays are not built: the items are made as separate objects (ARRAYASSOCIATIVITY 0)."
-                );
+                yield break;
+            }
+
+            associative.Value = c.Input.Is("Yes");
+
+            if (associative.Value && !CadArrays.CanTie(c.Database))
+            {
+                associative.Value = false;
+                c.Write("Associative arrays need a drawing of R2010 or later: the items are made as separate objects.");
             }
         }
 

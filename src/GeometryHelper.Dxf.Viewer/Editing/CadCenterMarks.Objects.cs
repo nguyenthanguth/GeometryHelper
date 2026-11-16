@@ -17,7 +17,7 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     internal static partial class CadCenterMarks
     {
-        private const string NetworkKey = "ACAD_ASSOCNETWORK";
+        internal const string NetworkKey = "ACAD_ASSOCNETWORK";
         private const string MarkBody = "AcDbCenterMarkActionBody";
         private const string LineBody = "AcDbCenterLineActionBody";
         private const double Unlimited = 1.0E+60;
@@ -321,7 +321,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The network of a space, made with the one of the drawing it is listed in where there is none; the network of the drawing too.</summary>
-        private static DxfItem EnsureNetwork(DxfDatabase database, DxfBlockTableRecord space, out DxfItem global)
+        internal static DxfItem EnsureNetwork(DxfDatabase database, DxfBlockTableRecord space, out DxfItem global)
         {
             DxfFile file = database.File;
             DxfDBDictionary root = database.NamedObjectsDictionary;
@@ -403,7 +403,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The handles a network lists, in order.</summary>
-        private static List<string> ActionsOf(DxfItem network)
+        internal static List<string> ActionsOf(DxfItem network)
         {
             var handles = new List<string>();
             IReadOnlyList<DxfTypedValue> groups = network.Groups;
@@ -435,7 +435,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Lists a handle last in a network's list of objects, both counts one more.</summary>
-        private static void List(DxfFile file, DxfItem network, int code, string handle)
+        internal static void List(DxfFile file, DxfItem network, int code, string handle)
         {
             List<KeyValuePair<int, string>> groups = Raw(network);
             int at = Start(network.Groups, "AcDbAssocNetwork");
@@ -461,7 +461,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Takes a handle out of a network's list, both counts one less.</summary>
-        private static void Unlist(DxfFile file, DxfItem network, string handle)
+        internal static void Unlist(DxfFile file, DxfItem network, string handle)
         {
             List<KeyValuePair<int, string>> groups = Raw(network);
             int at = Start(network.Groups, "AcDbAssocNetwork");
@@ -512,7 +512,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Where the groups of a subclass begin among a record's groups, just after its marker (100); -1 where it has none.</summary>
-        private static int Start(IReadOnlyList<DxfTypedValue> groups, string marker)
+        internal static int Start(IReadOnlyList<DxfTypedValue> groups, string marker)
         {
             for (int i = 0; i < groups.Count; i++)
             {

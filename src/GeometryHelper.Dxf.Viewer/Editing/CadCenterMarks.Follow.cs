@@ -630,7 +630,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private static void Relink(DxfFile file, string handle, int slot, string to)
+        internal static void Relink(DxfFile file, string handle, int slot, string to)
         {
             if (handle == "0" || !(file.ObjectItem(handle) is DxfItem other) || other.IsRemoved)
             {
@@ -646,7 +646,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Takes out a network that holds no action: out of the list of the network of the drawing, with the dictionaries round it, and the extension dictionary of the space where that holds nothing else.</summary>
-        private static void ReleaseNetwork(CadDocument document, DxfFile file, DxfItem network)
+        internal static void ReleaseNetwork(CadDocument document, DxfFile file, DxfItem network)
         {
             DxfDatabase database = document.Database;
             DxfItem holder = file.ObjectItem(file.OwnerOf(network) ?? string.Empty);

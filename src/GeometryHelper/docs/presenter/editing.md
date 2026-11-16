@@ -233,7 +233,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 297 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 298 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -245,7 +245,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, PStyle, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, LAYMRG and -LAYMRG (Name, Undo), LAYDEL and -LAYDEL (Name, Undo), LAYCUR, COPYTOLAYER and -COPYTOLAYER (?, =, Displacement, eXit), VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, SELECTSIMILAR (SEttings), ADDSELECTED, TEXTSCR, UNITS, -UNITS, SCRIPT, SAVE, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?), QUICKCALC, CAL, QUICKPROPERTIES |
-| modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too; a spline made a polyline within a precision), REVCLOUDPROPERTIES (Arc length), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPATH, ARRAYPOLAR, -ARRAY, OVERKILL, -OVERKILL, ALIGN, CHANGE (Properties: Color, Elev, LAyer, LType, ltScale, LWeight, Thickness, TRansparency, Material, Annotative), CHPROP (the same less Elev), SETBYLAYER (Settings), REVERSE, CHSPACE, BURST, TXTEXP, and the variable SETBYLAYERMODE |
+| modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too; a spline made a polyline within a precision), REVCLOUDPROPERTIES (Arc length), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPATH, ARRAYPOLAR, ARRAYEDIT, -ARRAY, OVERKILL, -OVERKILL, ALIGN, CHANGE (Properties: Color, Elev, LAyer, LType, ltScale, LWeight, Thickness, TRansparency, Material, Annotative), CHPROP (the same less Elev), SETBYLAYER (Settings), REVERSE, CHSPACE, BURST, TXTEXP, and the variable SETBYLAYERMODE |
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a name typed may be a wildcard and every attributed block it matches is synced; what is picked that is no block, or a block with no attribute definitions, refused and another asked for, in the words of AutoCAD's own table of strings; an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, ATTEXT, -ATTEXT (Cdf, Sdf, Dxf, Objects), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK, REFEDIT, -REFEDIT (Ok, Next; All, Nested), REFSET (Add, Remove), REFCLOSE (Save, Discard), and the variables REFEDITNAME and XFADECTL |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | annotation | DIMOVERRIDE (Clear overrides), TEXTALIGN (alIgnment, Options, Point), MLEADEREDIT (Remove leaders, Add leaders), MLEADERALIGN (Options), MLEADERCOLLECT (Vertical, Horizontal, Wrap), ATTIPEDIT, SPELL (All, Dictionary), SCALETEXT (Existing, Left, Center, Middle, Right, TL to BR; Paper height, Match object, Scale factor, Reference), JUSTIFYTEXT (Left, Align, Fit, Center, Middle, Right, TL to BR), TXT2MTXT (Settings), ATTDISP (Normal, ON, OFF) (see [Annotation commands](#annotation-commands)) |
@@ -2439,7 +2439,7 @@ first corner again (the opposite corner of the implied window asks itself again)
 point says `Invalid response.`: both said `Point or option keyword required.` before. ARRAYRECT and ARRAYPOLAR ask `Enter the
 number of columns or [Expression] <4>:` and `Enter the number of rows or [Expression] <3>:`, and `Select grip to edit array
 or [...]<eXit>:` with the default straight after the brackets, as AutoCAD writes it; their `Type = Rectangular  Associative =
-No` line stays No, as the items are made as separate objects. SCALE asks `Specify scale factor or [Copy/Reference]:` with no
+No` line stays No until ASsociative answers Yes: the items are then one associative array (see below). SCALE asks `Specify scale factor or [Copy/Reference]:` with no
 default shown, and Enter takes the factor used last (1 at first).
 
 DIVIDE and MEASURE put points, or a block with Block (turned along the curve unless `Align block with object? [Yes/No]
@@ -2697,6 +2697,70 @@ object gets `This kind of object cannot be added.` A colour of true colour is dr
 Select Similar and Add Selected run them on the selection. TEXTSCR (F2) shows the text window: the command history, one
 line to a row, in a resizable list that follows the command line while it is open, with Copy (Ctrl+C) for the rows chosen or
 for all of them; F2 or Esc inside it closes it. With no window TEXTSCR says `The text window is shown by the window.`
+### Associative arrays and ARRAYEDIT
+
+These were checked against AutoCAD 2021 itself: its console ran the commands over a circle, a line and paths and the DXF it
+wrote was read here, and the DXF written here was loaded into it (its `AssocArray` API gave back each array's kind, counts,
+spacings and the origin and X axis of every item, and AUDIT found 0 errors in each of eight files).
+
+ARRAYRECT, ARRAYPOLAR and ARRAYPATH (and the Rectangular, Polar and PAth types of ARRAY) make separate objects until
+ASsociative answers Yes (`Create associative array [Yes/No] <No>:`), then one associative array, as AutoCAD 2021 stores it. The
+objects selected are taken into it: model space holds one INSERT of an anonymous block (`*U2`) that holds an INSERT of the source
+block (`*U1`) for each item, and the source block holds the objects as they lie from the base point. A rectangular array of a
+circle of radius 5 at (10, 10), 3 columns 20 apart and 4 rows 30 apart, is one INSERT at (10, 10) over 12 item INSERTs, the second
+at (0, 30) and the last at (40, 90), and the circle in `*U1` at (0, 0). The base point is the middle of the box of the objects (the
+INSERT of a rectangular array stands on it, a polar array's on its centre, a path array's at the origin of the drawing); the Base
+point option of the array's prompt names another. The parameters live in the drawing's associative network, in an
+`ACDBASSOCACTION` with an `ACDBASSOCARRAYACTIONBODY` (the parameters' class, each item's index, matrix and INSERT, and the INSERT's
+own matrix), the values of the parameters by name (`Items`, `ItemSpacing`, `Rows`, `RowSpacing`, `RowElevation`, `Levels`,
+`LevelSpacing`; `AxesAngle` for a rectangular array, `FillAngle`, `Radius` and `StartAngle` for a polar one, `Direction` and
+`AlignItems` where they are not the defaults; `AlignItems`, `MaintainZ`, `Orientation`, `TangentOrientationAngle`,
+`PathDirection` and `Method` for a path), dependencies on the two blocks, the INSERT and, for a path array, the path curve, and
+the vertex parameters `BaseNormal`, `Origin` and `basePoint` and the edge `RowProfile` (the path curve as a line, an arc, a circle
+or a chain of them for a polyline; for a rectangular array whose rows are turned, the line along its column axis). A path that is
+no line, arc, circle or polyline of lines and arcs in the plan (an ellipse, a spline) says so and makes separate objects; so does a
+drawing older than R2010, which holds no associations (`Associative arrays need a drawing of R2010 or later: the items are made as
+separate objects.`). Levels and the elevation between rows, which the separate copies leave out, are built in an associative
+array: two levels 7 apart and rows 4 higher put the item (0, 1, 1) of a rectangular array 25 along at (0, 25, 11).
+
+An associative array AutoCAD wrote is read back: kind, parameters, items and their matrices (the arrays of 34 DXF files of AutoCAD 2021's own
+rectangular, polar and path arrays, with the row axis angle, clockwise and unrotated polar arrays with rows and levels, a path
+from its end, Divide, Align items off, the Vector and Normal tangents, and circle, arc and polyline paths, were read, and the
+items made again from the parameters were equal to AutoCAD's to a millionth). EXPLODE of an array breaks it into the source objects
+of each item, put where the item stands, and takes the objects out of the network; ERASE does the same; MOVE, ROTATE and SCALE of
+the INSERT keep the array (the matrix of the INSERT that the body keeps follows it; a path array moved on its own is made plain,
+as its items stand on the path); the path curve moved or stretched writes the array again along it; COPY and MIRROR make an array
+of its own, with blocks of its own, so that a change of the one leaves the other (a copy of a path array keeps its picture but is
+no longer tied to the path).
+
+ARRAYEDIT asks `Select array:` (any other object says `Object selected is not an associative array.` and `1 was filtered out`,
+and it asks again), then offers the options of the array's kind until eXit or Enter, each change made at once (one undo step, the
+items made again, the INSERT keeping its handle): `Enter an option [Source/REPlace/Base point/Rows/Columns/Levels/RESet/eXit]
+<eXit>:` for a rectangular array, `[Source/REPlace/Base point/Items/Angle between/Fill angle/Rows/Levels/ROTate items/RESet/eXit]`
+for a polar one and `[Source/REPlace/Method/Base point/Items/Rows/Levels/Align items/Z direction/RESet/eXit]` for a path array.
+Columns asks `Enter the number of columns or [Expression] <3>:` and `Specify the distance between columns or [Total/Expression]
+<20.0000>:`; Rows adds `Specify the incrementing elevation between rows or [Expresson] <0.0000>:` (spelt so by AutoCAD); Items,
+Angle between, Fill angle, ROTate items, Method (`Enter path method [Divide/Measure] <Measure>:`), Align items and Z direction ask
+as the grip prompts of ARRAYPOLAR and ARRAYPATH do. 3 columns 20 apart edited to 5 columns 40 apart have their columns at 0, 40,
+80, 120 and 160; 6 items of a polar array edited to 8 filling 120 degrees are 17.142857 apart. Base point re-anchors the array on
+the point and leaves the items where they are (a rectangular array's INSERT moves to the point and the circle in `*U1` to
+(-40, -40) for the point (50, 50); a polar array's radius and start angle become the point's; a path array's source objects are
+held from the point, which the first item then puts on the path). REPlace asks `Select replacement objects:`, `Select base point
+of replacement objects or [Key Point] <centroid>:` and `Select an item in the array to replace or [Source objects]:`: Source
+objects puts the replacement in every item, held from the array's base point as the sources were, the replacement objects taken
+into the array. RESet makes the items again from the parameters. Source (editing the source objects in place, with ARRAYCLOSE),
+the replacement or erasure of a single item and the grips of an array are not built.
+
+Selecting one associative array shows the contextual Array tab (green, as the Table Cell tab is): Type, Columns (Items), Rows,
+Levels and Properties, with the count, the distance between and the total of each, the elevation between rows, Base Point (it
+starts ARRAYEDIT), Reset Array, Rotate Items and Clockwise for a polar array, Align Items and Divide for a path array; Edit Source
+and Replace Item are greyed. A value written in a box is one undo step named ARRAYEDIT.
+
+Written to DWG (`DwgWriter`), an array keeps its picture, the INSERT and its two blocks with every item, and loses its
+association, as a center mark does: the objects of the network (`ACDBASSOCACTION`, `ACDBASSOCARRAYACTIONBODY`,
+`ACDBASSOCVERTEXACTIONPARAM`, `ACDBASSOCEDGEACTIONPARAM`) have no DWG layout written yet, so AutoCAD opens the file (AUDIT 0
+errors) with a plain block reference where the DXF has an array.
+
 ### ARRAYPATH and OVERKILL
 
 These were checked against AutoCAD 2021's console, driven through its standard input (probe modify2, 17 November).
@@ -2706,7 +2770,7 @@ polyline or spline; a pick that is none of them says `1 was filtered out` and as
 says `Objects selected to be arrayed may not be selected as path curve.`), writes `Type = Path  Associative = No` and
 offers `Select grip to edit array or [ASsociative/Method/Base point/Tangent direction/Items/Rows/Levels/Align items/Z
 direction/eXit]<eXit>:`, the array drawn as a preview, until eXit or Enter makes it, one undo step. Every item is a separate
-object, as with ARRAYASSOCIATIVITY 0, and the objects themselves stay the first item. The items follow the path from the end
+object (unless ASsociative is answered Yes, see Associative arrays below), and the objects themselves stay the first item. The items follow the path from the end
 nearest the pick (a closed path from its start, a circle from angle nought, counter-clockwise). Measure, the default,
 asks `Specify the distance between items along path or [Expression] <15.0000>:` (one and a half times the width of the
 objects), says `Maximum items = 4` and asks `Specify number of items or [Fill entire path/Expression] <4>:`: a path of 100
@@ -2725,7 +2789,7 @@ up with the path along their Z axis. Rows (`Enter the number of rows or [Express
 and the incrementing elevation) lie to the left of the way the path runs, turned or not, and Levels above along Z; two rows
 8 apart 5 higher and two levels 10 apart give copies at Z 0, 10, 5 and 15. Z direction asks `Maintain Z direction for all
 items in the array? [Yes/No] <Yes>:`; a path in the plane turns no item about its own direction, so the answer changes
-nothing. Associative arrays are not built (ASsociative says so), and neither are the grips of the array.
+nothing. ASsociative Yes makes an associative array (see below); the grips of an array are not built.
 
 OVERKILL asks for the objects and then shows the Delete Duplicate Objects dialog, -OVERKILL asks the same on the command
 line: `Current settings: Tolerance=0.000001, Ignore=None, Optimize polylines=Yes, Combine partial overlap=Yes, Combine
@@ -3114,7 +3178,7 @@ DIST and AREA made (AREA and DIST are commands too, so SETVAR AREA reads the var
 in the UCS, which `LASTPOINT` typed sets. CMDECHO, EXPERT, HIGHLIGHT, PICKAUTO, PICKDRAG, OSNAPZ, ARRAYASSOCIATIVITY, ELEVATION,
 THICKNESS, MEASUREMENT, UNITMODE, LIMCHECK, SPLFRAME, QTEXTMODE, ATTMODE, SPLINETYPE, SPLINESEGS and the USERI and USERR
 variables keep their value, in the header for the drawing's and for the session for the rest, and nothing in the presenter
-reads it yet: the presenter draws in the plane, has no associative array, no QTEXT, no limits check and no drawn
+reads it yet (ARRAYASSOCIATIVITY does not make the arrays associative: ASsociative asks at each array): the presenter draws in the plane, has no QTEXT, no limits check and no drawn
 selection highlight to turn off, and it takes a window by a drag or by two clicks whatever PICKDRAG says. SPLINETYPE takes only 5 and 6 (AutoCAD takes any
 number 0 to 32767) and SPLINESEGS any but 0. `'` before a variable's name (`'PDMODE`) at a prompt asks it inside the
 command; see [the app](app.md).

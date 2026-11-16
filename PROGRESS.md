@@ -772,7 +772,7 @@ Wave 1 (High):
 - [x] (vars1) Common system variables typable: TRIMEXTENDMODE, LUNITS/LUPREC/AUNITS/AUPREC/INSUNITS, ANGBASE/ANGDIR, PLINEWID,
       PLINEGEN, HPNAME/HPSCALE/HPANG/HPLAYER, DIMLAYER, DELOBJ, SAVETIME, FILLMODE and others (M)
 
-Wave 2 (Medium): done: modify3 (XLINE Offset and Ang Reference, REVERSE, SETBYLAYER typed settings, CHPROP, BURST, TXTEXP, CHSPACE). Running: arrays1 (associative arrays, ARRAYEDIT), fields1 (FIELD, UPDATEFIELD). XLINE Offset; associative arrays and ARRAYEDIT; REVERSE, SETBYLAYER, CHPROP; BURST and TXTEXP;
+Wave 2 (Medium): done: modify3 (XLINE Offset and Ang Reference, REVERSE, SETBYLAYER typed settings, CHPROP, BURST, TXTEXP, CHSPACE), arrays1 (associative arrays in DXF, ARRAYEDIT, Array tab; follow-up: DWG codecs of the assoc objects, Edit Source/ARRAYCLOSE, array grips, honour ARRAYASSOCIATIVITY). Running: fields1 (FIELD, UPDATEFIELD), misc2 (DWGPROPS, HYPERLINK, GROUPEDIT, ATTREDEF, MEASUREGEOM Quick, CLEANSCREEN). XLINE Offset; associative arrays and ARRAYEDIT; REVERSE, SETBYLAYER, CHPROP; BURST and TXTEXP;
 FIELD and UPDATEFIELD; MTEXT editor leftovers (Import Text, character map, AutoCAPS, Match Text Formatting, Spell);
 table cell Cut/Copy/Paste, cell styles, Borders, Locking, Data Format, Match Cell, Insert Block/Field/Formula; xref edit
 in place; more raster types; dynamic block authoring; DWGPROPS; MEASUREGEOM Quick; HATCHGENERATEBOUNDARY and Set

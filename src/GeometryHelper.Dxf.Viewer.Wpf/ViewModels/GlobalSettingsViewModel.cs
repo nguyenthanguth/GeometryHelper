@@ -698,6 +698,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["ALIGN"] = "Move, turn and scale objects to others",
             ["AREA"] = "Area and perimeter of points or objects",
             ["ARRAY"] = "Copy objects in a grid, round or along a path",
+            ["ARRAYEDIT"] = "Edit an associative array and its items",
             ["ARRAYPATH"] = "Copy objects along a path",
             ["ARRAYPOLAR"] = "Copy objects round a centre",
             ["ARRAYRECT"] = "Copy objects in rows and columns",

@@ -290,6 +290,9 @@ namespace GeometryHelper.Dxf.Viewer
                 // A center mark or center line follows the circle or the lines it is drawn from.
                 followed.AddRange(CadCenterMarks.Follow(this, planned, scope.Records));
 
+                // An associative array follows what the edit did to its INSERT or its path curve.
+                followed.AddRange(CadArrays.Follow(this, planned, scope.Records));
+
                 // A viewport clipped by an entity follows the entity: its frame is the box of the entity again.
                 followed.AddRange(CadViewportClips.Follow(this, planned, scope.Records));
 

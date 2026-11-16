@@ -320,21 +320,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Hatched(false, out DxfHatch hatch);
 
-            Run(
-                Session(document),
-                "ARRAYRECT",
-                new[] { hatch.Handle },
-                Enter,
-                "AS",
-                "Y",
-                "COU",
-                "2",
-                "2",
-                "S",
-                "70",
-                "20",
-                "X"
-            );
+            Run(Session(document), "ARRAYRECT", new[] { hatch.Handle }, Enter, "COU", "2", "2", "S", "70", "20", "X");
 
             // AutoCAD 2021 (-ARRAY of 2 rows by 2 columns, 20 and 70 apart): the bases (0, 20), (70, 0) and (70, 20), a view of (0, 0) each.
             List<DxfHatch> items = All<DxfHatch>(document.ModelSpace).Where(e => e != hatch).ToList();

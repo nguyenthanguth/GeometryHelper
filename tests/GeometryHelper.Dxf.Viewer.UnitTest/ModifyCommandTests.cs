@@ -584,11 +584,6 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 "Select grip to edit array or [ASsociative/Base point/COUnt/Spacing/COLumns/Rows/Levels/eXit]<eXit>:",
                 session.PromptText
             );
-            Run(session, "AS", "Y");
-            Assert.Contains(
-                "Associative arrays are not built: the items are made as separate objects (ARRAYASSOCIATIVITY 0).",
-                session.History
-            );
             Run(session, "COU", "3", "2", "S", "20", "15", "X");
 
             List<DxfLine> lines = All<DxfLine>(document.ModelSpace);
