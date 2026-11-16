@@ -4526,8 +4526,8 @@ namespace GeometryHelper.Dxf
                     return 0;
                 }
 
-                DxfItem[] items = space.Snapshot();
-                HashSet<string> columns = LinkedColumns(items);
+                // Nothing changes while the records are counted, so the list is read as it stands, with no copy of it.
+                HashSet<string> columns = LinkedColumns(space);
 
                 if (columns == null)
                 {
@@ -4536,8 +4536,9 @@ namespace GeometryHelper.Dxf
 
                 int count = 0;
 
-                foreach (DxfItem item in items)
+                for (int i = 0; i < space.Count; i++)
                 {
+                    DxfItem item = space[i];
                     count += item.IsRemoved || IsColumn(item, columns) ? 0 : 1;
                 }
 

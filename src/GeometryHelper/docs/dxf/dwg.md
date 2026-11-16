@@ -382,6 +382,11 @@ first. A drawing of 100 000 lines, 1.9 MB as a DWG of AutoCAD 2018 and 14 MB as 
 The best of five reads on one machine, .NET Framework 4.8; AC1021 was timed later, on the machine under other load,
 where AC1018 took 747 to 796 ms in the same runs. A small drawing of a few hundred objects reads in 1 or 2 ms.
 
+A DWG of 300 000 entities with fractional coordinates (9.1 MB, 54 MB as DXF) opens in 1.26 s the first time in a
+process and 0.74 s the next under .NET 8 (1.53 s and 1.42 s under .NET Framework 4.8), where it took 1.63 s and 1.12 s
+(2.18 s and 2.05 s): the DXF it is turned into is written in one array and read in place, and is byte for byte what it
+was.
+
 ## Writing DWG files
 
 [`DwgWriter`](xref:GeometryHelper.Dwg.DwgWriter)`.Write` writes a `DxfDatabase`, with every record it holds, or the

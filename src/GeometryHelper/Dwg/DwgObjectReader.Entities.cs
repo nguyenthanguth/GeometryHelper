@@ -42,6 +42,7 @@ namespace GeometryHelper.Dwg
 
             double thickness = _data.BitThickness();
             double[] extrusion = _data.BitExtrusion();
+            _object.ReserveBody(7);
             _object.Add(100, "AcDbLine");
             AddNonZero(39, thickness);
             _object.AddPoint(10, new[] { x1, y1, z1 });
@@ -55,6 +56,7 @@ namespace GeometryHelper.Dwg
             double radius = _data.BitDouble();
             double thickness = _data.BitThickness();
             double[] extrusion = _data.BitExtrusion();
+            _object.ReserveBody(arc ? 8 : 5);
             _object.Add(100, "AcDbCircle");
             AddNonZero(39, thickness);
             _object.AddPoint(10, centre);
@@ -77,6 +79,7 @@ namespace GeometryHelper.Dwg
             double thickness = _data.BitThickness();
             double[] extrusion = _data.BitExtrusion();
             double angle = _data.BitDouble();
+            _object.ReserveBody(5);
             _object.Add(100, "AcDbPoint");
             _object.AddPoint(10, point);
             AddNonZero(39, thickness);
@@ -407,6 +410,7 @@ namespace GeometryHelper.Dwg
                 style = H();
             }
 
+            _object.ReserveBody(kind == 0 ? 10 : 0);
             _object.Add(100, "AcDbText");
             AddNonZero(39, thickness);
             _object.AddPoint(10, new[] { insertion[0], insertion[1], elevation });
@@ -726,6 +730,7 @@ namespace GeometryHelper.Dwg
                 _object.SeqEnd = H();
             }
 
+            _object.ReserveBody(array ? 14 : 9);
             _object.Add(100, array ? "AcDbMInsertBlock" : "AcDbBlockReference");
 
             if (attributes)
@@ -966,6 +971,7 @@ namespace GeometryHelper.Dwg
                 widths[i] = new[] { start, _data.BitDouble() };
             }
 
+            _object.ReserveBody(6 + (2 * count) + idCount + (2 * widthCount) + bulgeCount);
             _object.Add(100, "AcDbPolyline");
             _object.Add(90, count);
             _object.Add(70, ((flags & 0x200) != 0 ? 1 : 0) | ((flags & 0x100) != 0 ? 128 : 0));

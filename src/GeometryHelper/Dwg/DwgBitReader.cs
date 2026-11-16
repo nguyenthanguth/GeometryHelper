@@ -141,6 +141,25 @@ namespace GeometryHelper.Dwg
         /// <summary>The next <paramref name="count"/> bits (at most 32) as one number, the first bit the highest.</summary>
         public uint Bits(int count)
         {
+            // The bits are taken from the bytes they lie in at once where they are all there, one bit at a time only where
+            // the end is in the way, so that the bits read before it is reached are read as they were.
+            if (count > 0 && count <= 32 && _position + count <= _end)
+            {
+                long position = _position;
+                int index = (int)(position >> 3);
+                int shift = (int)(position & 7);
+                int bytes = (shift + count + 7) >> 3;
+                ulong window = 0;
+
+                for (int i = 0; i < bytes; i++)
+                {
+                    window = (window << 8) | _data[index + i];
+                }
+
+                _position = position + count;
+                return (uint)((window >> ((bytes * 8) - shift - count)) & ((1UL << count) - 1));
+            }
+
             uint value = 0;
 
             for (int i = 0; i < count; i++)
@@ -209,6 +228,32 @@ namespace GeometryHelper.Dwg
         public double RawDouble()
         {
             long bits = 0;
+
+            if (_position + 64 <= _end)
+            {
+                // Eight bytes, the first the lowest, taken from the nine they lie in.
+                int index = (int)(_position >> 3);
+                int shift = (int)(_position & 7);
+                _position += 64;
+
+                if (shift == 0)
+                {
+                    for (int i = 7; i >= 0; i--)
+                    {
+                        bits = (bits << 8) | _data[index + i];
+                    }
+                }
+                else
+                {
+                    for (int i = 7; i >= 0; i--)
+                    {
+                        bits =
+                            (bits << 8) | (byte)((_data[index + i] << shift) | (_data[index + i + 1] >> (8 - shift)));
+                    }
+                }
+
+                return BitConverter.Int64BitsToDouble(bits);
+            }
 
             for (int i = 0; i < 8; i++)
             {

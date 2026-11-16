@@ -404,6 +404,31 @@ the space are walked as the list of the space itself where the block has no link
 1.30 s where 1.28 and 0.55 s as before). Display lists (every space, field for field), a REGEN of the first, the bytes a drawing saves and the pixels of two views, plain and with
 everything selected, are those they were on 953 drawings (812 DXF and 141 DWG of AutoCAD) under .NET 8 and .NET Framework 4.8, and on drawings of 100 000 and 1 000 000 entities.
 
+The opening of a DWG, the first 0.6 s of which was the reading of its objects, is lighter in what it makes and keeps (a DWG of 300 000 entities with fractional coordinates, 9.1 MB, 54 MB
+as the DXF it is turned into: 596 MB of garbage where 794, .NET 8; 617 where 924, .NET Framework 4.8). The DXF is written into one array that is made at once for the length a DXF of that DWG
+has (seven times the file, 1.2 to 11.9 times in 182 drawings) and doubles only where that was short, where it went through a `MemoryStream`, a byte at a time, with a string made for each
+group code, each whole number, each handle and each double, and each double's text tried back through `double.Parse`; the array is given to the reader of the DXF as it is, with its length, and cut to its
+length first only where a quarter of it or more is unused (the drawing holds it for as long as it is open), where a copy of 54 MB was made and the array it was written in let go of. The
+groups an object of the DWG holds keep a double or an int in the group itself (`DwgGroup.Real`, `DwgGroup.Whole`), 24 bytes in the list where it took 16 there and a boxed 24 apart, two objects for the collector to walk; a LINE keeps six of its
+seven groups so. What only some objects carry (the owned entities and the ends of a polyline, the name and the entries of a table record, the block's own groups and the rest, some 110 bytes of fields) is
+kept in an object of its own made when the first is set (an object of the DWG is 120 bytes where it was 392, its five lists made empty included), and the lists an object has none in (reactors, extended data, the groups every entity carries) are not made for it. An entity is given room for the groups it
+adds, 7 for a LINE, 5 for a CIRCLE, a polyline's by its vertices, where a list grown by adding took 4, 8, 16 and kept what it did not use. An object of a LINE or a CIRCLE kept 731 bytes with the list
+that holds it and the table of handles, and keeps 432. The bits of a DWG are taken from the bytes they lie in at once where all of them are there (a handle, a bit double, a raw double), and one at a time only where the end of the data is in the way,
+so that a broken object is refused with the same message at the same bit. A DWG of 300 000 entities opened the first time in a process takes 1.26 s where 1.63 under .NET 8 (its objects 0.42 s where
+0.61, the DXF 0.62 s where 0.74) and the next time 0.74 s where 1.12; under .NET Framework 4.8 1.53 s where 2.18 and 1.42 s where 2.05 (medians of 7 runs, the two builds alternated; .NET 10 1.29 s where 1.73 and 0.58 s where 0.96 in 5). Under .NET Core a double that is
+neither whole nor very large or small (from 0.0001 up to 1E14) is formatted once, as the shortest text that brings it back, where the older code formatted it with 15 digits and tried that text back: the text is the same, to the byte,
+for the 60 000 000 doubles it was tried on, and a number outside those bounds, and every number under .NET Framework, goes the way it did. The DXF the reader makes of each of 182 DWGs (95 of AutoCAD's own
+samples, 71 of the test files and 16 written by AutoCAD for the harness) is byte for byte what it was, under .NET 8 and .NET Framework 4.8, as is that of the two drawings of 300 000 entities.
+Of what remains in the 1.26 s, the reading of the objects is a third, much of it the collector walking the 300 000 objects it keeps while they are made; level with the DXF written,
+and the read of that DXF by `DxfDatabase` (0.12 s) comes after.
+
+A block's `Count` no longer makes a copy of its entities (7.8 MB at 1 000 000, 9.7 ms where 7.1), and the copy a walk makes (`GetEnumerator`, `AllItems`, `AllEntities`, `EntityByHandle`, which must be a copy, for the block is
+changed while it is walked) is made once for walks that follow one another with no entity added or removed between them, and held only until the collector wants it: the lookups by handle that a hatch, a leader and a viewport
+make each took 7.8 MB of garbage at 1 000 000 entities and take none. A walk that erases the entities as it meets them still passes over each of them once. Three more things were measured and left: the box of an arc (`DisplayArc2` is
+104 bytes of 9 numbers and 2 references) could be made when asked for, saving 32 bytes of each arc, but it takes 50 to 68 ms to make a million where reading one kept takes 5.5, a price on each pass of the canvas over
+the items that is paid for 2 per cent of the heap; the contexts a TEXT keeps (a 48-byte tuple) are not reached by the display of a plain TEXT, so that taking them out changed no byte of its heap; and the walk over the records for linked
+columns, 6 ms in a display of 1 000 000 entities, is not kept between displays, for an edit of the extended data of an MTEXT does not change the list it is kept against.
+
 `PrepareDisplay(space, progress, cancellationToken)` makes the list and the pick index of a space ahead, item for item the
 list `GetDisplay` makes, telling `progress` the share of the space's entities drawn every 4 096 of them and stopping, with
 an `OperationCanceledException`, when the token is cancelled; a list stopped is not kept, and is made whole when next

@@ -71,11 +71,11 @@ namespace GeometryHelper.Dwg
         private readonly DwgContainer _container;
         private readonly DwgHeaderVariables _header;
         private readonly List<DwgClass> _classes;
-        private readonly List<DwgObject> _objects = new List<DwgObject>();
-        private readonly Dictionary<ulong, DwgObject> _byHandle = new Dictionary<ulong, DwgObject>();
+        private readonly List<DwgObject> _objects;
+        private readonly Dictionary<ulong, DwgObject> _byHandle;
         private readonly HashSet<ulong> _written = new HashSet<ulong>();
         private readonly Dictionary<ulong, int[]> _viewportNumbers = new Dictionary<ulong, int[]>();
-        private readonly DwgDxfWriter _dxf = new DwgDxfWriter();
+        private readonly DwgDxfWriter _dxf;
         private readonly ProgressSteps _progress;
         private readonly CancellationToken _stop;
         private readonly bool _doubleByte;
@@ -96,6 +96,13 @@ namespace GeometryHelper.Dwg
         private DwgTranscoder(DwgContainer container, ProgressSteps progress, CancellationToken stop)
         {
             _container = container;
+
+            // Made to hold every object of the file, so that neither is grown, and its arrays made and let go of, as they fill.
+            _objects = new List<DwgObject>(container.ObjectMap.Count);
+            _byHandle = new Dictionary<ulong, DwgObject>(container.ObjectMap.Count);
+
+            // A DXF is some six times its DWG (1.2 to 11.9 in 182 drawings, 6 in the two of 300 000 entities): seven times the file is made at once, so that its array is not grown in most.
+            _dxf = new DwgDxfWriter((int)Math.Min(container.Objects.LongLength * 7, 512L << 20));
             _progress = progress;
             _stop = stop;
             _version = DwgContainer.NumberOf(_container.Version);
@@ -210,6 +217,24 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>
+        /// The DXF of the DWG in <paramref name="file"/> as <see cref="ToDxf(byte[], IList{string}, ProgressSteps, CancellationToken)"/>
+        /// makes it, in the array it was written in and not in a copy of it cut to its length, for a reader of it that is given
+        /// the length (<see cref="Dxf.DxfDatabase"/>): a DXF of 46 MB is not copied, and its copy is not left to be collected.
+        /// The bytes from <paramref name="length"/> on are not DXF.
+        /// </summary>
+        public static byte[] ToDxfBuffer(
+            byte[] file,
+            out int length,
+            IList<string> supportFolders = null,
+            ProgressSteps progress = null,
+            CancellationToken stop = default
+        )
+        {
+            progress?.Stage(0.0, 0.05);
+            return Transcode(DwgContainer.Read(file, stop), supportFolders, progress, stop).Take(out length);
+        }
+
+        /// <summary>
         /// The DXF of the DWG whose parts <paramref name="container"/> holds, as
         /// <see cref="ToDxf(byte[], IList{string}, ProgressSteps, CancellationToken)"/>.
         /// </summary>
@@ -218,6 +243,13 @@ namespace GeometryHelper.Dwg
             IList<string> supportFolders = null,
             ProgressSteps progress = null,
             CancellationToken stop = default
+        ) => Transcode(container, supportFolders, progress, stop).ToArray();
+
+        private static DwgDxfWriter Transcode(
+            DwgContainer container,
+            IList<string> supportFolders,
+            ProgressSteps progress,
+            CancellationToken stop
         )
         {
             var transcoder = new DwgTranscoder(container, progress, stop) { _supportFolders = supportFolders };
@@ -232,7 +264,7 @@ namespace GeometryHelper.Dwg
             transcoder._dxf.Write(0, "EOF");
             transcoder.LogSummary();
             progress?.Report(1.0);
-            return transcoder._dxf.ToArray();
+            return transcoder._dxf;
         }
 
         /// <summary>
@@ -786,6 +818,24 @@ namespace GeometryHelper.Dwg
 
         private void Write(DwgGroup group)
         {
+            // A number held in the group itself, which is most of them, is written as it is, with no object made of it.
+            if (group.IsReal)
+            {
+                _dxf.Write(group.Code, group.RealValue);
+                return;
+            }
+
+            if (group.IsWhole)
+            {
+                _dxf.Write(group.Code, (long)group.WholeValue);
+                return;
+            }
+
+            WriteOther(group);
+        }
+
+        private void WriteOther(DwgGroup group)
+        {
             if (group.Value is DwgName name)
             {
                 byte[] found = NameOf(name.Handle) ?? Encoding.ASCII.GetBytes(name.Fallback);
@@ -865,6 +915,12 @@ namespace GeometryHelper.Dwg
 
         private void Write(List<DwgGroup> groups)
         {
+            // Null for an object that has none of them: no list is made for it.
+            if (groups == null)
+            {
+                return;
+            }
+
             foreach (DwgGroup group in groups)
             {
                 Write(group);
@@ -983,7 +1039,7 @@ namespace GeometryHelper.Dwg
                 _dxf.Write(102, "}");
             }
 
-            if (one.Reactors.Count > 0)
+            if (one.HasReactors)
             {
                 _dxf.Write(102, "{ACAD_REACTORS");
 
@@ -1085,8 +1141,8 @@ namespace GeometryHelper.Dwg
             // AutoCAD 2021 writes no material for a BLOCK or an ENDBLK, though the file may give them one.
             Write(
                 entity.Type == 0x04 || entity.Type == 0x05
-                    ? entity.Common.FindAll(group => group.Code != 347)
-                    : entity.Common
+                    ? entity.CommonIfAny?.FindAll(group => group.Code != 347)
+                    : entity.CommonIfAny
             );
 
             if (entity.ProxyGraphics != null)
@@ -1111,10 +1167,10 @@ namespace GeometryHelper.Dwg
             }
             else
             {
-                Write(entity.Body);
+                Write(entity.BodyIfAny);
             }
 
-            Write(entity.XData);
+            Write(entity.XDataIfAny);
 
             if (nested || (entity.Owned != null ? entity.Owned.Count == 0 : entity.First == 0))
             {
@@ -1460,8 +1516,8 @@ namespace GeometryHelper.Dwg
             _progress?.Report(_written.Count, _objects.Count);
 
             WriteHead(one, one.Name, one.Owner);
-            Write(one.Body);
-            Write(one.XData);
+            Write(one.BodyIfAny);
+            Write(one.XDataIfAny);
         }
 
         /// <summary>One line for the types that are not read, with the count of each, and one for the whole call.</summary>

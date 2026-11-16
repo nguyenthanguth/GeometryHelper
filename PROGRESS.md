@@ -442,7 +442,7 @@ User note 2026-11-12 evening (note.md 1-14):
 - [x] XCLIP follow-ups 4 (xclip5): ellipses, splines and heavy 2D/3D polylines cut at the depth planes; dashes stay in
       phase across a cut (PLINEGEN 0 and 1) as AutoCAD; non-flat curves under a tilted clip cut by the prism; dimension
       and table pictures cut; a tilted MINSERT's rows spaced as AutoCAD (28.28 for 40 at 45 degrees, a display fault)
-- [ ] XCLIP follow-ups 5: text, hatch, solids and dimension words cut glyph by glyph as AutoCAD (a strip clip in
+- [ ] (xclip6, running) XCLIP follow-ups 5: text, hatch, solids and dimension words cut glyph by glyph as AutoCAD (a strip clip in
       plan); an xref's clip boundary moved with its content when its INSBASE changes (ClipPointInWorld needs the base
       point: a library change); dash continuity of cut circles and arcs not probed; the flip arrow's click (GUI) (S)
 - [x] Remove what is left of Part B (the Tekla drawing) from Dxf.Viewer; it moves to the Tekla drawing app (partb-cleanup: new-document hook neutral, MODEL tags, Hidden-lines recolour, Layer Owner column, DXF export rows gone; owner contract and drawing-plugin finder kept as neutral hooks) (M)
@@ -984,9 +984,13 @@ the ones wanted.
       and per object); a display chain 80 -> 72 bytes (flags in the shared look); pending XData out of every object;
       no 8 MB walk copy per display; no object kept per LINE/ARC/CIRCLE/LWPOLYLINE drawn; kept heap at 1M 391 -> 358 MB
       (net8); lists, REGEN, saved bytes and pixels identical on 953 drawings
-- [ ] (speed18, running) Speed follow-ups 17: DisplayArc2 (~100 bytes x 800 000); TEXT wrappers and contexts tuples (17 MB per 200 000);
-      DxfBlockTableRecord.Count/GetEnumerator/AllItems still copy 8 MB; LinkedColumns walks every record per display;
-      DWG object reading (~800 ms of 1.6 s for 300 000 entities); REGEN's text group walk (S)
+- [x] Speed follow-ups 17 (speed18): a 300 000-entity DWG opens in 1.26 s where 1.63 (net8; 0.74 s where 1.12 on a
+      second open; net48 2.18 -> 1.53 s): the DXF written in one array and read in place, DwgObject 392 -> 120 bytes,
+      bits read at once; the DXF text byte-identical on 182 DWGs; block Count and lookups by handle without an 8 MB copy
+- [ ] Speed follow-ups 18: DWG objects decoded in parallel (0.42 s of a first open; check static decoders' thread
+      safety); the net48 DXF write (0.8 s: ToString("G15") + double.Parse per fraction); one more full GC from the 54 MB
+      DXF parse; DisplayArc2 stays 104 B (a box on demand costs 50-68 ms per million); LinkedColumns' 6 ms walk; MTEXT and
+      INSERT contexts tuples; REGEN's text group walk (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)
