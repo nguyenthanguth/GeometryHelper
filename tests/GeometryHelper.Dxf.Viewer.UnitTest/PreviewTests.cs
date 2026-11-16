@@ -118,7 +118,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void RectangAskingItsOtherCorner_PreviewsTheRectangle_NotALine()
         {
             CadCommandSession session = Started("RECTANG", P(0, 0));
-            Assert.Equal("Specify other corner point:", session.PromptText);
+            Assert.Equal("Specify other corner point or [Area/Dimensions/Rotation]:", session.PromptText);
             Assert.False(session.Prompt.Preview.ShowsBand);
 
             List<string> shapes = PreviewMakes(session, P(30, 20));

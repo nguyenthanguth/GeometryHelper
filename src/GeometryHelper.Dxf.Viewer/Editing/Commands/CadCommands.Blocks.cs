@@ -353,6 +353,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             CadSpace space = c.Space;
             GeoPoint3 origin = request.BasePoint;
+
+            if (request.ObjectAction != CadBlockObjectAction.Retain)
+            {
+                RememberErased(c, handles);
+            }
+
             CadEditResult result = c.Apply(planned, s =>
             {
                 DxfBlockTableRecord record;
@@ -1650,7 +1656,9 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            EraseAll(c, entities.Select(e => e.Handle).ToList());
+            List<string> written = entities.Select(e => e.Handle).ToList();
+            RememberErased(c, written);
+            EraseAll(c, written);
         }
 
         /// <summary>

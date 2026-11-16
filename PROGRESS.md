@@ -748,13 +748,13 @@ chase speed or a few pictures stay parked unless they are real faults.
 
 Wave 1 (High):
 - [x] SPLINE command (spline1): Method Fit/CV, Knots, Object, Close, start and end Tangency, toLerance kept, preview; BLEND (Tangent as AutoCAD, Smooth as our own G2 quintic). Left: fitting near the points under toLerance, the planar flag and normal, Object on 3D polylines
-- [ ] (draw1, running) RECTANG options: Chamfer, Elevation, Fillet, Thickness, Width, Area, Dimensions, Rotation (S)
-- [ ] (draw1, running) WIPEOUT command: points, Polyline (Erase polyline?), Frames (M)
+- [x] (draw1) RECTANG options: Chamfer, Elevation, Fillet, Thickness, Width, Area, Dimensions, Rotation (S)
+- [x] (draw1) WIPEOUT command: points, Polyline (Erase polyline?), Frames (M)
 - [ ] COPY Array (count, Fit) and mOde Single/Multiple (S)
 - [ ] SELECTSIMILAR (with SEttings) and ADDSELECTED; the canvas menu items enabled (S)
 - [ ] OVERKILL (duplicates and overlaps of lines, arcs, polyline segments; the dialog) (M)
 - [ ] Path array (ARRAYPATH): Divide/Measure, Align items, Z direction, Base point, Tangent direction (M)
-- [ ] (draw1, running) OOPS (S)
+- [x] (draw1) OOPS (S); left: ERASE keeps a copy for OOPS (30 000 lines 0.39 -> 0.74 s), WIPEOUT of a heavy 2D POLYLINE
 - [ ] MTEXT Background Mask dialog and the editor's Mask button (S)
 - [ ] SCALETEXT, JUSTIFYTEXT, TXT2MTXT (S/S/M)
 - [ ] ATTDISP; -ATTEDIT global edit (S)

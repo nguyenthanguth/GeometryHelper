@@ -141,6 +141,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (c.Selected.Count > 0)
             {
+                RememberErased(c, c.Selected);
                 EraseAll(c, c.Selected);
             }
         }

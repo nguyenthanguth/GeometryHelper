@@ -149,6 +149,13 @@ namespace GeometryHelper.Dxf.Viewer
             if (closed && (fill || mask))
             {
                 list.Add(new DisplayFill2(new[] { xy.ToArray() }, mask, style, handle, layer));
+
+                // The frame of a wipeout, drawn in the entity's colour over its mask until WIPEOUTFRAME is 0.
+                if (mask && _wipeoutFrames)
+                {
+                    list.Add(new DisplayPolyline2(xy.ToArray(), true, style, handle, layer));
+                }
+
                 return;
             }
 

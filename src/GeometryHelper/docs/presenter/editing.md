@@ -229,13 +229,13 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 267 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 269 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
 | view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, -PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, VPCLIP (Polygonal, Delete), VPMAX, VPMIN, SCALELISTEDIT, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window), REDRAW, REDRAWALL, REGENALL, ISOLATEOBJECTS, HIDEOBJECTS, UNISOLATEOBJECTS, VPORTS, -VPORTS (Save, Restore, Delete, Join, SIngle, ?, 2, 3, 4, Toggle) |
-| edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, MIRROR3D (Object, Last, Zaxis, View, XY, YZ, ZX, 3points), EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
-| draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), SPLINE (Method: Fit, CV; Knots, Degree, Object; start and end Tangency, toLerance, Undo, Close), BLEND (CONtinuity: Tangent, Smooth), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT and -MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT and -LAYOUT (Copy, Delete, New, Template, Rename, SAveas, Set, ?), DIVIDE (Block), MEASURE (Block) |
+| edit | MOVE, COPY, ERASE, OOPS, ROTATE, SCALE, MIRROR, MIRROR3D (Object, Last, Zaxis, View, XY, YZ, ZX, 3points), EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
+| draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG (Chamfer, Elevation, Fillet, Thickness, Width; Area, Dimensions, Rotation), WIPEOUT (points, Polyline, Frames), SPLINE (Method: Fit, CV; Knots, Degree, Object; start and end Tangency, toLerance, Undo, Close), BLEND (CONtinuity: Tangent, Smooth), ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT and -MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT and -LAYOUT (Copy, Delete, New, Template, Rename, SAveas, Set, ?), DIVIDE (Block), MEASURE (Block) |
 | shapes and hatching | SOLID, REGION, HATCH, HATCHSETORIGIN, -HATCH (Properties, Select objects, draW boundary, remove Boundaries, Advanced: Boundary set, Retain boundary, Island detection, Style, Associativity, Gap tolerance, separate Hatches; DRaw order, Origin, ANnotative, hatch COlor, LAyer, Transparency, Undo), GRADIENT, HATCHEDIT, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Fit data: Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance; Close, Open, Join, Move vertex, Refine: Add, Delete, Elevate order, Move, Weight; rEverse, convert to Polyline, Undo), CLASSICINSERT |
 | multilines | MLINE (Justification, Scale, STyle; Close, Undo), MLEDIT (CC, OC, MC, CT, OT, MT, CJ, AV, DV, CS, CA, WA; Undo), MLSTYLE (?, Current, New, Modify, Rename, Delete, Load, Save), and the variables CMLJUST, CMLSCALE and CMLSTYLE (see [Multilines](#multilines)) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
@@ -2543,6 +2543,54 @@ where none is listening; QSAVE (of a drawing with no file), SAVEAS and DXFOUT as
 [`CadPrompt`](xref:GeometryHelper.Dxf.Viewer.CadPrompt) and reads the answer from [`CadCommandContext`](xref:GeometryHelper.Dxf.Viewer.CadCommandContext)`.Input`, so it reads top
 to bottom as its prompts do, and a [command plugin](plugins.md) is written the same way.
 
+### RECTANG, WIPEOUT and OOPS
+
+These were checked against AutoCAD 2021's console, driven through its standard input (probe draw1, 16 November).
+
+RECTANG asks `Specify first corner point or [Chamfer/Elevation/Fillet/Thickness/Width]:` and, after the first corner,
+`Specify other corner point or [Area/Dimensions/Rotation]:`. The modes are the session's: they stay for the next RECTANG,
+are listed when it starts where one is not nought (`Current rectangle modes:  Chamfer=1.0000 x 2.0000  Elevation=5.0000
+Thickness=4.0000  Width=0.5000`, in alphabetical order, Rotation among them as `Rotation=30`), and the prompts offer them
+(`Specify first chamfer distance for rectangles <0.0000>:`). A chamfer and a fillet shut each other out: setting one clears
+the other, and the first distance of a chamfer offers the radius of the fillet in force, as the radius offers the first
+distance of the chamfer. A chamfer of 1 and 2 on the rectangle from (10, 10) to (40, 30) is the eight vertices
+(10, 11), (12, 10), (39, 10), (40, 12), (40, 29), (38, 30), (11, 30) and (10, 28): at each corner the first distance back
+along the side that comes to it, the second forward along the side that leaves it. A fillet of 2 is the same points with
+the arcs between them, a bulge of the tangent of an eighth of a turn, turned the other way where the rectangle winds
+clockwise. Where the sides are too short (the two distances over the shorter side, twice the radius over it) the rectangle
+is the plain one of eight vertices, two at each corner, as AutoCAD draws it. A width is the width of every vertex, an
+elevation the LWPOLYLINE's elevation and a thickness its thickness; none of them is a setting of the drawing, so ELEVATION,
+THICKNESS and the like are left alone.
+
+Area asks `Enter area of rectangle in current units <100.0000>:` (a value that is not above nought says `Value must be
+positive and nonzero.` and asks again), `Calculate rectangle dimensions based on [Length/Width] <Length>:` and the side,
+and draws at once: the other side is the area over it, with the corners' share added back, 2 times the two distances of a
+chamfer or the square on the radius less its quarter circle, four times, for a fillet (an area of 200 on a length of 20
+gives a width of 10.6 with a chamfer of 2 and 3). The rectangle grows to the side of the first corner the cursor is on,
+up and to the right where there is no cursor. Dimensions asks `Specify length for rectangles <10.0000>:` and `Specify width
+for rectangles <10.0000>:` and then the other corner again, which gives the side the rectangle goes to and nothing else;
+the length and width of either are the next ones offered. Rotation asks `Specify rotation angle or [Pick points] <0>:`,
+Pick points by two points and their direction (counted from the UCS), and keeps the angle as a mode; a Rotation asked
+after Dimensions gives the dimensions up, as AutoCAD does.
+
+WIPEOUT asks `Specify first point or [Frames/Polyline] <Polyline>:`. Points are asked as `Specify next point:`, then
+`Specify next point or [Undo]:` and from the fourth `Specify next point or [Close/Undo]:`; Close or Enter makes the wipeout
+(Enter before the third point makes none). Polyline asks `Select a closed polyline:` (a pick that is no polyline is asked
+again), refuses a polyline not closed or of arcs with `The polyline must be closed and made up of only line segments.`, and
+asks `Erase polyline? [Yes/No] <No>:`; Yes erases it in the same undo step. Frames asks `Enter mode [ON/OFF/Display but not
+plot] <ON>:` and sets WIPEOUTFRAME 1, 0 or 2, which is the variable of the same name, one undo step. The wipeout is
+written as AutoCAD's command writes it: the frame the square on the box of the points at their lowest corner (the rectangle
+from (10, 10) to (50, 40) has the frame of side 40 at (10, 10), where `DxfWipeout.SetFrom` lays it on the origin too), the
+points in it from -0.5 to 0.5 as written, the first again at the end, and the variables of wipeouts made with the first
+one (`DxfWipeoutVariables`, group 70 of 1). The frames of the wipeouts are drawn in the entity's colour over their mask while
+WIPEOUTFRAME is 1 or 2 and left out at 0; "Display but not plot" is written as 1, as AutoCAD 2021 writes it, and kept by
+the session, and the plot draws the frames as the screen does.
+
+OOPS brings back the objects the last ERASE, BLOCK or WBLOCK took out, with no question and no message, in the space they
+were erased from, one undo step. Only the last set comes back: a second OOPS does nothing, and neither does one after an
+erase that UNDO took back. They come back as copies, so a handle they had is gone and so is a tie to an object that stayed
+(a hatch to its boundary); the polyline WIPEOUT erases is not among them, as in AutoCAD.
+
 ### Annotation commands
 
 DIMOVERRIDE (DOV, DIMOVER) asks as AutoCAD 2021's does (probed in its console): "Enter dimension variable name to override
@@ -2818,7 +2866,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 
 | Kept in | Variables | A change |
 |---|---|---|
-| the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, CMLEADERSTYLE, CTABLESTYLE, MLEADERSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, XCLIPFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
+| the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, CMLEADERSTYLE, CTABLESTYLE, MLEADERSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, WIPEOUTFRAME, XCLIPFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
 | the document or the session | PICKSTYLE, SELECTIONCYCLING, SHOWPAGESETUPFORNEWLAYOUTS, PICKFIRST, PICKADD, ATTREQ, ATTDIA, BINDTYPE, FILEDIA, CMDDIA, PDFSHX, PEDITACCEPT, PLINETYPE, DIMCONTINUEMODE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST, OLEFRAME, OLEHIDE, OLEQUALITY | at once, no undo step |
 | the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, POLARDIST, SNAPTYPE, GRIDSTYLE, SNAPGRIDLEGACY, AUTOSNAP, DYNMODE, PICKBOX, GRIPSIZE, GRIPMULTIFUNCTIONAL, APERTURE, ZOOMWHEEL, TABLEINDICATOR, GRIPDYNCOLOR | at once, no undo step; kept in the settings file |
 | the window's toggles and snap of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, SNAPUNIT, GRIDUNIT, GRIDDISPLAY, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR | written into the drawing, as AutoCAD saves them there, and one undo step that keeps no copy of the drawing (see below) |
