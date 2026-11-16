@@ -250,5 +250,227 @@ namespace GeometryHelper.Dxf
         }
 
         #endregion
+
+        #region The associative network of a dynamic block going up
+
+        /// <summary>
+        /// Gives an action of the associative network of a dynamic block (ACDBASSOCNETWORK, ACDBASSOCVARIABLE,
+        /// ACDBASSOC2DCONSTRAINTGROUP) the layout of AutoCAD 2013 and 2018 when it goes to R2013 or later, as AutoCAD 2021 writes it
+        /// there from a drawing of R2010 or R2007: the action at version 2, with four numbers (0) after its three, and a
+        /// constraint group in its second layout (see <see cref="GroupUp"/>). An action that is not at the version 1 is left as it is.
+        /// </summary>
+        private void ActionUp(Record record)
+        {
+            List<Group> groups = record.Groups;
+            int at = groups.FindIndex(g => g.Code == 100 && g.Value == "AcDbAssocAction") + 1;
+
+            // The version, the status, the network and the body, then three numbers.
+            if (at <= 0 || at + 7 > groups.Count || !Number(groups[at].Value, out int version) || version != 1)
+            {
+                return;
+            }
+
+            for (int i = at + 4; i < at + 7; i++)
+            {
+                if (groups[i].Code != 90)
+                {
+                    return;
+                }
+            }
+
+            List<Group> own = null;
+
+            if (record.Type == "ACDBASSOC2DCONSTRAINTGROUP")
+            {
+                own = GroupUp(record, at + 7);
+
+                if (own == null)
+                {
+                    return;
+                }
+            }
+
+            groups[at] = Whole(90, 2);
+            var more = new List<Group>(4);
+
+            for (int i = 0; i < 4; i++)
+            {
+                more.Add(Whole(90, 0));
+            }
+
+            if (own == null)
+            {
+                groups.InsertRange(at + 7, more);
+            }
+            else
+            {
+                groups.RemoveRange(at + 7, groups.Count - at - 7);
+                groups.AddRange(more);
+                groups.AddRange(own);
+            }
+        }
+
+        /// <summary>
+        /// Gives the groups of a constraint group of the version 1 (AutoCAD 2010 and 2007: past the plane, the actions it owns and
+        /// the next identifier, the count of the nodes, then each node by identifier with its class, its group, identifier and
+        /// byte, the identifiers it names and what its class holds) the layout of the version 2 that AutoCAD 2013 and 2018 write:
+        /// two numbers and a flag (0), the count of the nodes, a directory of every node as class and identifier, then the
+        /// nodes in that order without their class, each with its identifier, the identifiers it names, its byte and what its
+        /// class holds, a circle and an arc with a fourth real (0) after their three. A group that does not read as the version
+        /// 1, or holds a node of a class the library does not know, is left as it is (null). <paramref name="start"/> is
+        /// where the group's own groups begin, past the action's three numbers; the groups from there on come back, without the
+        /// four numbers the version 2 of an action adds, which the caller puts first.
+        /// </summary>
+        private List<Group> GroupUp(Record record, int start)
+        {
+            List<Group> groups = record.Groups;
+            int at = start;
+
+            // The number, the flag, the plane (three points), the owner of the actions, their count and each, the next identifier.
+            if (
+                !Skip(groups, ref at, 90, 70, 10, 20, 30, 10, 20, 30, 10, 20, 30, 360)
+                || !Count(groups, ref at, out int actions)
+            )
+            {
+                return null;
+            }
+
+            for (int i = 0; i < actions; i++)
+            {
+                if (!Skip(groups, ref at, 360))
+                {
+                    return null;
+                }
+            }
+
+            if (!Skip(groups, ref at, 90))
+            {
+                return null;
+            }
+
+            int head = at;
+
+            if (!Count(groups, ref at, out int count))
+            {
+                return null;
+            }
+
+            var nodes = new List<ConstraintNode>(count);
+
+            for (int i = 0; i < count; i++)
+            {
+                // Its class, group, identifier and byte, the count of the identifiers it names and each, and what its class holds.
+                if (at >= groups.Count || groups[at].Code != 1)
+                {
+                    return null;
+                }
+
+                string kind = groups[at].Value.Trim();
+
+                if (!DxfConstraintNodes.IsKnown(kind))
+                {
+                    return null;
+                }
+
+                var node = new ConstraintNode { Kind = kind };
+                at++;
+
+                if (
+                    !Skip(groups, ref at, 330)
+                    || at + 1 >= groups.Count
+                    || groups[at].Code != 90
+                    || groups[at + 1].Code != 70
+                )
+                {
+                    return null;
+                }
+
+                node.Id = groups[at++];
+                node.Byte = groups[at++];
+
+                if (!Count(groups, ref at, out int named))
+                {
+                    return null;
+                }
+
+                for (int j = 0; j < named; j++)
+                {
+                    if (at >= groups.Count || groups[at].Code != 90)
+                    {
+                        return null;
+                    }
+
+                    node.Numbers.Add(groups[at++]);
+                }
+
+                foreach (int code in DxfConstraintNodes.FieldCodes(kind, false))
+                {
+                    if (at >= groups.Count || groups[at].Code != code)
+                    {
+                        return null;
+                    }
+
+                    node.Fields.Add(groups[at++]);
+                }
+
+                nodes.Add(node);
+            }
+
+            // The nodes by identifier, each in the order the groups gave them where identifiers are alike.
+            var ordered = new List<KeyValuePair<int, ConstraintNode>>(count);
+
+            for (int i = 0; i < count; i++)
+            {
+                ordered.Add(new KeyValuePair<int, ConstraintNode>(i, nodes[i]));
+            }
+
+            ordered.Sort(
+                (a, b) =>
+                {
+                    int byId = WholeValue(a.Value.Id.Value).CompareTo(WholeValue(b.Value.Id.Value));
+                    return byId != 0 ? byId : a.Key.CompareTo(b.Key);
+                }
+            );
+
+            var made = new List<Group>(groups.Count + 2 * count);
+            made.AddRange(groups.GetRange(start, head - start));
+
+            // Two numbers and a flag the second layout holds, all 0, then the count of the nodes and the directory.
+            made.Add(Whole(90, 0));
+            made.Add(Whole(90, 0));
+            made.Add(Whole(290, 0));
+            made.Add(Whole(90, count));
+
+            foreach (KeyValuePair<int, ConstraintNode> pair in ordered)
+            {
+                made.Add(new Group(1, pair.Value.Kind));
+                made.Add(pair.Value.Id);
+            }
+
+            foreach (KeyValuePair<int, ConstraintNode> pair in ordered)
+            {
+                ConstraintNode node = pair.Value;
+                made.Add(node.Id);
+                made.Add(Whole(90, node.Numbers.Count));
+                made.AddRange(node.Numbers);
+                made.Add(node.Byte);
+
+                for (int i = 0; i < node.Fields.Count; i++)
+                {
+                    made.Add(node.Fields[i]);
+
+                    // The pointer, a number and three points of three groups come first, then the three reals; a fourth follows.
+                    if (i == 13 && (node.Kind == "AcConstrainedArc" || node.Kind == "AcConstrainedCircle"))
+                    {
+                        made.Add(new Group(40, "0.0"));
+                    }
+                }
+            }
+
+            made.AddRange(groups.GetRange(at, groups.Count - at));
+            return made;
+        }
+
+        #endregion
     }
 }

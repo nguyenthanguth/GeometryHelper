@@ -376,6 +376,21 @@ namespace GeometryHelper.Dwg
                     }
 
                     break;
+                case "AcConstrainedEllipse":
+                case "AcConstrainedBoundedEllipse":
+                    _object.Add(330, H());
+                    _object.Add(90, _data.BitLong());
+                    _object.AddPoint(10, _data.Point3());
+                    _object.AddPoint(11, _data.Point3());
+                    _object.Add(40, _data.BitDouble());
+
+                    if (kind == "AcConstrainedBoundedEllipse")
+                    {
+                        _object.AddPoint(10, _data.Point3());
+                        _object.AddPoint(11, _data.Point3());
+                    }
+
+                    break;
                 case "AcConstrainedDatumLine":
                 case "AcConstrained2PointsConstructionLine":
                     _object.Add(330, H());
@@ -387,6 +402,7 @@ namespace GeometryHelper.Dwg
                 case "AcPointCoincidenceConstraint":
                 case "AcMidPointConstraint":
                 case "AcCenterPointConstraint":
+                case "AcConcentricConstraint":
                 case "AcColinearConstraint":
                 case "AcParallelConstraint":
                 case "AcPerpendicularConstraint":

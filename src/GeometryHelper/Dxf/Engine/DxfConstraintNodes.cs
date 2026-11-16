@@ -16,12 +16,15 @@ namespace GeometryHelper.Dxf
             "AcConstrainedBoundedLine",
             "AcConstrainedArc",
             "AcConstrainedCircle",
+            "AcConstrainedEllipse",
+            "AcConstrainedBoundedEllipse",
             "AcConstrainedDatumLine",
             "AcConstrained2PointsConstructionLine",
             "AcPointCurveConstraint",
             "AcPointCoincidenceConstraint",
             "AcMidPointConstraint",
             "AcCenterPointConstraint",
+            "AcConcentricConstraint",
             "AcColinearConstraint",
             "AcParallelConstraint",
             "AcPerpendicularConstraint",
@@ -80,6 +83,21 @@ namespace GeometryHelper.Dxf
                     }
 
                     if (kind == "AcConstrainedArc")
+                    {
+                        AddPoint(10);
+                        AddPoint(11);
+                    }
+
+                    break;
+                case "AcConstrainedEllipse":
+                case "AcConstrainedBoundedEllipse":
+                    // The centre, the major axis and the ratio, the same in both layouts; a bounded one adds its two end points.
+                    codes.AddRange(new[] { 330, 90 });
+                    AddPoint(10);
+                    AddPoint(11);
+                    codes.Add(40);
+
+                    if (kind == "AcConstrainedBoundedEllipse")
                     {
                         AddPoint(10);
                         AddPoint(11);

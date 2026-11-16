@@ -313,13 +313,17 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         (ErrorStatus 53), now AUDIT as its own (0, 2, 10, 0); 3 204 of 3 204 dynamic objects equal to its R2007 DXF;
         owned actions and stretch entities kept in the order received (25 -> 14 differing stretch actions); DWG bytes
         identical by the converter alone; the 4th real of a constraint circle is 0 in every probe
-  - [ ] R3.3 follow-ups 7: the same fault going up (an R2010 DXF of v1 groups saved as AC1032 is refused: ActionUp,
-        GroupUp; DwgReader.ToDxf of an R2010 DWG gives v1 text under an AC1032 header); unknown node classes
-        (AcConcentricConstraint, AcConstrainedEllipse, AcConstrainedBoundedEllipse); the remaining 14 stretch/group
-        orders (AutoCAD's state); R2000 spline solids; an unexplained ErrorStatus 76; R2007 AppInfoHistory and SummaryInfo;
-        the ISDYNAMIC heuristic; non-ASCII text in pre-2007 DWGs as \U+ escapes; R2000 VIEWPORT entity header handle and
-        frozen-layer code 5; dictionaries naming left-out objects; region GUI checks; spline edges and non-planar faces;
-        orphan ACDSRECORDs; a parse cache for thousands of regions (M)
+  - [x] Constraint groups going up and three more node classes (dxfconv3): an R2010/R2007 DXF saved as R2013/R2018 is
+        brought to the second layout (ActionUp, GroupUp): 39 of 39 opened by AutoCAD (refused before), AUDIT as its own,
+        3 196 of 3 204 objects equal to its DXF; AcConcentricConstraint, AcConstrainedEllipse and
+        AcConstrainedBoundedEllipse read and written in DXF and DWG (AutoCAD's own bytes); DwgReader.ToDxf already names
+        the DWG's own version. DECIDED: no repair of old saves on a same-version Save (keeps "same version, same bytes")
+  - [ ] R3.3 follow-ups 8: an API-made ACDBASSOCNETWORK read with 24 groups where AutoCAD has 25 (a trailing 330);
+        node classes still unknown stay as they are; the remaining stretch/group orders (AutoCAD's state); R2000 spline
+        solids; an unexplained ErrorStatus 76; R2007 AppInfoHistory and SummaryInfo; the ISDYNAMIC heuristic; non-ASCII
+        text in pre-2007 DWGs as \U+ escapes; R2000 VIEWPORT entity header handle and frozen-layer code 5; dictionaries
+        naming left-out objects; region GUI checks; spline edges and non-planar faces; orphan ACDSRECORDs; a parse cache
+        for thousands of regions (M)
   - [x] Dialogs 5 (dialogs5, design v139-v140): Multiline Style (with New/Modify page, Load), Multiline Edit Tools, the
         Hatch dialog's third column (one-colour gradient, colours, layer, transparency, origin, gap), Plot Stamp and PLOT's
         "Plot stamp on", Image Adjust, Attribute Extraction, Xbind
@@ -532,7 +536,7 @@ the ones wanted.
       10, d1 70 -> 11, p1 326 -> 4); the angular band read per first ray (13 first rays: 741 of 42 874 -> 43), faded as
       1/radius past 16 landings, and fitted on arcs from 1.3 landings (near arcs 1 060 -> 415); 76 of 111 sets unchanged,
       none with more pictures differing but te11 24 -> 26 and e1 1 -> 2
-- [ ] Dimension follow-ups 18: first-ray tables for angles of other sizes (90, 120, 30 degrees); the near table fitted
+- [ ] (dims19, running) Dimension follow-ups 18: first-ray tables for angles of other sizes (90, 120, 30 degrees); the near table fitted
       at a landing of 5.83 only (te11); d1's leader jump at the arc middle's height (11 left); d2 R6/R7 SHX on-landing
       window; t6's turned diameter and words on an extension line at distance 0 (AutoCAD's rounding) (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc

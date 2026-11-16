@@ -147,8 +147,8 @@ and R2018 adds, and a group of constraints with its nodes by identifier, each wi
 and an arc with three reals where R2018 holds four (the fourth is 0 in every drawing seen). A DXF of R2010 or R2007 with a group in
 the layout of R2018 is no drawing to AutoCAD (`Premature end of object`); the 8 sample drawings that hold groups, saved so, open
 with `AUDIT` finding 0, 2, 10 and 0 errors in the four tried, as AutoCAD's own DXF of each does, and equal it group for group
-(all 3 204 dynamic objects of the 13 drawings in R2007, 3 203 in R2010, the other a group whose actions AutoCAD lists in another order). A group with a node of a class the library does not know
-(a concentric constraint, an ellipse) is left in the layout it has. See [DWG](dwg.md).
+(all 3 204 dynamic objects of the 13 drawings in R2007, 3 203 in R2010, the other a group whose actions AutoCAD lists in another order). The same going up: a DXF of R2010 or R2007 saved as R2013 or R2018 has each action at version 2 with its four numbers (0), and a group of constraints in the layout of R2018 (a directory of its nodes as class and identifier, then the nodes without their class, a circle and an arc with a fourth real of 0); AutoCAD refused the file before, and opens the 39 files of the samples with the errors of its own DWG of R2010 of each. The classes of a concentric constraint, an ellipse and an ellipse with end points are known in both layouts. A group with a node of a class the library does not know
+is left in the layout it has. See [DWG](dwg.md).
 
 R12 (`db.Save(path, "AC1009")`) is written as AutoCAD 2021 writes the same drawing as R12 (its own DXF of one drawing in each
 version, 1 300 lines, 130 hatches, 2 tables and 15 multileaders, which the rules were read from): four sections only (no
