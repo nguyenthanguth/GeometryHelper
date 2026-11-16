@@ -128,7 +128,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The x axis AutoCAD gives an object of a normal (the arbitrary axis algorithm).</summary>
-        private static GeoVector3 AxisOf(GeoVector3 normal)
+        internal static GeoVector3 AxisOf(GeoVector3 normal)
         {
             var z = new GeoVector3(0.0, 0.0, 1.0);
             var y = new GeoVector3(0.0, 1.0, 0.0);

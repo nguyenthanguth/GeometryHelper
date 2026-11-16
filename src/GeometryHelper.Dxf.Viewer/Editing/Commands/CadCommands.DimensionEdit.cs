@@ -560,6 +560,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                     // A clipped block's copy is clipped the same, as AutoCAD's COPY and MIRROR keep a clip.
                     made.KeepClipOf(insert);
+
+                    // An associative array's copy is an array of its own, with blocks of its own.
+                    CadArrays.Reassociate(s, space, insert, made);
                 }
 
                 // What an application keeps in the extension dictionary is copied with the entity, as AutoCAD's COPY and MIRROR copy it.

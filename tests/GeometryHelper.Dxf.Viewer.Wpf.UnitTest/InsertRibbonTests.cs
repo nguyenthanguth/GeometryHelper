@@ -52,6 +52,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                         "Settings",
                         "Text Editor",
                         "Table Cell",
+                        "Array",
                         "Block Editor",
                     },
                     children.OfType<ToggleButton>().Select(t => (string)t.Content)

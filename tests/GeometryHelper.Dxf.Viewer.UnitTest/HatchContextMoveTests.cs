@@ -325,8 +325,6 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 "ARRAYRECT",
                 new[] { hatch.Handle },
                 Enter,
-                "AS",
-                "Y",
                 "COU",
                 "2",
                 "2",

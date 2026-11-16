@@ -2305,6 +2305,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             if (_current == null)
             {
+                HideArrayTab();
                 SelectionLabel = string.Empty;
                 PropertyGroups = Array.Empty<PropertyGroupViewModel>();
                 PropertiesBanner = null;
@@ -2316,6 +2317,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 .Document.Selection.Handles.Where(h => _current.Document.FindEntity(h) != null)
                 .ToList();
             handles.Sort(StringComparer.OrdinalIgnoreCase);
+            SyncArrayTab(handles);
             CadSelectionInfo info = CadProperties.Describe(_current.Document, Space, handles, View);
             string banner = null;
 

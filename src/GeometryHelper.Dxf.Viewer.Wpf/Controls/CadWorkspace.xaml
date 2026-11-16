@@ -778,6 +778,11 @@
                 <local:TableCellRibbon />
             </DataTemplate>
 
+            <!-- The contextual Array tab while one associative array is selected: its own control (ArrayRibbon). -->
+            <DataTemplate DataType="{x:Type local:ArrayTabViewModel}">
+                <local:ArrayRibbon />
+            </DataTemplate>
+
             <!-- The contextual Block Editor tab while a block is open in the Block Editor (BEDIT): its own control (BlockEditorRibbon). -->
             <DataTemplate DataType="{x:Type local:BlockEditorRibbonViewModel}">
                 <local:BlockEditorRibbon />
@@ -3455,6 +3460,36 @@
                             </Style>
                         </ToggleButton.Style>
                     </ToggleButton>
+                    <!-- The contextual Array tab, green as the others, while one associative array is selected. -->
+                    <ToggleButton
+                        Content="Array"
+                        IsChecked="{Binding ArrayTab.IsTabSelected, Mode=OneWay}"
+                        Margin="4,0,0,0"
+                        Command="{Binding SelectTabCommand}"
+                        CommandParameter="{Binding ArrayTab}"
+                        Visibility="{Binding ArrayTab.IsTabVisible, Converter={StaticResource Shown}}"
+                    >
+                        <ToggleButton.Style>
+                            <Style TargetType="ToggleButton" BasedOn="{StaticResource GhRibbonTab}">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border
+                                                Background="#2F8F4E"
+                                                CornerRadius="2,2,0,0"
+                                                Padding="{TemplateBinding Padding}"
+                                            >
+                                                <ContentPresenter
+                                                    TextElement.Foreground="White"
+                                                    TextElement.FontWeight="SemiBold"
+                                                />
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ToggleButton.Style>
+                    </ToggleButton>
                     <!-- The contextual Block Editor tab, green as the others, while a block is open in the Block Editor. -->
                     <ToggleButton
                         Content="Block Editor"
@@ -3497,6 +3532,10 @@
                                     <Setter Property="BorderThickness" Value="0,2,0,0" />
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding TableCellTab.IsTabSelected}" Value="True">
+                                    <Setter Property="BorderBrush" Value="#2F8F4E" />
+                                    <Setter Property="BorderThickness" Value="0,2,0,0" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ArrayTab.IsTabSelected}" Value="True">
                                     <Setter Property="BorderBrush" Value="#2F8F4E" />
                                     <Setter Property="BorderThickness" Value="0,2,0,0" />
                                 </DataTrigger>

@@ -565,6 +565,21 @@ namespace GeometryHelper.Dxf.Viewer
             );
         }
 
+        /// <summary>The pieces an associative array explodes into; null for any other entity.</summary>
+        private static IReadOnlyList<DxfEntity> ExplodedArray(CadCommandContext c, DxfEntity entity)
+        {
+            if (
+                !(entity is DxfBlockReference insert)
+                || !(CadArrays.Find(c.Database, insert) is CadArrays.Record record)
+            )
+            {
+                return null;
+            }
+
+            List<DxfEntity> pieces = CadArrays.Explode(c.Document, record, insert);
+            return pieces.Count == 0 ? null : pieces;
+        }
+
         private static IEnumerable<CadPrompt> Explode(CadCommandContext c)
         {
             foreach (CadPrompt prompt in c.SelectObjects())
@@ -613,7 +628,9 @@ namespace GeometryHelper.Dxf.Viewer
                 try
                 {
                     // An MTEXT breaks into its TEXTs where the picture draws them; one in no drawing as the library breaks it.
-                    pieces = (entity is DxfMText words ? CadMTextEdit.Explode(words, styles) : null)
+                    // An associative array breaks into the source objects of each item, not into the INSERTs of its block.
+                    pieces = ExplodedArray(c, entity)
+                        ?? (entity is DxfMText words ? CadMTextEdit.Explode(words, styles) : null)
                         ?? entity.Explode();
                 }
                 catch (NotSupportedException)
