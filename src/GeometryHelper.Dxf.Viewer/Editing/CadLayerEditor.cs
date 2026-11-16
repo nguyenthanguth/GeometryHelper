@@ -8,7 +8,7 @@ namespace GeometryHelper.Dxf.Viewer
     /// The edits of the layer table, as the layer box, the Layer manager and the LAYER command make them: each one undo step
     /// through <see cref="CadDocument.ApplyEdit"/>, refused as AutoCAD refuses it where AutoCAD would not do it.
     /// </summary>
-    public static class CadLayerEditor
+    public static partial class CadLayerEditor
     {
         // The characters AutoCAD refuses in the name of a layer; | joins an external reference's name to its layer's.
         private static readonly char[] InvalidNameCharacters =

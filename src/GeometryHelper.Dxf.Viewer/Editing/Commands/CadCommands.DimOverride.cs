@@ -504,12 +504,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// Changes the dimension style overrides of the objects selected as one edit: the dimensions, leaders and feature control
         /// frames among them, those whose owner refuses left out with the owner's words, each dimension drawn anew.
         /// </summary>
-        private static void ChangeStyled(CadCommandContext c, string value, Func<DxfEntity, DxfDatabase, bool> change)
+        private static void ChangeStyled(
+            CadCommandContext c,
+            string value,
+            Func<DxfEntity, DxfDatabase, bool> change,
+            IReadOnlyList<string> handles = null
+        )
         {
             const string property = "Dimension style overrides";
             var targets = new List<DxfEntity>();
 
-            foreach (string handle in c.Input.Handles)
+            foreach (string handle in handles ?? c.Input.Handles)
             {
                 DxfEntity entity = c.Document.FindEntity(handle);
 

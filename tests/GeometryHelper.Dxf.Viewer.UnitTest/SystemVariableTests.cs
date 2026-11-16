@@ -318,8 +318,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // SAVEAS (now of the presenter's own set), DXFOUT, LAYERP, LAYERPMODE, the 13, 6, 8, 6, 6, 6 and 3 of the acad.pgp batches
             // 1, 2, 3, 5, 4b, 4a and 1b, MLINE, MLEDIT and MLSTYLE, IMAGEADJUST, -IMAGEADJUST, ATTEXT and -ATTEXT, INSERTOBJ, and
             // -OBJECTSCALE, AIOBJECTSCALEADD and AIOBJECTSCALEREMOVE, OBJECTSCALE, REFEDIT, -REFEDIT, REFSET and REFCLOSE, and
-            // HATCHSETORIGIN, TABLEEXPORT, VPMAX, VPMIN and REVCLOUDPROPERTIES, CENTERMARK and CENTERLINE, WMFIN, MIRROR3D, SPLINE and BLEND, OOPS and WIPEOUT.
-            Assert.Equal(269, registry.Commands.Count);
+            // HATCHSETORIGIN, TABLEEXPORT, VPMAX, VPMIN and REVCLOUDPROPERTIES, CENTERMARK and CENTERLINE, WMFIN, MIRROR3D, SPLINE and BLEND, OOPS and WIPEOUT,
+            // and LAYMRG, -LAYMRG, LAYDEL, -LAYDEL, LAYCUR, COPYTOLAYER, -COPYTOLAYER, -DIMSTYLE and DIMUPDATE.
+            Assert.Equal(278, registry.Commands.Count);
             Assert.NotNull(registry.Find("SETVAR"));
             Assert.Null(registry.Find("PDMODE"));
             Assert.True(registry.FindVariable("PDMODE").IsInDrawing);
