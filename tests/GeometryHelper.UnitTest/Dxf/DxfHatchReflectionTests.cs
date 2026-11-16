@@ -152,16 +152,77 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AHatchMirroredAcrossAGeneralLine_ReflectsTheLinesOfItsPattern()
+        public void AHatchMirroredAcrossAGeneralLine_LeavesTheLinesOfItsPattern_AsAutoCadsMirrhatch0Does()
         {
             var database = new DxfDatabase("AC1027");
             DxfHatch hatch = UserHatch(database);
 
             hatch.TransformBy(Across(20, 5, 30, 20));
 
-            // The line at 30 degrees, offset (-1, 1.732) from the base (0, 0), across a line at 56.31 degrees: AutoCAD 2021 writes
-            // 82.6198649480404 (twice the angle of the mirror line less 30), the base (23.0769, -15.3846), the offset reflected,
-            // the pattern angle (52) as it was.
+            // AutoCAD 2021's TransformBy follows MIRRHATCH, 0 by default: the line at 30 degrees through (0, 0), offset (-1, 1.732),
+            // stays as it was, the pattern angle (52) too, the loop and the seed point reflected all the same.
+            List<string> groups = Groups(database, hatch.Handle);
+            double[] line = FirstLine(groups);
+            Near(30.0, line[0]);
+            Near(0.0, line[1]);
+            Near(0.0, line[2]);
+            Near(-1.0, line[3]);
+            Near(Root3, line[4]);
+            Near(30.0, Value(groups, 52));
+            GeoPoint3 corner = Across(20, 5, 30, 20).Transform(new GeoPoint3(42, 50, 0));
+            Near(corner.X, LoopPoints(groups)[0].X);
+            Near(corner.Y, LoopPoints(groups)[0].Y);
+            Assert.True(
+                Across(20, 5, 30, 20)
+                    .Transform(new GeoPoint3(45, 52, 0))
+                    .IsEqualTo(new GeoPoint3(hatch.GetSeedPointAt(0).X, hatch.GetSeedPointAt(0).Y, 0.0), Tol)
+            );
+        }
+
+        [Fact]
+        public void AHatchMirroredAcrossItsOwnPlane_LeavesTheLinesOfItsPattern_UnlessAskedToReflectThem()
+        {
+            // AutoCAD 2021 (TransformBy across the plane z = 5): MIRRHATCH 0 leaves the line at 30 degrees, 1 writes 150.
+            var kept = new DxfDatabase("AC1027");
+            DxfHatch hatch = UserHatch(kept);
+            var plane = GeoTransform3.Mirror(new GeoPlane3(new GeoPoint3(0, 0, 5), new GeoVector3(0, 0, 1)));
+            hatch.TransformBy(plane);
+            Near(30.0, FirstLine(Groups(kept, hatch.Handle))[0]);
+
+            var reflected = new DxfDatabase("AC1027");
+            DxfHatch other = UserHatch(reflected);
+            other.TransformBy(plane, true);
+            Near(150.0, FirstLine(Groups(reflected, other.Handle))[0]);
+        }
+
+        [Fact]
+        public void AHatchTurnedOrMoved_IsTheSameWhateverItIsAskedAboutItsMirror()
+        {
+            var plain = new DxfDatabase("AC1027");
+            DxfHatch hatch = UserHatch(plain);
+            var asked = new DxfDatabase("AC1027");
+            DxfHatch other = UserHatch(asked);
+            GeoTransform3 turn = GeoTransform3
+                .RotationZ(0.5)
+                .Multiply(GeoTransform3.Translation(new GeoVector3(7, 3, 0)));
+
+            hatch.TransformBy(turn);
+            other.TransformBy(turn, true);
+
+            Assert.Equal(plain.ToText(), asked.ToText());
+        }
+
+        [Fact]
+        public void AHatchMirroredAcrossAGeneralLine_ReflectsTheLinesOfItsPattern_WhenAskedTo()
+        {
+            var database = new DxfDatabase("AC1027");
+            DxfHatch hatch = UserHatch(database);
+
+            hatch.TransformBy(Across(20, 5, 30, 20), true);
+
+            // The line at 30 degrees, offset (-1, 1.732) from the base (0, 0), across a line at 56.31 degrees: AutoCAD 2021 with
+            // MIRRHATCH 1 writes 82.6198649480404 (twice the angle of the mirror line less 30), the base (23.0769, -15.3846), the
+            // offset reflected, the pattern angle (52) as it was.
             double phi = 2.0 * Math.Atan2(15.0, 10.0);
             double[] line = FirstLine(Groups(database, hatch.Handle));
             Near(phi * 180.0 / Math.PI - 30.0, line[0]);
@@ -399,6 +460,164 @@ namespace GeometryHelper.UnitTest.Dxf
             Near(-100.0, Value(groups, 10, 2));
             Near(12.0, Math.Abs(Value(groups, 11, 1)));
             Near(0.5, Value(groups, 40));
+        }
+
+        /// <summary>The groups of the context of the default scale of an annotative hatch of one scale (1:1).</summary>
+        private static List<string> DefaultContext(DxfDatabase database, DxfHatch hatch)
+        {
+            var manager = (DxfDBDictionary)hatch.ExtensionDictionary.GetAt("AcDbContextDataManager");
+            var scales = (DxfDBDictionary)manager.GetAt("ACDB_ANNOTATIONSCALES");
+            return Groups(database, scales.GetAt("*A1").Handle);
+        }
+
+        /// <summary>
+        /// An annotative hatch of a user pattern at 30 degrees in the plane of a normal, the direction of its context as AutoCAD
+        /// writes it, a vector of the world: the pattern angle taken along the x and y axes of the normal's own system.
+        /// </summary>
+        private static DxfDatabase InPlane(GeoVector3 normal, GeoVector3 direction, out DxfHatch hatch)
+        {
+            var made = new DxfDatabase("AC1027");
+            made.ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES")
+                .AddContext(
+                    new DxfAnnotationScale
+                    {
+                        Name = "1:1",
+                        PaperUnits = 1,
+                        DrawingUnits = 1,
+                    }
+                );
+            DxfHatch first = UserHatch(made);
+            first.Normal = normal;
+            first.Annotative = DxfAnnotativeStates.True;
+
+            // The direction the library writes is (0.866, 0.5, 0), of the plane; put the one AutoCAD writes in its place.
+            string[] lines = made.ToText().Replace("\r\n", "\n").Split('\n');
+            int context = Array.FindIndex(lines, (l) => l == "ACDB_HATCHSCALECONTEXTDATA_CLASS");
+            context = Array.FindIndex(lines, context + 1, l => l == "ACDB_HATCHSCALECONTEXTDATA_CLASS");
+            int scale = context + 1;
+
+            // The groups are in pairs: the code line, then the value; the scale (40) is the last of its code before the direction.
+            for (int i = context + 1; i + 1 < lines.Length && lines[i].Trim() != "0"; i += 2)
+            {
+                if (lines[i].Trim() == "40")
+                {
+                    scale = i + 1;
+                }
+            }
+
+            for (int i = scale + 1, axis = 0; axis < 3 && i + 1 < lines.Length; i += 2)
+            {
+                if (lines[i].Trim() == (10 * (axis + 1)).ToString(CultureInfo.InvariantCulture))
+                {
+                    lines[i + 1] = new[] { direction.X, direction.Y, direction.Z }[axis]
+                        .ToString("R", CultureInfo.InvariantCulture);
+                    axis++;
+                }
+            }
+
+            DxfDatabase database = DxfDatabase.Parse(string.Join("\n", lines));
+            hatch = database.ModelSpace.OfType<DxfHatch>().Single();
+            return database;
+        }
+
+        private static double[] Direction(DxfDatabase database, DxfHatch hatch)
+        {
+            List<string> groups = DefaultContext(database, hatch);
+            return new[] { Value(groups, 10), Value(groups, 20), Value(groups, 30) };
+        }
+
+        [Fact]
+        public void TheDirectionOfAContext_IsLeftAsItWas_WhereTheTransformationTakesTheHatchsSystemToTheNewOne()
+        {
+            // AutoCAD 2021, TransformBy and ROTATE alike (probed on 11 annotative hatches of 6 planes): a hatch of normal (0, 1, 0)
+            // keeps the direction (-0.866, 0, 0.5) of its pattern at 30 degrees when turned 40 degrees about z, as one of normal
+            // (1, 2, 3) does and as the plane of the drawing does turned about x; the direction is carried by a turn about y.
+            var upright = new GeoVector3(0, 1, 0);
+            var along = new GeoVector3(-Math.Sqrt(3.0) / 2.0, 0.0, 0.5);
+            DxfDatabase database = InPlane(upright, along, out DxfHatch hatch);
+            double[] before = Direction(database, hatch);
+            Near(-Math.Sqrt(3.0) / 2.0, before[0]);
+
+            hatch.TransformBy(GeoTransform3.RotationZ(40.0 * Math.PI / 180.0));
+            double[] after = Direction(database, hatch);
+            Near(before[0], after[0]);
+            Near(before[1], after[1]);
+            Near(before[2], after[2]);
+
+            // About y, the axis of its normal, a fresh hatch turns in its own plane and the direction with it.
+            DxfDatabase spun = InPlane(upright, along, out DxfHatch spinning);
+            spinning.TransformBy(GeoTransform3.RotationY(40.0 * Math.PI / 180.0));
+            GeoVector3 turned = GeoTransform3.RotationY(40.0 * Math.PI / 180.0).Transform(along);
+            double[] about = Direction(spun, spinning);
+            Near(turned.X, about[0]);
+            Near(turned.Y, about[1]);
+            Near(turned.Z, about[2]);
+
+            // The plane of the drawing turned about x keeps (0.866, 0.5, 0), about z it turns (0.342, 0.940, 0).
+            DxfDatabase flat = InPlane(
+                new GeoVector3(0, 0, 1),
+                new GeoVector3(Math.Sqrt(3.0) / 2.0, 0.5, 0.0),
+                out DxfHatch plain
+            );
+            plain.TransformBy(GeoTransform3.RotationX(40.0 * Math.PI / 180.0));
+            double[] kept = Direction(flat, plain);
+            Near(Math.Sqrt(3.0) / 2.0, kept[0]);
+            Near(0.5, kept[1]);
+            Near(0.0, kept[2]);
+
+            DxfDatabase level = InPlane(
+                new GeoVector3(0, 0, 1),
+                new GeoVector3(Math.Sqrt(3.0) / 2.0, 0.5, 0.0),
+                out DxfHatch another
+            );
+            another.TransformBy(GeoTransform3.RotationZ(40.0 * Math.PI / 180.0));
+            double[] z = Direction(level, another);
+            Near(Math.Cos(70.0 * Math.PI / 180.0), z[0]);
+            Near(Math.Sin(70.0 * Math.PI / 180.0), z[1]);
+        }
+
+        [Fact]
+        public void TheContextOfAnAnnotativeHatchMirrored_KeepsItsLines_ButReflectsItsDirection_UnlessAskedToReflectThem()
+        {
+            var made = new List<DxfDatabase>();
+            var hatches = new List<DxfHatch>();
+
+            for (int i = 0; i < 2; i++)
+            {
+                var database = new DxfDatabase("AC1027");
+                database
+                    .ObjectContextManager.GetContextCollection("ACDB_ANNOTATIONSCALES")
+                    .AddContext(
+                        new DxfAnnotationScale
+                        {
+                            Name = "1:1",
+                            PaperUnits = 1,
+                            DrawingUnits = 1,
+                        }
+                    );
+                DxfHatch hatch = UserHatch(database);
+                hatch.Annotative = DxfAnnotativeStates.True;
+                made.Add(database);
+                hatches.Add(hatch);
+            }
+
+            GeoTransform3 across = Across(20, 5, 30, 20);
+            hatches[0].TransformBy(across);
+            hatches[1].TransformBy(across, true);
+
+            // AutoCAD 2021, the line at 30 degrees through (0, 0), offset (-1, 1.732), direction (0.866, 0.5): MIRRHATCH 0 leaves the
+            // line in the context as it was, and reflects the direction ((0.1285, 0.9917) across a line at 56.31 degrees); 1 turns
+            // the line to 82.6198649480404 as it does the record's.
+            List<string> kept = DefaultContext(made[0], hatches[0]);
+            Near(30.0, Value(kept, 53));
+            Near(-1.0, Value(kept, 45));
+            Near(Root3, Value(kept, 46));
+            Near(0.1285, Math.Round(Value(kept, 10), 4));
+            Near(0.9917, Math.Round(Value(kept, 20), 4));
+
+            List<string> reflected = DefaultContext(made[1], hatches[1]);
+            Near(82.6198649480404, Value(reflected, 53));
+            Near(0.1285, Math.Round(Value(reflected, 10), 4));
         }
     }
 }

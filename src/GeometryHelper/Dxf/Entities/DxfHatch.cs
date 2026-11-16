@@ -1272,11 +1272,16 @@ namespace GeometryHelper.Dxf
         /// a polyline loop, ellipse edges, and each ellipse edge the ellipse it becomes, as ezdxf makes them; the pattern is scaled
         /// by the length its x axis takes, as ezdxf scales it.
         /// <para>
-        /// A mirror keeps the normal as the transformation takes it (a mirror across a plane that holds the normal leaves it as it
-        /// is, one across the plane of the hatch turns it over), as AutoCAD 2021 keeps it, and reflects what lies in the plane: the
-        /// loops (a bulge changes its sign, an arc and a circle run the other way round, an ellipse's major axis is reflected), the
-        /// seed points, and the lines of the pattern. A hatch over (42, 50) to (58, 58) mirrored across the line through (0, 0) and
-        /// (10, 10) lies over (50, 42) to (58, 58), its normal still (0, 0, 1), and a pattern line at 45 degrees is still at 45.
+        /// A mirror (a transformation of negative determinant) keeps the normal as the transformation takes it (a mirror across a
+        /// plane that holds the normal leaves it as it is, one across the plane of the hatch turns it over), as AutoCAD 2021 keeps
+        /// it, and reflects what lies in the plane: the loops (a bulge changes its sign, an arc and a circle run the other way
+        /// round, an ellipse's major axis is reflected) and the seed points. The lines of the pattern are left as they were, as
+        /// AutoCAD's own <c>TransformBy</c> leaves them while its MIRRHATCH is 0, its default (probed in AutoCAD 2021's console, a
+        /// mirror across a vertical plane, the plane of the hatch and a tilted plane): a hatch over (42, 50) to (58, 58) mirrored
+        /// across the line through (0, 0) and (10, 10) lies over (50, 42) to (58, 58), its normal still (0, 0, 1), and a pattern line
+        /// at 30 degrees is still at 30; <see cref="TransformBy(GeoTransform3, bool)"/> with true reflects the lines with the rest, as
+        /// MIRRHATCH 1 does, a line at 30 degrees across that line coming to 60. The direction of the pattern of each context of an
+        /// annotative hatch is reflected either way.
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentException">Thrown when it takes the plane of the HATCH to no plane.</exception>
@@ -1291,7 +1296,72 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
+            // A mirror leaves the lines of the pattern as they were, as AutoCAD's MIRRHATCH 0 does, unless asked to reflect them.
+            object kept = !s_mirrorPattern && transform.GetDeterminant() < 0.0 ? SavePattern() : null;
             Apply(transform);
+
+            if (kept != null)
+            {
+                RestorePattern(kept);
+            }
+        }
+
+        /// <summary>
+        /// Moves, turns, scales or mirrors the HATCH as <see cref="DxfEntity.TransformBy(GeoTransform3)"/> does, and says whether a
+        /// mirror reflects the lines of its pattern: AutoCAD's <c>TransformBy</c> follows its system variable MIRRHATCH, 0 by
+        /// default, which leaves them as they were, and 1, which reflects them with the rest; <c>TransformBy(transform)</c> is
+        /// the 0 form.
+        /// </summary>
+        /// <param name="transform">The transformation.</param>
+        /// <param name="mirrorPattern">True to reflect the lines of the pattern, in the record and in the contexts of an
+        /// annotative hatch, as MIRRHATCH 1 does; false to leave them, as MIRRHATCH 0 does. It changes nothing for a transformation
+        /// that is not a mirror.</param>
+        /// <remarks>
+        /// The line of a user pattern at 30 degrees through (0, 0), its offset (-1, 1.732), across the line through (20, 5) and
+        /// (30, 20) is written as it was with <paramref name="mirrorPattern"/> false; with true it is at 82.6198649480404 (twice
+        /// the angle of the mirror line, 56.31 degrees, less 30), its base at (23.0769, -15.3846) and its offset reflected.
+        /// <para>
+        /// The direction of the pattern of each context of an annotative hatch (groups 10, 20 and 30) is a vector of the world, and
+        /// is carried by the transformation, but AutoCAD 2021 leaves it as it was where the transformation takes the axes of the
+        /// hatch's own system (the x and y of its normal) straight to those of the system of the new normal, no turn or reflection
+        /// between them: a hatch of normal (0, 1, 0), (1, 2, 3) or any but the drawing's, turned about z, a hatch of the plane of
+        /// the drawing turned 40 degrees about x, a move, a scaling. A pattern at 30 degrees of the plane of the drawing turned 40
+        /// degrees about z holds (0.342, 0.940) in its context where it held (0.866, 0.5) and a hatch of normal (0, 1, 0), whose
+        /// direction is (-0.866, 0, 0.5), turned the same keeps it. Probed over 11 annotative hatches of 6 planes, 16 contexts, turns about x, y, z and
+        /// two slanting axes by 6 angles each: the 463 hatch and transformation pairs where the direction could tell are all on this rule.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when it takes the plane of the HATCH to no plane.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the HATCH is erased.</exception>
+        public void TransformBy(GeoTransform3 transform, bool mirrorPattern)
+        {
+            using (mirrorPattern ? new PatternMirroring() : null)
+            {
+                TransformBy(transform);
+            }
+        }
+
+        /// <summary>Whether a mirror in progress reflects the lines of the patterns (MIRRHATCH 1), for this thread.</summary>
+        [ThreadStatic]
+        private static bool s_mirrorPattern;
+
+        /// <summary>
+        /// Makes every HATCH this thread mirrors reflect the lines of its pattern, as AutoCAD's MIRRHATCH 1 does, until it is
+        /// disposed: for a caller that moves hatches by <see cref="DxfEntity.TransformBy(GeoTransform3)"/> or
+        /// <see cref="DxfEntity.GetTransformedCopy(GeoTransform3)"/> among other entities.
+        /// </summary>
+        internal sealed class PatternMirroring : IDisposable
+        {
+            private readonly bool _was;
+
+            internal PatternMirroring()
+            {
+                _was = s_mirrorPattern;
+                s_mirrorPattern = true;
+            }
+
+            public void Dispose() => s_mirrorPattern = _was;
         }
 
         /// <summary>Moves the hatch by a transformation that is not the identity, its view context already written.</summary>
@@ -1449,7 +1519,11 @@ namespace GeometryHelper.Dxf
 
                 // The direction of the pattern (10, 20, 30) is a vector of the world, whatever the plane of the hatch: carried by
                 // the transformation, as AutoCAD 2021 carries it (a pattern line at 30 degrees of a hatch of normal (0, 1, 0) holds
-                // (-0.866, 0, 0.5)), and made of unit length.
+                // (-0.866, 0, 0.5)), and made of unit length; but left as it was where the transformation takes the axes of the
+                // hatch's own system, the x and y of its normal, to those of the new normal's with no turn or reflection between
+                // them (see the remarks of the TransformBy that asks about the mirror: a hatch of normal (0, 1, 0) turned about z, or the plane of the
+                // drawing turned about x by 40 degrees).
+                bool carried = Carries(ocs);
                 int[] at = { -1, -1, -1 };
 
                 for (int j = i + 1; j < groups.Count && groups[j].TypeCode != 90; j++)
@@ -1470,7 +1544,9 @@ namespace GeometryHelper.Dxf
                         Num(groups[at[1]].Value, 0.0),
                         at[2] >= 0 ? Num(groups[at[2]].Value, 0.0) : 0.0,
                     };
-                    GeoVector3 turned = transform.Transform(new GeoVector3(was[0], was[1], was[2]));
+                    GeoVector3 turned = carried
+                        ? new GeoVector3(was[0], was[1], was[2])
+                        : transform.Transform(new GeoVector3(was[0], was[1], was[2]));
                     double length = turned.Length;
 
                     if (length > 0.0)
@@ -1487,6 +1563,20 @@ namespace GeometryHelper.Dxf
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Whether a transformation takes the x and y axes of the hatch's own system to those of the system of its new normal, each
+        /// along the other's, as AutoCAD 2021's <c>TransformBy</c> does, and leaves the direction of the pattern of each context as
+        /// it was then: a hatch of normal (0, 1, 0) turned about z, one of the plane of the drawing turned 40 degrees about x, a
+        /// move or a scaling (probed in its console on 11 annotative hatches in 6 planes, turned about x, y, z and two
+        /// slanting axes by 6 angles each: 463 pairs where the direction could tell, none off the rule).
+        /// </summary>
+        private static bool Carries(DxfOcsTransform ocs)
+        {
+            GeoVector3 x = ocs.TransformDirection(new GeoVector3(1.0, 0.0, 0.0));
+            GeoVector3 y = ocs.TransformDirection(new GeoVector3(0.0, 1.0, 0.0));
+            return x.X > 0.0 && y.Y > 0.0 && Math.Abs(x.Y) <= 1E-9 * x.Length && Math.Abs(y.X) <= 1E-9 * y.Length;
         }
 
         /// <summary>

@@ -92,18 +92,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// How MIRROR moves a hatch under MIRRHATCH, as AutoCAD 2021 moves one (probed in its console, mirror-6 GHM6): its loops and
         /// seed points reflected in its plane, its normal kept. At 0, AutoCAD's default, the pattern is not mirrored: the lines of
         /// the pattern, in the record and in the contexts of its scales, stay as they were (the direction of the pattern of a
-        /// context is reflected all the same). At 1 the lines are reflected with the rest, as <c>TransformBy</c> reflects them.
+        /// context is reflected all the same), as the hatch's own <c>TransformBy</c> leaves them. At 1 the lines are reflected
+        /// with the rest, as <c>TransformBy(transform, true)</c> reflects them.
         /// </summary>
-        private static ReadableMirror ReadableHatch(DxfHatch hatch, GeoTransform3 mirror, bool mirrorPattern)
-        {
-            if (mirrorPattern)
-            {
-                return null;
-            }
-
-            object saved = hatch.SavePattern();
-            return new ReadableMirror(mirror, null, null, then: moved => ((DxfHatch)moved).RestorePattern(saved));
-        }
+        private static ReadableMirror ReadableHatch(GeoTransform3 mirror, bool mirrorPattern) =>
+            mirrorPattern ? new ReadableMirror(mirror, null, null, mirrorsPattern: true) : null;
 
         /// <summary>
         /// How MIRROR with MIRRTEXT 1 mirrors a TEXT or attribute definition, or the attributes of an INSERT, as AutoCAD 2021
@@ -390,7 +383,8 @@ namespace GeometryHelper.Dxf.Viewer
                 DxfAttachmentPoint? attachment,
                 List<GeoTransform3> attributes,
                 bool upright = false,
-                Action<DxfEntity> then = null
+                Action<DxfEntity> then = null,
+                bool mirrorsPattern = false
             )
             {
                 Transform = transform;
@@ -398,7 +392,11 @@ namespace GeometryHelper.Dxf.Viewer
                 _attributes = attributes;
                 _upright = upright;
                 _then = then;
+                MirrorsPattern = mirrorsPattern;
             }
+
+            /// <summary>Whether a hatch moved reflects the lines of its pattern too (MIRRHATCH 1).</summary>
+            public bool MirrorsPattern { get; }
 
             /// <summary>The transformation the object is moved by.</summary>
             public GeoTransform3 Transform { get; }

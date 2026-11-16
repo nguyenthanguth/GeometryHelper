@@ -471,7 +471,7 @@ namespace GeometryHelper.Dxf.Viewer
             // MIRRHATCH 0, AutoCAD's default, keeps the pattern of a hatch as it was; 1 mirrors it with the rest.
             bool mirrhatch = c.Remembered("mirrhatch", 0.0) >= 0.5;
             Func<DxfEntity, ReadableMirror> readable = entity =>
-                entity is DxfHatch hatch ? ReadableHatch(hatch, mirror, mirrhatch)
+                entity is DxfHatch ? ReadableHatch(mirror, mirrhatch)
                 : entity is DxfDimension dimension ? ReadableDimension(dimension, mirror, tolerance)
                 : entity is DxfMLeader mleader ? MLeaderMirror(document, mleader, mirror, mirrtext, tolerance)
                 : entity is DxfBlockReference insert ? InsertMirror(document, insert, mirror, mirrtext, tolerance)
@@ -1251,11 +1251,17 @@ namespace GeometryHelper.Dxf.Viewer
                         // A clipped viewport copied with its boundary is not moved itself: it is tied to the copy of the boundary and
                         // fitted to it afterwards, as a turn or a mirror cannot move a viewport.
                         bool paired = entity is DxfViewport shown && CadViewportClips.IsPaired(shown, together);
-                        DxfEntity copied = AppendCopy(
-                            s,
-                            handle,
-                            paired ? GeoTransform3.Identity : kept?.Transform ?? transform
-                        );
+                        DxfEntity copied;
+
+                        using (Mirroring(kept))
+                        {
+                            copied = AppendCopy(
+                                s,
+                                handle,
+                                paired ? GeoTransform3.Identity : kept?.Transform ?? transform
+                            );
+                        }
+
                         kept?.Finish(copied);
                         copies[handle] = copied;
                     }
@@ -1277,7 +1283,11 @@ namespace GeometryHelper.Dxf.Viewer
                         }
                         else
                         {
-                            entity.TransformBy(kept?.Transform ?? transform);
+                            using (Mirroring(kept))
+                            {
+                                entity.TransformBy(kept?.Transform ?? transform);
+                            }
+
                             CarryManualBreaks(entity, kept?.Transform ?? transform);
                         }
 
@@ -1309,6 +1319,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             return made;
         }
+
+        /// <summary>The scope in which a hatch mirrored reflects the lines of its pattern, for an object MIRROR moves under MIRRHATCH 1; none otherwise.</summary>
+        private static IDisposable Mirroring(ReadableMirror kept) =>
+            kept != null && kept.MirrorsPattern ? new DxfHatch.PatternMirroring() : null;
 
         private static void EraseAll(CadCommandContext c, IReadOnlyList<string> handles)
         {

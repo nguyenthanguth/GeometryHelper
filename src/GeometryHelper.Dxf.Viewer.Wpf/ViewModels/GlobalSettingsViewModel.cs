@@ -606,6 +606,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["ROTATE"] = "Turn objects about a point",
             ["SCALE"] = "Scale objects about a point",
             ["MIRROR"] = "Mirror objects across a line",
+            ["MIRROR3D"] = "Mirror objects across a plane",
             ["ERASE"] = "Delete objects",
             ["EXPLODE"] = "Break objects into their parts",
             ["U"] = "Undo the last step",
