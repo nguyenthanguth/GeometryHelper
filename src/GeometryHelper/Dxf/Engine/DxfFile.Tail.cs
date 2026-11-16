@@ -8,93 +8,247 @@ namespace GeometryHelper.Dxf
         #region The data of an object kept with its places
 
         /// <summary>
-        /// The groups of a record as <see cref="TailOf"/> reads them, from its first to its extended data, and where each stands
-        /// in the record's bytes: two numbers a group, where its code line begins and where its value line ends with its line
-        /// end, counted from the record's start; for an edit of a few groups that costs the bytes of the record and not a
-        /// reading of every group of it (<see cref="SpliceBytes"/>).
+        /// The groups of a record as <see cref="TailOf"/> reads them, from its first to its extended data, found without making
+        /// a string of any: where each stands in the record's bytes, two numbers a group, where its code line begins and where
+        /// its value line ends with its line end, counted from the record's start, its value made when it is asked for; for an
+        /// edit of a few groups that costs the bytes of the record and not a reading of every group of it
+        /// (<see cref="SpliceBytes"/>).
         /// </summary>
         internal sealed class TailMap
         {
-            internal TailMap(Rec record, List<DxfTypedValue> groups, int[] places, int dataEnd)
+            private readonly DxfFile _file;
+            private readonly Pair[] _pairs;
+
+            internal TailMap(DxfFile file, Rec record, Pair[] pairs, int dataEnd)
             {
+                _file = file;
                 Record = record;
-                Groups = groups;
-                Places = places;
+                _pairs = pairs;
                 DataEnd = dataEnd;
             }
 
             /// <summary>The record the places are of.</summary>
             internal Rec Record { get; }
 
-            /// <summary>The groups, each as <see cref="TailOf"/> reads it.</summary>
-            internal List<DxfTypedValue> Groups { get; }
-
-            /// <summary>Where each group stands, two numbers a group, counted from the record's start.</summary>
-            internal int[] Places { get; }
+            /// <summary>How many groups there are.</summary>
+            internal int Count => _pairs.Length;
 
             /// <summary>Where the groups end and the extended data begins (the record's end where it has none), counted from the record's start; a comment after the last group stands before it.</summary>
             internal int DataEnd { get; }
+
+            /// <summary>The code of a group.</summary>
+            internal int Code(int index) => _pairs[index].Code;
+
+            /// <summary>Where a group's code line begins, counted from the record's start.</summary>
+            internal int Start(int index) => _pairs[index].Start - Record.Start;
+
+            /// <summary>Where a group's value line ends, its line end with it, counted from the record's start.</summary>
+            internal int End(int index) => _pairs[index].End - Record.Start;
+
+            /// <summary>The value of a group as <see cref="TailOf"/> reads it.</summary>
+            internal string Value(int index) => _file.TailText(Record, _pairs[index]);
+
+            /// <summary>A group as <see cref="TailOf"/> reads it.</summary>
+            internal DxfTypedValue Group(int index) => DxfTypedValue.Read(_pairs[index].Code, Value(index));
+
+            /// <summary>
+            /// Whether a group is of the code given and its value, its spaces taken off, is the text given: found in the bytes
+            /// where the value is of printable letters and digits of ASCII, where no string is made for it.
+            /// </summary>
+            internal bool Is(int index, int code, string text)
+            {
+                Pair pair = _pairs[index];
+
+                if (pair.Code != code)
+                {
+                    return false;
+                }
+
+                byte[] bytes = Record.Bytes;
+                int start = pair.ValueStart;
+                int end = pair.ValueEnd;
+
+                while (start < end && IsSpace(bytes[start]))
+                {
+                    start++;
+                }
+
+                while (end > start && IsSpace(bytes[end - 1]))
+                {
+                    end--;
+                }
+
+                for (int i = start; i < end; i++)
+                {
+                    if (bytes[i] <= 0x20 || bytes[i] >= 0x7F || bytes[i] == (byte)'\\')
+                    {
+                        return Value(index).Trim() == text;
+                    }
+                }
+
+                if (end - start != text.Length)
+                {
+                    return false;
+                }
+
+                for (int i = 0; i < text.Length; i++)
+                {
+                    if (bytes[start + i] != text[i])
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            private static bool IsSpace(byte b) => b == 0x20 || (b >= 0x09 && b <= 0x0D);
         }
 
         /// <summary>
         /// The groups of the first record of an item as <see cref="TailOf"/> reads them from the first (<c>TailOf(item, 0)</c>),
-        /// each with the place it stands in the record's bytes.
+        /// each with the place it stands in the record's bytes, their values not read until they are asked for.
         /// </summary>
         internal TailMap MapTail(DxfItem item)
         {
             Rec head = RecordAt(item, 0);
-            List<Pair> pairs = PairsOf(head);
+            List<Pair> pairs = PairsOfSized(head, (head.End - head.Start) / 16);
             int data = DataAt(head, pairs);
-            var groups = new List<DxfTypedValue>(data);
-            var places = new List<int>(2 * data);
+            var kept = new Pair[Math.Max(data - 1, 0)];
+            int count = 0;
 
             for (int i = 1; i < data; i++)
             {
                 if (pairs[i].Code != 999)
                 {
-                    groups.Add(DxfTypedValue.Read(pairs[i].Code, TailText(head, pairs[i])));
-                    places.Add(pairs[i].Start - head.Start);
-                    places.Add(pairs[i].End - head.Start);
+                    kept[count++] = pairs[i];
                 }
             }
 
+            Array.Resize(ref kept, count);
             int dataEnd = data < pairs.Count ? pairs[data].Start - head.Start : head.End - head.Start;
-            return new TailMap(head, groups, places.ToArray(), dataEnd);
+            return new TailMap(this, head, kept, dataEnd);
         }
 
         /// <summary>
         /// Whether the groups of a map from the one given on stand in the record as the file writes a group, one after another
         /// with nothing between them or after the last (no comment, no other spelling of a number), so that writing them anew
-        /// gives the very bytes they stand in: what a splice that leaves the bytes around its own as they are depends on.
+        /// gives the very bytes they stand in: what a splice that leaves the bytes around its own as they are depends on. A
+        /// group is looked at in its bytes, its code line as the file pads one and its value a text of ASCII with no escape
+        /// (<c>\U+</c>, <c>\M+</c>) in it, which is the same bytes however it is written; any other is written and compared.
         /// </summary>
         internal bool TailStandsAsWritten(TailMap map, int from)
         {
-            int count = map.Groups.Count;
+            int count = map.Count;
 
             if (from >= count)
             {
                 return true;
             }
 
-            var b = new Builder(this);
+            Writing style = Style;
+            byte[] bytes = map.Record.Bytes;
+            int origin = map.Record.Start;
 
             for (int k = from; k < count; k++)
             {
-                b.Group(map.Groups[k].TypeCode, map.Groups[k].Value);
+                int start = origin + map.Start(k);
+                int end = origin + map.End(k);
+
+                if (k > from && start != origin + map.End(k - 1))
+                {
+                    return false;
+                }
+
+                if (StandsAsWritten(map, k, style, bytes, start, end))
+                {
+                    continue;
+                }
+
+                var written = new Builder(this);
+                written.Group(map.Code(k), map.Value(k));
+                byte[] again = written.ToArray();
+
+                if (again.Length != end - start)
+                {
+                    return false;
+                }
+
+                for (int i = 0; i < again.Length; i++)
+                {
+                    if (bytes[start + i] != again[i])
+                    {
+                        return false;
+                    }
+                }
             }
 
-            byte[] written = b.ToArray();
-            int start = map.Record.Start + map.Places[2 * from];
-            int end = map.Record.Start + map.Places[2 * count - 1];
+            return map.End(count - 1) == map.DataEnd;
+        }
 
-            if (end - start != written.Length || map.Places[2 * count - 1] != map.DataEnd)
+        /// <summary>Whether a group, from the first byte of its code line to the end of its value line, is the bytes the file writes it as, where its value is a text of ASCII with no escape in it; false where it is not or the value is of another kind, to be written and compared.</summary>
+        private static bool StandsAsWritten(TailMap map, int index, Writing style, byte[] bytes, int start, int end)
+        {
+            int code = map.Code(index);
+
+            if (code < 0 || code >= 1000)
             {
                 return false;
             }
 
-            for (int i = 0; i < written.Length; i++)
+            // The code line, as the file pads one, and its line end; then the value, ASCII with no escape where the code is one
+            // of a text, and its line end.
+            byte[] line = Builder.CodeLine(code, style.Padded);
+            byte[] lineEnd = style.LineEnd;
+            int at = start + line.Length + lineEnd.Length;
+            int valueEnd = end - lineEnd.Length;
+
+            if (
+                !Matches(bytes, start, line)
+                || !Matches(bytes, start + line.Length, lineEnd)
+                || valueEnd < at
+                || !Matches(bytes, valueEnd, lineEnd)
+            )
             {
-                if (map.Record.Bytes[start + i] != written[i])
+                return false;
+            }
+
+            bool text = (code >= 1 && code <= 9) || (code >= 300 && code <= 309);
+
+            for (int i = at; i < valueEnd; i++)
+            {
+                byte b = bytes[i];
+
+                if (b >= 0x80 || b == (byte)'\n' || b == (byte)'\r')
+                {
+                    return false;
+                }
+
+                if (text && b == (byte)'\\' && i + 2 < valueEnd)
+                {
+                    byte kind = bytes[i + 1];
+
+                    if ((kind == 'U' || kind == 'u' || kind == 'M' || kind == 'm') && bytes[i + 2] == (byte)'+')
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>Whether bytes from a place are those given.</summary>
+        private static bool Matches(byte[] bytes, int at, byte[] expected)
+        {
+            if (at < 0 || at + expected.Length > bytes.Length)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < expected.Length; i++)
+            {
+                if (bytes[at + i] != expected[i])
                 {
                     return false;
                 }

@@ -6770,20 +6770,22 @@ namespace GeometryHelper.Dxf
                 return item.Parent.Handle;
             }
 
+            // The groups one at a time, up to the 330 or the extended data: the owner of a record of megabytes (a TABLECONTENT)
+            // stands among its first groups.
             Rec head = HeadOf(item);
-            List<Pair> pairs = PairsOf(head);
-            int data = DataAt(head, pairs);
+            var walk = new PairWalk(head);
             bool braced = false;
+            walk.Next(out _);
 
-            for (int i = 1; i < data; i++)
+            while (walk.Next(out Pair pair) && pair.Code != 1001)
             {
-                if (pairs[i].Code == 102)
+                if (pair.Code == 102)
                 {
-                    braced = Text(head, pairs[i]).Trim().StartsWith("{", StringComparison.Ordinal);
+                    braced = Text(head, pair).Trim().StartsWith("{", StringComparison.Ordinal);
                 }
-                else if (!braced && pairs[i].Code == 330)
+                else if (!braced && pair.Code == 330)
                 {
-                    return Text(head, pairs[i]).Trim();
+                    return Text(head, pair).Trim();
                 }
             }
 

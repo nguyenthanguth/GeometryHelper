@@ -258,9 +258,12 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The groups of a record as they stand, its group 0 the first and its comments among them.</summary>
-        private static List<Pair> PairsOf(Rec record)
+        private static List<Pair> PairsOf(Rec record) => PairsOfSized(record, 16);
+
+        /// <summary>The groups of a record as they stand, in a list made for as many as the capacity says, which a record of megabytes is told so that its list is not grown by doubling.</summary>
+        private static List<Pair> PairsOfSized(Rec record, int capacity)
         {
-            var pairs = new List<Pair>(16);
+            var pairs = new List<Pair>(Math.Max(capacity, 16));
             int at = record.Start;
 
             while (at < record.End)
@@ -604,6 +607,22 @@ namespace GeometryHelper.Dxf
                 _bytes.Write(style.LineEnd, 0, style.LineEnd.Length);
             }
 
+            /// <summary>The bytes of a code below 1 000 as the file writes it, padded to three places where it pads, with no line end.</summary>
+            internal static byte[] CodeLine(int code, bool padded)
+            {
+                byte[][] known = padded ? PaddedCodes : PlainCodes;
+                byte[] line = known[code];
+
+                if (line == null)
+                {
+                    string number = code.ToString(CultureInfo.InvariantCulture);
+                    line = Encoding.ASCII.GetBytes(padded ? number.PadLeft(3) : number);
+                    known[code] = line;
+                }
+
+                return line;
+            }
+
             /// <summary>The code of a group and the line end after it, padded as the file pads one.</summary>
             private void Code(int code, Writing style)
             {
@@ -611,15 +630,7 @@ namespace GeometryHelper.Dxf
 
                 if (code >= 0 && code < Codes)
                 {
-                    byte[][] known = style.Padded ? PaddedCodes : PlainCodes;
-                    line = known[code];
-
-                    if (line == null)
-                    {
-                        string number = code.ToString(CultureInfo.InvariantCulture);
-                        line = Encoding.ASCII.GetBytes(style.Padded ? number.PadLeft(3) : number);
-                        known[code] = line;
-                    }
+                    line = CodeLine(code, style.Padded);
                 }
                 else
                 {

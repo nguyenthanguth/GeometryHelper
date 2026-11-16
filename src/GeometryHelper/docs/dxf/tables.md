@@ -226,6 +226,21 @@ for it on .NET Framework 4.8 (9 ms on .NET 10) where they took 57 ms and 52 MB (
 The table of a block is found among the entities of the copy, as before, and a drawing whose text is not its bytes as UTF-8 (a
 mark at its start, bytes read as the replacement character, a code page) makes the copy of its text.
 
+A data link put in (`SetDataLink`) or taken away (`RemoveDataLink`) in a table read from a file is read from the cells the table keeps of
+its TABLECONTENT and written by changing the cell it names, where each read the groups of the record three or four times and wrote them all
+again: the links are found in the groups of the cells held (the places `GroupsOf` gives them), the state, the 92 and the run of the link are changed in
+the groups of their own cell, and the record is written by copying the bytes of every other cell. In a table of 300 rows by 6 columns (1 800 cells, 90 000
+groups in its TABLECONTENT), medians of 15 on .NET Framework 4.8 (.NET 10 in brackets), a link put in takes 2.8 ms (2.9) where it took 43.9 (31.3), a link taken
+away 5.0 ms (3.0) where 54.8 (44.7) and every link 7.7 ms (2.9) where 59.0 (42.3); the first, which reads the record to keep its cells, 28.6 ms (21.9) where
+56.6 (38.3), and ten put in and taken away again allocate 147 MB where 1 551 MB. A TABLECONTENT whose groups do not stand as the file writes them or that holds
+extended data is read and written whole, as before. The record is read lazily: the first edit of the TABLECONTENT of a table read from a file (a merge, a row,
+a link) finds where each row and cell stand from the codes of the groups and the bytes of their markers, compares each group with the bytes the file writes it
+as (a value that is not a text of ASCII with no escape in it is written and compared), and makes the strings of a cell's groups only when an edit asks for them (a merge
+that empties it, a link, a field): the first merge of the table of 1 800 cells takes 13.5 ms where it took 29.6 on .NET Framework 4.8 (8.4 ms where 13.3 on .NET 10),
+the first row put in 14.9 ms where 32.7 (8.2 where 24.7). The groups of a table's own record that an edit changes are copied once, not twice (twenty heights of
+rows set allocate 41.6 MB where 60.4), and the table's handle, asked for after an edit wrote its record anew, and the owner of a record, asked for by what the
+links let go of, are read from the first groups of their records, not by a walk over every group: the handle takes 0.01 ms where it took 0.26 on .NET 10.
+
 ## Values and their kinds
 
 A cell's value has its kind, `DataType` (`Long`, `Double` or `String`, the value's 90 from R2007 on), what its number

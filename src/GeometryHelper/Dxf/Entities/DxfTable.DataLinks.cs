@@ -266,6 +266,7 @@ namespace GeometryHelper.Dxf
         public void RemoveDataLink()
         {
             Layout layout = ReadToWrite();
+            KeepContent();
             var flagged = new Dictionary<(int, int), int>();
             List<LinkedRange> before = AllLinks(layout, flagged);
             WriteLinks(layout, new List<LinkedRange>());
@@ -287,6 +288,7 @@ namespace GeometryHelper.Dxf
         {
             Layout layout = ReadToWrite();
             layout.CellOf(row, column);
+            KeepContent();
             var flagged = new Dictionary<(int, int), int>();
             List<LinkedRange> before = AllLinks(layout, flagged);
             LinkedRange taken = before.Find(l => l.Holds(row, column));
@@ -376,6 +378,7 @@ namespace GeometryHelper.Dxf
             }
 
             MergeAsLoaded();
+            KeepContent();
 
             // A TABLECONTENT ACDB_RECOMPOSE_DATA does not list is listed with the link, and the links it names then read with it.
             bool listed = ContentItem() == null || Listed();
@@ -406,7 +409,7 @@ namespace GeometryHelper.Dxf
             }
 
             DxfItem content = ContentItem() ?? NewContent();
-            IReadOnlyList<DxfTypedValue> groups = Item.File.GroupsOf(content);
+            IReadOnlyList<DxfTypedValue> groups = ContentGroups(content, true, out ContentFlat flat);
             int begin = ContentCellAt(groups, range.TopRow, range.LeftColumn);
             int end = begin + 1;
 
@@ -443,56 +446,39 @@ namespace GeometryHelper.Dxf
                 );
             }
 
-            // From the cell's state to the end: the state given the flag 4, the 92 made odd, its run, if any, made the link's.
+            // From the cell's state to the end: the state given the flag 4, the 92 made odd, its run, if any, made the link's. The
+            // cell's own groups are changed where the TABLECONTENT is kept with its cells, and the record is written by copying
+            // the bytes of the others; else every group from the cell's state on is read and written again.
             int flagAt = groups[begin + 1].TypeCode == 90 ? begin + 1 : -1;
             int from = flagAt >= 0 ? flagAt : end + 1;
-            List<KeyValuePair<int, string>> tail = Item
-                .File.TailOf(content, from)
-                .ConvertAll(g => new KeyValuePair<int, string>(g.TypeCode, g.Value));
-            int at = end + 1 - from;
-            int linked = int.TryParse(
-                tail[at].Value.Trim(),
-                NumberStyles.Integer,
-                CultureInfo.InvariantCulture,
-                out int read
-            )
-                ? read
-                : 0;
-            int run = 0;
+            int heldFrom = -1;
+            int heldTo = -1;
+            ContentGridCell held = flat == null ? null : flat.CellAt(from, out heldFrom, out heldTo);
 
-            foreach (int code in new[] { 340, 93, 94, 96 })
+            if (held != null && end + 1 < heldTo)
             {
-                run += (linked & 1) != 0 && at + 1 + run < tail.Count && tail[at + 1 + run].Key == code ? 1 : 0;
-            }
+                List<KeyValuePair<int, string>> own = held.Groups;
+                List<KeyValuePair<int, string>> changed = own.GetRange(from - heldFrom, heldTo - from);
+                PutLink(changed, end + 1 - from, flagAt >= 0, dataLink.Handle, range);
 
-            tail[at] = new KeyValuePair<int, string>(92, (linked | 1).ToString(CultureInfo.InvariantCulture));
-            tail.RemoveRange(at + 1, run);
-            tail.InsertRange(
-                at + 1,
-                new[]
+                if (!SameGroups(changed, own, from - heldFrom))
                 {
-                    new KeyValuePair<int, string>(340, dataLink.Handle),
-                    new KeyValuePair<int, string>(
-                        93,
-                        (range.BottomRow - range.TopRow + 1).ToString(CultureInfo.InvariantCulture)
-                    ),
-                    new KeyValuePair<int, string>(
-                        94,
-                        (range.RightColumn - range.LeftColumn + 1).ToString(CultureInfo.InvariantCulture)
-                    ),
-                    new KeyValuePair<int, string>(96, "1"),
+                    _contentBytes = null;
+                    own.RemoveRange(from - heldFrom, own.Count - (from - heldFrom));
+                    own.AddRange(changed);
+                    held.Dirty = true;
+                    WriteContent(content, flat.Kept);
                 }
-            );
-
-            if (
-                flagAt >= 0
-                && int.TryParse(tail[0].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags)
-            )
+            }
+            else
             {
-                tail[0] = new KeyValuePair<int, string>(90, (flags | 4).ToString(CultureInfo.InvariantCulture));
+                List<KeyValuePair<int, string>> tail = Item
+                    .File.TailOf(content, from)
+                    .ConvertAll(g => new KeyValuePair<int, string>(g.TypeCode, g.Value));
+                PutLink(tail, end + 1 - from, flagAt >= 0, dataLink.Handle, range);
+                Item.File.ReplaceTail(content, from, tail);
             }
 
-            Item.File.ReplaceTail(content, from, tail);
             TieTo(dataLink.Handle, content.Handle);
 
             if (!listed)
@@ -989,7 +975,7 @@ namespace GeometryHelper.Dxf
                 return links;
             }
 
-            IReadOnlyList<DxfTypedValue> groups = Item.File.GroupsOf(content);
+            IReadOnlyList<DxfTypedValue> groups = ContentGroups(content, false, out _);
             var cells = new List<ContentCell>();
             var widths = new List<int>();
 
@@ -1074,7 +1060,7 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
-            IReadOnlyList<DxfTypedValue> groups = Item.File.GroupsOf(content);
+            IReadOnlyList<DxfTypedValue> groups = ContentGroups(content, false, out _);
             int begin = ContentCellAt(groups, row, column);
 
             if (begin < 0)
@@ -1335,6 +1321,53 @@ namespace GeometryHelper.Dxf
             states.Sort();
             var cells = links.ConvertAll(l => l.Cell);
             cells.Sort((a, b) => b.LinkAt.CompareTo(a.LinkAt));
+            ContentGroups(content, true, out ContentFlat flat);
+
+            // Where the TABLECONTENT is kept with its cells, each one's own groups are changed and the record is written by
+            // copying the bytes of the others, not by reading every group from the first cell changed and writing it again.
+            if (flat != null && InOneCellEach(flat, states, cells))
+            {
+                _contentBytes = null;
+
+                foreach (int at in states)
+                {
+                    ContentGridCell own = flat.CellAt(at, out int start, out _);
+                    int flags = int.Parse(
+                        own.Groups[at - start].Value.Trim(),
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture
+                    );
+                    own.Groups[at - start] = new KeyValuePair<int, string>(
+                        90,
+                        (flags & ~4).ToString(CultureInfo.InvariantCulture)
+                    );
+                    own.Dirty = true;
+                }
+
+                foreach (ContentCell cell in cells)
+                {
+                    ContentGridCell own = flat.CellAt(cell.LinkAt, out int start, out _);
+                    int at = cell.LinkAt - start;
+                    int linked = int.TryParse(
+                        own.Groups[at].Value.Trim(),
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out int read
+                    )
+                        ? read
+                        : 1;
+                    own.Groups[at] = new KeyValuePair<int, string>(
+                        92,
+                        (linked & ~1).ToString(CultureInfo.InvariantCulture)
+                    );
+                    own.Groups.RemoveRange(at + 1, cell.Run);
+                    own.Dirty = true;
+                }
+
+                WriteContent(content, flat.Kept);
+                return;
+            }
+
             int from =
                 cells[cells.Count - 1].FlagAt >= 0 ? cells[cells.Count - 1].FlagAt : cells[cells.Count - 1].LinkAt;
             from = states.Count > 0 ? Math.Min(from, states[0]) : from;
@@ -1371,6 +1404,139 @@ namespace GeometryHelper.Dxf
             }
 
             Item.File.ReplaceTail(content, from, groups);
+        }
+
+        /// <summary>
+        /// Whether every state given stands among the groups of a cell of a kept TABLECONTENT, and every run of a link (its 92 and
+        /// the groups after it), so that each cell is changed by itself.
+        /// </summary>
+        private static bool InOneCellEach(ContentFlat flat, List<int> states, List<ContentCell> cells)
+        {
+            foreach (int at in states)
+            {
+                if (flat.CellAt(at, out _, out _) == null)
+                {
+                    return false;
+                }
+            }
+
+            foreach (ContentCell cell in cells)
+            {
+                if (flat.CellAt(cell.LinkAt, out _, out int end) == null || cell.LinkAt + cell.Run >= end)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Reads the TABLECONTENT of the table, where it has one, to be kept with its cells (<see cref="ContentBytesOf"/>), for
+        /// the links it names to be read from the cells and the record to be written by copying the bytes of those left as they
+        /// are: asked by what links and unlinks, which read the groups once and write the cell.
+        /// </summary>
+        private void KeepContent()
+        {
+            if (IsResident)
+            {
+                HeldContent(ContentItem(), true);
+            }
+        }
+
+        /// <summary>
+        /// The groups of the TABLECONTENT as <see cref="DxfFile.GroupsOf"/> gives them, in the places they have there: taken from the
+        /// grid kept (<paramref name="flat"/> is it, for the cells to be found by their places) where the TABLECONTENT is kept for
+        /// the record as it stands, or, where <paramref name="read"/> asks, is read now to be kept; else read from the record
+        /// (<paramref name="flat"/> null).
+        /// </summary>
+        private IReadOnlyList<DxfTypedValue> ContentGroups(DxfItem content, bool read, out ContentFlat flat)
+        {
+            ContentBytes kept = HeldContent(content, read);
+            flat = kept == null ? null : kept.Flat ?? (kept.Flat = new ContentFlat(kept));
+            return flat ?? Item.File.GroupsOf(content);
+        }
+
+        /// <summary>
+        /// Makes the tail of a TABLECONTENT, from the state of a cell, name a link as <see cref="SetDataLink(DxfCellRange, DxfDataLink)"/>
+        /// puts one: the 92 at the place given made odd, its run, if any, made the link's (340, the rows 93, the columns 94 and
+        /// a 96 of 1), and, where <paramref name="flagged"/> says the tail begins with the cell's state, its flag 4 set.
+        /// </summary>
+        private static void PutLink(
+            List<KeyValuePair<int, string>> tail,
+            int at,
+            bool flagged,
+            string handle,
+            DxfCellRange range
+        )
+        {
+            int linked = int.TryParse(
+                tail[at].Value.Trim(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int read
+            )
+                ? read
+                : 0;
+            int run = 0;
+
+            foreach (int code in new[] { 340, 93, 94, 96 })
+            {
+                run += (linked & 1) != 0 && at + 1 + run < tail.Count && tail[at + 1 + run].Key == code ? 1 : 0;
+            }
+
+            tail[at] = new KeyValuePair<int, string>(92, (linked | 1).ToString(CultureInfo.InvariantCulture));
+            tail.RemoveRange(at + 1, run);
+            tail.InsertRange(
+                at + 1,
+                new[]
+                {
+                    new KeyValuePair<int, string>(340, handle),
+                    new KeyValuePair<int, string>(
+                        93,
+                        (range.BottomRow - range.TopRow + 1).ToString(CultureInfo.InvariantCulture)
+                    ),
+                    new KeyValuePair<int, string>(
+                        94,
+                        (range.RightColumn - range.LeftColumn + 1).ToString(CultureInfo.InvariantCulture)
+                    ),
+                    new KeyValuePair<int, string>(96, "1"),
+                }
+            );
+
+            if (
+                flagged
+                && int.TryParse(tail[0].Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags)
+            )
+            {
+                tail[0] = new KeyValuePair<int, string>(90, (flags | 4).ToString(CultureInfo.InvariantCulture));
+            }
+        }
+
+        /// <summary>Whether groups are those of a list from a place on, each of the same code and text.</summary>
+        private static bool SameGroups(
+            List<KeyValuePair<int, string>> groups,
+            List<KeyValuePair<int, string>> list,
+            int from
+        )
+        {
+            if (list.Count - from != groups.Count)
+            {
+                return false;
+            }
+
+            for (int k = 0; k < groups.Count; k++)
+            {
+                if (
+                    groups[k].Key != list[from + k].Key
+                    || !string.Equals(groups[k].Value, list[from + k].Value, StringComparison.Ordinal)
+                )
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>A cell of a TABLECONTENT that names a link: where its state (90) and its 92 stand among the record's groups, and the run of its link after the 92.</summary>

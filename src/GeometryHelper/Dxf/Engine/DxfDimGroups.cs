@@ -20,7 +20,7 @@ namespace GeometryHelper.Dxf
     {
         private readonly DxfItem _item;
         private readonly HashSet<int> _codes = new HashSet<int>();
-        private readonly List<KeyValuePair<int, string>> _was = new List<KeyValuePair<int, string>>();
+        private List<KeyValuePair<int, string>> _was = new List<KeyValuePair<int, string>>();
         private readonly bool _readOnly;
         private readonly Action<List<KeyValuePair<int, string>>> _splice;
 
@@ -52,13 +52,15 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// The own groups of a record as another list holds them, where that list was read from the record as it stands (or made
         /// from what was written into it): a copy of its groups, to be changed and written back as the groups read from the
-        /// record would be, in place of a reading of every group of it.
+        /// record would be, in place of a reading of every group of it. The list given is the groups as they were read, kept for
+        /// <see cref="Same"/> to compare with and not copied: a list a table has read is never changed in place (a table
+        /// patched with the cells written since makes a list of its own), so that it is the same as the copy was.
         /// </summary>
         internal DxfDimGroups(DxfItem item, DxfDimGroups like)
         {
             _item = item;
             List = new List<KeyValuePair<int, string>>(like.List);
-            _was.AddRange(List);
+            _was = like.List;
             Marked = like.Marked;
             Split = like.Split;
             int last = -1;

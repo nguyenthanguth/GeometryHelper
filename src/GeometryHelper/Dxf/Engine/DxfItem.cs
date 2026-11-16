@@ -187,6 +187,13 @@ namespace GeometryHelper.Dxf
 
                 if (Volatile.Read(ref _look) == null)
                 {
+                    // A record written anew since its handle was read (a table's, after each edit) gives it from its first
+                    // groups, where reading its look walks every group of it, which is megabytes in a table of a few hundred rows.
+                    if (_handle != null)
+                    {
+                        return _file.HandleOf(this);
+                    }
+
                     ReadLook();
                 }
 
