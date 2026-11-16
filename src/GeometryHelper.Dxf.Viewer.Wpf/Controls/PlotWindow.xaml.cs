@@ -29,6 +29,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             // Import… of Add Page Setup: Select File for the drawing, then Import Page Setups over this dialog.
             model.AskImportFile = () => PageSetupManagerWindow.AskDrawing(this);
             model.ShowImport = chosen => ImportPageSetupsWindow.Show(this, chosen);
+
+            // Edit… and New… of the Plot style table box: the Plot Style Table Editor and Add Plot Style Table over this dialog.
+            model.ShowStyleEditor = editor => PlotStyleEditorWindow.Show(this, editor);
+            model.ShowNewStyleSheet = dialog => PlotStyleNewWindow.Show(this, dialog);
         }
 
         /// <summary>Gets the view model.</summary>
@@ -70,6 +74,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private void OnApply(object sender, RoutedEventArgs e) => Model.ApplyToLayout();
 
         private void OnAdd(object sender, RoutedEventArgs e) => Model.AskAndAddPageSetup();
+
+        private void OnEditStyleSheet(object sender, RoutedEventArgs e) => Model.EditStyleSheet();
+
+        private void OnNewStyleSheet(object sender, RoutedEventArgs e) => Model.NewStyleSheet();
 
         private void OnPickWindow(object sender, RoutedEventArgs e)
         {

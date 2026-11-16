@@ -25,7 +25,11 @@ namespace GeometryHelper.Dxf.Viewer
         Layout,
     }
 
-    /// <summary>The plot style table a plot is coloured by, the three the presenter makes in code.</summary>
+    /// <summary>
+    /// The three plot style tables the presenter first made in code, kept as a way in to
+    /// <see cref="CadPlotSettings.StyleTable"/>: the files they stand for are monochrome.ctb, grayscale.ctb and none. A table
+    /// of another name is <see cref="CadPlotSettings.StyleSheet"/>.
+    /// </summary>
     public enum CadPlotStyleTable
     {
         /// <summary>Every colour plots black, as AutoCAD's monochrome.ctb.</summary>
@@ -301,8 +305,40 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets whether the plot is turned half round on the sheet.</summary>
         public bool UpsideDown { get; set; }
 
-        /// <summary>Gets or sets the plot style table; monochrome by default.</summary>
-        public CadPlotStyleTable StyleTable { get; set; } = CadPlotStyleTable.Monochrome;
+        private string _styleSheet = "monochrome.ctb";
+
+        /// <summary>
+        /// Gets or sets the plot style table by the name of its file, as AutoCAD's <c>CurrentStyleSheet</c> (group 7 of the
+        /// plot settings): <c>monochrome.ctb</c> by default, <c>acad.ctb</c>, <c>mine.stb</c>; empty for none. A plot reads
+        /// the file from the document's <see cref="CadDocument.PlotStyleFolder"/> (<see cref="CadPlotStyleResolver"/>). The
+        /// name is trimmed and kept as given, in the case the drawing spells it, whether or not a file of it exists.
+        /// </summary>
+        public string StyleSheet
+        {
+            get => _styleSheet;
+            set => _styleSheet = (value ?? string.Empty).Trim();
+        }
+
+        /// <summary>
+        /// Gets or sets the plot style table as one of the three the presenter made before tables were files: a name with
+        /// <c>monochrome</c> in it is <see cref="CadPlotStyleTable.Monochrome"/>, one with <c>grayscale</c> is
+        /// <see cref="CadPlotStyleTable.Grayscale"/>, any other and none are <see cref="CadPlotStyleTable.None"/>. Setting it
+        /// sets <see cref="StyleSheet"/> to <c>monochrome.ctb</c>, <c>grayscale.ctb</c> or none. Monochrome by default.
+        /// </summary>
+        public CadPlotStyleTable StyleTable
+        {
+            get =>
+                _styleSheet.IndexOf("monochrome", StringComparison.OrdinalIgnoreCase) >= 0
+                    ? CadPlotStyleTable.Monochrome
+                : _styleSheet.IndexOf("grayscale", StringComparison.OrdinalIgnoreCase) >= 0
+                    ? CadPlotStyleTable.Grayscale
+                : CadPlotStyleTable.None;
+            set =>
+                _styleSheet =
+                    value == CadPlotStyleTable.Monochrome ? "monochrome.ctb"
+                    : value == CadPlotStyleTable.Grayscale ? "grayscale.ctb"
+                    : string.Empty;
+        }
 
         /// <summary>Gets or sets whether the plot style table is used; off, colours plot as with <see cref="CadPlotStyleTable.None"/>. On by default.</summary>
         public bool PlotWithPlotStyles { get; set; } = true;
@@ -343,6 +379,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the plot style table the colours are plotted by: <see cref="StyleTable"/>, or none where <see cref="PlotWithPlotStyles"/> is off.</summary>
         public CadPlotStyleTable EffectiveStyleTable => PlotWithPlotStyles ? StyleTable : CadPlotStyleTable.None;
 
+        /// <summary>Gets the file name of the plot style table the plot reads: <see cref="StyleSheet"/>, or empty where <see cref="PlotWithPlotStyles"/> is off.</summary>
+        public string EffectiveStyleSheet => PlotWithPlotStyles ? _styleSheet : string.Empty;
+
         /// <summary>Gets the scale as millimetres of paper per drawing unit, where the plot is not fitted: 0.05 for 1:20.</summary>
         public double Scale => PaperUnits / DrawingUnits;
 
@@ -359,10 +398,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// Reads how a space is plotted from the drawing, as AutoCAD's Plot dialog opens on a layout's page setup: the plot
         /// settings of the space's LAYOUT, model space's from the layout Model. The sheet is the standard one of the name the
         /// layout gives and its margins, else one made of the layout's size and margins, ISO A3 where it gives none; a named
-        /// view plots as the display, a layout's sheet of model space as its extents; <c>monochrome.ctb</c> is read as
-        /// <see cref="CadPlotStyleTable.Monochrome"/>, <c>grayscale.ctb</c> as <see cref="CadPlotStyleTable.Grayscale"/>,
-        /// any other table and none as <see cref="CadPlotStyleTable.None"/>. A space whose settings cannot be read is given
-        /// the defaults, a layout plotting its sheet at 1:1.
+        /// view plots as the display, a layout's sheet of model space as its extents; the plot style table is kept by the name
+        /// of its file (<see cref="StyleSheet"/>), <c>monochrome.ctb</c> reading as <see cref="CadPlotStyleTable.Monochrome"/>
+        /// and <c>grayscale.ctb</c> as <see cref="CadPlotStyleTable.Grayscale"/> through <see cref="StyleTable"/>. A space
+        /// whose settings cannot be read is given the defaults, a layout plotting its sheet at 1:1.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="space">The space.</param>
@@ -1031,11 +1070,7 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint2 origin = layout.PlotOrigin;
                 settings.OffsetX = origin.X;
                 settings.OffsetY = origin.Y;
-                string table = layout.CurrentStyleSheet ?? string.Empty;
-                settings.StyleTable =
-                    table.IndexOf("monochrome", StringComparison.OrdinalIgnoreCase) >= 0 ? CadPlotStyleTable.Monochrome
-                    : table.IndexOf("grayscale", StringComparison.OrdinalIgnoreCase) >= 0 ? CadPlotStyleTable.Grayscale
-                    : CadPlotStyleTable.None;
+                settings.StyleSheet = layout.CurrentStyleSheet ?? string.Empty;
                 settings.PlotWithPlotStyles = layout.PlotPlotStyles;
                 settings.PlotLineweights = layout.PrintLineweights;
                 settings.ScaleLineweights = layout.ScaleLineweights;
@@ -1056,7 +1091,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// the plotter's name (group 2), the sheet's name, size and margins in millimetres (4, 40 to 45, 72), its turn (73) as
         /// AutoCAD reckons it from the sheet as named, the offset (46, 47), what is plotted (74) and the window (48, 49, 140,
         /// 141), the scale (142, 143, and 75 with 147 and flag 16 where it is one of AutoCAD's standard scales, scaled to fit
-        /// as 75 of 0), centring (flag 4), the table (7) as <c>monochrome.ctb</c>, <c>grayscale.ctb</c> or none, and the
+        /// as 75 of 0), centring (flag 4), the table (7) by the name of its file (<see cref="StyleSheet"/>), and the
         /// flags of plot styles (32), lineweights (128) and their scaling (64). Plot transparency is not written. A layout's
         /// limits follow its sheet, as <see cref="DxfLayout"/> makes them.
         /// </summary>
@@ -1230,10 +1265,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             layout.UseStandardScale = isStandard;
             layout.PlotCentered = Centered && Area != CadPlotArea.Layout;
-            layout.CurrentStyleSheet =
-                StyleTable == CadPlotStyleTable.Monochrome ? "monochrome.ctb"
-                : StyleTable == CadPlotStyleTable.Grayscale ? "grayscale.ctb"
-                : string.Empty;
+            layout.CurrentStyleSheet = StyleSheet;
             layout.PlotPlotStyles = PlotWithPlotStyles;
             layout.PrintLineweights = PlotLineweights;
             layout.ScaleLineweights = ScaleLineweights;

@@ -1038,7 +1038,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 menu.Items.Single(i => i.Key == "print").Items.Select(i => i.Name)
             );
             Assert.Equal(
-                new[] { true, true, true, true, false },
+                new[] { true, true, true, true, true },
                 menu.Items.Single(i => i.Key == "print").Items.Select(i => i.IsEnabled)
             );
             Assert.Equal(

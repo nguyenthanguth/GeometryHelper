@@ -268,7 +268,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// Import's Other Formats runs IMPORT, AutoCAD 2021's PDF and DGN having no command here. Export lists AutoCAD 2021's
     /// entries that have a command here in its order, DWF (EXPORTDWF), DWFx (EXPORTDWFX) and PDF (EXPORTPDF), then PNG, JPG and
     /// BMP (PNGOUT, JPGOUT, BMPOUT), Block or objects to a DXF (WBLOCK) and Other Formats (EXPORT); a click on Export itself
-    /// runs EXPORTPDF. Entries the presenter has not built (Drawing Template, Manage Plot Styles) are listed
+    /// runs EXPORTPDF. Entries the presenter has not built would be listed
     /// greyed, so that the menu matches AutoCAD's.
     /// </remarks>
     public sealed class AppMenuViewModel : ObservableObject
@@ -494,8 +494,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         Entry(
                             "Manage Plot Styles",
                             IconStyles,
-                            "Plot style tables: Monochrome, Grayscale, None are built in (not editable yet)",
-                            null
+                            "Edit and make plot style tables (.ctb, .stb) in the plot styles folder (STYLESMANAGER)",
+                            Start("STYLESMANAGER"),
+                            open
                         ),
                     }
                 ),

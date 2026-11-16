@@ -141,6 +141,7 @@ namespace GeometryHelper.Dxf.Viewer
         private string _replacementFont = CadFonts.BuiltInName;
         private string _fontMapFile = string.Empty;
         private List<string> _supportFolders = new List<string>(CadSupportFiles.DefaultFolders);
+        private string _plotStyleFolder = string.Empty;
         private SortedDictionary<string, string> _fontSubstitutions = new SortedDictionary<string, string>(
             StringComparer.OrdinalIgnoreCase
         );
@@ -748,6 +749,18 @@ namespace GeometryHelper.Dxf.Viewer
                     .ToList();
         }
 
+        /// <summary>
+        /// Gets or sets the folder of plot style tables (.ctb and .stb) the Plot and Page Setup dialogs list and a plot reads,
+        /// as AutoCAD's Plot Styles folder in its Files options: empty, the default, for the folder the presenter makes
+        /// (<see cref="CadPlotStyleFolder.DefaultPath"/>), holding its own tables (<see cref="CadPlotStyleFolder.BuiltIn"/>);
+        /// a path to use another folder, the presenter's tables written into it where it lacks them. Kept on this machine.
+        /// </summary>
+        public string PlotStyleFolder
+        {
+            get => _plotStyleFolder;
+            set => _plotStyleFolder = (value ?? string.Empty).Trim();
+        }
+
         /// <summary>Gets the fonts drawn in others, as AutoCAD's font mapping file gives them: each name to the name it is drawn in (romans.shx to isocp.shx); none by default.</summary>
         public IReadOnlyDictionary<string, string> FontSubstitutions => _fontSubstitutions;
 
@@ -1146,6 +1159,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             w.CloseList();
+            w.Value("plotStyleFolder", _plotStyleFolder);
             w.Close();
             w.Open("dataSources");
             w.Value("checkForModelChanges", CheckForModelChanges);
@@ -1366,6 +1380,7 @@ namespace GeometryHelper.Dxf.Viewer
                 Take("support", "searchFolders", e =>
                     _s.SupportSearchFolders = e.Elements().Select(f => f.Value).ToList()
                 );
+                Text("support", "plotStyleFolder", v => _s.PlotStyleFolder = v);
                 Flag("dataSources", "checkForModelChanges", v => _s.CheckForModelChanges = v);
                 Number("dataSources", "checkEverySeconds", v => _s.CheckEverySeconds = Whole(v));
                 Text("saveAndExport", "saveFolder", v => _s.SaveFolder = v);

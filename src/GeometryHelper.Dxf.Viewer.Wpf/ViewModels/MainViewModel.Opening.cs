@@ -193,6 +193,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             // written once the drawing is shown.
             document.Fonts = _settings.ToFonts(SkiaCanvasRenderer.HasFamily);
             document.SupportFolders = _settings.SupportSearchFolders;
+            document.PlotStyleFolder = PlotStyleFolder;
             var said = new List<string>();
             EventHandler<CadFontMissingEventArgs> keep = (s, e) =>
             {

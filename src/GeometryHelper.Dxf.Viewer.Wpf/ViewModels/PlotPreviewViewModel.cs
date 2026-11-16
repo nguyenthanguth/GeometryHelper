@@ -79,10 +79,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         + Settings.DrawingUnits.ToString("0.####", CultureInfo.InvariantCulture);
                 }
 
+                string sheet = Settings.EffectiveStyleSheet;
                 string table =
-                    Settings.EffectiveStyleTable == CadPlotStyleTable.None
-                        ? "No plot styles"
-                        : Settings.EffectiveStyleTable.ToString();
+                    sheet.Length == 0 ? "No plot styles"
+                    : string.Equals(sheet, "monochrome.ctb", StringComparison.OrdinalIgnoreCase)
+                        ? CadPlotStyleTable.Monochrome.ToString()
+                    : string.Equals(sheet, "grayscale.ctb", StringComparison.OrdinalIgnoreCase)
+                        ? CadPlotStyleTable.Grayscale.ToString()
+                    : sheet;
                 return CadPlotSettings.PdfDevice
                     + " · "
                     + Settings.Paper.Name

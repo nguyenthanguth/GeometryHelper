@@ -762,7 +762,7 @@ Wave 1 (High):
 - [x] (layer1) LAYMRG, LAYDEL, LAYCUR, COPYTOLAYER (S each)
 - [ ] (layermgr1, running) Layer manager: Plot, Transparency, Description, Plot Style columns; property and group filters (M)
 - [x] (layer1) -DIMSTYLE (Save, Restore, STatus, Variables, Apply, ?) and DIMUPDATE (S)
-- [ ] (plotstyle1, running) Plot style tables from .ctb/.stb files and the Plot Style Table Editor (M-L)
+- [x] Plot style tables: .ctb/.stb read and written, folder of nine built-in tables, Plot Style Table Editor, Add Plot Style Table, STYLESMANAGER, applied when plotting (plotstyle1). Follow-up: Edit Lineweights, CONVERTCTB/CONVERTPSTYLES, real linetype pattern lengths, probe AutoCAD-written tables.
 - [x] PUBLISH and -PUBLISH: Publish dialog, multi-sheet or single PDFs or plotter, .dsd lists, Batch Plot on the Output tab (publish1). Follow-up: Preview, Show Details, multi-select, Publish Options, check a .dsd we write in AutoCAD.
 - [x] Drawing templates: NEW with Select Template, QNEW, SAVEAS .dwt, Template settings (files1). Follow-up: Save As dialog to switch to the template folder when .dwt is picked.
 - [x] (modify1: Table, BATTMAN, BEDIT, QuickCalc, Select Similar, Add Selected, annotation scale items, Save As Other Formats; the rest have no command yet) Wire up greyed buttons and menu items whose commands exist (BEDIT, BATTMAN, TABLE, QuickCalc, Quick Properties,
@@ -772,7 +772,7 @@ Wave 1 (High):
 - [x] (vars1) Common system variables typable: TRIMEXTENDMODE, LUNITS/LUPREC/AUNITS/AUPREC/INSUNITS, ANGBASE/ANGDIR, PLINEWID,
       PLINEGEN, HPNAME/HPSCALE/HPANG/HPLAYER, DIMLAYER, DELOBJ, SAVETIME, FILLMODE and others (M)
 
-Wave 2 (Medium): BLEND; XLINE Offset; associative arrays and ARRAYEDIT; REVERSE, SETBYLAYER, CHPROP; BURST and TXTEXP;
+Wave 2 (Medium): running: modify3 (XLINE Offset, REVERSE, SETBYLAYER, CHPROP, BURST, TXTEXP, CHSPACE), arrays1 (associative arrays, ARRAYEDIT). XLINE Offset; associative arrays and ARRAYEDIT; REVERSE, SETBYLAYER, CHPROP; BURST and TXTEXP;
 FIELD and UPDATEFIELD; MTEXT editor leftovers (Import Text, character map, AutoCAPS, Match Text Formatting, Spell);
 table cell Cut/Copy/Paste, cell styles, Borders, Locking, Data Format, Match Cell, Insert Block/Field/Formula; xref edit
 in place; more raster types; dynamic block authoring; DWGPROPS; MEASUREGEOM Quick; HATCHGENERATEBOUNDARY and Set

@@ -886,6 +886,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["SPLINEDIT"] = "Edit a spline",
             ["STRETCH"] = "Stretch objects crossed by a window",
             ["STYLE"] = "Text Style",
+            ["STYLESMANAGER"] = "Plot style tables: edit, make and delete",
             ["SUBTRACT"] = "Take regions away from regions",
             ["TABLE"] = "Insert a table",
             ["TABLEDIT"] = "Edit a table cell",
@@ -1539,6 +1540,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         Text("Template folder (TEMPLATEPATH)", () => s.TemplateFolder, v => s.TemplateFolder = v),
                         Info("Where it is left empty", null, () => GlobalSettings.DefaultTemplateFolder),
                         Text("Default template for QNEW", () => s.QnewTemplate, v => s.QnewTemplate = v),
+                    }
+                ),
+                new GlobalSettingSection(
+                    "Plot style tables",
+                    new[]
+                    {
+                        Text("Plot style tables folder", () => s.PlotStyleFolder, v => s.PlotStyleFolder = v),
+                        Info("Where it is empty", null, () =>
+                            CadPlotStyleFolder.Resolve(string.Empty, _model.SettingsPath)
+                        ),
                     }
                 ),
             };

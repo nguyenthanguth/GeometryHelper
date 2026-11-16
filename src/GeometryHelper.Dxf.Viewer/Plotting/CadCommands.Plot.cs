@@ -22,6 +22,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("-PLOT", PlotTyped));
             registry.Add(new CadCommand("PREVIEW", c => PlotDialog(c, "PREVIEW")));
             registry.Add(new CadCommand("PAGESETUP", c => PlotDialog(c, "PAGESETUP")));
+            registry.Add(new CadCommand("STYLESMANAGER", StylesManager));
         }
 
         /// <summary>
@@ -489,10 +490,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                string table =
-                    settings.StyleTable == CadPlotStyleTable.Monochrome ? "monochrome.ctb"
-                    : settings.StyleTable == CadPlotStyleTable.Grayscale ? "grayscale.ctb"
-                    : ".";
+                // The tables of the document's folder of the kind its plot styles are: .ctb by colour, .stb by name.
+                IReadOnlyList<string> names = CadPlotStyleFolder.Names(
+                    c.Document.PlotStyleFolder,
+                    !c.Document.Database.PlotStyleMode
+                );
+                string table = settings.StyleSheet.Length == 0 ? "." : settings.StyleSheet;
                 yield return CadPrompt.ForKeywordOrText(
                     "Enter plot style table name (enter . for none) or",
                     new[] { "?" },
@@ -501,35 +504,49 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("?"))
                 {
-                    c.Write("monochrome.ctb");
-                    c.Write("grayscale.ctb");
+                    foreach (string name in names)
+                    {
+                        c.Write(name);
+                    }
+
                     continue;
                 }
 
                 if (c.Input.Kind == CadInputKind.Text)
                 {
                     string typed = c.Input.Text.Trim();
-                    string bare = typed.EndsWith(".ctb", StringComparison.OrdinalIgnoreCase)
-                        ? typed.Substring(0, typed.Length - 4)
-                        : typed;
 
                     if (typed == ".")
                     {
-                        settings.StyleTable = CadPlotStyleTable.None;
+                        settings.StyleSheet = string.Empty;
+                        break;
                     }
-                    else if (string.Equals(bare, "monochrome", StringComparison.OrdinalIgnoreCase))
+
+                    // The file's name with or without its extension, letters of either case the same.
+                    string found = null;
+
+                    foreach (string name in names)
                     {
-                        settings.StyleTable = CadPlotStyleTable.Monochrome;
+                        if (
+                            string.Equals(name, typed, StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(
+                                name.Substring(0, name.Length - 4),
+                                typed,
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                        )
+                        {
+                            found = found ?? name;
+                        }
                     }
-                    else if (string.Equals(bare, "grayscale", StringComparison.OrdinalIgnoreCase))
-                    {
-                        settings.StyleTable = CadPlotStyleTable.Grayscale;
-                    }
-                    else
+
+                    if (found == null)
                     {
                         c.Write("Plot style table \"" + typed + "\" not found.");
                         continue;
                     }
+
+                    settings.StyleSheet = found;
                 }
 
                 break;

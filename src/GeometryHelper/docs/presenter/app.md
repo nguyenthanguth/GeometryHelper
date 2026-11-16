@@ -471,7 +471,7 @@ shows its list at the right; a click on the item runs the first entry of its lis
 | Save As | Drawing (SAVEAS), Drawing Template (SAVEAS with the template type chosen), Other Formats (EXPORT, as Export's) |
 | Import | Other Formats (IMPORT): AutoCAD 2021's PDF and DGN have no command here and are left out |
 | Export | DWF and DWFx (EXPORTDWF, EXPORTDWFX, which say there is no writer), PDF (EXPORTPDF), PNG, JPG and BMP (PNGOUT, JPGOUT, BMPOUT), Block or objects to a DXF (WBLOCK), Other Formats (EXPORT); AutoCAD 2021's 3D DWF, DGN and FBX have no command here and are left out |
-| Print | Plot (PLOT), Batch Plot (PUBLISH), Plot Preview (PREVIEW), Page Setup (PAGESETUP); Manage Plot Styles greyed |
+| Print | Plot (PLOT), Batch Plot (PUBLISH), Plot Preview (PREVIEW), Page Setup (PAGESETUP), Manage Plot Styles (STYLESMANAGER) |
 | Close | Current Drawing (CLOSE), All Drawings |
 
 With no item under the pointer, the right of the menu shows **Recent Documents**: the pinned files first in the order they
