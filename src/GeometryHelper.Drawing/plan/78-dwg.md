@@ -470,7 +470,7 @@ which it lists, is known before it is written. The files come out at 70 to 75 pe
 
 DECIDED: the sections are AutoCAD 2021's but three: AcDb:Header, AuxHeader, Classes, Handles, Template, ObjFreeSpace,
 AcDbObjects, RevHistory, Preview (no image) and AppInfo, which names GeometryHelper and makes no claim of an Autodesk
-application. AppInfoHistory, SummaryInfo and FileDepList are not written; AutoCAD opens the file without them.
+application. AppInfoHistory and FileDepList are not written, SummaryInfo is (the section of the properties of DWGPROPS); AutoCAD opens the file without the first two.
 
 DECIDED: what AutoCAD writes that the specification does not say, each found by comparing the writer's object with
 AutoCAD's own bit for bit (`objcmp` in scratch): a TU text has no closing zero; the bits after the handles are ones; the

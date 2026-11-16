@@ -33,6 +33,12 @@ namespace GeometryHelper.Dwg
         /// <summary>The header variables in the order of the file, each by its name without the dollar sign.</summary>
         public readonly List<string> HeaderNames = new List<string>();
 
+        /// <summary>
+        /// The custom properties of the drawing, each the value of a <c>$CUSTOMPROPERTYTAG</c> and of the <c>$CUSTOMPROPERTY</c> after it, in
+        /// the order of the header, where one may be given many times: the section <c>AcDb:SummaryInfo</c> holds them.
+        /// </summary>
+        public readonly List<KeyValuePair<string, string>> CustomProperties = new List<KeyValuePair<string, string>>();
+
         /// <summary>The classes, records of type CLASS, in the order of the file.</summary>
         public readonly List<DwgRecord> Classes = new List<DwgRecord>();
 
@@ -284,12 +290,15 @@ namespace GeometryHelper.Dwg
         private void ReadHeader(List<KeyValuePair<int, string>> groups, int from, int to)
         {
             List<KeyValuePair<int, string>> current = null;
+            string variable = null;
+            string tag = null;
 
             for (int i = from; i < to; i++)
             {
                 if (groups[i].Key == 9)
                 {
                     string name = groups[i].Value.Trim().TrimStart('$');
+                    variable = name;
                     current = new List<KeyValuePair<int, string>>();
 
                     if (!_header.ContainsKey(name))
@@ -301,6 +310,17 @@ namespace GeometryHelper.Dwg
                 else if (current != null)
                 {
                     current.Add(groups[i]);
+
+                    // A custom property: its name, then its value in the variable after it; a name with no value has an empty one.
+                    if (groups[i].Key == 1 && variable == "CUSTOMPROPERTYTAG")
+                    {
+                        tag = groups[i].Value;
+                    }
+                    else if (groups[i].Key == 1 && variable == "CUSTOMPROPERTY")
+                    {
+                        CustomProperties.Add(new KeyValuePair<string, string>(tag ?? string.Empty, groups[i].Value));
+                        tag = null;
+                    }
                 }
             }
         }

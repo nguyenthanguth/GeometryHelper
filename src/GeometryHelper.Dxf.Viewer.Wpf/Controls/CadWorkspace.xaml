@@ -4435,7 +4435,7 @@
                                     </StackPanel>
                                 </StackPanel>
                             </local:RibbonPanel>
-                            <!-- Groups: Group, Ungroup, Group Edit (not built yet), and Group Selection, pressed while PICKSTYLE picks groups whole. -->
+                            <!-- Groups: Group, Ungroup, Group Edit, and Group Selection, pressed while PICKSTYLE picks groups whole. -->
                             <local:RibbonPanel
                                 Title="Groups"
                                 MinFullWidth="204"
@@ -4466,8 +4466,10 @@
                                             Style="{StaticResource SmallButton}"
                                             Tag="{StaticResource GhIconGroupEdit}"
                                             Content="Group Edit"
-                                            Opacity="0.5"
-                                            ToolTip="Group Edit (GROUPEDIT): not built yet"
+                                            IsEnabled="{Binding HasDocument}"
+                                            Command="{Binding StartCommandCommand}"
+                                            CommandParameter="GROUPEDIT"
+                                            ToolTip="Group Edit (GROUPEDIT)"
                                         />
                                         <ToggleButton
                                             Style="{StaticResource SmallToggle}"

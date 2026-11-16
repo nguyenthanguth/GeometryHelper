@@ -533,8 +533,10 @@ parity made from the bytes its own memory held after the data, which no other pr
 section is coded, and AutoCAD reads the application information as well where it is coded 4 (compressed, in blocks of the code of
 251 laid one byte after the other, as the header is): AutoCAD's own application information put into the writer's container
 unpacked, with the writer's parity, was refused, and coded 4 it opens with `AUDIT` finding 0 errors, so the writer gives the
-application information that way, the bytes the later versions hold. The history of the applications and the summary information
-are left out: a file made here has no earlier application to list, and the summary information is written into no version yet.
+application information that way, the bytes the later versions hold. The history of the applications is left out: a file made here has no earlier application to list. The summary information
+(`AcDb:SummaryInfo`: the title, subject, author, keywords, comments, who saved it last, the revision, the base of the hyperlinks, the
+time spent, the dates it was made and saved, and the custom properties) is written as AutoCAD writes it and coded 4 in R2007, as
+the application information is. A DWG read gives them back as `DxfDatabase.SummaryInfo`.
 The preview is written only where the drawing has a picture. The objects are encoded as those of R2010 are, with the fields
 R2010 added left out, and a drawing of R2010 or later is made into the DXF of R2007 first, as for R2004. A 3DSOLID, a REGION and a
 BODY are written as in R2004 and R2010 (see the ACIS data below). The free-space section is the 53 bytes AutoCAD

@@ -1941,6 +1941,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "UNITS":
                     OnViewsRequested(e);
                     break;
+                case "DWGPROPS":
+                case "HYPERLINK":
+                    OnMisc2Requested(e);
+                    break;
                 case "PASTESPEC":
                     OnPasteSpecialRequested(e);
                     break;

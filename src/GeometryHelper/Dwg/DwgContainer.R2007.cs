@@ -111,6 +111,16 @@ namespace GeometryHelper.Dwg
                 catch (FormatException) { }
             }
 
+            if (sections.TryGetValue("AcDb:SummaryInfo", out Descriptor21 summary))
+            {
+                try
+                {
+                    // The properties no program needs to read the drawing: a page of them that is broken is no reason to refuse the file.
+                    container.SummaryInfo = Join21(file, pages, summary, seed, ref budget, stop);
+                }
+                catch (FormatException) { }
+            }
+
             if (sections.TryGetValue("AcDb:Template", out Descriptor21 template))
             {
                 byte[] data = Join21(file, pages, template, seed, ref budget, stop);

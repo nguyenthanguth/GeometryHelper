@@ -121,6 +121,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             // Text edited in place: a double click on a text edits it; the editor follows the view; a click outside it ends it.
             CanvasView.ObjectDoubleClicked += (s, e) => _model?.EditTextAt(e.Handle);
+            CanvasView.HyperlinkClicked += (s, e) => _model?.FollowHyperlink(e.Handle);
+            CanvasView.HyperlinkTooltip = handle => _model?.HyperlinkTooltip(handle);
 
             // Table cells: a click in a cell selects it, a double click opens it for typing, and the cells selected are drawn.
             CanvasView.CellClicked = (point, shift) => _model != null && _model.SelectTableCellAt(point, shift);
@@ -666,6 +668,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowInputSearchOptions = dialog => InputSearchOptionsWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowViewManager = dialog => ViewManagerWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowDrawingUnits = dialog => DrawingUnitsWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowDrawingProperties = dialog => DrawingPropertiesWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowHyperlink = dialog => HyperlinkWindow.Show(Window.GetWindow(this), dialog);
+                _model.OpenLink = OpenWithSystem;
                 _model.AskRedefineBlock = name => CadQuestionWindow.AskRedefineBlock(Window.GetWindow(this), name);
                 _model.ShowBlockEdit = dialog => BlockEditWindow.Show(Window.GetWindow(this), dialog);
                 _model.AskSaveBlockChanges = name => BlockCloseWindow.Ask(Window.GetWindow(this), name);

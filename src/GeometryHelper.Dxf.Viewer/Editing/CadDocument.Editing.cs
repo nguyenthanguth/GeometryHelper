@@ -873,6 +873,58 @@ namespace GeometryHelper.Dxf.Viewer
             return hidden;
         }
 
+        /// <summary>
+        /// Sets when the drawing was last saved to now, as AutoCAD's save does: <c>$TDUPDATE</c> in the time of the computer and
+        /// <c>$TDUUPDATE</c> in universal time, and who saved it (<c>$LASTSAVEDBY</c>, the login name), each where the header has it.
+        /// These are what DWGPROPS' Statistics tab shows as Modified and Last saved by; a header that cannot take them is left as it is.
+        /// </summary>
+        private static void StampSaved(DxfDatabase database)
+        {
+            DateTime now = DateTime.Now;
+
+            // Who saved it, as AutoCAD names the login in the header at each save, where the header has the variable.
+            try
+            {
+                if (database.GetHeader("$LASTSAVEDBY") != null && !string.IsNullOrEmpty(Environment.UserName))
+                {
+                    database.SetHeader("$LASTSAVEDBY", new DxfTypedValue(1, Environment.UserName));
+                }
+            }
+            catch (InvalidOperationException exception)
+            {
+                GeometryHelperLog.Debug("CadDocument: $LASTSAVEDBY was not set: " + exception.Message);
+            }
+
+            foreach (
+                KeyValuePair<string, DateTime> stamp in new[]
+                {
+                    new KeyValuePair<string, DateTime>("$TDUPDATE", now),
+                    new KeyValuePair<string, DateTime>("$TDUUPDATE", now.ToUniversalTime()),
+                }
+            )
+            {
+                try
+                {
+                    if (database.GetHeader(stamp.Key) != null)
+                    {
+                        // A Julian day and the part of the day gone since midnight; 1 January of the year 1 is the day 1721426.
+                        double julian =
+                            1721426.0
+                            + (stamp.Value.Date - DateTime.MinValue).Days
+                            + stamp.Value.TimeOfDay.Ticks / (double)TimeSpan.TicksPerDay;
+                        database.SetHeader(
+                            stamp.Key,
+                            new DxfTypedValue(40, julian.ToString("R", CultureInfo.InvariantCulture))
+                        );
+                    }
+                }
+                catch (InvalidOperationException exception)
+                {
+                    GeometryHelperLog.Debug("CadDocument: " + stamp.Key + " was not set: " + exception.Message);
+                }
+            }
+        }
+
         /// <summary>Saves the drawing to the file it was opened from or last saved as.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the drawing has no file yet (it was opened from a stream or
         /// given in memory) or a group of edits is open; use <see cref="SaveAs(string)"/>.</exception>
@@ -946,6 +998,7 @@ namespace GeometryHelper.Dxf.Viewer
             _shownState = null;
             _ucs?.WriteTo(Database);
             _tiles?.WriteTo(Database);
+            StampSaved(Database);
             var said = new List<string>();
             List<DxfEntity> hidden = ShowIsolated();
 

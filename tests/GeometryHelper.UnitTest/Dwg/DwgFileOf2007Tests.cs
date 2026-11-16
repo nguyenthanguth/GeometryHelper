@@ -454,12 +454,13 @@ namespace GeometryHelper.UnitTest.Dwg
             Parsed answer = Parse(DwgAnswerKey.Dwg("curves_AC1021"));
             Parsed ours = Parse(OursOf("curves"));
 
-            // AutoCAD's history of the applications and its summary information are checked against parity of its own memory,
-            // so they are left out; there is no picture, so no preview. The application information is written coded 4.
+            // AutoCAD's history of the applications is checked against parity of its own memory, so it is left out; there is no
+            // picture, so no preview. The application information and the summary information are written coded 4.
             Assert.Equal(
                 new[]
                 {
                     "AcDb:AppInfo",
+                    "AcDb:SummaryInfo",
                     "AcDb:RevHistory",
                     "AcDb:AcDbObjects",
                     "AcDb:ObjFreeSpace",
@@ -474,6 +475,15 @@ namespace GeometryHelper.UnitTest.Dwg
 
             foreach (Section section in ours.Sections)
             {
+                // The drawing AutoCAD saved for the key has no summary information; the hash is the one of the files it saved with
+                // some (probe GhM2: 0x717A060F in R2007).
+                if (section.Name == "AcDb:SummaryInfo")
+                {
+                    Assert.Equal(0x717A060F, section.Hash);
+                    Assert.Equal(4, section.Coding);
+                    continue;
+                }
+
                 Section same = answer.Sections.Single(s => s.Name == section.Name);
                 Assert.Equal(same.Hash, section.Hash);
 

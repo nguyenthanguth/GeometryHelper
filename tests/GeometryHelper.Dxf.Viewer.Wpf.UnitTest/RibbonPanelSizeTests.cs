@@ -490,7 +490,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.True(toggle.IsChecked);
 
                 // Group and Ungroup start their commands; Quick Select is there to start QSELECT, whose dialog is not shown here;
-                // Group Edit is not built yet; Table starts TABLE.
+                // Group Edit starts GROUPEDIT; Table starts TABLE.
                 foreach (string command in new[] { "GROUP", "UNGROUP" })
                 {
                     Button button = Descendants(workspace)
@@ -505,9 +505,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.True(quickSelect.IsEnabled);
                 Assert.Same(model.StartCommandCommand, quickSelect.Command);
 
-                Assert.False(
-                    Descendants(groups).OfType<Button>().Single(b => Equals(b.Content, "Group Edit")).IsEnabled
-                );
+                Button groupEdit = Descendants(groups).OfType<Button>().Single(b => Equals(b.Content, "Group Edit"));
+                Assert.True(groupEdit.IsEnabled);
+                Assert.Equal("GROUPEDIT", groupEdit.CommandParameter);
+                Assert.Same(model.StartCommandCommand, groupEdit.Command);
                 Button table = Descendants(workspace).OfType<Button>().Single(b => Equals(b.Content, "Table"));
                 Assert.True(table.IsEnabled);
                 Assert.Equal("TABLE", table.CommandParameter);

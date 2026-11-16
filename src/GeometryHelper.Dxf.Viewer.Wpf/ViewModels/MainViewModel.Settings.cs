@@ -259,7 +259,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// command line; nothing for a key given nothing, but Ctrl+9, which shows or hides the command line as in AutoCAD,
         /// Ctrl+Shift+H, which hides Properties, the Drawings list and the command line and, pressed again, shows them as they
         /// were (HIDEPALETTES, SHOWPALETTES), Ctrl+R, which works through the next viewport of the layout shown while one is worked through, and F5 and Ctrl+E,
-        /// which turn to the next isometric plane (SNAPISOPAIR), a command running going on.
+        /// which turn to the next isometric plane (SNAPISOPAIR), a command running going on, and Ctrl+0, which hides the ribbon, Properties and the Drawings list and, pressed again, shows them as they were (CLEANSCREENON, CLEANSCREENOFF).
         /// </summary>
         /// <param name="gesture">The key, as the shortcuts write it: Ctrl+1, F3, Ctrl+Shift+P.</param>
         /// <returns>Whether the key was given something, and it ran.</returns>
@@ -293,6 +293,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 if (string.Equals(gesture, "Ctrl+R", StringComparison.OrdinalIgnoreCase))
                 {
                     return CycleViewport();
+                }
+
+                if (string.Equals(gesture, "Ctrl+0", StringComparison.OrdinalIgnoreCase))
+                {
+                    // The clean screen, as AutoCAD's Ctrl+0: the ribbon and the palettes hidden, and shown again when pressed again.
+                    ToggleCleanScreen();
+                    return true;
                 }
 
                 if (

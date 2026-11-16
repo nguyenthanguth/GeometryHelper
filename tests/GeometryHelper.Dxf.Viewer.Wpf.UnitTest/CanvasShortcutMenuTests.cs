@@ -222,7 +222,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.Equal(new[] { 'F', 'B', '\0', 'A', 'U' }, order.Items.Select(i => i.AccessKey).ToArray());
                 CadMenuItemViewModel group = Item(items, "Group");
                 Assert.Equal(new[] { "Group", "Ungroup", "Add to Group", "Remove from Group" }, Headers(group.Items));
-                Assert.Equal(new[] { true, true, false, false }, group.Items.Select(i => i.IsEnabled).ToArray());
+                Assert.Equal(new[] { true, true, true, true }, group.Items.Select(i => i.IsEnabled).ToArray());
 
                 // Bring to Front orders the wall selected at once, DRAWORDER's Front.
                 Item(order.Items, "Bring to Front").Command.Execute(null);
