@@ -594,11 +594,15 @@ the ones wanted.
 - [x] PEDIT/REVCLOUD follow-ups 5, part (mleader2): MLEADERALIGN as AutoCAD 2021 (about 520 cases built through the API
       agree: spacing and Distribute by the clearance along the line, Parallel by the straightest leader line, a leader of
       several lines split across the box); the layer-off and fence/polygon speed guards robust under load
-- [ ] (dimbreak2, running: DIMBREAK) PEDIT/REVCLOUD follow-ups 6: DIMBREAK Manual/Remove and on multileaders (DxfMLeader has no break model); a
-      several-line TrueType multileader held by half its last line's ink; a block multileader of scale other than 1;
-      TEXTALIGN with a reference text; a plain polyline with 110-degree arcs, ellipse and Freehand clouds under
-      REVCLOUDGRIPS; AutoCAD's grip order of a circle; PEDIT spline counts PARKED (52 of 238); GUI-only: Freehand
-      spacing, REFEDIT, TABLEEXPORT, pre-selection, BOUNDARY, FILTER, SPELL (S)
+- [x] DIMBREAK Manual and multileaders (dimbreak2): Manual breaks the line nearest the first point, both points
+      projected, angular arcs cut and rays numbered as AutoCAD, the centre mark left whole; DIMBREAK takes multileaders
+      (Auto at every crossing, Manual, Remove; breaks stored as AutoCAD writes them: 90, 11, 12) and draws them
+- [ ] DIMBREAK follow-ups: breaks following a moved cutter (dimensions and multileaders: a regenerate-on-edit hook); Auto's
+      BREAKDATA names every object whose extents meet the host's (ours: only crossers); Auto on an angular arc; Multiple
+      with multileaders; ordinate and arc-length kinds; a several-line TrueType multileader held by half its last line's
+      ink; a block multileader of scale other than 1; TEXTALIGN with a reference text; REVCLOUDGRIPS on plain, ellipse
+      and Freehand clouds; a circle's grip order; PEDIT spline counts PARKED (52 of 238); GUI-only: Freehand spacing,
+      REFEDIT, TABLEEXPORT, pre-selection, BOUNDARY, FILTER, SPELL (S)
 - [x] Layouts: twisted viewports drawn and entered as AutoCAD (two bugs: the turn's sense, group 12 in view coordinates);
       one undo step per wheel or pan gesture; ZOOM Previous per viewport (20 each); -SCALELISTEDIT; Isolate in the Layer
       manager; New VP Freeze on viewports made through the core's API (S)

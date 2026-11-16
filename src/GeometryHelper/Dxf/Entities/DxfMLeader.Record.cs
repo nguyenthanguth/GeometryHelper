@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using GeometryHelper.Geometry;
 using static GeometryHelper.Dxf.DxfLeaderGroups;
 
@@ -421,6 +422,93 @@ namespace GeometryHelper.Dxf
                 }
 
                 return vertices;
+            }
+
+            /// <summary>The breaks of the line, before its index (91): each a segment (90) and a start and an end (11, 12), the segment kept for those that follow it.</summary>
+            internal List<DxfLeaderBreak> Breaks()
+            {
+                var breaks = new List<DxfLeaderBreak>();
+                int segment = 0;
+                GeoPoint3? start = null;
+
+                for (int i = 0; i < Groups.Count && Groups[i].Key != 91; i++)
+                {
+                    if (Groups[i].Key == 90)
+                    {
+                        segment = Whole(Groups[i].Value, 0);
+                    }
+                    else if (Groups[i].Key == 11)
+                    {
+                        start = PointAt(Groups, i);
+                    }
+                    else if (Groups[i].Key == 12 && start.HasValue)
+                    {
+                        breaks.Add(new DxfLeaderBreak(segment, start.Value, PointAt(Groups, i)));
+                        start = null;
+                    }
+                }
+
+                return breaks;
+            }
+
+            /// <summary>Writes the breaks of the line in place of those it has: after its vertices, before its index (91), as AutoCAD writes them, a segment (90) with the starts and ends (11, 12) of its breaks after it, the segments in order.</summary>
+            internal void SetBreaks(IEnumerable<DxfLeaderBreak> breaks)
+            {
+                var kept = new List<KeyValuePair<int, string>>();
+                int at = -1;
+                bool before = true;
+
+                foreach (KeyValuePair<int, string> group in Groups)
+                {
+                    int code = group.Key;
+                    before = before && code != 91;
+
+                    if (
+                        before
+                        && (
+                            code == 90
+                            || code == 11
+                            || code == 21
+                            || code == 31
+                            || code == 12
+                            || code == 22
+                            || code == 32
+                        )
+                    )
+                    {
+                        at = at < 0 ? kept.Count : at;
+                        continue;
+                    }
+
+                    kept.Add(group);
+                }
+
+                if (at < 0)
+                {
+                    at = kept.FindIndex(g => g.Key == 91);
+                    at = at < 0 ? kept.Count : at;
+                }
+
+                var written = new List<KeyValuePair<int, string>>();
+                // OrderBy keeps the order given among the breaks of one segment.
+                List<DxfLeaderBreak> ordered = breaks.OrderBy(b => b.Segment).ToList();
+                int segment = -1;
+
+                foreach (DxfLeaderBreak item in ordered)
+                {
+                    if (item.Segment != segment)
+                    {
+                        segment = item.Segment;
+                        written.Add(G(90, segment));
+                    }
+
+                    written.AddRange(PointGroups(11, item.Start));
+                    written.AddRange(PointGroups(12, item.End));
+                }
+
+                kept.InsertRange(at, written);
+                Groups.Clear();
+                Groups.AddRange(kept);
             }
 
             /// <summary>Writes the vertices of the line in place of those it has, where the first was, first where it had none; a vertex as it was, to the bit, keeping its text; its other groups kept.</summary>

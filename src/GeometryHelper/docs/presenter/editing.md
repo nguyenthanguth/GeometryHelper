@@ -1416,7 +1416,21 @@ at -12 and -4, one turned 30 degrees at -10.2679 and -5.6491); a hatch is no cut
 that only touches a dimension line with its end breaks it as well, and one lying along it does not. A dimension drawn anew, by DIMEDIT, a change of its
 style or a grip, is broken again where it keeps breaks, whether DIMBREAK here or AutoCAD broke it, and AutoCAD 2021 opening
 the drawing breaks it again from what the presenter kept: a dimension broken here by hand from (20, -130) to (30, -130),
-given new words in AutoCAD, has its line from 0.18 to 20 and from 30 on. DIMJOGGED (DJO, JOG) draws a jogged radius of an arc or a
+given new words in AutoCAD, has its line from 0.18 to 20 and from 30 on. Manual breaks the line nearest the first point
+picked (the extension lines 0 and 1, then the dimension line or the arc of an angular dimension, 3; a tie going to the
+lesser number), carrying both points along it and leaving out the stretch between them where at least one of them falls
+on what the dimension draws of that line, the other held at its end where it falls beyond: a level dimension from (0, 0) to
+(100, 0), its line at y 20, broken from (40, 20) to (120, 20) has its line out from 40 on, and from (0, 10) to (100, 10)
+its first extension line cut at y 10 and no more; both points off the drawn stretch break nothing, and on an arc both must
+fall within it. An angular dimension's rays are 0 and 1 as AutoCAD numbers them, a radius's or a diameter's centre mark
+no line to break. DIMBREAK takes a multileader at its first prompt too: Auto breaks each leader line where an object
+crosses it, a gap of the multileader style's break size times its scale, 0.125 at 1 and 0.25 at 2, half either side of
+the crossing (a line from (0, 0) to (100, -1.25) crossed at x 40 is broken from (39.9375, -0.499219) to (40.0625,
+-0.500781)), none in the arrow or the dogleg, an object that crosses only the dogleg named in the BREAKDATA all the same;
+Manual breaks the leader line and the segment nearest the first point from the foot of the first point to the foot of the
+second, held at the ends of the line where one falls beyond and nothing broken where it falls past a vertex between two
+segments; breaks that meet are one; Remove takes them out. The breaks are kept in the leader line as AutoCAD 2021 keeps
+them (90, 11 and 12 of its LEADER_LINE) and drawn from there. DIMJOGGED (DJO, JOG) draws a jogged radius of an arc or a
 circle, its line from a centre put in place of one off the drawing: along the radius's parallel, across at DIMJOGANG and
 on to the rim, the jog half way between the two lines. A circle of 50 about the origin, its centre drawn at (0, -100),
 its words put at (30, 0) and its jog at (15, -50) has its lines from (0, -100) to (65, -100), on to (-35, 0) and on to the

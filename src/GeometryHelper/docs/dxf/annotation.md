@@ -295,6 +295,15 @@ dogleg from (790, -1.25, 0) to (798, -1.25, 0) is met by the line y = -3 at (790
 (794, -1.25, 0). Its words or block, its arrowheads and invisible leaders are not met. An INSERT of a block holding a
 multileader is met on its lines too.
 
+DIMBREAK leaves its breaks in the leader line, as AutoCAD 2021 writes them: `GetBreaks(lineIndex)` gives each as a
+[`DxfLeaderBreak`](xref:GeometryHelper.Dxf.DxfLeaderBreak), its `Segment` of the line, where it `Start`s, nearer the
+arrow, and where it `End`s (90, 11 and 12 of the LEADER_LINE), and `SetBreaks(lineIndex, breaks)` writes them in place of
+those it has. A leader line from (0, 0, 0) to (100, -1.25, 0) crossed by a line at x = 40, the style's break size 0.125,
+has one in segment 0 from (39.9375, -0.499219, 0) to (40.0625, -0.500781, 0). `Explode()` gives the line whole, as
+AutoCAD 2021's does; `ExplodeBroken()` gives it cut at its breaks, the way AutoCAD draws it: here two polylines, from
+the back of the arrow to the start of the break and from its end to the end of the line. The breaks are moved, turned and scaled
+with the multileader.
+
 ### Multileader styles
 
 The multileader style a multileader is drawn with is a [`DxfMLeaderStyle`](xref:GeometryHelper.Dxf.DxfMLeaderStyle), as AutoCAD's `MLeaderStyle`: the styles of

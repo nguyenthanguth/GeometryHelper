@@ -2084,7 +2084,8 @@ namespace GeometryHelper.Dxf.Viewer
                         }
                     }
 
-                    foreach (DxfEntity part in drawn.Explode())
+                    // Its leader lines are drawn cut at their breaks (DIMBREAK), as AutoCAD draws them.
+                    foreach (DxfEntity part in drawn.ExplodeBroken())
                     {
                         Draw(part, frame, list, handle);
                     }
