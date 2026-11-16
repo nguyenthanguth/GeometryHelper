@@ -353,6 +353,17 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
+            // A cell locked in its content is not opened for typing.
+            if (
+                c.Document.FindEntity(handle) is DxfTable locked
+                && CadTableEditor.LockedIn(locked, new DxfCellRange(row, column, row, column), true, false)
+                    is CadEditResult lockedResult
+            )
+            {
+                c.Write(lockedResult.Message);
+                yield break;
+            }
+
             foreach (CadPrompt prompt in EditCells(c, handle, row, column))
             {
                 yield return prompt;

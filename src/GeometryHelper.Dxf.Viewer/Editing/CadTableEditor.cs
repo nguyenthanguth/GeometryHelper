@@ -17,7 +17,7 @@ namespace GeometryHelper.Dxf.Viewer
     /// The schedule of a title, a header and four rows of five columns, given a row below its row 3, has seven rows, the new
     /// one of the look of row 3 and empty; its cells B3 to C4 merged read as one cell, its text that of B3.
     /// </remarks>
-    public static class CadTableEditor
+    public static partial class CadTableEditor
     {
         /// <summary>Gets the name AutoCAD gives a cell: its column's letters and its row's number from 1, as C3 for the row 2 and the column 2.</summary>
         /// <param name="row">The row, from nought.</param>
@@ -219,6 +219,13 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Refuse("The table has no cell " + CellName(row, column) + ".");
             }
 
+            refused = LockedIn(table, new DxfCellRange(row, column, row, column), true, false);
+
+            if (refused != null)
+            {
+                return refused;
+            }
+
             string old = table.TextString(row, column);
 
             // The words the cell shows, or those the editor opened it with (1.5 for 1.5000), change nothing.
@@ -295,6 +302,13 @@ namespace GeometryHelper.Dxf.Viewer
             DxfTable table = Find(document, handle, out CadEditResult refused);
 
             if (table == null || !InTable(table, range, out refused))
+            {
+                return refused;
+            }
+
+            refused = LockedIn(table, range, true, false);
+
+            if (refused != null)
             {
                 return refused;
             }
@@ -521,6 +535,13 @@ namespace GeometryHelper.Dxf.Viewer
                 return refused;
             }
 
+            refused = LockedIn(table, range, false, true);
+
+            if (refused != null)
+            {
+                return refused;
+            }
+
             return Edit(document, handle, "Alignment", Name(range), alignment.ToString(), t =>
                 Each(range, (r, c) => t.SetAlignment(r, c, alignment))
             );
@@ -542,6 +563,13 @@ namespace GeometryHelper.Dxf.Viewer
             DxfTable table = Find(document, handle, out CadEditResult refused);
 
             if (table == null || !InTable(table, range, out refused))
+            {
+                return refused;
+            }
+
+            refused = LockedIn(table, range, false, true);
+
+            if (refused != null)
             {
                 return refused;
             }
@@ -594,6 +622,13 @@ namespace GeometryHelper.Dxf.Viewer
             DxfTable table = Find(document, handle, out CadEditResult refused);
 
             if (table == null || !InTable(table, range, out refused))
+            {
+                return refused;
+            }
+
+            refused = LockedIn(table, range, false, true);
+
+            if (refused != null)
             {
                 return refused;
             }
@@ -653,6 +688,13 @@ namespace GeometryHelper.Dxf.Viewer
             DxfTable table = Find(document, handle, out CadEditResult refused);
 
             if (table == null || !InTable(table, fillRange, out refused) || !InTable(table, sourceRange, out refused))
+            {
+                return refused;
+            }
+
+            refused = LockedIn(table, fillRange, true, true);
+
+            if (refused != null)
             {
                 return refused;
             }
@@ -784,6 +826,13 @@ namespace GeometryHelper.Dxf.Viewer
             DxfTable table = Find(document, handle, out CadEditResult refused);
 
             if (table == null || !InTable(table, range, out refused))
+            {
+                return refused;
+            }
+
+            refused = LockedIn(table, range, false, true);
+
+            if (refused != null)
             {
                 return refused;
             }
@@ -1203,6 +1252,19 @@ namespace GeometryHelper.Dxf.Viewer
             });
         }
 
+        /// <summary>The formulas and fields of a table's cells worked out anew after an edit of it; one that cannot be is logged and left.</summary>
+        private static void WorkOutFields(CadDocument document, DxfTable table)
+        {
+            try
+            {
+                UpdateFields(document, table);
+            }
+            catch (Exception exception) when (exception is InvalidOperationException || exception is ArgumentException)
+            {
+                GeometryHelperLog.Warn("CadTableEditor: the formulas of a table were not worked out.", exception);
+            }
+        }
+
         /// <summary>One edit of a table, a step of TABLEDIT: planned as a change of its property, written, and its block drawn anew.</summary>
         private static CadEditResult Edit(
             CadDocument document,
@@ -1234,6 +1296,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     change(table);
+                    WorkOutFields(s.Document, table);
                     Redraw(table, s.Document);
                 }
             );

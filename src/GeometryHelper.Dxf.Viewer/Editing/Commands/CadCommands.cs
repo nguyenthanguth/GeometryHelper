@@ -140,6 +140,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("-STYLE", StyleTyped));
             registry.Add(new CadCommand("DIMSTYLE", DimStyleDialog));
             AddTablesTo(registry);
+            AddTableCellsTo(registry);
             registry.Add(new CadCommand("PTYPE", PointStyle));
             registry.Add(new CadCommand("OFFSET", Offset));
             registry.Add(new CadCommand("FILLET", Fillet));

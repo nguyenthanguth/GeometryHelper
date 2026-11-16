@@ -440,9 +440,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     Assert.Equal(
                         new[]
                         {
+                            "Cut",
+                            "Copy",
+                            "Cell Style",
                             "Background Fill…",
                             "Alignment",
+                            "Borders…",
+                            "Locking",
+                            "Data Format…",
+                            "Match Cell",
                             "Remove All Property Overrides",
+                            "Insert",
                             "Edit Text",
                             "Delete All Contents",
                             "Columns",
@@ -491,8 +499,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     model.SelectTableRange(new GeoPoint2(20, -5), new GeoPoint2(20, -500));
                     menu = model.ShortcutMenu();
                     Assert.False(Item("Rows").Items.Single(a => a.Header == "Delete").IsEnabled);
-                    Assert.False(Item("Cell Style").IsEnabled);
-                    Assert.False(Item("Insert").IsEnabled);
+                    Assert.True(Item("Cell Style").IsEnabled);
+                    Assert.False(Item("Insert").Items.Single(a => a.Header == "Field…").IsEnabled);
+                    Assert.False(Item("Paste").IsEnabled);
                 }
             );
         }

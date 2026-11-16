@@ -233,7 +233,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 300 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 302 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -1936,11 +1936,54 @@ object snaps, ORTHO and polar tracking from the grip, as the other grip drags do
 dragged near the end of a line at 53 goes to 53, and with ORTHO the corner's stretch grip dragged right and a little down
 stretches the width alone. A table whose rows flow up is worked the same way from its first row at the bottom: the line
 over its fourth row dragged up 6 makes that row 6 higher, and a 1 dragged up three cells gives 2, 3 and 4. The
-right-click menu of cells is AutoCAD's: Background Fill…, Alignment, Remove All Property Overrides, Edit Text, Delete All
-Contents, Columns and Rows (Insert, Delete, Size Equally, Resize), Merge, Unmerge and Properties work; Cut, Copy, Paste,
-Cell Style, Borders…, Locking, Data Format…, Match Cell, Data Link…, Insert, Manage Content… and Quick Properties are
-grey. Columns › Resize and Rows › Resize start the drag of the selection's right (or bottom) line as though its edge grip
+right-click menu of cells is AutoCAD's: Cut, Copy, Paste, Cell Style, Background Fill…, Alignment, Borders…, Locking, Data
+Format…, Match Cell, Remove All Property Overrides, Insert (Block…, Field…, Formula), Edit Text, Delete All Contents,
+Columns and Rows (Insert, Delete, Size Equally, Resize), Merge, Unmerge and Properties work; Data Link…, Manage Content…
+and Quick Properties are grey. Columns › Resize and Rows › Resize start the drag of the selection's right (or bottom) line as though its edge grip
 had been clicked: the line follows the cursor, and a click, Enter or a size typed makes it.
+
+**Table cells: Cut, Copy, Paste, Match Cell, Locking, Data Format, Cell Styles, Borders, Block, Field and Formula.** The Table
+Cell tab and the right-click menu of cells do the rest of what AutoCAD 2021's do to a cell, each one undo step.
+Ctrl+C and Ctrl+X on cells selected take them as a snapshot
+([`CadTableCellClip`](xref:GeometryHelper.Dxf.Viewer.CadTableCellClip), held by the window for any of its drawings): each cell
+with its words as they were typed (or its number with its kind, unit and format, its block with its scale, turn and attribute
+values, its field or formula) and its own look (alignment, text height, style and colour, fill, the four borders), and the
+blocks of merged cells within them. Cut then takes the contents out as Delete does and keeps the look. Ctrl+V gives the
+cells to the range selected from its top left cell; a range of whole multiples of the cells copied is filled with them side by
+side (A3:B3 pasted into A5:D7 makes three rows of two pairs), what falls past the table is left out, the merges the paste meets
+are taken out, and the references of a formula pasted move by the rows and columns it moved (`=Sum(A1:A3)` of A4 pasted into B5
+is `=Sum(B2:B4)`; `$` holds one). Paste with nothing held is left to PASTECLIP. MATCHCELL (Match Cell) asks `Select source
+cell:` (the cell selected when the button is pressed) and `Select destination cell:` until Enter, giving each the source's look
+and its data format, the words kept. Cell Locking sets Unlocked, Content Locked, Format Locked or Content and Format Locked in
+the TABLECONTENT of the table ([`DxfTable.SetCellState`](xref:GeometryHelper.Dxf.DxfTable.SetCellState(System.Int32,System.Int32,GeometryHelper.Dxf.DxfCellState))),
+which a table of none is given first; a cell locked in its content refuses typing, Delete, Cut, Paste, Autofill and a block,
+field or formula, one locked in its format refuses its alignment, fill, borders, data format, cell style and Paste, each
+said as `The cell A3 is locked: its content is not changed.`; the locks of a file AutoCAD wrote are kept and honoured, and
+reach a DXF and a DWG of R2007 or later. Data Format opens the Table Cell Format dialog (Custom Table Cell Format…) on the kind,
+unit and format of the first cell, or a kind chosen in its menu gives its usual format at once: Angle (`%au`), Currency
+(`%lu2%pr2%ps[$,]%th44`), Date (`%x`, `%X`, `%c`), Decimal Number, General, Percentage (`%lu2%pr0%ps[,%]%ct8[100]`, 0.5 shown
+50%), Point, Text and Whole Number, with a sample of 1234.5678 written so; a cell of a number shows its format as the library
+writes it, the prefix and suffix (`%ps`) and the factor (`%ct8`) included. Cell Borders… opens the Cell Border Properties
+dialog: the lines chosen (All, Outside, Inside, Bottom, Left, Top, Right, or No Border to hide them all) are given the
+lineweight and colour chosen; the linetype, double line and its spacing are greyed, as the DXF of R2000 to R2018 holds no group for them.
+The Cell Styles box lists the table style's cell styles, Title, Header and Data and those made with Create New Cell Style… (a
+name and the cell style it starts with, kept in the table style's CELLSTYLEMAP, id 101 on:
+[`DxfTableStyle.AddCellStyle`](xref:GeometryHelper.Dxf.DxfTableStyle.AddCellStyle(System.String,System.String))), and Manage Cell Styles…
+(New, Rename, Delete; Title, Header and Data stay). A cell given a cell style takes its look as its own overrides and its id in
+its TABLECONTENT ([`DxfTable.SetCellStyleId`](xref:GeometryHelper.Dxf.DxfTable.SetCellStyleId(System.Int32,System.Int32,System.Int32))); the
+user's cell styles stay in a DXF, a DWG keeps the three and the looks the cells were given. Insert › Block… puts a block of the
+drawing in the cell as a block cell (AutoFit, or a scale, and a turn; the cell's block attributes take their definitions' text:
+[`DxfTable.SetBlockTableRecord`](xref:GeometryHelper.Dxf.DxfTable.SetBlockTableRecord(System.Int32,System.Int32,GeometryHelper.Dxf.DxfBlockTableRecord,System.Boolean))).
+Insert › Field… opens the Field dialog and shows the words the field comes to, the field kept in the cell
+([`DxfTable.SetFieldCode`](xref:GeometryHelper.Dxf.DxfTable.SetFieldCode(System.Int32,System.Int32,System.Int32,System.String))).
+Insert › Formula (Sum, Average, Count, Cell, Equation) runs EDITTABLECELL, which asks `Select a table cell:`, the kind, and the
+corners of the range (`Select first corner of table cell range:`, `Select second corner of table cell range:`) or the cell
+or the words of the equation, and writes `=Sum(A3:B4)`, `=B2` or `=A1*B1+2` as AutoCAD 2021 writes a formula (a field of the
+evaluator AcExpr). The cell shows what the formula comes to (a whole number where every number in it is whole, as `=2*3+1`
+is 7), and every formula and field of the table is worked out again after each edit of it, in the order they read one
+another's cells, in the same undo step, and when the drawing is opened or saved by FIELDEVAL; a cell of words in a formula, or a
+division by nought, shows `#####`. Sum, Average and Count take ranges and cells (`Sum(A1:A3, C1)`); an empty cell counts nought
+in a sum and is left out of an average and a count.
 
 MLEADERSTYLE (MLS), and the last item of the multileader style box of the Annotate tab, show the Multileader Style
 Manager ([`CadMLeaderStyleEditor`](xref:GeometryHelper.Dxf.Viewer.CadMLeaderStyleEditor)): Set Current, New…, Modify…

@@ -155,7 +155,9 @@
                             Style="{DynamicResource SmallButton}"
                             Tag="{StaticResource IconMatch}"
                             Content="Match Cell"
-                            ToolTip="Match Cell: not built yet"
+                            IsEnabled="True"
+                            Command="{Binding MatchCellCommand}"
+                            ToolTip="Applies the properties of a selected table cell to other table cells (MATCHCELL)"
                         />
                         <Button
                             Style="{DynamicResource SmallButton}"
@@ -288,22 +290,25 @@
                                         Command="{Binding BordersCommand}"
                                         CommandParameter="None"
                                     />
+                                    <Separator />
+                                    <MenuItem
+                                        Style="{DynamicResource GhMenuItem}"
+                                        Header="Cell Borders…"
+                                        Command="{Binding BordersDialogCommand}"
+                                    />
                                 </ContextMenu>
                             </Button.ContextMenu>
                         </Button>
                     </WrapPanel>
                     <StackPanel Width="120" Margin="0,2,0,0">
-                        <!-- The cell style is the row's kind: the title, the header or the data, as a DXF of R2000 to R2018 holds it. -->
+                        <!-- The cell style of the first cell: the style's cell styles, then the two dialogs. -->
                         <ComboBox
                             Style="{DynamicResource GhComboBox}"
-                            SelectedIndex="0"
-                            IsEnabled="False"
+                            ItemsSource="{Binding CellStyleChoices}"
+                            SelectedItem="{Binding CellStyle, Mode=TwoWay}"
                             Margin="0,0,0,4"
-                            ToolTip="The cell style of the row: a table of a DXF file gives each row the title's, the header's or the data's"
-                            ToolTipService.ShowOnDisabled="True"
-                        >
-                            <ComboBoxItem Content="{Binding CellStyleName}" />
-                        </ComboBox>
+                            ToolTip="The cell style of the cells selected: Title, Header, Data or one made with Create New Cell Style"
+                        />
                         <ComboBox
                             Style="{DynamicResource GhComboBox}"
                             ItemsSource="{Binding FillChoices}"
@@ -339,14 +344,118 @@
                         Style="{DynamicResource SmallButton}"
                         Tag="{StaticResource IconLock}"
                         Content="Cell Locking ▾"
-                        ToolTip="Cell locking: not offered"
-                    />
+                        IsEnabled="True"
+                        Click="OnMenu"
+                        ToolTip="Locks the content or the format of the cells selected"
+                    >
+                        <Button.ContextMenu>
+                            <ContextMenu
+                                Style="{DynamicResource GhContextMenu}"
+                                DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                            >
+                                <MenuItem
+                                    Style="{DynamicResource GhMenuItem}"
+                                    Header="Unlocked"
+                                    Command="{Binding LockCommand}"
+                                    CommandParameter="Unlocked"
+                                />
+                                <MenuItem
+                                    Style="{DynamicResource GhMenuItem}"
+                                    Header="Content Locked"
+                                    Command="{Binding LockCommand}"
+                                    CommandParameter="Content Locked"
+                                />
+                                <MenuItem
+                                    Style="{DynamicResource GhMenuItem}"
+                                    Header="Format Locked"
+                                    Command="{Binding LockCommand}"
+                                    CommandParameter="Format Locked"
+                                />
+                                <MenuItem
+                                    Style="{DynamicResource GhMenuItem}"
+                                    Header="Content and Format Locked"
+                                    Command="{Binding LockCommand}"
+                                    CommandParameter="Content and Format Locked"
+                                />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                     <Button
                         Style="{DynamicResource SmallButton}"
                         Tag="{StaticResource IconFormat}"
                         Content="Data Format ▾"
-                        ToolTip="Data Format: not built yet"
-                    />
+                        IsEnabled="True"
+                        Click="OnMenu"
+                        ToolTip="The kind of data and the format of the cells selected"
+                    >
+                        <Button.ContextMenu>
+                            <ContextMenu
+                                Style="{DynamicResource GhContextMenu}"
+                                DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                            >
+                                <MenuItem
+                                    Style="{DynamicResource GhMenuItem}"
+                                    Header="Angle"
+                                    Command="{Binding DataFormatCommand}"
+                                    CommandParameter="Angle"
+                                />
+                                <MenuItem
+                                    Style="{DynamicResource GhMenuItem}"
+                                    Header="Currency"
+                                    Command="{Binding DataFormatCommand}"
+                                    CommandParameter="Currency"
+                                />
+                                <MenuItem
+                                    Style="{DynamicResource GhMenuItem}"
+                                    Header="Date"
+                                    Command="{Binding DataFormatCommand}"
+                                    CommandParameter="Date"
+                                />
+                                <MenuItem
+                                    Style="{DynamicResource GhMenuItem}"
+                                    Header="Decimal Number"
+                                    Command="{Binding DataFormatCommand}"
+                                    CommandParameter="Decimal Number"
+                                />
+                                <MenuItem
+                                    Style="{DynamicResource GhMenuItem}"
+                                    Header="General"
+                                    Command="{Binding DataFormatCommand}"
+                                    CommandParameter="General"
+                                />
+                                <MenuItem
+                                    Style="{DynamicResource GhMenuItem}"
+                                    Header="Percentage"
+                                    Command="{Binding DataFormatCommand}"
+                                    CommandParameter="Percentage"
+                                />
+                                <MenuItem
+                                    Style="{DynamicResource GhMenuItem}"
+                                    Header="Point"
+                                    Command="{Binding DataFormatCommand}"
+                                    CommandParameter="Point"
+                                />
+                                <MenuItem
+                                    Style="{DynamicResource GhMenuItem}"
+                                    Header="Text"
+                                    Command="{Binding DataFormatCommand}"
+                                    CommandParameter="Text"
+                                />
+                                <MenuItem
+                                    Style="{DynamicResource GhMenuItem}"
+                                    Header="Whole Number"
+                                    Command="{Binding DataFormatCommand}"
+                                    CommandParameter="Whole Number"
+                                />
+                                <Separator />
+                                <MenuItem
+                                    Style="{DynamicResource GhMenuItem}"
+                                    Header="Custom Table Cell Format…"
+                                    Command="{Binding DataFormatCommand}"
+                                />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                 </WrapPanel>
             </DockPanel>
         </Border>
@@ -358,20 +467,64 @@
                         Style="{DynamicResource BigButton}"
                         Tag="{StaticResource IconBlock}"
                         Content="Block"
-                        ToolTip="A block in a cell: not offered"
+                        IsEnabled="True"
+                        Command="{Binding InsertBlockCommand}"
+                        ToolTip="Inserts a block in the cell selected"
                     />
                     <Button
                         Style="{DynamicResource BigButton}"
                         Tag="{StaticResource IconField}"
                         Content="Field"
-                        ToolTip="Fields: not offered"
+                        IsEnabled="True"
+                        Command="{Binding InsertFieldCommand}"
+                        ToolTip="Inserts a field in the cell selected"
                     />
                     <Button
                         Style="{DynamicResource BigButton}"
                         Tag="{StaticResource IconFormula}"
                         Content="Formula ▾"
-                        ToolTip="Formulas: not offered"
-                    />
+                        IsEnabled="True"
+                        Click="OnMenu"
+                        ToolTip="Inserts a formula in the cell selected: Sum, Average, Count, Cell or Equation"
+                    >
+                        <Button.ContextMenu>
+                            <ContextMenu
+                                Style="{DynamicResource GhContextMenu}"
+                                DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                            >
+                                <MenuItem
+                                    Style="{DynamicResource GhMenuItem}"
+                                    Header="Sum"
+                                    Command="{Binding InsertFormulaCommand}"
+                                    CommandParameter="Sum"
+                                />
+                                <MenuItem
+                                    Style="{DynamicResource GhMenuItem}"
+                                    Header="Average"
+                                    Command="{Binding InsertFormulaCommand}"
+                                    CommandParameter="Average"
+                                />
+                                <MenuItem
+                                    Style="{DynamicResource GhMenuItem}"
+                                    Header="Count"
+                                    Command="{Binding InsertFormulaCommand}"
+                                    CommandParameter="Count"
+                                />
+                                <MenuItem
+                                    Style="{DynamicResource GhMenuItem}"
+                                    Header="Cell"
+                                    Command="{Binding InsertFormulaCommand}"
+                                    CommandParameter="Cell"
+                                />
+                                <MenuItem
+                                    Style="{DynamicResource GhMenuItem}"
+                                    Header="Equation"
+                                    Command="{Binding InsertFormulaCommand}"
+                                    CommandParameter="Equation"
+                                />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                     <Button
                         Style="{DynamicResource BigButton}"
                         Tag="{StaticResource IconContents}"

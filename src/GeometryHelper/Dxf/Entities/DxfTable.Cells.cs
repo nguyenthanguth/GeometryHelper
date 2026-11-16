@@ -723,15 +723,19 @@ namespace GeometryHelper.Dxf
         {
             // The marks between thousands and before the decimals (%th, %ds) are put in after the digits are written.
             string bare = Marks(format, out char thousands, out char mark);
-            return Marked(InUnits(value, bare, true) ?? RealText(value, null), thousands, mark);
+            bare = Affixes(bare, out string prefix, out string suffix, out double factor);
+            double scaled = value * factor;
+            return prefix + Marked(InUnits(scaled, bare, true) ?? RealText(scaled, null), thousands, mark) + suffix;
         }
 
         /// <summary>The text of a number a format is set on: as <see cref="Shown(double, string)"/>, null where the format is one the library does not write, which keeps the text the cell had.</summary>
         private string Formatted(double value, string format)
         {
             string bare = Marks(format, out char thousands, out char mark);
-            string text = InUnits(value, bare, false) ?? RealText(value, bare);
-            return text == null ? null : Marked(text, thousands, mark);
+            bare = Affixes(bare, out string prefix, out string suffix, out double factor);
+            double scaled = value * factor;
+            string text = InUnits(scaled, bare, false) ?? RealText(scaled, bare);
+            return text == null ? null : prefix + Marked(text, thousands, mark) + suffix;
         }
 
         /// <summary>
@@ -793,6 +797,47 @@ namespace GeometryHelper.Dxf
             {
                 mark = (char)int.Parse(point.Groups[1].Value);
                 bare = bare.Replace(point.Value, string.Empty);
+            }
+
+            return bare;
+        }
+
+        /// <summary>
+        /// A format less its words before and after the number (<c>%ps[$,]</c>: a prefix of a dollar sign and no suffix) and the
+        /// factor the number is multiplied by (<c>%ct8[100]</c>), as AutoCAD 2021's Data Format dialog writes them for a currency
+        /// or a percentage: the prefix and the suffix as they are, 1 and nothing for a format that has none.
+        /// </summary>
+        private static string Affixes(string format, out string prefix, out string suffix, out double factor)
+        {
+            prefix = string.Empty;
+            suffix = string.Empty;
+            factor = 1.0;
+            string bare = format ?? string.Empty;
+            Match words = Regex.Match(bare, @"%ps\[([^,\]]*),([^\]]*)\]");
+            Match times = Regex.Match(bare, @"%ct8\[([^\]]*)\]");
+
+            if (words.Success)
+            {
+                prefix = words.Groups[1].Value;
+                suffix = words.Groups[2].Value;
+                bare = bare.Replace(words.Value, string.Empty);
+            }
+
+            if (times.Success)
+            {
+                if (
+                    double.TryParse(
+                        times.Groups[1].Value,
+                        NumberStyles.Float,
+                        CultureInfo.InvariantCulture,
+                        out double f
+                    ) && Guard.IsFinite(f)
+                )
+                {
+                    factor = f;
+                }
+
+                bare = bare.Replace(times.Value, string.Empty);
             }
 
             return bare;

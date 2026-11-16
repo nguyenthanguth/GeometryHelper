@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -121,6 +122,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             RemoveOverridesCommand = new DelegateCommand(_ =>
                 Do(d => CadTableEditor.RemoveOverrides(d, Handle, Range))
             );
+            CutCommand = new DelegateCommand(_ => Cut());
+            CopyCommand = new DelegateCommand(_ => Copy());
+            PasteCommand = new DelegateCommand(_ => Paste(), _ => _model.TableCellClip != null);
+            MatchCellCommand = new DelegateCommand(_ => RunOnCell("MATCHCELL"));
+            LockCommand = new DelegateCommand(p => Lock(p as string));
+            BordersDialogCommand = new DelegateCommand(_ => BordersDialog());
+            DataFormatCommand = new DelegateCommand(p => DataFormat(p as string));
+            InsertBlockCommand = new DelegateCommand(_ => InsertBlock());
+            InsertFieldCommand = new DelegateCommand(_ => InsertField());
+            InsertFormulaCommand = new DelegateCommand(p => InsertFormula(p as string));
+            CellStyleCommand = new DelegateCommand(p => SetCellStyle(p as string));
+            CreateCellStyleCommand = new DelegateCommand(_ => CreateCellStyle());
+            ManageCellStylesCommand = new DelegateCommand(_ => ManageCellStyles());
             Refresh();
         }
 
@@ -138,16 +152,60 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     + ":"
                     + CadTableEditor.CellName(_range.BottomRow, _range.RightColumn);
 
-        /// <summary>Gets the cell style of the cells' row, as the Cell Styles box shows it: Title, Header or Data.</summary>
+        /// <summary>The By Row/Column entry of the Cell Styles box: the cells take the style of their row.</summary>
+        public const string ByRow = "By Row/Column";
+
+        /// <summary>The entry of the Cell Styles box that opens the Create New Cell Style dialog.</summary>
+        public const string CreateNewStyle = "Create New Cell Style…";
+
+        /// <summary>The entry of the Cell Styles box that opens the Manage Cell Styles dialog.</summary>
+        public const string ManageStyles = "Manage Cell Styles…";
+
+        /// <summary>Gets the cell style of the first cell, as the Cell Styles box shows it: that its TABLECONTENT names, else its row's, Title, Header or Data.</summary>
         public string CellStyleName
         {
             get
             {
                 DxfTable table = Table;
-                DxfRowType kind = table == null ? DxfRowType.DataRow : table.RowType(_range.TopRow);
-                return kind == DxfRowType.TitleRow ? "Title"
-                    : kind == DxfRowType.HeaderRow ? "Header"
-                    : "Data";
+                return table == null ? "Data" : CadTableEditor.CellStyleOf(table, _range.TopRow, _range.LeftColumn);
+            }
+        }
+
+        /// <summary>Gets the entries of the Cell Styles box: the cell styles of the table style, then Create New Cell Style… and Manage Cell Styles….</summary>
+        public IReadOnlyList<string> CellStyleChoices
+        {
+            get
+            {
+                var list = new List<string>(CadTableEditor.CellStyleNames(Table));
+                list.Add(CreateNewStyle);
+                list.Add(ManageStyles);
+                return list;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the cell style of the Cell Styles box; set, the cells selected take it (one undo step), and the last two
+        /// entries open the Create New Cell Style and Manage Cell Styles dialogs.
+        /// </summary>
+        public string CellStyle
+        {
+            get => CellStyleName;
+            set
+            {
+                if (value == CreateNewStyle)
+                {
+                    CreateCellStyle();
+                }
+                else if (value == ManageStyles)
+                {
+                    ManageCellStyles();
+                }
+                else if (value != null && value != CellStyleName)
+                {
+                    SetCellStyle(value);
+                }
+
+                Raise(nameof(CellStyle));
             }
         }
 
@@ -270,6 +328,62 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets Rows › Size Equally: every row of the range made as high as their mean, none below what its text needs, one undo step.</summary>
         public DelegateCommand SizeRowsEquallyCommand { get; }
 
+        /// <summary>Gets Cut: the cells selected copied to the tab's clipboard and their contents taken out, one undo step.</summary>
+        public DelegateCommand CutCommand { get; }
+
+        /// <summary>Gets Copy: the cells selected, with their contents and looks, held on the tab's clipboard.</summary>
+        public DelegateCommand CopyCommand { get; }
+
+        /// <summary>Gets Paste: the cells held given to the cells selected, from the top left one, one undo step.</summary>
+        public DelegateCommand PasteCommand { get; }
+
+        /// <summary>Gets Match Cell: MATCHCELL, with the first cell selected the source.</summary>
+        public DelegateCommand MatchCellCommand { get; }
+
+        /// <summary>Gets Cell Locking, given the choice's name: Unlocked, Content Locked, Format Locked or Content and Format Locked.</summary>
+        public DelegateCommand LockCommand { get; }
+
+        /// <summary>Gets Cell Borders…: the Cell Border Properties dialog.</summary>
+        public DelegateCommand BordersDialogCommand { get; }
+
+        /// <summary>Gets Data Format, given the name of a kind of data (Angle, Currency, Date, Decimal Number, General, Percentage, Point, Text, Whole Number: its usual format at once) or none for the Table Cell Format dialog.</summary>
+        public DelegateCommand DataFormatCommand { get; }
+
+        /// <summary>Gets Insert › Block…: the Insert a Block in a Table Cell dialog.</summary>
+        public DelegateCommand InsertBlockCommand { get; }
+
+        /// <summary>Gets Insert › Field…: the Field dialog, its field put in the first cell.</summary>
+        public DelegateCommand InsertFieldCommand { get; }
+
+        /// <summary>Gets Insert › Formula, given its kind: Sum, Average, Count, Cell or Equation; EDITTABLECELL then asks for the cells.</summary>
+        public DelegateCommand InsertFormulaCommand { get; }
+
+        /// <summary>Gets the choice of a cell style, given its name or none for By Row/Column.</summary>
+        public DelegateCommand CellStyleCommand { get; }
+
+        /// <summary>Gets Create New Cell Style….</summary>
+        public DelegateCommand CreateCellStyleCommand { get; }
+
+        /// <summary>Gets Manage Cell Styles….</summary>
+        public DelegateCommand ManageCellStylesCommand { get; }
+
+        /// <summary>Gets the locking of the first cell, as the Cell Locking button shows it: Unlocked, Content Locked, Format Locked or Content and Format Locked.</summary>
+        public string LockName
+        {
+            get
+            {
+                DxfTable table = Table;
+                DxfCellState state =
+                    table == null ? DxfCellState.None : table.GetCellState(_range.TopRow, _range.LeftColumn);
+                bool content = (state & (DxfCellState.ContentLocked | DxfCellState.ContentReadOnly)) != 0;
+                bool format = (state & (DxfCellState.FormatLocked | DxfCellState.FormatReadOnly)) != 0;
+                return content && format ? "Content and Format Locked"
+                    : content ? "Content Locked"
+                    : format ? "Format Locked"
+                    : "Unlocked";
+            }
+        }
+
         /// <summary>Gets Remove All Property Overrides: what the cells hold of their own over the table style taken away, one undo step.</summary>
         public DelegateCommand RemoveOverridesCommand { get; }
 
@@ -304,46 +418,42 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             return new[]
             {
-                Grey("Cut", "Ctrl+X"),
-                Grey("Copy", "Ctrl+C"),
-                Grey("Paste", "Ctrl+V"),
+                Item("Cut", () => CutCommand.Execute(null), table != null, "Ctrl+X"),
+                Item("Copy", () => CopyCommand.Execute(null), table != null, "Ctrl+C"),
+                Item("Paste", () => PasteCommand.Execute(null), _model.TableCellClip != null, "Ctrl+V"),
                 Line(),
-                new CadMenuItemViewModel(
-                    "Cell Style",
-                    false,
-                    new[]
-                    {
-                        Grey("By Row/Column"),
-                        Grey("Title"),
-                        Grey("Header"),
-                        Grey("Data"),
-                        Line(),
-                        Grey("Save as New Cell Style…"),
-                        Grey("Create New Cell Style…"),
-                        Grey("Manage Cell Styles…"),
-                    }
-                ),
+                new CadMenuItemViewModel("Cell Style", true, CellStyleItems(table)),
                 Item("Background Fill…", PickFill),
                 new CadMenuItemViewModel("Alignment", alignments),
-                Grey("Borders…"),
-                new CadMenuItemViewModel(
-                    "Locking",
-                    false,
-                    new[]
-                    {
-                        Grey("Unlocked"),
-                        Grey("Content Locked"),
-                        Grey("Format Locked"),
-                        Grey("Content and Format Locked"),
-                    }
-                ),
-                Grey("Data Format…"),
+                Item("Borders…", BordersDialog),
+                new CadMenuItemViewModel("Locking", true, LockItems()),
+                Item("Data Format…", () => DataFormat(null)),
                 Line(),
-                Grey("Match Cell"),
+                Item("Match Cell", () => RunOnCell("MATCHCELL"), table != null),
                 Item("Remove All Property Overrides", () => RemoveOverridesCommand.Execute(null)),
                 Grey("Data Link…"),
                 Line(),
-                new CadMenuItemViewModel("Insert", false, new[] { Grey("Block…"), Grey("Field…"), Grey("Formula") }),
+                new CadMenuItemViewModel(
+                    "Insert",
+                    true,
+                    new[]
+                    {
+                        Item("Block…", InsertBlock, table != null),
+                        Item("Field…", InsertField, table != null && _model.ShowField != null),
+                        new CadMenuItemViewModel(
+                            "Formula",
+                            table != null,
+                            new[]
+                            {
+                                Item("Sum", () => InsertFormula("Sum")),
+                                Item("Average", () => InsertFormula("Average")),
+                                Item("Count", () => InsertFormula("Count")),
+                                Item("Cell", () => InsertFormula("Cell")),
+                                Item("Equation", () => InsertFormula("Equation")),
+                            }
+                        ),
+                    }
+                ),
                 Item("Edit Text", () => EditCell()),
                 Grey("Manage Content…"),
                 Item("Delete All Contents", () => ClearContentsCommand.Execute(null), keys: "Del"),
@@ -391,6 +501,365 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             };
         }
 
+        /// <summary>The Cell Style submenu of the right-click menu: By Row/Column, each cell style (the one the first cell takes checked), then Create New Cell Style… and Manage Cell Styles….</summary>
+        private IReadOnlyList<CadMenuItemViewModel> CellStyleItems(DxfTable table)
+        {
+            var items = new List<CadMenuItemViewModel>
+            {
+                new CadMenuItemViewModel(ByRow, () => SetCellStyle(null), table != null),
+            };
+            string current = table == null ? null : CellStyleName;
+
+            foreach (string name in CadTableEditor.CellStyleNames(table))
+            {
+                string chosen = name;
+                items.Add(
+                    new CadMenuItemViewModel(
+                        name,
+                        () => SetCellStyle(chosen),
+                        table != null,
+                        isChecked: name == current
+                    )
+                );
+            }
+
+            items.Add(CadMenuItemViewModel.Separator());
+            items.Add(
+                new CadMenuItemViewModel(
+                    CreateNewStyle,
+                    CreateCellStyle,
+                    table != null && _model.ShowCreateCellStyle != null
+                )
+            );
+            items.Add(
+                new CadMenuItemViewModel(
+                    ManageStyles,
+                    ManageCellStyles,
+                    table != null && _model.ShowManageCellStyles != null
+                )
+            );
+            return items;
+        }
+
+        /// <summary>The Locking submenu: Unlocked, Content Locked, Format Locked and Content and Format Locked, the one the first cell holds checked.</summary>
+        private IReadOnlyList<CadMenuItemViewModel> LockItems()
+        {
+            string current = LockName;
+            var items = new List<CadMenuItemViewModel>();
+
+            foreach (
+                string name in new[] { "Unlocked", "Content Locked", "Format Locked", "Content and Format Locked" }
+            )
+            {
+                string chosen = name;
+                items.Add(
+                    new CadMenuItemViewModel(name, () => Lock(chosen), Table != null, isChecked: name == current)
+                );
+            }
+
+            return items;
+        }
+
+        /// <summary>Cut: the cells copied to the tab's clipboard and emptied, one undo step.</summary>
+        private void Cut()
+        {
+            CadTableCellClip taken = null;
+            Do(d =>
+            {
+                CadEditResult result = CadTableEditor.Cut(d, Handle, Range, out CadTableCellClip clip);
+                taken = clip;
+                return result;
+            });
+
+            if (taken != null)
+            {
+                _model.TableCellClip = taken;
+                PasteCommand.RaiseCanExecuteChanged();
+            }
+        }
+
+        /// <summary>Copy: the cells held on the tab's clipboard.</summary>
+        private void Copy()
+        {
+            DxfTable table = Table;
+
+            if (table != null)
+            {
+                _model.TableCellClip = CadTableEditor.Copy(table, Range);
+                PasteCommand.RaiseCanExecuteChanged();
+            }
+        }
+
+        /// <summary>Paste: the cells held given to the cells selected, from the top left one.</summary>
+        private void Paste()
+        {
+            CadTableCellClip clip = _model.TableCellClip;
+
+            if (clip != null)
+            {
+                Do(d => CadTableEditor.Paste(d, Handle, Range, clip));
+            }
+        }
+
+        /// <summary>Cell Locking: the cells selected locked or unlocked as the choice says.</summary>
+        private void Lock(string name)
+        {
+            DxfCellState state =
+                name == "Content Locked" ? DxfCellState.ContentLocked
+                : name == "Format Locked" ? DxfCellState.FormatLocked
+                : name == "Content and Format Locked" ? DxfCellState.ContentLocked | DxfCellState.FormatLocked
+                : DxfCellState.None;
+            Do(d => CadTableEditor.SetLocking(d, Handle, Range, state));
+        }
+
+        /// <summary>A command of the Table Cell tab that asks for cells (MATCHCELL, EDITTABLECELL), started with the first cell selected as its first answer.</summary>
+        private bool RunOnCell(string command)
+        {
+            DxfTable table = Table;
+
+            if (table == null || _model.Session == null || _model.Session.IsRunning)
+            {
+                return false;
+            }
+
+            IReadOnlyList<GeoPoint3> corners = table.GetCellExtents(_range.TopRow, _range.LeftColumn, true);
+            var middle = new GeoPoint2((corners[0].X + corners[2].X) / 2.0, (corners[0].Y + corners[2].Y) / 2.0);
+            _model.StartCommand(command);
+            _model.Session.Feed(middle);
+            return true;
+        }
+
+        /// <summary>Insert › Formula: EDITTABLECELL asks for the cells the formula reads (or for the equation).</summary>
+        private void InsertFormula(string kind)
+        {
+            if (RunOnCell("EDITTABLECELL") && !string.IsNullOrEmpty(kind))
+            {
+                _model.Execute(kind);
+            }
+        }
+
+        /// <summary>Insert › Block…: the dialog, then the block put in the first cell.</summary>
+        private void InsertBlock()
+        {
+            DxfTable table = Table;
+
+            if (table == null)
+            {
+                return;
+            }
+
+            if (_model.ShowInsertTableBlock == null)
+            {
+                _model.Session?.Write("The Insert a Block in a Table Cell dialog is shown by the window.");
+                return;
+            }
+
+            var names = new List<string>();
+
+            foreach (DxfBlockTableRecord block in _model.Document.Database.BlockTable)
+            {
+                if (!block.IsLayout && !block.IsAnonymous)
+                {
+                    names.Add(block.Name);
+                }
+            }
+
+            string current =
+                table.CellType(_range.TopRow, _range.LeftColumn) == DxfTableCellType.BlockCell
+                    ? table.GetBlockTableRecord(_range.TopRow, _range.LeftColumn)?.Name
+                    : null;
+            var dialog = new InsertTableBlockViewModel(
+                CadTableEditor.CellName(_range.TopRow, _range.LeftColumn),
+                names,
+                current
+            );
+
+            if (_model.ShowInsertTableBlock(dialog) && dialog.IsConfirmed)
+            {
+                Do(d =>
+                    CadTableEditor.InsertBlock(
+                        d,
+                        Handle,
+                        _range.TopRow,
+                        _range.LeftColumn,
+                        dialog.Name,
+                        dialog.ScaleValue,
+                        dialog.AutoFit,
+                        dialog.RotationValue,
+                        dialog.AlignmentValue
+                    )
+                );
+            }
+        }
+
+        /// <summary>Insert › Field…: the Field dialog, then the field it ends with put in the first cell.</summary>
+        private void InsertField()
+        {
+            DxfTable table = Table;
+
+            if (table == null)
+            {
+                return;
+            }
+
+            if (_model.ShowField == null)
+            {
+                _model.Session?.Write("The Field dialog is shown by the window.");
+                return;
+            }
+
+            CadFieldRequest request = _model.NewFieldRequest();
+            string held = table.GetFieldCode(_range.TopRow, _range.LeftColumn, 0);
+
+            if (held != null && table.GetFormula(_range.TopRow, _range.LeftColumn, 0) == null)
+            {
+                request.Load("%<" + held + ">%");
+            }
+
+            string code = _model.AskField(request);
+
+            if (code != null)
+            {
+                Do(d => CadTableEditor.InsertField(d, Handle, _range.TopRow, _range.LeftColumn, code));
+            }
+        }
+
+        /// <summary>Cell Borders…: the Cell Border Properties dialog, then the lines it chose given the properties.</summary>
+        private void BordersDialog()
+        {
+            DxfTable table = Table;
+
+            if (table == null)
+            {
+                return;
+            }
+
+            if (_model.ShowCellBorders == null)
+            {
+                _model.Session?.Write("The Cell Border Properties dialog is shown by the window.");
+                return;
+            }
+
+            var linetypes = new List<string>();
+
+            foreach (DxfLinetypeTableRecord linetype in _model.Document.Database.LinetypeTable)
+            {
+                linetypes.Add(linetype.Name);
+            }
+
+            var dialog = new CellBordersViewModel(CellName, linetypes);
+
+            if (_model.ShowCellBorders(dialog) && dialog.IsConfirmed)
+            {
+                Do(d =>
+                    CadTableEditor.SetCellBorders(
+                        d,
+                        Handle,
+                        Range,
+                        dialog.ChosenLines,
+                        dialog.LinesShown,
+                        dialog.Weight,
+                        dialog.ColorValue
+                    )
+                );
+            }
+        }
+
+        /// <summary>Data Format: a kind of data given its usual format at once, or the Table Cell Format dialog for none.</summary>
+        private void DataFormat(string name)
+        {
+            DxfTable table = Table;
+
+            if (table == null)
+            {
+                return;
+            }
+
+            var dialog = new DataFormatViewModel(
+                CellName,
+                table.DataType(_range.TopRow, _range.LeftColumn),
+                table.UnitType(_range.TopRow, _range.LeftColumn),
+                table.Format(_range.TopRow, _range.LeftColumn)
+            );
+
+            if (!string.IsNullOrEmpty(name))
+            {
+                dialog.DataType = DataFormatViewModel.Kinds.First(k => k.Name == name);
+            }
+            else if (_model.ShowDataFormat == null)
+            {
+                _model.Session?.Write("The Table Cell Format dialog is shown by the window.");
+                return;
+            }
+            else if (!_model.ShowDataFormat(dialog) || !dialog.IsConfirmed)
+            {
+                return;
+            }
+
+            Do(d =>
+                CadTableEditor.SetDataFormat(
+                    d,
+                    Handle,
+                    Range,
+                    dialog.DataType.Kind,
+                    dialog.DataType.Unit,
+                    dialog.Format
+                )
+            );
+        }
+
+        /// <summary>The cells selected given a cell style; null for By Row/Column.</summary>
+        private void SetCellStyle(string name)
+        {
+            Do(d => CadTableEditor.SetCellStyle(d, Handle, Range, name == ByRow ? null : name));
+        }
+
+        /// <summary>Create New Cell Style…: the dialog, then the cell style made in the table style of the table.</summary>
+        private void CreateCellStyle()
+        {
+            DxfTable table = Table;
+            DxfTableStyle style = CadTableEditor.StyleOf(table);
+
+            if (style == null)
+            {
+                _model.Session?.Write("The table is written in no table style to make a cell style in.");
+                return;
+            }
+
+            if (_model.ShowCreateCellStyle == null)
+            {
+                _model.Session?.Write("The Create New Cell Style dialog is shown by the window.");
+                return;
+            }
+
+            var dialog = new CreateCellStyleViewModel(CadTableEditor.CellStyleNames(table));
+
+            if (_model.ShowCreateCellStyle(dialog) && dialog.IsConfirmed)
+            {
+                Do(d => CadTableEditor.CreateCellStyle(d, style.Name, dialog.Name, dialog.StartWith));
+                Raise(nameof(CellStyleChoices));
+            }
+        }
+
+        /// <summary>Manage Cell Styles…: the dialog over the table style of the table.</summary>
+        private void ManageCellStyles()
+        {
+            DxfTableStyle style = CadTableEditor.StyleOf(Table);
+
+            if (style == null || _model.ShowManageCellStyles == null || _model.Document == null)
+            {
+                _model.Session?.Write(
+                    "The table is written in no table style, or the window shows no Manage Cell Styles dialog."
+                );
+                return;
+            }
+
+            _model.ShowManageCellStyles(
+                new ManageCellStylesViewModel(_model.Document, style.Name, _model.ShowCreateCellStyle)
+            );
+            Refresh();
+        }
+
         /// <summary>Gets the table, or null where it is gone.</summary>
         private DxfTable Table => _model.Document?.FindEntity(Handle) as DxfTable;
 
@@ -431,6 +900,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(Range));
             Raise(nameof(CellName));
             Raise(nameof(CellStyleName));
+            Raise(nameof(CellStyle));
+            Raise(nameof(CellStyleChoices));
+            Raise(nameof(LockName));
             Raise(nameof(AlignmentName));
             Raise(nameof(Fill));
             Raise(nameof(CanMerge));

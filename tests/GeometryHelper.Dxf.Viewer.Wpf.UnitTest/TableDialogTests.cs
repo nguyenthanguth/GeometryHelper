@@ -210,18 +210,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Layout(workspace, 1600, 960);
                 TableCellRibbon ribbon = Descendants(workspace).OfType<TableCellRibbon>().Single();
                 List<Button> buttons = Descendants(ribbon).OfType<Button>().ToList();
-                string[] greyed =
-                {
-                    "Match Cell",
-                    "Cell Locking ▾",
-                    "Data Format ▾",
-                    "Block",
-                    "Field",
-                    "Formula ▾",
-                    "Manage Cell Contents",
-                    "Link Cell",
-                    "Download from Source",
-                };
+                string[] greyed = { "Manage Cell Contents", "Link Cell", "Download from Source" };
 
                 foreach (string name in greyed)
                 {
@@ -239,6 +228,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                         "Delete Column(s)",
                         "Unmerge Cells",
                         "Cell Borders ▾",
+                        "Match Cell",
+                        "Cell Locking ▾",
+                        "Data Format ▾",
+                        "Block",
+                        "Field",
+                        "Formula ▾",
                     }
                 )
                 {

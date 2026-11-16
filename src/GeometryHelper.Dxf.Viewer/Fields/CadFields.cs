@@ -527,6 +527,30 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
+            // The formulas and fields of the cells of tables, worked out from the cells and the drawing.
+            foreach (string handle in TablesWithFields(document))
+            {
+                if (document.FindEntity(handle) is DxfTable table)
+                {
+                    try
+                    {
+                        if (CadTableEditor.UpdateFields(document, table, reason) > 0)
+                        {
+                            CadTableEditor.Redraw(table, document);
+                            changed++;
+                        }
+                    }
+                    catch (Exception exception)
+                        when (exception is InvalidOperationException || exception is ArgumentException)
+                    {
+                        GeometryHelperLog.Warn(
+                            "CadFields: the fields of the table " + handle + " were not updated.",
+                            exception
+                        );
+                    }
+                }
+            }
+
             return changed;
         }
 
@@ -596,6 +620,46 @@ namespace GeometryHelper.Dxf.Viewer
                 if (owner != null && seen.Add(owner))
                 {
                     handles.Add(owner);
+                }
+            }
+
+            return handles;
+        }
+
+        /// <summary>The handles of the tables that own a field (those of their cells' formulas and fields), in the order of the drawing's list of fields.</summary>
+        internal static List<string> TablesWithFields(CadDocument document)
+        {
+            var handles = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            DxfFile file = document.Database.File;
+            string root = file.KeptRootDictionaryHandle();
+            DxfItem rootItem = root == null ? null : file.ObjectItem(root);
+
+            if (
+                rootItem == null
+                || !(DxfDBObject.OfObject(rootItem) is DxfDBDictionary dictionary)
+                || !dictionary.Contains("ACAD_FIELDLIST")
+            )
+            {
+                return handles;
+            }
+
+            DxfDBObject list = dictionary.GetAt("ACAD_FIELDLIST");
+
+            if (list?.Item == null || list.Item.Type != "FIELDLIST")
+            {
+                return handles;
+            }
+
+            foreach (DxfTypedValue group in file.ObjectGroupsOf(list.Item))
+            {
+                DxfItem field = group.TypeCode == 330 ? file.ObjectItem(group.Value) : null;
+                DxfItem owner =
+                    field == null || field.IsRemoved || field.Type != "FIELD" ? null : OwnerItem(file, field);
+
+                if (owner != null && owner.Type == "ACAD_TABLE" && owner.Handle != null && seen.Add(owner.Handle))
+                {
+                    handles.Add(owner.Handle);
                 }
             }
 

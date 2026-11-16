@@ -135,6 +135,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return true;
                 case "F2":
                     return cell.EditCell();
+                case "Cut":
+                    cell.CutCommand.Execute(null);
+                    return true;
+                case "Copy":
+                    cell.CopyCommand.Execute(null);
+                    return true;
+                case "Paste":
+                    if (TableCellClip == null)
+                    {
+                        return false;
+                    }
+
+                    cell.PasteCommand.Execute(null);
+                    return true;
                 case "Escape":
                     HideTableCell();
                     return true;
