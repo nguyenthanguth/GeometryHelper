@@ -337,7 +337,7 @@ writes nothing. All layouts writes one PDF of a page for each layout, in the ord
 sheet and plotted by its own page setup, or by the detailed configuration where it was answered Yes; the file offered is
 the drawing's name, `C:\Plans\plan-level2.pdf`. A drawing of Layout1 on ISO A3 and Layout2 on ISO A1 is a PDF of two pages,
 1 190.5512 by 841.8898 and 2 383.937 by 1 683.7795 points, by
-[`CadPdfWriter.WritePages`](xref:GeometryHelper.Dxf.Viewer.Wpf.CadPdfWriter) from the request -PLOT whose payload is a
+`CadPdfWriter.WritePages` from the request -PLOT whose payload is a
 [`CadPlotBook`](xref:GeometryHelper.Dxf.Viewer.CadPlotBook).
 
 ## EXPORTPDF, EXPORTDWF and EXPORTDWFX

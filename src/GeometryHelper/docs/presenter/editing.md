@@ -240,6 +240,8 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 **Multilines (R2.1).**
 
+<a id="multilines"></a>
+
 MLINE (`ML`) writes `Current settings: Justification = Top, Scale = 20.00, Style = STANDARD` and asks `Specify start point or
 [Justification/Scale/STyle]:`; each option asks its question (`Enter justification type [Top/Zero/Bottom] <top>:`, `Enter
 mline scale <20.00>:`, `Enter mline style name or [?]:`, the question mark listing `Loaded mline styles:`) and comes back to
@@ -879,7 +881,7 @@ AutoCAD's own file, `filter.nfl`, which FILTER reads each time it starts: in the
 filter (`(8 . "WALLS")`, `(-4 . ">=")` and `(40 . 15.0)`, `(-4 . "<NOT")`) and `:ai_str|NAME` with the lines as the dialog
 lists them; a file that does not read says `Syntax error in Named Filter List file.  Delete filter.nfl.`
 ([`CadSelectionFilter.ToNfl`](xref:GeometryHelper.Dxf.Viewer.CadSelectionFilter.ToNfl),
-[`LoadNfl`](xref:GeometryHelper.Dxf.Viewer.CadSelectionFilter.LoadNfl)). Apply writes `Applying filter to selection.`, asks
+[`LoadNfl`](xref:GeometryHelper.Dxf.Viewer.CadSelectionFilter.LoadNfl*)). Apply writes `Applying filter to selection.`, asks
 `Select objects:`, says how many `were filtered out`, and keeps what passed as the Previous set, so the next command takes it
 with P, then `Exiting filtered selection.`. A test on a property tests the objects that have it: `Arc Radius` an arc, `Text
 Height` a text or an MTEXT; AutoCAD tests any object that has the same group code, so combine a property with its Object
@@ -2227,7 +2229,7 @@ before the command is taken instead; anything that is not a reference says Objec
 point picked reaches a block nested in the reference, Reference: A and Select nesting level [Ok/Next] <Next>:, Next (or
 Enter) stepping from A to A > B and round again; then Enter object selection method [All/Nested] <All>:. All takes
 every object of the block; Nested asks Select nested objects or [All]: for points, one object a point (the smallest whose
-box, put where the reference draws it, holds the point), 1 found or   found each, and ** At least one object must be
+box, put where the reference draws it, holds the point), 1 found or 0 found each, and ** At least one object must be
 selected to edit a reference ** for none. A block that holds attribute definitions asks Display attribute definitions
 [Yes/No] <No>: after it, the answer kept by
 [CadDocument.RefEditAttributeDefinitions](xref:GeometryHelper.Dxf.Viewer.CadDocument.RefEditAttributeDefinitions); whether
