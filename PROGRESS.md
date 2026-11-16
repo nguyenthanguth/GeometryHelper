@@ -465,7 +465,7 @@ User note 2026-11-12 (basic features first, advanced later):
       control vertices: Stretch, Add, Remove), HATCH (a centre grip: Stretch, Hatch Scale, Hatch Angle, Origin Point)
       and 2D POLYLINE (as a light polyline); Convert to Line asks a pick as AutoCAD's string says; Add Vertex's
       options already matched (AutoCAD's string table)
-- [ ] Grips follow-ups 3: dimension grip menus (Continue/Baseline, Flip Arrow, Move Text variants); Remove Vertex as a
+- [ ] (grips4, running) Grips follow-ups 3: dimension grip menus (Continue/Baseline, Flip Arrow, Move Text variants); Remove Vertex as a
       pick ("Pick to remove vertex:" exists in AutoCAD's strings); Copy and Undo in Lengthen/Radius; the spline
       fit/control switch grip; hatch boundary grips (non-associative); fit-curve and spline-fit 2D polyline grips; Ctrl
       cycling of grip modes; the MTEXT triangle size (GUI); a Wpf test of the new menus (S)
@@ -497,7 +497,7 @@ the ones wanted.
 - [x] MIRROR follow-ups 7 (mirror7): DxfHatch.TransformBy keeps the pattern lines by default as AutoCAD's MIRRHATCH 0
       (TransformBy(t, true) reflects them); an annotative hatch's context direction kept where the transformation takes
       the hatch's own axes straight across (463 of 463 probed pairs); MIRROR3D with AutoCAD's options and words
-- [ ] MIRROR follow-ups 8: the normal of a mirrored CIRCLE, ARC, LWPOLYLINE, TEXT and SOLID (AutoCAD keeps the image of
+- [ ] (mirror8, running) MIRROR follow-ups 8: the normal of a mirrored CIRCLE, ARC, LWPOLYLINE, TEXT and SOLID (AutoCAD keeps the image of
       the normal, the library turns it over; a text mirrored across its own plane moves its insertion in AutoCAD); a
       mirror that also scales leaves a hatch's pattern scale in AutoCAD; group 52 of -150 vs 210; MakeEntityAnnotative
       on a hatch of a non-z normal writes the direction in plane coordinates; Z in the presenter for MIRROR3D's points (S)
@@ -1029,10 +1029,13 @@ the ones wanted.
       double.Parse kept by a margin), a handle set made once, hot decoders compiled optimised at once: a 300 000-entity
       DWG first open 1.28 -> 0.65 s (net8), 1.35 -> 0.88 s (net48); DXF text identical on 1 278 files, 3 runtimes,
       1/8/auto threads. DECIDED: parallel decode and AggressiveOptimization kept (fuzzed, documented)
-- [ ] (speed20, running) Speed follow-ups 19: the DXF write phase (WriteBlocks ~145 ms warm, ~480 ms cold: chunked rendering in order);
-      workstation GC pauses from 300 000 DwgObject graphs; the DXF parse (~0.1 s); the full GC from Take's copy of an
-      over-sized buffer; DwgJit.Hot for dimension, hatch and spline decoders; MTEXT/INSERT contexts tuples; LinkedColumns;
-      REGEN's text group walk (S)
+- [x] Speed follow-ups 19 (speed20): the DXF write of a DWG on up to 8 threads in runs joined in order, and a quadratic
+      walk of the block list fixed (20 000 dimensions/hatches/splines: open 1.55 -> 0.68 s); 300 000 lines first open
+      0.65 -> 0.53 s (net8), 1.05 -> 0.79 s (net48); DXF text byte-identical on 186 DWGs, 3 runtimes, 1-8 threads
+- [ ] Speed follow-ups 20: under .NET Framework the DXF of 54 of 186 DWGs differs from .NET 8/10 (old too: find why,
+      make the runtimes agree); the planning walk (~42 ms); WriteObjects sequential; DwgReader.Open(string/Stream)
+      still copies the DXF twice (40 MB each); the GC pause of a first open (a streaming design); MTEXT/INSERT contexts
+      tuples; LinkedColumns; REGEN's text group walk (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)
