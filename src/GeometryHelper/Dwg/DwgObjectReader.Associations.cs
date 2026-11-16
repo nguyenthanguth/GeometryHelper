@@ -98,7 +98,9 @@ namespace GeometryHelper.Dwg
 
         /// <summary>
         /// A network (AcDbAssocNetwork): its version, the highest index of its actions and their count; each action is a pointer,
-        /// hard owned (360) where a bit before the list is set and soft (330) where it is not.
+        /// hard owned (360) where a bit before the list is set and soft (330) where it is not; then the count of a second list
+        /// of soft pointers (330), 0 in the networks of AutoCAD's dynamic block samples and 1 in one its API made (the action
+        /// it holds is listed again).
         /// </summary>
         private void ReadAssocNetwork()
         {
@@ -115,14 +117,19 @@ namespace GeometryHelper.Dwg
                 owned[i] = _data.Bit();
             }
 
-            int last = _data.BitLong();
+            int pending = Count(_data.BitLong());
 
             for (int i = 0; i < count; i++)
             {
                 _object.Add(owned[i] ? 360 : 330, H());
             }
 
-            _object.Add(90, last);
+            _object.Add(90, pending);
+
+            for (int i = 0; i < pending; i++)
+            {
+                _object.Add(330, H());
+            }
         }
 
         /// <summary>A dependency (AcDbAssocDependency): the numbers, flags and pointers every dependency carries.</summary>

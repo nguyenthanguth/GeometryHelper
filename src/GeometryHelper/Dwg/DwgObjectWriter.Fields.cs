@@ -359,8 +359,10 @@ namespace GeometryHelper.Dwg
                         _data.Bytes(raw);
                         break;
                     default:
-                        // A string as UTF-16 (before R2007 as UTF-8) with its closing zero, counted in bytes.
-                        byte[] bytes = (R2007Plus ? Encoding.Unicode : Encoding.UTF8).GetBytes(value.Text + "\0");
+                        // A string as UTF-16 (before R2007 in the code page) with its closing zero, counted in bytes.
+                        byte[] bytes = R2007Plus
+                            ? Encoding.Unicode.GetBytes(value.Text + "\0")
+                            : _drawing.PageBytes(value.Text + "\0");
                         _data.BitLong(bytes.Length);
                         _data.Bytes(bytes);
                         break;

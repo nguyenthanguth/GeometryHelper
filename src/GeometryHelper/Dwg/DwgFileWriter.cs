@@ -174,6 +174,7 @@ namespace GeometryHelper.Dwg
         );
         private DwgObjectWriter _objects;
         private ulong _handseed;
+        private ulong _viewportHeaders;
         private int _maintenance;
 
         private DwgFileWriter(DwgDrawing drawing, string version)
@@ -229,6 +230,74 @@ namespace GeometryHelper.Dwg
                 record.Groups.Add(new KeyValuePair<int, string>(281, "0"));
                 record.Split();
                 _drawing.Classes.Add(record);
+            }
+        }
+
+        /// <summary>
+        /// A file of R2000 holds a table of viewport entity headers (an object of its own, named in the header variables as
+        /// the viewport entities) and a header for each viewport AutoCAD has numbered (group 69 over 0), which the viewport
+        /// points to; AutoCAD lists one that names no viewport first. They are made here, for a drawing that holds such a
+        /// viewport and no other: the table takes the handle B where the drawing has none, as AutoCAD gives it, and the
+        /// headers the next handles past every one the drawing names, in the order of the viewports' numbers.
+        /// </summary>
+        private void AddViewportHeaders(List<DwgRecord> records)
+        {
+            List<DwgRecord> viewports = records.FindAll(record =>
+                record.Type == "VIEWPORT" && record.Of("AcDbViewport").Int(69) > 0
+            );
+
+            if (viewports.Count == 0)
+            {
+                return;
+            }
+
+            viewports.Sort(
+                (a, b) =>
+                {
+                    int order = a.Of("AcDbViewport").Int(69).CompareTo(b.Of("AcDbViewport").Int(69));
+                    return order != 0 ? order : a.Handle.CompareTo(b.Handle);
+                }
+            );
+            // Past every handle the drawing names, left out ones too, for a dictionary entry that names a record left out
+            // must not find an object of ours under its handle.
+            ulong seed = DwgRecord.Hex(_drawing.HeaderText("HANDSEED", "0"));
+            _handseed = Math.Max(_handseed, seed > 0 ? seed - 1 : 0);
+
+            foreach (DwgRecord record in _drawing.All)
+            {
+                _handseed = Math.Max(_handseed, record.Handle);
+            }
+
+            var table = new DwgRecord { Type = DwgObjectWriter.ViewportHeaderControl, Records = new List<DwgRecord>() };
+            table.Handle = _drawing.Find(0xB) == null ? 0xB : ++_handseed;
+            _viewportHeaders = table.Handle;
+            _written.Add(table.Handle);
+            records.Add(table);
+
+            for (int i = 0; i <= viewports.Count; i++)
+            {
+                var header = new DwgRecord
+                {
+                    Type = DwgObjectWriter.ViewportHeader,
+                    Handle = ++_handseed,
+                    Owner = table.Handle,
+                    Body = new List<KeyValuePair<int, string>>(),
+                };
+
+                if (i > 0)
+                {
+                    header.Body.Add(
+                        new KeyValuePair<int, string>(
+                            340,
+                            viewports[i - 1].Handle.ToString("X", CultureInfo.InvariantCulture)
+                        )
+                    );
+                    _objects.ViewportHeaders[viewports[i - 1].Handle] = header.Handle;
+                }
+
+                _written.Add(header.Handle);
+                table.Records.Add(header);
+                records.Add(header);
             }
         }
 
@@ -374,6 +443,11 @@ namespace GeometryHelper.Dwg
                 }
 
                 records.RemoveAll(record => !_written.Contains(record.Handle));
+            }
+
+            if (_number == 1015)
+            {
+                AddViewportHeaders(records);
             }
 
             records.Sort((a, b) => a.Handle.CompareTo(b.Handle));
@@ -620,7 +694,7 @@ namespace GeometryHelper.Dwg
         private static bool IsAcis(DwgRecord record) =>
             record != null && (record.Type == "REGION" || record.Type == "3DSOLID" || record.Type == "BODY");
 
-        private static int CodePageNumber(string name)
+        internal static int CodePageNumber(string name)
         {
             switch (name.ToUpperInvariant())
             {
@@ -853,7 +927,7 @@ namespace GeometryHelper.Dwg
             }
             else
             {
-                data.Text(Encoding.UTF8.GetBytes(text));
+                data.Text(_drawing.PageBytes(text));
             }
         }
 
@@ -1377,6 +1451,9 @@ namespace GeometryHelper.Dwg
                 case "INTERFEREVPVS":
                 case "CPSNID":
                     handle = DwgRecord.Hex(Value(name, "0"));
+                    break;
+                case "_VPORTENTITIES":
+                    handle = _viewportHeaders;
                     break;
                 case "_BLOCKS":
                     handle = _drawing.Table("BLOCK_RECORD")?.Handle ?? 0;

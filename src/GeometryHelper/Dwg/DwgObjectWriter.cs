@@ -58,6 +58,18 @@ namespace GeometryHelper.Dwg
         private Dictionary<ulong, DwgRecord> _leaders;
         private Dictionary<ulong, KeyValuePair<ulong, ulong>> _links;
 
+        /// <summary>The type of the record that stands for the table of viewport entity headers of a file of R2000.</summary>
+        public const string ViewportHeaderControl = "VP_ENT_HDR_CTRL";
+
+        /// <summary>The type of the record that stands for one entry of that table: the header of a viewport.</summary>
+        public const string ViewportHeader = "VP_ENT_HDR";
+
+        /// <summary>
+        /// For a file of R2000, the handle of the header of each viewport (the handle of the viewport to that of its header),
+        /// which the file writer sets: AutoCAD keeps one for each viewport it has numbered and the viewport names it.
+        /// </summary>
+        public Dictionary<ulong, ulong> ViewportHeaders { get; } = new Dictionary<ulong, ulong>();
+
         /// <summary>
         /// An encoder of the records of <paramref name="drawing"/> into objects of <paramref name="version"/> (such as 1032),
         /// whose types of 500 and up are numbered by <paramref name="classes"/> (the DXF names in their order), and which
@@ -167,6 +179,17 @@ namespace GeometryHelper.Dwg
                     default:
                         return -1;
                 }
+            }
+
+            // The two kinds of object a file of R2000 holds for its viewports, made by the file writer (see ViewportHeaders).
+            if (type == ViewportHeaderControl)
+            {
+                return 0x46;
+            }
+
+            if (type == ViewportHeader)
+            {
+                return 0x47;
             }
 
             if (_classes.TryGetValue(type, out int number) && Encoder(type) != null)
@@ -468,7 +491,9 @@ namespace GeometryHelper.Dwg
                 case "ACAD_TABLE":
                     return R2010Plus ? WriteTable : (Action)null;
                 case "TABLESTYLE":
-                    return R2010Plus ? WriteTableStyle : (Action)null;
+                    return R2010Plus ? WriteTableStyle : WriteTableStyleOfR2007;
+                case "CELLSTYLEMAP":
+                    return R2010Plus ? (Action)null : WriteCellStyleMap;
                 case "TABLECONTENT":
                     return R2010Plus ? WriteTableContentObject : (Action)null;
                 case "TABLEGEOMETRY":
@@ -480,7 +505,7 @@ namespace GeometryHelper.Dwg
                 case "IMAGEDEF_REACTOR":
                     return () => _data.BitLong(_record.Of("AcDbRasterImageDefReactor").Int(90, 2));
                 case "MATERIAL":
-                    return R2007Plus ? WriteMaterial : (Action)null;
+                    return WriteMaterial;
                 case "VISUALSTYLE":
                     return R2013Plus ? WriteVisualStyle : (Action)null;
                 case "ACDBDETAILVIEWSTYLE":
@@ -723,7 +748,7 @@ namespace GeometryHelper.Dwg
             }
             else
             {
-                _data.Text(Encoding.UTF8.GetBytes(text));
+                _data.Text(_drawing.PageBytes(text));
             }
         }
 
@@ -832,10 +857,10 @@ namespace GeometryHelper.Dwg
                     else
                     {
                         // A length of two bytes, then the code page, one byte (30 for ANSI_1252), as AutoCAD writes it.
-                        byte[] bytes = Encoding.UTF8.GetBytes(value);
+                        byte[] bytes = _drawing.PageBytes(value);
                         values.WriteByte((byte)bytes.Length);
                         values.WriteByte((byte)(bytes.Length >> 8));
-                        values.WriteByte(30);
+                        values.WriteByte((byte)DwgFileWriter.CodePageNumber(_drawing.CodePage));
                         values.Write(bytes, 0, bytes.Length);
                     }
 
@@ -1327,11 +1352,12 @@ namespace GeometryHelper.Dwg
         /// <summary>
         /// A colour of a table record or a style (CMC): before R2004 a bit short of the index; from R2004 a bit short of 0,
         /// a bit long whose high byte says how it is given (0xC0 by layer, 0xC1 by block, 0xC2 a true colour, 0xC3 an
-        /// index) and a byte of 0, no names following.
+        /// index) and a byte of 0, no names following; in the form of R2004 whatever the version where <paramref name="later"/> is
+        /// set, as a table style keeps its colours in a file of R2000.
         /// </summary>
-        private void WriteColour(int index, int rgb = -1, string bookName = null)
+        private void WriteColour(int index, int rgb = -1, string bookName = null, bool later = false)
         {
-            if (!R2004Plus)
+            if (!R2004Plus && !later)
             {
                 _data.BitShort(index);
                 return;
@@ -1706,6 +1732,12 @@ namespace GeometryHelper.Dwg
                 case 0x42:
                 case 0x44:
                     WriteControl(type);
+                    return;
+                case 0x46:
+                    WriteViewportHeaderControl();
+                    return;
+                case 0x47:
+                    WriteViewportHeader();
                     return;
                 case 0x31:
                     WriteBlockHeader();

@@ -112,7 +112,7 @@ namespace GeometryHelper.Dwg
             }
         }
 
-        /// <summary>A network: its two numbers, the actions that are written with a bit each (set for a hard owned one), then a last number.</summary>
+        /// <summary>A network: its two numbers, the actions that are written with a bit each (set for a hard owned one), then the second list of soft pointers.</summary>
         private void WriteAssocNetwork()
         {
             List<KeyValuePair<int, string>> groups = Sequence();
@@ -141,11 +141,29 @@ namespace GeometryHelper.Dwg
                 _data.Bit(action.Key);
             }
 
-            _data.BitLong(Whole(groups, ref at, 90));
+            int pending = Whole(groups, ref at, 90);
+            var waiting = new List<ulong>();
+
+            for (int i = 0; i < pending && at < groups.Count; i++)
+            {
+                ulong action = DwgRecord.Hex(Take(groups, ref at, 330, "0"));
+
+                if (_written.Contains(action))
+                {
+                    waiting.Add(action);
+                }
+            }
+
+            _data.BitLong(waiting.Count);
 
             foreach (KeyValuePair<bool, ulong> action in actions)
             {
                 H(action.Key ? 3 : 4, action.Value);
+            }
+
+            foreach (ulong action in waiting)
+            {
+                H(4, action);
             }
         }
 

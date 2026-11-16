@@ -151,6 +151,31 @@ namespace GeometryHelper.Dwg
             }
         }
 
+        /// <summary>The table of the viewport entity headers of R2000, as a control object: the count and its entries.</summary>
+        private void WriteViewportHeaderControl()
+        {
+            _data.BitLong(_record.Records.Count);
+
+            foreach (DwgRecord entry in _record.Records)
+            {
+                H(2, entry.Handle);
+            }
+        }
+
+        /// <summary>
+        /// A viewport entity header of R2000: a table record with no name and a bit that is set where it names a viewport,
+        /// which it points to (the first group of its data, 340); AutoCAD lists one with none first.
+        /// </summary>
+        private void WriteViewportHeader()
+        {
+            ulong viewport = _record.Body.Count > 0 ? DwgRecord.Hex(_record.Body[0].Value) : 0;
+            WriteRecordHead(string.Empty, 0);
+            _data.Bit(viewport != 0);
+            H(5, 0);
+            H(4, viewport);
+            H(5, 0);
+        }
+
         private void WriteBlockHeader()
         {
             DwgGroups record = _record.Of(null);
@@ -330,7 +355,7 @@ namespace GeometryHelper.Dwg
                 {
                     hasText = true;
                     string text = dash.TryGetValue(9, out string found) ? found : string.Empty;
-                    byte[] bytes = R2007Plus ? Encoding.Unicode.GetBytes(text) : Encoding.UTF8.GetBytes(text);
+                    byte[] bytes = R2007Plus ? Encoding.Unicode.GetBytes(text) : _drawing.PageBytes(text);
                     int step = R2007Plus ? 2 : 1;
                     shape = areaUsed;
 

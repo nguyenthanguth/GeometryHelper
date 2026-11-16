@@ -411,11 +411,12 @@ namespace GeometryHelper.Dwg
 
         /// <summary>
         /// A CMC colour given as its one number (<see cref="DwgColour.Raw"/>): before R2004 the index, from R2004 a bit short
-        /// of 0, the number and a byte of 0, no names following.
+        /// of 0, the number and a byte of 0, no names following; in that form in every version where <paramref name="later"/> is set, as
+        /// a cell style keeps its colours in a file of R2000.
         /// </summary>
-        private void WriteRawColour(int raw)
+        private void WriteRawColour(int raw, bool later = false)
         {
-            if (!R2004Plus)
+            if (!R2004Plus && !later)
             {
                 int method = (raw >> 24) & 0xFF;
                 _data.BitShort(
