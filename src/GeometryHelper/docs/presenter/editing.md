@@ -1101,7 +1101,14 @@ that is further), under 2 their middle there, or where the points lie beyond the
 the extension lines. DIMJUST 1 puts an angle's words next to its second ray, 2 next to its first. Words of an angle moved by DIMTEDIT stand
 on the arc, which then runs through the point given, under DIMTMOVE 0 ("60°" moved 50 out at 30 degrees stands 51.9
 out, above the arc as it reads), level past a leader from the middle of the arc under 1, and turned along the arc under
-2. Those of a radius or a diameter slide along its line, which stays, to where the point falls on it under 0 and 1, and
+2. The arc point of an angle's words put by hand (group 10 of three points, 16 of two lines) is written two thirds of the way
+round from its first ray where the point stands nearer that ray than the second as seen from the vertex (the short way round), and
+a third where nearer the second: an angle of 60 degrees from 0 with its words put at 215 degrees or at 22.7 has it at 40 degrees, put
+at 100 or at 35 at 20; the arc through the point itself under 0, the arc it was on under 1 and 2, and exactly between the rays
+AutoCAD's choice is its own rounding. Probed with 648 pictures of angles of three points and of two lines under DIMTMOVE 0, 1 and
+2 and 576 with the rays given the other way round and an angle past a half turn: 326 and 151 differing before, 4 and 17 now; the
+e3 ring of 13 968 pictures at 240 out went from 3 479 differing to 40, 26 of them the words put at 210 degrees, exactly between the
+rays. Those of a radius or a diameter slide along its line, which stays, to where the point falls on it under 0 and 1, and
 stand at the point under 2, but under DIMTMOVE 0 and DIMATFIT 0 to 2 DIMTEDIT turns the line toward the point: "R20" of a
 circle of 20 put 35 out at 30 degrees, moved to 15 out at 120 degrees, has its line at 120 degrees, its words 15 out on
 it with the line whole to the arrowhead; moved 25 out they stand 28.6 out, the arrowhead outside (inside under DIMATFIT 2,
@@ -1142,8 +1149,8 @@ between them is what the first form of the rule took, and it is up to 1.5 off on
 as much as 1 over the radius times the landing squared), and the diagonal is flatter by 0.7 of the sagitta of a landing, the
 landing squared over the radius, up or down. AutoCAD 2021's band of "60°" is centred out of the circle by about half that sagitta
 (0.6 out at 30 out, 0.37 at 45, 0.2 at 90) where the words stand above the vertex, and on it where they stand beside it, which the
-straight distances had centred on it all round. The rule reads arcs of 2.5 landings out or more (14 out for "60°" of 2.5-high Arial
-with a gap of 0.625 and arrowheads of 2.5, a landing of 5.58; the nearest arcs probed are 2.6 landings out); the probes where the leader presence differed, at an angle of 60 degrees with its words put every 0.25 round it at 5 degrees'
+straight distances had centred on it all round. The rule reads arcs of 1.3 landings out or more (7 out for "60°" of 2.5-high Arial
+with a gap of 0.625 and arrowheads of 2.5, a landing of 5.58; the nearest arcs probed are 8 out, 1.4 landings of SHX's 5.83); the probes where the leader presence differed, at an angle of 60 degrees with its words put every 0.25 round it at 5 degrees'
 steps, the five exact directions 30, 90, 150, 270 and 330 degrees left out: 94 of 6 499 at an arc of 38 out by the fit or the straight
 rule and 19 now, 165 of 6 984 at 45 (12 styles of DIMASZ, DIMTXT, DIMGAP, DIMADEC, DIMEXE, DIMEXO and DIMSCALE) and 19 now (Arial
 162 and 24), 164 and 21 at 60, 73 and 6 at 90, 28 and 6 at 240 (12 styles 47 and 10; Arial 16 and 7, 12 styles 43 and 14); along the
@@ -1158,9 +1165,26 @@ included. Both are one over the radius times the landing squared, so they move t
 presence differs in 63 of 6 984 (106 by the fit; Arial 57 and 103), 29 of 5 670 (58; Arial 17 and 82) and 93 of 6 860 (130; Arial 75
 and 108), and in every style of the 12 no more than by the fit (the wide words of DIMSCALE 2, which put 2.6 landings out, 14 against
 23). Words exactly above or below the vertex keep their landing under them, and the words of an arc length dimension and arcs
-nearer than 2.5 landings keep the fit. At 240 out the Arial probes go from 6 to 7 differing of 6 499 and from 10 to 14 of 6 984 (probes within 0.03 of the edge);
-the jump of the band at the height of the arc's
-middle, in AutoCAD's pictures of an angle at 30 out, is 66 of 558 pictures differing before and 70 now (SHX) and 66 and 64 (Arial).
+nearer than 1.3 landings keep the fit. The correction is in full up to 16 landings out and falls off as one over the radius beyond
+(the table fitted at 30 out over-corrected at 240, 43 landings out: it is 0.37 of it there), which takes the probes at 240 out from 6
+to 4 differing of 6 499 (Arial 7 to 4), from 10 to 6 of 6 984 (Arial 14 to 10) and from 1 to 2 of 3 492 along it; the jump of the band
+at the height of the arc's middle, in AutoCAD's pictures of an angle at 30 out, is 70 of 558 pictures differing before and 11 now (SHX;
+Arial 64 and 2), the rest having been the arc point of the words (see above).
+On arcs under 5.1 landings out a second table by direction, in the same units times how far the landing is over the radius past
+1/5.14, and four narrowing scalars more (NearCorrections, NearNarrowing) were fitted to AutoCAD's pictures of an angle from 0 with
+its arc 8, 10, 12, 14, 16 and 20 out, "60°" put every 0.25 at 36 directions (17 612 probes, 1.4 to 3.4 landings of SHX's 5.83): the
+rule with the first table alone had 1 238 wrong, the fit of the nearer arcs 1 060 (293, 276, 199 and 146 at 8 to 14 out) and this 415
+(154, 92, 61, 44, 39 and 25). It reaches the arcs of 30 out whose landing is longer too (DIMASZ 4, DIMGAP 1.5, DIMSCALE 2): e8 63 to
+48 of 6 984 differing, aq 93 to 75 and taq 75 to 63 of 6 860.
+An angle whose first ray stands elsewhere than at 0 degrees has another band: AutoCAD 2021 draws the leader of "60°" round an angle
+from 30 to 90 degrees up to 2.5 sooner or later than round one from 0 on the same directions (inside the circle near the arc's middle
+and mirrored, 1 to 2.5 wider on some directions, 0.5 to 1.75 narrower on others, in blocks that are the same over several first rays and
+change between 15 degrees' steps). OrientedCorrections holds the table of ArcCorrections for the first ray at every 15 degrees from 15 to
+345, fitted to 79 000 probes of "60°" put every 0.25 at 36 directions round angles of 60 degrees at 30 out; the rows are read linearly
+between the first rays, and the first ray of any angle is the one it is read by (angles of other sizes were not probed). The probes
+wrong: 709 of 36 278 (first rays at 30 to 330 degrees) are 27 now; 741 of 42 874 (first rays at 15 degrees' steps from 0) are 43; read
+from the first rays of 30 degrees' steps only, the 15 between them had 731 of 39 576 and have 275, so a first ray between two of 15
+is read about that well; and at 60 out (first rays at 30, 120, 210 and 300), 161 of 13 192 and 81.
 The sum is held to 0.04 less than twice the half width and DIMEXE, which is where AutoCAD's edges lay between probes 0.25 apart.
 A radius or a diameter put inside under 1 keeps its words as DIMATFIT 3 does, whatever DIMATFIT; under 2, words on its line over a
 radius's centre or over the rim, from inside or out (a diameter's from the back of its arrowhead in), put the arrowheads
