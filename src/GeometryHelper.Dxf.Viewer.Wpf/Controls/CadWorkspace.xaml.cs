@@ -340,6 +340,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 // Cells of a table selected: the arrows move them, Delete empties them, F2 opens one for typing, Esc lets them go.
                 e.Handled = true;
             }
+            else if (
+                !inEditor
+                && _model.TableCell != null
+                && _model.CommandText.Length == 0
+                && modifiers == ModifierKeys.Control
+                && (key == Key.X || key == Key.C || key == Key.V)
+                && _model.TableCellKey(
+                    key == Key.X ? "Cut"
+                        : key == Key.C ? "Copy"
+                        : "Paste",
+                    false
+                )
+            )
+            {
+                // Cells of a table selected: Ctrl+X, Ctrl+C and Ctrl+V cut, copy and paste the cells, not objects.
+                e.Handled = true;
+            }
             else if (key == Key.Escape && !inEditor)
             {
                 if (!CanvasView.CancelGesture())
@@ -646,6 +663,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     InsertTableWindow.Show(Window.GetWindow(this), dialog, over =>
                         StyleDialogs.ShowTableStyle(over, _model)
                     );
+                _model.ShowCellBorders = dialog => CellBordersWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowDataFormat = dialog => DataFormatWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowInsertTableBlock = dialog => InsertTableBlockWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowCreateCellStyle = dialog => CreateCellStyleWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowManageCellStyles = dialog => ManageCellStylesWindow.Show(Window.GetWindow(this), dialog);
                 _model.TableCellChanged += OnTableCellChanged;
                 _model.CellGripDragRequested = grip => CanvasView.DragCellGrip(grip);
                 _model.CommitPendingView = () => CanvasView.CommitView();

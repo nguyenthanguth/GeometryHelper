@@ -208,6 +208,7 @@ namespace GeometryHelper.Dwg
                     }
 
                     // The link to data is not in the groups of R2007; a field's looks are the content format it kept.
+                    cell.State = was.State;
                     cell.Linked = was.Linked;
                     cell.LinkHandle = was.LinkHandle;
                     cell.LinkRows = was.LinkRows;
@@ -464,6 +465,15 @@ namespace GeometryHelper.Dwg
             ulong field = table.Handle(344);
             var looks = new DwgContentFormat();
             int lookFlags = OwnOverrides(table, cell, looks);
+
+            // A block cell of AutoCAD 2021's DXF gives its block after its overrides and its 92: 92 0, 340, 144, 179, then each attribute's 331 and 300.
+            table.Int(92);
+
+            if (block == 0)
+            {
+                block = table.Handle(340);
+                scale = table.Double(144, scale);
+            }
 
             // A table of a DXF before AutoCAD 2007 gives a cell's words in group 1, with no CELL_VALUE.
             table.SkipTo(1, 171, 301);
