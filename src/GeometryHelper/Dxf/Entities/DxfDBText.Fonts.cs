@@ -312,36 +312,153 @@ namespace GeometryHelper.Dxf
         /// turn and a move, so that the words are not written backwards and its point moves with the width of its ink: "ABC"
         /// 3 high at (20, 40), its ink 8.445 wide, mirrored across x = 40 stands at (51.555, 40), still reading along x, and
         /// mirrored across the plane it lies in at (28.445, 40) on the normal (0, 0, -1), its first point (-28.445, 40) there.
-        /// Null where the words are not measured (<see cref="IsMeasured"/>), as with no fonts, a text written backwards or
-        /// upside down, or of several lines; where the text is aligned any way but left on its baseline, which is turned over
-        /// as it was before (the second point it is held by would need the box of its words as <see cref="Realign"/> puts them
-        /// there); and where it has contexts (an annotative text), whose points would each need their own turn-over.
+        /// A text held by a second point is turned over with its first point (10) worked out from that point as
+        /// <see cref="Realign"/> works it out, and both points carried, as AutoCAD 2021 carries them (probed on 196 texts, 14
+        /// modes, in 4 planes at 3 angles, under 7 mirrors): those held by the left, the centre or the right of their ink at the
+        /// baseline, the bottom, the middle or the top (72 of 0 to 2, 73 of 1 to 3, and 1 with 73 of nought) as one aligned left
+        /// on its baseline is, "ABC" centred on (30, 45), its first point (26, 45), across x = 40 standing at (45.555, 45)
+        /// held at (49.555, 45); and those whose two points are the ends of their baseline (72 of 3 and 5, and 2 with 73 of
+        /// nought) across the middle of those two points, so that the first point is the second mirrored and the second the
+        /// first, the ink not asked: "ABC" aligned on (20, 40) and (40, 48) across x = 40 runs from (60, 40) to (40, 48),
+        /// reading from the first to the second as it did. A text held by its middle (72 of 4), where it is turned across its
+        /// upright, is mirrored as it stands, each point carried as the mirror carries it, so that its second point is the
+        /// middle of its words again and its first, which AutoCAD leaves where the mirror takes it, is given back in
+        /// <paramref name="first"/>; across its baseline it is turned over like the others. An annotative text turns each of
+        /// its contexts over so, by the words at that context's height (<see cref="TurnedContexts"/>), and its record as the
+        /// default context. Null where the words are not measured (<see cref="IsMeasured"/>), as with no fonts, except for the
+        /// turn across the upright of a text held by its two ends or its middle, which needs none; a text written backwards or
+        /// upside down, or of several lines; and one of 72 of 3, 4 or 5 with a 73 not nought, which AutoCAD reads with no
+        /// vertical mode.
         /// </summary>
         /// <param name="mirror">The mirror.</param>
+        /// <param name="first">The point (world coordinates) the text's first point is to be left at after the mirror, where it
+        /// is not where the turn-over and the mirror put it; null elsewhere.</param>
         /// <returns>The turn-over, to be followed by the mirror; null where the text is mirrored as it is.</returns>
-        internal GeoTransform3 TurnedOver(GeoTransform3 mirror)
+        internal GeoTransform3 TurnedOver(GeoTransform3 mirror, out GeoPoint3? first)
         {
-            if (!IsDefaultAlignment || TextContexts() != null)
+            first = null;
+
+            if (!Turnable)
             {
                 return null;
             }
 
-            DxfTextLine words = Words(Height, WidthFactor, out DxfFont font, out DxfFonts.Big big);
+            int horizontal = TextInt(72, 0);
+            int vertical = TextInt(VerticalCode, 0);
 
-            if (words != null && font is DxfTrueTypeFont)
+            // A text held by its second point has its first worked out from it first, as AutoCAD reads it.
+            if (horizontal != 0 || vertical != 0)
             {
-                words = DxfFonts.Text(font, big, TextString.Trim(' '), Height, WidthFactor);
-            }
-
-            if (words == null || !words.HasInk)
-            {
-                return null;
+                Realign();
             }
 
             GeoVector3 normal = Normal;
-            GeoPoint3 position = Position;
+            return Flip(
+                mirror,
+                OcsToWorld(normal, TextPoint(10) ?? Origin),
+                OcsToWorld(normal, TextPoint(11) ?? Origin),
+                TextDouble(50, 0.0) * (Math.PI / 180.0),
+                TextDouble(40, 2.5),
+                horizontal,
+                vertical,
+                out first
+            );
+        }
+
+        /// <summary>Whether a mirror may turn the text over: it is not written backwards or upside down, nor an attribute of several lines.</summary>
+        private bool Turnable => !IsMirroredInX && !IsMirroredInY && !(IsAttribute && Embedded);
+
+        /// <summary>
+        /// The turn-over a mirror gives each context of an annotative text, as <see cref="TurnedOver"/> gives the record's: the
+        /// context's point, second point, angle and horizontal mode, and the words at the height of its scale; each with the
+        /// point to leave the first at, or none, where the context is mirrored as it is.
+        /// </summary>
+        /// <param name="mirror">The mirror.</param>
+        /// <returns>One turn-over and one first point to each context, null for none; null for a text of no contexts.</returns>
+        private List<KeyValuePair<GeoTransform3, GeoPoint3?>> TurnedContexts(GeoTransform3 mirror)
+        {
+            ShownContexts contexts = TextContexts();
+
+            if (contexts == null)
+            {
+                return null;
+            }
+
+            var turns = new List<KeyValuePair<GeoTransform3, GeoPoint3?>>(contexts.All.Count);
+            GeoVector3 normal = Normal;
+            GeoPoint3 own = TextPoint(10) ?? Origin;
+            GeoPoint3 ownSecond = TextPoint(11) ?? Origin;
+            double height = TextDouble(40, 2.5);
+
+            for (int i = 0; i < contexts.All.Count; i++)
+            {
+                GeoPoint3? first = null;
+                GeoTransform3 turn = null;
+
+                if (Turnable)
+                {
+                    ContextGroups context = ContextText.Read(contexts.All[i]);
+                    double ratio = contexts.Ratios[i];
+                    double tall =
+                        Guard.IsFinite(ratio) && ratio > 0.0 ? height * contexts.DefaultRatio / ratio : height;
+                    turn = Flip(
+                        mirror,
+                        OcsToWorld(
+                            normal,
+                            new GeoPoint3(
+                                context.Value(ContextText.X, own.X),
+                                context.Value(ContextText.Y, own.Y),
+                                own.Z
+                            )
+                        ),
+                        OcsToWorld(
+                            normal,
+                            new GeoPoint3(
+                                context.Value(ContextText.AlignedX, ownSecond.X),
+                                context.Value(ContextText.AlignedY, ownSecond.Y),
+                                own.Z
+                            )
+                        ),
+                        context.Value(ContextText.Degrees, TextDouble(50, 0.0)) * (Math.PI / 180.0),
+                        tall,
+                        (int)context.Value(ContextText.Horizontal, TextInt(72, 0)),
+                        TextInt(VerticalCode, 0),
+                        out first
+                    );
+                }
+
+                turns.Add(new KeyValuePair<GeoTransform3, GeoPoint3?>(turn, first));
+            }
+
+            return turns;
+        }
+
+        /// <summary>
+        /// The turn-over of a text at a place, as <see cref="TurnedOver"/> works it out: the text's first point, second point,
+        /// angle (in radians), height and horizontal and vertical modes given, in the world.
+        /// </summary>
+        private GeoTransform3 Flip(
+            GeoTransform3 mirror,
+            GeoPoint3 position,
+            GeoPoint3 second,
+            double turn,
+            double height,
+            int horizontal,
+            int vertical,
+            out GeoPoint3? first
+        )
+        {
+            first = null;
+
+            if (horizontal >= 3 && horizontal <= 5 && vertical != 0)
+            {
+                return null;
+            }
+
+            bool ends = horizontal == 3 || horizontal == 5 || (horizontal == 2 && vertical == 0);
+            bool middle = horizontal == 4;
+            GeoVector3 normal = Normal;
             GeoPoint3 at = WorldToOcs(normal, position);
-            double turn = Rotation;
             GeoVector3 along = OcsToWorld(normal, new GeoPoint3(at.X + Math.Cos(turn), at.Y + Math.Sin(turn), at.Z))
                 .ToVector()
                 .Subtract(position.ToVector());
@@ -354,18 +471,47 @@ namespace GeometryHelper.Dxf
 
             along = along.Divide(along.Length);
             up = up.Divide(up.Length);
+            bool upright = DxfOcsTransform.AcrossUpright(along, normal, mirror);
 
-            if (DxfOcsTransform.AcrossUpright(along, normal, mirror))
+            if (upright && middle)
+            {
+                first = mirror.Transform(position);
+                return GeoTransform3.Mirror(new GeoPlane3(second, along));
+            }
+
+            if (upright && ends)
+            {
+                return GeoTransform3.Mirror(
+                    new GeoPlane3(
+                        position.Add(along.Multiply(position.GetVectorTo(second).DotProduct(along) / 2.0)),
+                        along
+                    )
+                );
+            }
+
+            DxfTextLine words = Words(height, WidthFactor, out DxfFont font, out DxfFonts.Big big);
+
+            if (words != null && font is DxfTrueTypeFont)
+            {
+                words = DxfFonts.Text(font, big, TextString.Trim(' '), height, WidthFactor);
+            }
+
+            if (words == null || !words.HasInk)
+            {
+                return null;
+            }
+
+            if (upright)
             {
                 return GeoTransform3.Mirror(
                     new GeoPlane3(position.Add(along.Multiply((words.InkLeft + words.InkRight) / 2.0)), along)
                 );
             }
 
-            double middle = words.Box(out _, out _, out double bottom, out double top)
+            double across = words.Box(out _, out _, out double bottom, out double top)
                 ? (bottom + top) / 2.0
-                : Height / 2.0;
-            return GeoTransform3.Mirror(new GeoPlane3(position.Add(up.Multiply(middle)), up));
+                : height / 2.0;
+            return GeoTransform3.Mirror(new GeoPlane3(position.Add(up.Multiply(across)), up));
         }
 
         /// <summary>The height of an aligned text, or the width factor of a fitted one, worked out anew after its first point is set, as <see cref="Realign"/> works it out; nothing for a text of another justification, whose first point is its own.</summary>

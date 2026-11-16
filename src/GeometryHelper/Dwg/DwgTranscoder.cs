@@ -277,7 +277,6 @@ namespace GeometryHelper.Dwg
             Exception failure = null;
             bool stopped = false;
             int done = 0;
-            int caller = Environment.CurrentManagedThreadId;
 
             Parallel.For(
                 0,
@@ -336,11 +335,17 @@ namespace GeometryHelper.Dwg
                         }
                     }
 
-                    int finished = Interlocked.Add(ref done, to - from);
-
-                    if (Environment.CurrentManagedThreadId == caller)
+                    // Told by whichever thread ends a chunk, one at a time and each chunk adding its own: with the calling thread
+                    // alone telling, a file of 6 030 objects (12 chunks) went from 0.045 to 0.54 in one step when the other
+                    // threads took the chunks before it ended its own. Nothing is told once a stop is asked for.
+                    lock (gate)
                     {
-                        progress?.Report(finished, count);
+                        done += to - from;
+
+                        if (progress != null && !_stop.IsCancellationRequested)
+                        {
+                            progress.Report(done, count);
+                        }
                     }
 
                     return reader;

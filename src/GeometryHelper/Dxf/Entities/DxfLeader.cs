@@ -1414,7 +1414,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Moves, turns, scales or mirrors the leader, as AutoCAD's <c>TransformBy</c>, as ezdxf carries one: each vertex moved,
-        /// the normal carried as the plane's axes are, the direction of the hook turned; and, past ezdxf, the offsets of the last
+        /// the normal carried as the plane's axes are, under a mirror the image of the old one as AutoCAD 2021 takes it (a leader across
+        /// x = 40 keeps (0, 0, 1), across z = 0 takes (0, 0, -1)), the direction of the hook turned; and, past ezdxf, the offsets of the last
         /// vertex from the annotation (212 and 213) turned and scaled as AutoCAD turns them. The annotation is an entity of its
         /// own, moved by its own <see cref="DxfEntity.TransformBy"/>.
         /// </summary>
@@ -1436,7 +1437,7 @@ namespace GeometryHelper.Dxf
             }
 
             var head = new List<KeyValuePair<int, string>>();
-            head.AddRange(NormalGroups(new DxfOcsTransform(GetNormal(), transform).NewExtrusion));
+            head.AddRange(NormalGroups(DxfOcsTransform.OfImage(GetNormal(), transform).NewExtrusion));
 
             foreach (int code in new[] { 211, 212, 213 })
             {

@@ -503,9 +503,10 @@ the ones wanted.
       AutoCAD (48 entities x 13 transformations to 1E-9), a mirrored TEXT/MTEXT turned readable about its words as
       AutoCAD, a hatch's pattern scale kept under a scaling mirror, 52 at a half turn as AutoCAD, the annotative context
       direction a world vector, MTEXT's direction kept unit; the presenter's MIRROR looks as before
-- [ ] (mirror9, running) MIRROR follow-ups 9: justified TEXT mirrored (AutoCAD recomputes 10 from the alignment point); annotative TEXT and
-      MTEXT and TEXT without a font fall back; POINT group 50 under TransformBy; MTEXT's 11 omitted on a tilted plane;
-      the hatch half-turn sign rule not understood; POLYLINE 2D and LEADER normals not probed (S)
+- [x] MIRROR follow-ups 9 (mirror9): justified TEXT mirrored as AutoCAD (196 probed; points of the ink modes from our
+      fonts), annotative TEXT and MTEXT contexts flipped, POINT 50, heavy POLYLINE and LEADER normals, MTEXT 11 kept off
+      a tilted plane, the hatch half-turn sign (198 of 198), negative nought taken as nought in normals. PARKED (features
+      first): the ink width AutoCAD measures, justified TEXT under a scaling mirror, cosmetic group orders
 - [x] Drafting aids: TK (TRACKING); check TT with OTRACK off, "(need YZ):" input and Enter at a modifier prompt
       against AutoCAD (S)
 - [x] Draw: AUDIT a drawing made with every ARC, CIRCLE, PLINE, TEXT and MTEXT option, and compare ARC and PLINE entity
