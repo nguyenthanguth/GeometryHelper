@@ -1613,6 +1613,57 @@ namespace GeometryHelper.Dxf.Viewer
             bool pastHalf = reflex && radius * (sweep - Math.PI) >= 2.005 * gap;
             bool pastBoth = reflex && radius * (sweep - Math.PI) >= 2.005 * gap + 1.003 * needArrows;
 
+            // What the words along the arc take is fitted a little differently on wide sweeps than the room of the chord and a third of
+            // the arc it leaves (above): probed with arcs of 1 from 0 degrees, sweeps 181 to 225, the distance put out by 0.01, DIMJUST 0,
+            // DIMTIH off, text 0.18 and 0.36 high, DIMASZ 0.18 and 0.36, DIMGAP 0.09 and 0.18, with the arc symbol before the words and
+            // without (4 880 pictures), AutoCAD took the words in (with the arrowheads outside) and then the arrowheads in as well at a
+            // distance that left the words short of room, or with room to spare, by an amount that followed the width of the words
+            // and DIMGAP: the arc of 1 through 200 degrees with the symbol keeps its arrowheads between the rays from 0.65 out, not
+            // from 0.67 (the room asked for 0.046 to 0.071 more than it gave), and without the symbol it takes the words in from 0.47,
+            // not 0.45, and its arrowheads from 0.50. Each amount is the least squares fit of those thresholds, to about 0.02.
+            // Of the 5 508 pictures of the first probe (the distance by 0.01, text 0.18) 228 differed from AutoCAD's before, 111 now, the
+            // rest the words by a ray standing a few thousandths off; of the 4 880 of the second 209 differed, now 55.
+            double extraRoom = 0.0;
+            double extraBetween = 0.0;
+
+            if (reflex && !levelInside && onInside && sweep <= 230.0 * Math.PI / 180.0)
+            {
+                double degreesOfSweep = (sweep * 180.0 / Math.PI) - 200.0;
+
+                if (before > 0.0)
+                {
+                    extraRoom = scale * (0.1203 - 0.0027 * degreesOfSweep) - 0.2691 * width + 0.3819 * gap;
+                    extraBetween = 0.071 * scale - 0.329 * gap + 0.053 * needArrows;
+                }
+                else
+                {
+                    extraRoom = scale * (-0.0268 - 0.0015 * degreesOfSweep) - 0.1927 * width + 1.3309 * gap;
+                    extraBetween = 0.012 * scale - 0.11 * width + 0.79 * gap;
+                }
+            }
+            else if (
+                arcLength
+                && !turned.HasValue
+                && style.Dimjust != 0
+                && sweep >= RadialFrom
+                && sweep <= 140.5 * Math.PI / 180.0
+            )
+            {
+                // The words by a ray (DIMJUST 1 and 2) on sweeps of 90 to 140 degrees come in with the arrowheads a step of the put
+                // distance sooner than the room asks: probed with arcs of 1 and 3 from 10 degrees, put 0.8 to 1 times the radius out by
+                // 0.01, level and aligned words with the symbol, aligned ones took the words in and the arrowheads from 0.011 less room,
+                // level ones the arrowheads from 0.02 less for DIMJUST 1 and none for 2 (the arc of 1 from 10 through 130 degrees keeps
+                // its level words and both arrowheads between the rays from 0.95 out, as AutoCAD does, the arrowheads outside from 0.94 down).
+                extraRoom = !levelInside ? 0.011 * scale : 0.0;
+                extraBetween =
+                    !levelInside ? 0.011 * scale
+                    : style.Dimjust == 1 ? 0.02 * scale
+                    : 0.0;
+            }
+
+            double needInRoom = needFit - extraRoom;
+            double needInBetween = needFit - extraBetween;
+
             bool textInside;
             bool arrowsInside;
             bool arrowsLeftOut = false;
@@ -1628,7 +1679,7 @@ namespace GeometryHelper.Dxf.Viewer
                 arrowsInside = true;
                 arrowsLeftOut = needBoth > room && style.Dimsoxd;
             }
-            else if ((needFit + bothExtra <= roomBetween) || pastBoth)
+            else if ((needInBetween + bothExtra <= roomBetween) || pastBoth)
             {
                 textInside = true;
                 arrowsInside = true;
@@ -1642,7 +1693,7 @@ namespace GeometryHelper.Dxf.Viewer
                         arrowsInside = false;
                         break;
                     case 1:
-                        textInside = needFit <= room;
+                        textInside = needInRoom <= room;
                         arrowsInside = false;
                         break;
                     case 2:
@@ -1654,7 +1705,7 @@ namespace GeometryHelper.Dxf.Viewer
                         // arcs of 10 put 12 out, DIMASZ 0.5 (1 for two arrowheads) and words 0.79 with their gaps, the arrowheads
                         // from a chord of 1.0 to 1.8 with the words outside, those under DIMASZ 0.36 (0.72) leaving the words in.
                         bool arrowsFirst = needArrows <= room && needArrows > needFit && needFit > roomBetween;
-                        textInside = (needFit <= room && !arrowsFirst) || pastHalf;
+                        textInside = (needInRoom <= room && !arrowsFirst) || pastHalf;
                         arrowsInside = !textInside && needArrows <= room;
                         break;
                 }

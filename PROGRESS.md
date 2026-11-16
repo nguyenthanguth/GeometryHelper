@@ -590,7 +590,7 @@ the ones wanted.
 - [x] PEDIT/REVCLOUD follow-ups 5, part (mleader2): MLEADERALIGN as AutoCAD 2021 (about 520 cases built through the API
       agree: spacing and Distribute by the clearance along the line, Parallel by the straightest leader line, a leader of
       several lines split across the box); the layer-off and fence/polygon speed guards robust under load
-- [ ] PEDIT/REVCLOUD follow-ups 6: DIMBREAK Manual/Remove and on multileaders (DxfMLeader has no break model); a
+- [ ] (dimbreak2, running: DIMBREAK) PEDIT/REVCLOUD follow-ups 6: DIMBREAK Manual/Remove and on multileaders (DxfMLeader has no break model); a
       several-line TrueType multileader held by half its last line's ink; a block multileader of scale other than 1;
       TEXTALIGN with a reference text; a plain polyline with 110-degree arcs, ellipse and Freehand clouds under
       REVCLOUDGRIPS; AutoCAD's grip order of a circle; PEDIT spline counts PARKED (52 of 238); GUI-only: Freehand
@@ -657,10 +657,12 @@ the ones wanted.
 - [x] Associative dimensions follow-ups 11 (assoc12): the arc point of words outside past a half turn by which end the
       words' middle is nearer (1 969 of 1 969 pictures), DIMJUST words on the arc by chord turns: tar55s 2 691 -> 228,
       tar52s 204 -> 36 differing pictures, 2 668 came right and none wrong
-- [ ] (assoc13, running) Associative dimensions follow-ups 12: the arrowheads-out lower edge (48 of 1 969: DIMGAP 0.18 without the symbol
-      wants 2.3 degrees more; an upper edge of the near window at 125-150 degrees); words-in thresholds at 181-200
-      degrees (extra room 0.0006-0.066, no rule; all 228 tar55s left); DIMJUST words on arcs at radius 3 (one state
-      flip) (S)
+- [x] Associative dimensions follow-ups 12 (assoc13): words-in thresholds of aligned words past a half turn and of
+      DIMJUST words at 90-140 degrees by allowances fitted to AutoCAD (tar55s 228 -> 111, tar52s 36 -> 0, tar60s 209 ->
+      55, tar61s 58 -> 34, tar37s 1 -> 0; 349 pictures came right, 17 wrong); 126 of 129 older sets unchanged
+- [ ] Associative dimensions follow-ups 13: the arrowheads-out lower edge (parked: two F windows, tar59s 1 100 of 4 656;
+      likely needs AutoCAD's text box, ~1.19 of ours); DIMJUST words' place and rotation at 210-250 degrees (70 of
+      tar55s); level words coming in by the room at 90-140 degrees one step late; radius-3 DIMJUST both-in thresholds (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
       back of its arrowhead; DIMTVP; the box of DIMGAP below zero (526 AutoCAD pictures compared, 511 match)
 - [x] Dimensions: words measured by the drawing's fonts in the pictures (the main gap left); DIMTEDIT on angular and
