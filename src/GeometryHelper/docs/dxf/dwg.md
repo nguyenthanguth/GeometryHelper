@@ -412,6 +412,41 @@ now. Writing the blocks and entities of the drawing of 300 000 lines and circles
 (.NET 10) and 62 ms where 245 (.NET Framework); a drawing of 300 000 entities of seven kinds opens in 0.65 s where 0.77
 (.NET 8), 0.67 s where 0.77 (.NET 10) and 0.82 s where 1.00 (.NET Framework), medians of 9 runs.
 
+## The same text on every runtime
+
+The DXF a DWG is turned into is the same bytes under .NET Framework 4.8, .NET 8 and .NET 10, and so is the DXF a
+`DxfDatabase` is saved as. It was not: of 186 DWGs (96 of AutoCAD's own samples, the 71 test files, 16 written by AutoCAD
+in 2018's form and three of 60 000 to 300 000 entities) 56 gave another text under .NET Framework (the Floor Plan Sample
+is 28 bytes longer there), in nothing but the numbers. Four faults of the Framework's own number routines made the
+difference:
+
+| Fault | Under .NET Framework | Under .NET Core 3.0 and later (and now everywhere) |
+|---|---|---|
+| A number half way between two texts of 17 digits (a float's value, 6.9212722778320312\|5) | up: 6.9212722778320313 | to the even digit: 6.9212722778320312 |
+| The 15 digits of a number read back to it, which the parse says they do not | 2926.7314929999998 | 2926.731493 |
+| The 15 digits read back to the next double, which the parse says they do not | -0.0688976377952756 | -0.068897637795275607 |
+| A negative nought | `0.0` | `-0.0` |
+
+The parse of .NET Framework is a unit off in the last bit for about one decimal of 6 to 15 digits in a thousand (-0.999778
+is read as the double above it), and its `ToString("G16")` and its neighbours are not always correctly rounded either (the
+digits are made from 15 or 17 already rounded: of 300 000 texts of each of eleven kinds of doubles 2 761 to 10 415 had a
+wrong digit). So the library uses neither for a number it writes: the digits are worked out in whole numbers (`ExactDigits`:
+the first 17 by one product of 128 bits, in `BigInteger` for a number under 1E-11, from 1E15 up or subnormal), whether the 15
+of them read back to the double is judged in integers, and the text is that of .NET Core: the 15 digits where they read back
+to the number, else the 17, a number half way going to the even digit, the zeros at the end left off, an exponent of at
+least two digits where the number is under 0.0001 or has more than 15 digits (`1E-05`, `1.5E+300`), a negative nought
+`-0.0`. The DXF a `DxfDatabase` saves prints each number as the shortest of its 15, 16 and 17 digits that read back
+(`6.921272277832031` for the number above), which is the text of .NET Core as well. The DWG written from a DXF reads its
+numbers with the library's own exact parse (`DwgRecord.Double`, as the DXF reader does), where it read them with the
+runtime's: the DWG made of one text is the same file everywhere.
+
+Checked on 186 DWGs, the DXF of each compared byte for byte under the three runtimes and with the DXF of the older code
+under .NET 8, and on 55 000 000 doubles of eleven kinds written by the three writers of a number (the digest of their
+texts is one under all three runtimes and that of the older code under .NET 8), 3 300 000 of them under each runtime also
+against a reference in `BigInteger`. Under .NET 8 a coordinate of three decimals is written in 61 ns as before (76 ns where
+99 under .NET Framework), `Numbers.Exact` takes 141 ns where 273 (172 where 436), and a number under 1E-11, which a drawing
+has by the dozen and not by the million, takes 837 ns where 339 (1 430 where 1 020).
+
 ## Writing DWG files
 
 [`DwgWriter`](xref:GeometryHelper.Dwg.DwgWriter)`.Write` writes a `DxfDatabase`, with every record it holds, or the

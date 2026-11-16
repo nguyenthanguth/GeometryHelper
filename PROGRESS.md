@@ -748,13 +748,13 @@ chase speed or a few pictures stay parked unless they are real faults.
 
 Wave 1 (High):
 - [ ] (spline1, running) SPLINE command (Fit/CV, Knots, Object, Close, fit tolerance, tangents) (M)
-- [ ] RECTANG options: Chamfer, Elevation, Fillet, Thickness, Width, Area, Dimensions, Rotation (S)
-- [ ] WIPEOUT command: points, Polyline (Erase polyline?), Frames (M)
+- [ ] (draw1, running) RECTANG options: Chamfer, Elevation, Fillet, Thickness, Width, Area, Dimensions, Rotation (S)
+- [ ] (draw1, running) WIPEOUT command: points, Polyline (Erase polyline?), Frames (M)
 - [ ] COPY Array (count, Fit) and mOde Single/Multiple (S)
 - [ ] SELECTSIMILAR (with SEttings) and ADDSELECTED; the canvas menu items enabled (S)
 - [ ] OVERKILL (duplicates and overlaps of lines, arcs, polyline segments; the dialog) (M)
 - [ ] Path array (ARRAYPATH): Divide/Measure, Align items, Z direction, Base point, Tangent direction (M)
-- [ ] OOPS (S)
+- [ ] (draw1, running) OOPS (S)
 - [ ] MTEXT Background Mask dialog and the editor's Mask button (S)
 - [ ] SCALETEXT, JUSTIFYTEXT, TXT2MTXT (S/S/M)
 - [ ] ATTDISP; -ATTEDIT global edit (S)
@@ -1075,10 +1075,13 @@ LAYTRANS; SAVEALL, CLOSEALL; PDF underlays; more EXPORT writers; parametric cons
 - [x] Speed follow-ups 19 (speed20): the DXF write of a DWG on up to 8 threads in runs joined in order, and a quadratic
       walk of the block list fixed (20 000 dimensions/hatches/splines: open 1.55 -> 0.68 s); 300 000 lines first open
       0.65 -> 0.53 s (net8), 1.05 -> 0.79 s (net48); DXF text byte-identical on 186 DWGs, 3 runtimes, 1-8 threads
-- [ ] (runtime1, running: runtimes agree) Speed follow-ups 20: under .NET Framework the DXF of 54 of 186 DWGs differs from .NET 8/10 (old too: find why,
-      make the runtimes agree); the planning walk (~42 ms); WriteObjects sequential; DwgReader.Open(string/Stream)
-      still copies the DXF twice (40 MB each); the GC pause of a first open (a streaming design); MTEXT/INSERT contexts
-      tuples; LinkedColumns; REGEN's text group walk (S)
+- [x] Runtimes agree (runtime1): the DXF a DWG is turned into, the DXF save writer and the DWG writer give the same text
+      under .NET Framework 4.8, .NET 8 and .NET 10 (186 DWGs identical; .NET 8 text unchanged): digits worked out in
+      integers (ExactDigits), not by Framework's G15/G17 and double.Parse, which are wrong for about 1 number in 1 000;
+      negative nought written -0.0
+- [ ] Runtimes follow-ups: about 30 double.Parse/TryParse calls in the version converters, dimension, table and hatch
+      code could misread a decimal on Framework (use Numbers.TryRead); DxfVersionConverter.R12Hatch.Plain and
+      DxfTableEditingText.Split still format with Framework's "R" (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)

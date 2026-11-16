@@ -47,33 +47,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
         #region The DXF written as bytes
 
-        /// <summary>A number as DXF text, as it was made before the writer wrote bytes: a string for each, its digits tried back.</summary>
-        private static string FormerNumber(double value)
-        {
-            if (double.IsNaN(value) || double.IsInfinity(value))
-            {
-                return "0.0";
-            }
-
-            if (Math.Abs(value) >= 1.797693134862315E+308)
-            {
-                return value < 0 ? "-1.797693134862314E+99" : "1.797693134862314E+99";
-            }
-
-            if (value == Math.Floor(value) && Math.Abs(value) < 1E15)
-            {
-                return value.ToString("0.0", CultureInfo.InvariantCulture);
-            }
-
-            string text = value.ToString("G15", CultureInfo.InvariantCulture);
-
-            if (double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture) != value)
-            {
-                text = value.ToString("G17", CultureInfo.InvariantCulture);
-            }
-
-            return text;
-        }
+        /// <summary>
+        /// A number as DXF text, as .NET Core made it before the writer wrote bytes (a string for each, its digits tried back),
+        /// worked out in integers so that it is the same under .NET Framework, which formats and parses a little off.
+        /// </summary>
+        private static string FormerNumber(double value) => DxfRuntime1Tests.ReferenceNumber(value);
 
         private static string Written(Action<DwgDxfWriter> write)
         {
@@ -135,7 +113,6 @@ namespace GeometryHelper.UnitTest.Dxf
                 string expected = "40\r\n" + FormerNumber(value) + "\r\n";
                 string got = Written(w => w.Write(40, value));
 
-                // Negative nought is the one the runtimes differ on: it is written as the runtime formats it, as it was.
                 Assert.True(
                     expected == got,
                     "the number " + BitConverter.DoubleToInt64Bits(value).ToString("X16") + " is " + got.Trim()
@@ -177,12 +154,6 @@ namespace GeometryHelper.UnitTest.Dxf
                 }
 
                 if (double.IsNaN(value))
-                {
-                    continue;
-                }
-
-                // A negative nought is left out: it is written as the runtime formats it, as it was.
-                if (value == 0.0 && BitConverter.DoubleToInt64Bits(value) != 0L)
                 {
                     continue;
                 }
