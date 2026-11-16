@@ -42,6 +42,17 @@ namespace GeometryHelper.Dwg
             return _buffer.Length - _length > _length / 4 ? ToArray() : _buffer;
         }
 
+        /// <summary>Puts the DXF <paramref name="other"/> holds after the DXF written so far, for a part written on another thread.</summary>
+        public void Append(DwgDxfWriter other)
+        {
+            Reserve(other._length);
+            Buffer.BlockCopy(other._buffer, 0, _buffer, _length, other._length);
+            _length += other._length;
+        }
+
+        /// <summary>Forgets what was written, keeping the array, to write the next part into it.</summary>
+        public void Clear() => _length = 0;
+
         /// <summary>The DXF written so far.</summary>
         public byte[] ToArray()
         {

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -78,7 +79,7 @@ namespace GeometryHelper.Dwg
         private readonly Dictionary<ulong, DwgObject> _byHandle;
         private readonly DwgHandleSet _written;
         private readonly Dictionary<ulong, int[]> _viewportNumbers = new Dictionary<ulong, int[]>();
-        private readonly DwgDxfWriter _dxf;
+        private DwgDxfWriter _dxf;
         private readonly ProgressSteps _progress;
         private readonly CancellationToken _stop;
         private readonly bool _doubleByte;
@@ -902,7 +903,7 @@ namespace GeometryHelper.Dwg
         {
             byte[] file = null;
 
-            foreach (DwgGroup group in Find(shape.Style)?.Body ?? new List<DwgGroup>())
+            foreach (DwgGroup group in Find(shape.Style)?.BodyIfAny ?? NoGroups)
             {
                 if (group.Code == 3 && group.Value is byte[] bytes)
                 {
@@ -917,13 +918,17 @@ namespace GeometryHelper.Dwg
 
             string named = (_version >= 1021 ? Encoding.UTF8 : Latin1).GetString(file);
 
-            if (!_shapeFiles.TryGetValue(named, out Dictionary<int, string> names))
+            // The entities are written on several threads, and the files of shapes are read once each, by whichever asks first.
+            lock (_shapeFiles)
             {
-                names = ShapeFile(named);
-                _shapeFiles.Add(named, names);
-            }
+                if (!_shapeFiles.TryGetValue(named, out Dictionary<int, string> names))
+                {
+                    names = ShapeFile(named);
+                    _shapeFiles.Add(named, names);
+                }
 
-            return names != null && names.TryGetValue(shape.Number, out string name) ? name : null;
+                return names != null && names.TryGetValue(shape.Number, out string name) ? name : null;
+            }
         }
 
         /// <summary>The names of the shapes of the file of shapes <paramref name="named"/>, as <see cref="ShapeName"/> looks for it; null where it is not found.</summary>
@@ -1314,6 +1319,44 @@ namespace GeometryHelper.Dwg
                 return;
             }
 
+            Emit(entity, owner, paper);
+
+            if (nested || (entity.Owned != null ? entity.Owned.Count == 0 : entity.First == 0))
+            {
+                return;
+            }
+
+            WriteOwned(entity, entity.Handle, paper, true);
+            DwgObject end = Find(entity.SeqEnd);
+
+            if (end != null && end.IsEntity)
+            {
+                WriteEntity(end, entity.Handle, paper, true);
+            }
+        }
+
+        /// <summary>
+        /// Writes the record of one entity, or, while the entities of a section are being planned, puts it in the plan to be
+        /// written with the others on several threads.
+        /// </summary>
+        [MethodImpl(DwgJit.Hot)]
+        private void Emit(DwgObject entity, ulong owner, bool paper)
+        {
+            RenderPlan plan = _plan;
+
+            if (plan == null)
+            {
+                WriteRecord(entity, owner, paper);
+                return;
+            }
+
+            Plan(plan, entity, owner, paper);
+        }
+
+        /// <summary>The record of an entity as DXF has it, without those it owns: its head, common groups, own groups and extended data.</summary>
+        [MethodImpl(DwgJit.Hot)]
+        private void WriteRecord(DwgObject entity, ulong owner, bool paper)
+        {
             ulong parent = entity.EntityMode == 0 && entity.Owner != 0 ? entity.Owner : owner;
             WriteHead(entity, entity.Name, parent);
             _dxf.Write(100, "AcDbEntity");
@@ -1358,19 +1401,6 @@ namespace GeometryHelper.Dwg
             }
 
             Write(entity.XDataIfAny);
-
-            if (nested || (entity.Owned != null ? entity.Owned.Count == 0 : entity.First == 0))
-            {
-                return;
-            }
-
-            WriteOwned(entity, entity.Handle, paper, true);
-            DwgObject end = Find(entity.SeqEnd);
-
-            if (end != null && end.IsEntity)
-            {
-                WriteEntity(end, entity.Handle, paper, true);
-            }
         }
 
         /// <summary>The name DXF gives a colour of a book: the book, a dollar sign, the colour.</summary>
@@ -1409,7 +1439,8 @@ namespace GeometryHelper.Dwg
             double end = Width(vertex, 41);
             bool own = polyline == null || start != Width(polyline, 40) || end != Width(polyline, 41);
 
-            foreach (DwgGroup group in vertex.Body)
+            // BodyIfAny and not Body: the entities are written on several threads, and Body makes the list of an object that has none.
+            foreach (DwgGroup group in vertex.BodyIfAny ?? NoGroups)
             {
                 if (own || (group.Code != 40 && group.Code != 41))
                 {
@@ -1418,9 +1449,11 @@ namespace GeometryHelper.Dwg
             }
         }
 
+        private static readonly List<DwgGroup> NoGroups = new List<DwgGroup>();
+
         private static double Width(DwgObject one, int code)
         {
-            foreach (DwgGroup group in one.Body)
+            foreach (DwgGroup group in one.BodyIfAny ?? NoGroups)
             {
                 if (group.Code == code && group.Value is double width)
                 {
@@ -1529,53 +1562,416 @@ namespace GeometryHelper.Dwg
             ulong activePaper = _header.Handle("_PAPERSPACE");
             var blocks = new List<DwgObject>();
 
+            // A set, for a drawing of dimensions has a block of its own for each: 20 000 of them were 200 million comparisons in a list.
+            var listed = new HashSet<DwgObject>();
+
             foreach (ulong handle in control.Entries)
             {
                 DwgObject block = Find(handle);
 
-                if (block != null && block.BlockBody != null && !blocks.Contains(block))
+                if (block != null && block.BlockBody != null && listed.Add(block))
                 {
                     blocks.Add(block);
                 }
             }
 
+            int threads = ThreadsFor(_objects.Count);
+
             _dxf.Write(0, "SECTION");
             _dxf.Write(2, "BLOCKS");
+            BeginPlan(threads);
 
-            foreach (DwgObject block in blocks)
+            try
             {
-                bool paper = IsPaperSpace(block);
-                DwgObject begin = Find(block.BlockEntity);
-                DwgObject end = Find(block.EndBlock);
-
-                if (begin == null || end == null || !begin.IsEntity || !end.IsEntity)
+                foreach (DwgObject block in blocks)
                 {
-                    continue;
+                    bool paper = IsPaperSpace(block);
+                    DwgObject begin = Find(block.BlockEntity);
+                    DwgObject end = Find(block.EndBlock);
+
+                    if (begin == null || end == null || !begin.IsEntity || !end.IsEntity)
+                    {
+                        continue;
+                    }
+
+                    WriteEntity(begin, block.Handle, paper, true);
+
+                    if (block.Handle != model && block.Handle != activePaper)
+                    {
+                        WriteOwned(block, block.Handle, paper, false);
+                    }
+
+                    WriteEntity(end, block.Handle, paper, true);
                 }
-
-                WriteEntity(begin, block.Handle, paper, true);
-
-                if (block.Handle != model && block.Handle != activePaper)
-                {
-                    WriteOwned(block, block.Handle, paper, false);
-                }
-
-                WriteEntity(end, block.Handle, paper, true);
+            }
+            catch
+            {
+                AbandonPlan();
+                throw;
             }
 
+            EndPlan();
             _dxf.Write(0, "ENDSEC");
             _dxf.Write(0, "SECTION");
             _dxf.Write(2, "ENTITIES");
+            BeginPlan(threads);
 
-            foreach (DwgObject block in blocks)
+            try
             {
-                if (block.Handle == model || block.Handle == activePaper)
+                foreach (DwgObject block in blocks)
                 {
-                    WriteOwned(block, block.Handle, block.Handle == activePaper, false);
+                    if (block.Handle == model || block.Handle == activePaper)
+                    {
+                        WriteOwned(block, block.Handle, block.Handle == activePaper, false);
+                    }
+                }
+            }
+            catch
+            {
+                AbandonPlan();
+                throw;
+            }
+
+            EndPlan();
+            _dxf.Write(0, "ENDSEC");
+        }
+
+        /// <summary>An entity put in the plan of a section: the entity, the owner it is written under and whether it is in paper space.</summary>
+        private struct PlannedEntity
+        {
+            public DwgObject Entity;
+            public ulong Owner;
+            public bool Paper;
+        }
+
+        /// <summary>A run of the plan that is full or ended: its entities, how many there are, and its place among the runs.</summary>
+        private struct PlannedRun
+        {
+            public int Index;
+            public PlannedEntity[] Entities;
+            public int Count;
+        }
+
+        /// <summary>How many entities a thread writes at a time, into a buffer of its own that is put after the one before it.</summary>
+        private const int RenderChunk = 1024;
+
+        /// <summary>
+        /// The entities of a section written on several threads. The walk over the blocks, on the calling thread, decides
+        /// which entities are written, in what order and under which owner, a handful of table lookups an entity, and hands
+        /// them on in runs of <see cref="RenderChunk"/> as it goes; the other threads write the records of a run into a
+        /// buffer of its own, and the buffers are put in the DXF in the order of the runs, so the bytes are those of one
+        /// thread writing the entities as the walk met them. The runs and the buffers are used again as they are done, so
+        /// that a section of 300 000 entities makes some ten of each and not three hundred, where a collector of a drawing's
+        /// 300 000 objects would take the added memory for a reason to collect.
+        /// </summary>
+        private sealed class RenderPlan
+        {
+            public readonly BlockingCollection<PlannedRun> Runs = new BlockingCollection<PlannedRun>();
+            public readonly object Gate = new object();
+            public readonly Stack<DwgDxfWriter> SpareBuffers = new Stack<DwgDxfWriter>();
+            public readonly Stack<PlannedEntity[]> SpareRuns = new Stack<PlannedEntity[]>();
+            public readonly Dictionary<int, DwgDxfWriter> Finished = new Dictionary<int, DwgDxfWriter>();
+
+            // Of the walk, on the calling thread alone.
+            public PlannedEntity[] Run;
+            public int Fill;
+            public int Handed;
+
+            // Under the gate.
+            public int Next;
+            public int FailedAt = int.MaxValue;
+            public Exception Failure;
+            public Exception Unexpected;
+            public bool Stopped;
+            public bool Abandoned;
+            public bool Closed;
+            public int Active;
+        }
+
+        /// <summary>The section being written on threads; null where its entities are written as the walk meets them.</summary>
+        private RenderPlan _plan;
+
+        /// <summary>
+        /// Starts the plan of a section whose entities <paramref name="threads"/> threads are to write, the calling thread
+        /// one of them, or none where there is one thread: the entities are then written as the walk meets them.
+        /// </summary>
+        private void BeginPlan(int threads)
+        {
+            if (threads <= 1)
+            {
+                _plan = null;
+                return;
+            }
+
+            RenderPlan plan = _plan = new RenderPlan();
+
+            for (int i = 1; i < threads; i++)
+            {
+                Task.Run(() => WorkOnRuns(plan));
+            }
+        }
+
+        /// <summary>
+        /// A thread of the pool writing the runs of a plan, unless the plan is closed by the time the pool gives it a thread:
+        /// a section is not kept waiting for a thread that has not begun.
+        /// </summary>
+        private void WorkOnRuns(RenderPlan plan)
+        {
+            lock (plan.Gate)
+            {
+                if (plan.Closed)
+                {
+                    return;
+                }
+
+                plan.Active++;
+            }
+
+            try
+            {
+                WriteRuns(plan);
+            }
+            catch (Exception fault)
+            {
+                lock (plan.Gate)
+                {
+                    plan.Unexpected = plan.Unexpected ?? fault;
+                }
+            }
+            finally
+            {
+                lock (plan.Gate)
+                {
+                    plan.Active--;
+                    Monitor.PulseAll(plan.Gate);
+                }
+            }
+        }
+
+        /// <summary>Closes a plan to the threads of the pool that have not begun, and waits for those that have to leave it.</summary>
+        private static void Close(RenderPlan plan)
+        {
+            lock (plan.Gate)
+            {
+                plan.Closed = true;
+
+                while (plan.Active > 0)
+                {
+                    Monitor.Wait(plan.Gate);
                 }
             }
 
-            _dxf.Write(0, "ENDSEC");
+            plan.Runs.Dispose();
+        }
+
+        /// <summary>Puts an entity in the plan, to be written with the others on the threads of the section.</summary>
+        [MethodImpl(DwgJit.Hot)]
+        private void Plan(RenderPlan plan, DwgObject entity, ulong owner, bool paper)
+        {
+            if (plan.Run == null)
+            {
+                lock (plan.Gate)
+                {
+                    plan.Run = plan.SpareRuns.Count > 0 ? plan.SpareRuns.Pop() : null;
+                }
+
+                plan.Run = plan.Run ?? new PlannedEntity[RenderChunk];
+                plan.Fill = 0;
+            }
+
+            plan.Run[plan.Fill++] = new PlannedEntity
+            {
+                Entity = entity,
+                Owner = owner,
+                Paper = paper,
+            };
+
+            if (plan.Fill == RenderChunk)
+            {
+                HandOn(plan);
+            }
+        }
+
+        private static void HandOn(RenderPlan plan)
+        {
+            plan.Runs.Add(
+                new PlannedRun
+                {
+                    Index = plan.Handed++,
+                    Entities = plan.Run,
+                    Count = plan.Fill,
+                }
+            );
+            plan.Run = null;
+            plan.Fill = 0;
+        }
+
+        /// <summary>
+        /// Ends the plan of a section: the rest of its entities are handed on and the calling thread writes with the others
+        /// until all are written, the DXF holding them in the order of the plan. A failure thrown is that of the first run to
+        /// fail, and a token stopped is answered at the next entity.
+        /// </summary>
+        private void EndPlan()
+        {
+            RenderPlan plan = _plan;
+            _plan = null;
+
+            if (plan == null)
+            {
+                return;
+            }
+
+            try
+            {
+                if (plan.Fill > 0)
+                {
+                    HandOn(plan);
+                }
+            }
+            finally
+            {
+                plan.Runs.CompleteAdding();
+            }
+
+            try
+            {
+                WriteRuns(plan);
+            }
+            finally
+            {
+                Close(plan);
+            }
+
+            if (plan.Stopped)
+            {
+                _stop.ThrowIfCancellationRequested();
+            }
+
+            Exception failure = plan.Failure ?? plan.Unexpected;
+
+            if (failure != null)
+            {
+                ExceptionDispatchInfo.Capture(failure).Throw();
+            }
+        }
+
+        /// <summary>
+        /// Ends the plan of a section the walk could not finish, a token stopped or a record that cannot be made: the threads
+        /// are let go, and what they were given is not written.
+        /// </summary>
+        private void AbandonPlan()
+        {
+            RenderPlan plan = _plan;
+            _plan = null;
+
+            if (plan == null)
+            {
+                return;
+            }
+
+            lock (plan.Gate)
+            {
+                plan.Abandoned = true;
+            }
+
+            // What a thread fails with is of no use: the walk failed first, and its failure is the one thrown.
+            plan.Runs.CompleteAdding();
+            Close(plan);
+        }
+
+        /// <summary>
+        /// Writes the runs of a plan as they are handed on, until the plan is complete, on the thread that calls it, with a
+        /// copy of this transcoder whose DXF is the buffer it writes the run in; each buffer is put in the DXF once those
+        /// before it are, and used again.
+        /// </summary>
+        private void WriteRuns(RenderPlan plan)
+        {
+            DwgTranscoder worker = (DwgTranscoder)MemberwiseClone();
+
+            foreach (PlannedRun run in plan.Runs.GetConsumingEnumerable())
+            {
+                DwgDxfWriter buffer;
+                bool skip;
+
+                lock (plan.Gate)
+                {
+                    // Beyond a failure no run is of any use: the failure thrown is the lowest one.
+                    skip = plan.Abandoned || plan.Stopped || run.Index > plan.FailedAt;
+                    buffer = plan.SpareBuffers.Count > 0 ? plan.SpareBuffers.Pop() : null;
+                }
+
+                if (skip)
+                {
+                    GiveBack(plan, run, buffer);
+                    continue;
+                }
+
+                buffer = buffer ?? new DwgDxfWriter(RenderChunk * 160);
+                worker._dxf = buffer;
+
+                try
+                {
+                    for (int i = 0; i < run.Count; i++)
+                    {
+                        if (_stop.IsCancellationRequested)
+                        {
+                            lock (plan.Gate)
+                            {
+                                plan.Stopped = true;
+                            }
+
+                            break;
+                        }
+
+                        worker.WriteRecord(run.Entities[i].Entity, run.Entities[i].Owner, run.Entities[i].Paper);
+                    }
+                }
+                catch (Exception fault)
+                {
+                    lock (plan.Gate)
+                    {
+                        if (run.Index < plan.FailedAt)
+                        {
+                            plan.FailedAt = run.Index;
+                            plan.Failure = fault;
+                        }
+                    }
+
+                    GiveBack(plan, run, buffer);
+                    continue;
+                }
+
+                lock (plan.Gate)
+                {
+                    plan.Finished[run.Index] = buffer;
+
+                    while (plan.Finished.TryGetValue(plan.Next, out DwgDxfWriter done))
+                    {
+                        _dxf.Append(done);
+                        done.Clear();
+                        plan.SpareBuffers.Push(done);
+                        plan.Finished.Remove(plan.Next++);
+                    }
+
+                    Array.Clear(run.Entities, 0, run.Count);
+                    plan.SpareRuns.Push(run.Entities);
+                }
+            }
+        }
+
+        private static void GiveBack(RenderPlan plan, PlannedRun run, DwgDxfWriter buffer)
+        {
+            lock (plan.Gate)
+            {
+                if (buffer != null)
+                {
+                    buffer.Clear();
+                    plan.SpareBuffers.Push(buffer);
+                }
+
+                Array.Clear(run.Entities, 0, run.Count);
+                plan.SpareRuns.Push(run.Entities);
+            }
         }
 
         private void WriteObjects()

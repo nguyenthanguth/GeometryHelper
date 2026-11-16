@@ -400,6 +400,18 @@ the first time in a process and 0.56 s the next under .NET 8 (0.88 s and 0.72 s 
 0.60 and 0.60 s (.NET 8) and 0.92, 0.81 and 0.82 s (.NET Framework); the next one gains nothing under .NET 8 (0.59, 0.57
 and 0.60 s), where the collector, one thread, walks the objects as they are kept, and 0.1 s under .NET Framework.
 
+The DXF's entities are written on those threads too. The walk over the blocks stays on one thread and only decides which
+entities are written, in what order and under which owner (a polyline's vertices and its SEQEND, an INSERT's attributes
+and its SEQEND, the entities of paper space), a few table lookups an entity; it hands them on in runs of 1 024, and the other
+threads write the records of a run into a buffer of its own, each buffer put in the DXF when those before it are. The bytes
+are those of one thread, on one thread or eight; the buffers and runs are used again as they are done, so that a section
+makes ten of each and not three hundred. A token stopped is answered at the next entity, and a failure thrown is that of the
+first run to fail. The list of the blocks was made through a list asked whether it held each block already: a drawing of
+20 000 blocks, as many as a drawing of 20 000 dimensions has, took 0.8 s of its 1.5 s for that, and takes 0.04 s of 0.68 s
+now. Writing the blocks and entities of the drawing of 300 000 lines and circles takes 46 ms where 167 (.NET 8), 48 ms where 166
+(.NET 10) and 62 ms where 245 (.NET Framework); a drawing of 300 000 entities of seven kinds opens in 0.65 s where 0.77
+(.NET 8), 0.67 s where 0.77 (.NET 10) and 0.82 s where 1.00 (.NET Framework), medians of 9 runs.
+
 ## Writing DWG files
 
 [`DwgWriter`](xref:GeometryHelper.Dwg.DwgWriter)`.Write` writes a `DxfDatabase`, with every record it holds, or the
