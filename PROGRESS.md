@@ -325,7 +325,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] Styles in older DWGs (dxfconv5): VISUALSTYLE in R2000-R2013 (124 of 124 bit-equal to AutoCAD's), detail and section
         view styles in R2000-R2013 with their name round trip (12 of 12), an empty VP_ENT_HDR_CTRL in every R2000 file,
         CELLSTYLEMAPs for table styles in R2000-R2007, R2000/R2004 headers naming AutoCAD 2021; corpus AUDIT as before
-  - [ ] R3.3 follow-ups 10: R2010/R2013 headers naming the format's own version (33/174 in AutoCAD's own: probe their
+  - [ ] (dxfconv6, running) R3.3 follow-ups 10: R2010/R2013 headers naming the format's own version (33/174 in AutoCAD's own: probe their
         tables); ACAD_TABLE before R2010 (the table style's reactor); R2000 view style colours (a round-trip record);
         tcustom's explicit default margins and borders; Realistic's lighting model 2 vs 3; R2000 spline solids; the
         remaining stretch/group orders; unknown node classes; ErrorStatus 76; R2007 AppInfoHistory and SummaryInfo; the
@@ -587,11 +587,14 @@ the ones wanted.
 - [x] PEDIT/REVCLOUD follow-ups 4 (pedit5): REVCLOUDGRIPS 1 gives a cloud AutoCAD's few grips (corners and side middles,
       a circle's five) and a drag redraws it at 1.1 x the mean chord (14 clouds to six decimals); Modify ends on a tiny
       first point (1.1825 arcs); TEXTALIGN (144 runs) and DIMBREAK Auto (96 runs) already matched AutoCAD
-- [ ] (mleader2, running: MLEADERALIGN, the layer-off guard) PEDIT/REVCLOUD follow-ups 5: MLEADERALIGN geometry (MLEADER hangs the console: build multileaders through the
-      .NET API in a plugin); DIMBREAK Manual/Remove and on multileaders; TEXTALIGN with a reference text; a plain
-      polyline with 110-degree arcs, ellipse and Freehand clouds under REVCLOUDGRIPS; AutoCAD's grip order of a circle
-      (centre, +x, -x, +y, -y); PEDIT spline counts PARKED (52 of 238); GUI-only: Freehand spacing, REFEDIT, TABLEEXPORT,
-      pre-selection, BOUNDARY, FILTER, SPELL (S)
+- [x] PEDIT/REVCLOUD follow-ups 5, part (mleader2): MLEADERALIGN as AutoCAD 2021 (about 520 cases built through the API
+      agree: spacing and Distribute by the clearance along the line, Parallel by the straightest leader line, a leader of
+      several lines split across the box); the layer-off and fence/polygon speed guards robust under load
+- [ ] PEDIT/REVCLOUD follow-ups 6: DIMBREAK Manual/Remove and on multileaders (DxfMLeader has no break model); a
+      several-line TrueType multileader held by half its last line's ink; a block multileader of scale other than 1;
+      TEXTALIGN with a reference text; a plain polyline with 110-degree arcs, ellipse and Freehand clouds under
+      REVCLOUDGRIPS; AutoCAD's grip order of a circle; PEDIT spline counts PARKED (52 of 238); GUI-only: Freehand
+      spacing, REFEDIT, TABLEEXPORT, pre-selection, BOUNDARY, FILTER, SPELL (S)
 - [x] Layouts: twisted viewports drawn and entered as AutoCAD (two bugs: the turn's sense, group 12 in view coordinates);
       one undo step per wheel or pan gesture; ZOOM Previous per viewport (20 each); -SCALELISTEDIT; Isolate in the Layer
       manager; New VP Freeze on viewports made through the core's API (S)
@@ -979,7 +982,7 @@ the ones wanted.
       and per object); a display chain 80 -> 72 bytes (flags in the shared look); pending XData out of every object;
       no 8 MB walk copy per display; no object kept per LINE/ARC/CIRCLE/LWPOLYLINE drawn; kept heap at 1M 391 -> 358 MB
       (net8); lists, REGEN, saved bytes and pixels identical on 953 drawings
-- [ ] Speed follow-ups 17: DisplayArc2 (~100 bytes x 800 000); TEXT wrappers and contexts tuples (17 MB per 200 000);
+- [ ] (speed18, running) Speed follow-ups 17: DisplayArc2 (~100 bytes x 800 000); TEXT wrappers and contexts tuples (17 MB per 200 000);
       DxfBlockTableRecord.Count/GetEnumerator/AllItems still copy 8 MB; LinkedColumns walks every record per display;
       DWG object reading (~800 ms of 1.6 s for 300 000 entities); REGEN's text group walk (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
