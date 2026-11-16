@@ -13,7 +13,7 @@ namespace GeometryHelper.Dxf.Viewer
     public static partial class CadGrips
     {
         /// <summary>One loop of a hatch as its grips see it, in the plan: the points and bulges of a chain of lines and arcs, or a circle.</summary>
-        private sealed class HatchBoundary
+        internal sealed class HatchBoundary
         {
             /// <summary>The index of the loop in the hatch.</summary>
             internal int Loop { get; set; }
@@ -76,7 +76,7 @@ namespace GeometryHelper.Dxf.Viewer
             return boundaries;
         }
 
-        private static HatchBoundary BoundaryOf(DxfHatchLoop loop, int index)
+        internal static HatchBoundary BoundaryOf(DxfHatchLoop loop, int index)
         {
             var boundary = new HatchBoundary
             {

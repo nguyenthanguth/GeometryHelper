@@ -470,7 +470,19 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 .ToArray();
 
             Assert.Equal(
-                new[] { "HPANG", "HPASSOC", "HPDOUBLE", "HPGAPTOL", "HPLAYER", "HPNAME", "HPORIGINMODE", "HPSCALE" },
+                new[]
+                {
+                    "HPANG",
+                    "HPASSOC",
+                    "HPBOUNDRETAIN",
+                    "HPDLGMODE",
+                    "HPDOUBLE",
+                    "HPGAPTOL",
+                    "HPLAYER",
+                    "HPNAME",
+                    "HPORIGINMODE",
+                    "HPSCALE",
+                },
                 names
             );
         }

@@ -563,7 +563,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // Selected, the circle is a loop of its own.
             document.Undo();
             string circle = All<DxfCircle>(document.ModelSpace).Single().Handle;
-            Start(document, "HATCH", "S", new[] { circle }, Enter);
+            Start(document, "HATCH", "S", new[] { circle }, Enter, Enter);
             Assert.Equal(Math.PI * 100.0, OnlyHatch(document).Area, 9);
             AuditsClean(document);
         }

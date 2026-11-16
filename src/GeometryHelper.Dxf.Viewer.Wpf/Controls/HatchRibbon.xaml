@@ -1,0 +1,577 @@
+<UserControl
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.HatchRibbon"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+>
+    <!--
+    The contextual Hatch Creation and Hatch Editor tabs, as AutoCAD 2021 draws them: Boundaries, Pattern, Properties, Origin,
+    Options and Close, over a HatchTabViewModel. The Hatch Creation tab is shown while HATCH runs and changes the settings of the
+    next hatch; the Hatch Editor tab changes the hatches selected, and has Recreate and Display Boundary Objects besides. The
+    ribbon's styles are the workspace's, found at run time (DynamicResource).
+    -->
+    <UserControl.Resources>
+        <local:BoolToVisibilityConverter x:Key="Shown" />
+        <local:BoolToVisibilityConverter x:Key="Hidden" Invert="True" />
+        <local:RgbBrushConverter x:Key="RgbBrush" />
+        <Geometry x:Key="IconPickPoints">M3 3h18v18H3zM12 8v8M8 12h8M11 11h2v2h-2z</Geometry>
+        <Geometry x:Key="IconSelectObjects">M5 3l12 9-5 1 3 6-3 1-3-6-4 3z</Geometry>
+        <Geometry x:Key="IconRemoveBoundary">M3 3h18v18H3zM8 12h8</Geometry>
+        <Geometry x:Key="IconRecreate">M5 12a7 7 0 1 0 2-5M5 4v4h4M10 10h4v4h-4z</Geometry>
+        <Geometry x:Key="IconDisplayBoundary">
+            M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z
+        </Geometry>
+        <Geometry x:Key="IconSetOrigin">M5 19V5M5 19h14M8 16l3-3M14 7v4M12 9h4</Geometry>
+        <Geometry x:Key="IconCloseHatch">M5 5l14 14M19 5L5 19</Geometry>
+        <Style x:Key="HatchField" TargetType="TextBox">
+            <Setter Property="Width" Value="64" />
+            <Setter Property="Margin" Value="0,0,0,2" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Right" />
+        </Style>
+        <Style x:Key="HatchLabel" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,0,6,2" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="MinWidth" Value="62" />
+        </Style>
+        <Style x:Key="HatchCheck" TargetType="CheckBox">
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel Orientation="Horizontal">
+        <!-- Boundaries: Pick Points, Select, Remove, and for a hatch made Recreate and Display Boundary Objects. -->
+        <Border Style="{DynamicResource GroupBorder}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Boundaries" />
+                <StackPanel Orientation="Horizontal">
+                    <Button
+                        Style="{DynamicResource BigButton}"
+                        Tag="{StaticResource IconPickPoints}"
+                        Content="Pick Points"
+                        IsEnabled="True"
+                        Command="{Binding PickPointsCommand}"
+                        ToolTip="Pick a point inside each area to hatch"
+                    />
+                    <Button
+                        Style="{DynamicResource BigButton}"
+                        Tag="{StaticResource IconSelectObjects}"
+                        Content="Select"
+                        IsEnabled="True"
+                        Command="{Binding SelectCommand}"
+                        ToolTip="Select closed objects to hatch"
+                    />
+                    <Button
+                        Style="{DynamicResource BigButton}"
+                        Tag="{StaticResource IconRemoveBoundary}"
+                        Content="Remove"
+                        IsEnabled="True"
+                        Command="{Binding RemoveCommand}"
+                        ToolTip="Take the boundary of the objects selected out of the hatch"
+                    />
+                    <Button
+                        Style="{DynamicResource BigButton}"
+                        Tag="{StaticResource IconRecreate}"
+                        Content="Recreate"
+                        IsEnabled="True"
+                        Command="{Binding RecreateCommand}"
+                        Visibility="{Binding IsEditor, Converter={StaticResource Shown}}"
+                        ToolTip="Make a polyline or a region round each loop of the hatch, and reassociate it if asked"
+                    />
+                    <Button
+                        Style="{DynamicResource BigButton}"
+                        Tag="{StaticResource IconDisplayBoundary}"
+                        Content="Display Boundary Objects"
+                        IsEnabled="True"
+                        Command="{Binding DisplayBoundaryCommand}"
+                        Visibility="{Binding IsEditor, Converter={StaticResource Shown}}"
+                        ToolTip="Select the objects the hatch follows, to change them by their grips"
+                    />
+                    <StackPanel VerticalAlignment="Top" Margin="4,2,0,0">
+                        <CheckBox
+                            Style="{StaticResource HatchCheck}"
+                            Content="Retain Boundary Objects"
+                            IsChecked="{Binding RetainBoundaries}"
+                            ToolTip="Keep a polyline of each boundary HATCH finds (HPBOUNDRETAIN)"
+                        />
+                    </StackPanel>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Pattern: the preview and the gallery of the type's patterns or gradients. -->
+        <Border Style="{DynamicResource GroupBorder}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Pattern" />
+                <StackPanel Orientation="Horizontal">
+                    <Border
+                        Width="72"
+                        Height="72"
+                        Margin="0,0,8,0"
+                        BorderBrush="{DynamicResource GhBorder}"
+                        BorderThickness="1"
+                    >
+                        <Image Source="{Binding Preview}" Stretch="Uniform" />
+                    </Border>
+                    <StackPanel VerticalAlignment="Top">
+                        <ComboBox
+                            Style="{DynamicResource GhComboBox}"
+                            Margin="0,0,0,2"
+                            Width="140"
+                            ItemsSource="{Binding PatternChoices}"
+                            SelectedItem="{Binding PatternChoice, Mode=TwoWay}"
+                            ToolTip="The pattern, or the gradient where the type is Gradient"
+                        />
+                        <TextBlock
+                            Foreground="{DynamicResource GhTextMuted}"
+                            FontSize="11"
+                            MaxWidth="140"
+                            TextWrapping="Wrap"
+                            Text="{Binding Message}"
+                        />
+                    </StackPanel>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Properties: type, colours, transparency, angle, scale or spacing, Double, ISO pen width, layer. -->
+        <Border Style="{DynamicResource GroupBorder}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Properties" />
+                <StackPanel Orientation="Horizontal">
+                    <Grid Margin="0,2,12,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Style="{StaticResource HatchLabel}" Text="Type" />
+                        <ComboBox
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Style="{DynamicResource GhComboBox}"
+                            Margin="0,0,0,2"
+                            Width="140"
+                            ItemsSource="{Binding Types}"
+                            SelectedItem="{Binding Type, Mode=TwoWay}"
+                            ToolTip="Pattern, User defined, Solid or Gradient"
+                        />
+                        <TextBlock Grid.Row="1" Style="{StaticResource HatchLabel}" Text="Color" />
+                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,2">
+                            <Border
+                                Width="16"
+                                Height="16"
+                                Margin="0,0,6,0"
+                                BorderBrush="{DynamicResource GhBorder}"
+                                BorderThickness="1"
+                                Background="{Binding ColorRgb, Converter={StaticResource RgbBrush}}"
+                            />
+                            <Button
+                                Style="{DynamicResource GhFlatButton}"
+                                Content="{Binding ColorText}"
+                                Padding="6,2"
+                                MinWidth="110"
+                                HorizontalContentAlignment="Left"
+                                Click="OnMenu"
+                                ToolTip="The colour of the hatch, the first colour of a gradient"
+                            >
+                                <Button.ContextMenu>
+                                    <ContextMenu
+                                        Style="{DynamicResource GhContextMenu}"
+                                        DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                                    >
+                                        <MenuItem
+                                            Style="{DynamicResource GhMenuItem}"
+                                            Header="Select Color..."
+                                            Command="{Binding PickColorCommand}"
+                                        />
+                                        <MenuItem
+                                            Style="{DynamicResource GhMenuItem}"
+                                            Header="Use Current"
+                                            Command="{Binding UseCurrentColorCommand}"
+                                        />
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                            </Button>
+                        </StackPanel>
+                        <TextBlock Grid.Row="2" Style="{StaticResource HatchLabel}" Text="Background" />
+                        <StackPanel
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            Orientation="Horizontal"
+                            Margin="0,0,0,2"
+                            Visibility="{Binding HasBackground, Converter={StaticResource Shown}}"
+                        >
+                            <Border
+                                Width="16"
+                                Height="16"
+                                Margin="0,0,6,0"
+                                BorderBrush="{DynamicResource GhBorder}"
+                                BorderThickness="1"
+                                Background="{Binding BackgroundRgb, Converter={StaticResource RgbBrush}}"
+                            />
+                            <Button
+                                Style="{DynamicResource GhFlatButton}"
+                                Content="{Binding BackgroundText}"
+                                Padding="6,2"
+                                MinWidth="110"
+                                HorizontalContentAlignment="Left"
+                                Click="OnMenu"
+                                ToolTip="The colour behind the lines of the pattern, the second colour of a gradient"
+                            >
+                                <Button.ContextMenu>
+                                    <ContextMenu
+                                        Style="{DynamicResource GhContextMenu}"
+                                        DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                                    >
+                                        <MenuItem
+                                            Style="{DynamicResource GhMenuItem}"
+                                            Header="Select Color..."
+                                            Command="{Binding PickBackgroundCommand}"
+                                        />
+                                        <MenuItem
+                                            Style="{DynamicResource GhMenuItem}"
+                                            Header="None"
+                                            Command="{Binding NoBackgroundCommand}"
+                                        />
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                    <Grid Margin="0,2,12,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Style="{StaticResource HatchLabel}" Text="Layer" />
+                        <ComboBox
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Style="{DynamicResource GhComboBox}"
+                            Margin="0,0,0,2"
+                            Width="110"
+                            ItemsSource="{Binding LayerChoices}"
+                            SelectedItem="{Binding Layer, Mode=TwoWay}"
+                            ToolTip="The layer of the hatch; Use current for the layer the drawing is on"
+                        />
+                        <TextBlock Grid.Row="1" Style="{StaticResource HatchLabel}" Text="Transparency" />
+                        <ComboBox
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Style="{DynamicResource GhComboBox}"
+                            Margin="0,0,0,2"
+                            Width="110"
+                            ItemsSource="{Binding TransparencyChoices}"
+                            SelectedItem="{Binding Transparency, Mode=TwoWay}"
+                            ToolTip="0 to 90 per cent, ByLayer or ByBlock"
+                        />
+                        <TextBlock
+                            Grid.Row="2"
+                            Style="{StaticResource HatchLabel}"
+                            Text="Angle"
+                            Visibility="{Binding HasAngle, Converter={StaticResource Shown}}"
+                        />
+                        <TextBox
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            Style="{StaticResource HatchField}"
+                            HorizontalAlignment="Left"
+                            Text="{Binding Angle, UpdateSourceTrigger=LostFocus}"
+                            Visibility="{Binding HasAngle, Converter={StaticResource Shown}}"
+                            ToolTip="The angle of the pattern or the gradient, in degrees"
+                        />
+                    </Grid>
+                    <Grid Margin="0,2,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock
+                            Grid.Row="0"
+                            Style="{StaticResource HatchLabel}"
+                            Text="Scale"
+                            Visibility="{Binding HasScale, Converter={StaticResource Shown}}"
+                        />
+                        <TextBox
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Style="{StaticResource HatchField}"
+                            HorizontalAlignment="Left"
+                            Text="{Binding Scale, UpdateSourceTrigger=LostFocus}"
+                            Visibility="{Binding HasScale, Converter={StaticResource Shown}}"
+                            ToolTip="2 draws the lines of the pattern twice as far apart"
+                        />
+                        <TextBlock
+                            Grid.Row="0"
+                            Style="{StaticResource HatchLabel}"
+                            Text="Spacing"
+                            Visibility="{Binding IsUserDefined, Converter={StaticResource Shown}}"
+                        />
+                        <TextBox
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Style="{StaticResource HatchField}"
+                            HorizontalAlignment="Left"
+                            Text="{Binding Spacing, UpdateSourceTrigger=LostFocus}"
+                            Visibility="{Binding IsUserDefined, Converter={StaticResource Shown}}"
+                            ToolTip="The distance between the lines made by the user"
+                        />
+                        <TextBlock
+                            Grid.Row="1"
+                            Style="{StaticResource HatchLabel}"
+                            Text="ISO pen width"
+                            Visibility="{Binding IsIso, Converter={StaticResource Shown}}"
+                        />
+                        <ComboBox
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Style="{DynamicResource GhComboBox}"
+                            Margin="0,0,0,2"
+                            Width="80"
+                            ItemsSource="{Binding IsoPenWidths}"
+                            SelectedItem="{Binding IsoPenWidth, Mode=TwoWay}"
+                            Visibility="{Binding IsIso, Converter={StaticResource Shown}}"
+                            ToolTip="The pen an ISO pattern is drawn for: its width in millimetres is the scale"
+                        />
+                        <CheckBox
+                            Grid.Row="2"
+                            Grid.ColumnSpan="2"
+                            Style="{StaticResource HatchCheck}"
+                            Content="Double"
+                            IsChecked="{Binding Double}"
+                            Visibility="{Binding IsUserDefined, Converter={StaticResource Shown}}"
+                            ToolTip="Cross the lines made by the user with as many square to them"
+                        />
+                    </Grid>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Origin: Set Origin, the corners of the box round the hatch, Use current origin, Store as default origin. -->
+        <Border Style="{DynamicResource GroupBorder}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Origin" />
+                <StackPanel Orientation="Horizontal">
+                    <Button
+                        Style="{DynamicResource BigButton}"
+                        Tag="{StaticResource IconSetOrigin}"
+                        Content="Set Origin"
+                        IsEnabled="True"
+                        Command="{Binding SetOriginCommand}"
+                        ToolTip="Pick the point the pattern is laid from"
+                    />
+                    <StackPanel VerticalAlignment="Top" Margin="0,2,0,0">
+                        <Button
+                            Style="{DynamicResource GhFlatButton}"
+                            Content="Origin corner ▾"
+                            Padding="6,2"
+                            Margin="0,0,0,4"
+                            HorizontalAlignment="Left"
+                            Click="OnMenu"
+                            ToolTip="Lay the pattern from a corner of the box round the hatch, or its middle"
+                        >
+                            <Button.ContextMenu>
+                                <ContextMenu
+                                    Style="{DynamicResource GhContextMenu}"
+                                    DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                                >
+                                    <MenuItem
+                                        Style="{DynamicResource GhMenuItem}"
+                                        Header="Bottom Left"
+                                        Command="{Binding OriginCornerCommand}"
+                                        CommandParameter="L"
+                                    />
+                                    <MenuItem
+                                        Style="{DynamicResource GhMenuItem}"
+                                        Header="Bottom Right"
+                                        Command="{Binding OriginCornerCommand}"
+                                        CommandParameter="R"
+                                    />
+                                    <MenuItem
+                                        Style="{DynamicResource GhMenuItem}"
+                                        Header="Top Right"
+                                        Command="{Binding OriginCornerCommand}"
+                                        CommandParameter="I"
+                                    />
+                                    <MenuItem
+                                        Style="{DynamicResource GhMenuItem}"
+                                        Header="Top Left"
+                                        Command="{Binding OriginCornerCommand}"
+                                        CommandParameter="E"
+                                    />
+                                    <MenuItem
+                                        Style="{DynamicResource GhMenuItem}"
+                                        Header="Center"
+                                        Command="{Binding OriginCornerCommand}"
+                                        CommandParameter="C"
+                                    />
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
+                        <Button
+                            Style="{DynamicResource GhFlatButton}"
+                            Content="Use current origin"
+                            Padding="6,2"
+                            Margin="0,0,0,4"
+                            HorizontalAlignment="Left"
+                            Command="{Binding UseCurrentOriginCommand}"
+                            Visibility="{Binding IsCreation, Converter={StaticResource Shown}}"
+                            ToolTip="Lay the pattern from the origin the settings hold"
+                        />
+                        <CheckBox
+                            Style="{StaticResource HatchCheck}"
+                            Content="Store as default origin"
+                            IsChecked="{Binding StoreAsDefaultOrigin}"
+                            Visibility="{Binding IsCreation, Converter={StaticResource Shown}}"
+                            ToolTip="Keep the origin picked for the next hatches (HPORIGIN)"
+                        />
+                        <TextBlock
+                            Foreground="{DynamicResource GhTextMuted}"
+                            FontSize="11"
+                            Text="{Binding OriginText}"
+                            ToolTip="The origin the pattern is laid from"
+                        />
+                    </StackPanel>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Options: Associative, Annotative, Match Properties, Gap tolerance, separate hatches, island detection, draw order. -->
+        <Border Style="{DynamicResource GroupBorder}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Options" />
+                <StackPanel Orientation="Horizontal">
+                    <StackPanel VerticalAlignment="Top" Margin="0,2,12,0">
+                        <CheckBox
+                            Style="{StaticResource HatchCheck}"
+                            Content="Associative"
+                            IsChecked="{Binding Associative}"
+                            ToolTip="The hatch follows the objects its loops are made of"
+                        />
+                        <CheckBox
+                            Style="{StaticResource HatchCheck}"
+                            Content="Annotative"
+                            IsChecked="{Binding Annotative}"
+                            ToolTip="The pattern is drawn at the scale of the view"
+                        />
+                        <Button
+                            Style="{DynamicResource GhFlatButton}"
+                            Content="Match Properties ▾"
+                            Padding="6,2"
+                            HorizontalAlignment="Left"
+                            Click="OnMenu"
+                            ToolTip="MATCHPROP: the source hatch, then the hatches that take its properties"
+                        >
+                            <Button.ContextMenu>
+                                <ContextMenu
+                                    Style="{DynamicResource GhContextMenu}"
+                                    DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                                >
+                                    <MenuItem
+                                        Style="{DynamicResource GhMenuItem}"
+                                        Header="Use Current Origin"
+                                        Command="{Binding MatchPropertiesCommand}"
+                                    />
+                                    <MenuItem
+                                        Style="{DynamicResource GhMenuItem}"
+                                        Header="Use Source Hatch Origin"
+                                        Command="{Binding MatchPropertiesCommand}"
+                                    />
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
+                    </StackPanel>
+                    <Grid Margin="0,2,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Style="{StaticResource HatchLabel}" Text="Gap tolerance" />
+                        <TextBox
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Style="{StaticResource HatchField}"
+                            HorizontalAlignment="Left"
+                            Text="{Binding GapTolerance, UpdateSourceTrigger=LostFocus}"
+                            ToolTip="The widest gap in a boundary that is taken as closed, 0 to 5000 (HPGAPTOL)"
+                        />
+                        <TextBlock Grid.Row="1" Style="{StaticResource HatchLabel}" Text="Islands" />
+                        <ComboBox
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Style="{DynamicResource GhComboBox}"
+                            Margin="0,0,0,2"
+                            Width="170"
+                            ItemsSource="{Binding IslandChoices}"
+                            SelectedItem="{Binding IslandDetection, Mode=TwoWay}"
+                            ToolTip="Which areas inside the boundary are hatched"
+                        />
+                        <TextBlock Grid.Row="2" Style="{StaticResource HatchLabel}" Text="Draw order" />
+                        <ComboBox
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            Style="{DynamicResource GhComboBox}"
+                            Margin="0,0,0,2"
+                            Width="170"
+                            ItemsSource="{Binding OrderChoices}"
+                            SelectedItem="{Binding DrawOrder, Mode=TwoWay}"
+                            ToolTip="Where the hatch goes in the draw order"
+                        />
+                    </Grid>
+                    <StackPanel VerticalAlignment="Top" Margin="12,2,0,0">
+                        <CheckBox
+                            Style="{StaticResource HatchCheck}"
+                            Content="Create separate hatches"
+                            IsChecked="{Binding SeparateHatches}"
+                            ToolTip="A hatch of each area picked, not one of them all"
+                        />
+                        <Button
+                            Style="{DynamicResource GhFlatButton}"
+                            Content="Hatch Settings…"
+                            Padding="6,2"
+                            HorizontalAlignment="Left"
+                            Command="{Binding SettingsCommand}"
+                            ToolTip="The Hatch dialog (HATCH seTtings, HATCHEDIT)"
+                        />
+                    </StackPanel>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Close. -->
+        <Border Style="{DynamicResource GroupBorder}" BorderThickness="0">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Close" />
+                <Button
+                    Style="{DynamicResource BigButton}"
+                    Tag="{StaticResource IconCloseHatch}"
+                    Content="{Binding CloseText}"
+                    IsEnabled="True"
+                    Command="{Binding CloseCommand}"
+                    Margin="0"
+                    ToolTip="Close the tab; Hatch Creation makes the hatch of the areas picked"
+                />
+            </DockPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

@@ -233,14 +233,14 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 300 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 303 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
 | view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, -PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, VPCLIP (Polygonal, Delete), VPMAX, VPMIN, SCALELISTEDIT, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window), REDRAW, REDRAWALL, REGENALL, ISOLATEOBJECTS, HIDEOBJECTS, UNISOLATEOBJECTS, VPORTS, -VPORTS (Save, Restore, Delete, Join, SIngle, ?, 2, 3, 4, Toggle) |
 | edit | MOVE, COPY (Array, Fit, mOde Single and Multiple; COPYMODE), ERASE, OOPS, ROTATE, SCALE, MIRROR, MIRROR3D (Object, Last, Zaxis, View, XY, YZ, ZX, 3points), EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
 | draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG (Chamfer, Elevation, Fillet, Thickness, Width; Area, Dimensions, Rotation), WIPEOUT (points, Polyline, Frames), SPLINE (Method: Fit, CV; Knots, Degree, Object; start and end Tangency, toLerance, Undo, Close), BLEND (CONtinuity: Tangent, Smooth), ELLIPSE (Arc), POINT, XLINE (Hor, Ver, Ang with Reference, Bisect, Offset with Through), RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT and -MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT and -LAYOUT (Copy, Delete, New, Template, Rename, SAveas, Set, ?), DIVIDE (Block), MEASURE (Block) |
-| shapes and hatching | SOLID, REGION, HATCH, HATCHSETORIGIN, -HATCH (Properties, Select objects, draW boundary, remove Boundaries, Advanced: Boundary set, Retain boundary, Island detection, Style, Associativity, Gap tolerance, separate Hatches; DRaw order, Origin, ANnotative, hatch COlor, LAyer, Transparency, Undo), GRADIENT, HATCHEDIT, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Fit data: Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance; Close, Open, Join, Move vertex, Refine: Add, Delete, Elevate order, Move, Weight; rEverse, convert to Polyline, Undo), CLASSICINSERT |
+| shapes and hatching | SOLID, REGION, HATCH, HATCHSETORIGIN, -HATCH (Properties, Select objects, draW boundary, remove Boundaries, Advanced: Boundary set, Retain boundary, Island detection, Style, Associativity, Gap tolerance, separate Hatches; DRaw order, Origin, ANnotative, hatch COlor, LAyer, Transparency, Undo), GRADIENT, HATCHEDIT, -HATCHEDIT (DIsassociate, Style, Properties, DRaw order, ADd boundaries, Remove boundaries, recreate Boundary, ASsociate, separate Hatches, Origin, ANnotative, hatch COlor, LAyer, Transparency), HATCHGENERATEBOUNDARY, HATCHSETBOUNDARY, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Fit data: Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance; Close, Open, Join, Move vertex, Refine: Add, Delete, Elevate order, Move, Weight; rEverse, convert to Polyline, Undo), CLASSICINSERT |
 | multilines | MLINE (Justification, Scale, STyle; Close, Undo), MLEDIT (CC, OC, MC, CT, OT, MT, CJ, AV, DV, CS, CA, WA; Undo), MLSTYLE (?, Current, New, Modify, Rename, Delete, Load, Save), and the variables CMLJUST, CMLSCALE and CMLSTYLE (see [Multilines](#multilines)) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, PStyle, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, LAYMRG and -LAYMRG (Name, Undo), LAYDEL and -LAYDEL (Name, Undo), LAYCUR, COPYTOLAYER and -COPYTOLAYER (?, =, Displacement, eXit), VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
@@ -649,6 +649,66 @@ the origin moves, found from the pattern the presenter holds (ANSI32 at 30 degre
 laid from (0, 0). The console takes no hatch selected before the command (it asks `Select hatch objects:` as ERASE asks `Select
 objects:` there), so that way in is not probed. A solid fill and a gradient have no lines and are left as they are; lines made by the user follow the
 hatch's spacing alone in the library, so a user-defined hatch is left as it is too, where AutoCAD moves its base point.
+
+HATCH asks `Pick internal point or [Select objects/Undo/seTtings]:` and takes, besides those words, `remove Boundaries` (the
+same questions as -HATCH's, taking the loops of the objects selected out of the hatch) and `Origin` (-HATCH's, kept in the
+settings the next hatch is made with), which the Hatch Creation tab starts. Select objects takes the closed objects and
+goes back to the point prompt, as AutoCAD does, Enter making the hatch (it ended the command before). The Options that -HATCH keeps
+are HATCH's too: island detection off keeps the outer loop of each area alone, Create separate hatches makes one hatch of
+each area picked, Retain Boundary Objects keeps a polyline of each boundary found (the variable HPBOUNDRETAIN, 0 or 1), and the
+draw order is the one -HATCH's DRaw order set. HPDLGMODE (0 to 2, 2 at the start, as AutoCAD) says how HATCH shows its settings:
+2 the Hatch Creation tab of the window, 1 the Hatch dialog first (shown where a window shows it, nothing where there is none),
+0 the command line alone.
+
+HATCHGENERATEBOUNDARY asks `Select hatch objects:` (the hatches selected before it are taken instead) and makes, as AutoCAD
+2021's console does (probed: a square hatched round a circle gave a polyline and a CIRCLE, on the current layer, with nothing
+said), a closed polyline on the current layer round each loop of each hatch, and a circle for a loop that is one whole circle
+(a circle cut in two or three arcs where other objects cross it is still a circle). The objects follow nothing, and the hatch is
+left as it is; one undo step. A loop with an ellipse or a spline edge, and a hatch not flat to the plan, are passed over with
+`1 loop of ellipses, splines or a tilted hatch cannot be made a boundary and was passed over.`
+
+HATCHSETBOUNDARY asks `Select hatch object:`, `Select objects to be used for the new boundary:` and `Erase selected linework?
+[Yes/No] <N>:` (the three prompts AutoCAD 2021 asks), takes the hatch's loops out and makes them anew from the closed objects
+selected, the outer loops and the islands as HATCH finds them. The hatch follows the new objects where it followed the old
+(probed: it stayed associative), and where the answer is Yes the objects are erased and it follows nothing. A square 100 by 60
+hatched round a circle of radius 10 and given a closed polyline 100 by 60 elsewhere fills 6 000 square units after, one loop.
+Objects that are not closed are counted, `1 object is not closed and cannot be a hatch boundary.`, and where none is closed `Valid
+hatch boundary not found.` and nothing is changed.
+
+-HATCHEDIT asks `Select hatch objects:` (those selected before it are taken instead) and `Enter hatch option
+[DIsassociate/Style/Properties/DRaw order/ADd boundaries/Remove boundaries/recreate Boundary/ASsociate/separate
+Hatches/Origin/ANnotative/hatch COlor/LAyer/Transparency] <Properties>:`, the words of AutoCAD 2021's. Each option is one undo step on
+every hatch selected, except ADd boundaries, Remove boundaries and ASsociate, which work on the first. DIsassociate says `Hatch
+boundary associativity removed.` Style asks Ignore, Outer or Normal. Properties asks the pattern, scale and angle as -HATCH's
+Properties does and lays them on each hatch, which keeps its own origin, association and island style. DRaw order asks the five
+orders of -HATCH. ADd boundaries asks `Specify internal point or [Select objects]:` until Enter and adds each area found, or the
+loops of the closed objects selected, to the hatch, which follows their objects too where it followed those it had. Remove
+boundaries asks `Select objects:` and takes out the loops made of the objects selected (for a hatch that follows none, the loop
+with the same corners), an outer loop taking its islands with it. recreate Boundary asks `Enter type of boundary object
+[Region/Polyline] <Polyline>:` and `Reassociate hatch with new boundary? [Yes/No] <N>:`, and makes on the current layer a closed
+polyline round each loop (a loop that was a circle is a polyline of its arcs, as AutoCAD made it; a region where Region is
+chosen, which the hatch does not follow); with Yes the hatch follows the polylines. ASsociate asks `Specify internal point or
+[Select objects]:` and makes the hatch follow the objects that make the areas found, each loop those of the loop with the same
+corners. separate Hatches makes one hatch of each area (an outer loop and the islands after it), each following its own objects.
+Origin asks `Set new origin` (a point) or `Default to boundary extents` (the corner or the middle of the box round the outer loops).
+ANnotative, hatch COlor (the colour and the background, the drawing's current colour for a dot, no background for a dot at the
+second), LAyer and Transparency ask as -HATCH asks them, but change the hatches, not the settings of the next hatch.
+
+The contextual Hatch Creation tab (green, as the Array tab is) is shown while HATCH or GRADIENT runs with HPDLGMODE 2, and the
+Hatch Editor tab while hatches are selected and no command runs (other objects selected with them do not hide it). Both have the
+panels Boundaries, Pattern, Properties, Origin, Options and Close. Boundaries: Pick Points, Select, Remove, and for a hatch made Recreate
+(-HATCHEDIT's recreate Boundary) and Display Boundary Objects (the hatch and the objects it follows selected together, for their grips),
+and Retain Boundary Objects. Pattern: the preview and the gallery of the type's patterns, or of the nine gradients. Properties: Type
+(Pattern, User defined, Solid, Gradient), Color and Background (the first and second colour of a gradient; the Select Color dialog,
+Use Current, None), Layer, Transparency (Use current, ByLayer, ByBlock, 0 to 90), Angle, Scale or Spacing, Double and the ISO pen width.
+Origin: Set Origin, the corners and the middle, Use current origin and Store as default origin. Options: Associative (turned off
+the hatch lets go of its objects; turned on it asks for them as ASsociate does), Annotative, Match Properties (MATCHPROP), Gap
+tolerance, Create separate hatches, island detection (Normal, Outer, Ignore or No Island Detection), Draw order, and Hatch Settings
+(the Hatch dialog). In the Hatch Creation tab a value is the setting of the next hatch at once (HPNAME, HPANG, HPSCALE and the
+others read it) and Close makes the hatch of the areas picked; in the Hatch Editor tab each value is one undo step named HATCHEDIT
+on every hatch selected, the pattern lines laid again from the origin the hatch has, and Close lets go of the hatches. The boundary
+buttons run the commands of the words above, so that the command line shows what they ask; a hatch selected stays selected, and its
+tab stays, once the command ends.
 
 draW boundary asks `Retain polyline boundary? [Yes/No] <N>:`, `Specify start point:`, `Specify next point or [Arc/Length/Undo]:`
 (`[Arc/Close/Length/Undo]` from the third point) and `Specify start point for new boundary or <Accept>:`, and makes a loop of
@@ -3185,7 +3245,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 | the window's lineweight toggle | LWDISPLAY | at once, no undo step; written into the drawing |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |
 | the header of the drawing, too | LUNITS, LUPREC, AUNITS, AUPREC, ANGBASE, ANGDIR, INSUNITS, MEASUREMENT, UNITMODE, PLINEWID, PLINEGEN, FILLMODE, ELEVATION, THICKNESS, LIMCHECK, SPLFRAME, QTEXTMODE, ATTMODE, SPLINETYPE, SPLINESEGS, USERI1 to USERI5, USERR1 to USERR5 | one undo step |
-| the document or the session, too | HPNAME, HPSCALE, HPANG, HPLAYER, HPASSOC, HPDOUBLE, HPGAPTOL, HPORIGINMODE (the hatch settings), DIMLAYER, CIRCLERAD, POLYSIDES, TRIMEXTENDMODE, CMDECHO, EXPERT, HIGHLIGHT, PICKAUTO, PICKDRAG, OSNAPZ, ARRAYASSOCIATIVITY, LASTPOINT | at once, no undo step |
+| the document or the session, too | HPNAME, HPSCALE, HPANG, HPLAYER, HPASSOC, HPDOUBLE, HPGAPTOL, HPORIGINMODE, HPDLGMODE, HPBOUNDRETAIN (the hatch settings), DIMLAYER, CIRCLERAD, POLYSIDES, TRIMEXTENDMODE, CMDECHO, EXPERT, HIGHLIGHT, PICKAUTO, PICKDRAG, OSNAPZ, ARRAYASSOCIATIVITY, LASTPOINT | at once, no undo step |
 | the window's Global settings, too | SAVETIME, ZOOMFACTOR | at once, no undo step; kept in the settings file |
 | read only, too | DISTANCE, AREA, PERIMETER | |
 

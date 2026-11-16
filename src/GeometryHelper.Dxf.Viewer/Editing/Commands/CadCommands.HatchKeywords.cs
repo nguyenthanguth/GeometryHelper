@@ -16,7 +16,7 @@ namespace GeometryHelper.Dxf.Viewer
     internal static partial class CadCommands
     {
         private const string HatchDrawRetainKey = "hatch.draw.retain";
-        private const string HatchOriginStoreKey = "hatch.origin.store";
+        internal const string HatchOriginStoreKey = "hatch.origin.store";
 
         /// <summary>What one run of -HATCH holds that no variable keeps: the candidate set, an origin for this hatch alone, the boundaries drawn.</summary>
         private sealed class HatchRun

@@ -1820,6 +1820,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             SyncInPlace();
             SyncTableCell();
             SyncBlockEditor();
+            SyncHatchTab();
             Revision++;
 
             // PICKSTYLE typed or switched by its key: Group Selection follows. A split button's option answers its prompt.
@@ -2324,6 +2325,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (_current == null)
             {
                 HideArrayTab();
+                HideHatchTab();
                 SelectionLabel = string.Empty;
                 PropertyGroups = Array.Empty<PropertyGroupViewModel>();
                 PropertiesBanner = null;
@@ -2336,6 +2338,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 .ToList();
             handles.Sort(StringComparer.OrdinalIgnoreCase);
             SyncArrayTab(handles);
+            SyncHatchTab();
             CadSelectionInfo info = CadProperties.Describe(_current.Document, Space, handles, View);
             string banner = null;
 

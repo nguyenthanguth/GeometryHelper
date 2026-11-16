@@ -788,7 +788,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Blank();
             var circle = new DxfCircle(new GeoPoint3(50, 50, 0), new GeoVector3(0, 0, 1), 20);
             document.Database.ModelSpace.AppendEntity(circle);
-            Start(document, "HATCH", "S", new[] { circle.Handle }, Enter);
+            Start(document, "HATCH", "S", new[] { circle.Handle }, Enter, Enter);
 
             // The circle is its own boundary: the hatch goes behind it.
             List<DxfEntity> order = document.ModelSpace.Block.DrawOrderTable.GetFullDrawOrder().ToList();
