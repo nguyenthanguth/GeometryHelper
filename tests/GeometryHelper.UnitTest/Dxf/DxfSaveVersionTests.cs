@@ -1433,11 +1433,11 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void TheBlockOfATableThatIsOneNoMoreAndTheObjectsItOwned_AreLeftWhereTheyWere()
         {
-            // A table with a field in a cell is none of the tables the old form is made of: it is the block it is drawn with.
+            // A table with a cell linked to data is none of the tables the old form is made of: it is the block it is drawn with.
             DxfDatabase source = DxfDatabase.Parse(
                 DxfDimensionDrawings.R2018.Replace(
                     "145\n0.0\n 92\n0\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nMark\n",
-                    "145\n0.0\n344\nAB\n 92\n0\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nMark\n"
+                    "145\n0.0\n 92\n1\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nMark\n"
                 )
             );
 

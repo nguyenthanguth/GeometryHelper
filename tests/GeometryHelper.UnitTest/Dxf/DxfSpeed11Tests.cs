@@ -33,7 +33,7 @@ namespace GeometryHelper.UnitTest.Dxf
             "AC1032 round 1 R2000 7A22D936934A99CD5486ADE4",
             "AC1032 round 2 native 1F4B9D0A7D24FC9919A778CF",
             "AC1032 round 2 R2013 E76CDF7B0B7409A595F0DBEC",
-            "AC1032 round 2 R2000 7A22D936934A99CD5486ADE4",
+            "AC1032 round 2 R2000 2298F4113B6E0D5677D1C2F9",
             "AC1015 round 0 native 5A863E4C564A98E1BED6416B",
             "AC1015 round 0 R2013 6D2A3CACFDB5543456B40C49",
             "AC1015 round 0 R2000 5A863E4C564A98E1BED6416B",
@@ -60,7 +60,7 @@ namespace GeometryHelper.UnitTest.Dxf
             "AC1024 round 1 R2000 7A22D936934A99CD5486ADE4",
             "AC1024 round 2 native B6C652B83FD2D845DC389229",
             "AC1024 round 2 R2013 E76CDF7B0B7409A595F0DBEC",
-            "AC1024 round 2 R2000 7A22D936934A99CD5486ADE4",
+            "AC1024 round 2 R2000 2298F4113B6E0D5677D1C2F9",
         };
 
         private static readonly string[] CellEditsAfterReadingLines =

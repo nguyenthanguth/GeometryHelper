@@ -370,6 +370,16 @@ namespace GeometryHelper.UnitTest.Dwg
                 }
 
                 if (
+                    (a.Type == "ACDBDETAILVIEWSTYLE" || a.Type == "ACDBSECTIONVIEWSTYLE")
+                    && a.Groups.All(g => g.Key != 62)
+                )
+                {
+                    // The colours of a view style of R2000: AutoCAD's DXF of R2000 leaves out the index its file holds for each
+                    // part, and the reader gives it (so that the DWG written from its DXF holds it). Compared without them.
+                    groups = groups.Where(g => g.Key != 62 && g.Key != 420).ToList();
+                }
+
+                if (
                     a.Type == "XRECORD"
                     && groups.Count > a.Groups.Count
                     && a.Owner != null

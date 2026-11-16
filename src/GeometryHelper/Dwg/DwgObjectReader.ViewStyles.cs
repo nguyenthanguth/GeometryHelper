@@ -29,15 +29,13 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>
-        /// The colour of a view style's part: from R2004 its groups (62, and 420 for a true colour); before R2004 DXF gives
-        /// none.
+        /// The colour of a view style's part: its groups (62, and 420 for a true colour). AutoCAD's DXF of R2000 gives none,
+        /// which keeps the index its file holds there; the reader gives it, so that the file written from the DXF is the
+        /// file read (<c>DxfVersionConverter</c> leaves it out of the DXF it makes of R2000).
         /// </summary>
         private void AddViewColour(DwgColour colour)
         {
-            if (R2004Plus)
-            {
-                AddColour(_object.Body, colour, false);
-            }
+            AddColour(_object.Body, colour, false);
         }
 
         /// <summary>

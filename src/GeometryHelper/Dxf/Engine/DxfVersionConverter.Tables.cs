@@ -59,9 +59,10 @@ namespace GeometryHelper.Dxf
         /// Gives a table of R2007 or later the form of R2004 and before, where each cell is the groups 171 to 178 and 145, its text
         /// (1) and the groups of its overrides: the cell's value (301 CELL_VALUE to 304 ACVALUE_END) and its 92 of the later form
         /// are left out, its 177 is its 91 less the bits the older form has not. A table that holds its TABLECONTENT (the round trip
-        /// of its extension dictionary, ACAD_ROUNDTRIP_2008_TABLE_ENTITY) keeps it with the values in the form of R2004. False, the
-        /// table left as it is, where a cell holds anything but text or a block (a field, a link, a value of another kind): the
-        /// caller then draws the table as the block it is drawn with.
+        /// of its extension dictionary, ACAD_ROUNDTRIP_2008_TABLE_ENTITY) keeps it with the values in the form of R2004. A number,
+        /// a general value and a field are in the cell as the words they show and the field's handle (see <see cref="CellDown"/>).
+        /// False, the table left as it is, where a cell holds anything but those, text or a block (a link, a value of another
+        /// kind): the caller then draws the table as the block it is drawn with.
         /// </summary>
         private bool TableDown(Record table)
         {
@@ -175,8 +176,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gives one cell of the new form its old form, written to <paramref name="made"/>: its head with 177 for 91, its text (1,
         /// empty where it has none; a block cell has none), then the groups it holds before its value and after it (the overrides,
-        /// the block and its attributes). False where the cell is not made of these: a 92 of a link, a field, a value that is neither
-        /// text nor empty, or groups after the value of the last cell, which may be the table's own.
+        /// the block and its attributes). A number (a whole number or a real) or a general value is written as the text it shows
+        /// (the 302 of its value: <c>12</c>, <c>2.500000</c>, nothing), a field (344) as its handle where the words would stand.
+        /// False where the cell is not made of these: a 92 of a link, a value that is none of those, or groups after the value of
+        /// the last cell, which may be the table's own.
         /// </summary>
         private bool CellDown(List<Group> cell, bool last, List<Group> made, List<CellData> data, List<Group> text)
         {
@@ -203,6 +206,9 @@ namespace GeometryHelper.Dxf
             }
 
             // What the cell holds besides its value: its groups before it but the 92 (a link where it is not nought) and those after.
+            int field = -1;
+            int dangling = -1;
+
             for (int i = NewCellHead.Length; i < at; i++)
             {
                 if (cell[i].Code == 92)
@@ -210,6 +216,19 @@ namespace GeometryHelper.Dxf
                     if (cell[i].Value.Trim() != "0")
                     {
                         return false;
+                    }
+                }
+                else if (cell[i].Code == 344 && field < 0 && dangling < 0)
+                {
+                    // A field the drawing does not hold is no field: AutoCAD keeps none of it either and writes the cell with no
+                    // words (the handle would be a null one in the file, and the cell would then be read as one with words).
+                    if (ObjectAt(cell[i].Value)?.Type == "FIELD")
+                    {
+                        field = i;
+                    }
+                    else
+                    {
+                        dangling = i;
                     }
                 }
                 else if (cell[i].Code == 344 || cell[i].Code >= 1000)
@@ -228,9 +247,17 @@ namespace GeometryHelper.Dxf
 
             bool block = cell[0].Value.Trim() == "2";
 
-            if (!Value(cell, at + 1, end, out int type, text, out string whole) || (!block && type != 0 && type != 4))
+            if (
+                !Value(cell, at + 1, end, out int type, text, out string whole, out List<Group> kept)
+                || (!block && field < 0 && type != 0 && type != 4 && kept == null)
+            )
             {
                 return false;
+            }
+
+            if (block)
+            {
+                kept = null;
             }
 
             for (int g = 0; g < 6; g++)
@@ -242,7 +269,11 @@ namespace GeometryHelper.Dxf
             made.Add(cell[7]);
             made.Add(cell[8]);
 
-            if (!block)
+            if (field >= 0)
+            {
+                made.Add(cell[field]);
+            }
+            else if (!block)
             {
                 // A text cut into chunks of 250 characters is in 2 before its last part from R2007, and in 3 before R2007.
                 foreach (Group part in text)
@@ -250,7 +281,12 @@ namespace GeometryHelper.Dxf
                     made.Add(part.Code == 2 ? new Group(3, part.Value) : part);
                 }
 
-                if (text.Count == 0)
+                // A number or a general value shows the text its 302 holds.
+                if (kept != null)
+                {
+                    made.Add(new Group(1, whole));
+                }
+                else if (text.Count == 0)
                 {
                     made.Add(new Group(1, string.Empty));
                 }
@@ -258,7 +294,7 @@ namespace GeometryHelper.Dxf
 
             for (int i = NewCellHead.Length; i < at; i++)
             {
-                if (cell[i].Code != 92)
+                if (cell[i].Code != 92 && i != field && i != dangling)
                 {
                     made.Add(cell[i]);
                 }
@@ -269,7 +305,16 @@ namespace GeometryHelper.Dxf
                 made.Add(cell[i]);
             }
 
-            data.Add(new CellData(flags & 0xFFFF, whole, block, type == 4 || text.Count > 0));
+            data.Add(
+                new CellData(
+                    flags & 0xFFFF,
+                    field >= 0 ? string.Empty : whole,
+                    block,
+                    field < 0 && (type == 4 || text.Count > 0),
+                    field < 0 ? kept : FieldValue(cell[field].Value),
+                    MaskOverrides(cell, NewCellHead.Length, at, end)
+                )
+            );
             return true;
         }
 
@@ -280,6 +325,18 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private bool CellUp(List<Group> cell, List<Group> made)
         {
+            // The reader of a DWG gives the overrides of a cell between its state (178) and its rotation (145), AutoCAD's DXF after
+            // its words: put them there.
+            int rotation = cell.FindIndex(g => g.Code == 145);
+
+            if (rotation > OldCellHead.Length - 1 && cell.Count >= OldCellHead.Length)
+            {
+                var ordered = new List<Group>(cell.GetRange(0, OldCellHead.Length - 1));
+                ordered.AddRange(cell.GetRange(rotation, cell.Count - rotation));
+                ordered.AddRange(cell.GetRange(OldCellHead.Length - 1, rotation - (OldCellHead.Length - 1)));
+                cell = ordered;
+            }
+
             if (
                 !Has(cell, OldCellHead)
                 || !int.TryParse(
@@ -414,12 +471,23 @@ namespace GeometryHelper.Dxf
         /// Reads the value of a cell, the groups from <paramref name="from"/> up to <paramref name="end"/> (the 304): its flags (93)
         /// and type (90), the groups of its text where it has any (the chunks of 250 characters of a longer one in 2, then the last
         /// part in 1), then 94, 300, the value again (the chunks in 303, the last part in 302). <paramref name="whole"/> is the
-        /// text in one piece. False where it is of another shape.
+        /// text in one piece. A whole number (type 1, its 91), a real (type 2, its 140) and a general value (type 512, nothing)
+        /// hold no text: <paramref name="whole"/> is the text they show (the 302) and <paramref name="kept"/> their groups from
+        /// the flags (93) up to the 302, null for any other. False where it is of another shape.
         /// </summary>
-        private static bool Value(List<Group> cell, int from, int end, out int type, List<Group> text, out string whole)
+        private static bool Value(
+            List<Group> cell,
+            int from,
+            int end,
+            out int type,
+            List<Group> text,
+            out string whole,
+            out List<Group> kept
+        )
         {
             type = -1;
             whole = string.Empty;
+            kept = null;
 
             if (
                 end - from < 5
@@ -443,6 +511,14 @@ namespace GeometryHelper.Dxf
                 text.Add(cell[i]);
             }
 
+            bool number =
+                text.Count == 0 && i < end && ((type == 1 && cell[i].Code == 91) || (type == 2 && cell[i].Code == 140));
+
+            if (number)
+            {
+                i++;
+            }
+
             if (i + 2 >= end || cell[i].Code != 94 || cell[i + 1].Code != 300)
             {
                 return false;
@@ -455,7 +531,12 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
-            if (text.Count == 1)
+            if (number || (type == 512 && text.Count == 0))
+            {
+                kept = cell.GetRange(from, end - from);
+                whole = cell[i].Value;
+            }
+            else if (text.Count == 1)
             {
                 whole = text[0].Value;
             }
@@ -519,16 +600,34 @@ namespace GeometryHelper.Dxf
 
         #region The cells of a table, kept for the old releases
 
-        /// <summary>What the data table of a cell keeps: the low 16 bits of its flags, its text, and whether it is a block or has a text.</summary>
+        /// <summary>
+        /// What the data table of a cell keeps: the low 16 bits of its flags, its text, whether it is a block or has a text, for a
+        /// number or a general value the groups of its value (from the flags 93 to the shown text 302), and the values it
+        /// overrides that the mask counts (<see cref="Overrides"/>).
+        /// </summary>
         private sealed class CellData
         {
-            internal CellData(int flags, string text, bool block, bool hasText)
+            internal CellData(
+                int flags,
+                string text,
+                bool block,
+                bool hasText,
+                List<Group> value,
+                Dictionary<int, string> overrides
+            )
             {
                 Flags = flags;
                 Text = text;
                 Block = block;
                 HasText = hasText;
+                Value = value;
+                Overrides = overrides;
             }
+
+            internal List<Group> Value { get; }
+
+            /// <summary>The alignment (170), fill (283), background colour (63) and the colour, lineweight and visibility of each border the cell overrides, by group.</summary>
+            internal Dictionary<int, string> Overrides { get; }
 
             internal int Flags { get; }
 
@@ -539,13 +638,131 @@ namespace GeometryHelper.Dxf
             internal bool HasText { get; }
         }
 
-        // The sides of a cell in the mask of its data table, as the flags of its borders are in 91 (the groups 279 and 69 are the top
-        // 0x4440, 278 and 68 the left 0x2200 and 0x20000 more, 275 and 65 the right 0x8880, 276 and 66 the bottom 0x1100 and 0x10000
-        // more). The cell across an edge that has an override of its own holds the opposite side.
-        private const int MaskTop = 0x4440;
-        private const int MaskBottom = 0x11100;
-        private const int MaskLeft = 0x22200;
-        private const int MaskRight = 0x8880;
+        // The borders of a cell, top, right, bottom and left: the groups of the colour, lineweight and visibility it overrides in the
+        // cell (69 279 289, 65 275 285, 66 276 286, 68 278 288), and the bits each has in the mask of its data table (the colour 0x40
+        // to 0x200, the lineweight 0x400 to 0x2000, the visibility 0x4000 to 0x20000, side after side).
+        private static readonly int[][] BorderGroups =
+        {
+            new[] { 69, 279, 289 },
+            new[] { 65, 275, 285 },
+            new[] { 66, 276, 286 },
+            new[] { 68, 278, 288 },
+        };
+
+        // The bits of each side in the mask (colour, lineweight, visibility together), and the flags of the cell that name the side
+        // (the third of its bits, four places up, is beyond the 16 bits of the flags of R2000 for the bottom and the left).
+        private static readonly int[] SideMask = { 0x4440, 0x8880, 0x11100, 0x22200 };
+
+        private static readonly int[] SideFlags = { 0x4440, 0x8880, 0x1100, 0x2200 };
+
+        /// <summary>
+        /// The values a cell overrides that the mask of its data table counts, from its groups before its value (from
+        /// <paramref name="from"/> to <paramref name="at"/>) and after it (past <paramref name="end"/>): the alignment, fill and
+        /// background colour and the three of each border, by group (the first of each).
+        /// </summary>
+        private static Dictionary<int, string> MaskOverrides(List<Group> cell, int from, int at, int end)
+        {
+            var found = new Dictionary<int, string>();
+
+            for (int i = from; i < cell.Count; i++)
+            {
+                if (i == at)
+                {
+                    i = end;
+                    continue;
+                }
+
+                int code = cell[i].Code;
+
+                if ((code == 170 || code == 283 || code == 63 || IsBorderGroup(code)) && !found.ContainsKey(code))
+                {
+                    found.Add(code, cell[i].Value.Trim());
+                }
+            }
+
+            return found;
+        }
+
+        private static bool IsBorderGroup(int code)
+        {
+            foreach (int[] side in BorderGroups)
+            {
+                if (Array.IndexOf(side, code) >= 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// What the table's own overrides give every cell, and the table style each kind of row (data, title and header, as the
+        /// style lists them), by group, to tell what a cell sets itself from what it takes from them (a table with a lineweight of
+        /// 0.35 given to its title and a header row has that lineweight in the cells of both where they meet, without their having
+        /// set it). Empty where the style is not found or flows upwards.
+        /// </summary>
+        private sealed class RowDefaults
+        {
+            internal readonly Dictionary<int, string>[] Kinds =
+            {
+                new Dictionary<int, string>(),
+                new Dictionary<int, string>(),
+                new Dictionary<int, string>(),
+            };
+
+            internal readonly Dictionary<int, HashSet<string>> Table = new Dictionary<int, HashSet<string>>();
+
+            internal bool NoTitle;
+
+            internal bool NoHeader;
+
+            /// <summary>What the style gives the row: its title at the top (where the style has one), then its header, then its data.</summary>
+            internal Dictionary<int, string> KindOfRow(int row)
+            {
+                int next = 0;
+
+                if (!NoTitle)
+                {
+                    if (row == 0)
+                    {
+                        return Kinds[1];
+                    }
+
+                    next = 1;
+                }
+
+                return !NoHeader && row == next ? Kinds[2] : Kinds[0];
+            }
+
+            /// <summary>
+            /// Whether a value of a cell is one the table's own overrides give every cell, or, of a border it shares with the row
+            /// next to it (<paramref name="across"/>, where it has one), the style gives that row on the same edge
+            /// (<paramref name="acrossCode"/>). A value the style gives the cell's own row is not here: the style does not put it in
+            /// the cell, so that a cell that holds it set it.
+            /// </summary>
+            internal bool Gives(int code, string value, Dictionary<int, string> across, int acrossCode)
+            {
+                if (Table.TryGetValue(code, out HashSet<string> set) && set.Contains(value))
+                {
+                    return true;
+                }
+
+                // The lineweights of the table's overrides stand for every border.
+                if (code >= 274 && code <= 279)
+                {
+                    foreach (int other in new[] { 274, 275, 276, 277, 278, 279 })
+                    {
+                        if (Table.TryGetValue(other, out HashSet<string> any) && any.Contains(value))
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+                return across != null && across.TryGetValue(acrossCode, out string given) && given == value;
+            }
+        }
 
         /// <summary>The number in the group of the code (91 rows, 92 columns) that stands after the table's <c>AcDbTable</c> marker and before its cells; 0 where there is none.</summary>
         private static int Count(List<Group> groups, int first, int code)
@@ -573,57 +790,176 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// The mask of what each cell overrides that AutoCAD keeps in its data table: its alignment, background colour and fill (the
-        /// low three flags), the sides that have a border of their own and, on the cell across each such side, the opposite one.
+        /// What the table's style and its own overrides (the groups between its flags and its first cell) give each kind of row;
+        /// nothing where the table has no style in the drawing or the style flows upwards.
         /// </summary>
-        private static int[] Masks(List<CellData> cells, int rows, int columns)
+        private RowDefaults DefaultsOf(Record table)
+        {
+            var defaults = new RowDefaults();
+            List<Group> groups = table.Groups;
+            int start = groups.FindIndex(g => g.Code == 100 && g.Value == "AcDbTable");
+            int first = groups.FindIndex(g => g.Code == 171);
+
+            if (start < 0 || first < start)
+            {
+                return defaults;
+            }
+
+            for (int i = start; i < first; i++)
+            {
+                int code = groups[i].Code;
+
+                if (
+                    code == 170
+                    || code == 63
+                    || code == 65
+                    || code == 66
+                    || code == 68
+                    || code == 69
+                    || (code >= 274 && code <= 279)
+                )
+                {
+                    if (!defaults.Table.TryGetValue(code, out HashSet<string> values))
+                    {
+                        defaults.Table.Add(code, values = new HashSet<string>());
+                    }
+
+                    values.Add(groups[i].Value.Trim());
+                }
+            }
+
+            int named = groups.FindIndex(start, first - start, g => g.Code == 342);
+            Record style = named < 0 ? null : ObjectAt(groups[named].Value);
+
+            if (style == null || style.Type != "TABLESTYLE")
+            {
+                return defaults;
+            }
+
+            List<Group> rows = style.Groups;
+            int sub = rows.FindIndex(g => g.Code == 100 && g.Value == "AcDbTableStyle");
+            int header = sub < 0 ? -1 : rows.FindIndex(sub, g => g.Code == 281);
+            int flow = sub < 0 ? -1 : rows.FindIndex(sub, g => g.Code == 70);
+
+            if (header < 1 || flow < 0 || Parse(rows[flow].Value) != 0)
+            {
+                return defaults;
+            }
+
+            defaults.NoTitle = Parse(rows[header - 1].Value) != 0;
+            defaults.NoHeader = Parse(rows[header].Value) != 0;
+            int kind = -1;
+
+            // The three kinds of row follow, each from its text style (7): data, title, header.
+            for (int i = header + 1; i < rows.Count && rows[i].Code != 100 && rows[i].Code < 1000; i++)
+            {
+                if (rows[i].Code == 7 && ++kind > 2)
+                {
+                    break;
+                }
+
+                if (kind >= 0 && !defaults.Kinds[kind].ContainsKey(rows[i].Code))
+                {
+                    defaults.Kinds[kind].Add(rows[i].Code, rows[i].Value.Trim());
+                }
+            }
+
+            return defaults;
+        }
+
+        /// <summary>
+        /// The mask of what each cell sets itself that AutoCAD keeps in its data table: its alignment (0x01), its background colour
+        /// with the fill (0x06), and each side that has a border of its own (the top 0x4440, right 0x8880, bottom 0x11100, left
+        /// 0x22200), with the opposite side on the cell across the edge. The content colour, text style and text height are in no
+        /// mask. A cell that holds only what the table gives it is set nothing: a value that the table's own overrides give every
+        /// cell, or that the style gives the row across the edge where two kinds of row meet (a lineweight under the title that is
+        /// also the lineweight over the header), is in the cell's flags and groups as one it set, and AutoCAD's masks of such cells
+        /// are 0 (<c>ttable</c>, <c>tstyles</c>, <c>tclean</c>; see <see cref="RowDefaults"/>). AutoCAD keeps the mask of a cell by
+        /// what was set on it one property at a time (a lineweight alone sets 0x400 on a top border, a colour 0x40), which the file
+        /// does not tell from a border set whole; the whole side is taken, as the cell's flags show it.
+        /// </summary>
+        private static int[] Masks(List<CellData> cells, int rows, int columns, RowDefaults defaults)
         {
             var masks = new int[cells.Count];
 
             for (int i = 0; i < cells.Count; i++)
             {
-                int flags = cells[i].Flags;
+                Dictionary<int, string> set = cells[i].Overrides;
                 int row = i / columns;
                 int column = i % columns;
-                masks[i] |= flags & 7;
 
-                if ((flags & 0x4440) != 0)
+                if (set.TryGetValue(170, out string alignment) && !defaults.Gives(170, alignment, null, 0))
                 {
-                    masks[i] |= MaskTop;
-
-                    if (row > 0)
-                    {
-                        masks[i - columns] |= MaskBottom;
-                    }
+                    masks[i] |= 1;
                 }
 
-                if ((flags & 0x1100) != 0)
+                if (set.TryGetValue(63, out string background) && !defaults.Gives(63, background, null, 0))
                 {
-                    masks[i] |= MaskBottom;
-
-                    if (row < rows - 1)
-                    {
-                        masks[i + columns] |= MaskTop;
-                    }
+                    masks[i] |= 6;
                 }
 
-                if ((flags & 0x2200) != 0)
+                for (int side = 0; side < 4; side++)
                 {
-                    masks[i] |= MaskLeft;
+                    // The cell across the side: above, to the right, below, to the left, where there is one.
+                    int nextRow =
+                        row
+                        + (
+                            side == 0 ? -1
+                            : side == 2 ? 1
+                            : 0
+                        );
+                    int nextColumn =
+                        column
+                        + (
+                            side == 1 ? 1
+                            : side == 3 ? -1
+                            : 0
+                        );
+                    bool inside = nextRow >= 0 && nextRow < rows && nextColumn >= 0 && nextColumn < columns;
+                    int opposite = (side + 2) & 3;
 
-                    if (column > 0)
+                    // A side the cell sets holds all three of its bits; one whose values are all those the table gives it (or the
+                    // defaults) is not set.
+                    bool counted = false;
+                    bool given = false;
+
+                    for (int property = 0; property < 3; property++)
                     {
-                        masks[i - 1] |= MaskRight;
+                        int code = BorderGroups[side][property];
+
+                        if (!set.TryGetValue(code, out string value) || Parse(value) == (property == 1 ? -2 : 0))
+                        {
+                            continue;
+                        }
+
+                        if (
+                            property < 2
+                            && defaults.Gives(
+                                code,
+                                value,
+                                inside ? defaults.KindOfRow(nextRow) : null,
+                                BorderGroups[opposite][property]
+                            )
+                        )
+                        {
+                            given = true;
+                        }
+                        else
+                        {
+                            counted = true;
+                        }
                     }
-                }
 
-                if ((flags & 0x8880) != 0)
-                {
-                    masks[i] |= MaskRight;
-
-                    if (column < columns - 1)
+                    if (!counted && (given || (cells[i].Flags & SideFlags[side]) == 0))
                     {
-                        masks[i + 1] |= MaskLeft;
+                        continue;
+                    }
+
+                    masks[i] |= SideMask[side];
+
+                    if (inside)
+                    {
+                        masks[nextRow * columns + nextColumn] |= SideMask[opposite];
                     }
                 }
             }
@@ -753,7 +1089,7 @@ namespace GeometryHelper.Dxf
             keeper.Groups.Add(Whole(91, columns));
             keeper.Groups.Add(new Group(102, "ACAD_ROUNDTRIP_PRE2007_TABLECELL"));
             keeper.Groups.Add(new Group(360, data));
-            AddDataTable(data, xrecord, cells, Masks(cells, rows, columns));
+            AddDataTable(data, xrecord, cells, Masks(cells, rows, columns, DefaultsOf(table)));
         }
 
         /// <summary>
@@ -862,6 +1198,15 @@ namespace GeometryHelper.Dxf
                 groups.Add(owned);
                 groups.Add(marker);
                 groups.Add(version);
+
+                // A number or a general value is kept as it is: its flags, type, data, unit, format and shown text.
+                if (cell.Value != null)
+                {
+                    groups.AddRange(cell.Value);
+                    _added.Add(record);
+                    continue;
+                }
+
                 groups.Add(
                     cell.Block ? blockFlag
                     : cell.HasText ? textFlag
@@ -906,6 +1251,47 @@ namespace GeometryHelper.Dxf
             }
 
             return _byHandle.TryGetValue(handle.Trim(), out Record found) && !found.Dropped ? found : null;
+        }
+
+        /// <summary>
+        /// The value a field holds, as the data table of the cell that shows it keeps it: that of the last field in the chain of
+        /// the first children from the field of the cell (a table's field wraps the one that works out the text), its groups from
+        /// the flags (93) to the shown text (302), without the 92 that R2018 has beside the type. Null where the field, its value
+        /// or a child is not in the drawing.
+        /// </summary>
+        private List<Group> FieldValue(string handle)
+        {
+            Record field = ObjectAt(handle);
+
+            for (int depth = 0; field != null && depth < 8; depth++)
+            {
+                List<Group> groups = field.Groups;
+                int own = groups.FindIndex(g => g.Code == 100 && g.Value == "AcDbField");
+                int count = own < 0 ? -1 : groups.FindIndex(own, g => g.Code == 90);
+
+                if (count < 0 || count + 1 >= groups.Count)
+                {
+                    return null;
+                }
+
+                if (Parse(groups[count].Value) > 0 && groups[count + 1].Code == 360)
+                {
+                    field = ObjectAt(groups[count + 1].Value);
+                    continue;
+                }
+
+                int value = groups.FindIndex(count, g => g.Code == 7 && g.Value == "ACFD_FIELD_VALUE");
+                int end = value < 0 ? -1 : groups.FindIndex(value, g => g.Code == 304 && g.Value == ValueEnd);
+
+                if (end < 0 || end - value < 5 || groups[value + 1].Code != 93)
+                {
+                    return null;
+                }
+
+                return groups.GetRange(value + 1, end - value - 1).FindAll(g => g.Code != 92);
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -964,7 +1350,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Puts the values of the table's TABLECONTENT in the form of R2004 and before, as a change to make once the whole table is
         /// known to be converted: the flags (93) before each value's type are left out, and the 94, 300, 302 and ACVALUE_END after
-        /// its data. False where a value is of a shape that is not known.
+        /// its data. A value of the type 512 gets the words it shows in 1 (the 302 it leaves out). False where a value is of a
+        /// shape that is not known.
         /// </summary>
         private bool ContentDown(Record table, List<Action> changes)
         {
@@ -1010,6 +1397,11 @@ namespace GeometryHelper.Dxf
                 if (groups[i + 2].Value.Trim() == "0" && groups[end - 3].Code == 94 && end - 3 == i + 3)
                 {
                     made.Add(Whole(91, 0));
+                }
+                else if (groups[i + 2].Value.Trim() == "512" && end - 3 == i + 3)
+                {
+                    // A general value holds the words it shows, as its type 4 does (none, in a table drawn with nothing in it).
+                    made.Add(new Group(1, groups[end - 1].Value));
                 }
 
                 i = end;
@@ -1066,17 +1458,35 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                if (!text && !(type == "2" && groups[i + 2].Code == 140))
+                // The value of a cell is a whole number (91), a real (140), words (1) or a general value that holds its words in 1
+                // and shows them in 302; the checksum of the cell (a DATAMAP_VALUE) is a real with the flags 2.
+                bool cell = groups[i].Code == 300;
+                bool whole = cell && type == "1" && groups[i + 2].Code == 91;
+                bool general = cell && type == "512" && groups[i + 2].Code == 1;
+
+                if (!text && !whole && !general && !(type == "2" && groups[i + 2].Code == 140))
                 {
                     return false;
                 }
 
-                made.Add(Whole(93, text ? 6 : 2));
+                made.Add(
+                    Whole(
+                        93,
+                        text || whole || (cell && !general) ? 6
+                            : general ? 5
+                            : 2
+                    )
+                );
                 made.Add(groups[i + 1]);
-                made.Add(groups[i + 2]);
+
+                if (!general)
+                {
+                    made.Add(groups[i + 2]);
+                }
+
                 made.Add(Whole(94, 0));
                 made.Add(new Group(300, string.Empty));
-                made.Add(new Group(302, text ? groups[i + 2].Value : string.Empty));
+                made.Add(new Group(302, text || whole || general ? groups[i + 2].Value : string.Empty));
                 made.Add(new Group(304, ValueEnd));
                 i += 2;
             }

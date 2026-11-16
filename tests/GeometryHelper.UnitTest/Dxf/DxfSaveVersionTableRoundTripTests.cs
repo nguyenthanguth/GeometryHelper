@@ -322,11 +322,11 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ATableWhoseCellsHaveNoForm_TakesItsRoundTripWithItWhenItBecomesABlock()
         {
-            // A cell with a field (344) is none of the cells the old form is made of: the table is the INSERT, and its table
-            // content, geometry and data link owner go with the extension dictionary.
+            // A cell linked to data (a 92 that is not 0) is none of the cells the old form is made of: the table is the INSERT,
+            // and its table content, geometry and data link owner go with the extension dictionary.
             string text = Linked.Replace(
                 G(145, "0.0") + G(92, "0") + G(301, "CELL_VALUE"),
-                G(145, "0.0") + G(344, "AB") + G(92, "0") + G(301, "CELL_VALUE")
+                G(145, "0.0") + G(92, "1") + G(301, "CELL_VALUE")
             );
             byte[] saved = Saved(text, "AC1018", out IReadOnlyList<string> said);
 
