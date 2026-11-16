@@ -1202,8 +1202,23 @@ read by the first ray and have 13, 25, 349 and 380 read by the middle (by the se
 twentieth of the sweep's excess over 60 degrees from the middle leaves 44 to 59 wrong at 30 and 90 degrees, so the middle is
 the index, not near it). The 1.4 per cent left at 120 and 150 degrees is the words' width, not the angle: "120°" (7.08 wide, 4
 characters) put round an angle of 60 degrees has 371 of 25 481 wrong where "60°" has 27 of 36 278, so the band of words of other
-widths than "60°" with a first ray elsewhere than 0 is still the table of the narrow words. The pictures differing from AutoCAD's of
+widths than "60°" was still the table of the narrow words (see the next paragraph). The pictures differing from AutoCAD's of
 the angles of two lines and three points given the other way round and reflex (p2) are 17 of 576 before and 6 now.
+Words wider or narrower than "60°" have another band: AutoCAD 2021's edges for "120°" lie 0.5 to 1.0 farther out and 0 to 1.0
+farther in than for "60°" on the same directions and the same first rays (the same on every first ray outside the circle, in
+blocks of first rays inside), and the rule's own scaling by the words' width (the landing's sagitta, room squared over the radius)
+over-corrected some directions so far that words 8 wide had a leader on the circle itself. The sagitta is now the landing of
+"60°" in the same style times the words' landing over the radius, which is the same where the words are "60°", and WidthCorrections
+adds a table by direction (inside and outside the circle, 36 directions, the same for every first ray) at nodes of how far the
+words' landing is over that of "60°" as a share of it: "6°" 0.18 under it, and "120°", "60.0°", "60.00°", "60.000°", "60.0000°" and
+"60.000000°" 0.14, 0.29, 0.46, 0.64, 0.82 and 1.18 over it, read linearly between the nodes and held beyond them, fitted together
+for SHX and Arial to 270 000 probes of an angle of 60 degrees from 0, 45, ... 315 degrees with its arc 30 out (words put every 0.25 at
+36 directions, from 7 in to 16 out) and to the "60.0000°" probes of the arcs of 30, 45, 60 and 240 out. The probes wrong before and
+now (SHX, then Arial): "6°" 141 and 182 to 94 and 70, "120°" 373 and 255 to 217 and 168, "60.0°" 666 and 469 to 309 and 245,
+"60.00°" 858 and 767 to 411 and 362, "60.000°" 1 218 and 998 to 560 and 469, "60.0000°" 2 127 and 1 491 to 788 and 606,
+"60.000000°" (first rays 0, 90, 180 and 270) 1 771 and 1 379 to 505 and 445. A table fitted to four first rays took the other four
+from 138 to 84 of 13 192, so a first ray between those probed is read about as well; a table by the direction from the arc's middle,
+or one for each first ray, took what it was fitted to lower and the first rays held out back up (106 of 13 192).
 The sum is held to 0.04 less than twice the half width and DIMEXE, which is where AutoCAD's edges lay between probes 0.25 apart.
 A radius or a diameter put inside under 1 keeps its words as DIMATFIT 3 does, whatever DIMATFIT; under 2, words on its line over a
 radius's centre or over the rim, from inside or out (a diameter's from the back of its arrowhead in), put the arrowheads
