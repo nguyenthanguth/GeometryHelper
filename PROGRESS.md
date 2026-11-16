@@ -503,7 +503,7 @@ the ones wanted.
       AutoCAD (48 entities x 13 transformations to 1E-9), a mirrored TEXT/MTEXT turned readable about its words as
       AutoCAD, a hatch's pattern scale kept under a scaling mirror, 52 at a half turn as AutoCAD, the annotative context
       direction a world vector, MTEXT's direction kept unit; the presenter's MIRROR looks as before
-- [ ] MIRROR follow-ups 9: justified TEXT mirrored (AutoCAD recomputes 10 from the alignment point); annotative TEXT and
+- [ ] (mirror9, running) MIRROR follow-ups 9: justified TEXT mirrored (AutoCAD recomputes 10 from the alignment point); annotative TEXT and
       MTEXT and TEXT without a font fall back; POINT group 50 under TransformBy; MTEXT's 11 omitted on a tilted plane;
       the hatch half-turn sign rule not understood; POLYLINE 2D and LEADER normals not probed (S)
 - [x] Drafting aids: TK (TRACKING); check TT with OTRACK off, "(need YZ):" input and Enter at a modifier prompt
@@ -595,10 +595,9 @@ the ones wanted.
       it (wrong leaders: 30 degrees 188 -> 13, 90 degrees 208 -> 25, 120 722 -> 345, 150 848 -> 373); the near table
       fitted across landings (e8 48 -> 37, te11 26 -> 22, o6 1 590 -> 1 486); 103 sets byte for byte; aq 78 -> 81 and
       o2 413 -> 432 the only ones worse
-- [ ] (dims20, running) Dimension follow-ups 19: the words' width in the band ("120°", DIMADEC words with a first ray other than 0; 380 of
-      26 384 wrong); the DIMTXT 4 near rings (words, arrowhead and gap as separate terms); d1/aq/taq's jump at the arc
-      middle's height (parked after 4 attempts); a3g changed with no AutoCAD picture; d2 R6/R7 SHX window; t6's turned
-      diameter and words on an extension line at distance 0 (S)
+- [x] Dimension follow-ups 19 (dims20): the angular band scaled by the words' width (a width correction at nodes from
+      "6°" to "60.000000°": "120°" 373 -> 217, "60.0000°" 2 127 -> 788 probes wrong in SHX); a3g pictured. PARKED by the
+      maintainer's features-first rule: the near rings, the middle-height jump, wide words at reflex angles
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
       ends in a fuzz join (20 cases to 1E-10) (S)
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in
@@ -628,12 +627,10 @@ the ones wanted.
       as AutoCAD's console without a view); Auto names every object whose box meets the host's, newest first; Auto
       breaks angular and arc-length arcs; Multiple takes multileaders too; group 50 written when a level DIMLINEAR is
       turned (a fault the follow showed)
-- [ ] DIMBREAK follow-ups 2: Manual on ordinate and arc-length dimensions (AutoCAD numbers the ordinate leader 0, the
-      arc 3); AutoCAD's pixel margin round the boxes; SCALE of a dimension with breaks; COPY of a dimension with
-      BREAKDATA; a multileader's extents without words and arrow; DxfDimension.GeometricExtents throws; the arc-length
-      picture's zero-radius arc; a several-line TrueType multileader; a block multileader of scale other than 1;
-      TEXTALIGN with a reference text; REVCLOUDGRIPS on plain, ellipse and Freehand clouds; a circle's grip order; PEDIT
-      spline counts PARKED; GUI-only: Freehand spacing, REFEDIT, TABLEEXPORT, pre-selection, BOUNDARY, FILTER, SPELL (S)
+- [x] DIMBREAK follow-ups 2 (dimbreak4): Manual on ordinate and arc-length dimensions numbered as AutoCAD; the public
+      DxfDimension.GeometricExtents (it threw) and a multileader's extents with words and arrows; SCALE and COPY of a
+      dimension with breaks as AutoCAD; the arc-length picture's zero-radius arc fixed. Left (parked, features first):
+      SCALE of a dimension without breaks, COPY of a multileader with breaks, the pixel margin
 - [x] Layouts: twisted viewports drawn and entered as AutoCAD (two bugs: the turn's sense, group 12 in view coordinates);
       one undo step per wheel or pan gesture; ZOOM Previous per viewport (20 each); -SCALELISTEDIT; Isolate in the Layer
       manager; New VP Freeze on viewports made through the core's API (S)
@@ -742,6 +739,47 @@ the ones wanted.
       (needs a per-object revision stamp); Properties skipping an equal typed value (palette); a value-set tie broken by
       float noise; the block-table grip menu and glyph (GUI); the Design artifact's grip colour #19B5F0 to #00BFFF;
       parameters added or removed in the Block Editor (GUI) (S)
+
+### Feature plan (maintainer 2026-11-16: features first; speed and small parity follow-ups parked until he has tested)
+
+Missing features of the presenter against AutoCAD 2021's 2D drafting, checked in the source (299 commands, 118 typed
+variables). Wave 1 is built first, basics first; Wave 2 and 3 after. The open follow-ups elsewhere in this file that only
+chase speed or a few pictures stay parked unless they are real faults.
+
+Wave 1 (High):
+- [ ] (spline1, running) SPLINE command (Fit/CV, Knots, Object, Close, fit tolerance, tangents) (M)
+- [ ] (draw1, running) RECTANG options: Chamfer, Elevation, Fillet, Thickness, Width, Area, Dimensions, Rotation (S)
+- [ ] (draw1, running) WIPEOUT command: points, Polyline (Erase polyline?), Frames (M)
+- [ ] COPY Array (count, Fit) and mOde Single/Multiple (S)
+- [ ] SELECTSIMILAR (with SEttings) and ADDSELECTED; the canvas menu items enabled (S)
+- [ ] OVERKILL (duplicates and overlaps of lines, arcs, polyline segments; the dialog) (M)
+- [ ] Path array (ARRAYPATH): Divide/Measure, Align items, Z direction, Base point, Tangent direction (M)
+- [ ] (draw1, running) OOPS (S)
+- [ ] MTEXT Background Mask dialog and the editor's Mask button (S)
+- [ ] SCALETEXT, JUSTIFYTEXT, TXT2MTXT (S/S/M)
+- [ ] ATTDISP; -ATTEDIT global edit (S)
+- [ ] LAYMRG, LAYDEL, LAYCUR, COPYTOLAYER (S each)
+- [ ] Layer manager: Plot, Transparency, Description, Plot Style columns; property and group filters (M)
+- [ ] -DIMSTYLE (Save, Restore, STatus, Variables, Apply, ?) and DIMUPDATE (S)
+- [ ] Plot style tables from .ctb/.stb files and the Plot Style Table Editor (M-L)
+- [ ] PUBLISH: batch plot of several drawings and layouts to one PDF or a printer (M)
+- [ ] Drawing templates: NEW from a chosen .dwt/.dxf, QNEW, Save As .dwt (M)
+- [ ] Wire up greyed buttons and menu items whose commands exist (BEDIT, BATTMAN, TABLE, QuickCalc, Quick Properties,
+      annotation scale items) (S)
+- [ ] F2 text window (TEXTSCR), the command history (S)
+- [ ] More transparent commands ('DIST, 'ID, 'LAYER, 'COLOR, 'UNITS, 'QUICKCALC) and variables typed transparently (S)
+- [ ] Common system variables typable: TRIMEXTENDMODE, LUNITS/LUPREC/AUNITS/AUPREC/INSUNITS, ANGBASE/ANGDIR, PLINEWID,
+      PLINEGEN, HPNAME/HPSCALE/HPANG/HPLAYER, DIMLAYER, DELOBJ, SAVETIME, FILLMODE and others (M)
+
+Wave 2 (Medium): BLEND; XLINE Offset; associative arrays and ARRAYEDIT; REVERSE, SETBYLAYER, CHPROP; BURST and TXTEXP;
+FIELD and UPDATEFIELD; MTEXT editor leftovers (Import Text, character map, AutoCAPS, Match Text Formatting, Spell);
+table cell Cut/Copy/Paste, cell styles, Borders, Locking, Data Format, Match Cell, Insert Block/Field/Formula; xref edit
+in place; more raster types; dynamic block authoring; DWGPROPS; MEASUREGEOM Quick; HATCHGENERATEBOUNDARY and Set
+Boundary; GROUPEDIT; HYPERLINK; CHSPACE; Plot View; the Hatch Creation contextual tab; the MLEDIT dialog;
+CLEANSCREENON/OFF and F5; a Manage tab; ATTREDEF; command search.
+
+Wave 3 (Low): SKETCH, TRACE; FILL and QTEXT; LIMITS; TIME, STATUS, MULTIPLE; MASSPROP; MINSERT; DIMINSPECT; LAYWALK,
+LAYTRANS; SAVEALL, CLOSEALL; PDF underlays; more EXPORT writers; parametric constraints; DesignCenter and palettes.
 
 ### To do
 
@@ -1037,10 +1075,13 @@ the ones wanted.
 - [x] Speed follow-ups 19 (speed20): the DXF write of a DWG on up to 8 threads in runs joined in order, and a quadratic
       walk of the block list fixed (20 000 dimensions/hatches/splines: open 1.55 -> 0.68 s); 300 000 lines first open
       0.65 -> 0.53 s (net8), 1.05 -> 0.79 s (net48); DXF text byte-identical on 186 DWGs, 3 runtimes, 1-8 threads
-- [ ] Speed follow-ups 20: under .NET Framework the DXF of 54 of 186 DWGs differs from .NET 8/10 (old too: find why,
-      make the runtimes agree); the planning walk (~42 ms); WriteObjects sequential; DwgReader.Open(string/Stream)
-      still copies the DXF twice (40 MB each); the GC pause of a first open (a streaming design); MTEXT/INSERT contexts
-      tuples; LinkedColumns; REGEN's text group walk (S)
+- [x] Runtimes agree (runtime1): the DXF a DWG is turned into, the DXF save writer and the DWG writer give the same text
+      under .NET Framework 4.8, .NET 8 and .NET 10 (186 DWGs identical; .NET 8 text unchanged): digits worked out in
+      integers (ExactDigits), not by Framework's G15/G17 and double.Parse, which are wrong for about 1 number in 1 000;
+      negative nought written -0.0
+- [ ] Runtimes follow-ups: about 30 double.Parse/TryParse calls in the version converters, dimension, table and hatch
+      code could misread a decimal on Framework (use Numbers.TryRead); DxfVersionConverter.R12Hatch.Plain and
+      DxfTableEditingText.Split still format with Framework's "R" (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)

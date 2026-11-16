@@ -15,37 +15,15 @@ namespace GeometryHelper.UnitTest.Dxf
     /// The work of speed19 in the core: the objects of a DWG decoded on several threads, the numbers that are not whole
     /// written as bytes in whole-number arithmetic on every runtime, and the handles written kept in a table made once.
     /// Each is held to what it was: the DXF a DWG is made into is the same bytes whatever the threads, and a number is the text
-    /// the older code gave it, where .NET Framework's own parse had it.
+    /// the older code gave it under .NET Core, which is now the text on .NET Framework too.
     /// </summary>
     public class DxfSpeed28Tests
     {
-        /// <summary>A number as DXF text as it was made before speed18: 15 digits tried back through a parse, else 17.</summary>
-        private static string FormerNumber(double value)
-        {
-            if (double.IsNaN(value) || double.IsInfinity(value))
-            {
-                return "0.0";
-            }
-
-            if (Math.Abs(value) >= 1.797693134862315E+308)
-            {
-                return value < 0 ? "-1.797693134862314E+99" : "1.797693134862314E+99";
-            }
-
-            if (value == Math.Floor(value) && Math.Abs(value) < 1E15)
-            {
-                return value.ToString("0.0", CultureInfo.InvariantCulture);
-            }
-
-            string text = value.ToString("G15", CultureInfo.InvariantCulture);
-
-            if (double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture) != value)
-            {
-                text = value.ToString("G17", CultureInfo.InvariantCulture);
-            }
-
-            return text;
-        }
+        /// <summary>
+        /// A number as DXF text as .NET Core made it before speed18 (15 digits tried back through a parse, else 17), worked out
+        /// in integers so that it is the same under .NET Framework, whose own formatting and parse are a little off.
+        /// </summary>
+        private static string FormerNumber(double value) => DxfRuntime1Tests.ReferenceNumber(value);
 
         private static readonly double[] Tens =
         {
@@ -110,12 +88,6 @@ namespace GeometryHelper.UnitTest.Dxf
 
             foreach (double value in values)
             {
-                // A negative nought is left out: it is written as the runtime formats it, as it was.
-                if (value == 0.0 && BitConverter.DoubleToInt64Bits(value) != 0L)
-                {
-                    continue;
-                }
-
                 writer.Write(10, value);
                 text.Append("10\r\n").Append(FormerNumber(value)).Append("\r\n");
             }
@@ -128,7 +100,7 @@ namespace GeometryHelper.UnitTest.Dxf
         public void TwoMillionNumbersOfNineKinds_AreWrittenAsTheOlderCodeWroteThem()
         {
             // The older code on .NET Framework gave 17 digits to about one in a thousand of the nearest doubles of a decimal,
-            // the parse of its own 15 digits not being exact; the same text comes out here under both runtimes.
+            // the parse of its own 15 digits not being exact; the text of .NET Core comes out here under every runtime.
             for (int kind = 0; kind < 9; kind++)
             {
                 var random = new Random(2800 + kind);
@@ -174,11 +146,11 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void DoublesThatDotNetFrameworkReadsOneOff_AreWrittenAsTheOlderCodeWroteThem()
+        public void DoublesThatDotNetFrameworkReadsOneOff_AreWrittenAsNetCoreWroteThem()
         {
             // Each is the nearest double of a decimal of 6 to 15 digits whose 15 digits are within a thousandth of half the
             // distance to its neighbour either way, where .NET Framework's parse is a unit off in the last of 64 bits. Where
-            // that parse read the text of the 15 digits as the number, the older code wrote them, and where not, 17.
+            // an exact parse reads the text of the 15 digits as the number, they are written, and where not, 17.
             long[] bits =
             {
                 unchecked((long)0xBFEFFE2E6EA85447),
@@ -278,7 +250,6 @@ namespace GeometryHelper.UnitTest.Dxf
 
             long used = (GC.GetAllocatedBytesForCurrentThread() - before) / values.Length;
 
-            // One in sixteen is left to the old way where the runtime's own parse could not be told from the exact one.
             Assert.True(used < 40, "allocated " + used + " bytes a number");
         }
 

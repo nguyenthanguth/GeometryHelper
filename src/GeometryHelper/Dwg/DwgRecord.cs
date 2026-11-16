@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using GeometryHelper.Export;
 
 namespace GeometryHelper.Dwg
 {
@@ -151,10 +152,21 @@ namespace GeometryHelper.Dwg
                 : 0;
         }
 
-        /// <summary>A real number as DXF writes it; 0 for a broken one.</summary>
+        /// <summary>
+        /// A real number as DXF writes it; 0 for a broken one. Read by the library's own exact parse, as the double nearest the
+        /// text, for the parse of .NET Framework is a unit off in the last bit for about one decimal of 6 to 15 digits in a
+        /// thousand (-0.999778 is read as the next double), and the DWG written from the text would not be the one .NET Core writes.
+        /// </summary>
         public static double Double(string value)
         {
-            double.TryParse(value.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double number);
+            string text = value.Trim();
+
+            if (Numbers.TryRead(text, out double exact))
+            {
+                return exact;
+            }
+
+            double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number);
             return number;
         }
 

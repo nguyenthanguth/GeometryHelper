@@ -269,7 +269,8 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
   `GetHatchLinesData()` refuse it. AutoCAD 2021 draws none of those lines either, even after REGEN, until the hatch is
   edited: give the drawing the folder of the pattern files, or a pattern of the user's own (`_USER`), where the lines must
   show. A leader drawn anew (`EvaluateLeader`),
-  where a multileader's leaders meet its words, and the size of those words in its `GeometricExtents` are not worked out: a
+  where a multileader's leaders meet its words are not worked out (the size of those words in its `GeometricExtents` is, where
+  the fonts measure them): a
   leader added on the left of words held at their top left is landed as AutoCAD lands it, but one on their right, which
   AutoCAD lands as far right as its font makes the words wide, starts its dogleg at the base point of the content (10 of
   the context data), as does one of a block, at the origin where the block is placed after its leader line is added; and

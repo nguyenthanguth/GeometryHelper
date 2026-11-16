@@ -1146,6 +1146,61 @@ namespace GeometryHelper.Dxf.Viewer
                 + NearCorrections[(i + 1) % NearCorrections.GetLength(0), side] * t;
         }
 
+        /// <summary>
+        /// The correction words wider or narrower than "60°" have besides (WidthCorrections by direction, read between the nodes of
+        /// 10 degrees), in units of the landing's sagitta. <paramref name="excess"/> is how far the landing of the words is over
+        /// the landing of "60°" in the same style, as a share of the latter: the table of each node of <c>WidthNodes</c> is the one
+        /// words of that excess had, nought at no excess, and the corrections are read linearly between the nodes by the excess
+        /// and held at the last, as at the narrowest.
+        /// </summary>
+        private static double WidthCorrection(GeoPoint2 vertex, GeoPoint2 at, bool inside, double excess)
+        {
+            if (Math.Abs(excess) < 1E-9)
+            {
+                return 0.0;
+            }
+
+            int side = inside ? 0 : 1;
+            double degrees = Math.Atan2(at.Y - vertex.Y, at.X - vertex.X) * 180.0 / Math.PI;
+
+            if (degrees < 0.0)
+            {
+                degrees += 360.0;
+            }
+
+            double place = degrees / 10.0;
+            int i = Math.Min((int)Math.Floor(place), 35);
+            double t = place - i;
+            double Node(int k) =>
+                WidthCorrections[k * 36 + i, side] * (1.0 - t) + WidthCorrections[k * 36 + (i + 1) % 36, side] * t;
+            int last = WidthNodes.Length - 1;
+
+            if (excess < 0.0)
+            {
+                return Node(0) * Math.Min(1.0, excess / WidthNodes[0]);
+            }
+
+            if (excess <= WidthNodes[1])
+            {
+                return Node(1) * excess / WidthNodes[1];
+            }
+
+            if (excess >= WidthNodes[last])
+            {
+                return Node(last);
+            }
+
+            int j = 2;
+
+            while (excess > WidthNodes[j])
+            {
+                j++;
+            }
+
+            double between = (excess - WidthNodes[j - 1]) / (WidthNodes[j] - WidthNodes[j - 1]);
+            return Node(j - 1) * (1.0 - between) + Node(j) * between;
+        }
+
         // The correction above is in full on arcs up to this many landings out and falls off as one over the radius beyond: the
         // 240 out arcs of AutoCAD 2021 (43 landings of 5.6) have 0.37 of it: the table fitted at 30 out left 6 of 6 499 probes
         // wrong (Arial 7) and 10 of 6 984 (Arial 14) there, where 0.37 of it leaves 4 (Arial 4) and 6 (Arial 10).
@@ -1174,7 +1229,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// The curve of the arc enters as AutoCAD 2021 draws it: the distance from a corner to a point of the circle is the
         /// corner's distance from the circle (its distance from the vertex less the radius) and the chord at the radius between
         /// their directions, as if the circle were unrolled, not the straight distance between them; and the diagonal of the box
-        /// is flatter by 0.7 of the sagitta <c>room * room / radius</c> of a landing, up or down. AutoCAD 2021's band of the
+        /// is flatter by 0.7 of the sagitta <c>room * room / radius</c> of a landing, up or down (the sagitta of the tables below is
+        /// that of "60°", the <paramref name="reference"/>, times <paramref name="room"/> over the radius). AutoCAD 2021's band of the
         /// words "60°" is centred out of the circle by about half that sagitta (0.6 out at 30 out, 0.37 at 45, 0.2 at 90,
         /// where the words stand above the vertex, none where they stand beside it), where the sum of straight distances had it
         /// centred on the circle.
@@ -1232,6 +1288,25 @@ namespace GeometryHelper.Dxf.Viewer
         /// fifth 65 to 101. The 1.4 per cent left at 120 and 150 degrees is the words' width, not the angle: "120°" (7.08 wide,
         /// 4 characters) put round an angle of 60 degrees has 371 of 25 481 wrong, where "60°" has 27 of 36 278.
         /// </para>
+        /// <para>
+        /// Words wider or narrower than "60°" have another band: <paramref name="reference"/> is the landing of "60°" in the same
+        /// style (half its width, a gap and an arrowhead), and the sagitta the tables are in units of is the product of it and
+        /// <paramref name="room"/> over the radius, which is the old <c>room * room / radius</c> where the words are "60°"
+        /// (nothing that was probed with them moves). By how far <paramref name="room"/> is over it, as a share of it,
+        /// <see cref="WidthCorrection"/> adds the table of <c>WidthCorrections</c> read between its nodes: "6°" (3.33 wide, 0.18
+        /// under), "120°" (7.08, 0.14 over), "60.0°", "60.00°", "60.000°", "60.0000°" and "60.000000°" (0.29, 0.46, 0.64, 0.82
+        /// and 1.18 over, held beyond), SHX and Arial together, one table of 36 directions for every first ray (a table fitted
+        /// to the first rays 0, 90, 180 and 270
+        /// of "120°" took the probes wrong at the first rays 45, 135, 225 and 315 from 138 to 84 of 13 192, 166 to 88 at its own;
+        /// a second table by the direction from the arc's middle took its own to 60 and the others back to 106, and a table for
+        /// each first ray took each to a fifth of its probes wrong, which the 45 degrees between them cannot show to carry).
+        /// Probed with the angle of 60 degrees from 0, 45, ... 315, the arc 30 out, words put every 0.25 at 36 directions
+        /// (17 680 probes each from d -7 to 9, "120°" 26 384 from -12 to 12; the wide words 8 704 more from 8.25 to 16 out),
+        /// the probes wrong before and now (SHX, then Arial): "6°" 141 and 182 to 94 and 70, "120°" 373 and 255 to 217 and 168,
+        /// "60.0°" 666 and 469 to 309 and 245, "60.00°" 858 and 767 to 411 and 362, "60.000°" 1 218 and 998 to 560 and 469,
+        /// "60.0000°" 2 127 and 1 491 to 788 and 606, "60.000000°" (first rays 0, 90, 180 and 270, from -7 to 16) 1 771 and 1 379
+        /// to 505 and 445; the "60.0000°" words of the arcs of 30, 45 and 60 out (the first ray 0) are as many or fewer.
+        /// </para>
         /// </remarks>
         private static bool WordsStayOnTheArc(
             GeoPoint2 vertex,
@@ -1241,7 +1316,8 @@ namespace GeometryHelper.Dxf.Viewer
             double room,
             double height,
             double beyond,
-            double firstRay
+            double firstRay,
+            double reference
         )
         {
             double lift =
@@ -1311,9 +1387,14 @@ namespace GeometryHelper.Dxf.Viewer
                 inside ? (at.X < vertex.X ? -1.6 : 1.0)
                 : at.X < vertex.X ? -0.7
                 : -0.9;
-            double sagitta = room * room / radius;
+            double sagitta = reference * room / radius;
+            double excess = reference > 1E-9 ? (room - reference) / reference : 0.0;
             double correction =
-                (ArcCorrection(vertex, at, inside, firstRay) + narrowing * lower)
+                (
+                    ArcCorrection(vertex, at, inside, firstRay)
+                    + narrowing * lower
+                    + WidthCorrection(vertex, at, inside, excess)
+                )
                 * sagitta
                 * Math.Min(1.0, FullCorrection * room / radius);
             double nearness = Math.Max(0.0, room / radius - 1.0 / FarArc);
@@ -1864,7 +1945,8 @@ namespace GeometryHelper.Dxf.Viewer
                                     landingLen,
                                     height,
                                     beyond,
-                                    middle - Math.PI / 6.0
+                                    middle - Math.PI / 6.0,
+                                    WordsWidth(style, "60%%d", written, out _) / 2.0 + gap + arrow
                                 )
                             : offArc > outerEdge || offArc < -innerEdge
                         )

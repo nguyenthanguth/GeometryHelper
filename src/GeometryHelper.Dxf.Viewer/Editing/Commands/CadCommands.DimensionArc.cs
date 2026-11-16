@@ -505,7 +505,8 @@ namespace GeometryHelper.Dxf.Viewer
 
             DxfMText text = picture.OfType<DxfMText>().FirstOrDefault();
 
-            if (text != null && symbol != 2)
+            // Words of no height draw no arc symbol: a zero-radius arc is no shape, and AutoCAD 2021 draws none with no words.
+            if (text != null && symbol != 2 && tall > 0.0)
             {
                 var x = new GeoVector2(Math.Cos(text.Rotation), Math.Sin(text.Rotation));
                 var y = new GeoVector2(-x.Y, x.X);

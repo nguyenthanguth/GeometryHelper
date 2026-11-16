@@ -417,15 +417,15 @@ that holds it and the table of handles, and keeps 432. The bits of a DWG are tak
 so that a broken object is refused with the same message at the same bit. A DWG of 300 000 entities opened the first time in a process takes 1.26 s where 1.63 under .NET 8 (its objects 0.42 s where
 0.61, the DXF 0.62 s where 0.74) and the next time 0.74 s where 1.12; under .NET Framework 4.8 1.53 s where 2.18 and 1.42 s where 2.05 (medians of 7 runs, the two builds alternated; .NET 10 1.29 s where 1.73 and 0.58 s where 0.96 in 5). Under .NET Core a double that is
 neither whole nor very large or small (from 0.0001 up to 1E14) is formatted once, as the shortest text that brings it back, where the older code formatted it with 15 digits and tried that text back: the text is the same, to the byte,
-for the 60 000 000 doubles it was tried on, and a number outside those bounds, and every number under .NET Framework, goes the way it did. The DXF the reader makes of each of 182 DWGs (95 of AutoCAD's own
+for the 60 000 000 doubles it was tried on, and a number outside those bounds goes the way it did (under .NET Framework too since, see the DWG guide: its text is no longer the Framework's own). The DXF the reader makes of each of 182 DWGs (95 of AutoCAD's own
 samples, 71 of the test files and 16 written by AutoCAD for the harness) is byte for byte what it was, under .NET 8 and .NET Framework 4.8, as is that of the two drawings of 300 000 entities.
 Of what remains in the 1.26 s, the reading of the objects is a third, much of it the collector walking the 300 000 objects it keeps while they are made; level with the DXF written,
 and the read of that DXF by `DxfDatabase` (0.12 s) comes after.
 
 The same opening takes about half the time the first time in a process since the objects of a DWG of 4 096 or more are decoded on up to eight threads (a reader of its own for each, 512 objects
 at a time, put back in the order of the file, so the DXF the DWG is made into is the same bytes whatever the threads), the numbers of that DXF are written as bytes in whole-number arithmetic under
-every runtime (the text of the older code to the byte: 900 000 000 doubles tried, 300 000 000 under each of .NET 8, .NET 10 and .NET Framework 4.8; under .NET Framework a number whose 15 digits come within a
-sixteenth of half the distance to its neighbour of being read back is left to the old way, its `double.Parse` not being exact), the handles written are kept in a table made once, which takes
+every runtime (the text of the older code under .NET Core to the byte: 900 000 000 doubles tried, 300 000 000 under each of .NET 8, .NET 10 and .NET Framework 4.8, where the numbers whose 15 digits came within a
+sixteenth of half the distance to its neighbour of being read back were left to the Framework's own `double.Parse`, which is not exact: they are not any more, the text is that of .NET Core on every runtime, see the DWG guide), the handles written are kept in a table made once, which takes
 away the full collection the `HashSet` that grew made, and some sixty methods of the readers and writers are compiled fully at their first call (`AggressiveOptimization`, .NET Core only). A DWG of 300 000 lines
 and circles with coordinates of three decimals (11.2 MB, 41 MB as DXF) opens in 0.65 s where 1.28 under .NET 8 (.NET 10 0.71 s where 1.27; .NET Framework 4.8 0.88 s where 1.35) and the next time in 0.56 s where
 0.64 (.NET Framework 0.72 s where 1.15), medians of 9 runs alternated with the older build; display lists are those of the DXF, which is byte for byte the one it was for each of 274 DWGs, 1 001 written by the library

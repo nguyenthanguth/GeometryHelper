@@ -1222,8 +1222,23 @@ read by the first ray and have 13, 25, 349 and 380 read by the middle (by the se
 twentieth of the sweep's excess over 60 degrees from the middle leaves 44 to 59 wrong at 30 and 90 degrees, so the middle is
 the index, not near it). The 1.4 per cent left at 120 and 150 degrees is the words' width, not the angle: "120°" (7.08 wide, 4
 characters) put round an angle of 60 degrees has 371 of 25 481 wrong where "60°" has 27 of 36 278, so the band of words of other
-widths than "60°" with a first ray elsewhere than 0 is still the table of the narrow words. The pictures differing from AutoCAD's of
+widths than "60°" was still the table of the narrow words (see the next paragraph). The pictures differing from AutoCAD's of
 the angles of two lines and three points given the other way round and reflex (p2) are 17 of 576 before and 6 now.
+Words wider or narrower than "60°" have another band: AutoCAD 2021's edges for "120°" lie 0.5 to 1.0 farther out and 0 to 1.0
+farther in than for "60°" on the same directions and the same first rays (the same on every first ray outside the circle, in
+blocks of first rays inside), and the rule's own scaling by the words' width (the landing's sagitta, room squared over the radius)
+over-corrected some directions so far that words 8 wide had a leader on the circle itself. The sagitta is now the landing of
+"60°" in the same style times the words' landing over the radius, which is the same where the words are "60°", and WidthCorrections
+adds a table by direction (inside and outside the circle, 36 directions, the same for every first ray) at nodes of how far the
+words' landing is over that of "60°" as a share of it: "6°" 0.18 under it, and "120°", "60.0°", "60.00°", "60.000°", "60.0000°" and
+"60.000000°" 0.14, 0.29, 0.46, 0.64, 0.82 and 1.18 over it, read linearly between the nodes and held beyond them, fitted together
+for SHX and Arial to 270 000 probes of an angle of 60 degrees from 0, 45, ... 315 degrees with its arc 30 out (words put every 0.25 at
+36 directions, from 7 in to 16 out) and to the "60.0000°" probes of the arcs of 30, 45, 60 and 240 out. The probes wrong before and
+now (SHX, then Arial): "6°" 141 and 182 to 94 and 70, "120°" 373 and 255 to 217 and 168, "60.0°" 666 and 469 to 309 and 245,
+"60.00°" 858 and 767 to 411 and 362, "60.000°" 1 218 and 998 to 560 and 469, "60.0000°" 2 127 and 1 491 to 788 and 606,
+"60.000000°" (first rays 0, 90, 180 and 270) 1 771 and 1 379 to 505 and 445. A table fitted to four first rays took the other four
+from 138 to 84 of 13 192, so a first ray between those probed is read about as well; a table by the direction from the arc's middle,
+or one for each first ray, took what it was fitted to lower and the first rays held out back up (106 of 13 192).
 The sum is held to 0.04 less than twice the half width and DIMEXE, which is where AutoCAD's edges lay between probes 0.25 apart.
 A radius or a diameter put inside under 1 keeps its words as DIMATFIT 3 does, whatever DIMATFIT; under 2, words on its line over a
 radius's centre or over the rim, from inside or out (a diameter's from the back of its arrowhead in), put the arrowheads
@@ -1465,9 +1480,21 @@ carried where it is moved or turned (from (60, 20) to (70, 20), moved 10 to the 
 multileader keeps the points as picked and takes their feet on its leader line again where it is moved. Auto breaks the arc
 of an angular dimension and of an arc length one as it breaks a line, a gap of the break size along the arc (0.125 on an arc of
 84.85 at 45 degrees leaves arcs from 0.002121 to 0.784662 and from 0.786135 to 1.568675 radians), and the leader of an ordinate
-dimension where a line crosses it. Manual on an ordinate or an arc length dimension is not AutoCAD's yet: it keeps the line
-nearest the middle of the points (AutoCAD's keeps the leader of an ordinate as 0, the arc's rays as 0 and 1, and puts the
-points on the middle of the line or the arc's end). DIMBREAK Multiple takes dimensions and multileaders both, then
+dimension where a line crosses it. Manual on an ordinate or an arc length dimension breaks the line nearest the first point as
+it does on a level one, numbered as AutoCAD 2021 numbers them: the leader of an ordinate 0 (a leader jogged to the side has three
+legs, 0 the leg from the point, 1 the jog, 2 the last leg), the rays of an arc length dimension 0 at the first end of the length
+and 1 at the second, its arc 3. The X ordinate of (20, 30) with its leader to (20, 200), broken from (60, 70) to (60, 90), has
+its leader from 30.0625 to 70 and from 90 up; an arc length dimension of an arc of 50 from 0 to 90 degrees put 250 out, broken
+from (100, 25) to (140, 35), has its first ray from 50.0625 to 100 and from 140 to 250.18. AutoCAD, picking in a view, moves a
+point within some 15 units of a window 700 across of such a line to its middle or its end before it breaks (a break of the leader
+above from (20, 70) to (20, 90) is kept as one point at its middle, 115.076, and cuts nothing), which the presenter, with no view,
+does not copy. A dimension that keeps a break by hand and is scaled is drawn again, as AutoCAD 2021 draws it, its offsets and
+arrowheads as the style sets them, not scaled with it (a level dimension from (0, 0) to (100, 0) scaled by 2 has its extension
+lines from 0.0625 to 40.18, not from 0.125 to 40.36), the points of the break carried by the scale. A dimension copied has a
+BREAKDATA of its own naming the same objects, the points of a break by hand carried by the move, and is drawn again where it keeps a
+break at an object: copied 100 to the right, away from the line it was broken at, it is whole, the line still named; copied 10 up,
+across the line, it is broken there. An arc length dimension of words of no height draws no arc symbol, which was an arc of no
+radius. DIMBREAK Multiple takes dimensions and multileaders both, then
 asks `Select object to break dimensions or [Auto/Remove] <Auto>:`. DIMJOGGED (DJO, JOG) draws a jogged radius of an arc or a
 circle, its line from a centre put in place of one off the drawing: along the radius's parallel, across at DIMJOGANG and
 on to the rim, the jog half way between the two lines. A circle of 50 about the origin, its centre drawn at (0, -100),
