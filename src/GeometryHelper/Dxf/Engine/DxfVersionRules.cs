@@ -64,8 +64,8 @@ namespace GeometryHelper.Dxf
             "AcDbVisualStyle 421 424 425:1018",
             "AcDbPlotSettings 76 77 78:1018",
             "AcDbColor 62 420 430:1018",
-            "AcDbDetailViewStyle 62:1018",
-            "AcDbSectionViewStyle 62:1018",
+            "AcDbDetailViewStyle 62 420:1018",
+            "AcDbSectionViewStyle 62 420:1018",
             "AcDbModelDocViewStyle 90 300:1032",
             "AcDbModelerGeometry 2 290:1027",
             "AcDb3dSolid 350:1021"

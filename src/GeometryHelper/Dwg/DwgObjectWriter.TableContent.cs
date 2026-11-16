@@ -787,7 +787,7 @@ namespace GeometryHelper.Dwg
         private void WriteTableContentObject()
         {
             // Its own groups where they are in AutoCAD's order: the content as it was, cell styles and borders with it.
-            DwgTableContent parsed = ContentOfDxf(_record);
+            DwgTableContent parsed = ContentOfDxf(_record, !R2007Plus);
 
             if (parsed != null)
             {
@@ -939,6 +939,13 @@ namespace GeometryHelper.Dwg
         /// <summary>A value (20.4.99): its flags, type and, unless flag 1 says it holds nothing, the value; its unit, format and text.</summary>
         private void WriteValue(DwgCellValue value)
         {
+            // Before R2007 a value is its type and the value alone, as a field's is.
+            if (!R2007Plus)
+            {
+                WriteFieldValue(value);
+                return;
+            }
+
             _data.BitLong(value.Flags);
             _data.BitLong(value.Type);
 
@@ -1370,7 +1377,7 @@ namespace GeometryHelper.Dwg
         /// formats and custom data, its own cell style, merged ranges and table style. Null where it holds what no test drawing
         /// has shown (attributes of a block, a cell's geometry) or its groups are not of that order.
         /// </summary>
-        private static DwgTableContent ContentOfDxf(DwgRecord record)
+        private static DwgTableContent ContentOfDxf(DwgRecord record, bool old = false)
         {
             try
             {
@@ -1387,7 +1394,7 @@ namespace GeometryHelper.Dwg
                     Need(g, 300);
                     Need(g, 1);
                     var column = new DwgTableLine { Name = g.Text(300), Custom = g.Int(91) };
-                    CustomDataOf(g, column.Items);
+                    CustomDataOf(g, column.Items, old);
                     Need(g, 309);
                     column.Style = FormattedOf(g);
                     Need(g, 1);
@@ -1408,11 +1415,11 @@ namespace GeometryHelper.Dwg
 
                     for (int j = 0; j < cells; j++)
                     {
-                        row.Cells.Add(CellOfDxf(g));
+                        row.Cells.Add(CellOfDxf(g, old));
                     }
 
                     row.Custom = g.Int(91);
-                    CustomDataOf(g, row.Items);
+                    CustomDataOf(g, row.Items, old);
                     Need(g, 309);
                     row.Style = FormattedOf(g);
                     Need(g, 1);
@@ -1450,7 +1457,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>A cell of a TABLECONTENT from its DXF: its linked part with its contents, its format and its style.</summary>
-        private static DwgTableCell CellOfDxf(Cursor g)
+        private static DwgTableCell CellOfDxf(Cursor g, bool old)
         {
             Need(g, 300);
             Need(g, 1);
@@ -1460,7 +1467,7 @@ namespace GeometryHelper.Dwg
                 Tooltip = g.Text(300),
                 Custom = g.Int(91),
             };
-            CustomDataOf(g, cell.Items);
+            CustomDataOf(g, cell.Items, old);
 
             if (g.Int(92) != 0)
             {
@@ -1482,7 +1489,7 @@ namespace GeometryHelper.Dwg
                 if (content.Type == 1)
                 {
                     Need(g, 300);
-                    content.Value = ValueOf(g);
+                    content.Value = ValueOf(g, old);
                 }
                 else
                 {
@@ -1522,7 +1529,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>Custom data from DXF: <c>CUSTOMDATA</c>, its count, then each item its name and its value.</summary>
-        private static void CustomDataOf(Cursor g, List<KeyValuePair<string, DwgCellValue>> items)
+        private static void CustomDataOf(Cursor g, List<KeyValuePair<string, DwgCellValue>> items, bool old)
         {
             Need(g, 301);
             Need(g, 1);
@@ -1532,15 +1539,44 @@ namespace GeometryHelper.Dwg
             {
                 string name = g.Text(300);
                 Need(g, 301);
-                items.Add(new KeyValuePair<string, DwgCellValue>(name, ValueOf(g)));
+                items.Add(new KeyValuePair<string, DwgCellValue>(name, ValueOf(g, old)));
             }
 
             Need(g, 309);
         }
 
-        /// <summary>A value from DXF, from its flags (93) to <c>ACVALUE_END</c>.</summary>
-        private static DwgCellValue ValueOf(Cursor g)
+        /// <summary>
+        /// A value from DXF, from its flags (93) to <c>ACVALUE_END</c>; where <paramref name="old"/> is set (a TABLECONTENT
+        /// written for R2004 or before) the type and the value alone, as the DXF of those versions holds a value.
+        /// </summary>
+        private static DwgCellValue ValueOf(Cursor g, bool old)
         {
+            if (old && !g.At(93))
+            {
+                var kept = new DwgCellValue
+                {
+                    Flags = 0,
+                    Old = true,
+                    Type = g.Int(90),
+                };
+
+                switch (kept.Type)
+                {
+                    case 0:
+                    case 1:
+                        kept.Long = g.Int(91);
+                        break;
+                    case 2:
+                        kept.Double = g.Double(140);
+                        break;
+                    default:
+                        kept.Text = g.Text(1);
+                        break;
+                }
+
+                return kept;
+            }
+
             var value = new DwgCellValue { Flags = g.Int(93), Type = g.Int(90) };
 
             if ((value.Flags & 1) == 0)

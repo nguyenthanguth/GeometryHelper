@@ -189,6 +189,11 @@ namespace GeometryHelper.Dxf
                     else
                     {
                         drop = DxfVersions.SinceOfGroup(subclass, group.Code) > _target;
+
+                        // A DWG of R2000 holds the index of each colour of a view style in the object, which the DXF of R2000 has no group for.
+                        drop &= !(
+                            _forDwg && group.Code == 62 && subclass.EndsWith("ViewStyle", StringComparison.Ordinal)
+                        );
                     }
 
                     if (!drop && subclass == "AcDbEntity" && (group.Code == 92 || group.Code == 160))

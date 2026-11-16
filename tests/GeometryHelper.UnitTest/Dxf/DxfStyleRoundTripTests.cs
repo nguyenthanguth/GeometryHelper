@@ -111,7 +111,13 @@ namespace GeometryHelper.UnitTest.Dxf
             {
                 byte[] again = Saved(Saved(r2013, version), "AC1027");
 
-                Assert.Equal(StyleTexts(r2013), StyleTexts(again));
+                // R2000 to R2007 have no face lighting model 3 (Realistic's) and AutoCAD saves it as 2, which comes back as 2.
+                const string realistic = "2=Realistic 70=8 177=3 291=0 70=58 90=2 176=1 90=";
+                List<string> expected = StyleTexts(r2013)
+                    .Select(text => version == "AC1024" ? text : text.Replace(realistic + "3", realistic + "2"))
+                    .ToList();
+
+                Assert.Equal(expected, StyleTexts(again));
             }
         }
 
