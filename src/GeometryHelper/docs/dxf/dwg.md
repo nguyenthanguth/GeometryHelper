@@ -159,14 +159,18 @@ block keeps (ACDB_BLOCKREPRESENTATION_DATA) and the purge preventer (ACDB_DYNAMI
 An expression that holds a value (a real of kind 40, a short of kind 70, the only two kinds of AutoCAD 2021's samples)
 gives it after an empty text as AutoCAD's DXF does (1, 70 and 140 or 70). The versions of an expression and of an element
 (98 and 99) are 33 and 174, as AutoCAD 2021 gives them in the DXF of a drawing of an older version. The entities a stretch
-binds stand by their handles; AutoCAD's DXF has them in the order of its memory, which is the order of the handles in all
-but 3 of the 115 stretch actions of the samples (one lists two entities as `F3`, `E9`, AutoCAD's DXF too; two list a run of
-handles from the middle, which its DXF gives by handle); no rule of the handles gives the order, and the DXF is in handle order
-for 114 of the 115. The DWG's own order of 13 of them (in the sample drawings of Architectural - Metric and Mechanical -
-Imperial) is a turn of the handle order, a run from the middle first and then the handles before it: `4FB8 4FB9 4FBB 4FAA
-4FB0 4FB7` for the handles `4FAA` to `4FBB`, the same wherever the entities recur. That is the order of a hash table by the
-handle modulo a prime (2551 gives the four actions of that block, 857 or 858 the eight of another), whose size the file does
-not give; the writer keeps the handle order, which AutoCAD opens as it does the others. In AutoCAD 2021's 120 sample drawings 72 of the 90 evaluation graphs
+binds are read in the order the file keeps them and written in the order the groups give. AutoCAD keeps them in an order of
+its own, which is no order of their handles: the DWG of 13 of the 115 stretch actions of the samples (in the drawings of
+Architectural - Metric and Mechanical - Imperial) holds a turn of the handle order, a run from the middle first and then the
+handles before it: `4FB8 4FB9 4FBB 4FAA 4FB0 4FB7` for the handles `4FAA` to `4FBB`, the same wherever the entities recur. That
+is the order of a hash table by a key that is not the handle: the handle modulo a prime gives the four actions of one block
+(2551) and the eight of another (857), and no one prime gives both. AutoCAD's DXF lists them as the file does, but where it
+does not: of the stretch actions of the 13 drawings its DXF of the originals lists them as the file does in all but 4 (the
+handle order, which the reader gave before, differs in 7), its DXF of the R2010 files it saves from them in all (5 by handle),
+and that of the R2018 files in all but 10 (13 by handle), where the file's order is another of the same entities (it is not
+the order of the objects in the file either: 26 of the 74 actions of two entities or more). Written again, the 102 stretch actions of the R2018
+files are AutoCAD's own bytes, and each of the 13 drawings written to R2010 and R2007 lists them in AutoCAD's DXF as often (5 and 6 of the 13
+differ, against 8 and 14 with the handle order). In AutoCAD 2021's 120 sample drawings 72 of the 90 evaluation graphs
 are read, as AutoCAD's DXF of each drawing has them, group for group (12 of a linear parameter with a stretch action
 alone, the nine sheets `A-01` to `S-04` among them; counting a graph under each kind it holds, 41 have a visibility
 parameter, 40 a linear one, 18 a point parameter, 16 a base point parameter, 14 a flip, 12 a rotation, 10 a lookup, 6 an
@@ -179,9 +183,11 @@ ACDBASSOCGEOMDEPENDENCY, ACDBASSOCVALUEDEPENDENCY) with their bodies (ASSOCDIMDE
 the groups of 2D constraints (ACDBASSOC2DCONSTRAINTGROUP, with the 22 classes of node of the samples: points, lines, arcs,
 circles and the constraints between them). No source gives their layouts; each was read from AutoCAD 2021's own DWG bytes
 against its DXF of the same drawing. All 18 graphs are read from a DWG of AutoCAD 2010, which is how the samples are saved:
-the 1 789 objects of these types equal AutoCAD's DXF group for group, but for the order of what a group owns (its DXF lists
-the actions in the order of its own table, the DWG in ascending handles, and the nodes by their identifier, as the reader
-gives them). A DWG that AutoCAD 2018 saves of the same drawings holds the actions (the networks, variables and groups) of
+the 1 789 objects of these types equal AutoCAD's DXF group for group, but for the order of what a group owns (the actions of
+a group come in the file in an order of its own, no order of their handles, which the reader gives; AutoCAD's DXF lists them in
+a third order that turns the file's into another each time a drawing is saved and read again, so that the DXF of its R2018
+file is the order of its R2010 file and the DXF of that the order of the R2018 file; and the nodes by their identifier, as the
+reader gives them). A DWG that AutoCAD 2018 saves of the same drawings holds the actions (the networks, variables and groups) of
 version 2, which carry four numbers more, and names the way a dependency leans on an edge by a flag and a number of a short
 (1 for `AcDbAssocSingleEdgePersSubentId`, 3 for `AcDbAssocEdgePersSubentId`) where the DWG of AutoCAD 2010 gives the class
 as a text; both are read. The constraint group of version 2 is another layout, and is read and written too: past the plane,
@@ -192,8 +198,9 @@ each with its identifier first, then the identifiers it names, its byte and what
 a fourth real after their three, 0 in every sample). AutoCAD's DXF of a drawing of 2018 gives the same: the numbers and the
 flag, the directory as class name and identifier, and the nodes without their class. The 34 groups of AutoCAD's own R2018 files
 equal its DXF group for group but for the order of the actions they own (a hash order of its own: no rule of the handles or of
-the indexes of the dependencies gives it), and every one is written again from its DXF to the very bits of AutoCAD's object
-(its class number apart). A group of version 1, which a DWG of AutoCAD 2010 gives, is brought up to the version 2 when it is
+the indexes of the dependencies gives it), and every one is written again from the DXF the reader makes of its file to the very
+bits of AutoCAD's object (its class number apart; the actions come in the order of the file, the handles of the stream
+included, which a handle order wrote differently in all 34, and so for the 34 groups of its R2010 files). A group of version 1, which a DWG of AutoCAD 2010 gives, is brought up to the version 2 when it is
 written to R2018, as AutoCAD does when it saves one: the action of version 2 with its four numbers 0, the nodes by
 identifier, the table and the directory, and a 0 for the fourth real of a circle or an arc. A group of the version 2 is taken
 down to the version 1 when it is written to a DWG of R2010 or R2007, as AutoCAD does when it saves such a drawing (see
@@ -667,10 +674,27 @@ AutoCAD with `AUDIT` finding the errors of AutoCAD's own R2010 file of each (non
 Structural drawings, 2 in each Civil, 10 in Mechanical - Metric, 24 and 32 in the Annotation and Electrical drawings, which hold no
 group), and AutoCAD's DXF of each of the 16 files has every group of the R2018 file's DXF group for group and every other object of
 the dynamic block but for the order of the entities of a stretch action (1 to 12 in a drawing, AutoCAD's own order). The data
-stream of each of the 34 groups equals the data stream of the group in AutoCAD's own DWG of R2010 of the same drawing, bit for bit;
-the handle stream differs in the order of the actions the group owns where AutoCAD keeps them in an order of its own. The 180
+stream of each of the 34 groups equals the data stream of the group in AutoCAD's own DWG of R2010 of the same drawing, bit for bit,
+and so does its handle stream, the actions the group owns in the order of the file (written in ascending handles, which no file of
+AutoCAD's has, the handle stream of all 34 differed). The 180
 drawings (the 167 of the corpus and the 13 R2018 saves) written as each of the six versions are the same bytes as before but for
 the 16 files of R2007 and R2010 that hold groups and the 8 of R2000 that hold bodies (1 056 of 1 080).
+
+The DXF save of R2010 and R2007 (`db.Save(path, "AC1024")` and `"AC1021"`, and every DWG, which reads the same text) takes the group
+down to that layout too, the converter doing what the writer did: the actions of the network, the variables and the groups at
+version 1 without their four numbers more, and the nodes of a group by identifier with their class, their group (the handle of
+the group), their identifier and byte, the identifiers they name and what their class holds, a circle and an arc with three reals.
+A group whose node is of a class the library does not know (`AcConcentricConstraint`, `AcConstrainedEllipse`, `AcConstrainedBoundedEllipse`,
+which a constraint of two curves concentric and an ellipse give) is left in the layout it has, which AutoCAD does not read in a
+file of R2010 (`ACDBASSOC2DCONSTRAINTGROUP ... Premature end of object`, the drawing discarded: the DXF saves of the 8 samples
+with groups were refused so before, and open as AutoCAD's own DXF of R2010 does now, with `AUDIT` finding 0, 2, 10 and 0 errors in
+Architectural - Metric, Civil - Imperial, Mechanical - Metric and Structural - Imperial, in R2010 and in R2007). Of the 3 204 dynamic
+objects of the 13 drawings, each in R2010 and in R2007, every one equals AutoCAD's DXF of the R2018 file saved in that version, group
+for group and in order, but one: a group of Architectural - Metric whose actions AutoCAD lists in another order in its DXF of R2010
+than in that of R2018 (its DXF of R2007 lists them as that of R2018 does). The circle and the arc of the group were set up in AutoCAD in 3 drawings of 7 curves each (circles, arcs
+turned the other way and one through the zero angle, a circle with a thickness; fixed, tangent, concentric, of equal radius
+and solved): the fourth real of the second layout stayed 0 in each of the 21 and in the 34 groups of the samples, and an ellipse
+holds its ratio, 0.5 and 0.4, in a place of its own, so nothing was found where the first layout keeps the fourth real.
 
 A REGION, 3DSOLID or BODY of a DWG of R2000 is written with its SAT, the text of ACIS 4.00, in the entity, as AutoCAD 2000's file
 keeps it: the flag of not empty, a bit AutoCAD 2000 sets to 1 where the later versions leave it at 0, the version 1, the text in

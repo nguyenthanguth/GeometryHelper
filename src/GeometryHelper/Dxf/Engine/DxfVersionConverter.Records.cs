@@ -111,6 +111,15 @@ namespace GeometryHelper.Dxf
                 case "ARC_DIMENSION":
                     ArcKind(record);
                     break;
+                case "ACDBASSOCNETWORK":
+                case "ACDBASSOCVARIABLE":
+                case "ACDBASSOC2DCONSTRAINTGROUP":
+                    if (_target < 1027)
+                    {
+                        ActionDown(record);
+                    }
+
+                    break;
                 case "BLOCK_RECORD":
                     if (_source < 1021 && _target >= 1021)
                     {

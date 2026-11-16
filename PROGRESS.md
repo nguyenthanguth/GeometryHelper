@@ -309,12 +309,17 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] R2007/R2010 constraint groups of the second layout and R2000 solids (dwgver5): a v2 group written in the v1
         layout AutoCAD writes below R2013 (34 of 34 groups' data bits equal to AutoCAD's R2010; AUDIT as AutoCAD's own);
         3DSOLID/REGION/BODY in R2000 as SAT 4.00 text in 4 096-byte blocks (bytes equal to AutoCAD's; MASSPROP equal)
-  - [ ] (dxfconv2, running: DXF v1 groups, owned-action order) R3.3 follow-ups 6: DXF saves of R2007/R2010 still hold the second-layout group text (AutoCAD's DXF holds v1);
-        R2000 spline solids not placed as ACIS 4.00; a constraint circle's fourth real dropped going down; AutoCAD's order
-        of owned actions and stretch-action entities (22 BLOCKSTRETCHACTION); an unexplained ErrorStatus 76; R2007
-        AppInfoHistory and SummaryInfo; the ISDYNAMIC heuristic; non-ASCII text in pre-2007 DWGs as \U+ escapes; R2000
-        VIEWPORT entity header handle and frozen-layer code 5; dictionaries naming left-out objects; region GUI checks;
-        spline edges and non-planar faces; orphan ACDSRECORDs; a parse cache for thousands of regions (M)
+  - [x] DXF saves of R2010/R2007 hold the first-layout constraint groups (dxfconv2): AutoCAD refused them before
+        (ErrorStatus 53), now AUDIT as its own (0, 2, 10, 0); 3 204 of 3 204 dynamic objects equal to its R2007 DXF;
+        owned actions and stretch entities kept in the order received (25 -> 14 differing stretch actions); DWG bytes
+        identical by the converter alone; the 4th real of a constraint circle is 0 in every probe
+  - [ ] R3.3 follow-ups 7: the same fault going up (an R2010 DXF of v1 groups saved as AC1032 is refused: ActionUp,
+        GroupUp; DwgReader.ToDxf of an R2010 DWG gives v1 text under an AC1032 header); unknown node classes
+        (AcConcentricConstraint, AcConstrainedEllipse, AcConstrainedBoundedEllipse); the remaining 14 stretch/group
+        orders (AutoCAD's state); R2000 spline solids; an unexplained ErrorStatus 76; R2007 AppInfoHistory and SummaryInfo;
+        the ISDYNAMIC heuristic; non-ASCII text in pre-2007 DWGs as \U+ escapes; R2000 VIEWPORT entity header handle and
+        frozen-layer code 5; dictionaries naming left-out objects; region GUI checks; spline edges and non-planar faces;
+        orphan ACDSRECORDs; a parse cache for thousands of regions (M)
   - [x] Dialogs 5 (dialogs5, design v139-v140): Multiline Style (with New/Modify page, Load), Multiline Edit Tools, the
         Hatch dialog's third column (one-colour gradient, colours, layer, transparency, origin, gap), Plot Stamp and PLOT's
         "Plot stamp on", Image Adjust, Attribute Extraction, Xbind
@@ -421,7 +426,7 @@ User note 2026-11-12 evening (note.md 1-14):
 - [x] XCLIP follow-ups 2 (xclip3; REFEDIT by refedit): Clipdepth cuts the block in the display (slab along the clip
       normal; lines cut at the planes), Clipdepth by a point and equal planes as AutoCAD; a clip tilted out of the plan
       dragged by its own axes and shown by where its prism meets the block plane
-- [ ] XCLIP follow-ups 3: the flip arrow's click and direction (GUI); arcs, circles and polylines cut at the depth
+- [ ] (xclip4, running) XCLIP follow-ups 3: the flip arrow's click and direction (GUI); arcs, circles and polylines cut at the depth
       planes (needs heights in display items); depth in external references; generate Polyline on a tilted clip; the
       block plane at another absolute height; nested INSERTs in the slab (S)
 - [x] Remove what is left of Part B (the Tekla drawing) from Dxf.Viewer; it moves to the Tekla drawing app (partb-cleanup: new-document hook neutral, MODEL tags, Hidden-lines recolour, Layer Owner column, DXF export rows gone; owner contract and drawing-plugin finder kept as neutral hooks) (M)
