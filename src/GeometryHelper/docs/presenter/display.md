@@ -366,6 +366,22 @@ layers, one off, with INSERTs of blocks of layer 0 and of a layer of their own, 
 field for field under .NET 8 and .NET Framework 4.8 (the 1 000 000 under .NET 8), the bytes saved of the 169, and the pixels of the 169 in two views, plain and
 selected, under both.
 
+Of the 454 MB the cold display of 1 000 000 entities made, 410 were kept and 44 were garbage: the objects and arrays the display and the shapes
+of the entities are made of, which are what the next REGEN, pick and snap read. The garbage was nearly all one thing, the array of four numbers a
+chain of two vertices was given for its constructor to drop (a LINE, and the first run of a closed polyline with an arc: 56 bytes of each, 31 MB),
+and a chain of two is now made of its four numbers. What was kept and could be smaller was the array of normals of each loop of arcs in space, 112 bytes
+in a loop of four edges, which a closed polyline with a bulge is read as: a loop whose arcs share one normal holds the one and reads each edge's
+from it (`GetNormalAt`), and makes the array only when `Normals` is asked for, and keeps it (a loop of four edges with one arc is 264 bytes where it was
+360, and the display never asks). The cold display makes 404 MB where it made 454, and a REGEN 244 where 276; the objects kept are 392 MB where 410. A
+text in the style Standard made a string of 40 bytes for its style, and an INSERT one for its block: they are read as the string the record before
+gave where it spells the same (printable ASCII of 64 letters or fewer, among the last four of the thread), 7.6 MB of the 75 of 200 000 texts. What is left
+is the display list itself (the arcs 79 MB, the chains 56, the texts 25), the shapes of the entities (64 to 88 bytes a LINE, ARC or CIRCLE, a
+loop's arrays), the objects of the entities (36 MB) and the handles (32 MB). Not keeping the shapes, which the display alone reads, makes the heap 92 MB
+lighter (300 MB where 392) and a REGEN 0.8 to 1.0 s where it takes 0.4 to 0.55 under .NET 8, for their numbers are read again from the bytes each time, so they
+are kept. The entity objects bind themselves to their records as they are made, so dropping the ones the display made could drop one that
+another thread asked for meanwhile; they stay. Display lists, boxes, runs and insertion points, the bytes saved and the pixels in three views are those
+they were (167 samples and six generated drawings), as is the display of the 1 000 000 entities.
+
 `PrepareDisplay(space, progress, cancellationToken)` makes the list and the pick index of a space ahead, item for item the
 list `GetDisplay` makes, telling `progress` the share of the space's entities drawn every 4 096 of them and stopping, with
 an `OperationCanceledException`, when the token is cancelled; a list stopped is not kept, and is made whole when next

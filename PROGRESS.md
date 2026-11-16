@@ -925,10 +925,12 @@ the ones wanted.
       cache in the display, LINE/ARC/CIRCLE/polyline straight to shapes, DrawText's cleaning without garbage: cold
       display at 1M 1 037 -> 858 ms (net8), REGEN 453 -> 391 ms, garbage 533 -> 452 MB; lists, pixels, saved bytes and
       540 000 loops' areas identical
-- [ ] (speed16, running) Speed follow-ups 15: REGEN's text group walk (28 % of a text REGEN; parked: per-text slots break the heap rule);
-      remaining cold garbage at 1M (DisplayArc2 79 MB, DisplayPolyline2 56 MB, double[] 55 MB, handle strings 40 MB, a
-      loop's GeoPoint3[]/GeoVector3[] 48 MB with a 112-byte normals array of a flat loop); DxfEntity wrappers (~50 MB);
-      a DWG read stopped mid-way (S)
+- [x] Speed follow-ups 15 (speed16): a flat loop keeps no normals array, a two-vertex chain no 56-byte array, a TEXT
+      style and INSERT block name one shared string: at 1M cold garbage 454 -> 404 MB, REGEN 276 -> 244 MB, kept heap 410
+      -> 392 MB (net8); net48 cold 2.51 -> 2.36 s, REGEN 1.08 -> 0.97 s; lists, pixels and saved bytes identical
+- [ ] Speed follow-ups 16: GeoPolylineArc3's per-edge normals array (open bulged polylines); DisplayPolyline2 at 80
+      bytes (four bools); DxfDBObject's _pendingXData field; space.Snapshot() copying 8 MB at 1M; DxfEntity wrappers
+      (36 MB: needs a non-binding construction path); REGEN's text group walk; a DWG read stopped mid-way (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)

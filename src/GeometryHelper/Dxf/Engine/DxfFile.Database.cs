@@ -5816,7 +5816,7 @@ namespace GeometryHelper.Dxf
 
             TextGroups read = default(TextGroups);
             read.Words = slots[0] < 0 ? null : Text(record, slots[0], slots[1]);
-            read.Style = slots[2] < 0 ? null : Text(record, slots[2], slots[3]);
+            read.Style = slots[2] < 0 ? null : SharedText(record, slots[2], slots[3]);
             NumberAt(record, slots, 2, TextGroups.HasX, ref read.Have, ref read.X);
             NumberAt(record, slots, 3, TextGroups.HasY, ref read.Have, ref read.Y);
             NumberAt(record, slots, 4, TextGroups.HasZ, ref read.Have, ref read.Z);
@@ -6243,7 +6243,7 @@ namespace GeometryHelper.Dxf
             }
 
             InsertGroups read = default(InsertGroups);
-            read.Name = slots[0] < 0 ? null : Text(record, slots[0], slots[1]);
+            read.Name = slots[0] < 0 ? null : SharedText(record, slots[0], slots[1]);
             NumberAt(record, slots, 1, InsertGroups.HasX, ref read.Have, ref read.X);
             NumberAt(record, slots, 2, InsertGroups.HasY, ref read.Have, ref read.Y);
             NumberAt(record, slots, 3, InsertGroups.HasZ, ref read.Have, ref read.Z);

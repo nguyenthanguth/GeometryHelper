@@ -36,14 +36,10 @@ namespace GeometryHelper.Dxf.Viewer
                 case GeoLine3 line:
                     list.Add(
                         new DisplayPolyline2(
-                            new[]
-                            {
-                                m.X(line.StartPoint.X, line.StartPoint.Y),
-                                m.Y(line.StartPoint.X, line.StartPoint.Y),
-                                m.X(line.EndPoint.X, line.EndPoint.Y),
-                                m.Y(line.EndPoint.X, line.EndPoint.Y),
-                            },
-                            false,
+                            m.X(line.StartPoint.X, line.StartPoint.Y),
+                            m.Y(line.StartPoint.X, line.StartPoint.Y),
+                            m.X(line.EndPoint.X, line.EndPoint.Y),
+                            m.Y(line.EndPoint.X, line.EndPoint.Y),
                             style,
                             handle,
                             layer
@@ -75,7 +71,18 @@ namespace GeometryHelper.Dxf.Viewer
                     AddCircle(circle, m, list, style, handle, layer, shape);
                     return;
                 case GeoPolylineArc3 chain:
-                    AddArcChain(chain.Vertices, chain.Bulges, chain.Normals, false, m, list, style, handle, layer);
+                    AddArcChain(
+                        chain.Vertices,
+                        chain.Bulges,
+                        chain.Normals,
+                        null,
+                        false,
+                        m,
+                        list,
+                        style,
+                        handle,
+                        layer
+                    );
                     return;
                 case GeoPolygonArc3 polygon:
                     if (fill || mask)
@@ -89,7 +96,8 @@ namespace GeometryHelper.Dxf.Viewer
                         AddArcChain(
                             polygon.Vertices,
                             polygon.Bulges,
-                            polygon.Normals,
+                            null,
+                            polygon,
                             true,
                             m,
                             list,
@@ -154,11 +162,12 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
+            bool isSampled = shape is GeoEllipse3 || shape is GeoSpline3;
+
             list.Add(
-                new DisplayPolyline2(xy.ToArray(), closed, style, handle, layer)
-                {
-                    IsSampled = shape is GeoEllipse3 || shape is GeoSpline3,
-                }
+                xy.Count == 4 && !closed
+                    ? new DisplayPolyline2(xy[0], xy[1], xy[2], xy[3], style, handle, layer) { IsSampled = isSampled }
+                    : new DisplayPolyline2(xy.ToArray(), closed, style, handle, layer) { IsSampled = isSampled }
             );
         }
 
@@ -355,6 +364,7 @@ namespace GeometryHelper.Dxf.Viewer
             IReadOnlyList<GeoPoint3> vertices,
             IReadOnlyList<double> bulges,
             IReadOnlyList<GeoVector3> normals,
+            GeoPolygonArc3 loop,
             bool closed,
             Affine2 m,
             DisplayList2 list,
@@ -363,6 +373,7 @@ namespace GeometryHelper.Dxf.Viewer
             string layer
         )
         {
+            // A loop is given as itself, its normals not asked for: the array of them is not kept where its arcs share one.
             int n = vertices.Count;
             int edges = closed ? n : n - 1;
 
@@ -374,7 +385,17 @@ namespace GeometryHelper.Dxf.Viewer
 
             void Flush()
             {
-                if (run.Count >= 4)
+                if (run.Count == 4)
+                {
+                    // A chain of two vertices is its box and two flags: its numbers are not made an array to be dropped.
+                    list.Add(
+                        new DisplayPolyline2(run[0], run[1], run[2], run[3], style, handle, layer)
+                        {
+                            IsSampled = sampled,
+                        }
+                    );
+                }
+                else if (run.Count > 4)
                 {
                     list.Add(new DisplayPolyline2(run.ToArray(), false, style, handle, layer) { IsSampled = sampled });
                 }
@@ -389,7 +410,7 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint3 p1 = vertices[(i + 1) % n];
                 double bulge = bulges[i];
 
-                if (normals[i].Z < 0.0)
+                if ((normals != null ? normals[i] : loop.GetNormalAt(i)).Z < 0.0)
                 {
                     bulge = -bulge;
                 }

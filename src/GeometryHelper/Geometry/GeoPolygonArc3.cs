@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using GeometryHelper.Core;
 using GeometryHelper.Enums;
 
@@ -29,8 +30,14 @@ namespace GeometryHelper.Geometry
     {
         private readonly GeoPoint3[] _vertices;
         private readonly double[] _bulges;
-        private readonly GeoVector3[] _normals;
         private readonly GeoVector3 _planeNormal;
+
+        // The normal of each edge. Where every arc of the loop has the one same normal (a closed polyline with a bulge, read from
+        // a drawing, is such a loop) the array is not kept: the normal of an edge is _arcNormal where its bulge is not nought and
+        // of no length where it is, and the array is made the first time Normals is asked for. A loop of four edges holds 112
+        // bytes less, 20 MB of the 1 000 000 entities of a drawing.
+        private GeoVector3[] _normals;
+        private readonly GeoVector3 _arcNormal;
 
         /// <summary>
         /// Gets the vertices of the loop, in order; the last joins back to the first.
@@ -46,7 +53,38 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the normal each bulge is read about; of no length at all where the edge is straight.
         /// </summary>
-        public IReadOnlyList<GeoVector3> Normals => _normals;
+        /// <remarks>
+        /// A loop whose arcs all share one normal, as a closed polyline with a bulge does, holds no list of them until this is
+        /// asked for: the list is then made and kept, the same one for every call. <see cref="GetNormalAt(int)"/> reads the
+        /// normal of one edge without making it.
+        /// </remarks>
+        public IReadOnlyList<GeoVector3> Normals => _normals ?? KeepNormals();
+
+        /// <summary>The array of the normals of a loop whose arcs share one, made and kept: the same array for every call and every thread.</summary>
+        private GeoVector3[] KeepNormals()
+        {
+            GeoVector3[] made = NormalsMade();
+            return Interlocked.CompareExchange(ref _normals, made, null) ?? made;
+        }
+
+        /// <summary>The normal of each edge as an array of its own, not kept.</summary>
+        private GeoVector3[] NormalsMade()
+        {
+            var made = new GeoVector3[_bulges.Length];
+
+            for (int i = 0; i < made.Length; i++)
+            {
+                made[i] = _bulges[i] != 0.0 ? _arcNormal : default(GeoVector3);
+            }
+
+            return made;
+        }
+
+        /// <summary>The normal an edge is read about.</summary>
+        private GeoVector3 NormalAt(int index) =>
+            _normals != null ? _normals[index]
+            : _bulges[index] != 0.0 ? _arcNormal
+            : default(GeoVector3);
 
         /// <summary>
         /// Gets the normal of the plane the whole loop lies in.
@@ -119,7 +157,12 @@ namespace GeometryHelper.Geometry
             int room = given.Count;
             var kept = new GeoPoint3[room];
             var keptBulges = new double[room];
-            var keptNormals = new GeoVector3[room];
+
+            // The normals are kept in an array only once two arcs are given different ones: a normal given with no bulge is never
+            // read (the edge below takes none), and the arcs that share one are told by their bulges.
+            GeoVector3[] keptNormals = null;
+            GeoVector3 common = default(GeoVector3);
+            bool haveCommon = false;
             int count = 0;
 
             for (int index = 0; index < given.Count; index++)
@@ -132,6 +175,7 @@ namespace GeometryHelper.Geometry
                 // the vertex kept takes the bulge and the plane of the edge running on from the one dropped.
                 if (count > 0 && kept[count - 1].IsEqualTo(vertex, tolerance))
                 {
+                    keptNormals = keptNormals ?? NormalsOfSharedArcs(keptBulges, count, common, room);
                     keptBulges[count - 1] = bulge;
                     keptNormals[count - 1] = normal;
                     continue;
@@ -139,7 +183,25 @@ namespace GeometryHelper.Geometry
 
                 kept[count] = vertex;
                 keptBulges[count] = bulge;
-                keptNormals[count] = normal;
+
+                if (keptNormals != null)
+                {
+                    keptNormals[count] = normal;
+                }
+                else if (bulge != 0.0)
+                {
+                    if (!haveCommon)
+                    {
+                        common = normal;
+                        haveCommon = true;
+                    }
+                    else if (!SameBits(common, normal))
+                    {
+                        keptNormals = NormalsOfSharedArcs(keptBulges, count, common, room);
+                        keptNormals[count] = normal;
+                    }
+                }
+
                 count++;
             }
 
@@ -158,7 +220,11 @@ namespace GeometryHelper.Geometry
             {
                 Array.Resize(ref kept, count);
                 Array.Resize(ref keptBulges, count);
-                Array.Resize(ref keptNormals, count);
+
+                if (keptNormals != null)
+                {
+                    Array.Resize(ref keptNormals, count);
+                }
             }
 
             // A loop that does not lie flat encloses nothing, so it is refused where it is built. The plane is read from the
@@ -181,13 +247,17 @@ namespace GeometryHelper.Geometry
             _normals = keptNormals;
             _planeNormal = plane.Normal;
 
+            GeoVector3 unit = default(GeoVector3);
+
             for (int i = 0; i < EdgeCount; i++)
             {
                 GeoEdge3 edge = new GeoEdge3(
                     _vertices[i],
                     _vertices[(i + 1) % _vertices.Length],
                     _bulges[i],
-                    _normals[i],
+                    _normals != null ? _normals[i]
+                        : _bulges[i] != 0.0 ? common
+                        : default(GeoVector3),
                     tolerance
                 );
 
@@ -203,9 +273,39 @@ namespace GeometryHelper.Geometry
                 }
 
                 _bulges[i] = edge.Bulge;
-                _normals[i] = edge.Normal;
+
+                if (_normals != null)
+                {
+                    _normals[i] = edge.Normal;
+                }
+                else if (edge.Bulge != 0.0)
+                {
+                    // The one normal the arcs share, as an edge makes it of the one given: the same for each.
+                    unit = edge.Normal;
+                }
             }
+
+            _arcNormal = unit;
         }
+
+        /// <summary>The normals of the edges of a loop whose arcs shared the one given so far, in an array of its own to put different ones in.</summary>
+        private static GeoVector3[] NormalsOfSharedArcs(double[] bulges, int count, GeoVector3 common, int room)
+        {
+            var normals = new GeoVector3[room];
+
+            for (int i = 0; i < count; i++)
+            {
+                normals[i] = bulges[i] != 0.0 ? common : default(GeoVector3);
+            }
+
+            return normals;
+        }
+
+        /// <summary>Whether two vectors are the same to the last bit, so that a normal taken for one is the other.</summary>
+        private static bool SameBits(GeoVector3 a, GeoVector3 b) =>
+            BitConverter.DoubleToInt64Bits(a.X) == BitConverter.DoubleToInt64Bits(b.X)
+            && BitConverter.DoubleToInt64Bits(a.Y) == BitConverter.DoubleToInt64Bits(b.Y)
+            && BitConverter.DoubleToInt64Bits(a.Z) == BitConverter.DoubleToInt64Bits(b.Z);
 
         /// <summary>Whether no vertex of a chain stands within a tolerance of the one before it, so that the chain keeps every one.</summary>
         private static bool ApartWithin(GeoPoint3[] vertices, Tolerance tolerance)
@@ -278,7 +378,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the plane the bulge leaving a vertex is read about.
         /// </summary>
-        public GeoVector3 GetNormalAt(int index) => _normals[index];
+        public GeoVector3 GetNormalAt(int index) => NormalAt(index);
 
         /// <summary>
         /// Gets the edge at an index; the last closes the loop.
@@ -296,7 +396,7 @@ namespace GeometryHelper.Geometry
 
             return _bulges[index] == 0.0
                 ? new GeoEdge3(start, end)
-                : new GeoEdge3(start, end, _bulges[index], _normals[index]);
+                : new GeoEdge3(start, end, _bulges[index], NormalAt(index));
         }
 
         /// <summary>
@@ -828,7 +928,7 @@ namespace GeometryHelper.Geometry
         /// <remarks>
         /// The copy holds every edge of the loop, however small, as <see cref="Translate(GeoVector3)"/> keeps it.
         /// </remarks>
-        public GeoPolygonArc3 Clone() => new GeoPolygonArc3(_vertices, _bulges, _normals, EdgeForEdge);
+        public GeoPolygonArc3 Clone() => new GeoPolygonArc3(_vertices, _bulges, _normals ?? NormalsMade(), EdgeForEdge);
 
         /// <summary>
         /// Moves the loop by a vector.
@@ -852,7 +952,7 @@ namespace GeometryHelper.Geometry
                 moved[i] = _vertices[i].Add(vector);
             }
 
-            return new GeoPolygonArc3(moved, _bulges, _normals, EdgeForEdge);
+            return new GeoPolygonArc3(moved, _bulges, _normals ?? NormalsMade(), EdgeForEdge);
         }
 
         /// <summary>
@@ -933,7 +1033,7 @@ namespace GeometryHelper.Geometry
                 if (
                     !_vertices[i].Equals(other._vertices[i])
                     || !_bulges[i].Equals(other._bulges[i])
-                    || !_normals[i].Equals(other._normals[i])
+                    || !NormalAt(i).Equals(other.NormalAt(i))
                 )
                 {
                     return false;
