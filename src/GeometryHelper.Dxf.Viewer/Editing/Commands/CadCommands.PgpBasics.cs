@@ -261,11 +261,23 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (measure)
                 {
-                    yield return CadPrompt.ForDistance("Specify length of segment", pickedAt, options);
+                    yield return CadPrompt
+                        .ForDistance("Specify length of segment", pickedAt, options)
+                        .Refusing(
+                            block == null
+                                ? "Requires numeric distance, two points, or option keyword."
+                                : "Requires numeric distance or two points."
+                        );
                 }
                 else
                 {
-                    yield return CadPrompt.ForInteger("Enter the number of segments", options);
+                    yield return CadPrompt
+                        .ForInteger("Enter the number of segments", options)
+                        .Refusing(
+                            block == null
+                                ? "Requires an integer between 2 and 32767, or option keyword."
+                                : "Requires an integer between 2 and 32767."
+                        );
                 }
 
                 if (block == null && c.Input.Is("Block"))
@@ -308,7 +320,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 c.Write(
-                    measure ? "Requires a nonzero positive distance."
+                    measure ? "Value must be positive and nonzero."
                     : block == null ? "Requires an integer between 2 and 32767, or option keyword."
                     : "Requires an integer between 2 and 32767."
                 );

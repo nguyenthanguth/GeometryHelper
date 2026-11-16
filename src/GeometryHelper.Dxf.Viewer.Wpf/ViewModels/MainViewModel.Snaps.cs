@@ -187,13 +187,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>
         /// Takes object snaps for the next point alone, as AutoCAD's override: whether OSNAP is on or off, only these give the
         /// point, and <see cref="CadSnapModes.None"/> none (NONe). The command line says it, "Specify next point: _end of", and
-        /// the override ends once the prompt has its answer or goes.
+        /// the override ends once the prompt has its answer or goes. At "Select objects:" and at a prompt for one object, as AutoCAD
+        /// 2021 takes it, the object is picked at the point the snap finds near the click.
         /// </summary>
         /// <param name="modes">The snaps.</param>
-        /// <returns>Whether it was taken: false where no prompt waits for a point.</returns>
+        /// <returns>Whether it was taken: false where no prompt waits for a point or objects.</returns>
         public bool OverrideSnap(CadSnapModes modes)
         {
-            if (_current == null || !CadPicking.WantsPoint(_current.Session))
+            if (_current == null || !CadPicking.WantsModifiers(_current.Session))
             {
                 return false;
             }
@@ -213,7 +214,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// it, "Specify first point: _from", and asks "Base point:". Where AutoCAD 2021 does not take it (TT inside FROM, a
         /// second M2P inside M2P) or no point is asked, the prompt waiting is answered as if the word were typed there: the
         /// command line says "Base point: _tt" and then the prompt's refusal, "Point or option keyword required." there, and
-        /// asks again. Nothing is said while no command runs, nor at a prompt for objects, which the menu is not shown at.
+        /// asks again. Nothing is said while no command runs. At "Select objects:" and at a prompt for one object it starts as
+        /// at any prompt, as AutoCAD 2021 takes the modifiers there: the point it gives picks, or starts the window.
         /// </summary>
         /// <param name="modifier">The modifier, as typed.</param>
         /// <returns>Whether it was started: false where it was refused or no prompt waits for a point.</returns>
@@ -227,7 +229,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CadCommandSession session = _current.Session;
             bool started = session.StartPointModifier(modifier);
 
-            if (!started && session.Prompt != null && !CadPicking.WantsObjects(session))
+            if (!started && session.Prompt != null)
             {
                 session.Feed(modifier);
             }
@@ -273,13 +275,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Temporary track point, From, Mid Between 2 Points and Point Filters (.X to .YZ), each started at the prompt as typed
         /// (<see cref="ModifyPoint"/>); then the fourteen snaps in three groups, named as AutoCAD's menu names them (Apparent
         /// Intersect, Insert), each taken for the next point alone (<see cref="OverrideSnap"/>), None, then "Osnap
-        /// Settings...". The Command menu of the canvas opens the same items under Osnap Overrides. Empty while no point is
-        /// asked.
+        /// Settings...". The Command menu of the canvas opens the same items under Osnap Overrides. Empty while no point or
+        /// object is asked: AutoCAD 2021 shows the menu at "Select objects:" too, where its modifiers pick at the point they
+        /// give.
         /// </summary>
         /// <returns>The items.</returns>
         public IReadOnlyList<CadMenuItemViewModel> SnapOverrideMenu()
         {
-            if (_current == null || !CadPicking.WantsPoint(_current.Session))
+            if (_current == null || !CadPicking.WantsModifiers(_current.Session))
             {
                 return Array.Empty<CadMenuItemViewModel>();
             }
@@ -414,12 +417,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// A word typed at a point prompt that names an object snap, END or ENDPOINT, takes it for the next point; one not built
-        /// yet is said so. A keyword of the prompt itself wins, as in AutoCAD.
+        /// A word typed at a point prompt, or at "Select objects:", that names an object snap, END or ENDPOINT, takes it for the
+        /// next point; one not built yet is said so. A keyword of the prompt itself wins, as in AutoCAD.
         /// </summary>
         private bool TakeSnapOverride(CadCommandSession session, string word)
         {
-            if (!CadPicking.WantsPoint(session) || session.Prompt.MatchKeyword(word) != null)
+            if (!CadPicking.WantsModifiers(session) || session.Prompt.MatchKeyword(word) != null)
             {
                 return false;
             }

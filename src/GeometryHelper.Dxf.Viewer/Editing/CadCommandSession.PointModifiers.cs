@@ -54,12 +54,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// point AutoCAD's way too: Enter or text at TT's or a filter's prompt, and Enter at FROM's, is answered by the prompt
         /// they were typed at, as text and never as a modifier; FROM and M2P ask again for text, M2P for Enter too; TK says
         /// "Invalid 2D point.", at its first prompt going back to the prompt it was typed at. A leading underscore is
-        /// allowed, as the menu sends "_from". A line of 100,50 FROM with the
+        /// allowed, as the menu sends "_from". At "Select objects:", at a prompt for one object, and at the corner of a window
+        /// or the point of a fence, AutoCAD 2021 takes them all the same: the point a modifier gives there picks as a click does,
+        /// "Select objects: _from", "Base point: 0,-10", "&lt;Offset&gt;: @50,10" then "1 found", or, lying on no object, is
+        /// the first corner of the window, "Specify opposite corner:"; TT gives nothing and "Select objects:" is asked again;
+        /// text no modifier takes is refused as that prompt refuses it, "*Invalid selection*" and the options listed. A line of 100,50 FROM with the
         /// offset @30,20 starts at (130, 70); M2P between (0, 0) and (100, 40) gives (50, 20); TK from (100, 0) to (130, 50)
         /// gives (100, 50); .X of (30, 999) with (888, 40) at "(need YZ):" gives (30, 40), and with 40,3 gives (30, 3).
         /// </summary>
         /// <param name="typed">The modifier: FROM, M2P, TT, TK, .XY.</param>
-        /// <returns>Whether it was started: false where it is none of these, no prompt waits for a point, or it does not nest in the modifier asking.</returns>
+        /// <returns>Whether it was started: false where it is none of these, no prompt waits for a point or objects, or it does not nest in the modifier asking.</returns>
         public bool StartPointModifier(string typed)
         {
             if (!TakesModifier() || !TryModifier(typed, out ModifierKind kind, out string filter) || !Nests(kind))
@@ -77,7 +81,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Whether the prompt waiting takes a point a modifier may give: a point, or a distance or an angle, from a base point
-        /// or, with none, as the first of two points, as AutoCAD 2021 takes FROM at "Enter new value for POLARDIST".
+        /// or, with none, as the first of two points, as AutoCAD 2021 takes FROM at "Enter new value for POLARDIST"; or objects,
+        /// at "Select objects:" and at a prompt for one object, where the point it gives picks.
         /// </summary>
         private bool TakesModifier()
         {
@@ -88,7 +93,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             return Prompt.Kind == CadPromptKind.Point
                 || Prompt.Kind == CadPromptKind.Distance
-                || Prompt.Kind == CadPromptKind.Angle;
+                || Prompt.Kind == CadPromptKind.Angle
+                || Prompt.Kind == CadPromptKind.Selection
+                || Prompt.Kind == CadPromptKind.Entity;
         }
 
         /// <summary>
@@ -132,28 +139,30 @@ namespace GeometryHelper.Dxf.Viewer
         private bool MissModifier(string typed, string echo)
         {
             PointModifier modifier = _modifiers[_modifiers.Count - 1];
+            CadPrompt asked = _modifiers[0].Outer;
+            bool selecting = asked.Kind == CadPromptKind.Selection || asked.Kind == CadPromptKind.Entity;
 
             if (modifier.Kind == ModifierKind.Mid || (modifier.Kind == ModifierKind.From && typed != null))
             {
-                bool options = _modifiers[0].Outer.Keywords.Count > 0;
-                return Invalid(options ? "Point or option keyword required." : "Invalid point.", echo);
+                return RefuseAs(asked, echo);
             }
 
             if (modifier.Kind == ModifierKind.Tracking && modifier.First.HasValue)
             {
-                return Invalid("Invalid 2D point.", echo);
+                return selecting ? RefuseAs(asked, echo) : Invalid("Invalid 2D point.", echo);
             }
 
-            if (echo != null)
-            {
-                Write(echo);
-            }
-
+            Echo(echo);
             _modifiers.RemoveAt(_modifiers.Count - 1);
             Prompt = modifier.Outer;
 
             if (modifier.Kind == ModifierKind.Tracking)
             {
+                if (selecting)
+                {
+                    return RefuseAs(asked, null);
+                }
+
                 Write("Invalid 2D point.");
                 Changed();
                 return false;
@@ -316,7 +325,68 @@ namespace GeometryHelper.Dxf.Viewer
                 return TakeModifierInput(new CadInput(CadInputKind.Point, given, 0.0, null, null));
             }
 
-            return AnswerPoint(given, null);
+            return GivePoint(given);
+        }
+
+        /// <summary>
+        /// The point a modifier gave, to the prompt it was typed at: an option's own prompt for a point (a corner of a window),
+        /// objects picked at it, or the command's prompt for a point.
+        /// </summary>
+        private bool GivePoint(GeoPoint2 point)
+        {
+            if (_option != null)
+            {
+                return OptionPoint(point, null);
+            }
+
+            if (Prompt.Kind != CadPromptKind.Selection && Prompt.Kind != CadPromptKind.Entity)
+            {
+                return AnswerPoint(point, null);
+            }
+
+            // The point on no object is the first corner of the window, as AutoCAD 2021 takes it; on one it picks it, "1 found",
+            // the line of the modifier standing as the line of the pick.
+            if (StartWindowAt(point, null))
+            {
+                return true;
+            }
+
+            _quietPick = true;
+
+            try
+            {
+                return Feed(point, false, false) || Prompt?.Kind == CadPromptKind.Selection;
+            }
+            finally
+            {
+                _quietPick = false;
+            }
+        }
+
+        /// <summary>Writes the prompt and the point typed, or the prompt alone, as the pick that follows (none where a modifier wrote its line).</summary>
+        private void WritePick() => Echo(PickEcho);
+
+        /// <summary>The line a pick at "Select objects:" writes before what it found: the point typed, or the prompt; null where a modifier gave the point.</summary>
+        private string PickEcho => _quietPick ? null : _typedPick ?? Prompt.Text;
+
+        /// <summary>
+        /// A modifier's prompt refused as the prompt the modifier was typed at refuses text that is no point: "*Invalid selection*"
+        /// with the options listed at "Select objects:", the first line alone at a prompt for one object, "Point or option
+        /// keyword required." at a prompt with options and "Invalid point." at one with none, the implied window's own having
+        /// none.
+        /// </summary>
+        private bool RefuseAs(CadPrompt asked, string echo)
+        {
+            switch (asked.Kind)
+            {
+                case CadPromptKind.Selection:
+                    return InvalidSelection(echo);
+                case CadPromptKind.Entity:
+                    return Invalid("*Invalid selection*", echo);
+                default:
+                    bool options = asked.Keywords.Count > 0 && !ReferenceEquals(asked, _windowFirst);
+                    return Invalid(options ? "Point or option keyword required." : "Invalid point.", echo);
+            }
         }
 
         /// <summary>The point a modifier gives from its two: the offset point, the point midway, or the coordinates filtered.</summary>

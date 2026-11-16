@@ -199,11 +199,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForInteger(
-                    "Enter number of sides",
-                    null,
-                    sides.ToString(CultureInfo.InvariantCulture)
-                );
+                yield return CadPrompt
+                    .ForInteger("Enter number of sides", null, sides.ToString(CultureInfo.InvariantCulture))
+                    .Refusing("Requires an integer between 3 and 1024.");
 
                 if (c.Input.IsNone)
                 {

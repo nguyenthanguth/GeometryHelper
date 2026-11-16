@@ -1934,10 +1934,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             else if (
                 e.ChangedButton == MouseButton.Right
                 && (Keyboard.Modifiers & ModifierKeys.Shift) != 0
-                && CadPicking.WantsPoint(Session)
+                && CadPicking.WantsModifiers(Session)
             )
             {
-                // Shift+right-click while a point is asked: the object snap menu, as AutoCAD's, its choice for that point alone.
+                // Shift+right-click while a point or objects are asked: the object snap menu, as AutoCAD's, its choice for that point alone.
                 SnapMenuRequested?.Invoke(this, EventArgs.Empty);
                 e.Handled = true;
             }

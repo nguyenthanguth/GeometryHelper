@@ -196,7 +196,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void APointTypedAtSelectObjectsOnNothing_FindsNone_AndAsksAgain_StartingNoWindow()
+        public void APointTypedAtSelectObjectsOnNothing_StartsTheWindow_AsAutoCad2021DoesAtItsConsole()
         {
             CadCommandSession session = Viewed(Plan(), out _);
 
@@ -204,12 +204,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             bool taken = session.Feed("-500,-500");
 
             Assert.True(taken);
-            Assert.Equal(
-                new[] { "Select objects: -500,-500", "0 found" },
-                session.History.Skip(session.History.Count - 2)
-            );
-            Assert.Equal("Select objects:", session.PromptText);
+            Assert.Equal("Select objects: -500,-500", session.History.Last());
+            Assert.True(session.IsWindowOpen);
+            Assert.StartsWith("Specify opposite corner", session.PromptText);
+
+            Run(session, "-400,-400");
+
+            Assert.Equal("0 found", session.History.Last());
             Assert.False(session.IsWindowOpen);
+            Assert.Equal("Select objects:", session.PromptText);
 
             Run(session, "50,0");
 

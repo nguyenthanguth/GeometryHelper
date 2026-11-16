@@ -13,6 +13,9 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     internal static partial class CadCommands
     {
+        // The most rows, columns, items or levels an array takes, as AutoCAD 2021 refuses more.
+        private const double MostItems = 32767.0;
+
         private static readonly string[] RectangularOptions =
         {
             "ASsociative",
@@ -301,7 +304,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("Levels"))
                 {
-                    yield return CadPrompt.ForInteger("Enter the number of levels", new[] { "Expression" }, "1");
+                    foreach (CadPrompt prompt in Count(c, "Enter the number of levels", 1, count))
+                    {
+                        yield return prompt;
+                    }
+
                     Planar(c, 1.0);
                     continue;
                 }
@@ -495,7 +502,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("Levels"))
                 {
-                    yield return CadPrompt.ForInteger("Enter the number of levels", new[] { "Expression" }, "1");
+                    foreach (CadPrompt prompt in Count(c, "Enter the number of levels", 1, count))
+                    {
+                        yield return prompt;
+                    }
+
                     Planar(c, 1.0);
                     continue;
                 }
@@ -567,8 +578,14 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 GeoPoint2 centre = c.Input.Point;
-                yield return CadPrompt.ForInteger("Enter the number of items in the array");
-                int items = c.Input.Kind == CadInputKind.Number ? (int)c.Input.Number : 0;
+                var counted = new Ref<int?>();
+
+                foreach (CadPrompt prompt in WholeCount(c, "Enter the number of items in the array", null, counted))
+                {
+                    yield return prompt;
+                }
+
+                int items = counted.Value ?? 0;
 
                 // The copies the angle to the cursor from the centre would make, turned as they are unless No is answered after.
                 CadPrompt filling = CadPrompt
@@ -650,16 +667,21 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            yield return CadPrompt.ForInteger("Enter the number of rows (---)", null, "1");
-            int rows = c.Input.Kind == CadInputKind.Number ? (int)c.Input.Number : 1;
-            yield return CadPrompt.ForInteger("Enter the number of columns (|||)", null, "1");
-            int columns = c.Input.Kind == CadInputKind.Number ? (int)c.Input.Number : 1;
+            var asked = new Ref<int?>();
 
-            if (rows < 1 || columns < 1)
+            foreach (CadPrompt prompt in WholeCount(c, "Enter the number of rows (---)", "1", asked))
             {
-                c.Write("Value must be positive and nonzero.");
-                yield break;
+                yield return prompt;
             }
+
+            int rows = asked.Value ?? 1;
+
+            foreach (CadPrompt prompt in WholeCount(c, "Enter the number of columns (|||)", "1", asked))
+            {
+                yield return prompt;
+            }
+
+            int columns = asked.Value ?? 1;
 
             if (rows == 1 && columns == 1)
             {
@@ -916,28 +938,74 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>Asks a number of columns, rows or items, one or more.</summary>
+        /// <summary>
+        /// Asks a number of columns, rows, items or levels, one or more up to 32767, as ARRAYRECT, ARRAYPOLAR and ARRAYPATH ask
+        /// it: text that is no whole number, or 2.5, is "Requires a positive nonzero integer or option keyword.", nought or
+        /// less "Value must be positive and nonzero.", more than 32767 "Requires an integer between 1 and 32767, or option
+        /// keyword.", and it is asked again each time. The result is null where Enter or a keyword answered.
+        /// </summary>
         private static IEnumerable<CadPrompt> Count(CadCommandContext c, string message, int now, Ref<int?> result)
         {
             result.Value = null;
-            yield return CadPrompt.ForInteger(
-                message,
-                new[] { "Expression" },
-                now.ToString(CultureInfo.InvariantCulture)
-            );
 
-            if (c.Input.Kind != CadInputKind.Number)
+            while (true)
             {
-                yield break;
-            }
+                yield return CadPrompt
+                    .ForInteger(message, new[] { "Expression" }, now.ToString(CultureInfo.InvariantCulture))
+                    .Refusing("Requires a positive nonzero integer or option keyword.");
 
-            if (c.Input.Number < 1.0 || c.Input.Number > 100000.0)
+                if (c.Input.Kind != CadInputKind.Number)
+                {
+                    yield break;
+                }
+
+                if (c.Input.Number < 1.0)
+                {
+                    c.Write("Value must be positive and nonzero.");
+                }
+                else if (c.Input.Number > MostItems)
+                {
+                    c.Write("Requires an integer between 1 and 32767, or option keyword.");
+                }
+                else
+                {
+                    result.Value = (int)c.Input.Number;
+                    yield break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Asks a number of rows, columns or items of -ARRAY, one or more up to 32767: anything else is "Requires an integer
+        /// between 1 and 32767." and is asked again. The result is null where Enter answered.
+        /// </summary>
+        private static IEnumerable<CadPrompt> WholeCount(
+            CadCommandContext c,
+            string message,
+            string offered,
+            Ref<int?> result
+        )
+        {
+            const string refused = "Requires an integer between 1 and 32767.";
+            result.Value = null;
+
+            while (true)
             {
-                c.Write("Value must be between 1 and 100000.");
-                yield break;
-            }
+                yield return CadPrompt.ForInteger(message, null, offered).Refusing(refused);
 
-            result.Value = (int)c.Input.Number;
+                if (c.Input.Kind != CadInputKind.Number)
+                {
+                    yield break;
+                }
+
+                if (c.Input.Number >= 1.0 && c.Input.Number <= MostItems)
+                {
+                    result.Value = (int)c.Input.Number;
+                    yield break;
+                }
+
+                c.Write(refused);
+            }
         }
 
         /// <summary>Asks the distance between columns or rows, or with Total the distance from the first to the last.</summary>

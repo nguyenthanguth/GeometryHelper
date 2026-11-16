@@ -30,7 +30,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Deselect All, Quick Select..., QuickCalc, Find..., Properties and Quick Properties. The Command menu: Enter, Cancel,
         /// Recent Input (the answers typed at prompts of the kind asked, <see cref="CadCommandSession.RecentInput"/>, where there
         /// are any), the prompt's options ("Close" and "Undo" at LINE's third point), Osnap Overrides (the items of
-        /// <see cref="SnapOverrideMenu"/>, grey where no point is asked), Pan and Zoom, which run 'PAN and 'ZOOM inside the
+        /// <see cref="SnapOverrideMenu"/>, grey where no point or object is asked), Pan and Zoom, which run 'PAN and 'ZOOM inside the
         /// command (grey in ZOOM), SteeringWheels and QuickCalc. The Grips menu: Enter, Stretch, Move, Rotate, Scale, Mirror,
         /// Base Point, Copy, Reference (in ROTATE and SCALE), Undo and Exit.
         /// </para>
@@ -202,7 +202,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             items.Add(
-                new CadMenuItemViewModel("Osnap Overrides", CadPicking.WantsPoint(session), SnapOverrideItems(), 'v')
+                new CadMenuItemViewModel(
+                    "Osnap Overrides",
+                    CadPicking.WantsModifiers(session),
+                    SnapOverrideItems(),
+                    'v'
+                )
             );
             items.Add(CadMenuItemViewModel.Separator());
 

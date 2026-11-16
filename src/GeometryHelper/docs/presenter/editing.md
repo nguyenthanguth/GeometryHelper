@@ -2231,6 +2231,17 @@ which REFEDIT is made on, returns no transaction), so the prompts and messages a
 AutoCAD 2021's own resource file for it, and the order they come in is the presenter's guess; XFADECTL and REFEDITNAME were probed
 in the console.
 
+A prompt for a number refuses what it cannot take in the words AutoCAD 2021's console gives that prompt, probed with text,
+2.5, nought, a negative number and one past the most, and asks it again: POLYGON's sides say `Requires an integer between 3
+and 1024.` to all of them (the text and 2.5 too, where a prompt with no range of its own says `Requires an integer value or option keyword.`);
+-ARRAY's rows, columns and items `Requires an integer between 1 and 32767.`; the counts of ARRAYRECT and ARRAYPOLAR, and its
+levels, `Requires a positive nonzero integer or option keyword.` for text and 2.5, `Value must be positive and nonzero.` for
+nought and below and `Requires an integer between 1 and 32767, or option keyword.` for 32768 and more; DIVIDE's segments `Requires an integer between 2
+and 32767, or option keyword.` (without `, or option keyword` once a block is chosen); MEASURE's length `Requires numeric
+distance, two points, or option keyword.` and `Value must be positive and nonzero.`; a chamfer distance or length, and a
+fillet radius, `Requires numeric distance or two points.` and `Value must be positive.` and are asked again. A line from (0, 0) to (100, 0) divided asks `Enter the number of segments or [Block]:` and
+a 1 there is refused the range, then 3 puts two points.
+
 DIVIDE and MEASURE put points, or a block with Block (turned along the curve unless `Align block with object? [Yes/No]
 <Y>:` is answered No), at equal lengths along a line, arc, circle, ellipse, polyline or spline, as AutoCAD 2021 does:
 DIVIDE asks for 2 to 32767 segments and puts one between each, and on a closed curve one at its start too, so a circle
@@ -2721,7 +2732,7 @@ a ray along +X from (100, -500) gives the perpendicular from (500, 80) at (500, 
 
 ### Point modifiers
 
-Any prompt for a point takes AutoCAD's point modifiers, typed or chosen from the top of the Shift+right-click menu
+Any prompt for a point, and "Select objects:" and a prompt for one object, takes AutoCAD's point modifiers, typed or chosen from the top of the Shift+right-click menu
 (Temporary track point, From, Mid Between 2 Points, Point Filters), through
 [`CadCommandSession`](xref:GeometryHelper.Dxf.Viewer.CadCommandSession)`.StartPointModifier`:
 
@@ -2750,6 +2761,20 @@ next point ends the LINE; FROM asks again for text, M2P for text and Enter, sayi
 where the command's prompt has options and "Invalid point." where it has none; TK says "Invalid 2D point.", at
 `First tracking point:` going back to the command's prompt, and Enter at its `Next point` ends tracking. Esc cancels
 the command.
+
+At "Select objects:" (and at a prompt for one object, and at the corner of a window or the point of a fence) AutoCAD 2021
+takes them all, typed with or without the underscore or chosen from the menu, which is shown there as at any prompt for a
+point: the point a modifier gives picks as a click does, `Select objects: _from`, `Base point: 0,-10`, `<Offset>: @50,10`
+then `1 found` for a line from (0, 0) to (100, 0), M2P from (0, 0) and (100, 0) and TK ended by Enter the same; a point on
+no object is the first corner of the window, `Specify opposite corner:`, which takes a modifier too (FROM with an offset
+of @110,60 from (0, 0) ends a window from (-10, -10) over two lines, `2 found`); at a prompt for one object a point on none
+asks again. TT gives no point: `Specify temporary OTRACK point:` and `Select objects:` is asked again, the
+object snaps taken as typed, `END`, or chosen (the click is snapped to the endpoint found near it, and the object is picked
+there). Text no modifier takes is refused as that prompt refuses text, `*Invalid selection*` with `Expects a point or` and
+the options, FROM, M2P and TK's `Next point` asking their own prompt again, and the others handing the text to `Select
+objects:` and asking it again; Enter at TT's or a filter's prompt or at FROM's ends the selection as Enter does. A point
+typed at "Select objects:" that lies on no object starts the window as well, `Select objects: 150,150` then `Specify opposite
+corner:`.
 
 ## Grips
 
