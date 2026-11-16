@@ -6,6 +6,34 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The cold display of a drawing of 1 000 000 entities makes 404 MB of objects where it made 454, and a REGEN of it 244 MB where it made 276
+(.NET 8; 412 MB where 462 under .NET Framework 4.8, collected 61 times where 69). Under .NET Framework 4.8 the cold display takes 2.36 s where it took 2.51
+and a REGEN 0.97 s where 1.08 (best of six runs alternated with the older build, medians 2.48 s where 2.64 and 0.99 s where 1.12); under .NET 8 the cold
+display takes 1.22 s where 1.27 (best of ten, medians 1.33 s where 1.36) and a REGEN 0.40 s as before, under .NET 10 1.20 s where 1.22 and 0.38 s where
+0.39, within the noise of a machine that other work shares. What changed, each measured alone first:
+- A chain of two vertices, which is its box and two flags and keeps no array, is made of its four numbers: a LINE, and the run of two vertices a closed
+  polyline with an arc leaves before its arc, were each given an array of 56 bytes for the constructor to drop (31 MB of the cold display of 1 000 000
+  entities). 200 000 lines are displayed with 50.0 MB of garbage where 60.7 (262 bytes a line where 318), 200 000 closed polylines with an arc with 142 MB where
+  171, and 20 000 INSERTs of a block of 20 entities with 49 MB where 61 (.NET 8).
+- A closed loop of arcs in space (`GeoPolygonArc3`, which a closed polyline with a bulge is read as) whose arcs share one normal keeps no array of normals:
+  its edges read the normal from one the loop holds, a loop of four edges with one arc is built with 264 bytes where it took 360 (under .NET Framework 4.8),
+  and the 200 000 of the drawing hold 18 MB less. `Normals` makes the list when it is asked for and keeps it, the same one for every call and every thread, and
+  `GetNormalAt`, `GetEdgeAt`, `Equals`, `Clone` and `Translate` read the normal of an edge without making it. A loop whose arcs have normals of their own (a
+  bulge about (0, 0, 1) and one about (0, 0, -1)), one with two corners on each other, and one whose arcs are given normals that differ in the last bit, keep the array as before.
+  The display draws a loop through `GetNormalAt`.
+- The style of a TEXT and the block of an INSERT are read as the one string the records before them spelled the same, among the last four the thread read, where
+  each made a string of its own: 200 000 texts in the style Standard are displayed with 67 MB where 75 (a REGEN with 50 where 57). Only a name of printable ASCII of
+  64 letters or fewer is shared; any other is read as it was.
+
+The display lists, their boxes, runs and insertion points, the bytes a drawing saves and the pixels are the same: 167 samples of AutoCAD and six generated drawings
+(200 000 loops, 200 000 texts in the style Standard, 20 000 INSERTs, 100 000 entities, a drawing of plates, the drawing of the viewer's samples) give the same list item for item
+and field for field in every space, the same pixels in three views (plain, selected, highlighted, hovered), and the same bytes saved; the 1 000 000 mixed entities give the same list (.NET 8).
+Not changed, with the reason: the 36 MB of entity objects (`DxfLine`, `DxfArc`, `DxfCircle`, `DxfPolyline`, `DxfDBText`) the display makes, because an entity object binds
+itself to its record as it is made, so that dropping those the display made could drop one that another thread was given meanwhile, and one record would give two entities;
+the shapes of the entities, which a display that does not keep them makes the heap 92 MB lighter (300 MB where 392) at the price of a REGEN of 0.83 to 1.0 s where it takes
+0.43 to 0.55 (.NET 8), their numbers being read again each time; the box of an arc (25 MB) and the string of each handle (32 MB, shared by the record, the items and the run).
+`DxfSpeed23Tests` (15) and `DisplaySpeed23Tests` (7).
+
 **CHANGED.** The ACAD_TABLE of a table is written from its own bytes by `InsertRows`, `InsertRowsAndInherit`, `InsertColumns`, `InsertColumnsAndInherit`, `DeleteRows`,
 `DeleteColumns`, `SetRowHeight` and `SetColumnWidth`, where each wrote and then read again all of its 56 000 groups (931 cells) when the library had written the record
 whole before: each cell that comes out as it was is copied as it stands, the head and the cells made or changed are written, and the places of the cells are kept for the next

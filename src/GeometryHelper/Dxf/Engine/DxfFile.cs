@@ -555,6 +555,71 @@ namespace GeometryHelper.Dxf
 
         private string Text(int start, int end) => _decoding.GetString(_bytes, start, end - start);
 
+        /// <summary>The names a thread read last, which the next record is likely to repeat: the style of a text, the block of an INSERT.</summary>
+        private sealed class SharedNames
+        {
+            internal readonly string[] Names = new string[4];
+            internal int Next;
+        }
+
+        [ThreadStatic]
+        private static SharedNames _sharedNames;
+
+        /// <summary>
+        /// The text of a name, as <see cref="Text(Rec, int, int)"/> reads it, but the one string for the same name as the
+        /// records before it gave, among the last four the thread read: a drawing of 200 000 texts in the style Standard made a
+        /// string of 40 bytes for each. Only a name of printable ASCII, 64 letters or fewer, is shared, which every code page a
+        /// DXF is read in reads letter for letter; any other is read as it was.
+        /// </summary>
+        private string SharedText(Rec record, int start, int end)
+        {
+            byte[] bytes = record.Bytes;
+            int length = end - start;
+
+            if (length <= 0 || length > 64)
+            {
+                return Text(record, start, end);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                byte b = bytes[start + i];
+
+                if (b < 0x20 || b > 0x7E)
+                {
+                    return Text(record, start, end);
+                }
+            }
+
+            SharedNames shared = _sharedNames ?? (_sharedNames = new SharedNames());
+
+            foreach (string name in shared.Names)
+            {
+                if (name != null && name.Length == length && Spells(name, bytes, start))
+                {
+                    return name;
+                }
+            }
+
+            string made = Text(record, start, end);
+            shared.Names[shared.Next++ & 3] = made;
+            return made;
+        }
+
+        /// <summary>Whether a string is the bytes from a place on, each byte its letter.</summary>
+        private static bool Spells(string name, byte[] bytes, int start)
+        {
+            for (int i = 0; i < name.Length; i++)
+            {
+                if (name[i] != bytes[start + i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         /// <summary>The groups of an entity's records, as <see cref="DxfItem.Groups"/> gives them.</summary>
         internal IReadOnlyList<DxfTypedValue> GroupsOf(DxfItem item)
         {

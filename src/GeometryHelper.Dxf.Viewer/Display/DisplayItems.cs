@@ -399,6 +399,38 @@ namespace GeometryHelper.Dxf.Viewer
             _xy = xy;
         }
 
+        /// <summary>
+        /// Makes a chain of two vertices, an open one, the way <see cref="DisplayPolyline2(double[], bool, DisplayStyle, string, string)"/>
+        /// makes it of the four numbers, but without the array of them: a LINE made the array of 56 bytes to be dropped by the
+        /// constructor, 11 MB of the garbage of 200 000 lines. The box, the flags and the array kept for a NaN are the same.
+        /// </summary>
+        internal DisplayPolyline2(
+            double x0,
+            double y0,
+            double x1,
+            double y1,
+            DisplayStyle style,
+            string handle,
+            string layer
+        )
+            : base(style, handle, layer)
+        {
+            DisplayBox box = DisplayBox.Empty.Add(x0, y0).Add(x1, y1);
+            _a = box.MinX;
+            _b = box.MinY;
+            _c = box.MaxX;
+            _d = box.MaxY;
+
+            if (Flipped(x0, x1, _a, _c, out _flipX) && Flipped(y0, y1, _b, _d, out _flipY))
+            {
+                return;
+            }
+
+            _flipX = false;
+            _flipY = false;
+            _xy = new[] { x0, y0, x1, y1 };
+        }
+
         /// <summary>Whether two numbers are a box's least and greatest, in that order or turned round, bit for bit; false for neither.</summary>
         private static bool Flipped(double first, double second, double min, double max, out bool turned)
         {
