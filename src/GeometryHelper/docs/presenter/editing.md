@@ -243,7 +243,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | shapes and hatching | SOLID, REGION, HATCH, HATCHSETORIGIN, -HATCH (Properties, Select objects, draW boundary, remove Boundaries, Advanced: Boundary set, Retain boundary, Island detection, Style, Associativity, Gap tolerance, separate Hatches; DRaw order, Origin, ANnotative, hatch COlor, LAyer, Transparency, Undo), GRADIENT, HATCHEDIT, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Fit data: Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance; Close, Open, Join, Move vertex, Refine: Add, Delete, Elevate order, Move, Weight; rEverse, convert to Polyline, Undo), CLASSICINSERT |
 | multilines | MLINE (Justification, Scale, STyle; Close, Undo), MLEDIT (CC, OC, MC, CT, OT, MT, CJ, AV, DV, CS, CA, WA; Undo), MLSTYLE (?, Current, New, Modify, Rename, Delete, Load, Save), and the variables CMLJUST, CMLSCALE and CMLSTYLE (see [Multilines](#multilines)) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
-| layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, LAYMRG and -LAYMRG (Name, Undo), LAYDEL and -LAYDEL (Name, Undo), LAYCUR, COPYTOLAYER and -COPYTOLAYER (?, =, Displacement, eXit), VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
+| layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, PStyle, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, LAYMRG and -LAYMRG (Name, Undo), LAYDEL and -LAYDEL (Name, Undo), LAYCUR, COPYTOLAYER and -COPYTOLAYER (?, =, Displacement, eXit), VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, SELECTSIMILAR (SEttings), ADDSELECTED, TEXTSCR, UNITS, -UNITS, SCRIPT, SAVE, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?), QUICKCALC, CAL, QUICKPROPERTIES |
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too; a spline made a polyline within a precision), REVCLOUDPROPERTIES (Arc length), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPATH, ARRAYPOLAR, -ARRAY, OVERKILL, -OVERKILL, ALIGN, CHANGE (Properties: Color, Elev, LAyer, LType, ltScale, LWeight, Thickness, TRansparency, Material, Annotative) |
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a name typed may be a wildcard and every attributed block it matches is synced; what is picked that is no block, or a block with no attribute definitions, refused and another asked for, in the words of AutoCAD's own table of strings; an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, ATTEXT, -ATTEXT (Cdf, Sdf, Dxf, Objects), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK, REFEDIT, -REFEDIT (Ok, Next; All, Nested), REFSET (Add, Remove), REFCLOSE (Save, Discard), and the variables REFEDITNAME and XFADECTL |
@@ -3902,6 +3902,8 @@ Layer manager and the LAYER command make, each one undo step, refused where Auto
 | `Add(document, name)` | a layer of colour White and linetype Continuous | the drawing has a layer of the name, either case: `Layer "notes" already exists.` |
 | `SetCurrent`, `SetOn`, `SetFrozen`, `SetLocked` | the flags | a frozen layer is set current: `Cannot set a frozen layer current.` |
 | `SetColor`, `SetLinetype`, `SetLineWeight` | the look | |
+| `SetTransparency`, `SetPlottable`, `SetDescription` | the transparency (0 to 90 per cent; 50 is written as the alpha 127), whether the layer is plotted, its description | a transparency outside 0 to 90: `Transparency is from 0 to 90.`; a description of several lines |
+| `SetPlotStyle(document, name, plotStyle)` | the layer's plot style, a name of the drawing's plot style names (`Normal`), letters of either case the same | a drawing plotted by colour: `The drawing plots by colour: a layer has no plot style of its own to set.`; a name the drawing has not: `The drawing has no plot style named "Style 9".`; a layer of an xref |
 | `Delete` | the layer | objects are on it: `Layer "Steel" cannot be deleted: objects are on it.` |
 | `Rename(document, name, newName)` | the name, with every object on the layer; the spaces around it taken off, letters of another case taken | layer 0: `Cannot rename layer "0".`; a name used, either case: `A layer named "DIM" already exists.`; an empty name, a character a name cannot hold (&lt; &gt; / \ " : ; ? * \| , = and the backquote) or a layer of an xref: `Invalid layer name.` |
 
@@ -3959,6 +3961,59 @@ want to create it? [Yes/No]:`. The copies are made on the layer at once (`1 obje
 displacement`), or Displacement and a vector; eXit leaves them where the originals stand. The copy and the move are one undo
 step. A name with a character a layer name cannot hold says `Invalid characters in layer name.` and asks again.
 
+### Layer manager columns and filters
+
+Besides Name, On, Freeze, Lock, Colour, Linetype and Weight, the Layer manager lists the columns of AutoCAD 2021's Layer
+Properties Manager that follow them: Transparency (0 to 90 per cent, typed or chosen in the cell, set when the cell is left
+or Enter is pressed; 50 is kept as the alpha 127 in the layer's AcCmTransparency data), Plot Style, Plot (the printer
+icon: the layer is printed; flag 290 of the layer) and Description (one line, the second text of the layer's
+AcAecLayerStandard data, set when the cell is left or Enter is pressed). Each is one undo step, refused as -LAYER refuses it,
+the refusal said on the command line. Plot Style reads `Color_7` for a layer of colour 7 and is grey while the drawing plots
+by colour (`$PSTYLEMODE` 1, a CTB table), as AutoCAD greys it; in a drawing of named plot styles it is a list of the names the
+drawing's plot style dictionary (ACAD_PLOTSTYLENAME) holds and sets the layer's group 390. The plot style tables themselves
+(.ctb and .stb files) are not read here: the names are those of the dictionary. -LAYER offers PStyle (after Plot) only in a
+drawing of named plot styles, as AutoCAD 2021 does: `Enter Plot Style Name or [?] <Normal>:` (? lists the names; a name
+the drawing has not is `Unknown plot style.` and asked again; Enter goes back to the options), then
+`Enter name list of layer(s) for plot style name Style 1 <0>:`.
+
+The tree on the left of the table is AutoCAD's filter tree. Under All come the filters the drawing keeps, by name, each
+nested filter under its own, then the three AutoCAD makes: All Used Layers, Unreconciled New Layers (always empty: the
+library does not reconcile layers) and Viewport Overrides. Choosing a node lists the layers it lets through, and the
+status line under the tree says how many: `Walls: displaying 1 of 3 layers`. A nested filter lists the layers that pass it
+and every filter above it. Invert filter lists the layers the filter lets through not (`Walls (inverted): ...`). Apply to
+layers toolbar makes the layer box of the ribbon list only the layers of the filter (the current layer is always in it). The
+filter chosen when the dialog closes is kept in the drawing as the current one, as AutoCAD keeps it (group 290 of its
+XRECORD), one undo step when it changed; Invert filter and Apply to layers toolbar are kept per open drawing, where AutoCAD keeps
+them in its profile.
+
+A property filter is made with New Property Filter (the Property button above the tree, or its right-click menu), which opens
+Layer Filter Properties: the filter name (Properties Filter1 or the first free), the definition as rows of cells, one cell
+for each column of the Layer manager (Name, On, Freeze, Lock, Colour, Linetype, Lineweight, Transparency, Plot Style, Plot,
+New VP Freeze, Description, VP Freeze) and a preview of the layers that pass, kept up to date as a cell is edited. A layer
+passes a row when it passes every cell of it, and the filter when it passes one row; Add row adds another way to pass. A text
+cell takes AutoCAD's wild cards (`*`, `?`, `[AB]`, a leading `~` for not; a comma is not "or"), letters of either case the
+same: `1_Arch*` in Name, `1*` in Colour (an index, `10,20,30` for a true colour, or a name of Red to White), `50` in
+Transparency. The definition is kept as AutoCAD keeps it, in the filter's XRECORD: `NAME=="1_Arch*" AND OFF=="False" OR
+NAME=="*dim"`. A definition the rows cannot show (a property twice in a row, `!=`) is shown as text and edited as text. A group
+filter (New Group Filter, named Group Filter1 or the first free, its name open for a new one) is given layers by dragging
+them from the table onto it, by "Add to Group Filter" of a layer's right-click menu, or by Select Layers, Add or Replace,
+of its own menu, which takes the layers of the objects selected in the drawing before the Layer manager was opened (AutoCAD
+hides the dialog and asks for objects). A new filter is nested in the filter chosen where it is one of the drawing's, else at
+the top. Rename (F2), Properties (a double click on a property filter), Convert to Group Filter (a property filter becomes a
+group of the layers it shows) and Delete (Del; the filters nested in it go with it) are in its right-click menu; the filters AutoCAD
+makes are not renamed or deleted.
+
+[`CadLayerFilters`](xref:GeometryHelper.Dxf.Viewer.CadLayerFilters) reads and edits the filters (`Read`, `AddProperty`,
+`AddGroup`, `SetExpression`, `Rename`, `Delete`, `SetLayers`, `ConvertToGroup`, `SetCurrent`, `Visible`); each edit is one
+undo step. A filter is an XRECORD of ACLYDICTIONARY in the layer table's extension dictionary, written as AutoCAD 2021 writes
+it (`1 AcLyLayerFilter, 90 1, 300 name, 301 expression`; a group `1 AcLyLayerGroup, 90 1, 300 name` and a 330 for each layer;
+`290 1` on the current one; a nested filter in an ACLYDICTIONARY of its own XRECORD's extension dictionary, the keys `*A1`, `*A2`).
+AutoCAD 2021 read a drawing of ours back with the same tree, in DXF and in DWG of R2010, R2013 and R2018, and read the filters of
+a drawing it wrote and ours changed. A filter only ACAD_LAYERFILTERS keeps (AutoCAD 2004 and earlier) is listed and, when changed,
+moves to ACLYDICTIONARY with its old record taken out; a drawing older than AutoCAD 2000 keeps no filters.
+[`CadLayerExpression`](xref:GeometryHelper.Dxf.Viewer.CadLayerExpression) reads and tests the expressions: it passes the layers
+AutoCAD 2021's `LayerFilter.Filter` passed in its probe (`NAME=="A*"`, `COLOR=="30"`, `LINEWEIGHT=="0.50"`, `TRANSPARENCY=="50"`,
+`PLOTTABLE=="False"`, `OFF=="True"` and the rest).
 ### Layers in the viewports of a layout
 
 While a layout is current the Layer manager shows AutoCAD 2021's VP columns: VP Freeze, New VP Freeze, VP Color, VP

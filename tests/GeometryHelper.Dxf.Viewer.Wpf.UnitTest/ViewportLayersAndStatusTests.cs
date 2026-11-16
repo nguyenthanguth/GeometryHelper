@@ -50,7 +50,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     using (LayerManagerViewModel manager = model.CreateLayerManager())
                     {
                         Assert.False(manager.HasViewportColumns);
-                        Assert.Equal(900, manager.WindowWidth);
+                        Assert.Equal(1380, manager.WindowWidth);
                     }
 
                     model.SelectSpace(Layout1(model));
@@ -60,7 +60,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     {
                         Assert.True(manager.HasViewportColumns);
                         Assert.True(manager.HasTargetViewport);
-                        Assert.Equal(1400, manager.WindowWidth);
+                        Assert.Equal(1700, manager.WindowWidth);
                         Assert.EndsWith(
                             "Layout1, viewport "
                                 + ((DxfViewport)model.Document.FindEntity(viewport)).Number

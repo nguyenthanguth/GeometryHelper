@@ -198,7 +198,9 @@ that differ from an entity's own handle.
 The `LayerTable` holds a [`DxfLayerTableRecord`](xref:GeometryHelper.Dxf.DxfLayerTableRecord) for each layer, found by its name in either case: its `Color`, `ColorIndex`,
 `TrueColor`, `LinetypeName`, `LineWeight`, `IsOff`, `IsFrozen`, `IsLocked` and `IsPlottable`; its `Description` and
 `Transparency`, kept in the extended data of AcAecLayerStandard and AcCmTransparency as AutoCAD keeps them;
-`ViewportVisibilityDefault` (frozen in new viewports, flag 2: a `DxfViewport` made in code and appended to a layout has
+`PlotStyleName`, the entry of the drawing's plot style names the layer's group 390 points at (`Normal`), set by name in a drawing
+of named plot styles (`$PSTYLEMODE` 0) and refused in one plotted by colour, as AutoCAD answers ePlotStyleInColorDependentMode, and for a name
+the drawing has not; `ViewportVisibilityDefault` (frozen in new viewports, flag 2: a `DxfViewport` made in code and appended to a layout has
 every such layer frozen in it at once, as AutoCAD 2021's `AppendEntity` freezes them, the layout's own viewport 1 none);
 and `IsUsed`: layer 0, Defpoints, the current layer and any
 layer an entity is on, those appended in code among them. The first `IsUsed` reads the drawing once for every layer, and the

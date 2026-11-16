@@ -760,7 +760,7 @@ Wave 1 (High):
 - [x] (text1) SCALETEXT, JUSTIFYTEXT, TXT2MTXT (S/S/M)
 - [x] (text1) ATTDISP; -ATTEDIT global edit (S)
 - [x] (layer1) LAYMRG, LAYDEL, LAYCUR, COPYTOLAYER (S each)
-- [ ] (layermgr1, running) Layer manager: Plot, Transparency, Description, Plot Style columns; property and group filters (M)
+- [x] Layer manager: Transparency, Plot Style, Plot, Description columns; property and group filters stored as AutoCAD stores them; Invert filter, Apply to layers toolbar; -LAYER PStyle (layermgr1). Follow-up: Plot Style combo and -LAYER PStyle to list the .stb names (CadPlotStyleResolver); Select Layers picking after the dialog hides; more -LAYER options.
 - [x] (layer1) -DIMSTYLE (Save, Restore, STatus, Variables, Apply, ?) and DIMUPDATE (S)
 - [x] Plot style tables: .ctb/.stb read and written, folder of nine built-in tables, Plot Style Table Editor, Add Plot Style Table, STYLESMANAGER, applied when plotting (plotstyle1). Follow-up: Edit Lineweights, CONVERTCTB/CONVERTPSTYLES, real linetype pattern lengths, probe AutoCAD-written tables.
 - [x] PUBLISH and -PUBLISH: Publish dialog, multi-sheet or single PDFs or plotter, .dsd lists, Batch Plot on the Output tab (publish1). Follow-up: Preview, Show Details, multi-select, Publish Options, check a .dsd we write in AutoCAD.

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -786,10 +787,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// and described, as AutoCAD 2021's -LAYER does, and Set refuses it in AutoCAD 2021's words: "Invalid layer name.".
         /// TRansparency and Plot ask their value first and offer the current layer, as AutoCAD 2021 asks "Enter transparency
         /// value (0-90):", then "Enter name list of layer(s) for transparency 50% &lt;0&gt;:".
+        /// PStyle, offered where the drawing has named plot styles only, asks "Enter Plot Style Name or [?]" (a name the drawing's plot style
+        /// names do not hold is "Unknown plot style."), then the layers.
         /// </summary>
         private static IEnumerable<CadPrompt> LayerTyped(CadCommandContext c)
         {
-            string[] options =
+            var optionList = new List<string>
             {
                 "Set",
                 "New",
@@ -804,6 +807,14 @@ namespace GeometryHelper.Dxf.Viewer
                 "stAte",
                 "Description",
             };
+
+            // PStyle is offered only where the drawing has named plot styles, as AutoCAD 2021 offers it.
+            if (!c.Database.PlotStyleMode)
+            {
+                optionList.Insert(optionList.IndexOf("Plot") + 1, "PStyle");
+            }
+
+            string[] options = optionList.ToArray();
             c.Write("Current layer:  \"" + c.Database.Clayer + "\"");
 
             while (true)
@@ -831,6 +842,7 @@ namespace GeometryHelper.Dxf.Viewer
                 int percent = 0;
                 bool plotted = true;
                 string description = null;
+                string plotStyle = null;
 
                 if (option == "TRansparency")
                 {
@@ -868,6 +880,49 @@ namespace GeometryHelper.Dxf.Viewer
                         "Plot"
                     );
                     plotted = !c.Input.Is("No plot");
+                }
+                else if (option == "PStyle")
+                {
+                    while (true)
+                    {
+                        yield return CadPrompt.ForString("Enter Plot Style Name or [?]", "Normal");
+
+                        if (c.Input.IsNone || c.Input.Kind != CadInputKind.Text)
+                        {
+                            break;
+                        }
+
+                        if (c.Input.Text == "?")
+                        {
+                            c.Write("Plot Style Names:");
+                            c.Write("=================");
+
+                            foreach (DxfDBDictionaryEntry entry in c.Database.PlotStyleNameDictionary)
+                            {
+                                c.Write(entry.Key);
+                            }
+
+                            continue;
+                        }
+
+                        plotStyle = c
+                            .Database.PlotStyleNameDictionary?.Select(e => e.Key)
+                            .FirstOrDefault(k =>
+                                string.Equals(k, c.Input.Text.Trim(), StringComparison.OrdinalIgnoreCase)
+                            );
+
+                        if (plotStyle != null)
+                        {
+                            break;
+                        }
+
+                        c.Write("Unknown plot style.");
+                    }
+
+                    if (plotStyle == null)
+                    {
+                        continue;
+                    }
                 }
                 else if (option == "Description")
                 {
@@ -916,6 +971,10 @@ namespace GeometryHelper.Dxf.Viewer
                         break;
                     case "LOck":
                         ask = "Enter name list of layer(s) to lock";
+                        break;
+                    case "PStyle":
+                        ask = "Enter name list of layer(s) for plot style name " + plotStyle;
+                        current = c.Database.Clayer;
                         break;
                     case "Description":
                         ask = "Enter name list of layer(s) to apply description";
@@ -980,6 +1039,9 @@ namespace GeometryHelper.Dxf.Viewer
                             break;
                         case "Plot":
                             result = CadLayerEditor.SetPlottable(c.Document, name, plotted);
+                            break;
+                        case "PStyle":
+                            result = CadLayerEditor.SetPlotStyle(c.Document, name, plotStyle);
                             break;
                         case "Description":
                             result = CadLayerEditor.SetDescription(c.Document, name, description);

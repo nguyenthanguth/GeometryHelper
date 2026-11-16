@@ -599,7 +599,7 @@ folder, the second on the first layout); `saveaspdf`, `pdf-override` and `pdf-op
 one typed); `lweight`; `boundary`; `viewports` (Three: Right, the second tile given the first named view) and `viewports-named`
 (two configurations saved, the first one's name in Rename); `filter` (a layer and a kind of object listed); `find` (Find and
 Replace on "plate", its result listed); `attach` (Attach External Reference on the `grid.dxf` beside the drawing, or on the drawing
-itself where there is none); and `layerstate-new` (New Layer State to Save with a description). The picture is taken from the dialog's content with the window's
+itself where there is none); `layerstate-new` (New Layer State to Save with a description); and `layerfilter` (Layer Filter Properties of the Layer manager's New Property Filter, two rows of cells and the preview of the layers that pass). The picture is taken from the dialog's content with the window's
 resources, so a style the window sets for a kind of control (the dark scroll bar, a list's rows) is drawn as it is in the window.
 They need a drawing: with none, `--dialog rename: needs a drawing.` exits with 2. Where the drawing lacks what a dialog is made of (`imageadjust`
 with no picture, `objectscale` with no annotative object, `xbind` with no reference), the dialog says so, as `--dialog imageadjust:
