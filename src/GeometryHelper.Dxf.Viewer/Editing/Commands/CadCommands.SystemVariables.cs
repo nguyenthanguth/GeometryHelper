@@ -394,6 +394,39 @@ namespace GeometryHelper.Dxf.Viewer
                 )
             );
 
+            // SPLINE's method (0 Fit, 1 CV), the knots a fit spline runs by (0 Chord, 1 Square root, 2 Uniform) and the degree of
+            // a CV spline (3 until set), which its options change and the next SPLINE starts with, kept by the session.
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "SPLMETHOD",
+                    false,
+                    0,
+                    1,
+                    s => (int)Kept(s, "spline.method", 0.0),
+                    (c, v) => c.Remember("spline.method", v)
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "SPLKNOTS",
+                    false,
+                    0,
+                    2,
+                    s => (int)Kept(s, "spline.knots", 0.0),
+                    (c, v) => c.Remember("spline.knots", v)
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "SPLDEGREE",
+                    false,
+                    1,
+                    10,
+                    s => (int)Kept(s, "spline.degree", 3.0),
+                    (c, v) => c.Remember("spline.degree", v)
+                )
+            );
+
             // REVCLOUD's approximate arc length (nought until set), whether its arcs vary about it (1) or keep to it (0), and the
             // type it starts with, 0 Freehand, 1 Rectangular, 2 Polygonal, kept by the session.
             registry.AddVariable(

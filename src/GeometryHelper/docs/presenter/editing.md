@@ -229,13 +229,13 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 264 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 267 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
 | view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, -PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, VPCLIP (Polygonal, Delete), VPMAX, VPMIN, SCALELISTEDIT, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window), REDRAW, REDRAWALL, REGENALL, ISOLATEOBJECTS, HIDEOBJECTS, UNISOLATEOBJECTS, VPORTS, -VPORTS (Save, Restore, Delete, Join, SIngle, ?, 2, 3, 4, Toggle) |
 | edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, MIRROR3D (Object, Last, Zaxis, View, XY, YZ, ZX, 3points), EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
-| draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT and -MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT and -LAYOUT (Copy, Delete, New, Template, Rename, SAveas, Set, ?), DIVIDE (Block), MEASURE (Block) |
+| draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), SPLINE (Method: Fit, CV; Knots, Degree, Object; start and end Tangency, toLerance, Undo, Close), BLEND (CONtinuity: Tangent, Smooth), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT and -MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT and -LAYOUT (Copy, Delete, New, Template, Rename, SAveas, Set, ?), DIVIDE (Block), MEASURE (Block) |
 | shapes and hatching | SOLID, REGION, HATCH, HATCHSETORIGIN, -HATCH (Properties, Select objects, draW boundary, remove Boundaries, Advanced: Boundary set, Retain boundary, Island detection, Style, Associativity, Gap tolerance, separate Hatches; DRaw order, Origin, ANnotative, hatch COlor, LAyer, Transparency, Undo), GRADIENT, HATCHEDIT, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Fit data: Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance; Close, Open, Join, Move vertex, Refine: Add, Delete, Elevate order, Move, Weight; rEverse, convert to Polyline, Undo), CLASSICINSERT |
 | multilines | MLINE (Justification, Scale, STyle; Close, Undo), MLEDIT (CC, OC, MC, CT, OT, MT, CJ, AV, DV, CS, CA, WA; Undo), MLSTYLE (?, Current, New, Modify, Rename, Delete, Load, Save), and the variables CMLJUST, CMLSCALE and CMLSTYLE (see [Multilines](#multilines)) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
@@ -746,6 +746,41 @@ Elevate order (`Enter new order <4>:`) raises the degree to one less than the or
 [Next/Previous/Select point/eXit] <N>:` of each control vertex in turn. The fit data go with the first change of Refine, not
 before. Elevate order goes to order 26 as AutoCAD's does (degree 25): the library raises a spline with its control points as AutoCAD's
 (`DxfSpline.ElevateDegree`) and draws it, a spline of degree 25 being a `GeoSpline3` like any other.
+**SPLINE and BLEND.**
+
+SPLINE (`SPL`, and Spline in the ribbon's Draw slide-out) writes `Current settings: Method=Fit   Knots=Chord` and asks
+`Specify first point or [Method/Knots/Object]:`; for the control-vertex method the line is `Method=CV   Degree=3` and the
+options `[Method/Degree/Object]`. Method asks `Enter spline creation method [Fit/CV] <Fit>:`, Knots `Enter knot
+parameterization [Chord/Square root/Uniform] <Chord>:` and Degree `Enter degree of spline <3>:` (1 to 10, asked again for any
+other); the three are kept as the variables SPLMETHOD (0 Fit, 1 CV), SPLKNOTS (0, 1, 2) and SPLDEGREE for the next SPLINE.
+The fit method asks `Enter next point or [start Tangency/toLerance]:` and then `[end Tangency/toLerance/Undo]:`, from the
+third point `[end Tangency/toLerance/Undo/Close]:`, and draws the cubic through the points as `DxfSpline.FitData` fits it:
+the four points (10, 10), (30, 40), (60, 10) and (80, 50) give the 6 control points AutoCAD wrote and the knots 0, 0, 0, 0,
+36.0555, 78.4819, 123.2033 four times, and Close the closed cubic of 7 control points. A start tangent is a point picked, the
+direction to it from the first point, and an end tangent the direction to it from the last point, which ends the command; the
+three points above with the start tangent (20, 10) and the end tangent (0, 0) have the control points AutoCAD wrote.
+toLerance asks `Specify fit tolerance <0.0000>:` and writes it to the spline (AutoCAD fits a curve that passes near the points
+by up to the tolerance; the presenter's curve passes through them). The control-vertex method asks `Enter next point:`, then
+`[Undo]:` and from the third point `[Close/Undo]:`, and makes the clamped uniform spline on the points of the degree set
+(lowered to the points less one where they are fewer, so that two points are a straight spline of degree 1); Close makes the
+periodic spline AutoCAD makes (4 points of degree 3 have 7 control points and the knots 0, 0, 0, 0, 1, 2, 3, 4, 4, 4, 4; 3
+points keep the degree 3 and have 6). Enter ends the command, and makes nothing of one point. The spline through the points
+and the cursor is drawn while the next point is asked. Object asks `Select spline-fit polyline:` and replaces each polyline
+fitted with a spline (PEDIT Spline) by the spline on its frame, in the polyline's layer, colour and look, as AutoCAD does
+with its DELOBJ of 3; anything else is `Only spline fitted polylines can be converted to splines.` and `Unable to convert
+the selected object.`, and Enter with nothing picked `None found.`.
+
+BLEND (Blend in the Modify title's menu) writes `Continuity = Tangent` and asks `Select first object or [CONtinuity]:` and
+`Select second object:` and makes a spline from the end of the first open line, arc, elliptical arc, polyline or spline
+nearest the pick to the end of the second nearest its pick, on the current layer. A circle or a closed curve is `Cannot
+BLEND this object.`, and the same curve twice `Cannot blend an entity with itself at the specified location.`. CONtinuity
+asks `Enter continuity [Tangent/Smooth] <Tangent>:` and keeps the answer for the next BLEND. Tangent makes the cubic that
+leaves the first end along the first curve and arrives along the second, each handle a third of the distance between the
+ends long, as AutoCAD writes it to the digit: the lines (0, 0) to (30, 0) and (50, 20) to (80, 20) picked at their near
+ends have the control points (30, 0), (39.4281, 0), (40.5719, 20) and (50, 20) and the knots 0 to 28.2843. Smooth makes the
+degree 5 spline that also takes the curvature of each curve at its end (a line's nought, an arc's one over its radius); its
+control points are not AutoCAD's, whose Smooth spline starts by running back along the first curve before it turns.
+
 CLASSICINSERT shows the same Insert palette as INSERT: AutoCAD's classic Insert dialog asks the same things (the block
 or file, insertion point, scale and rotation each given or specified on screen, explode) in another frame, so it is not
 built apart.

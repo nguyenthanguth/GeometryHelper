@@ -78,6 +78,8 @@ namespace GeometryHelper.Dxf.Viewer
             AddDimensionAssociationTo(registry);
 
             registry.Add(new CadCommand("ELLIPSE", Ellipse));
+            registry.Add(new CadCommand("SPLINE", Spline));
+            registry.Add(new CadCommand("BLEND", Blend));
             registry.Add(new CadCommand("POINT", Point));
             registry.Add(new CadCommand("LAYOUT", LayoutTyped));
             registry.Add(new CadCommand("DIST", Dist));

@@ -380,9 +380,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 var expected = new Dictionary<string, string[]>
                 {
-                    ["Draw"] = new[] { "POINT", "DIVIDE", "MEASURE", "SOLID" },
+                    ["Draw"] = new[] { "SPLINE", "POINT", "DIVIDE", "MEASURE", "SOLID" },
                 };
-                var pressed = new[] { "POINT", "DIVIDE", "MEASURE", "SOLID" };
+                var pressed = new[] { "SPLINE", "POINT", "DIVIDE", "MEASURE", "SOLID" };
 
                 foreach (KeyValuePair<string, string[]> panelItems in expected)
                 {

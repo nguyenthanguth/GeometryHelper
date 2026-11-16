@@ -62,6 +62,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             "ARC",
             "CIRCLE",
             "ELLIPSE",
+            "SPLINE",
             "POLYGON",
             "XLINE",
             "RAY",
