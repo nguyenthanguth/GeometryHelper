@@ -564,6 +564,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 // What an application keeps in the extension dictionary is copied with the entity, as AutoCAD's COPY and MIRROR copy it.
                 added.KeepExtensionOf(entity);
+                CopyBreaks(s.Document, entity, added, transform);
                 return added;
             }
 
@@ -585,6 +586,7 @@ namespace GeometryHelper.Dxf.Viewer
             copy.DimBlock = own;
             CopyContextPictures(s.Database, copy, own);
             copy.TransformBy(transform);
+            CopyBreaks(s.Document, entity, copy, transform);
             return copy;
         }
 

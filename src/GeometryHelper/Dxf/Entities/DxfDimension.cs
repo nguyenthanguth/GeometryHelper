@@ -2088,6 +2088,17 @@ namespace GeometryHelper.Dxf
                 ?? throw new InvalidOperationException(
                     "The drawing has no block " + PictureName + " the dimension is drawn with, to explode it into."
                 );
+            return PlacedCopies(block, PicturePlacing(block))
+                .Where(e =>
+                    !(e is DxfDBPoint && string.Equals(e.Layer, "Defpoints", StringComparison.OrdinalIgnoreCase))
+                )
+                .ToList()
+                .AsReadOnly();
+        }
+
+        /// <summary>The transformation that places the entities of the block that draws the dimension where the dimension draws them (<see cref="Explode"/>, <see cref="GeometricExtents"/>).</summary>
+        private GeoTransform3 PicturePlacing(DxfBlockTableRecord block)
+        {
             GeoVector3 normal = Normal;
             double slack = Tolerance.Default.EqualVector;
             GeoTransform3 placing = GeoTransform3.Translation(DimBlockPosition.ToVector());
@@ -2099,12 +2110,51 @@ namespace GeometryHelper.Dxf
                     placing * Frame(normal, false) * GeoTransform3.Translation(new GeoVector3(0.0, 0.0, elevation));
             }
 
-            return PlacedCopies(block, placing * GeoTransform3.Translation(block.Origin.ToVector().Negate()))
-                .Where(e =>
-                    !(e is DxfDBPoint && string.Equals(e.Layer, "Defpoints", StringComparison.OrdinalIgnoreCase))
-                )
-                .ToList()
-                .AsReadOnly();
+            return placing * GeoTransform3.Translation(block.Origin.ToVector().Negate());
+        }
+
+        /// <summary>
+        /// Gets the box the dimension's picture fills where it stands, as AutoCAD 2021's <c>GeometricExtents</c> of a
+        /// dimension: that of every entity of its block (<see cref="DimBlock"/>) placed as <see cref="Explode"/> places them,
+        /// the points on the layer Defpoints that mark where it measures among them, which <see cref="Explode"/> leaves out. A
+        /// level dimension from (0, 0, 0) to (100, 0, 0) with its line at y 20 fills (0, 0, 0) to (100, 20.18, 0): the points
+        /// at its ends reach down to y 0, its extension lines up to 20.18. The words of the picture are measured as
+        /// <see cref="DxfEntity.GeometricExtents"/> measures a text; one the drawing's fonts do not measure adds nothing.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the drawing has no block of the name the dimension is drawn
+        /// with, or its block holds nothing with extents, as AutoCAD throws for an entity with none.</exception>
+        public override GeoAabb3 GeometricExtents
+        {
+            get
+            {
+                DxfBlockTableRecord block = DimBlock
+                    ?? throw new InvalidOperationException(
+                        "The drawing has no block " + PictureName + " the dimension is drawn with: it has no extents."
+                    );
+                GeoAabb3 box = GeoAabb3.Empty;
+
+                foreach (DxfEntity part in PlacedCopies(block, PicturePlacing(block)))
+                {
+                    try
+                    {
+                        GeoAabb3 one = part.GeometricExtents;
+                        box = box.IsEmpty ? one : box.Union(one);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // A part with no shape the library reads, or words no font measures, adds nothing to the box.
+                    }
+                }
+
+                if (box.IsEmpty)
+                {
+                    throw new InvalidOperationException(
+                        "The block " + block.Name + " the dimension is drawn with holds nothing with extents."
+                    );
+                }
+
+                return box;
+            }
         }
 
         [DxfType("DIMENSION")]

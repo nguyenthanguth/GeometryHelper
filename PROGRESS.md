@@ -627,12 +627,10 @@ the ones wanted.
       as AutoCAD's console without a view); Auto names every object whose box meets the host's, newest first; Auto
       breaks angular and arc-length arcs; Multiple takes multileaders too; group 50 written when a level DIMLINEAR is
       turned (a fault the follow showed)
-- [ ] (dimbreak4, running) DIMBREAK follow-ups 2: Manual on ordinate and arc-length dimensions (AutoCAD numbers the ordinate leader 0, the
-      arc 3); AutoCAD's pixel margin round the boxes; SCALE of a dimension with breaks; COPY of a dimension with
-      BREAKDATA; a multileader's extents without words and arrow; DxfDimension.GeometricExtents throws; the arc-length
-      picture's zero-radius arc; a several-line TrueType multileader; a block multileader of scale other than 1;
-      TEXTALIGN with a reference text; REVCLOUDGRIPS on plain, ellipse and Freehand clouds; a circle's grip order; PEDIT
-      spline counts PARKED; GUI-only: Freehand spacing, REFEDIT, TABLEEXPORT, pre-selection, BOUNDARY, FILTER, SPELL (S)
+- [x] DIMBREAK follow-ups 2 (dimbreak4): Manual on ordinate and arc-length dimensions numbered as AutoCAD; the public
+      DxfDimension.GeometricExtents (it threw) and a multileader's extents with words and arrows; SCALE and COPY of a
+      dimension with breaks as AutoCAD; the arc-length picture's zero-radius arc fixed. Left (parked, features first):
+      SCALE of a dimension without breaks, COPY of a multileader with breaks, the pixel margin
 - [x] Layouts: twisted viewports drawn and entered as AutoCAD (two bugs: the turn's sense, group 12 in view coordinates);
       one undo step per wheel or pan gesture; ZOOM Previous per viewport (20 each); -SCALELISTEDIT; Isolate in the Layer
       manager; New VP Freeze on viewports made through the core's API (S)
@@ -749,7 +747,7 @@ variables). Wave 1 is built first, basics first; Wave 2 and 3 after. The open fo
 chase speed or a few pictures stay parked unless they are real faults.
 
 Wave 1 (High):
-- [ ] SPLINE command (Fit/CV, Knots, Object, Close, fit tolerance, tangents) (M)
+- [ ] (spline1, running) SPLINE command (Fit/CV, Knots, Object, Close, fit tolerance, tangents) (M)
 - [ ] RECTANG options: Chamfer, Elevation, Fillet, Thickness, Width, Area, Dimensions, Rotation (S)
 - [ ] WIPEOUT command: points, Polyline (Erase polyline?), Frames (M)
 - [ ] COPY Array (count, Fit) and mOde Single/Multiple (S)

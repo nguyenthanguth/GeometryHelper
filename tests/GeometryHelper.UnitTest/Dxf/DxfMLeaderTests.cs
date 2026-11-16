@@ -626,10 +626,11 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ThePlaneAndExtentsOfAMultileader_AreThoseOfItsContextAndPoints()
+        public void ThePlaneAndExtentsOfAMultileader_AreThoseOfItsContextAndPartsItIsDrawnWith()
         {
             // B4: the entity's GetPlane is the MULTILEADER's; its box holds every vertex of its two leaders' lines, from (780, -10)
-            // and (780, 10), and the point of its words, (800, 0).
+            // and (780, 10), the point of its words, (800, 0), and the parts Explode draws it with: the second leader runs on the
+            // right of the words, its arrowhead at (850, -10), where its box reaches. The box of the points alone ended at 800.
             DxfMLeader words = ByHandle<DxfMLeader>(DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018), "B4");
             DxfEntity entity = words;
             Assert.True(entity.GetPlane().Normal.IsEqualTo(words.Normal, Tol));
@@ -639,7 +640,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(box.Contains(words.TextLocation, Tol));
             Assert.True(box.Contains(words.GetFirstVertex(0), Tol));
             Assert.True(box.Min.IsEqualTo(new GeoPoint3(780, -10, 0), Tol));
-            Assert.True(box.Max.IsEqualTo(new GeoPoint3(800, 10, 0), Tol));
+            Assert.True(box.Max.IsEqualTo(new GeoPoint3(850, 10, 0), Tol));
         }
 
         [Fact]

@@ -1476,9 +1476,21 @@ carried where it is moved or turned (from (60, 20) to (70, 20), moved 10 to the 
 multileader keeps the points as picked and takes their feet on its leader line again where it is moved. Auto breaks the arc
 of an angular dimension and of an arc length one as it breaks a line, a gap of the break size along the arc (0.125 on an arc of
 84.85 at 45 degrees leaves arcs from 0.002121 to 0.784662 and from 0.786135 to 1.568675 radians), and the leader of an ordinate
-dimension where a line crosses it. Manual on an ordinate or an arc length dimension is not AutoCAD's yet: it keeps the line
-nearest the middle of the points (AutoCAD's keeps the leader of an ordinate as 0, the arc's rays as 0 and 1, and puts the
-points on the middle of the line or the arc's end). DIMBREAK Multiple takes dimensions and multileaders both, then
+dimension where a line crosses it. Manual on an ordinate or an arc length dimension breaks the line nearest the first point as
+it does on a level one, numbered as AutoCAD 2021 numbers them: the leader of an ordinate 0 (a leader jogged to the side has three
+legs, 0 the leg from the point, 1 the jog, 2 the last leg), the rays of an arc length dimension 0 at the first end of the length
+and 1 at the second, its arc 3. The X ordinate of (20, 30) with its leader to (20, 200), broken from (60, 70) to (60, 90), has
+its leader from 30.0625 to 70 and from 90 up; an arc length dimension of an arc of 50 from 0 to 90 degrees put 250 out, broken
+from (100, 25) to (140, 35), has its first ray from 50.0625 to 100 and from 140 to 250.18. AutoCAD, picking in a view, moves a
+point within some 15 units of a window 700 across of such a line to its middle or its end before it breaks (a break of the leader
+above from (20, 70) to (20, 90) is kept as one point at its middle, 115.076, and cuts nothing), which the presenter, with no view,
+does not copy. A dimension that keeps a break by hand and is scaled is drawn again, as AutoCAD 2021 draws it, its offsets and
+arrowheads as the style sets them, not scaled with it (a level dimension from (0, 0) to (100, 0) scaled by 2 has its extension
+lines from 0.0625 to 40.18, not from 0.125 to 40.36), the points of the break carried by the scale. A dimension copied has a
+BREAKDATA of its own naming the same objects, the points of a break by hand carried by the move, and is drawn again where it keeps a
+break at an object: copied 100 to the right, away from the line it was broken at, it is whole, the line still named; copied 10 up,
+across the line, it is broken there. An arc length dimension of words of no height draws no arc symbol, which was an arc of no
+radius. DIMBREAK Multiple takes dimensions and multileaders both, then
 asks `Select object to break dimensions or [Auto/Remove] <Auto>:`. DIMJOGGED (DJO, JOG) draws a jogged radius of an arc or a
 circle, its line from a centre put in place of one off the drawing: along the radius's parallel, across at DIMJOGANG and
 on to the rim, the jog half way between the two lines. A circle of 50 about the origin, its centre drawn at (0, -100),

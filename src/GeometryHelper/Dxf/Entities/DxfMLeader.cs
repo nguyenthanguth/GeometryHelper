@@ -1622,9 +1622,13 @@ namespace GeometryHelper.Dxf
             new GeoPlane3(PointOf(Context(Read()).Head, 110, new GeoPoint3(0.0, 0.0, 0.0)), Normal);
 
         /// <summary>
-        /// Gets the box the MULTILEADER's points fill, as AutoCAD's <c>GeometricExtents</c> reaches them: the vertices of every
-        /// leader line (the point its dogleg starts at among them) and the point of its words or block; the size of the words and
-        /// of the block, and the arrows, which AutoCAD works out when it draws them, not counted.
+        /// Gets the box the MULTILEADER fills, as AutoCAD 2021's <c>GeometricExtents</c>: the vertices of every leader line (the
+        /// point its dogleg starts at among them) and the point of its words or block, and the parts <see cref="Explode"/>
+        /// draws it with, its words, block and arrowheads, the words with the landing gap more beyond them on the side away from
+        /// their leader. A multileader from (0, 0) to a landing at (100, -1.25), words "TEXT" 2.5 high at its right in the
+        /// font txt.shx and arrowheads of 0.18, fills (0, -2.5) to (109.71, 0.03): the words 9.17 wide and the gap of 0.09
+        /// counted, and the arrowhead's corners 0.03 above its line. Words that no font of the drawing measures, or a
+        /// multileader that <see cref="Explode"/> cannot draw, add nothing: the box is then that of the points alone.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the MULTILEADER has no line and no content, as AutoCAD throws
         /// for an entity with no extents.</exception>
@@ -1675,8 +1679,73 @@ namespace GeometryHelper.Dxf
                     box[5] = Math.Max(box[5], p.Z);
                 }
 
-                return new GeoAabb3(new GeoPoint3(box[0], box[1], box[2]), new GeoPoint3(box[3], box[4], box[5]));
+                var whole = new GeoAabb3(new GeoPoint3(box[0], box[1], box[2]), new GeoPoint3(box[3], box[4], box[5]));
+                IReadOnlyList<DxfEntity> parts;
+
+                try
+                {
+                    parts = Explode();
+                }
+                catch (InvalidOperationException)
+                {
+                    // A multileader with no context data, or one whose block is gone, is drawn by its points alone.
+                    return whole;
+                }
+
+                foreach (DxfEntity part in parts)
+                {
+                    try
+                    {
+                        GeoAabb3 one = part.GeometricExtents;
+                        whole = whole.Union(part is DxfMText ? WithLandingGap(one) : one);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // A part with no shape the library reads, or words no font measures, adds nothing to the box.
+                    }
+                }
+
+                return whole;
             }
+        }
+
+        /// <summary>
+        /// The box of measured words as AutoCAD 2021 counts it in a multileader's extents: the landing gap more on the side away
+        /// from the leader that runs to them from the left or the right: words of 9.17 wide from (100.45, -2.5) to (109.62, 0) at a
+        /// landing gap of 0.09 count to 109.71, and words to the left of the leader, from (90.38, -2.5) to (99.55, 0), from 90.29.
+        /// Words a font does not measure (a box of no width) and a leader that runs to them from above or below are left as they
+        /// are.
+        /// </summary>
+        private GeoAabb3 WithLandingGap(GeoAabb3 words)
+        {
+            Ctx ctx = Context(Read());
+
+            if (words.Max.X - words.Min.X <= 0.0)
+            {
+                return words;
+            }
+
+            foreach (LeaderPart leader in ctx.Leaders)
+            {
+                if (!HasLanding(leader))
+                {
+                    continue;
+                }
+
+                Landing(leader, out _, out bool horizontal, out GeoVector3 along);
+
+                if (!horizontal || Math.Abs(along.X) <= Math.Abs(along.Y))
+                {
+                    return words;
+                }
+
+                double gap = Num(Text(ctx.Head, 145), 2.0);
+                return along.X > 0.0
+                    ? new GeoAabb3(words.Min, new GeoPoint3(words.Max.X + gap, words.Max.Y, words.Max.Z))
+                    : new GeoAabb3(new GeoPoint3(words.Min.X - gap, words.Min.Y, words.Min.Z), words.Max);
+            }
+
+            return words;
         }
 
         #endregion

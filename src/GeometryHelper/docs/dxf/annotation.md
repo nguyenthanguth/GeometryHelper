@@ -293,7 +293,13 @@ line at the back of the arrow, so that a splined line and the spline exploded pa
 arrow (0.585 on the multileader below, splined, its arrow 4 long). The line from (780, -10, 0) through (790, -5, 0) to its
 dogleg from (790, -1.25, 0) to (798, -1.25, 0) is met by the line y = -3 at (790, -3, 0) and by the line x = 794 at
 (794, -1.25, 0). Its words or block, its arrowheads and invisible leaders are not met. An INSERT of a block holding a
-multileader is met on its lines too.
+multileader is met on its lines too. Its `GeometricExtents` is the box of its vertices, the point of its words or block and
+the parts `Explode()` draws it with, its arrowheads and its words where the drawing's `FontSearchPath` measures them, as
+AutoCAD 2021 gives it: a multileader from (0, 0, 0) to a landing at (100, -1.25, 0), words "TEXT" 2.5 high in txt.shx, arrowheads of
+0.18, fills (0, -2.5, 0) to (109.71, 0.03, 0), the words 9.17 wide past the landing and the landing gap of 0.09 beyond them on the
+side away from the leader (past their right edge for a leader on their left, past their left edge for one on their right), the
+arrowhead's corners 0.03 above the line. With no font the
+words add nothing: the box is that of the vertices, the arrowheads and the point of the words.
 
 DIMBREAK leaves its breaks in the leader line, as AutoCAD 2021 writes them: `GetBreaks(lineIndex)` gives each as a
 [`DxfLeaderBreak`](xref:GeometryHelper.Dxf.DxfLeaderBreak), its `Segment` of the line, where it `Start`s, nearer the
@@ -390,7 +396,11 @@ BLOCK), as ezdxf writes the picture of a dimension. A rotated dimension of 100 w
 MTEXT `100` is saved and read back drawn by `*D1` with its two entities; a drawing whose dimensions ezdxf drew as `*D1` to
 `*D11` names the next `*D12`. An anonymous block given as `DimBlock` is marked as the dimension's own, flag 32 of its group
 70, as AutoCAD 2021 writes a DIMLINEAR's 70 as 32, so that `TransformBy` moves the picture with it: the rotated dimension
-of 100 moved by (5, 20) has its dimension line moved by (5, 20) too. Give each dimension a block of its own; a copy added
+of 100 moved by (5, 20) has its dimension line moved by (5, 20) too. The `GeometricExtents` of a dimension is the box of
+that picture where it stands (placed as `Explode()` places it), its points of definition on the layer Defpoints among it, as
+AutoCAD 2021 gives it: a level dimension from (0, 0, 0) to (100, 0, 0), its line at y = 20, fills (0, 0, 0) to
+(100, 20.18, 0), the points at its ends reaching down to y = 0 and its extension lines up to 20.18; it throws, as an entity with
+no extents does in AutoCAD, where the block holds nothing with extents. Give each dimension a block of its own; a copy added
 to the drawing it came from shares its original's block and loses the flag. A block, linetype or text style set on a dimension in no drawing, or on a copy, is held as
 the record it is (a `Clone()` holds it too) and taken to the record of its name in the drawing it is added to, refused where
 there is none of that name to take it to.

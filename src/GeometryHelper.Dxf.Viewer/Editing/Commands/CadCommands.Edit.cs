@@ -1429,7 +1429,7 @@ namespace GeometryHelper.Dxf.Viewer
                                 entity.TransformBy(kept?.Transform ?? transform);
                             }
 
-                            CarryManualBreaks(entity, kept?.Transform ?? transform);
+                            CarryManualBreaks(s.Document, entity, kept?.Transform ?? transform);
                         }
 
                         kept?.Finish(entity);
