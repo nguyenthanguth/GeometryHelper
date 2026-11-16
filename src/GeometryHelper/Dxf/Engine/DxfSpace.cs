@@ -191,12 +191,41 @@ namespace GeometryHelper.Dxf
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        /// <summary>The entities of the space as they stand, in a list of their own that later changes leave as it is.</summary>
+        /// <summary>
+        /// The entities of the space as they stand, in a list of their own that later changes leave as it is. Walks that follow
+        /// one another with no entity added or removed between are given the same array, held only as long as something walks it
+        /// (a drawing of 1 000 000 entities makes 7.8 MB of it, which a lookup by handle made for each of its calls), so that
+        /// the array is not to be changed.
+        /// </summary>
         internal DxfItem[] Snapshot()
         {
             Compact();
-            return _items.ToArray();
+            SnapshotKept kept = _snapshot;
+
+            if (kept != null && kept.Version == _version && kept.Items.Target is DxfItem[] items)
+            {
+                return items;
+            }
+
+            DxfItem[] made = _items.ToArray();
+            _snapshot = new SnapshotKept(_version, made);
+            return made;
         }
+
+        /// <summary>The array <see cref="Snapshot"/> last made, weakly, with the version of the space it was made at.</summary>
+        private sealed class SnapshotKept
+        {
+            public readonly int Version;
+            public readonly WeakReference Items;
+
+            public SnapshotKept(int version, DxfItem[] items)
+            {
+                Version = version;
+                Items = new WeakReference(items);
+            }
+        }
+
+        private volatile SnapshotKept _snapshot;
 
         /// <summary>
         /// A number that changes each time an entity is added to the space or removed from it: while it is the same, the

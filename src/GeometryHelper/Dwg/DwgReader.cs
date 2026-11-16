@@ -163,14 +163,42 @@ namespace GeometryHelper.Dwg
 
             ProgressSteps steps = ProgressSteps.Of(progress);
             steps?.Within(0.0, 0.9);
-            byte[] dxf = ToDxf(File.ReadAllBytes(path), options?.SupportFolders, steps, stop);
+            byte[] dxf = ToDxfBuffer(File.ReadAllBytes(path), out int length, options?.SupportFolders, steps, stop);
             steps?.Within(0.9, 1.0);
             steps?.Stage(0.0, 1.0);
 
             // The bytes are the DXF's own from here, made for it alone: no copy of them is made to read them.
-            DxfDatabase database = DxfDatabase.Open(dxf, dxf.Length, stop);
+            DxfDatabase database = DxfDatabase.Open(dxf, length, stop);
             steps?.Done();
             return database;
+        }
+
+        /// <summary>
+        /// The DXF that <see cref="ToDxf"/> gives, in the array it was written in, which may be longer than the DXF is: it is
+        /// <paramref name="length"/> bytes long. A drawing opened from it holds the array as its own, so one that is made
+        /// too long to be worth keeping is cut to its length.
+        /// </summary>
+        internal static byte[] ToDxfBuffer(
+            byte[] file,
+            out int length,
+            IList<string> supportFolders = null,
+            ProgressSteps progress = null,
+            CancellationToken stop = default
+        )
+        {
+            try
+            {
+                return DwgTranscoder.ToDxfBuffer(file, out length, supportFolders, progress, stop);
+            }
+            catch (Exception fault)
+                when (!(fault is FormatException)
+                    && !(fault is NotSupportedException)
+                    && !(fault is OutOfMemoryException)
+                    && !(fault is OperationCanceledException)
+                )
+            {
+                throw new FormatException("The DWG file is broken: " + fault.Message, fault);
+            }
         }
 
         /// <summary>

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace GeometryHelper.Dwg
@@ -5,22 +6,64 @@ namespace GeometryHelper.Dwg
     /// <summary>
     /// One group of a DXF record made from a DWG object: the group code and the value. The value is an int or a long for a
     /// whole number, a double, a string of plain ASCII, the bytes of a text in the drawing's code page, a ulong for a
-    /// handle written in hex, or a <see cref="DwgName"/> for the name of the table record a handle leads to.
+    /// handle written in hex, or a <see cref="DwgName"/> for the name of the table record a handle leads to. A double or
+    /// an int made by <see cref="Real"/> or <see cref="Whole"/> is kept in the group itself and not as an object of its own
+    /// (24 bytes less for each, and one object less for the collector to walk): a LINE keeps six of its seven groups so, and
+    /// <see cref="Value"/> gives them boxed as it always did.
     /// </summary>
-    internal struct DwgGroup
+    internal readonly struct DwgGroup
     {
+        /// <summary>Marks a group that holds a double in its number.</summary>
+        private static readonly object DoubleKind = new object();
+
+        /// <summary>Marks a group that holds an int in its number.</summary>
+        private static readonly object IntKind = new object();
+
+        private readonly object _value;
+        private readonly long _number;
+
         /// <summary>The group code.</summary>
         public readonly int Code;
-
-        /// <summary>The value, of one of the kinds the type names.</summary>
-        public readonly object Value;
 
         /// <summary>A group of <paramref name="code"/> and <paramref name="value"/>.</summary>
         public DwgGroup(int code, object value)
         {
             Code = code;
-            Value = value;
+            _value = value;
+            _number = 0;
         }
+
+        private DwgGroup(int code, object kind, long number)
+        {
+            Code = code;
+            _value = kind;
+            _number = number;
+        }
+
+        /// <summary>A group of <paramref name="code"/> that holds the double <paramref name="value"/> as its number.</summary>
+        public static DwgGroup Real(int code, double value) =>
+            new DwgGroup(code, DoubleKind, BitConverter.DoubleToInt64Bits(value));
+
+        /// <summary>A group of <paramref name="code"/> that holds the int <paramref name="value"/> as its number.</summary>
+        public static DwgGroup Whole(int code, int value) => new DwgGroup(code, IntKind, value);
+
+        /// <summary>Whether the value is a double.</summary>
+        public bool IsReal => ReferenceEquals(_value, DoubleKind);
+
+        /// <summary>Whether the value is an int.</summary>
+        public bool IsWhole => ReferenceEquals(_value, IntKind);
+
+        /// <summary>The double a group of <see cref="IsReal"/> holds.</summary>
+        public double RealValue => BitConverter.Int64BitsToDouble(_number);
+
+        /// <summary>The int a group of <see cref="IsWhole"/> holds.</summary>
+        public int WholeValue => (int)_number;
+
+        /// <summary>The value, of one of the kinds the type names.</summary>
+        public object Value =>
+            ReferenceEquals(_value, DoubleKind) ? (object)RealValue
+            : ReferenceEquals(_value, IntKind) ? (object)WholeValue
+            : _value;
     }
 
     /// <summary>
@@ -194,7 +237,16 @@ namespace GeometryHelper.Dwg
         public ulong Owner;
 
         /// <summary>The handles of the persistent reactors.</summary>
-        public List<ulong> Reactors = new List<ulong>();
+        public List<ulong> Reactors
+        {
+            get => _reactors ?? (_reactors = new List<ulong>());
+            set => _reactors = value;
+        }
+
+        /// <summary>Whether the object has a persistent reactor, which asks for no list to be made where it has none.</summary>
+        public bool HasReactors => _reactors != null && _reactors.Count > 0;
+
+        private List<ulong> _reactors;
 
         /// <summary>The handle of the extension dictionary; 0 for none.</summary>
         public ulong XDictionary;
@@ -206,82 +258,320 @@ namespace GeometryHelper.Dwg
         public ulong Next;
 
         /// <summary>Of an entity: the groups every entity carries after its layer (linetype, colour, scale, visibility, lineweight).</summary>
-        public List<DwgGroup> Common = new List<DwgGroup>();
+        public List<DwgGroup> Common
+        {
+            get => _common ?? (_common = new List<DwgGroup>());
+            set => _common = value;
+        }
+
+        /// <summary>The groups every entity carries, null where it has none: a list is made only for an object that has some, 300 000 of them kept by a drawing of 300 000 entities.</summary>
+        public List<DwgGroup> CommonIfAny => _common;
+
+        private List<DwgGroup> _common;
 
         /// <summary>Of an entity: the handle of its layer.</summary>
         public ulong Layer;
 
         /// <summary>The groups of the object's own data, in the order DXF writes them.</summary>
-        public List<DwgGroup> Body = new List<DwgGroup>();
+        public List<DwgGroup> Body
+        {
+            get => _body ?? (_body = new List<DwgGroup>());
+            set => _body = value;
+        }
+
+        /// <summary>The groups of the object's own data, null where it has none.</summary>
+        public List<DwgGroup> BodyIfAny => _body;
+
+        private List<DwgGroup> _body;
 
         /// <summary>The extended data as groups 1001 and up.</summary>
-        public List<DwgGroup> XData = new List<DwgGroup>();
+        public List<DwgGroup> XData
+        {
+            get => _xData ?? (_xData = new List<DwgGroup>());
+            set => _xData = value;
+        }
+
+        /// <summary>The extended data, null where the object has none.</summary>
+        public List<DwgGroup> XDataIfAny => _xData;
+
+        private List<DwgGroup> _xData;
+
+        // What only some objects carry is kept in an object of its own, made when the first of it is set: an entity of a
+        // drawing has none of it, and the fields would take some 110 bytes of each of the 300 000 of a drawing of that many (an object is 120 bytes where it was 392, with its five lists made empty).
+        private DwgObjectExtra _extra;
+
+        private DwgObjectExtra Extra => _extra ?? (_extra = new DwgObjectExtra());
 
         /// <summary>
         /// Of a table style of cell styles of its own (101 on): the CELLSTYLEMAP AutoCAD writes for it in DXF alone, which
         /// the reader adds under its extension dictionary; null for none.
         /// </summary>
-        public DwgObject CellStyleMap;
+        public DwgObject CellStyleMap
+        {
+            get => _extra?.CellStyleMap;
+            set
+            {
+                if (value != null || _extra != null)
+                {
+                    Extra.CellStyleMap = value;
+                }
+            }
+        }
 
         /// <summary>The name of a table record, a block or a named object, as the bytes of the file.</summary>
-        public byte[] RecordName;
+        public byte[] RecordName
+        {
+            get => _extra?.RecordName;
+            set
+            {
+                if (value != null || _extra != null)
+                {
+                    Extra.RecordName = value;
+                }
+            }
+        }
 
         /// <summary>Of a control object: the handles of its records.</summary>
-        public List<ulong> Entries = new List<ulong>();
+        public List<ulong> Entries
+        {
+            get => Extra.Entries ?? (Extra.Entries = new List<ulong>());
+            set => Extra.Entries = value;
+        }
 
         /// <summary>The first owned entity: of a block its first entity, of a polyline its first vertex, of an insert its first attribute.</summary>
-        public ulong First;
+        public ulong First
+        {
+            get => _extra == null ? 0 : _extra.First;
+            set
+            {
+                if (value != 0 || _extra != null)
+                {
+                    Extra.First = value;
+                }
+            }
+        }
 
         /// <summary>The last owned entity, as <see cref="First"/>.</summary>
-        public ulong Last;
+        public ulong Last
+        {
+            get => _extra == null ? 0 : _extra.Last;
+            set
+            {
+                if (value != 0 || _extra != null)
+                {
+                    Extra.Last = value;
+                }
+            }
+        }
 
         /// <summary>
         /// From R2004, where no entity names the next: the owned entities in their order (of a block its entities, of a
         /// polyline its vertices, of an insert its attributes); null before R2004, where <see cref="First"/> and
         /// <see cref="Last"/> give them.
         /// </summary>
-        public List<ulong> Owned;
+        public List<ulong> Owned
+        {
+            get => _extra?.Owned;
+            set
+            {
+                if (value != null || _extra != null)
+                {
+                    Extra.Owned = value;
+                }
+            }
+        }
 
         /// <summary>Of a polyline or an insert with attributes: the handle of the SEQEND that closes it.</summary>
-        public ulong SeqEnd;
+        public ulong SeqEnd
+        {
+            get => _extra == null ? 0 : _extra.SeqEnd;
+            set
+            {
+                if (value != 0 || _extra != null)
+                {
+                    Extra.SeqEnd = value;
+                }
+            }
+        }
 
         /// <summary>Of a block header: the handle of its BLOCK entity.</summary>
-        public ulong BlockEntity;
+        public ulong BlockEntity
+        {
+            get => _extra == null ? 0 : _extra.BlockEntity;
+            set
+            {
+                if (value != 0 || _extra != null)
+                {
+                    Extra.BlockEntity = value;
+                }
+            }
+        }
 
         /// <summary>Of a block header: the handle of its ENDBLK entity.</summary>
-        public ulong EndBlock;
+        public ulong EndBlock
+        {
+            get => _extra == null ? 0 : _extra.EndBlock;
+            set
+            {
+                if (value != 0 || _extra != null)
+                {
+                    Extra.EndBlock = value;
+                }
+            }
+        }
 
         /// <summary>Of a block header: the block flags of group 70 of its BLOCK. Of a control object: the count of records it gives for group 70.</summary>
-        public int BlockFlags;
+        public int BlockFlags
+        {
+            get => _extra == null ? 0 : _extra.BlockFlags;
+            set
+            {
+                if (value != 0 || _extra != null)
+                {
+                    Extra.BlockFlags = value;
+                }
+            }
+        }
 
         /// <summary>Of a block header: the groups of the BLOCK entity that the header keeps (base point, path of the reference).</summary>
-        public List<DwgGroup> BlockBody;
+        public List<DwgGroup> BlockBody
+        {
+            get => _extra?.BlockBody;
+            set
+            {
+                if (value != null || _extra != null)
+                {
+                    Extra.BlockBody = value;
+                }
+            }
+        }
 
         /// <summary>Of a DBCOLOR from R2004: its colour; null for another type.</summary>
-        public DwgColour BookColour;
+        public DwgColour BookColour
+        {
+            get => _extra?.BookColour;
+            set
+            {
+                if (value != null || _extra != null)
+                {
+                    Extra.BookColour = value;
+                }
+            }
+        }
 
         /// <summary>Of an entity: the picture of it kept for programs that cannot draw it (proxy graphics); null for none.</summary>
-        public byte[] ProxyGraphics;
+        public byte[] ProxyGraphics
+        {
+            get => _extra?.ProxyGraphics;
+            set
+            {
+                if (value != null || _extra != null)
+                {
+                    Extra.ProxyGraphics = value;
+                }
+            }
+        }
 
         /// <summary>Of an MTEXT: the height and the width of the extents of its text; null for another type.</summary>
-        public double[] TextExtents;
+        public double[] TextExtents
+        {
+            get => _extra?.TextExtents;
+            set
+            {
+                if (value != null || _extra != null)
+                {
+                    Extra.TextExtents = value;
+                }
+            }
+        }
 
         /// <summary>Of a LEADER: the handle of its annotation; 0 for none.</summary>
-        public ulong Annotation;
+        public ulong Annotation
+        {
+            get => _extra == null ? 0 : _extra.Annotation;
+            set
+            {
+                if (value != 0 || _extra != null)
+                {
+                    Extra.Annotation = value;
+                }
+            }
+        }
 
         /// <summary>Of a layout from R2004: its viewports in their order; null before R2004.</summary>
-        public List<ulong> Viewports;
+        public List<ulong> Viewports
+        {
+            get => _extra?.Viewports;
+            set
+            {
+                if (value != null || _extra != null)
+                {
+                    Extra.Viewports = value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Makes room in <see cref="Body"/> for <paramref name="groups"/> groups in one array, where an entity knows how many
+        /// it will add: a list grown by adding holds twice what it was given as it passes 4, 8, 16, and the room it does not use
+        /// is kept by each of the objects of a drawing.
+        /// </summary>
+        public void ReserveBody(int groups)
+        {
+            if (Body.Capacity < groups)
+            {
+                Body.Capacity = groups;
+            }
+        }
 
         /// <summary>Adds a group to <see cref="Body"/>.</summary>
         public void Add(int code, object value) => Body.Add(new DwgGroup(code, value));
+
+        /// <summary>Adds a group that holds a double to <see cref="Body"/>, kept in the group and not as an object of its own.</summary>
+        public void Add(int code, double value) => Body.Add(DwgGroup.Real(code, value));
+
+        /// <summary>Adds a group that holds an int to <see cref="Body"/>, kept in the group and not as an object of its own.</summary>
+        public void Add(int code, int value) => Body.Add(DwgGroup.Whole(code, value));
+
+        // The other whole numbers are kept as the objects they were, and not turned into doubles by the overload above.
+
+        /// <summary>Adds a group that holds a long to <see cref="Body"/>.</summary>
+        public void Add(int code, long value) => Body.Add(new DwgGroup(code, (object)value));
+
+        /// <summary>Adds a group that holds an unsigned long, a handle, to <see cref="Body"/>.</summary>
+        public void Add(int code, ulong value) => Body.Add(new DwgGroup(code, (object)value));
+
+        /// <summary>Adds a group that holds an unsigned int to <see cref="Body"/>.</summary>
+        public void Add(int code, uint value) => Body.Add(new DwgGroup(code, (object)value));
 
         /// <summary>Adds a point to <see cref="Body"/>: its coordinates under <paramref name="code"/>, the code plus 10 and, of three, plus 20.</summary>
         public void AddPoint(int code, double[] point)
         {
             for (int i = 0; i < point.Length; i++)
             {
-                Body.Add(new DwgGroup(code + (10 * i), point[i]));
+                Body.Add(DwgGroup.Real(code + (10 * i), point[i]));
             }
         }
+    }
+
+    /// <summary>What only some of the objects carry, kept by a <see cref="DwgObject"/> that has some of it.</summary>
+    internal sealed class DwgObjectExtra
+    {
+        public DwgObject CellStyleMap;
+        public byte[] RecordName;
+        public List<ulong> Entries;
+        public ulong First;
+        public ulong Last;
+        public List<ulong> Owned;
+        public ulong SeqEnd;
+        public ulong BlockEntity;
+        public ulong EndBlock;
+        public int BlockFlags;
+        public List<DwgGroup> BlockBody;
+        public DwgColour BookColour;
+        public byte[] ProxyGraphics;
+        public double[] TextExtents;
+        public ulong Annotation;
+        public List<ulong> Viewports;
     }
 }

@@ -549,7 +549,7 @@ namespace GeometryHelper.Dwg
 
                 if (colour.Transparency != -1)
                 {
-                    _object.Common.Add(new DwgGroup(440, colour.Transparency));
+                    _object.Common.Add(DwgGroup.Whole(440, colour.Transparency));
                 }
             }
             else
@@ -559,17 +559,17 @@ namespace GeometryHelper.Dwg
 
             if (linetypeScale != 1.0)
             {
-                _object.Common.Add(new DwgGroup(48, linetypeScale));
+                _object.Common.Add(DwgGroup.Real(48, linetypeScale));
             }
 
             if ((invisible & 1) != 0)
             {
-                _object.Common.Add(new DwgGroup(60, 1));
+                _object.Common.Add(DwgGroup.Whole(60, 1));
             }
 
             if (lineWeight != -1)
             {
-                _object.Common.Add(new DwgGroup(370, lineWeight));
+                _object.Common.Add(DwgGroup.Whole(370, lineWeight));
             }
         }
 
@@ -669,12 +669,12 @@ namespace GeometryHelper.Dwg
         {
             if (!entity || colour.Index != 256)
             {
-                groups.Add(new DwgGroup(indexCode, colour.Index));
+                groups.Add(DwgGroup.Whole(indexCode, colour.Index));
             }
 
             if (colour.Rgb >= 0 && rgbCode >= 0)
             {
-                groups.Add(new DwgGroup(rgbCode, colour.Rgb));
+                groups.Add(DwgGroup.Whole(rgbCode, colour.Rgb));
             }
 
             if (colour.Name != null && colour.Name.Length > 0)
@@ -691,7 +691,7 @@ namespace GeometryHelper.Dwg
 
             if (colour.Transparency != -1)
             {
-                groups.Add(new DwgGroup(440, colour.Transparency));
+                groups.Add(DwgGroup.Whole(440, colour.Transparency));
             }
         }
 
