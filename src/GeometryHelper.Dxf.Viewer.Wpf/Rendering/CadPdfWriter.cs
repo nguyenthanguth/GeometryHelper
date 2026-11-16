@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using SkiaSharp;
 
@@ -15,7 +16,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// settings carry PDFSHX (<see cref="CadPlotSettings.PdfShx"/>), which writes the words again over the strokes in letters
     /// no eye sees. A plot stamp the settings carry (<see cref="CadPlotSettings.PlotStamp"/>) is drawn in a corner of the sheet
     /// as text, and its line added to the stamp's log file. Several plots, as EXPORTPDF's All layouts, are written as one
-    /// PDF of a page each (<see cref="WritePages"/>). Settings that carry <see cref="CadPlotSettings.PdfHyperlinks"/> make the
+    /// PDF of a page each (<see cref="WritePages(string, CadDocument, IReadOnlyList{CadPlotJob})"/>), and those of several
+    /// drawings, as PUBLISH writes them, by <see cref="WritePages(string, IReadOnlyList{CadDocument}, IReadOnlyList{CadPlotJob})"/>.
+    /// Settings that carry <see cref="CadPlotSettings.PdfHyperlinks"/> make the
     /// first hyperlink of each object plotted a link of the page over the object's box.
     /// </summary>
     /// <remarks>
@@ -157,7 +160,54 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 throw new ArgumentException("A PDF has a page at least.", nameof(pages));
             }
 
-            byte[] pdf = Make(document, pages, out IReadOnlyList<CadPlotPage> laid, out var stamped);
+            return WritePages(path, Same(document, pages.Count), pages);
+        }
+
+        /// <summary>
+        /// Writes plots of spaces of several drawings to one PDF file of a page each, in their order, replacing a file of the
+        /// name, as PUBLISH writes a multi-sheet PDF: the page of each plot is the size of its own sheet, its plot drawn from its
+        /// own drawing, and stamped by its own settings. Three sheets, the model of one drawing and a layout on ISO A3 and one on
+        /// ISO A1 of another, are a PDF of three pages.
+        /// </summary>
+        /// <param name="path">The file.</param>
+        /// <param name="documents">The drawing of each page, as many as there are pages; the same drawing may stand for several.</param>
+        /// <param name="pages">The plot of each page: its space (of the drawing of the same place in <paramref name="documents"/>), its settings and the display it was asked with.</param>
+        /// <returns>The plots as they were laid on their sheets, in the order of the pages.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when an argument is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when there is no page, or the drawings are not as many as the pages.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when a page has nothing to plot.</exception>
+        public static IReadOnlyList<CadPlotPage> WritePages(
+            string path,
+            IReadOnlyList<CadDocument> documents,
+            IReadOnlyList<CadPlotJob> pages
+        )
+        {
+            if (path == null)
+            {
+                throw new ArgumentNullException(nameof(path));
+            }
+
+            if (documents == null)
+            {
+                throw new ArgumentNullException(nameof(documents));
+            }
+
+            if (pages == null)
+            {
+                throw new ArgumentNullException(nameof(pages));
+            }
+
+            if (pages.Count == 0)
+            {
+                throw new ArgumentException("A PDF has a page at least.", nameof(pages));
+            }
+
+            if (documents.Count != pages.Count)
+            {
+                throw new ArgumentException("Each page has a drawing.", nameof(documents));
+            }
+
+            byte[] pdf = Make(documents, pages, out IReadOnlyList<CadPlotPage> laid, out var stamped);
             File.WriteAllBytes(path, pdf);
 
             for (int i = 0; i < pages.Count; i++)
@@ -175,6 +225,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return laid;
         }
 
+        private static CadDocument[] Same(CadDocument document, int count)
+        {
+            var documents = new CadDocument[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                documents[i] = document;
+            }
+
+            return documents;
+        }
+
         private static byte[] Make(
             CadDocument document,
             CadSpace space,
@@ -185,7 +247,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         )
         {
             byte[] pdf = Make(
-                document,
+                Same(document, 1),
                 new[]
                 {
                     new CadPlotJob(
@@ -204,22 +266,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         private static byte[] Make(
-            CadDocument document,
+            IReadOnlyList<CadDocument> documents,
             IReadOnlyList<CadPlotJob> jobs,
             out IReadOnlyList<CadPlotPage> pages,
             out IReadOnlyList<IReadOnlyList<string>> stamped
         )
         {
-            if (document == null)
+            if (documents.Any(d => d == null))
             {
-                throw new ArgumentNullException(nameof(document));
+                throw new ArgumentNullException(nameof(documents));
             }
 
             var laid = new List<CadPlotPage>();
             var lines = new List<IReadOnlyList<string>>();
 
-            foreach (CadPlotJob job in jobs)
+            for (int j = 0; j < jobs.Count; j++)
             {
+                CadPlotJob job = jobs[j];
+                CadDocument document = documents[j];
                 CadPlotPage page = CadPlotPage.Compute(document, job.Space, job.Settings, job.Display);
 
                 if (page.IsEmpty)
@@ -255,7 +319,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     var metadata = new SKDocumentPdfMetadata(SKDocumentPdfMetadata.DefaultRasterDpi)
                     {
-                        Title = document.Title + " - " + (jobs.Count == 1 ? jobs[0].Space.Name : "Layouts"),
+                        Title = documents.All(d => ReferenceEquals(d, documents[0]))
+                            ? documents[0].Title + " - " + (jobs.Count == 1 ? jobs[0].Space.Name : "Layouts")
+                            : "Published sheets",
                         Creator = CadPlotSettings.PdfDevice,
                         Producer = CadPlotSettings.PdfDevice,
                     };
@@ -265,6 +331,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     {
                         for (int i = 0; i < jobs.Count; i++)
                         {
+                            CadDocument document = documents[i];
                             CadPlotPage page = laid[i];
                             CadPlotSettings settings = jobs[i].Settings;
                             double height = page.SheetHeightPoints;

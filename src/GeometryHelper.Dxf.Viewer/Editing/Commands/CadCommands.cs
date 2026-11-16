@@ -199,6 +199,7 @@ namespace GeometryHelper.Dxf.Viewer
             AddVariablesTo(registry);
             AddPgpBasicsTo(registry);
             AddOutputBatchTo(registry);
+            AddPublishTo(registry);
             AddPgpBatch1bTo(registry);
             AddCenterMarksTo(registry);
             AddPgpR32To(registry);

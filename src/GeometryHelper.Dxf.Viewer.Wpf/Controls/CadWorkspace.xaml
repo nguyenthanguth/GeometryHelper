@@ -2851,11 +2851,11 @@
 
             <!--
             The panels of the Output tab (design OutputTab), AutoCAD 2021's basics: Plot (Plot, Page Setup Manager, Preview, Plot
-            Stamp), Export to DWF/PDF (Export PDF, Export) and Import. Some 510 wide, so no panel shrinks: the strip has no steps.
+            Stamp), Export to DWF/PDF (Export PDF, Export) and Import. Some 600 wide, so no panel shrinks: the strip has no steps.
             -->
             <DataTemplate DataType="{x:Type local:OutputRibbonViewModel}">
                 <local:RibbonStrip>
-                    <local:RibbonPanel Title="Plot" MinFullWidth="236" Icon="{StaticResource GhIconPlot}">
+                    <local:RibbonPanel Title="Plot" MinFullWidth="330" Icon="{StaticResource GhIconPlot}">
                         <StackPanel Orientation="Horizontal">
                             <Button
                                 Style="{StaticResource BigButton}"
@@ -2893,6 +2893,17 @@
                                     Command="{Binding Model.StartCommandCommand}"
                                     CommandParameter="PLOTSTAMP"
                                     ToolTip="Plot Stamp (PLOTSTAMP)"
+                                />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource SmallColumn}">
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconBatchPlot}"
+                                    Content="Batch Plot"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="PUBLISH"
+                                    ToolTip="Batch Plot (PUBLISH): several drawings and layouts at once"
                                 />
                             </WrapPanel>
                         </StackPanel>

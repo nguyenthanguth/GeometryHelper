@@ -763,7 +763,7 @@ Wave 1 (High):
 - [ ] (layermgr1, running) Layer manager: Plot, Transparency, Description, Plot Style columns; property and group filters (M)
 - [x] (layer1) -DIMSTYLE (Save, Restore, STatus, Variables, Apply, ?) and DIMUPDATE (S)
 - [ ] (plotstyle1, running) Plot style tables from .ctb/.stb files and the Plot Style Table Editor (M-L)
-- [ ] (publish1, running) PUBLISH: batch plot of several drawings and layouts to one PDF or a printer (M)
+- [x] PUBLISH and -PUBLISH: Publish dialog, multi-sheet or single PDFs or plotter, .dsd lists, Batch Plot on the Output tab (publish1). Follow-up: Preview, Show Details, multi-select, Publish Options, check a .dsd we write in AutoCAD.
 - [x] Drawing templates: NEW with Select Template, QNEW, SAVEAS .dwt, Template settings (files1). Follow-up: Save As dialog to switch to the template folder when .dwt is picked.
 - [x] (modify1: Table, BATTMAN, BEDIT, QuickCalc, Select Similar, Add Selected, annotation scale items, Save As Other Formats; the rest have no command yet) Wire up greyed buttons and menu items whose commands exist (BEDIT, BATTMAN, TABLE, QuickCalc, Quick Properties,
       annotation scale items) (S)
@@ -784,6 +784,7 @@ LAYTRANS; SAVEALL, CLOSEALL; PDF underlays; more EXPORT writers; parametric cons
 
 ### To do
 
+- [ ] Dialog polish (design3, 2026-11-17): one footer button order, theme brush for errors (MTextMask #FF8A7A), MTextMask header drag + Root/Body, SelectTemplate list to GhListBox, one primary padding; measure MTextMask/Overkill heights for the boards.
 - [ ] DWG, our own reader and writer (the maintainer's choice: code of our own, to change at will). Sources: the Open
       Design Specification for .dwg (the main one), ACadSharp (MIT: may be ported, with its notice), LibreDWG (GPLv3: its
       documentation only, never its code). The reader turns a DWG into the library's DXF records, so everything built

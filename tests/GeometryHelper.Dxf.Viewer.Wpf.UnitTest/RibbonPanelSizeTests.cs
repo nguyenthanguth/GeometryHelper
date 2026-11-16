@@ -452,7 +452,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     .Where(b => b.CommandParameter is string)
                     .ToList();
                 Assert.Equal(
-                    new[] { "PLOT", "PAGESETUP", "PREVIEW", "PLOTSTAMP", "EXPORTPDF", "EXPORT", "IMPORT" },
+                    new[] { "PLOT", "PAGESETUP", "PREVIEW", "PLOTSTAMP", "PUBLISH", "EXPORTPDF", "EXPORT", "IMPORT" },
                     buttons.Select(b => (string)b.CommandParameter)
                 );
 

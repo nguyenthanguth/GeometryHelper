@@ -19,6 +19,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The guide's page at the heading "Named page setups": the Page Setup Manager and the dialogs it opens.</summary>
         internal static string PageSetups => Page + "#named-page-setups";
 
+        /// <summary>The guide's page at the heading "PUBLISH and -PUBLISH": the Publish dialog and the sheet list file.</summary>
+        internal static string Publish => Page + "#publish-and--publish";
+
         /// <summary>Opens a page in the browser; a browser that cannot be started is logged and left, never thrown.</summary>
         /// <param name="url">The address.</param>
         internal static void Open(string url)

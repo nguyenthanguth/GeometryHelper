@@ -33,6 +33,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             model.ShowPageSetupOverride = dialog => PageSetupOverrideWindow.Show(Window.GetWindow(this), dialog);
             model.ShowExportPdfOptions = dialog => ExportPdfOptionsWindow.Show(Window.GetWindow(this), dialog);
             model.OpenInViewer = OpenInViewer;
+            model.ShowPublish = dialog => PublishWindow.Show(Window.GetWindow(this), dialog);
         }
 
         /// <summary>EXPORTPDF's Open in viewer when done: the PDF opened by the program Windows gives its type; a failure is logged.</summary>
