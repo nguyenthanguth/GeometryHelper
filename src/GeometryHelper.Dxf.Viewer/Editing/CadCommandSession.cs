@@ -368,10 +368,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// the grip's vertex (with Copy on it asks again, each vertex after the last, until eXit or Enter; Undo takes the last
         /// one back). Convert to Arc asks "** CONVERT TO ARC **" and "Specify midpoint of arc segment:" and makes the segment the arc
         /// through the point; Convert to Line asks "** CONVERT TO LINE **" and "Pick to convert to line segment:" and makes the
-        /// segment straight at a pick. Remove Vertex is done at once. A line's or an arc's end offers Lengthen ("** LENGTHEN **",
+        /// segment straight at a pick. Remove Vertex asks "** REMOVE VERTEX **" and "Pick to remove vertex:" ("** REMOVE FIT POINT **"
+        /// and "Pick to remove fit point:" for a spline's fit point) and takes the vertex out at a pick. A line's or an arc's end offers Lengthen ("** LENGTHEN **",
         /// "Specify end point:"), the middle of an arc Radius ("** RADIUS **", "Specify radius:"), a hatch Hatch Scale, Hatch Angle
-        /// and Origin Point, a spline's point its own Add Vertex ("** ADD FIT POINT **" or "** ADD CONTROL VERTEX **"). Every
-        /// item is one undo step, and Esc at a prompt changes nothing.
+        /// and Origin Point, a spline's point its own Add Vertex ("** ADD FIT POINT **" or "** ADD CONTROL VERTEX **"). Lengthen
+        /// and Radius also have Copy and Undo. A linear dimension's grips offer Continue Dimension and Baseline Dimension (the
+        /// row DIMCONTINUE or DIMBASELINE makes), its arrowheads Flip Arrow ("** FLIP ARROW**", "Pick to flip arrowhead:"), the
+        /// grip of its words Move Text Only, Move with Leader, Move with Dim Line, Above Dim Line, Center Vertically and Reset
+        /// Text Position. Every item is one undo step, and Esc at a prompt changes nothing.
         /// </summary>
         /// <param name="handle">The handle of the polyline, line, arc, spline or hatch.</param>
         /// <param name="gripIndex">The index of its grip, as <see cref="CadGrips.Of"/> gives it.</param>

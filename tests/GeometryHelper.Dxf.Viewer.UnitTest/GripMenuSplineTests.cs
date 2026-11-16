@@ -210,7 +210,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void RemoveVertexFromTheMenu_IsDoneAtOnce_AndStretchVertexAsksStretch()
+        public void RemoveVertexFromTheMenu_AsksForAPick_AndStretchVertexAsksStretch()
         {
             CadDocument document = Blank();
             string handle = FitSpline(document);
@@ -218,6 +218,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             session.Tolerance = Tolerance.Default;
 
             Assert.True(session.StartGripAction(handle, 2, CadGripAction.RemoveVertex));
+            Assert.True(session.IsRunning);
+            Assert.Equal("** REMOVE FIT POINT **", session.History.Last());
+            Assert.Equal("Pick to remove fit point:", session.PromptText);
+            Assert.Equal(4, Entity<DxfSpline>(document, handle).NumFitPoints);
+            Run(session, Esc);
+            Assert.Equal(4, Entity<DxfSpline>(document, handle).NumFitPoints);
+            Assert.True(session.StartGripAction(handle, 2, CadGripAction.RemoveVertex));
+            Run(session, P(60, 60));
             Assert.False(session.IsRunning);
             Assert.Equal(3, Entity<DxfSpline>(document, handle).NumFitPoints);
 
@@ -225,6 +233,25 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal("** STRETCH **", session.History.Last());
             Run(session, P(100, 60));
             Near(new GeoPoint3(100, 60, 0), Entity<DxfSpline>(document, handle).GetFitPointAt(1), 1E-9);
+        }
+
+        [Fact]
+        public void RemoveVertexOfAControlVertex_SaysRemoveControlVertex_AndTakesItOutAtAPick()
+        {
+            CadDocument document = Blank();
+            string handle = ControlSpline(document);
+            CadCommandSession session = Session(document);
+            session.Tolerance = Tolerance.Default;
+
+            Assert.True(session.StartGripAction(handle, 2, CadGripAction.RemoveVertex));
+            Assert.Equal("** REMOVE CONTROL VERTEX **", session.History.Last());
+            Assert.Equal("Pick to remove vertex:", session.PromptText);
+            Assert.Equal(5, Entity<DxfSpline>(document, handle).NumControlPoints);
+            Run(session, P(10, 10));
+            Assert.False(session.IsRunning);
+            Assert.Equal(4, Entity<DxfSpline>(document, handle).NumControlPoints);
+            Assert.True(document.Undo());
+            Assert.Equal(5, Entity<DxfSpline>(document, handle).NumControlPoints);
         }
     }
 }

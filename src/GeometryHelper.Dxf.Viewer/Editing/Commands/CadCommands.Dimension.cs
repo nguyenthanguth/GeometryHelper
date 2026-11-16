@@ -1222,7 +1222,9 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2? placed = null,
             GeoPoint2? jog = null,
             double jogHeight = 0.0,
-            double? turned = null
+            double? turned = null,
+            bool flipFirst = false,
+            bool flipSecond = false
         )
         {
             Sizes(
@@ -1365,6 +1367,54 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
+            // An arrowhead flipped (Flip Arrow of the grip menu, groups 74 and 75) stands on the other side of its extension line,
+            // as AutoCAD 2021 draws it (probed in its console on dimensions of 100, 12, 1 and 0.3 with DIMASZ 0.18): from inside,
+            // outside with a line an arrowhead long beyond it, the dimension line drawn from its tip to where it would have
+            // begun; from outside, inside with a line an arrowhead long on inward from its back, the short line it stood on
+            // taken away, or where the line is run on to words there, drawn from the tip to it. Ticks and the arrowheads that
+            // take no room stay.
+            bool[] flips = { flipFirst, flipSecond };
+            DxfDimArrowFlag[] ends = { DxfDimArrowFlag.FirstArrow, DxfDimArrowFlag.SecondArrow };
+            var inside = new[] { layout.ArrowsInside, layout.ArrowsInside };
+
+            for (int end = 0; end < 2 && !layout.ArrowsSuppressed; end++)
+            {
+                if (!flips[end] || CadArrowheads.TakesNoRoom(ArrowOf(style, ends[end])))
+                {
+                    continue;
+                }
+
+                GeoPoint2 tip = end == 0 ? q1 : q2;
+                GeoVector2 outward = end == 0 ? -along : along;
+                inside[end] = !layout.ArrowsInside;
+
+                if (layout.ArrowsInside)
+                {
+                    segments.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(tip, tip - outward * arrow));
+                    layout.Outside.Add(
+                        new KeyValuePair<GeoPoint2, GeoPoint2>(tip + outward * arrow, tip + outward * (2.0 * arrow))
+                    );
+                    continue;
+                }
+
+                GeoPoint2 stood = tip + outward * arrow;
+
+                if (layout.Tailed[end])
+                {
+                    layout.Outside.RemoveAll(s =>
+                        (s.Key - stood).Length <= 1E-9 && (s.Value - (tip + outward * (2.0 * arrow))).Length <= 1E-9
+                    );
+                }
+                else if (layout.Outside.Exists(s => (s.Key - stood).Length <= 1E-9))
+                {
+                    segments.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(tip, stood));
+                }
+
+                layout.Outside.Add(
+                    new KeyValuePair<GeoPoint2, GeoPoint2>(tip - outward * arrow, tip - outward * (2.0 * arrow))
+                );
+            }
+
             foreach (KeyValuePair<GeoPoint2, GeoPoint2> segment in layout.Outside)
             {
                 segments.Add(segment);
@@ -1377,8 +1427,8 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!layout.ArrowsSuppressed)
             {
-                AddArrow(picture, style, DxfDimArrowFlag.FirstArrow, q1, layout.ArrowsInside ? -along : along, arrow);
-                AddArrow(picture, style, DxfDimArrowFlag.SecondArrow, q2, layout.ArrowsInside ? along : -along, arrow);
+                AddArrow(picture, style, DxfDimArrowFlag.FirstArrow, q1, inside[0] ? -along : along, arrow);
+                AddArrow(picture, style, DxfDimArrowFlag.SecondArrow, q2, inside[1] ? along : -along, arrow);
             }
 
             var mtext = (DxfMText)text;
@@ -1436,6 +1486,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             /// <summary>How much further that extension line runs, on under the words.</summary>
             public double Longer { get; set; }
+
+            /// <summary>Whether each arrowhead outside has its short line (an arrowhead long) among <see cref="Outside"/>, where it is not the line run on to words.</summary>
+            public bool[] Tailed { get; } = new bool[2];
 
             /// <summary>The lines outside the extension lines: those the arrowheads stand on, and the line run on to words there.</summary>
             public List<KeyValuePair<GeoPoint2, GeoPoint2>> Outside { get; } =
@@ -1591,6 +1644,7 @@ namespace GeometryHelper.Dxf.Viewer
                     layout.Outside.Add(
                         new KeyValuePair<GeoPoint2, GeoPoint2>(tip + outward * arrow, tip + outward * (2.0 * arrow))
                     );
+                    layout.Tailed[end - 1] = true;
                 }
             }
 

@@ -16,7 +16,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>A polyline's vertex or segment middle: asks for a new vertex, put after the vertex of the grip.</summary>
         AddVertex,
 
-        /// <summary>A polyline's vertex: takes the vertex out at once.</summary>
+        /// <summary>A polyline's or spline's vertex: asks for a pick ("Pick to remove vertex:") and takes the vertex out.</summary>
         RemoveVertex,
 
         /// <summary>The middle of a straight segment: asks for the arc's middle and makes the segment an arc.</summary>
@@ -39,6 +39,33 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>A hatch's grip: asks for the point its pattern is laid from.</summary>
         HatchOrigin,
+
+        /// <summary>A linear dimension's grip: goes on in a row from the extension line origin beside the grip, as DIMCONTINUE does.</summary>
+        ContinueDimension,
+
+        /// <summary>A linear dimension's grip: goes on from the extension line origin beside the grip, each dimension further out, as DIMBASELINE does.</summary>
+        BaselineDimension,
+
+        /// <summary>The arrowhead grip of a linear dimension: asks for a pick and flips that arrowhead, inside the extension lines to outside or the reverse.</summary>
+        FlipArrow,
+
+        /// <summary>A dimension's text grip: asks where to move the words, which move alone with no leader (DIMTMOVE 2).</summary>
+        MoveTextOnly,
+
+        /// <summary>A dimension's text grip: asks where to move the words, which move with a leader drawn to them (DIMTMOVE 1).</summary>
+        MoveWithLeader,
+
+        /// <summary>A dimension's text grip: asks where to move the words, the dimension line moving with them (DIMTMOVE 0).</summary>
+        MoveWithDimLine,
+
+        /// <summary>A dimension's text grip: asks for a pick and puts the words above the dimension line (DIMTAD 1).</summary>
+        AboveDimLine,
+
+        /// <summary>A dimension's text grip: asks for a pick and centres the words on the dimension line (DIMTAD 0).</summary>
+        CenterVertically,
+
+        /// <summary>A dimension's text grip: asks for a pick and puts the words back where the style puts them.</summary>
+        ResetTextPosition,
     }
 
     /// <summary>One item of a multi-functional grip's hover menu.</summary>
@@ -69,7 +96,9 @@ namespace GeometryHelper.Dxf.Viewer
     /// Vertex, Add Vertex and Remove Vertex; the grip in the middle of a straight segment Stretch, Add Vertex and Convert to
     /// Arc, in the middle of an arc segment Stretch, Add Vertex and Convert to Line. An end of a line or of an arc offers
     /// Stretch and Lengthen, the middle of an arc Stretch and Radius, the grip of a hatch Stretch, Hatch Scale, Hatch Angle and
-    /// Origin Point. The other entities' grips have none.
+    /// Origin Point. A linear dimension's extension line origins offer Stretch, Continue Dimension and Baseline Dimension, its
+    /// arrowheads those and Flip Arrow, and the grip of the words of a dimension Stretch and the six ways to move them. The
+    /// other entities' grips have none, nor have the boundary grips of a hatch or the frame grips of a fitted 2D polyline.
     /// </summary>
     public static class CadGripMenus
     {
@@ -108,6 +137,46 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     items.Add(new CadGripMenuItem(CadGripAction.Stretch, "Stretch", true));
                     items.Add(new CadGripMenuItem(CadGripAction.Radius, "Radius", true));
+                }
+
+                return items;
+            }
+
+            if (entity is DxfDimension dimension)
+            {
+                IReadOnlyList<CadGrip> own = CadGrips.Of(dimension);
+
+                if (gripIndex < 0 || gripIndex >= own.Count)
+                {
+                    return items;
+                }
+
+                bool linear = dimension is DxfRotatedDimension || dimension is DxfAlignedDimension;
+
+                // A linear dimension's extension line origins and arrowheads offer Continue and Baseline, its arrowheads Flip Arrow
+                // too; the grip of the words offers the ways to move them.
+                if (linear && own[gripIndex].Kind == CadGripKind.DefinitionPoint)
+                {
+                    items.Add(new CadGripMenuItem(CadGripAction.Stretch, "Stretch", true));
+                    items.Add(new CadGripMenuItem(CadGripAction.ContinueDimension, "Continue Dimension", true));
+                    items.Add(new CadGripMenuItem(CadGripAction.BaselineDimension, "Baseline Dimension", true));
+                }
+                else if (linear && own[gripIndex].Kind == CadGripKind.DimensionLine)
+                {
+                    items.Add(new CadGripMenuItem(CadGripAction.Stretch, "Stretch", true));
+                    items.Add(new CadGripMenuItem(CadGripAction.ContinueDimension, "Continue Dimension", true));
+                    items.Add(new CadGripMenuItem(CadGripAction.BaselineDimension, "Baseline Dimension", true));
+                    items.Add(new CadGripMenuItem(CadGripAction.FlipArrow, "Flip Arrow", true));
+                }
+                else if (own[gripIndex].Kind == CadGripKind.Text)
+                {
+                    items.Add(new CadGripMenuItem(CadGripAction.Stretch, "Stretch", true));
+                    items.Add(new CadGripMenuItem(CadGripAction.MoveTextOnly, "Move Text Only", true));
+                    items.Add(new CadGripMenuItem(CadGripAction.MoveWithLeader, "Move with Leader", true));
+                    items.Add(new CadGripMenuItem(CadGripAction.MoveWithDimLine, "Move with Dim Line", true));
+                    items.Add(new CadGripMenuItem(CadGripAction.AboveDimLine, "Above Dim Line", true));
+                    items.Add(new CadGripMenuItem(CadGripAction.CenterVertically, "Center Vertically", true));
+                    items.Add(new CadGripMenuItem(CadGripAction.ResetTextPosition, "Reset Text Position", true));
                 }
 
                 return items;
@@ -175,6 +244,7 @@ namespace GeometryHelper.Dxf.Viewer
             if (
                 !(entity is DxfPolyline || entity is DxfPolyline2d)
                 || (entity is DxfPolyline cloud && CadCommands.RevCloudHasFewGrips(document, cloud))
+                || (entity is DxfPolyline2d fitted && fitted.PolyType != DxfPoly2dType.SimplePoly)
             )
             {
                 return items;

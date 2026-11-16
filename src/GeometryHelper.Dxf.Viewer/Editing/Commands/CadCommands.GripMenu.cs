@@ -7,7 +7,8 @@ namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
     /// The items of a multi-functional grip's hover menu (<see cref="CadCommandSession.StartGripAction"/>): the grip edit as a click on
-    /// the grip makes it, Add Vertex, Convert to Arc, Convert to Line, Lengthen, Radius and the hatch's three with their prompts, Remove Vertex done at once.
+    /// the grip makes it, Add Vertex, Convert to Arc, Convert to Line, Remove Vertex, Lengthen, Radius, the hatch's three and the dimensions' items
+    /// (<see cref="GripDimension"/>) with their prompts.
     /// </summary>
     internal static partial class CadCommands
     {
@@ -73,16 +74,50 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     break;
-                default:
-                    c.OpenUndoStep();
-                    CadEditResult result = CadGrips.RemoveVertex(c.Document, handle, gripIndex);
-
-                    if (!result.Succeeded)
+                case CadGripAction.RemoveVertex:
+                    foreach (CadPrompt prompt in GripRemoveVertex(c, handle, gripIndex))
                     {
-                        c.Write(result.Message);
+                        yield return prompt;
                     }
 
                     break;
+                default:
+                    foreach (CadPrompt prompt in GripDimension(c, handle, gripIndex, action))
+                    {
+                        yield return prompt;
+                    }
+
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// "** REMOVE VERTEX **" and "Pick to remove vertex:" of a polyline's vertex, "** REMOVE CONTROL VERTEX **" and "Pick to
+        /// remove vertex:" of a spline's control vertex, "** REMOVE FIT POINT **" and "Pick to remove fit point:" of a fit point,
+        /// as AutoCAD 2021's string table words them: any point picked takes the vertex out, Enter or Esc leaves it.
+        /// </summary>
+        private static IEnumerable<CadPrompt> GripRemoveVertex(CadCommandContext c, string handle, int gripIndex)
+        {
+            DxfSpline spline = c.Document.FindEntity(handle) as DxfSpline;
+            bool fit = spline != null && spline.HasFitData;
+            c.Write(
+                fit ? "** REMOVE FIT POINT **"
+                : spline != null ? "** REMOVE CONTROL VERTEX **"
+                : "** REMOVE VERTEX **"
+            );
+            yield return CadPrompt.ForPoint(fit ? "Pick to remove fit point" : "Pick to remove vertex");
+
+            if (!c.Input.IsPoint)
+            {
+                yield break;
+            }
+
+            c.OpenUndoStep();
+            CadEditResult result = CadGrips.RemoveVertex(c.Document, handle, gripIndex);
+
+            if (!result.Succeeded)
+            {
+                c.Write(result.Message);
             }
         }
 
@@ -204,7 +239,8 @@ namespace GeometryHelper.Dxf.Viewer
                 fit ? "Specify new fit point" : "Specify new vertex point",
                 CadGrips.Of(spline)[gripIndex].Point,
                 (e, target) => CadGrips.SplineAddAt(e, gripIndex, target),
-                target => CadGrips.AddVertex(c.Document, handle, gripIndex, target)
+                (edited, target) => CadGrips.AddVertex(c.Document, edited, gripIndex, target),
+                false
             );
         }
 
@@ -294,7 +330,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// Lengthen of an end of a line or an arc, or Radius of the middle of an arc, as AutoCAD 2021's string table words
         /// them: "** LENGTHEN **" and "Specify end point:" ("Specify end point of arc:" for an arc), "** RADIUS **" and "Specify
         /// radius:", the entity previewed with the cursor, with Base point (the point is then taken as far from the base as the
-        /// grip is from where it stands) and eXit. A point makes the edit and ends; Enter or Esc leaves the entity as it was.
+        /// grip is from where it stands), Copy, Undo and eXit, as the stretch of a grip has them. A point makes the edit and
+        /// ends; with Copy on each point makes a copy of the entity with the edit and asks again (the original stays, Undo takes
+        /// the last copy back). Enter or Esc leaves the entity as it was.
         /// </summary>
         private static IEnumerable<CadPrompt> GripLengthen(
             CadCommandContext c,
@@ -316,19 +354,22 @@ namespace GeometryHelper.Dxf.Viewer
                 message,
                 CadGrips.Of(entity)[gripIndex].Point,
                 (e, target) => radius ? CadGrips.RadiusAt(e, target) : CadGrips.LengthenAt(e, gripIndex, target),
-                target =>
+                (edited, target) =>
                     radius
-                        ? CadGrips.ChangeRadius(c.Document, handle, gripIndex, target)
-                        : CadGrips.Lengthen(c.Document, handle, gripIndex, target)
+                        ? CadGrips.ChangeRadius(c.Document, edited, gripIndex, target)
+                        : CadGrips.Lengthen(c.Document, edited, gripIndex, target),
+                true
             );
         }
 
         /// <summary>
         /// A menu item that asks for one point, with Base point and eXit: the command line says the header, the entity is
         /// previewed with the point at the cursor (<paramref name="preview"/> makes the edit on a copy), and a point makes
-        /// the edit (<paramref name="apply"/>) and ends. With a Base point given the point is taken as far from the base as
-        /// the grip is from where it stands (<paramref name="origin"/>). An edit that is refused says why and asks again;
-        /// Enter, Esc and eXit leave the entity as it was.
+        /// the edit (<paramref name="apply"/>, given the handle to edit) and ends. With a Base point given the point is taken
+        /// as far from the base as the grip is from where it stands (<paramref name="origin"/>). Where
+        /// <paramref name="copying"/> says so it also has Copy and Undo, as a grip's stretch has: with Copy on a point edits a
+        /// copy of the entity, leaves the original and asks again, with the header saying "(multiple)", and Undo takes the last
+        /// copy back. An edit that is refused says why and asks again; Enter, Esc and eXit leave the entity as it was.
         /// </summary>
         private static IEnumerable<CadPrompt> GripAskPoint(
             CadCommandContext c,
@@ -337,16 +378,22 @@ namespace GeometryHelper.Dxf.Viewer
             string message,
             GeoPoint2 origin,
             Func<DxfEntity, GeoPoint2, bool> preview,
-            Func<GeoPoint2, CadEditResult> apply
+            Func<string, GeoPoint2, CadEditResult> apply,
+            bool copying
         )
         {
             GeoPoint2 basePoint = origin;
             CadPreview shown = CadPreview.Reshaping(c, handle, (e, point) => preview(e, origin + (point - basePoint)));
+            string[] keywords = copying
+                ? new[] { "Base point", "Copy", "Undo", "eXit" }
+                : new[] { "Base point", "eXit" };
+            var placed = new List<string>();
+            bool copy = false;
             c.Write(header);
 
             while (true)
             {
-                yield return CadPrompt.ForPoint(message, basePoint, new[] { "Base point", "eXit" }).Previewing(shown);
+                yield return CadPrompt.ForPoint(message, basePoint, keywords).Previewing(shown);
                 CadInput input = c.Input;
 
                 if (input.IsNone || (input.Kind == CadInputKind.Keyword && input.Is("eXit")))
@@ -365,6 +412,16 @@ namespace GeometryHelper.Dxf.Viewer
                             basePoint = c.Input.Point;
                         }
                     }
+                    else if (copying && input.Is("Copy"))
+                    {
+                        copy = true;
+                        c.Write(header.Substring(0, header.Length - 3) + " (multiple) **");
+                    }
+                    else if (copying && input.Is("Undo") && placed.Count > 0)
+                    {
+                        EraseAll(c, new[] { placed[placed.Count - 1] });
+                        placed.RemoveAt(placed.Count - 1);
+                    }
 
                     continue;
                 }
@@ -375,14 +432,45 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 c.OpenUndoStep();
-                CadEditResult result = apply(origin + (input.Point - basePoint));
+                string edited = handle;
+
+                if (copy)
+                {
+                    List<string> copied = Transform(
+                        c,
+                        new[] { handle },
+                        GeoTransform3.Translation(new GeoVector3(0.0, 0.0, 0.0)),
+                        true
+                    );
+
+                    if (copied.Count == 0)
+                    {
+                        yield break;
+                    }
+
+                    edited = copied[0];
+                }
+
+                CadEditResult result = apply(edited, origin + (input.Point - basePoint));
 
                 if (result.Succeeded)
                 {
-                    yield break;
+                    if (!copy)
+                    {
+                        yield break;
+                    }
+
+                    placed.Add(edited);
+                    continue;
                 }
 
                 c.Write(result.Message);
+
+                // A copy whose edit was refused is taken back at once.
+                if (copy)
+                {
+                    EraseAll(c, new[] { edited });
+                }
             }
         }
 

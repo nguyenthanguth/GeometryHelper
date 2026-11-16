@@ -465,10 +465,12 @@ User note 2026-11-12 (basic features first, advanced later):
       control vertices: Stretch, Add, Remove), HATCH (a centre grip: Stretch, Hatch Scale, Hatch Angle, Origin Point)
       and 2D POLYLINE (as a light polyline); Convert to Line asks a pick as AutoCAD's string says; Add Vertex's
       options already matched (AutoCAD's string table)
-- [ ] (grips4, running) Grips follow-ups 3: dimension grip menus (Continue/Baseline, Flip Arrow, Move Text variants); Remove Vertex as a
-      pick ("Pick to remove vertex:" exists in AutoCAD's strings); Copy and Undo in Lengthen/Radius; the spline
-      fit/control switch grip; hatch boundary grips (non-associative); fit-curve and spline-fit 2D polyline grips; Ctrl
-      cycling of grip modes; the MTEXT triangle size (GUI); a Wpf test of the new menus (S)
+- [x] Grips follow-ups 3 (grips4): Remove Vertex picks as AutoCAD; Copy and Undo in Lengthen and Radius; dimension grip
+      menus (Continue, Baseline, Flip Arrow with groups 74/75, the text moves); a non-associative hatch's boundary grips
+      in AutoCAD's order; curve- and spline-fit 2D polylines' frame grips refitted as AutoCAD (to 4 decimals)
+- [ ] Grips follow-ups 4: Ctrl cycling of grip modes (GUI only); Continue/Baseline on angular and ordinate dimensions;
+      the spline fit/control switch grip; boundary grips for a hatch of normal Z < 0 or with ellipse/spline edges; a
+      preview while moving dimension text; the dimension menus' items checked in the GUI; the MTEXT triangle size (GUI) (S)
 - [x] Ctrl+1 toggles PROPERTIES (open closes, closed opens); DRAWINGS gets Ctrl+2 by default and toggles the same way (S)
 - [x] Progress meter on the status bar for open/save, callable by commands and plugins (CadProgress, design v128) (M)
 

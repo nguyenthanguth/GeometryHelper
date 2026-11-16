@@ -445,7 +445,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
-        public void ARowChosen_StartsItsItem_RemoveVertexAtOnceAsOneUndoStep()
+        public void ARowChosen_StartsItsItem_RemoveVertexAsksForAPickThenIsOneUndoStep()
         {
             OnElbow(
                 (model, canvas) =>
@@ -463,6 +463,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     CanvasMouseTests.Click(canvas, row);
 
                     Assert.False(canvas.IsGripMenuOpen);
+                    Assert.True(model.Session.IsRunning);
+                    Assert.Equal("Pick to remove vertex:", model.Session.PromptText);
+                    Assert.True(model.Session.Feed(new GeoPoint2(50, 5)));
                     Assert.False(model.Session.IsRunning);
                     DxfPolyline polyline = (DxfPolyline)
                         model.Document.FindEntity(model.Document.Selection.Handles.Single());
@@ -521,6 +524,41 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                         model.Document.FindEntity(model.Document.Selection.Handles.Single());
                     Assert.Equal(0.0, polyline.GetBulgeAt(0));
                     Assert.False(model.Document.CanUndo);
+                }
+            );
+        }
+
+        [Fact]
+        public void TheWordsOfADimensionOpenTheirSevenRows_AndResetTextPositionAsksForAPick()
+        {
+            OnElbow(
+                (model, canvas) =>
+                {
+                    // A level dimension of 100 from (0, 0) to (100, 0) with its line 10 below, selected.
+                    model.Session.Feed("DLI");
+                    model.Session.Feed(new GeoPoint2(0, 0));
+                    model.Session.Feed(new GeoPoint2(100, 0));
+                    model.Session.Feed(new GeoPoint2(50, -10));
+                    DxfRotatedDimension dimension = model
+                        .Document.Database.ModelSpace.OfType<DxfRotatedDimension>()
+                        .Single();
+                    model.Document.Selection.Set(new[] { dimension.Handle });
+                    canvas.RenderNow();
+                    CadGrip words = CadGrips.Of(dimension).Single(g => g.Kind == CadGripKind.Text);
+
+                    Hover(canvas, At(canvas, words.Point.X, words.Point.Y));
+                    Assert.True(canvas.OpenGripMenuNow());
+                    Assert.Equal(7, canvas.GripMenuItems.Count);
+                    Assert.Equal("Reset Text Position", canvas.GripMenuItems[6].Text);
+                    Rect box = canvas.GripMenuBox;
+
+                    CanvasMouseTests.Click(canvas, new Point(box.X + 40, box.Y + 3 + 22 * 6 + 11));
+
+                    Assert.True(model.Session.IsRunning);
+                    Assert.Equal("Pick to reset text to default location:", model.Prompt);
+                    Assert.Contains("** RESET TEXT POSITION **", model.History);
+                    canvas.Cancel();
+                    Assert.False(model.Session.IsRunning);
                 }
             );
         }

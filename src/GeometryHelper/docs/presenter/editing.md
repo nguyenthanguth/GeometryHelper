@@ -3410,6 +3410,9 @@ canvas): a light popup, rows of 22 pixels, the row under the cursor highlighted,
 | middle of an arc | Stretch, Radius |
 | point of a spline | Stretch Fit Point, Add Fit Point, Remove Fit Point (fit data), or Stretch Vertex, Add Vertex, Remove Vertex (control points) |
 | grip of a hatch | Stretch, Hatch Scale, Hatch Angle, Origin Point |
+| extension line origin of a linear dimension | Stretch, Continue Dimension, Baseline Dimension |
+| arrowhead (end of the dimension line) of a linear dimension | Stretch, Continue Dimension, Baseline Dimension, Flip Arrow |
+| words of a dimension | Stretch, Move Text Only, Move with Leader, Move with Dim Line, Above Dim Line, Center Vertically, Reset Text Position |
 
 The words, the command line texts and the prompts are those of AutoCAD 2021's grip table, read from the string tables of
 `acdb24res.dll` and `acadres.dll` (the console cannot show a menu: its `MultiModesGripPE` is not loaded, so the table was read
@@ -3435,23 +3438,26 @@ undo step named GRIP, and Esc at its prompt changes nothing:
   made back while it runs: the polyline is read back as it was before that vertex, the segment it split with its bulge and
   widths, and the next vertex is asked after the one before. Undo with no vertex made yet changes nothing. The whole run
   stays one undo step.
-- Remove Vertex takes the vertex out at once, and AutoCAD 2021 words it "Remove vertex, and replace neighboring segments
-  with line": the segment that now joins its neighbours is straight, whether the segment either side of the vertex was an
-  arc or not. It is grey on a polyline of two vertices, and a closed polyline of three keeps two.
+- Remove Vertex says `** REMOVE VERTEX **` and asks `Pick to remove vertex:`, as AutoCAD 2021's strings have it: any point picked
+  takes the vertex out (one undo step), Enter or Esc leaves it. AutoCAD words it "Remove vertex, and replace neighboring
+  segments with line": the segment that now joins its neighbours is straight, whether the segment either side of the vertex
+  was an arc or not. It is grey on a polyline of two vertices, and a closed polyline of three keeps two. A spline's
+  says `** REMOVE FIT POINT **` and `Pick to remove fit point:`, or `** REMOVE CONTROL VERTEX **` and `Pick to remove vertex:`.
 - Convert to Arc says `** CONVERT TO ARC **` and asks `Specify midpoint of arc segment:`, the polyline drawn bent through the
   cursor; a chord of 100 with the point 20 off its middle gets a bulge of 0.4 (the sagitta over half the chord), above
   nought where the point is to the right of the way the segment runs. A point on the line of the segment is refused.
 - Convert to Line says `** CONVERT TO LINE **` and asks `Pick to convert to line segment:`, as AutoCAD's string has it: any
-  point picked makes the arc segment straight (one undo step), Enter or Esc leaves it an arc. Remove Vertex has a twin string,
-  `Pick to remove vertex:`, and stays at once.
-- Lengthen says `** LENGTHEN **` and asks `Specify end point or [Base point/eXit]:` (`Specify end point of arc` for an arc),
+  point picked makes the arc segment straight (one undo step), Enter or Esc leaves it an arc.
+- Lengthen says `** LENGTHEN **` and asks `Specify end point or [Base point/Copy/Undo/eXit]:` (`Specify end point of arc` for an arc),
   the entity drawn with the end at the cursor. A line's end goes to where the point falls along the line's own way, the other
   end and the way kept: a line from (0, 0) to (100, 0) lengthened at its end by (150, 40) runs to (150, 0); a point behind the
   other end is refused (the line would turn round). An arc's end goes round the arc to the angle the point has from the centre,
   the radius and the other end kept: an arc of radius 20 from 0 to 90 degrees lengthened at its end by a point at (-10, 30)
   from its centre ends at 108.4 degrees; the other end, or the centre, is refused. Base point takes the point as far from the
-  base as the grip is from where it stands.
-- Radius says `** RADIUS **` and asks `Specify radius or [Base point/eXit]:`: the radius is the distance of the point from the
+  base as the grip is from where it stands. With Copy on (the header then says `** LENGTHEN (multiple) **`) each point makes a
+  copy of the entity lengthened that way and asks again, the original staying as it was; Undo takes the last copy back, and
+  does nothing before one is made. The whole run is one undo step.
+- Radius says `** RADIUS **` and asks `Specify radius or [Base point/Copy/Undo/eXit]:`, with Copy and Undo as Lengthen has them: the radius is the distance of the point from the
   centre, the centre and the two angles kept, so that the ends move along their rays (an arc of radius 20 given a point 35
   from its centre has radius 35). AutoCAD's own words for what it keeps are not in its table; the centre and the angles are
   this presenter's reading, not checked in the GUI.
@@ -3461,19 +3467,52 @@ undo step named GRIP, and Esc at its prompt changes nothing:
   and `Specify new fit point` or `** ADD CONTROL VERTEX **` and `Specify new vertex point`; Remove takes the point out at once,
   grey on a spline of two fit points or of a degree and one control points. The small grip AutoCAD puts beside the first
   point to switch between fit points and control vertices (at 4 grip sizes right of and below it, probed) is not given.
-- A hatch has one grip, at the middle of the box its loops fill (the grips of a non-associative boundary's vertices, which
-  AutoCAD also gives, are not). Stretch moves the hatch; Hatch Scale says `** HATCH SCALE **` and asks `Specify hatch scale:`
+- A hatch has a grip at the middle of the box its loops fill; a hatch that follows no objects (not associative) has the grips
+  of its boundary after it, as AutoCAD 2021's `GetGripPoints` gives them (probed on a rectangle 100 by 60, with an arc
+  segment, with edges and with a circle): for each loop a vertex and the middle of the segment leaving it, so that the
+  rectangle has (50, 30), then (0, 0), (50, 0), (100, 0), (100, 30), (100, 60), (50, 60), (0, 60) and (0, 30); a loop that is
+  one circle has its east, west, north and south quadrants. They have no menu, and dragging one is the stretch of a polyline
+  of the same loop: a vertex moves alone, the middle of a straight segment takes both its ends along, that of an arc segment
+  bends the arc through the point (the arc of bulge 0.5 from (100, 0) to (100, 60) dragged to (122, 35) has its middle at
+  (122.4, 30), as AutoCAD gives it), a quadrant sets the radius to the point's distance from the centre; the loop stays a loop of
+  a polyline or of edges. A hatch that follows an object, a loop with an ellipse, a spline or an open polyline among its
+  edges, and a hatch not seen from above have no boundary grips. Stretch moves the hatch; Hatch Scale says `** HATCH SCALE **` and asks `Specify hatch scale:`
   (a number, or a point whose distance from the grip is the scale), Hatch Angle `** HATCH ANGLE **` and `Specify hatch angle:`
   (an angle, or a point whose direction from the grip is the angle), Origin Point `** ORIGIN POINT **` and `Specify origin
   point:`, which lays the pattern from the point as HATCHSETORIGIN does. Scale and angle keep the origin. A solid fill or a
   gradient has Stretch alone, so no menu; a pattern made by the user has no scale or origin. How AutoCAD turns the cursor into
   a scale or an angle is not in its strings: this is the presenter's reading, not checked in the GUI.
 
+- A linear dimension's origins and arrowheads offer Continue Dimension and Baseline Dimension (`** CONTINUE DIMENSION **` or
+  `** BASELINE DIMENSION **`, then `Specify endpoint of dimension line:`): the row DIMCONTINUE or DIMBASELINE makes, from the
+  extension line origin beside the grip (the first for the first origin and the first arrowhead), in the style and overrides of
+  the dimension; each point picked makes the next dimension, Undo takes the last back, Enter or Esc ends, and the whole run is
+  one undo step. A level dimension of 100 from (0, 0) to (100, 0) with its line 30 below, continued from the second origin to
+  (300, 0), gets a dimension of 200 from (100, 0) on the same line; based on its first origin, one of 300 from (0, 0) a DIMDLI
+  further out. Flip Arrow says `** FLIP ARROW**` (the string has no space) and asks `Pick to flip arrowhead:`; a point picked
+  flips that arrowhead (a second time puts it back), writing the flag AutoCAD 2021 keeps in groups 74 and 75 of the dimension,
+  and the dimension is drawn as AutoCAD draws it (probed in its console by reading a DXF with the flags set): an arrowhead
+  inside the extension lines stands outside, with a line an arrowhead long beyond it and the dimension line drawn from its tip
+  to where it began; one outside (a dimension of 3 with arrowheads of 2.5) stands inside, with a line an arrowhead long on
+  inward from its back and the short line it stood on taken away. Ticks, and the arrowheads that take no room, do not move.
+- The words of a dimension offer Move Text Only, Move with Leader and Move with Dim Line (`** MOVE TEXT ONLY **`, `** MOVE WITH
+  LEADER **`, `** MOVE WITH DIM LINE **`, each asking `Specify destination point:`), which put the words at the point as
+  DIMTEDIT does under DIMTMOVE 2, 1 and 0 (the dimension line staying, a leader drawn to them, the line moving with them),
+  keeping the DIMTMOVE as an override on the dimension where the style's is another; Above Dim Line
+  (`** ABOVE DIMENSION LINE **`, `Pick to place text above dimension line:`) and Center Vertically (`** CENTER VERTICALLY **`,
+  `Pick to center text vertically with dimension line:`), which write DIMTAD 1 or 0 as an override and bring words put by hand
+  along a linear dimension back onto its line; and Reset Text Position (`** RESET TEXT POSITION **`, `Pick to reset text to
+  default location:`), which puts them where the style does. AutoCAD's menu is not in the console, so what each item writes
+  into the dimension is the presenter's reading of the words, not checked in the GUI.
+- A 2D POLYLINE fitted with a curve or a spline has a grip on each vertex of its frame alone, as AutoCAD 2021's `GetGripPoints`
+  gives them (four for the frame (0, 0), (100, 0), (100, 60), (0, 60), whatever the curve has added), and no menu. Dragging
+  one straightens the polyline, moves the vertex and fits it again as AutoCAD does (a curve as before, a spline by SPLINETYPE
+  and SPLINESEGS, so that a quadratic one is refitted as a cubic where SPLINETYPE is 6): the second vertex of that frame
+  dragged to (107, 5) fits the curve through it, the first arc of its biarc bulging 0.2976 as AutoCAD's does.
+
 The static members are `CadGrips.AddVertex`, `RemoveVertex`, `ConvertToArc`, `ConvertToLine`, `Lengthen`, `ChangeRadius`,
-`ChangeHatchScale`, `ChangeHatchAngle` and `SetHatchOrigin`, each one undo step. The grips of a 2D POLYLINE fitted with a curve
-or a spline are not given, and the dimension grips (Continue Dimension, Baseline Dimension, Flip Arrow, the text moves) and
-a spline's fit/control switch have no menu yet; Ctrl cycling through a grip's options is not built: Ctrl held as the first
-point is picked still turns Copy on.
+`ChangeHatchScale`, `ChangeHatchAngle` and `SetHatchOrigin`, each one undo step. A spline's fit/control switch has no menu yet;
+Ctrl cycling through a grip's options is not built: Ctrl held as the first point is picked still turns Copy on.
 
 ## Properties
 

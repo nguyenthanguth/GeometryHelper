@@ -239,7 +239,9 @@ namespace GeometryHelper.Dxf.Viewer
                 placed,
                 jog,
                 jog.HasValue ? JogHeight(dimension, style, textHeight) : 0.0,
-                dimension.TextRotation != 0.0 ? Turned(dimension.TextRotation) : (double?)null
+                dimension.TextRotation != 0.0 ? Turned(dimension.TextRotation) : (double?)null,
+                dimension.FlipFirstArrow,
+                dimension.FlipSecondArrow
             );
         }
 
