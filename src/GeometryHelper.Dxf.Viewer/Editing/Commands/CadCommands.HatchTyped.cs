@@ -13,10 +13,13 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     internal static partial class CadCommands
     {
-        private const string HatchIslandsKey = "hatch.islands";
-        private const string HatchRetainKey = "hatch.retain";
-        private const string HatchSeparateKey = "hatch.separate";
-        private const string HatchOrderKey = "hatch.order";
+        internal const string HatchIslandsKey = "hatch.islands";
+        internal const string HatchRetainKey = "hatch.retain";
+        internal const string HatchSeparateKey = "hatch.separate";
+        internal const string HatchOrderKey = "hatch.order";
+
+        /// <summary>The key HPDLGMODE is kept under: 0 the command line alone, 1 the Hatch dialog, 2 the Hatch Creation tab as AutoCAD starts.</summary>
+        internal const string HatchDialogModeKey = "hpdlgmode";
 
         /// <summary>The draw orders -HATCH offers, as AutoCAD writes them; the fourth, behind the boundary, is its start.</summary>
         private static readonly string[] HatchOrders =

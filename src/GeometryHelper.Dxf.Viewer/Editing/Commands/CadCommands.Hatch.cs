@@ -20,11 +20,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// settings are associative (AutoCAD makes the loops anew when such an object moves; the presenter keeps the association
         /// and does not), one undo step. The hatch is drawn behind its boundary, or where -HATCH's DRaw order says, as AutoCAD's
         /// HPDRAWORDER of 3 does: it lies under the lowest object its loops are made of. A gap in the boundary is closed over
-        /// where the settings' <see cref="CadHatchSettings.GapTolerance"/> reaches it.
+        /// where the settings' <see cref="CadHatchSettings.GapTolerance"/> reaches it. Select objects goes back to the point
+        /// prompt, as AutoCAD's does; remove Boundaries and Origin, taken but not shown, are -HATCH's own questions, which the
+        /// Hatch Creation tab starts; island detection, separate hatches, retained boundaries and the draw order are the ones
+        /// -HATCH keeps. With HPDLGMODE 1 the window's Hatch dialog is shown first.
         /// </summary>
         private static IEnumerable<CadPrompt> Hatch(CadCommandContext c)
         {
             var picks = new List<IReadOnlyList<CadBoundaryLoop>>();
+            var run = new HatchRun();
 
             // The area last found under the cursor, kept while the cursor stays in it and the drawing is as it was, which the
             // pick index (made anew on every change) tells.
@@ -76,10 +80,20 @@ namespace GeometryHelper.Dxf.Viewer
                 return new[] { hatch };
             }
 
+            // HPDLGMODE 1 is the Hatch dialog first, as AutoCAD 2021 shows it; with no window to show it, none.
+            if (c.Remembered(HatchDialogModeKey, 2.0) == 1.0)
+            {
+                foreach (CadPrompt prompt in HatchSettingsAsked(c, false))
+                {
+                    yield return prompt;
+                }
+            }
+
             while (true)
             {
                 yield return CadPrompt
                     .ForPoint("Pick internal point", null, new[] { "Select objects", "Undo", "seTtings" })
+                    .Hiding("remove Boundaries", "Origin")
                     .Previewing(CadPreview.Making(c, Previewed));
 
                 if (c.Input.IsPoint)
@@ -103,7 +117,25 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else
                     {
-                        picks.Add(loops);
+                        // Island detection off (the Options panel's No island detection) keeps the outer loop alone.
+                        picks.Add(
+                            c.Remembered(HatchIslandsKey, 1.0) != 0.0 ? loops : loops.Where(l => l.Depth == 0).ToList()
+                        );
+                    }
+                }
+                else if (c.Input.Is("remove Boundaries"))
+                {
+                    foreach (CadPrompt prompt in HatchRemoveBoundaries(c, picks))
+                    {
+                        yield return prompt;
+                    }
+                }
+                else if (c.Input.Is("Origin"))
+                {
+                    // The Origin panel of the Hatch Creation tab: -HATCH's Origin, kept in the settings the hatch is made with.
+                    foreach (CadPrompt prompt in HatchOrigin(c, c.Document.HatchSettings, run))
+                    {
+                        yield return prompt;
                     }
                 }
                 else if (c.Input.Is("Undo"))
@@ -147,8 +179,6 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         picks.Add(loops);
                     }
-
-                    break;
                 }
                 else
                 {
@@ -158,7 +188,16 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (picks.Count > 0)
             {
-                MakeHatch(c, picks, c.Document.HatchSettings);
+                // The Options panel's separate hatches, retained boundaries and draw order are the ones -HATCH keeps.
+                MakeHatches(
+                    c,
+                    picks,
+                    c.Document.HatchSettings,
+                    c.Remembered(HatchSeparateKey, 0.0) != 0.0,
+                    c.Remembered(HatchRetainKey, 0.0) != 0.0,
+                    (int)c.Remembered(HatchOrderKey, 3.0),
+                    run
+                );
             }
         }
 
@@ -170,9 +209,10 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// The settings of HATCH: the window's dialog, closed and shown again around "Specify origin point:" for its Click to
-        /// set new origin; with no window, the pattern and its scale and angle asked.
+        /// set new origin; with no window, the pattern and its scale and angle asked, unless <paramref name="typedWithNoWindow"/>
+        /// is false (HPDLGMODE 1 shows the dialog at the start, and asks nothing where there is none).
         /// </summary>
-        private static IEnumerable<CadPrompt> HatchSettingsAsked(CadCommandContext c)
+        private static IEnumerable<CadPrompt> HatchSettingsAsked(CadCommandContext c, bool typedWithNoWindow = true)
         {
             CadUiRequestEventArgs asked = c.Session.Ask("HATCHSETTINGS", c.Document, null);
 
@@ -185,7 +225,7 @@ namespace GeometryHelper.Dxf.Viewer
                 asked = c.Session.Ask("HATCHSETTINGS", c.Document, picked ?? HatchOriginAnswer);
             }
 
-            if (asked.Handled)
+            if (asked.Handled || !typedWithNoWindow)
             {
                 yield break;
             }
@@ -383,38 +423,6 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// Makes one HATCH of the loops picked, as one undo step: on the current layer, in the settings given, each pick's loops
-        /// kept as its island style keeps them; following the objects of each loop where the settings are associative. The
-        /// outer loop is flagged External and the islands with none: a loop flagged Derived (picked) makes AutoCAD 2021 expect
-        /// the pixel size (group 47), which the library does not write, and refuse the file ("expected group code 47").
-        /// </summary>
-        private static void MakeHatch(
-            CadCommandContext c,
-            List<IReadOnlyList<CadBoundaryLoop>> picks,
-            CadHatchSettings settings
-        )
-        {
-            List<CadBoundaryLoop> loops = KeptLoops(picks, settings);
-            string fault = null;
-            int order = (int)c.Remembered(HatchOrderKey, 3.0);
-            CadEditResult result = c.Apply(null, s =>
-            {
-                DxfHatch hatch = AppendHatch(c, s, loops, settings, null, null, null, out fault);
-                PlaceHatch(c, s, hatch, loops, order);
-            });
-
-            if (fault != null)
-            {
-                c.Write(fault);
-            }
-
-            if (!result.Succeeded && result.Message != null)
-            {
-                c.Write(result.Message);
-            }
-        }
-
-        /// <summary>
         /// Appends one hatch of the loops to the current space inside an edit: given the settings, the loops, and the objects
         /// of the loops where the settings are associative. Gives the fault of the pattern where it is in no file.
         /// </summary>
@@ -498,7 +506,9 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// Adds the loops to a hatch: the outer loop of each pick flagged External, the islands with none. The loops draW boundary
+        /// Adds the loops to a hatch: the outer loop of each pick flagged External, the islands with none (a loop flagged Derived,
+        /// as a loop picked is, makes AutoCAD 2021 expect the pixel size, group 47, which the library does not write, and refuse
+        /// the file: "expected group code 47"). The loops draW boundary
         /// drew (those of <paramref name="run"/>) are flagged as AutoCAD 2021 flags them: External for none round them, Outermost
         /// for one, none for more; a loop left open is a loop of edges flagged NotClosed, not closed across.
         /// </summary>
@@ -623,44 +633,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string fault = null;
-            CadEditResult result = c.Apply(planned, s =>
-            {
-                var edited = (DxfHatch)s.Document.FindEntity(handle);
-                bool annotative = edited.Annotative == DxfAnnotativeStates.True;
-                bool patternChanged = !SamePattern(CadHatchSettings.Of(edited), settings);
-
-                // An annotative hatch whose pattern is laid again is made plain first and annotative again after, at the scale
-                // of its space, its other scales given back, as the lines of its contexts are those of the pattern it had.
-                List<DxfAnnotationScale> held =
-                    annotative && patternChanged && settings.Annotative
-                        ? edited.GetContexts().OfType<DxfAnnotationScale>().ToList()
-                        : new List<DxfAnnotationScale>();
-
-                if (annotative && (patternChanged || !settings.Annotative))
-                {
-                    edited.Annotative = DxfAnnotativeStates.False;
-                }
-
-                fault = settings.ApplyTo(edited, s.Database, s.Document);
-
-                if (settings.Annotative && edited.Annotative != DxfAnnotativeStates.True)
-                {
-                    fault = fault ?? MakeAnnotative(s.Database, edited);
-
-                    foreach (DxfAnnotationScale scale in held)
-                    {
-                        if (edited.Annotative == DxfAnnotativeStates.True && !edited.HasContext(scale))
-                        {
-                            edited.AddContext(scale);
-                        }
-                    }
-                }
-
-                if (!settings.Associative && edited.Associative)
-                {
-                    edited.Associative = false;
-                }
-            });
+            CadEditResult result = c.Apply(planned, s => fault = ApplyEditedSettings(s, handle, settings));
 
             if (fault != null)
             {
@@ -671,6 +644,51 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 c.Write(result.Message);
             }
+        }
+
+        /// <summary>
+        /// Gives a hatch of the drawing the settings an edit of it ends with, inside the edit: an annotative hatch whose pattern is
+        /// laid again is made plain first and annotative again after, at the scale of its space, its other scales given back, as
+        /// the lines of its contexts are those of the pattern it had; a hatch that no longer follows its objects is let go of
+        /// them. Gives the fault of the pattern where it is in no file.
+        /// </summary>
+        internal static string ApplyEditedSettings(CadEditScope s, string handle, CadHatchSettings settings)
+        {
+            var edited = (DxfHatch)s.Document.FindEntity(handle);
+            bool annotative = edited.Annotative == DxfAnnotativeStates.True;
+            bool patternChanged = !SamePattern(CadHatchSettings.Of(edited), settings);
+
+            List<DxfAnnotationScale> held =
+                annotative && patternChanged && settings.Annotative
+                    ? edited.GetContexts().OfType<DxfAnnotationScale>().ToList()
+                    : new List<DxfAnnotationScale>();
+
+            if (annotative && (patternChanged || !settings.Annotative))
+            {
+                edited.Annotative = DxfAnnotativeStates.False;
+            }
+
+            string fault = settings.ApplyTo(edited, s.Database, s.Document);
+
+            if (settings.Annotative && edited.Annotative != DxfAnnotativeStates.True)
+            {
+                fault = fault ?? MakeAnnotative(s.Database, edited);
+
+                foreach (DxfAnnotationScale scale in held)
+                {
+                    if (edited.Annotative == DxfAnnotativeStates.True && !edited.HasContext(scale))
+                    {
+                        edited.AddContext(scale);
+                    }
+                }
+            }
+
+            if (!settings.Associative && edited.Associative)
+            {
+                edited.Associative = false;
+            }
+
+            return fault;
         }
 
         /// <summary>Whether two sets of settings lay the same pattern: the type, the pattern and its angle, scale, spacing, double, and the gradient.</summary>

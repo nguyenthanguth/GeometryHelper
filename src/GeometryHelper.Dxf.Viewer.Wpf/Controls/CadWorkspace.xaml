@@ -783,6 +783,11 @@
                 <local:ArrayRibbon />
             </DataTemplate>
 
+            <!-- The contextual Hatch Creation tab while HATCH runs and Hatch Editor tab while hatches are selected: one control (HatchRibbon). -->
+            <DataTemplate DataType="{x:Type local:HatchTabViewModel}">
+                <local:HatchRibbon />
+            </DataTemplate>
+
             <!-- The contextual Block Editor tab while a block is open in the Block Editor (BEDIT): its own control (BlockEditorRibbon). -->
             <DataTemplate DataType="{x:Type local:BlockEditorRibbonViewModel}">
                 <local:BlockEditorRibbon />
@@ -3436,6 +3441,66 @@
                             </Style>
                         </ToggleButton.Style>
                     </ToggleButton>
+                    <!-- The contextual Hatch Creation tab, green as the others, while HATCH runs (HPDLGMODE 2). -->
+                    <ToggleButton
+                        Content="Hatch Creation"
+                        IsChecked="{Binding HatchCreationTab.IsTabSelected, Mode=OneWay}"
+                        Margin="4,0,0,0"
+                        Command="{Binding SelectTabCommand}"
+                        CommandParameter="{Binding HatchCreationTab}"
+                        Visibility="{Binding HatchCreationTab.IsTabVisible, Converter={StaticResource Shown}}"
+                    >
+                        <ToggleButton.Style>
+                            <Style TargetType="ToggleButton" BasedOn="{StaticResource GhRibbonTab}">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border
+                                                Background="#2F8F4E"
+                                                CornerRadius="2,2,0,0"
+                                                Padding="{TemplateBinding Padding}"
+                                            >
+                                                <ContentPresenter
+                                                    TextElement.Foreground="White"
+                                                    TextElement.FontWeight="SemiBold"
+                                                />
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ToggleButton.Style>
+                    </ToggleButton>
+                    <!-- The contextual Hatch Editor tab, green as the others, while hatches are selected. -->
+                    <ToggleButton
+                        Content="Hatch Editor"
+                        IsChecked="{Binding HatchEditorTab.IsTabSelected, Mode=OneWay}"
+                        Margin="4,0,0,0"
+                        Command="{Binding SelectTabCommand}"
+                        CommandParameter="{Binding HatchEditorTab}"
+                        Visibility="{Binding HatchEditorTab.IsTabVisible, Converter={StaticResource Shown}}"
+                    >
+                        <ToggleButton.Style>
+                            <Style TargetType="ToggleButton" BasedOn="{StaticResource GhRibbonTab}">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border
+                                                Background="#2F8F4E"
+                                                CornerRadius="2,2,0,0"
+                                                Padding="{TemplateBinding Padding}"
+                                            >
+                                                <ContentPresenter
+                                                    TextElement.Foreground="White"
+                                                    TextElement.FontWeight="SemiBold"
+                                                />
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ToggleButton.Style>
+                    </ToggleButton>
                     <!-- The contextual Block Editor tab, green as the others, while a block is open in the Block Editor. -->
                     <ToggleButton
                         Content="Block Editor"
@@ -3482,6 +3547,14 @@
                                     <Setter Property="BorderThickness" Value="0,2,0,0" />
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding ArrayTab.IsTabSelected}" Value="True">
+                                    <Setter Property="BorderBrush" Value="#2F8F4E" />
+                                    <Setter Property="BorderThickness" Value="0,2,0,0" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding HatchCreationTab.IsTabSelected}" Value="True">
+                                    <Setter Property="BorderBrush" Value="#2F8F4E" />
+                                    <Setter Property="BorderThickness" Value="0,2,0,0" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding HatchEditorTab.IsTabSelected}" Value="True">
                                     <Setter Property="BorderBrush" Value="#2F8F4E" />
                                     <Setter Property="BorderThickness" Value="0,2,0,0" />
                                 </DataTrigger>

@@ -180,7 +180,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The topmost or the lowest in the draw order of a block of some of its entities; null for none.</summary>
-        private static DxfEntity Extreme(DxfBlockTableRecord block, List<DxfEntity> among, bool top)
+        internal static DxfEntity Extreme(DxfBlockTableRecord block, List<DxfEntity> among, bool top)
         {
             if (among.Count == 0)
             {

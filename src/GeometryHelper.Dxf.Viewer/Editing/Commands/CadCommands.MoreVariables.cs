@@ -179,6 +179,12 @@ namespace GeometryHelper.Dxf.Viewer
             registry.AddVariable(KeptWhole("OSNAPZ", 0, 1, "osnapz", 0));
             registry.AddVariable(KeptWhole("ARRAYASSOCIATIVITY", 0, 1, "arrayassociativity", 1));
 
+            // How HATCH shows its settings: the command line alone (0), the Hatch dialog (1) or the Hatch Creation tab (2).
+            registry.AddVariable(KeptWhole("HPDLGMODE", 0, 2, HatchDialogModeKey, 2));
+
+            // Whether HATCH keeps a polyline of each boundary it found, which -HATCH's Retain boundary sets too.
+            registry.AddVariable(KeptWhole("HPBOUNDRETAIN", 0, 1, HatchRetainKey, 0));
+
             // The settings of the next hatch, which the hatch dialog and -HATCH hold too.
             registry.AddVariable(
                 CadSystemVariable.Text("HPNAME", false, s => HatchNameOf(s.Document.HatchSettings), HatchNameTyped)

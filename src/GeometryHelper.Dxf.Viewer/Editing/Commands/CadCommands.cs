@@ -205,6 +205,7 @@ namespace GeometryHelper.Dxf.Viewer
             AddCenterMarksTo(registry);
             AddPgpR32To(registry);
             AddHatchOriginTo(registry);
+            AddHatchBoundariesTo(registry);
             AddTableExportTo(registry);
             AddViewportMaximizeTo(registry);
             AddModify3To(registry);
