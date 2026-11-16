@@ -109,18 +109,21 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // A circle of radius 30 standing on its edge about (50, 100, 0), its point at the angle a at x = 50 - 30 cos a and
             // height 30 sin a, planes 10 and -10: seen from above it is the stretch x 20 to 80 walked there and back from its
             // start at x 20. The piece round x 80 starts at 160.53 degrees, 30 (1 + cos 19.47) = 58.28 along the plan; the one
-            // round x 20 starts at 340.53 degrees, after the stretch there (60) and back to x 21.72, 118.28 along it.
+            // round x 20 starts at 340.53 degrees, after the stretch there (60) and back to x 21.72, 118.28 along it. The
+            // piece round x 20 holds the start of the circle and is two (XClipSeamDashTests): the one from the start has no
+            // phase, the one that ends at it the 118.28.
             CadDocument document = Clipped(
                 block => block.AppendEntity(new DxfCircle(new GeoPoint3(50, 100, 0), Facing, 30)),
                 out string handle
             );
 
-            List<double> phases = Phases(document, handle);
+            List<double> phases = Phases(document, handle).OrderBy(p => p).ToList();
 
             double lean = 30.0 * Math.Sqrt(8.0 / 9.0);
-            Assert.Equal(2, phases.Count);
-            Assert.InRange(phases[0], 90.0 + lean - 0.1, 90.0 + lean + 0.1);
+            Assert.Equal(3, phases.Count);
+            Assert.Equal(0.0, phases[0]);
             Assert.InRange(phases[1], 30.0 + lean - 0.1, 30.0 + lean + 0.1);
+            Assert.InRange(phases[2], 90.0 + lean - 0.1, 90.0 + lean + 0.1);
         }
 
         [Fact]

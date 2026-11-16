@@ -3220,12 +3220,19 @@ its edge, radius 30 about (50, 20, 0), with front 10 and back -10 is left as the
 21.72 and 78.28 to 80; an ellipse of semi-axes 30 and 15 standing so, the two arcs x 20 to 27.64 and 72.36 to 80; a polyline is
 cut in each of its line and arc segments, and at a vertex that stands on a plane; a spline where its height meets a plane, found
 to the millionth of its parameter), and one with dashes goes on with the pattern of the whole, as AutoCAD draws it, the pieces
-of a dashed line or polyline starting their dashes where those of the whole stood; any other entity that crosses one (a hatch,
-text, a solid) is drawn whole, since the display keeps no height to cut it by, where AutoCAD cuts it at the plane glyph by glyph.
-The lines and curves of a dimension's picture are cut like those of a block. What an INSERT in the block holds is cut
+of a dashed line or polyline starting their dashes where those of the whole stood (the pattern of a closed curve begins at its
+start, so that a circle cut across its start is two pieces there); a text, an MTEXT, a hatch, a solid or a 3D face in a plane
+tilted out of the plan is cut where the planes meet its plane, glyph by glyph as AutoCAD cuts it: with front 20 and back 5 the
+strip of the plan from y 5 to 20 of a plane tilted 45 degrees about X (an upright one is seen edge-on, and drawn whole).
+The lines and curves of a dimension's picture, and its words, are cut like those of a block. What an INSERT in the block holds is cut
 by the same planes carried through its placing (a block inserted in another scaled by 2 and lifted 5, the outer one given
 front 20 and back -10, shows its rising line from x 0 to 15), and an external reference by the planes measured from its base
-point, which stands at the insertion point: the drawing whose base point is (0, 0, 10) stands 10 lower. The planes are measured from the plane of the boundary, which goes with the block as the boundary does: the same
+point, which stands at the insertion point: the drawing whose base point is (0, 0, 10) stands 10 lower. The boundary of an external
+reference is kept in the drawing's own coordinates and moves with the content when the drawing's base point changes (a boundary of
+20 to 80 of a drawing whose base point was 0 and is 70 now stands from -50 to 10; New boundary makes one picked at x 130 to 190 of a
+drawing attached at (100, 0, 0) with the base point (70, 0, 0) stand there, as the drawing's 100 to 160, as AutoCAD 2021 keeps it);
+the grips of the boundary place it by the origin the host's block records, which is the base point where the host was saved
+with the drawing as it stands. The planes are measured from the plane of the boundary, which goes with the block as the boundary does: the same
 block standing 15 high when it is clipped in the world's plane shows the rising line from x 0 to 5. A clip that is off shows
 the whole block.
 

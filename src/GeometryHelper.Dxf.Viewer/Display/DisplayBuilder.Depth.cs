@@ -12,22 +12,24 @@ namespace GeometryHelper.Dxf.Viewer
         /// (PNGOUT of a block of lines, circles, arcs and polylines at several heights): the entity is shown where it lies
         /// between the planes, planes included, and not at all where its box lies wholly above the front plane or below the back
         /// one. A line, a circle, an arc, an ellipse, a spline and a polyline of any kind (lightweight, 2D or 3D) that cross a
-        /// plane are cut at it: a circle standing on its edge with front 10 and back -10 leaves the two arcs of its heights
-        /// between them. Any other entity that crosses one is drawn whole, since the display keeps no height to cut it by.
+        /// plane are cut at it: a circle standing on its edge with front 10 and back -10 leaves the three arcs of its heights
+        /// between them (the one that holds the circle's start is two, as the pattern of a dash begins there). A text, an MTEXT,
+        /// a hatch, a solid or a 3D face in a plane tilted out of the plan is cut where the planes meet its plane, as the strip of
+        /// the plan between them. Any other entity that crosses one is drawn whole, since the display keeps no height to cut it by.
         /// </summary>
         /// <param name="slabs">The planes, each measured in the block's coordinates: the reference's own, and those of the
         /// blocks it stands in, carried into this block.</param>
         /// <param name="entity">The entity of the block.</param>
-        /// <returns>The entities to draw: itself, cut copies of it, or none.</returns>
-        private static List<DxfEntity> Slice(IReadOnlyList<DxfSpatialFilter.Slab> slabs, DxfEntity entity)
+        /// <returns>The pieces to draw: the entity itself, cut copies of it, or none.</returns>
+        private static List<Piece> Slice(IReadOnlyList<DxfSpatialFilter.Slab> slabs, DxfEntity entity)
         {
-            var pieces = new List<DxfEntity>(1) { entity };
+            var pieces = new List<Piece>(1) { new Piece(entity, null) };
 
             for (int s = 0; s < slabs.Count && pieces.Count > 0; s++)
             {
-                var next = new List<DxfEntity>(pieces.Count);
+                var next = new List<Piece>(pieces.Count);
 
-                foreach (DxfEntity piece in pieces)
+                foreach (Piece piece in pieces)
                 {
                     SliceBy(slabs[s], piece, next);
                 }
@@ -36,6 +38,65 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return pieces;
+        }
+
+        /// <summary>
+        /// What of an entity is drawn: the entity, or a cut copy of it, and for a text, a hatch or a solid that crosses a plane
+        /// the part of the plan that keeps what lies between the planes: the box the entity stands in, grown, as four numbers
+        /// (least x, least y, most x, most y), then each half-plane that bounds the part as three numbers a, b and c, a point
+        /// (x, y) of the block's plan being kept where a x + b y + c is not below 0; null where the piece is drawn whole.
+        /// </summary>
+        private readonly struct Piece
+        {
+            public Piece(DxfEntity entity, double[] keep)
+            {
+                Entity = entity;
+                Keep = keep;
+            }
+
+            public DxfEntity Entity { get; }
+
+            public double[] Keep { get; }
+        }
+
+        /// <summary>
+        /// Draws an entity of a block whose reference has planes: the pieces <see cref="Slice"/> leaves, each of a text, a
+        /// hatch or a solid that a plane crosses inside the part of the plan between the planes.
+        /// </summary>
+        private void DrawSliced(
+            IReadOnlyList<DxfSpatialFilter.Slab> slabs,
+            DxfEntity entity,
+            Frame frame,
+            DisplayList2 list,
+            bool shown
+        )
+        {
+            foreach (Piece piece in Slice(slabs, entity))
+            {
+                if (piece.Keep == null)
+                {
+                    Draw(piece.Entity, frame, list, null, shown);
+                    continue;
+                }
+
+                IReadOnlyList<GeoPoint2> ring = KeptRing(piece.Keep);
+
+                if (ring == null)
+                {
+                    continue;
+                }
+
+                DisplayClipRegion before = list.PushClip(WorldRing(ring, frame.Matrix));
+
+                try
+                {
+                    Draw(piece.Entity, frame, list, null, shown);
+                }
+                finally
+                {
+                    list.PopClip(before);
+                }
+            }
         }
 
         /// <summary>Draws the parts of an entity that a clip's prism has cut, each cut again by the planes of Clipdepth where there are any.</summary>
@@ -55,10 +116,7 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                foreach (DxfEntity drawn in Slice(slabs, part))
-                {
-                    Draw(drawn, frame, list, null, shown);
-                }
+                DrawSliced(slabs, part, frame, list, shown);
             }
         }
 
@@ -145,24 +203,63 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The part of an entity between the two planes of one set, added to a list.</summary>
-        private static void SliceBy(DxfSpatialFilter.Slab slab, DxfEntity entity, List<DxfEntity> into)
+        private static void SliceBy(DxfSpatialFilter.Slab slab, Piece piece, List<Piece> into)
         {
-            GeoAabb3 box;
+            DxfEntity entity = piece.Entity;
+            GeoAabb3 box = default;
+            bool measured;
 
             try
             {
                 box = entity.GeometricExtents;
+                measured = !box.IsEmpty;
             }
             catch (Exception)
             {
-                // An entity that has no extents is shown as it is.
-                into.Add(entity);
-                return;
+                measured = false;
             }
 
-            if (box.IsEmpty)
+            if (
+                (entity is DxfDBText || entity is DxfMText)
+                && (
+                    !measured
+                    || (box.Max.X - box.Min.X) + (box.Max.Y - box.Min.Y) + (box.Max.Z - box.Min.Z)
+                        <= Tolerance.Default.EqualPoint
+                )
+            )
             {
-                into.Add(entity);
+                // A text the drawing's fonts do not measure has no extents to say whether the planes cross it, and the planes may
+                // meet its plane anywhere along it: it is cut where they do, the strip of the plan its plane's height puts between
+                // them, which holds it whole where it lies between them and none of it where it does not. A text in a plane that
+                // the planes do not cross at an angle is judged by its position, as any other is.
+                try
+                {
+                    if (
+                        TryStrip(
+                            slab,
+                            entity,
+                            box,
+                            measured,
+                            slab.Front.HasValue,
+                            slab.Back.HasValue,
+                            out double[] unknown
+                        )
+                    )
+                    {
+                        into.Add(new Piece(entity, Joined(piece.Keep, unknown)));
+                        return;
+                    }
+                }
+                catch (Exception)
+                {
+                    // A text that cannot be cut is shown as it is.
+                }
+            }
+
+            if (!measured)
+            {
+                // An entity that has no extents is shown as it is.
+                into.Add(piece);
                 return;
             }
 
@@ -189,20 +286,23 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            bool crosses =
-                (front.HasValue && most > front.Value + tolerance) || (back.HasValue && least < back.Value - tolerance);
+            bool overFront = front.HasValue && most > front.Value + tolerance;
+            bool underBack = back.HasValue && least < back.Value - tolerance;
 
-            if (!crosses)
+            if (!overFront && !underBack)
             {
-                into.Add(entity);
+                into.Add(piece);
                 return;
             }
 
             try
             {
+                var cut = new List<DxfEntity>(2);
+
                 if (entity is DxfLine line)
                 {
-                    CutLine(slab, line, into);
+                    CutLine(slab, line, cut);
+                    AddAll(cut, piece.Keep, into);
                     return;
                 }
 
@@ -210,16 +310,253 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (cuts != null)
                 {
-                    CutCurve(slab, curve, cuts, into);
+                    CutCurve(slab, curve, cuts, cut);
+                    AddAll(cut, piece.Keep, into);
+                    return;
+                }
+
+                // A text, a hatch or a solid is cut where the planes meet its own plane, in the plan.
+                if (TryStrip(slab, entity, box, true, overFront, underBack, out double[] strip))
+                {
+                    into.Add(new Piece(entity, Joined(piece.Keep, strip)));
                     return;
                 }
             }
             catch (Exception)
             {
-                // A curve that cannot be cut is shown as it is.
+                // An entity that cannot be cut is shown as it is.
             }
 
-            into.Add(entity);
+            into.Add(piece);
+        }
+
+        private static void AddAll(List<DxfEntity> entities, double[] keep, List<Piece> into)
+        {
+            foreach (DxfEntity entity in entities)
+            {
+                into.Add(new Piece(entity, keep));
+            }
+        }
+
+        /// <summary>The box and half-planes of two strips: the box of the first, and the half-planes of both.</summary>
+        private static double[] Joined(double[] first, double[] second)
+        {
+            if (first == null)
+            {
+                return second;
+            }
+
+            var joined = new double[first.Length + second.Length - 4];
+            Array.Copy(first, joined, first.Length);
+            Array.Copy(second, 4, joined, first.Length, second.Length - 4);
+            return joined;
+        }
+
+        /// <summary>
+        /// The part of the plan that holds what a text, a hatch, a solid or a 3D face shows between the planes, as AutoCAD 2021
+        /// draws it (PNGOUT in plan of a text, a hatch and a solid of a plane tilted 45 degrees about X, planes 20 and 5: what is
+        /// left is the strip of the plan where the plane's height lies between them, glyph by glyph, here y from 5 to 20). The
+        /// height along the entity's plane is a straight function of the plan, so the part is bounded by a line for each plane
+        /// that crosses it. A plane standing upright is seen edge-on in the plan, where its height does not change along any
+        /// line of the plan that it does not stand on, and is drawn whole.
+        /// </summary>
+        /// <param name="slab">The planes.</param>
+        /// <param name="entity">The entity, which the planes cross.</param>
+        /// <param name="box">The entity's extents.</param>
+        /// <param name="measured">Whether the box is the entity's: false for a text its fonts do not measure, which is taken to
+        /// stand about its position as far as its words can reach.</param>
+        /// <param name="overFront">Whether the entity stands over the front plane in part.</param>
+        /// <param name="underBack">Whether it stands under the back plane in part.</param>
+        /// <param name="strip">The box and half-planes of a <see cref="Piece"/>.</param>
+        /// <returns>False where the entity has no plane to cut by, or it is upright, or its plane is parallel to the planes.</returns>
+        private static bool TryStrip(
+            DxfSpatialFilter.Slab slab,
+            DxfEntity entity,
+            GeoAabb3 box,
+            bool measured,
+            bool overFront,
+            bool underBack,
+            out double[] strip
+        )
+        {
+            strip = null;
+
+            if (!TryPlaneOf(entity, out GeoPoint3 point, out GeoVector3 normal) || Math.Abs(normal.Z) <= 1E-3)
+            {
+                return false;
+            }
+
+            // The height of a point of the plane above (x, y): gx x + gy y + h0.
+            double gx = slab.X - slab.Z * normal.X / normal.Z;
+            double gy = slab.Y - slab.Z * normal.Y / normal.Z;
+            double along = normal.X * point.X + normal.Y * point.Y + normal.Z * point.Z;
+            double h0 = slab.Offset + slab.Z * along / normal.Z;
+            double g = Math.Sqrt(gx * gx + gy * gy);
+
+            if (!(g > 1E-9))
+            {
+                return false;
+            }
+
+            // The box grown by twice its diagonal, so that what the display draws of the entity beyond the extents the plane's
+            // tilt gives it, a text's height in the plan, is not cut by the box.
+            double dx = box.Max.X - box.Min.X;
+            double dy = box.Max.Y - box.Min.Y;
+            double dz = box.Max.Z - box.Min.Z;
+            double reach = Math.Sqrt(dx * dx + dy * dy + dz * dz);
+            GeoPoint3 least = box.Min;
+            GeoPoint3 most = box.Max;
+
+            if (!measured || reach <= Tolerance.Default.EqualPoint)
+            {
+                reach = WordsReach(entity);
+                least = point;
+                most = point;
+            }
+
+            double grow = 2.0 * reach + 1.0;
+            var planes = new List<double>(10) { least.X - grow, least.Y - grow, most.X + grow, most.Y + grow };
+
+            if (overFront)
+            {
+                planes.Add(-gx / g);
+                planes.Add(-gy / g);
+                planes.Add((slab.Front.Value - h0) / g);
+            }
+
+            if (underBack)
+            {
+                planes.Add(gx / g);
+                planes.Add(gy / g);
+                planes.Add((h0 - slab.Back.Value) / g);
+            }
+
+            strip = planes.ToArray();
+            return true;
+        }
+
+        /// <summary>How far the words of a text can reach from its position: as many heights as it has letters, and at least one.</summary>
+        private static double WordsReach(DxfEntity entity)
+        {
+            switch (entity)
+            {
+                case DxfDBText text:
+                    return Math.Max(1, text.TextString?.Length ?? 0) * text.Height * Math.Max(1.0, text.WidthFactor);
+                case DxfMText mtext:
+                    return Math.Max(Math.Max(1, mtext.Contents?.Length ?? 0) * mtext.TextHeight, mtext.Width);
+                default:
+                    return 0.0;
+            }
+        }
+
+        /// <summary>
+        /// The plane of an entity that lies on one: a point of it and its unit normal, in the block's coordinates. A text, an
+        /// MTEXT and a hatch have the plane of their normal, a solid its own, a 3D face the plane of three of its corners.
+        /// </summary>
+        private static bool TryPlaneOf(DxfEntity entity, out GeoPoint3 point, out GeoVector3 normal)
+        {
+            point = default;
+            normal = default;
+
+            switch (entity)
+            {
+                case DxfDBText text:
+                    normal = text.Normal;
+                    point = text.Position;
+                    break;
+                case DxfMText mtext:
+                    normal = mtext.Normal;
+                    point = mtext.Location;
+                    break;
+                case DxfHatch hatch:
+                {
+                    normal = hatch.Normal;
+                    double elevation = hatch.Elevation;
+                    point = new GeoPoint3(normal.X * elevation, normal.Y * elevation, normal.Z * elevation);
+                    break;
+                }
+
+                case DxfSolid solid:
+                    normal = solid.Normal;
+                    point = solid.GetPointAt(0);
+                    break;
+                case DxfFace face:
+                {
+                    GeoPoint3 a = face.GetVertexAt(0);
+                    GeoPoint3 b = face.GetVertexAt(1);
+                    GeoPoint3 c = face.GetVertexAt(2);
+                    GeoPoint3 d = face.GetVertexAt(3);
+                    point = a;
+                    var toC = new GeoVector3(c.X - a.X, c.Y - a.Y, c.Z - a.Z);
+                    normal = new GeoVector3(b.X - a.X, b.Y - a.Y, b.Z - a.Z).CrossProduct(toC);
+
+                    if (normal.Length <= Tolerance.Default.EqualPoint * Tolerance.Default.EqualPoint)
+                    {
+                        normal = toC.CrossProduct(new GeoVector3(d.X - a.X, d.Y - a.Y, d.Z - a.Z));
+                    }
+
+                    break;
+                }
+
+                default:
+                    return false;
+            }
+
+            double length = normal.Length;
+
+            if (!normal.IsValid || !(length > 1E-12))
+            {
+                return false;
+            }
+
+            normal = normal.Divide(length);
+            return true;
+        }
+
+        /// <summary>
+        /// The ring of a strip: its box cut by each of its half-planes, in the block's coordinates; null where nothing of the box
+        /// is kept.
+        /// </summary>
+        private static IReadOnlyList<GeoPoint2> KeptRing(double[] strip)
+        {
+            var ring = new List<GeoPoint2>
+            {
+                new GeoPoint2(strip[0], strip[1]),
+                new GeoPoint2(strip[2], strip[1]),
+                new GeoPoint2(strip[2], strip[3]),
+                new GeoPoint2(strip[0], strip[3]),
+            };
+
+            for (int k = 4; k + 2 < strip.Length && ring.Count > 0; k += 3)
+            {
+                double a = strip[k];
+                double b = strip[k + 1];
+                double c = strip[k + 2];
+                var kept = new List<GeoPoint2>(ring.Count + 1);
+
+                for (int i = 0; i < ring.Count; i++)
+                {
+                    GeoPoint2 p = ring[i];
+                    GeoPoint2 q = ring[(i + 1) % ring.Count];
+                    double dp = a * p.X + b * p.Y + c;
+                    double dq = a * q.X + b * q.Y + c;
+
+                    if (dp >= 0.0)
+                    {
+                        kept.Add(p);
+                    }
+
+                    if ((dp >= 0.0) != (dq >= 0.0))
+                    {
+                        double t = dp / (dp - dq);
+                        kept.Add(new GeoPoint2(p.X + t * (q.X - p.X), p.Y + t * (q.Y - p.Y)));
+                    }
+                }
+
+                ring = kept;
+            }
+
+            return ring.Count < 3 ? null : ring;
         }
 
         /// <summary>
@@ -348,9 +685,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             double tolerance = Tolerance.Default.EqualPoint;
+            int wrap = WrapIndex(curve, pieces);
 
-            foreach (DxfCurve piece in pieces)
+            for (int i = 0; i < pieces.Count; i++)
             {
+                DxfCurve piece = pieces[i];
                 GeoPoint3 middle = piece.GetPointAtParameter(0.5 * (piece.StartParam + piece.EndParam));
                 double h = slab.HeightAt(middle.X, middle.Y, middle.Z);
 
@@ -359,6 +698,11 @@ namespace GeometryHelper.Dxf.Viewer
                     && (!slab.Back.HasValue || h >= slab.Back.Value - tolerance)
                 )
                 {
+                    if (i == wrap && TrySplitAtSeam(curve, piece, into))
+                    {
+                        continue;
+                    }
+
                     if (!ReferenceEquals(piece, curve))
                     {
                         RememberCut(piece, curve);
@@ -366,6 +710,60 @@ namespace GeometryHelper.Dxf.Viewer
 
                     into.Add(piece);
                 }
+            }
+        }
+
+        /// <summary>
+        /// The piece of a closed curve cut at the planes that runs on round the place its parameter starts: the last, which
+        /// <c>GetSplitCurves</c> takes from the last cut round to the first. -1 for any other curve, and where a cut stands at the
+        /// start, so that no piece runs past it.
+        /// </summary>
+        private static int WrapIndex(DxfCurve curve, IReadOnlyList<DxfCurve> pieces)
+        {
+            if (pieces.Count < 2 || !curve.Closed)
+            {
+                return -1;
+            }
+
+            DxfCurve last = pieces[pieces.Count - 1];
+            GeoPoint3 seam = curve.StartPoint;
+            double tolerance = Tolerance.Default.EqualPoint;
+            return seam.DistanceTo(last.StartPoint) <= tolerance || seam.DistanceTo(last.EndPoint) <= tolerance
+                ? -1
+                : pieces.Count - 1;
+        }
+
+        /// <summary>
+        /// Splits the piece of a closed curve that runs on past the place its parameter starts at that place, and adds the two
+        /// halves: AutoCAD 2021 draws the linetype of a closed curve from the start, so that the pattern begins again there
+        /// (PNGOUT in plan of a dashed circle, and of a dashed closed polyline, tilted 45 degrees about X, cut by the planes: the
+        /// dashes of the piece that holds the start are those of the whole, 156 of 156 pixels and 512 of 512, whose pattern
+        /// begins again at the start), where a piece kept whole would carry it across.
+        /// </summary>
+        /// <returns>False where the piece could not be split, which is then left as it is.</returns>
+        private static bool TrySplitAtSeam(DxfCurve curve, DxfCurve piece, List<DxfEntity> into)
+        {
+            try
+            {
+                IReadOnlyList<DxfCurve> halves = piece.GetSplitCurves(new[] { curve.StartPoint });
+
+                if (halves.Count != 2)
+                {
+                    return false;
+                }
+
+                foreach (DxfCurve half in halves)
+                {
+                    RememberCut(half, curve);
+                    into.Add(half);
+                }
+
+                return true;
+            }
+            catch (Exception)
+            {
+                // A piece that cannot be split at the start is drawn whole.
+                return false;
             }
         }
 

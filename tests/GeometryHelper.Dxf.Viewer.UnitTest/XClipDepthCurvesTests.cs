@@ -119,9 +119,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             List<DisplayBox> boxes = Drawn(document, handle);
 
-            Assert.Equal(2, boxes.Count);
+            // The arc at x 20 holds the start of the circle (its angle 0) and is two, one each side of it (XClipSeamDashTests).
+            Assert.Equal(3, boxes.Count);
             AssertBox(boxes[0], 20.0, 50.0 - 30.0 * Math.Sqrt(8.0 / 9.0));
-            AssertBox(boxes[1], 50.0 + 30.0 * Math.Sqrt(8.0 / 9.0), 80.0);
+            AssertBox(boxes[1], 20.0, 50.0 - 30.0 * Math.Sqrt(8.0 / 9.0));
+            AssertBox(boxes[2], 50.0 + 30.0 * Math.Sqrt(8.0 / 9.0), 80.0);
         }
 
         [Fact]
