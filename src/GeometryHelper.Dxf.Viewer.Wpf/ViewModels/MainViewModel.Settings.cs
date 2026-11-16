@@ -358,6 +358,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return true;
             }
 
+            // A key given TEXTSCR (F2) shows the text window beside a command running, which it does not end, as AutoCAD's F2.
+            if (target == "TEXTSCR" && OpenTextWindow())
+            {
+                return true;
+            }
+
             StatusToggleViewModel toggle = FindToggle(target);
 
             if (toggle != null)

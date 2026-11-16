@@ -358,7 +358,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                             "Save as a template for new drawings (not built yet)",
                             null
                         ),
-                        Entry("Other Formats", IconOther, "Save in another format (EXPORT, not built yet)", null),
+                        Entry(
+                            "Other Formats",
+                            IconOther,
+                            "Save in another format: Bitmap here; the rest of AutoCAD's list is refused (EXPORT)",
+                            Start("EXPORT"),
+                            open
+                        ),
                     }
                 ),
                 Rule(),

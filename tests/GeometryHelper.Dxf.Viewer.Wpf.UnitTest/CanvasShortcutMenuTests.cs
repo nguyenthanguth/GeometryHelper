@@ -89,7 +89,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     items.Select(i => i.AccessKey).ToArray()
                 );
                 Assert.Equal(
-                    new[] { "SteeringWheels", "Action Recorder", "Convert PS to MS", "QuickCalc" },
+                    new[] { "SteeringWheels", "Action Recorder", "Convert PS to MS" },
                     items.Where(i => !i.IsSeparator && !i.IsEnabled).Select(i => i.Header).ToArray()
                 );
                 Assert.All(items.Where(i => !i.IsSeparator && !i.IsEnabled && i.Items.Count == 0), i =>
@@ -205,10 +205,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     },
                     items.Select(i => i.AccessKey).ToArray()
                 );
-                Assert.Equal(
-                    new[] { "Add Selected", "Select Similar", "QuickCalc", "Quick Properties" },
-                    items.Where(i => !i.IsSeparator && !i.IsEnabled).Select(i => i.Header).ToArray()
-                );
+                Assert.DoesNotContain(items, i => !i.IsSeparator && !i.IsEnabled);
 
                 CadMenuItemViewModel order = Item(items, "Draw Order");
                 Assert.Equal(
@@ -289,7 +286,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     items.Select(i => i.AccessKey).ToArray()
                 );
                 Assert.Equal(
-                    new[] { "SteeringWheels", "QuickCalc" },
+                    new[] { "SteeringWheels" },
                     items.Where(i => !i.IsSeparator && !i.IsEnabled).Select(i => i.Header).ToArray()
                 );
 

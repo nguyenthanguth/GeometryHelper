@@ -535,7 +535,37 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
+            // A keyword with lower-case letters before its capitals, as COPY's mOde, is taken by those letters and the capitals
+            // together: "MO" and "MOD" name mOde.
+            foreach (string keyword in keywords)
+            {
+                int capitals = LastCapital(keyword);
+
+                if (
+                    capitals > 0
+                    && answer.Length > capitals
+                    && keyword.StartsWith(answer, StringComparison.OrdinalIgnoreCase)
+                )
+                {
+                    return keyword;
+                }
+            }
+
             return null;
+        }
+
+        /// <summary>The index of the last capital letter or digit of a keyword, or -1 where it has none.</summary>
+        private static int LastCapital(string keyword)
+        {
+            for (int i = keyword.Length - 1; i >= 0; i--)
+            {
+                if (char.IsUpper(keyword[i]) || char.IsDigit(keyword[i]))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
         }
 
         /// <summary>The capital letters of a keyword, what AutoCAD types it by: D for Displacement, O for mOde, CL for CLose.</summary>

@@ -207,10 +207,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                     break;
                 case "QUICKCALC":
-                    if (ShowQuickCalc != null)
+                    if (OpenQuickCalc())
                     {
-                        _quickCalc = _quickCalc ?? new QuickCalcViewModel(PickForCalc, text => CommandText = text);
-                        ShowQuickCalc(_quickCalc);
                         e.Handled = true;
                     }
 
@@ -232,6 +230,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     e.Handled = true;
                     break;
             }
+        }
+
+        /// <summary>Shows the QuickCalc palette, or brings the one open to the front; it stays open while commands run, so the Command menu opens it beside a running command.</summary>
+        /// <returns>False where the workspace shows none.</returns>
+        private bool OpenQuickCalc()
+        {
+            if (ShowQuickCalc == null)
+            {
+                return false;
+            }
+
+            _quickCalc = _quickCalc ?? new QuickCalcViewModel(PickForCalc, text => CommandText = text);
+            ShowQuickCalc(_quickCalc);
+            return true;
         }
 
         /// <summary>

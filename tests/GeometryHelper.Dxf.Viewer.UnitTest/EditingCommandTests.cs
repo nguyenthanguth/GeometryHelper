@@ -246,7 +246,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "CO");
             Assert.Equal("Current settings:  Copy mode = Multiple", session.History.Last());
             Run(session, P(200, 0), P(200, 50));
-            Assert.Equal("Specify second point or [Exit/Undo] <Exit>:", session.PromptText);
+            Assert.Equal("Specify second point or [Array/Exit/Undo] <Exit>:", session.PromptText);
             Run(session, P(200, 100), P(200, 150), "U", Enter);
 
             List<DxfCircle> circles = All<DxfCircle>(document.ModelSpace);

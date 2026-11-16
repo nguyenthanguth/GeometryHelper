@@ -1849,6 +1849,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "MATCHPROP":
                     OnMatchPropRequested(sender, e);
                     break;
+                case "SELECTSIMILAR":
+                    OnSelectSimilarRequested(e);
+                    break;
+                case "TEXTSCR":
+                    OnTextWindowRequested(e);
+                    break;
                 case "PLOT":
                 case "PAGESETUP":
                     OnPlotRequested(sender, e);

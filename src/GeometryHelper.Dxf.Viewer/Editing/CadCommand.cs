@@ -339,6 +339,7 @@ namespace GeometryHelper.Dxf.Viewer
                 },
                 new Dictionary<string, string>
                 {
+                    ["F2"] = "TEXTSCR",
                     ["F3"] = "OSNAP",
                     ["F7"] = "GRID",
                     ["F8"] = "ORTHO",

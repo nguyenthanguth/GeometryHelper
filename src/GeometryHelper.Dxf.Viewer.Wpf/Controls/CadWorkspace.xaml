@@ -1953,7 +1953,7 @@
                         </StackPanel>
                     </local:RibbonPanel>
 
-                    <!-- Block Definition: Create Block's split (BLOCK, WBLOCK), Define Attributes, and Set Base Point; Manage Attributes and Block Editor greyed. -->
+                    <!-- Block Definition: Create Block's split (BLOCK, WBLOCK), Define Attributes, Manage Attributes (BATTMAN), Block Editor (BEDIT) and Set Base Point. -->
                     <local:RibbonPanel
                         Title="Block Definition"
                         MinFullWidth="284"
@@ -2027,15 +2027,19 @@
                                     Style="{StaticResource NarrowSmallButton}"
                                     Tag="{StaticResource GhIconManageAttributes}"
                                     Content="Manage Attributes"
-                                    Opacity="0.5"
-                                    ToolTip="Manage Attributes (BATTMAN): not offered"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="BATTMAN"
+                                    ToolTip="Manage Attributes (BATTMAN)"
                                 />
                                 <Button
                                     Style="{StaticResource NarrowSmallButton}"
                                     Tag="{StaticResource GhIconBlockEditor}"
                                     Content="Block Editor"
-                                    Opacity="0.5"
-                                    ToolTip="Block Editor (BEDIT): not offered"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="BEDIT"
+                                    ToolTip="Block Editor (BEDIT)"
                                 />
                                 <Button
                                     Style="{StaticResource NarrowSmallButton}"
@@ -4135,7 +4139,7 @@
                                     </Border>
                                 </StackPanel>
                             </local:RibbonPanel>
-                            <!-- Annotation as AutoCAD's Home: Text, the dimension split showing the type used last, Leader, Table (not built yet). -->
+                            <!-- Annotation as AutoCAD's Home: Text, the dimension split showing the type used last, Leader, Table (TABLE). -->
                             <local:RibbonPanel
                                 Title="Annotation"
                                 MinFullWidth="216"
@@ -4240,8 +4244,10 @@
                                             Style="{StaticResource SmallButton}"
                                             Tag="{StaticResource GhIconTable}"
                                             Content="Table"
-                                            Opacity="0.5"
-                                            ToolTip="Table (TABLE): not built yet"
+                                            IsEnabled="{Binding HasDocument}"
+                                            Command="{Binding StartCommandCommand}"
+                                            CommandParameter="TABLE"
+                                            ToolTip="Table (TABLE)"
                                         />
                                     </WrapPanel>
                                 </StackPanel>

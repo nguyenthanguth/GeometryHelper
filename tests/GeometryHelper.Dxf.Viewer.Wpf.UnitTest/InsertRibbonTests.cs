@@ -79,6 +79,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     "EATTEDIT",
                     "BLOCK",
                     "ATTDEF",
+                    "BATTMAN",
+                    "BEDIT",
                     "BASE",
                     "XATTACH",
                     "IMAGECLIP",
@@ -97,20 +99,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     );
                 }
 
-                // INSERT opened the palette on Current drawing, BLOCK, ATTDEF and XATTACH their dialogs, ER the palette.
-                Assert.Equal(new[] { "palette Current drawing", "block", "attdef", "attach", "xref" }, shown);
+                // INSERT opened the palette on Current drawing, BLOCK, ATTDEF, BEDIT and XATTACH their dialogs, ER the palette; BATTMAN found no block with attributes in the room and opened nothing.
+                Assert.Equal(new[] { "palette Current drawing", "block", "attdef", "bedit", "attach", "xref" }, shown);
 
                 // What is not built is there, greyed, its tooltip saying so.
-                foreach (
-                    string name in new[]
-                    {
-                        "Manage Attributes",
-                        "Block Editor",
-                        "Adjust",
-                        "Underlay Layers",
-                        "Snap to Underlays",
-                    }
-                )
+                foreach (string name in new[] { "Adjust", "Underlay Layers", "Snap to Underlays" })
                 {
                     Button greyed = Descendants(strip).OfType<Button>().Single(b => Equals(b.Content, name));
                     Assert.False(greyed.IsEnabled);
@@ -555,6 +548,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                         model.ShowWriteBlock = dialog => Shown(shown, "wblock");
                         model.ShowAttributeDefinition = dialog => Shown(shown, "attdef");
                         model.ShowAttributeEditor = dialog => Shown(shown, "eattedit");
+                        model.ShowBlockAttributeManager = dialog => Shown(shown, "battman");
+                        model.ShowBlockEdit = dialog => Shown(shown, "bedit");
                         model.ShowAttachReference = dialog => Shown(shown, "attach");
                         model.ShowExternalReferences = palette => Shown(shown, "xref");
 
