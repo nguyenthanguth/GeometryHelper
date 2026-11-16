@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading;
 
 namespace GeometryHelper.Dwg
 {
@@ -265,7 +266,13 @@ namespace GeometryHelper.Dwg
         /// outside the file, a missing sentinel, a wrong check sum), and <see cref="NotSupportedException"/>, naming the
         /// version, for a version that is not read yet.
         /// </summary>
-        public static DwgContainer Read(byte[] file)
+        public static DwgContainer Read(byte[] file) => Read(file, CancellationToken.None);
+
+        /// <summary>
+        /// Takes a file apart as <see cref="Read(byte[])"/> does, looking at a token before each page of a section is
+        /// unpacked and giving the file up with an <see cref="OperationCanceledException"/> when it is stopped.
+        /// </summary>
+        public static DwgContainer Read(byte[] file, CancellationToken stop)
         {
             string version = VersionOf(file);
 
@@ -284,9 +291,9 @@ namespace GeometryHelper.Dwg
                 case "AC1024":
                 case "AC1027":
                 case "AC1032":
-                    return ReadR18(file, version);
+                    return ReadR18(file, version, stop);
                 case "AC1021":
-                    return ReadR21(file, version);
+                    return ReadR21(file, version, stop);
                 default:
                     throw new NotSupportedException(
                         "The DWG version "

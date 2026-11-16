@@ -94,8 +94,8 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        private DxfPolyline(DxfItem item)
-            : base(item) { }
+        private DxfPolyline(DxfItem item, bool bind)
+            : base(item, bind) { }
 
         #region The vertices
 
@@ -1603,7 +1603,10 @@ namespace GeometryHelper.Dxf
         }
 
         [DxfType("LWPOLYLINE")]
-        internal static DxfEntity Create(DxfItem item) => new DxfPolyline(item);
+        internal static DxfEntity Create(DxfItem item) => new DxfPolyline(item, true);
+
+        /// <summary>A polyline read from a record that does not hold it, as <see cref="DxfEntity.Glance"/> makes one.</summary>
+        internal static DxfEntity Unkept(DxfItem item) => new DxfPolyline(item, false);
 
         /// <inheritdoc/>
         private protected override IReadOnlyList<int> GroupOrder => Order;

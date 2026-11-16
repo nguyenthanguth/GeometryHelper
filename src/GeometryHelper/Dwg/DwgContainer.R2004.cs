@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using System.Threading;
 
 namespace GeometryHelper.Dwg
 {
@@ -51,7 +52,7 @@ namespace GeometryHelper.Dwg
 
         private static long U64(byte[] data, long at) => (long)(U32(data, at) | ((ulong)U32(data, at + 4) << 32));
 
-        private static DwgContainer ReadR18(byte[] file, string version)
+        private static DwgContainer ReadR18(byte[] file, string version, CancellationToken stop)
         {
             if (file.LongLength < 0x100)
             {
@@ -112,26 +113,26 @@ namespace GeometryHelper.Dwg
 
             bool hasUnknown = (version != "AC1018" && maintenance > 3) || string.CompareOrdinal(version, "AC1027") > 0;
             container.Header = Section(
-                Join(file, pages, Need(sections, "AcDb:Header"), ref budget),
+                Join(file, pages, Need(sections, "AcDb:Header"), ref budget, stop),
                 HeaderStart,
                 HeaderEnd,
                 "header variables",
                 hasUnknown
             );
             container.Classes = Section(
-                Join(file, pages, Need(sections, "AcDb:Classes"), ref budget),
+                Join(file, pages, Need(sections, "AcDb:Classes"), ref budget, stop),
                 ClassesStart,
                 ClassesEnd,
                 "classes",
                 hasUnknown
             );
-            byte[] handles = Join(file, pages, Need(sections, "AcDb:Handles"), ref budget);
-            container.Objects = Join(file, pages, Need(sections, "AcDb:AcDbObjects"), ref budget);
+            byte[] handles = Join(file, pages, Need(sections, "AcDb:Handles"), ref budget, stop);
+            container.Objects = Join(file, pages, Need(sections, "AcDb:AcDbObjects"), ref budget, stop);
             container.ObjectMap = ReadObjectMap(handles, 0, handles.LongLength, container.Objects.LongLength);
 
             if (sections.TryGetValue("AcDb:AcDsPrototype_1b", out Descriptor store))
             {
-                container.DataStore = Join(file, pages, store, ref budget);
+                container.DataStore = Join(file, pages, store, ref budget, stop);
             }
 
             if (sections.TryGetValue("AcDb:Preview", out Descriptor preview) && preview.Encrypted != 1)
@@ -139,14 +140,14 @@ namespace GeometryHelper.Dwg
                 try
                 {
                     // A preview no program needs to read the drawing: a page of it that is broken is no reason to refuse the file.
-                    container.Preview = Join(file, pages, preview, ref budget);
+                    container.Preview = Join(file, pages, preview, ref budget, stop);
                 }
                 catch (FormatException) { }
             }
 
             if (sections.TryGetValue("AcDb:Template", out Descriptor template))
             {
-                byte[] data = Join(file, pages, template, ref budget);
+                byte[] data = Join(file, pages, template, ref budget, stop);
 
                 if (data.Length >= 2)
                 {
@@ -369,7 +370,13 @@ namespace GeometryHelper.Dwg
         /// page has a head of 32 bytes masked by its address: its type, its section, the size of its data, its own size, its
         /// start in the section, and the check sums of the head and of the data.
         /// </summary>
-        private static byte[] Join(byte[] file, Dictionary<int, long[]> pages, Descriptor section, ref long budget)
+        private static byte[] Join(
+            byte[] file,
+            Dictionary<int, long[]> pages,
+            Descriptor section,
+            ref long budget,
+            CancellationToken stop = default
+        )
         {
             if (section.Encrypted == 1)
             {
@@ -391,6 +398,8 @@ namespace GeometryHelper.Dwg
 
             foreach (long[] entry in section.Pages)
             {
+                stop.ThrowIfCancellationRequested();
+
                 if (!pages.TryGetValue((int)entry[0], out long[] place))
                 {
                     throw new FormatException(

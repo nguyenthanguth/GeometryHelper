@@ -29,6 +29,10 @@ namespace GeometryHelper.Dxf
         private protected DxfCurve(DxfItem item)
             : base(item) { }
 
+        /// <summary>The object of a record of a file, which stands for it where <paramref name="bind"/> is true and is only read from it where false.</summary>
+        private protected DxfCurve(DxfItem item, bool bind)
+            : base(item, bind) { }
+
         /// <summary>A curve made in code from a shape, as <see cref="DxfEntity"/> makes one.</summary>
         private protected DxfCurve(object shape)
             : base(shape) { }

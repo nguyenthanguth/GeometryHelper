@@ -57,8 +57,8 @@ namespace GeometryHelper.Dxf
         public DxfCircle(GeoPoint3 center, GeoVector3 normal, double radius)
             : base("CIRCLE", Groups(center, normal, radius)) { }
 
-        private DxfCircle(DxfItem item)
-            : base(item) { }
+        private DxfCircle(DxfItem item, bool bind)
+            : base(item, bind) { }
 
         /// <summary>
         /// Gets or sets the centre of the circle, in world coordinates, as AutoCAD's <c>Center</c>: the groups 10, 20 and 30
@@ -550,7 +550,10 @@ namespace GeometryHelper.Dxf
         }
 
         [DxfType("CIRCLE")]
-        internal static DxfEntity Create(DxfItem item) => new DxfCircle(item);
+        internal static DxfEntity Create(DxfItem item) => new DxfCircle(item, true);
+
+        /// <summary>A circle read from a record that does not hold it, as <see cref="DxfEntity.Glance"/> makes one.</summary>
+        internal static DxfEntity Unkept(DxfItem item) => new DxfCircle(item, false);
 
         /// <inheritdoc/>
         private protected override IReadOnlyList<int> GroupOrder => Order;

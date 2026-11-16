@@ -345,8 +345,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// the window opens a drawing on a worker thread that Esc and Stop stop. A DXF is looked at every 4 096 records as its
         /// text is walked, its handles scanned and its entities of model space listed (the listing the first display would
         /// otherwise make, 0.3 s at 1 000 000 entities), so that a file of that size, 77 MB, is given up within a few
-        /// milliseconds of the stop and not at the end of its reading, which took 0.5 s; a DWG is looked at once, before it
-        /// is read.
+        /// milliseconds of the stop and not at the end of its reading, which took 0.5 s; a DWG is looked at before each page
+        /// of it is unpacked, before each object is read and before each entity and object is written as DXF, and then
+        /// every 4 096 records as that DXF is walked, so that one of 300 000 entities, whose reading takes 1.6 s, is given
+        /// up within a few milliseconds as well.
         /// </summary>
         /// <param name="path">The path of the file.</param>
         /// <param name="progress">What is told how far the reading has got, on the thread that opens; null for nothing.</param>

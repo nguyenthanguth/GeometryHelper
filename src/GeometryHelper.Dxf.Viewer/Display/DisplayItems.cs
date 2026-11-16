@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace GeometryHelper.Dxf.Viewer
 {
@@ -119,6 +120,69 @@ namespace GeometryHelper.Dxf.Viewer
         public bool IsClipFrame;
         public bool IsNotPlotted;
 
+        /// <summary>
+        /// The four flags a <see cref="DisplayPolyline2"/> has (closed, sampled and which corner of its box each end of a
+        /// chain of two is at), kept here and not in the chain, which they made 8 bytes larger in each of the 780 000 chains of
+        /// a drawing of a million entities. A chain takes the look that has its flags, one the other chains of the same
+        /// style and layer and the same flags share, so that a chain holds the one reference it held before.
+        /// </summary>
+        public int Chain { get; private set; }
+
+        // The looks of the same style and layer that have each of the sixteen values of Chain, made as they are asked for and
+        // shared by every look among them: null until a chain of flags is asked for. A look of one item alone has none.
+        private DisplayLook[] _chains;
+
+        private static readonly object ChainLock = new object();
+
+        /// <summary>
+        /// The look of the same style and layer, and the same state, that has the flags of a chain: this look where it has
+        /// them already, one shared by all the chains of those flags and this style and layer where this look is shared, and
+        /// this look changed where one item holds it alone.
+        /// </summary>
+        public DisplayLook WithChain(int chain)
+        {
+            if (Chain == chain)
+            {
+                return this;
+            }
+
+            if (IsOwned)
+            {
+                Chain = chain;
+                return this;
+            }
+
+            DisplayLook[] all = Volatile.Read(ref _chains);
+            DisplayLook found = all == null ? null : Volatile.Read(ref all[chain]);
+
+            if (found != null)
+            {
+                return found;
+            }
+
+            lock (ChainLock)
+            {
+                all = _chains;
+
+                if (all == null)
+                {
+                    all = new DisplayLook[16];
+                    all[Chain] = this;
+                    Volatile.Write(ref _chains, all);
+                }
+
+                found = all[chain];
+
+                if (found == null)
+                {
+                    found = new DisplayLook(Style, Layer) { Chain = chain, _chains = all };
+                    Volatile.Write(ref all[chain], found);
+                }
+
+                return found;
+            }
+        }
+
         /// <summary>A look of the same style and layer, and the same state, that one item may change.</summary>
         public DisplayLook Owned() =>
             new DisplayLook(Style, Layer)
@@ -128,6 +192,7 @@ namespace GeometryHelper.Dxf.Viewer
                 IsFrameInside = IsFrameInside,
                 IsClipFrame = IsClipFrame,
                 IsNotPlotted = IsNotPlotted,
+                Chain = Chain,
             };
     }
 
@@ -151,6 +216,12 @@ namespace GeometryHelper.Dxf.Viewer
         private DisplayLook _look;
 
         private DisplayLook Owned() => _look.IsOwned ? _look : (_look = _look.Owned());
+
+        /// <summary>The flags a <see cref="DisplayPolyline2"/> keeps in its look, as <see cref="DisplayLook.Chain"/> says.</summary>
+        internal int ChainFlags => _look.Chain;
+
+        /// <summary>Gives the item the look that has the flags of a chain: the one all the chains of those flags, this style and this layer share.</summary>
+        internal void SetChainFlags(int flags) => _look = _look.WithChain(flags);
 
         /// <summary>Gets how the item is drawn.</summary>
         public DisplayStyle Style => _look.Style;
@@ -369,10 +440,15 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly double _b;
         private readonly double _c;
         private readonly double _d;
-        private readonly bool _closed;
-        private readonly bool _flipX;
-        private readonly bool _flipY;
-        private bool _sampled;
+
+        // Whether the chain is closed or sampled, and which corner of its box each end of a chain of two is at, are four flags
+        // kept in the look the chain shares with the others of its style, layer and flags (ChainFlags), not in four bools,
+        // which made a chain of 80 bytes where 72 hold the rest: 6 MB in a drawing of a million entities. One byte would not
+        // have shrunk it, for an object is made of whole words.
+        private const int ClosedFlag = 1;
+        private const int SampledFlag = 2;
+        private const int FlipXFlag = 4;
+        private const int FlipYFlag = 8;
 
         /// <summary>Makes a chain.</summary>
         /// <param name="xy">The vertices as X and Y in turn; at least two.</param>
@@ -388,7 +464,7 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(xy));
             }
 
-            _closed = closed;
+            int flags = closed ? ClosedFlag : 0;
             DisplayBox box = DisplayBox.Empty;
 
             for (int i = 0; i + 1 < xy.Length; i += 2)
@@ -404,16 +480,21 @@ namespace GeometryHelper.Dxf.Viewer
             // Two vertices are the box and two flags where they come back from them bit for bit; a NaN among them does not.
             if (
                 xy.Length == 4
-                && Flipped(xy[0], xy[2], _a, _c, out _flipX)
-                && Flipped(xy[1], xy[3], _b, _d, out _flipY)
+                && Flipped(xy[0], xy[2], _a, _c, out bool flipX)
+                && Flipped(xy[1], xy[3], _b, _d, out bool flipY)
             )
             {
-                return;
+                flags |= (flipX ? FlipXFlag : 0) | (flipY ? FlipYFlag : 0);
+            }
+            else
+            {
+                _xy = xy;
             }
 
-            _flipX = false;
-            _flipY = false;
-            _xy = xy;
+            if (flags != 0)
+            {
+                SetChainFlags(flags);
+            }
         }
 
         /// <summary>
@@ -438,13 +519,16 @@ namespace GeometryHelper.Dxf.Viewer
             _c = box.MaxX;
             _d = box.MaxY;
 
-            if (Flipped(x0, x1, _a, _c, out _flipX) && Flipped(y0, y1, _b, _d, out _flipY))
+            if (Flipped(x0, x1, _a, _c, out bool flipX) && Flipped(y0, y1, _b, _d, out bool flipY))
             {
+                if (flipX || flipY)
+                {
+                    SetChainFlags((flipX ? FlipXFlag : 0) | (flipY ? FlipYFlag : 0));
+                }
+
                 return;
             }
 
-            _flipX = false;
-            _flipY = false;
             _xy = new[] { x0, y0, x1, y1 };
         }
 
@@ -466,13 +550,15 @@ namespace GeometryHelper.Dxf.Viewer
         public int Count => _xy == null ? 2 : _xy.Length / 2;
 
         /// <summary>The X of a vertex.</summary>
-        internal double VertexX(int index) => _xy != null ? _xy[2 * index] : ((index == 0) != _flipX ? _a : _c);
+        internal double VertexX(int index) =>
+            _xy != null ? _xy[2 * index] : ((index == 0) != ((ChainFlags & FlipXFlag) != 0) ? _a : _c);
 
         /// <summary>The Y of a vertex.</summary>
-        internal double VertexY(int index) => _xy != null ? _xy[2 * index + 1] : ((index == 0) != _flipY ? _b : _d);
+        internal double VertexY(int index) =>
+            _xy != null ? _xy[2 * index + 1] : ((index == 0) != ((ChainFlags & FlipYFlag) != 0) ? _b : _d);
 
         /// <summary>Gets whether the last vertex joins the first.</summary>
-        public bool Closed => _closed;
+        public bool Closed => (ChainFlags & ClosedFlag) != 0;
 
         /// <summary>
         /// Gets whether the vertices are samples along a curve (an ellipse, a spline, an arc drawn under a skew) rather than
@@ -480,8 +566,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         public bool IsSampled
         {
-            get => _sampled;
-            internal set => _sampled = value;
+            get => (ChainFlags & SampledFlag) != 0;
+            internal set => SetChainFlags(value ? ChainFlags | SampledFlag : ChainFlags & ~SampledFlag);
         }
 
         /// <inheritdoc/>

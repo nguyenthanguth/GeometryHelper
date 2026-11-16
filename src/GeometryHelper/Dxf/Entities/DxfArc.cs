@@ -72,8 +72,8 @@ namespace GeometryHelper.Dxf
         public DxfArc(GeoPoint3 center, GeoVector3 normal, double radius, double startAngle, double endAngle)
             : base("ARC", Groups(center, normal, radius, startAngle, endAngle)) { }
 
-        private DxfArc(DxfItem item)
-            : base(item) { }
+        private DxfArc(DxfItem item, bool bind)
+            : base(item, bind) { }
 
         /// <summary>
         /// Gets or sets the centre of the arc, in world coordinates, as AutoCAD's <c>Center</c>: the groups 10, 20 and 30 taken
@@ -708,7 +708,10 @@ namespace GeometryHelper.Dxf
         }
 
         [DxfType("ARC")]
-        internal static DxfEntity Create(DxfItem item) => new DxfArc(item);
+        internal static DxfEntity Create(DxfItem item) => new DxfArc(item, true);
+
+        /// <summary>An arc read from a record that does not hold it, as <see cref="DxfEntity.Glance"/> makes one.</summary>
+        internal static DxfEntity Unkept(DxfItem item) => new DxfArc(item, false);
 
         /// <inheritdoc/>
         private protected override IReadOnlyList<int> GroupOrder => Order;
