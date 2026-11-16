@@ -18,6 +18,8 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("MLEADERCOLLECT", MLeaderCollect));
             registry.Add(new CadCommand("ATTIPEDIT", AttributeInPlace));
             registry.Add(new CadCommand("SPELL", Spell));
+            AddTextToolsTo(registry);
+            registry.Add(new CadCommand("ATTDISP", AttributeDisplay));
         }
     }
 }

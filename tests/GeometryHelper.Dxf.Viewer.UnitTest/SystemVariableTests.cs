@@ -321,8 +321,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // 1, 2, 3, 5, 4b, 4a and 1b, MLINE, MLEDIT and MLSTYLE, IMAGEADJUST, -IMAGEADJUST, ATTEXT and -ATTEXT, INSERTOBJ, and
             // -OBJECTSCALE, AIOBJECTSCALEADD and AIOBJECTSCALEREMOVE, OBJECTSCALE, REFEDIT, -REFEDIT, REFSET and REFCLOSE, and
             // HATCHSETORIGIN, TABLEEXPORT, VPMAX, VPMIN and REVCLOUDPROPERTIES, CENTERMARK and CENTERLINE, WMFIN, MIRROR3D, SPLINE and BLEND, OOPS and WIPEOUT, SELECTSIMILAR, ADDSELECTED and TEXTSCR,
-            // and LAYMRG, -LAYMRG, LAYDEL, -LAYDEL, LAYCUR, COPYTOLAYER, -COPYTOLAYER, -DIMSTYLE and DIMUPDATE.
-            Assert.Equal(281, registry.Commands.Count);
+            // and LAYMRG, -LAYMRG, LAYDEL, -LAYDEL, LAYCUR, COPYTOLAYER, -COPYTOLAYER, -DIMSTYLE and DIMUPDATE, SCALETEXT, JUSTIFYTEXT, TXT2MTXT and ATTDISP.
+            Assert.Equal(285, registry.Commands.Count);
             Assert.NotNull(registry.Find("SETVAR"));
             Assert.Null(registry.Find("PDMODE"));
             Assert.True(registry.FindVariable("PDMODE").IsInDrawing);

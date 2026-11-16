@@ -233,7 +233,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 281 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 285 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -248,7 +248,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too; a spline made a polyline within a precision), REVCLOUDPROPERTIES (Arc length), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN, CHANGE (Properties: Color, Elev, LAyer, LType, ltScale, LWeight, Thickness, TRansparency, Material, Annotative) |
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a name typed may be a wildcard and every attributed block it matches is synced; what is picked that is no block, or a block with no attribute definitions, refused and another asked for, in the words of AutoCAD's own table of strings; an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, ATTEXT, -ATTEXT (Cdf, Sdf, Dxf, Objects), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK, REFEDIT, -REFEDIT (Ok, Next; All, Nested), REFSET (Add, Remove), REFCLOSE (Save, Discard), and the variables REFEDITNAME and XFADECTL |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
-| annotation | DIMOVERRIDE (Clear overrides), TEXTALIGN (alIgnment, Options, Point), MLEADEREDIT (Remove leaders, Add leaders), MLEADERALIGN (Options), MLEADERCOLLECT (Vertical, Horizontal, Wrap), ATTIPEDIT, SPELL (All, Dictionary) (see [Annotation commands](#annotation-commands)) |
+| annotation | DIMOVERRIDE (Clear overrides), TEXTALIGN (alIgnment, Options, Point), MLEADEREDIT (Remove leaders, Add leaders), MLEADERALIGN (Options), MLEADERCOLLECT (Vertical, Horizontal, Wrap), ATTIPEDIT, SPELL (All, Dictionary), SCALETEXT (Existing, Left, Center, Middle, Right, TL to BR; Paper height, Match object, Scale factor, Reference), JUSTIFYTEXT (Left, Align, Fit, Center, Middle, Right, TL to BR), TXT2MTXT (Settings), ATTDISP (Normal, ON, OFF) (see [Annotation commands](#annotation-commands)) |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT, EXPORT, -EXPORT (Dwf, dwfX, Pdf) ([Plotting](plot.md)) |
 | dimension | DIM (Angular, Baseline, Continue, Ordinate, aliGn, Distribute, Layer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE, DIMCENTER, CENTERMARK, CENTERLINE, -DIMSTYLE (ANnotative, Save, Restore, STatus, Variables, Apply, ?), DIMUPDATE |
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT, TABLEEXPORT |
@@ -2781,6 +2781,44 @@ nearest it, `Not in dictionary: "wrold". Suggestions: world`, and "Enter replace
 <Ignore>:" takes a replacement typed, Change (the first suggestion), Add (to the custom dictionary and its file), Ignore, ignore
 all, or Stop. The words changed of a text are written together, the format codes of an MTEXT kept in it, and the whole
 check is one undo step; `Spelling check complete.` ends it.
+
+SCALETEXT scales each TEXT, MTEXT and attribute selected about a base point of its own, as AutoCAD 2021's does (its prompts
+and results probed in the console). "Enter a base point option for scaling [Existing/Left/Center/Middle/Right/TL/TC/TR/ML/MC/MR/BL/BC/BR]
+<Existing>:" names it: Existing is the point the text is held by (an MTEXT's attachment point), the others a point of the box
+the text is drawn in: Left, Center and Right on its baseline, Middle at the middle of its height, TL to BR on its corners
+(BL, BC and BR the foot of the letters, a third of the height below the baseline in txt.shx). "Specify new model height or [Paper
+height/Match object/Scale factor] <2.5000>:" then takes a height for every text, the height of a text picked (Match
+object, "Select a text object with the desired height:"), or a factor (Scale factor, "Specify scale factor or [Reference]
+<1.0000>:", Reference asking a reference and a new length); Paper height asks the height on the sheet of annotative text and
+says `1 non-annotative objects ignored` of the rest. The base point and the height are the defaults of the next run. A
+"HELLO" 5 high and 23.33 wide from (10, 10) taken to a height of 10 about Center starts at (-1.67, 10), its centre still on
+(21.67, 10); about Middle at (10, 7.5); an MTEXT also has its width scaled. It ends with `1 objects changed`, one undo step.
+JUSTIFYTEXT asks "Enter a justification option [Left/Align/Fit/Center/Middle/Right/TL/TC/TR/ML/MC/MR/BL/BC/BR] <Left>:" and
+gives every text that justification without moving it on the page: the text keeps its first point, and is held by the point
+of its box the option names, Right by the end of its baseline (33.33, 10) for the "HELLO" above, TL by its top left; Align
+and Fit by the end of the baseline too. An MTEXT is attached by the matching corner of its words (Left, Align and Fit the
+bottom left, Center the bottom middle, Middle the centre, Right the bottom right), its location moved to that corner. A text
+justified Middle (BaseMid) is drawn about the middle of its height, as AutoCAD draws it.
+
+TXT2MTXT combines the TEXT and MTEXT selected ("Select objects or [Settings]:") into one MTEXT at the top left of the top
+text, as high, in the style, on the layer and turned as the first, each text a paragraph of its own from the top down (a
+text level with another, the left one first, the handle breaking a tie), a backslash and a brace of a TEXT written as their
+codes, `3 text objects combined into 1 MTEXT.`; the originals are erased, all one undo step. Settings asks the four choices in
+turn, each the default of the next run: "Specify the width of the MTEXT, 0 for no limit <0.0000>:", "Keep each text as a paragraph of its own?
+[Yes/No] <Yes>:" (No runs them together by spaces, wrapped at the width), "Erase the original texts? [Yes/No] <Yes>:" and
+"Order the texts by position or as selected? [Position/Selection] <Position>:". AutoCAD's console has no TXT2MTXT, so the
+question here is the presenter's own.
+
+ATTDISP asks "Enter attribute visibility setting [Normal/ON/OFF] <Normal>:": Normal shows the attributes that are not
+invisible, ON all of them and OFF none; a change says `Regenerating model.`, draws every
+space again and is one undo step. -ATTEDIT answered No to "Edit attributes one at a time?" edits the values together:
+"Performing global editing of attribute values.", "Edit only attributes visible on screen? [Yes/No] <Y>:" (No says `Drawing
+must be regenerated afterwards.` and takes the attributes of every INSERT of the model space and layouts, invisible ones too;
+Yes asks "Select Attributes:" and takes those the display shows), the block, tag and value specifications (`*` and `?`),
+`6 attributes selected.`, "Enter string to change:" and "Enter new string:". Every occurrence of the string, upper and lower
+case kept apart, is replaced in the value of each attribute selected: `ABC` taken to `xyz` makes "HELLO ABC abc ABC" "HELLO xyz
+abc xyz"; an empty string to change puts the new one at the front of every value, an empty new string takes the old one out.
+Each INSERT changed is one edit of the command's one undo step.
 
 IMAGEADJUST (IAD) and -IMAGEADJUST set the brightness, contrast and fade of images (groups 281, 282 and 283 of the IMAGE), -IMAGEADJUST on the
 command line as AutoCAD 2021's -IMAGEADJUST asks it, IMAGEADJUST too where no window shows its dialog. "Select image(s):" takes the images (a

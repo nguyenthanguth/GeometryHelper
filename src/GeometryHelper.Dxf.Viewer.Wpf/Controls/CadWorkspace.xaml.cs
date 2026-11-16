@@ -678,6 +678,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     MTextUnsavedChangesWindow.Ask(Window.GetWindow(this), question);
                 _model.ShowParagraph = dialog => ParagraphWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowColumnSettings = dialog => ColumnSettingsWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowBackgroundMask = dialog => MTextMaskWindow.Show(Window.GetWindow(this), dialog);
                 _model.AskMTextSize = dialog => MTextSizeWindow.Ask(Window.GetWindow(this), dialog);
                 _model.InPlaceEditChanged += OnInPlaceEditChanged;
                 _model.TableLiveChanged += OnTableLiveChanged;

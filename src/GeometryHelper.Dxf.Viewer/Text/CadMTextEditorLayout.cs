@@ -146,6 +146,23 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the MTEXT's box as last laid out: the editor's frame; null before the first <see cref="Update(CadMTextEditor, int, double, int, int)"/> with it.</summary>
         public CadMTextFrame Frame => _frame;
 
+        /// <summary>
+        /// Gives the words the background mask the editor shows them on, drawn by the next <see cref="Update(CadMTextEditor, int, double, int, int)"/>;
+        /// the MTEXT's own where none is given. A file older than R2004 has no background, and keeps the words as they are.
+        /// </summary>
+        /// <param name="mask">The mask; null for the one the MTEXT has.</param>
+        public void SetMask(CadMTextMask mask)
+        {
+            try
+            {
+                mask?.ApplyTo(_text);
+            }
+            catch (InvalidOperationException exception)
+            {
+                GeometryHelperLog.Debug("CadMTextEditorLayout: the mask was not shown: " + exception.Message);
+            }
+        }
+
         /// <summary>Gets how many columns the words stand in now: 1 with none, those the words fill with dynamic ones.</summary>
         public int ColumnCount => _layout?.ColumnCount ?? 1;
 

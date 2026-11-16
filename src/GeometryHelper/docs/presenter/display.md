@@ -581,6 +581,15 @@ Height, Static Columns › 2 to 6, Insert Column Break, Alt+Enter, and Column Se
 the columns; the box and the columns are written with the words when the editor closes, one undo step of the drawing.
 A column break typed is written `\N`, and one already there is kept as one.
 
+Mask on the Style panel and Background mask… under the colour show the Background Mask dialog, as AutoCAD 2021's: Use
+background mask, the border offset factor (from 1.0 to 5.0, 1.5 to start with, a multiple of the text height the mask
+reaches past the words) and the Fill Color, Use drawing background color or a colour picked in Select Color. The factor
+and the colour are greyed while the mask is off, the colour while the drawing's background is used; a factor outside 1.0 to
+5.0 is refused and its box marked. OK shows the mask in the editor at once and writes it with the words when the editor
+closes (group 90 flags 1 and 2, 45 the factor, 63 and 421 the colour), one undo step of the drawing; a mask left off takes
+the flags out and keeps the rest of the record. The mask is public as
+[`CadMTextMask`](xref:GeometryHelper.Dxf.Viewer.CadMTextMask).
+
 Esc ends an edit in place as AutoCAD 2021 ends it. In the edit box of a single-line text it drops what was typed: a
 TEXT that read "ROOM 1" and was typed over as "ROOM 2" still reads "ROOM 1", and nothing is added to the undo list. In
 the MTEXT editor with nothing changed it closes the editor; with changes it asks Multiline Text - Unsaved Changes, "Do

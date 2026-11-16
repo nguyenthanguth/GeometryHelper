@@ -1637,7 +1637,12 @@ namespace GeometryHelper.Dxf.Viewer
             return Math.Sqrt(dx * dx + dy * dy);
         }
 
-        private void GetFrame(out double x0, out double y0, out double x1, out double y1)
+        /// <summary>
+        /// Gets the text's box in its own frame, the origin its alignment point, x along the baseline and y up it: from x0 to x1
+        /// the width of its words as the justification puts it, from y0, the foot of the letters that reach below the baseline,
+        /// to y1, the top of its first line.
+        /// </summary>
+        internal void GetFrame(out double x0, out double y0, out double x1, out double y1)
         {
             double width = EstimatedWidth;
             x0 =

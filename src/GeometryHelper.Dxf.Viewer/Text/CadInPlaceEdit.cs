@@ -93,11 +93,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets the line spacing factor an MTEXT was given in the editor (Line Spacing, 1 single); null where it was not changed.</summary>
         public double? NewLineSpacing { get; set; }
 
-        /// <summary>Gets whether the editor changed the box: its width, attachment, line spacing, defined height or columns.</summary>
+        /// <summary>Gets or sets the background mask an MTEXT was given in the editor (Background Mask); null where it was not changed.</summary>
+        public CadMTextMask NewMask { get; set; }
+
+        /// <summary>Gets whether the editor changed the box: its width, attachment, line spacing, background mask, defined height or columns.</summary>
         public bool ChangesBox =>
             (NewWidth.HasValue && NewWidth.Value >= 0.0 && NewWidth.Value != Width)
             || NewAttachment.HasValue
             || NewLineSpacing.HasValue
+            || NewMask != null
             || NewFrame != null;
 
         /// <summary>
