@@ -922,10 +922,13 @@ the ones wanted.
       cells they change (300x6: a second SetDataLink 43.9 ms / 72.8 MB -> 2.8 ms / 6.9 MB, net48); the first merge and
       row insert map TABLECONTENT lazily (29.6 -> 13.5 ms); a handle read after an edit 0.26 -> 0.01 ms; bytes identical
       (60 pinned, 720 fuzz runs)
-- [ ] (tables12, running) Tables follow-ups 11: the first SetDataLink still makes every cell's strings (22-29 ms: scan unread cells as
-      LinkRun does); CurrentLinks rebuilt after each edit (IsLinked 4-7 ms after a height); ContentKindsOf reads the whole
-      TABLECONTENT on each write (~5 % of a row edit); 1-2 digit handles still read every record; series dates in a
-      daylight-saving zone; GUI-only sides (S)
+- [x] Tables follow-ups 11 (tables12): links scanned from the cells' bytes and the scan kept while TABLECONTENT stands
+      (first SetDataLink 28.8 -> 15.0 ms; IsLinked after a height 14.5 -> 0.14 ms; 20 heights with questions 336 -> 60
+      MB, net48); row kinds from the kept grid; bytes identical (42 pinned, 756 fuzz runs)
+- [ ] Tables follow-ups 12: the first scan of a table that keeps no cells (13 ms: a TailMap source valid with comments
+      and extended data); RemoveDataLink's rescan after the write (1-2 ms); 1-2 digit handles in PointedAmong (parked:
+      no byte search can tell them from code lines); a reopened table differs from the kept one under _rowLooks edits
+      (old too); series dates in a daylight-saving zone; GUI-only sides (S)
 - [x] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
 
 - [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand

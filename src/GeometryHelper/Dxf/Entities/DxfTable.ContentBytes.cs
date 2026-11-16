@@ -170,6 +170,19 @@ namespace GeometryHelper.Dxf
             /// <summary>Whether a group is of the code given and its value, its spaces taken off, the text given.</summary>
             internal abstract bool Is(int index, int code, string text);
 
+            /// <summary>The place of the first group of the code given from one place to before another; the place the search ends at where there is none.</summary>
+            internal virtual int Next(int from, int to, int code)
+            {
+                int at = from;
+
+                while (at < to && Code(at) != code)
+                {
+                    at++;
+                }
+
+                return at;
+            }
+
             internal KeyValuePair<int, string> Pair(int index) =>
                 new KeyValuePair<int, string>(Code(index), Value(index));
 
@@ -203,6 +216,23 @@ namespace GeometryHelper.Dxf
                 _groups[index].TypeCode == code && _groups[index].Value.Trim() == text;
         }
 
+        /// <summary>The groups of a TABLECONTENT as <see cref="DxfFile.GroupsOf"/> gives them, the places they have there.</summary>
+        private sealed class GroupsSource : ContentSource
+        {
+            private readonly IReadOnlyList<DxfTypedValue> _groups;
+
+            internal GroupsSource(IReadOnlyList<DxfTypedValue> groups) => _groups = groups;
+
+            internal override int Count => _groups.Count;
+
+            internal override int Code(int index) => _groups[index].TypeCode;
+
+            internal override string Value(int index) => _groups[index].Value;
+
+            internal override bool Is(int index, int code, string text) =>
+                _groups[index].TypeCode == code && _groups[index].Value.Trim() == text;
+        }
+
         private sealed class MapSource : ContentSource
         {
             private readonly DxfFile.TailMap _map;
@@ -216,60 +246,179 @@ namespace GeometryHelper.Dxf
             internal override string Value(int index) => _map.Value(index);
 
             internal override bool Is(int index, int code, string text) => _map.Is(index, code, text);
+
+            internal override int Next(int from, int to, int code)
+            {
+                int at = from;
+
+                while (at < to && _map.Code(at) != code)
+                {
+                    at++;
+                }
+
+                return at;
+            }
         }
 
         /// <summary>
-        /// The groups of a kept TABLECONTENT as <see cref="DxfFile.GroupsOf"/> gives them, in one list, and where each cell's groups
-        /// stand in it, so that a group is found by its place and the cell it is in changed by itself.
+        /// The groups of a kept TABLECONTENT as <see cref="DxfFile.GroupsOf"/> gives them, counted in one run, and where each
+        /// cell's groups stand in it, so that a group is found by its place and the cell it is in changed by itself. The groups
+        /// of a cell not read yet (<see cref="ContentGridCell.Groups"/>) are looked at in the bytes of the record, none made into
+        /// a string until it is asked for, so that finding the links of a table of 1 800 cells makes the strings of its markers
+        /// alone; the groups of the cells are those the cells hold now, so it is not asked after a cell was changed.
         /// </summary>
-        private sealed class ContentFlat : IReadOnlyList<DxfTypedValue>
+        private sealed class ContentFlat : ContentSource
         {
-            private readonly List<KeyValuePair<int, string>> _groups;
-            private readonly List<ContentSpan> _cells;
+            // The groups that are no cell's (the head of the record, the columns, the heads and tails of the rows, what follows
+            // the rows), one after another, and the runs of them and the cells in order.
+            private readonly List<KeyValuePair<int, string>> _loose;
+            private readonly List<ContentSpan> _spans = new List<ContentSpan>();
+            private readonly int _count;
+            private int _cellGroups;
+            private int _mark;
+
+            // The run the group last asked for stood in, where the next is most likely to stand.
+            private int _at;
 
             internal ContentFlat(ContentBytes kept)
             {
                 Kept = kept;
-                _groups = new List<KeyValuePair<int, string>>(kept.Head.Count + kept.Grid.CountGroups());
-                _groups.AddRange(kept.Head);
-                _cells = new List<ContentSpan>(kept.Grid.Rows.Count * (kept.Grid.Columns.Count + 1));
-                kept.Grid.AddGroupsTo(_groups, _cells);
+                _loose = new List<KeyValuePair<int, string>>(kept.Head.Count + 24 * (kept.Grid.Rows.Count + 1));
+                _loose.AddRange(kept.Head);
+                kept.Grid.AddGroupsTo(_loose, AddCell);
+                CloseRun();
+                _count = _loose.Count + _cellGroups;
             }
 
             /// <summary>The kept TABLECONTENT the groups are those of.</summary>
             internal ContentBytes Kept { get; }
 
-            public int Count => _groups.Count;
+            internal override int Count => _count;
 
-            public DxfTypedValue this[int index]
+            internal override int Code(int index)
             {
-                get
-                {
-                    KeyValuePair<int, string> group = _groups[index];
-                    return DxfTypedValue.Read(group.Key, group.Value);
-                }
+                ContentSpan span = _spans[Find(index)];
+                return span.Cell != null
+                    ? span.Cell.CodeAt(index - span.Start)
+                    : _loose[span.LooseFrom + index - span.Start].Key;
             }
 
-            public IEnumerator<DxfTypedValue> GetEnumerator()
+            internal override string Value(int index)
             {
-                for (int i = 0; i < _groups.Count; i++)
-                {
-                    yield return this[i];
-                }
+                ContentSpan span = _spans[Find(index)];
+                return span.Cell != null
+                    ? span.Cell.ValueAt(index - span.Start)
+                    : _loose[span.LooseFrom + index - span.Start].Value;
             }
 
-            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+            internal override bool Is(int index, int code, string text)
+            {
+                ContentSpan span = _spans[Find(index)];
+
+                if (span.Cell != null)
+                {
+                    return span.Cell.IsAt(index - span.Start, code, text);
+                }
+
+                KeyValuePair<int, string> group = _loose[span.LooseFrom + index - span.Start];
+                return group.Key == code && group.Value.Trim() == text;
+            }
+
+            internal override int Next(int from, int to, int code)
+            {
+                int at = from;
+                int end = Math.Min(to, _count);
+
+                while (at < end)
+                {
+                    ContentSpan span = _spans[Find(at)];
+                    int stop = Math.Min(end, span.End);
+                    int found;
+
+                    if (span.Cell != null)
+                    {
+                        found = span.Start + span.Cell.NextCode(at - span.Start, stop - span.Start, code);
+                    }
+                    else
+                    {
+                        found = at;
+
+                        while (found < stop && _loose[span.LooseFrom + found - span.Start].Key != code)
+                        {
+                            found++;
+                        }
+                    }
+
+                    if (found < stop)
+                    {
+                        return found;
+                    }
+
+                    at = stop;
+                }
+
+                return to;
+            }
 
             /// <summary>The cell whose groups hold the place given, and where they begin and end in the list; null where no cell's do.</summary>
             internal ContentGridCell CellAt(int index, out int start, out int end)
             {
+                int at = index >= 0 && index < _count ? Find(index) : -1;
+                ContentSpan span = at < 0 ? default : _spans[at];
+
+                if (span.Cell == null)
+                {
+                    start = end = -1;
+                    return null;
+                }
+
+                start = span.Start;
+                end = span.End;
+                return span.Cell;
+            }
+
+            /// <summary>Adds a cell's run after the loose groups so far, the loose groups before it closed as a run of their own.</summary>
+            private void AddCell(ContentGridCell cell)
+            {
+                CloseRun();
+                int start = _loose.Count + _cellGroups;
+                int length = cell.Length;
+                _spans.Add(new ContentSpan(start, start + length, 0, cell));
+                _cellGroups += length;
+            }
+
+            /// <summary>Closes the loose groups added since the last run as a run of their own.</summary>
+            private void CloseRun()
+            {
+                if (_loose.Count > _mark)
+                {
+                    _spans.Add(new ContentSpan(_mark + _cellGroups, _loose.Count + _cellGroups, _mark, null));
+                    _mark = _loose.Count;
+                }
+            }
+
+            /// <summary>Where the run that holds the place given stands among the runs, which the last asked for is tried first and the next after it.</summary>
+            private int Find(int index)
+            {
+                ContentSpan span = _spans[_at];
+
+                if (index >= span.Start && index < span.End)
+                {
+                    return _at;
+                }
+
+                if (_at + 1 < _spans.Count && index >= _spans[_at + 1].Start && index < _spans[_at + 1].End)
+                {
+                    return ++_at;
+                }
+
                 int low = 0;
-                int high = _cells.Count - 1;
+                int high = _spans.Count - 1;
 
                 while (low <= high)
                 {
                     int middle = (low + high) / 2;
-                    ContentSpan span = _cells[middle];
+                    span = _spans[middle];
 
                     if (index < span.Start)
                     {
@@ -281,24 +430,27 @@ namespace GeometryHelper.Dxf
                     }
                     else
                     {
-                        start = span.Start;
-                        end = span.End;
-                        return span.Cell;
+                        _at = middle;
+                        return middle;
                     }
                 }
 
-                start = end = -1;
-                return null;
+                throw new ArgumentOutOfRangeException(nameof(index));
             }
         }
 
-        /// <summary>Where the groups of a cell of the TABLECONTENT stand among all the groups of its record: from <see cref="Start"/> to before <see cref="End"/>.</summary>
+        /// <summary>
+        /// Where a run of the groups of a TABLECONTENT stands among all the groups of its record, from <see cref="Start"/> to
+        /// before <see cref="End"/>: the groups of a cell, or a run of the loose groups that are no cell's, which begins at
+        /// <see cref="LooseFrom"/> among them.
+        /// </summary>
         private readonly struct ContentSpan
         {
-            internal ContentSpan(int start, int end, ContentGridCell cell)
+            internal ContentSpan(int start, int end, int looseFrom, ContentGridCell cell)
             {
                 Start = start;
                 End = end;
+                LooseFrom = looseFrom;
                 Cell = cell;
             }
 
@@ -306,6 +458,9 @@ namespace GeometryHelper.Dxf
 
             internal int End { get; }
 
+            internal int LooseFrom { get; }
+
+            /// <summary>The cell the run holds the groups of; null for a run of loose groups.</summary>
             internal ContentGridCell Cell { get; }
         }
     }

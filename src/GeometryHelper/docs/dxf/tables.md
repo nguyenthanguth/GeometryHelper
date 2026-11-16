@@ -241,6 +241,19 @@ the first row put in 14.9 ms where 32.7 (8.2 where 24.7). The groups of a table'
 rows set allocate 41.6 MB where 60.4), and the table's handle, asked for after an edit wrote its record anew, and the owner of a record, asked for by what the
 links let go of, are read from the first groups of their records, not by a walk over every group: the handle takes 0.01 ms where it took 0.26 on .NET 10.
 
+The links a table reads of its TABLECONTENT (what `IsLinked`, `GetDataLink` and `GetDataLinkRange` say, and what `SetDataLink` and
+`RemoveDataLink` find first) are found where the table keeps its cells without making the strings of the groups of the cells it has not
+read: each group is looked at in the bytes of the record where it stands, and a string is made of a marker, a state or a link only where one
+is asked for, not of the 150 000 groups of the 1 800 cells. The first link put into the table of 300 rows by 6 columns takes 15.0 ms where
+it took 28.8 on .NET Framework 4.8 (8.4 ms where 11.7 on .NET 10) and allocates 18.3 MB where 31.0 (18.0 where 27.9), and every link taken away 4.7 ms
+where 14.6 (2.5 where 3.4). What was read is kept for the record it was read of, the very bytes of it, and read again when the TABLECONTENT is
+written, not when the table's own record is: a height, a text or a style set in the table, which leaves its TABLECONTENT as it is, no longer
+makes the next `IsLinked` read it again, 0.14 ms after a height where it took 14.5 on .NET Framework 4.8 for a table not linked yet and 1.6 for one whose cells are kept (0.07 ms where 5.6 and
+0.95 on .NET 10); twenty heights each followed by two questions of the table allocate 59.6 MB where 336.3. The kinds of the rows, which a row put in or taken out at the
+title or the header asks for, are counted from the rows the table keeps of its TABLECONTENT, from the style of each, where the record was
+looked through for its `TABLEROW_BEGIN`; a table that does not keep its cells is looked through as before. The saved bytes, and what the
+table says of its links and the kinds of its rows, are the same.
+
 ## Values and their kinds
 
 A cell's value has its kind, `DataType` (`Long`, `Double` or `String`, the value's 90 from R2007 on), what its number
@@ -349,7 +362,7 @@ puts in keeps none, so that the table of its own data looks given a row after B-
 cells `91 0`; a row `InsertRowsAndInherit` puts in keeps those of the row whose look it takes; and where `DeleteRows`
 takes out the first row of data, the table's own looks of the data are those of the next: the row put in at 0 taken out
 again gives the table its looks back as they were (`93 6886016`), and B-12 taken out after a row put in after it leaves
-it none. The kinds of the rows are read from the TABLECONTENT once for each writing of it, and only where it holds
+it none. The kinds of the rows are read from the TABLECONTENT once for each writing of it (from the rows the table keeps of it where it keeps them), and only where it holds
 more rows of the title's or the header's style than the table shows: a clear of a table of 400 rows takes as long as it
 did before the kinds were read, and taking away the overrides of its cells one by one too.
 

@@ -464,7 +464,11 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// The styles of the rows of the table's TABLECONTENT, kept while its record's bytes are the same, as every writing gives
         /// a record new ones: the cells of a table of 400 rows cleared one by one read it once, where each read it whole, which
-        /// made the overrides of 397 cells taken away one by one twice as slow (D33e, D33f).
+        /// made the overrides of 397 cells taken away one by one twice as slow (D33e, D33f). Where the TABLECONTENT is kept with its
+        /// rows (<see cref="HeldContent"/>) they are counted from the style of each row, as the rows stand, and the record is not
+        /// looked through; a count of the rows by their own style is the least of the counts of the bytes (every TABLEROW_BEGIN
+        /// that has a 90 after it, wherever it stands), and the kinds come out the same from either, since the rows are read for
+        /// them whenever that count is above what the table shows.
         /// </summary>
         private ContentKinds ContentKindsOf(DxfItem content)
         {
@@ -485,6 +489,23 @@ namespace GeometryHelper.Dxf
 
             int titles = 0;
             int headers = 0;
+            ContentBytes held = HeldContent(content, false);
+
+            // Where the TABLECONTENT is kept with its rows, they are the style of each, no bytes looked through for them.
+            if (held != null)
+            {
+                string[] styles = held.Grid.Rows.ConvertAll(StyleOf).ToArray();
+
+                foreach (string style in styles)
+                {
+                    titles += style == "1" ? 1 : 0;
+                    headers += style == "2" ? 1 : 0;
+                }
+
+                kept = new ContentKinds(file, record, titles, headers, styles);
+                _contentKinds = kept;
+                return kept;
+            }
 
             foreach (string style in file.ValuesAfter(content, "TABLEROW_BEGIN", 'W', 90))
             {
@@ -499,15 +520,15 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// The styles of the rows of a TABLECONTENT as its record stands: how many of its TABLEROW_BEGIN give the title's style
-        /// (<c>90 1</c>) and the header's (<c>90 2</c>), wherever they stand, and the style of each row, read whole the first
-        /// time it is asked for.
+        /// (<c>90 1</c>) and the header's (<c>90 2</c>), wherever they stand in the bytes (or, where the rows are kept, of
+        /// the rows), and the style of each row, read whole the first time it is asked for where the rows are not kept.
         /// </summary>
         private sealed class ContentKinds
         {
             private string[] _styles;
             private bool _read;
 
-            internal ContentKinds(DxfFile file, DxfFile.Rec record, int titles, int headers)
+            internal ContentKinds(DxfFile file, DxfFile.Rec record, int titles, int headers, string[] styles = null)
             {
                 File = file;
                 Bytes = record.Bytes;
@@ -515,6 +536,8 @@ namespace GeometryHelper.Dxf
                 End = record.End;
                 Titles = titles;
                 Headers = headers;
+                _styles = styles;
+                _read = styles != null;
             }
 
             internal DxfFile File { get; }
