@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using GeometryHelper.Dxf;
 using GeometryHelper.Dxf.Viewer.Wpf;
+using GeometryHelper.UnitTest;
 using SkiaSharp;
 using Xunit;
 using Xunit.Abstractions;
@@ -48,6 +49,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 together = null;
             double one = double.MaxValue,
                 threads = double.MaxValue;
+            var ones = new List<double>();
+            var threadRuns = new List<double>();
 
             using (var bitmap = new SKBitmap(1600, 1000))
             using (var canvas = new SKCanvas(bitmap))
@@ -60,8 +63,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 for (int run = 0; run < Runs; run++)
                 {
                     Marshal.Copy(scene, 0, bitmap.GetPixels(), scene.Length);
-                    one = Math.Min(
-                        one,
+                    ones.Add(
                         Time(() =>
                             renderer.RenderHighlight(
                                 canvas,
@@ -74,10 +76,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                             )
                         )
                     );
+                    one = Math.Min(one, ones[ones.Count - 1]);
                     alone = bitmap.Bytes;
                     Marshal.Copy(scene, 0, bitmap.GetPixels(), scene.Length);
-                    threads = Math.Min(
-                        threads,
+                    threadRuns.Add(
                         Time(() =>
                             renderer.RenderHighlight(
                                 canvas,
@@ -91,6 +93,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                             )
                         )
                     );
+                    threads = Math.Min(threads, threadRuns[threadRuns.Count - 1]);
                     together = bitmap.Bytes;
                 }
 
@@ -116,7 +119,18 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             if (Environment.ProcessorCount >= 4 && running >= Math.Min(16, Environment.ProcessorCount) * 3 / 4.0)
             {
-                Assert.True(threads < one * 3 / 4, "threads " + threads + " ms, one thread " + one + " ms");
+                Assert.True(
+                    threads < one * 3 / 4,
+                    "threads "
+                        + threads
+                        + " ms, one thread "
+                        + one
+                        + " ms (every run: one thread "
+                        + SpeedGuard.Describe(ones)
+                        + "; threads "
+                        + SpeedGuard.Describe(threadRuns)
+                        + ")"
+                );
             }
         }
 

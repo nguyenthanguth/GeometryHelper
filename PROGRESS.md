@@ -483,7 +483,10 @@ the ones wanted.
       Global settings; TK (TRACKING); the named-dictionary guard in the table and multileader style editors
 - [x] Variables: FILEDIA for QSAVE of a new drawing, XATTACH, IMAGEATTACH, WBLOCK and INSERT's Browse; POLARMODE bits 1
       and 4 (angles from the last segment, POLARADDANG); leaders following DIMSCALE (S): MLEADER does not follow it in AutoCAD either
-- [ ] (small1, running) Follow-ups of aids-vars: refusal message for a modifier picked from the menu where it may not nest (S)
+- [x] Follow-ups of aids-vars (small1): a modifier picked from the menu where it may not nest is refused as AutoCAD 2021
+      (the TT/FROM/M2P/TK/filter nesting table probed; Base point: _tt and the refusal in the history)
+- [ ] Aids-vars follow-ups 2: TT, FROM and snaps at "Select objects:" (AutoCAD takes them; our menu is not shown there);
+      POLYGON's refusal wording ("Requires an integer between 3 and 1024.") (S)
 - [x] MLEADERSCALE, CMLEADERSTYLE, LEADER and QLEADER (command line) as AutoCAD 2021
 - [x] QLEADER Leader Settings (AcadDim xrecord, DIMLDRBLK) and the Polar tab's additional angles, tracking and measurement, with the polar tooltip
 - [x] Leader follow-ups: every differing DIM* override in group order, DIMCLRT, hook along the UCS, INSERT copied and reused, LEADER/QLEADER previews, arrow pictures and User Arrow...
@@ -914,8 +917,9 @@ the ones wanted.
       run); FontFolder.Write waits until its file can be opened alone; UndoReadAhead, DisplayPatch, MTextDisplay and the
       xref ratio tests take best of several runs (the xref test moved into the speed collection); Viewer 10 full runs in
       a row and core twice green beside a CPU burner
-- [ ] (small1, running) Test isolation 3: CanvasPictureTests' hover limit (48 ms, no speed collection); a failure under memory or disk
-      pressure would now list every run's times (S)
+- [x] Test isolation 3 (small1): the hover test through SpeedGuard (1.8 ms a change against 48 ms), a guard failing
+      under memory or disk pressure lists every run; GeoPolylineArc3 keeps no normals array where its arcs share one
+      (300 000 chains 137 -> 85 ms, 1 648 -> 272 bytes; display 1 636 -> 812 bytes a tilted polyline)
 - [x] Speed follow-ups 10 (speed11): the 1M MOVE slowdown was real (the patch looked up every handle's insertion point):
       MOVE + display 295 -> 165 ms (net8) / 540 -> 375 (net48); the look and hidden read in one cached walk, handles
       found by the open's walk (1M open 896 -> 503 ms), block origins cached, unlike-scale arcs and circles sampled once

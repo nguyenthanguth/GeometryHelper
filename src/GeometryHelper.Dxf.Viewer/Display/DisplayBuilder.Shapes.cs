@@ -71,18 +71,7 @@ namespace GeometryHelper.Dxf.Viewer
                     AddCircle(circle, m, list, style, handle, layer, shape);
                     return;
                 case GeoPolylineArc3 chain:
-                    AddArcChain(
-                        chain.Vertices,
-                        chain.Bulges,
-                        chain.Normals,
-                        null,
-                        false,
-                        m,
-                        list,
-                        style,
-                        handle,
-                        layer
-                    );
+                    AddArcChain(chain.Vertices, chain.Bulges, null, null, chain, false, m, list, style, handle, layer);
                     return;
                 case GeoPolygonArc3 polygon:
                     if (fill || mask)
@@ -98,6 +87,7 @@ namespace GeometryHelper.Dxf.Viewer
                             polygon.Bulges,
                             null,
                             polygon,
+                            null,
                             true,
                             m,
                             list,
@@ -365,6 +355,7 @@ namespace GeometryHelper.Dxf.Viewer
             IReadOnlyList<double> bulges,
             IReadOnlyList<GeoVector3> normals,
             GeoPolygonArc3 loop,
+            GeoPolylineArc3 chain,
             bool closed,
             Affine2 m,
             DisplayList2 list,
@@ -373,7 +364,7 @@ namespace GeometryHelper.Dxf.Viewer
             string layer
         )
         {
-            // A loop is given as itself, its normals not asked for: the array of them is not kept where its arcs share one.
+            // A loop or a chain is given as itself, its normals not asked for: the array of them is not kept where its arcs share one.
             int n = vertices.Count;
             int edges = closed ? n : n - 1;
 
@@ -410,7 +401,13 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint3 p1 = vertices[(i + 1) % n];
                 double bulge = bulges[i];
 
-                if ((normals != null ? normals[i] : loop.GetNormalAt(i)).Z < 0.0)
+                if (
+                    (
+                        normals != null ? normals[i]
+                        : loop != null ? loop.GetNormalAt(i)
+                        : chain.GetNormalAt(i)
+                    ).Z < 0.0
+                )
                 {
                     bulge = -bulge;
                 }

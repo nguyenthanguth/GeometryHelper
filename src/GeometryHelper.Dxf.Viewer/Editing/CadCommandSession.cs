@@ -585,7 +585,8 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            if (StartPointModifier(typed))
+            // Text a modifier handed on to the prompt it was typed at is text there, not a modifier to start.
+            if (!_refeeding && StartPointModifier(typed))
             {
                 return true;
             }

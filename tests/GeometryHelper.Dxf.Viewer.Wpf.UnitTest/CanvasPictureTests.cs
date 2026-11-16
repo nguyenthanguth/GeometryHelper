@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Threading;
 using System.Windows;
 using System.Windows.Input;
@@ -7,6 +6,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
+using GeometryHelper.UnitTest;
 using Xunit;
 
 namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
@@ -257,30 +257,30 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     view.ZoomTo(list.Bounds);
                     canvas.RenderNow();
                     int scenes = canvas.SceneRenders;
-                    double each = double.MaxValue;
+                    int round = 0;
 
-                    // Twenty INSERTs one after another under the cursor, each at the middle of its stripes, three times over (each
-                    // time at the INSERTs next to those before), the shortest of the three taken, so that a stall of a busy machine
-                    // does not fail the test: drawing the whole drawing again at each is slow in every one.
-                    for (int round = 0; round < 3; round++)
-                    {
-                        var watch = Stopwatch.StartNew();
-
-                        for (int k = 0; k < 20; k++)
+                    // Twenty INSERTs one after another under the cursor, each at the middle of its stripes, each run at the INSERTs
+                    // next to those before, so that every move is a change of the entity under the cursor. SpeedGuard runs it again,
+                    // after a full collection, while a run is over the limit (five times at most), so that a stall of a busy
+                    // machine does not fail the test, and says the time of every run when all are over: drawing the whole drawing
+                    // again at each hover is slow in every one.
+                    SpeedGuard.AssertWithin(
+                        20 * 0.048,
+                        () =>
                         {
-                            int i = 37 + 241 * k + round;
-                            canvas.MoveCursorTo((i % 100) * 20.0 + 5.0, (i / 100) * 20.0 + 6.0);
-                            canvas.RenderNow();
-                        }
+                            for (int k = 0; k < 20; k++)
+                            {
+                                int i = 37 + 241 * k + round;
+                                canvas.MoveCursorTo((i % 100) * 20.0 + 5.0, (i / 100) * 20.0 + 6.0);
+                                canvas.RenderNow();
+                            }
 
-                        each = Math.Min(each, watch.Elapsed.TotalMilliseconds / 20.0);
-                    }
+                            round++;
+                        },
+                        5
+                    );
 
                     Assert.Equal(scenes, canvas.SceneRenders);
-                    Assert.True(
-                        each < 48.0,
-                        each.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms a hover change"
-                    );
                     canvas.Dispose();
                 }
                 catch (Exception ex)

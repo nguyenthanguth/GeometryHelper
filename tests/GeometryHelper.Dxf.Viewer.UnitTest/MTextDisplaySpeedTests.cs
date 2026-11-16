@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
+using GeometryHelper.UnitTest;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -43,22 +45,37 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 kept = double.MaxValue;
             CadDocument document = CadDocument.From(database, "mtext-10k.dxf");
             document.GetDisplay(document.ModelSpace);
+            var newDocuments = new List<double>();
+            var regens = new List<double>();
 
             // Three runs, and more while the best times are not within the limit, up to eight: a machine loaded by several jobs
             // at once can hold one phase of a run for twice its time, and a layout that is not kept is slow in every run.
             for (int run = 0; run < MostRuns && (run < Runs || kept >= layingOut * 0.8); run++)
             {
                 CadDocument other = CadDocument.From(database, "mtext-10k.dxf");
-                layingOut = Math.Min(layingOut, Time(() => fresh = other.GetDisplay(other.ModelSpace)));
+                newDocuments.Add(Time(() => fresh = other.GetDisplay(other.ModelSpace)));
+                layingOut = Math.Min(layingOut, newDocuments[newDocuments.Count - 1]);
                 document.Regen();
-                kept = Math.Min(kept, Time(() => again = document.GetDisplay(document.ModelSpace)));
+                regens.Add(Time(() => again = document.GetDisplay(document.ModelSpace)));
+                kept = Math.Min(kept, regens[regens.Count - 1]);
             }
 
             _output.WriteLine(
                 "new document " + layingOut.ToString("0") + " ms, after REGEN " + kept.ToString("0") + " ms"
             );
             Assert.Equal(fresh.Count, again.Count);
-            Assert.True(kept < layingOut * 0.8, "after REGEN " + kept + " ms of " + layingOut);
+            Assert.True(
+                kept < layingOut * 0.8,
+                "after REGEN "
+                    + kept
+                    + " ms of "
+                    + layingOut
+                    + " (every run: new document "
+                    + SpeedGuard.Describe(newDocuments)
+                    + "; after REGEN "
+                    + SpeedGuard.Describe(regens)
+                    + ")"
+            );
         }
 
         /// <summary>

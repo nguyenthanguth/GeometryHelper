@@ -210,19 +210,30 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>
         /// Starts a point modifier at the prompt waiting for a point, as the Shift+right-click menu does: "_tt", "_from",
         /// "_m2p" or a point filter ".X" to ".YZ" (<see cref="CadCommandSession.StartPointModifier"/>). The command line says
-        /// it, "Specify first point: _from", and asks "Base point:".
+        /// it, "Specify first point: _from", and asks "Base point:". Where AutoCAD 2021 does not take it (TT inside FROM, a
+        /// second M2P inside M2P) or no point is asked, the prompt waiting is answered as if the word were typed there: the
+        /// command line says "Base point: _tt" and then the prompt's refusal, "Point or option keyword required." there, and
+        /// asks again. Nothing is said while no command runs, nor at a prompt for objects, which the menu is not shown at.
         /// </summary>
         /// <param name="modifier">The modifier, as typed.</param>
-        /// <returns>Whether it was started: false where no prompt waits for a point.</returns>
+        /// <returns>Whether it was started: false where it was refused or no prompt waits for a point.</returns>
         public bool ModifyPoint(string modifier)
         {
-            if (_current == null || !_current.Session.StartPointModifier(modifier))
+            if (_current == null)
             {
                 return false;
             }
 
+            CadCommandSession session = _current.Session;
+            bool started = session.StartPointModifier(modifier);
+
+            if (!started && session.Prompt != null && !CadPicking.WantsObjects(session))
+            {
+                session.Feed(modifier);
+            }
+
             SyncHistory();
-            return true;
+            return started;
         }
 
         /// <summary>Makes the view model of Drafting Settings over the snaps, the grid and the polar tracking in use.</summary>
