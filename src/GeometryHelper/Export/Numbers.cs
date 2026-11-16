@@ -59,9 +59,10 @@ namespace GeometryHelper.Export
         /// decides both ways (Clinger's fast path); any other, in integers.
         /// </para>
         /// <para>
-        /// The text is exact on either runtime, and not always the same text on both: the Framework's digits are not always
-        /// correctly rounded, so the text it reaches can differ from .NET 10's, and be a digit longer, where both read back to
-        /// the same double. A negative nought is <c>-0</c> on both. Infinities and NaN are printed as <c>"R"</c> prints them.
+        /// The text is exact and the same on either runtime: the digits are worked out by <see cref="ExactDigits"/>, for the
+        /// Framework's own are not always correctly rounded, so that the text it reached could differ from .NET 10's and be a
+        /// digit longer, where both read back to the same double. A negative nought is <c>-0</c> on both. Infinities and NaN are
+        /// printed as <c>"R"</c> prints them.
         /// </para>
         /// </remarks>
         internal static string Exact(double value)
@@ -83,10 +84,7 @@ namespace GeometryHelper.Export
             {
                 for (int digits = 1; digits < 15; digits++)
                 {
-                    string shorter = value.ToString(
-                        "G" + digits.ToString(CultureInfo.InvariantCulture),
-                        CultureInfo.InvariantCulture
-                    );
+                    string shorter = ExactDigits.General(value, digits);
 
                     if (Fits(shorter, bits))
                     {
@@ -95,20 +93,20 @@ namespace GeometryHelper.Export
                 }
             }
 
-            string fifteen = value.ToString("G15", CultureInfo.InvariantCulture);
-
             // A whole number of fifteen digits or fewer is its own text.
             if (Math.Abs(value) < 1E15 && value == Math.Floor(value))
             {
-                return fifteen;
+                return ((long)value).ToString(CultureInfo.InvariantCulture);
             }
+
+            string fifteen = ExactDigits.General(value, 15);
 
             if (FitsQuickly(fifteen, value, bits))
             {
                 return fifteen;
             }
 
-            string sixteen = value.ToString("G16", CultureInfo.InvariantCulture);
+            string sixteen = ExactDigits.General(value, 16);
 
             // The same digits fail again.
             if (sixteen != fifteen && FitsQuickly(sixteen, value, bits))
@@ -116,7 +114,7 @@ namespace GeometryHelper.Export
                 return sixteen;
             }
 
-            return value.ToString("G17", CultureInfo.InvariantCulture);
+            return ExactDigits.General(value, 17);
         }
 
         /// <summary>
