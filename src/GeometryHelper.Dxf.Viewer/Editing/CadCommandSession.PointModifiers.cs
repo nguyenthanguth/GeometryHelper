@@ -28,6 +28,9 @@ namespace GeometryHelper.Dxf.Viewer
             Track,
             Tracking,
             Filter,
+
+            /// <summary>The " and" of INT or APP typed over one object: the second object, whose crossing with the first is the point.</summary>
+            Intersect,
         }
 
         /// <summary>
@@ -145,6 +148,15 @@ namespace GeometryHelper.Dxf.Viewer
             if (modifier.Kind == ModifierKind.Mid || (modifier.Kind == ModifierKind.From && typed != null))
             {
                 return RefuseAs(asked, echo);
+            }
+
+            // Text at " and" is refused as the prompt INT was typed at refuses it, and that prompt is asked again; Enter is its answer.
+            if (modifier.Kind == ModifierKind.Intersect && typed != null)
+            {
+                Echo(echo);
+                _modifiers.RemoveAt(_modifiers.Count - 1);
+                Prompt = modifier.Outer;
+                return RefuseAs(asked, null);
             }
 
             if (modifier.Kind == ModifierKind.Tracking && modifier.First.HasValue)
@@ -272,6 +284,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoPoint2 point = tracked ? modifier.First.Value : input.Point;
+
+            if (modifier.Kind == ModifierKind.Intersect)
+            {
+                return TakeSecondObject(modifier, point);
+            }
 
             if (modifier.Kind == ModifierKind.Tracking && !tracked)
             {
@@ -496,6 +513,11 @@ namespace GeometryHelper.Dxf.Viewer
             public CadPrompt Outer { get; }
 
             public GeoPoint2? First { get; set; }
+
+            /// <summary>The snap INT or APP asked " and" for, and the object it was typed over (First: the last point before).</summary>
+            public CadSnapKind Snap { get; set; }
+
+            public string Object { get; set; }
         }
     }
 }

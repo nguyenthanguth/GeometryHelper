@@ -183,7 +183,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Plan();
 
             CadCommandSession session = Start(document, "LAYOFF");
-            Assert.Equal("Select an object on the layer to be turned off or [Undo]:", session.PromptText);
+            Assert.Equal("Select an object on the layer to be turned off or [Settings/Undo]:", session.PromptText);
             Run(session, (object)new[] { "A1" });
             Assert.Equal("Layer \"Steel\" has been turned off.", session.History.Last());
             Assert.True(document.Database.LayerTable["Steel"].IsOff);

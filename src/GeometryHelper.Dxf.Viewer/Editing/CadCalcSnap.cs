@@ -56,6 +56,10 @@ namespace GeometryHelper.Dxf.Viewer
                     return CadSnapModes.Insertion;
                 case CadSnapKind.Intersection:
                     return CadSnapModes.Intersection;
+                case CadSnapKind.ApparentIntersection:
+                    return CadSnapModes.ApparentIntersection;
+                case CadSnapKind.GeometricCenter:
+                    return CadSnapModes.GeometricCenter;
                 case CadSnapKind.Midpoint:
                     return CadSnapModes.Midpoint;
                 case CadSnapKind.Center:
@@ -122,34 +126,12 @@ namespace GeometryHelper.Dxf.Viewer
             else
             {
                 // The object alone, however far from the pick its points lie.
-                var list = new DisplayList2();
+                index = Only(whole, new[] { handle }, pick, out aperture);
 
-                foreach (DisplayItem2 item in whole.List.Items)
-                {
-                    if (item.Handle == handle)
-                    {
-                        list.Add(item);
-                    }
-                }
-
-                foreach (GeoPoint2 point in whole.List.InsertionPointsOf(handle))
-                {
-                    list.AddInsertionPoint(handle, point.X, point.Y);
-                }
-
-                if (list.Count == 0 && whole.List.InsertionPointsOf(handle).Count == 0)
+                if (index == null)
                 {
                     return null;
                 }
-
-                index = new PickIndex(list);
-                DisplayBox bounds = list.Bounds;
-                double reach = bounds.IsEmpty
-                    ? 1.0
-                    : Math.Max(bounds.Width, bounds.Height)
-                        + Math.Max(Math.Abs(pick.X - bounds.MinX), Math.Abs(pick.Y - bounds.MinY))
-                        + Math.Max(Math.Abs(pick.X - bounds.MaxX), Math.Abs(pick.Y - bounds.MaxY));
-                aperture = reach + 1.0;
             }
 
             var snap = new ObjectSnap(session.Tolerance) { IsOn = true, Override = ModeOf(kind) };
@@ -161,6 +143,94 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return found.Point;
+        }
+
+        /// <summary>
+        /// The point where two objects meet, or would meet run on, as a typed INT or APP takes it with the second object given
+        /// after " and": the crossing of the two nearest the pick where they cross at more than one (a line over a circle
+        /// 180 to 220 gives the point nearest the pick). Null where they do not meet.
+        /// </summary>
+        /// <param name="session">The session, whose drawing is used.</param>
+        /// <param name="kind">Intersection, or ApparentIntersection for the run-on crossing.</param>
+        /// <param name="first">The first object.</param>
+        /// <param name="second">The second object.</param>
+        /// <param name="pick">The point the crossing nearest to is taken.</param>
+        /// <returns>The point, or null.</returns>
+        internal static GeoPoint2? Between(
+            CadCommandSession session,
+            CadSnapKind kind,
+            string first,
+            string second,
+            GeoPoint2 pick
+        )
+        {
+            CadDocument document = session.Document;
+            PickIndex index = Only(
+                document.GetPickIndex(document.WorkingSpace),
+                new[] { first, second },
+                pick,
+                out double aperture
+            );
+
+            if (index == null)
+            {
+                return null;
+            }
+
+            var snap = new ObjectSnap(session.Tolerance) { IsOn = true, Override = ModeOf(kind) };
+            CadSnapResult found = snap.Snap(index, pick, aperture, null);
+
+            // A crossing of two objects that do meet is an intersection whichever of the two snaps was asked for.
+            bool meets =
+                found != null
+                && (
+                    found.Kind == kind
+                    || (kind == CadSnapKind.ApparentIntersection && found.Kind == CadSnapKind.Intersection)
+                );
+            return meets ? found.Point : (GeoPoint2?)null;
+        }
+
+        /// <summary>
+        /// An index of the items of the objects alone, and an aperture wide enough to reach every point of them from the pick;
+        /// null where the objects have no items.
+        /// </summary>
+        private static PickIndex Only(PickIndex whole, string[] handles, GeoPoint2 pick, out double aperture)
+        {
+            var list = new DisplayList2();
+            bool any = false;
+
+            foreach (DisplayItem2 item in whole.List.Items)
+            {
+                if (Array.IndexOf(handles, item.Handle) >= 0)
+                {
+                    list.Add(item);
+                }
+            }
+
+            foreach (string handle in handles)
+            {
+                foreach (GeoPoint2 point in whole.List.InsertionPointsOf(handle))
+                {
+                    list.AddInsertionPoint(handle, point.X, point.Y);
+                    any = true;
+                }
+            }
+
+            aperture = 0.0;
+
+            if (list.Count == 0 && !any)
+            {
+                return null;
+            }
+
+            DisplayBox bounds = list.Bounds;
+            double reach = bounds.IsEmpty
+                ? 1.0
+                : Math.Max(bounds.Width, bounds.Height)
+                    + Math.Max(Math.Abs(pick.X - bounds.MinX), Math.Abs(pick.Y - bounds.MinY))
+                    + Math.Max(Math.Abs(pick.X - bounds.MaxX), Math.Abs(pick.Y - bounds.MaxY));
+            aperture = reach + 1.0;
+            return new PickIndex(list);
         }
 
         /// <summary>

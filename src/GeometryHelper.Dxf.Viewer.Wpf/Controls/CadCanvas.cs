@@ -540,8 +540,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set => SetValue(SnapProperty, value);
         }
 
-        /// <summary>The snaps a point is taken through now: none while the implied window runs, whose corners and points are where the cursor is, as AutoCAD's.</summary>
-        private ObjectSnap PointSnap => Session != null && Session.IsWindowing ? null : Snap;
+        /// <summary>
+        /// The snaps a point is taken through now: none while the implied window runs, whose corners and points are where the
+        /// cursor is, as AutoCAD's, unless an object snap override is waiting (END typed or chosen from the Shift+right-click
+        /// menu for the corner), which snaps it as it snaps any point.
+        /// </summary>
+        private ObjectSnap PointSnap =>
+            Session != null && Session.IsWindowing && (Snap?.Override ?? CadSnapModes.None) == CadSnapModes.None
+                ? null
+                : Snap;
 
         /// <summary>
         /// Gets or sets whether model space and the Block Editor show the grid (GRID, F7): lines across and up a little lighter
@@ -1731,10 +1738,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     // the command line asks about ends with it, the box shown selecting.
                     Point from = BoxCorner();
                     GeoPoint2 corner = _boxCorner;
+
+                    // An object snap override waiting snaps the corner the click ends the box at; read before the window ends.
+                    Point end = p;
+
+                    if (WorkView != null && TryOverride(DrawingAt(p), out GeoPoint2 snapped))
+                    {
+                        end = ToScreen(WorkView, snapped, PixelScale);
+                    }
+
                     CancelGesture();
                     Session?.EndWindow();
                     _swallowUp = true;
-                    SelectBox(corner, from, p, (Keyboard.Modifiers & ModifierKeys.Shift) != 0);
+                    SelectBox(corner, from, end, (Keyboard.Modifiers & ModifierKeys.Shift) != 0);
                 }
                 else if (CadPicking.WantsPoint(Session))
                 {
@@ -1922,6 +1938,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     // A press on nothing leaves the box open, following the cursor to the click that ends it; at the Command
                     // prompt the command line asks for its opposite corner, F, WP and CP turning it into a fence or a polygon.
+                    // An object snap override waiting (END typed or chosen from the menu) snaps the first corner.
+                    if (TryOverride(corner, out GeoPoint2 overridden))
+                    {
+                        corner = overridden;
+                        _boxCorner = overridden;
+                    }
+
                     Session?.StartWindow(corner);
                     _boxOpen = true;
                     _boxing = true;
@@ -4399,6 +4422,48 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return scale < 1.0
                 ? "VIEWPORT · 1:" + (1.0 / scale).ToString("0.##", CultureInfo.InvariantCulture)
                 : "VIEWPORT · " + scale.ToString("0.##", CultureInfo.InvariantCulture) + ":1";
+        }
+
+        /// <summary>
+        /// The point an object snap override waiting (END typed or chosen from the Shift+right-click menu) gives a corner of the
+        /// implied window, as AutoCAD 2021 snaps the corners of a window like any point; the window itself takes none of the
+        /// snaps that are on (<see cref="PointSnap"/>).
+        /// </summary>
+        /// <param name="at">The corner, in the coordinates of the space.</param>
+        /// <param name="snapped">The point the snap found.</param>
+        /// <returns>Whether an override is waiting and found one.</returns>
+        private bool TryOverride(GeoPoint2 at, out GeoPoint2 snapped)
+        {
+            snapped = at;
+            CadView view = WorkView;
+
+            if (
+                Document == null
+                || WorkSpace == null
+                || view == null
+                || Session == null
+                || (Snap?.Override ?? CadSnapModes.None) == CadSnapModes.None
+            )
+            {
+                return false;
+            }
+
+            CadSnapResult result = CadPicking.Snap(
+                Document,
+                WorkSpace,
+                Snap,
+                at,
+                AperturePixels * PixelScale / view.PixelsPerUnit,
+                null
+            );
+
+            if (result == null || result.Kind == CadSnapKind.None)
+            {
+                return false;
+            }
+
+            snapped = result.Point;
+            return true;
         }
 
         private Point ToScreen(CadView view, GeoPoint2 point, double scale)
