@@ -23,11 +23,7 @@ namespace GeometryHelper.Dxf.Viewer
         };
 
         /// <summary>The types of LAYOUT SAveas's Create Drawing File dialog: a template first, then the DWG and the DXF versions written.</summary>
-        private static readonly string[] TemplateSaveTypes = new[]
-        {
-            "AutoCAD Drawing Template (*.dwt)",
-            CadExportJob.Dwg,
-        }
+        private static readonly string[] TemplateSaveTypes = new[] { CadExportJob.Template, CadExportJob.Dwg }
             .Concat(CadExportJob.DxfSaveTypes)
             .ToArray();
 

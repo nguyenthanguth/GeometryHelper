@@ -211,7 +211,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         public void ShowSaveAsDialog()
         {
-            CadExportJob job = _model?.Document == null ? null : _model.CreateSaveAsJob();
+            CadExportJob job = _model?.Document == null ? null : _model.CreateSaveAsDialogJob();
 
             if (job == null)
             {

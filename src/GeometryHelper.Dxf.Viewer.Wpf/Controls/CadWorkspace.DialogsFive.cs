@@ -28,6 +28,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             model.ShowObjectScale = dialog => ObjectScaleWindow.Show(Window.GetWindow(this), dialog);
             model.ShowInsertLayout = dialog => InsertLayoutWindow.Show(Window.GetWindow(this), dialog);
             model.ShowTemplateOptions = dialog => TemplateOptionsWindow.Show(Window.GetWindow(this), dialog);
+            model.ShowSelectTemplate = dialog => SelectTemplateWindow.Show(Window.GetWindow(this), dialog);
             model.ShowSaveAsPdf = dialog => SaveAsPdfWindow.Show(Window.GetWindow(this), dialog);
             model.ShowPageSetupOverride = dialog => PageSetupOverrideWindow.Show(Window.GetWindow(this), dialog);
             model.ShowExportPdfOptions = dialog => ExportPdfOptionsWindow.Show(Window.GetWindow(this), dialog);

@@ -25,6 +25,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The DWG type of Save As of AutoCAD 2018, the one a DWG is written as where no other is chosen, listed first as AutoCAD 2021 lists it.</summary>
         public const string Dwg = "AutoCAD 2018 Drawing (*.dwg)";
 
+        /// <summary>The type of Save As that writes a drawing template, a DWG with the extension .dwt, as AutoCAD 2021 lists it after the DWG types.</summary>
+        public const string Template = "AutoCAD Drawing Template (*.dwt)";
+
         // The DWG types of Save As the DWG writer writes, as AutoCAD 2021 lists them, the newest first, each with its version.
         private static readonly KeyValuePair<string, string>[] DwgTypes =
         {

@@ -141,9 +141,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Theory]
-        [InlineData("Template", "A drawing template (*.dwt) is not written here.")]
         [InlineData("St", "A drawing standards file (*.dws) is not written here.")]
-        public void TemplateAndStandards_AreNotWritten_AndSaidSo(string typed, string said)
+        public void Standards_AreNotWritten_AndSaidSo(string typed, string said)
         {
             CadCommandSession session = NewDwg(out CadDocument document);
 

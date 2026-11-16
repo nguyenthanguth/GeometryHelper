@@ -146,6 +146,8 @@ namespace GeometryHelper.Dxf.Viewer
         );
         private int _checkEverySeconds = 30;
         private string _saveFolder = string.Empty;
+        private string _templateFolder = string.Empty;
+        private string _qnewTemplate = string.Empty;
         private int _autosaveMinutes = 10;
         private int _backupsKept = 3;
         private string _exportLayout = "LayoutAndViewports";
@@ -800,6 +802,39 @@ namespace GeometryHelper.Dxf.Viewer
             set => _saveFolder = (value ?? string.Empty).Trim();
         }
 
+        // ---- Template settings
+
+        /// <summary>
+        /// Gets the folder the templates are kept in where <see cref="TemplateFolder"/> names none: a Template folder beside the
+        /// settings file (%AppData%\GeometryHelper\Drawing\Template), as AutoCAD keeps its templates in a Template folder of its
+        /// own.
+        /// </summary>
+        public static string DefaultTemplateFolder => Path.Combine(Path.GetDirectoryName(DefaultPath), "Template");
+
+        /// <summary>
+        /// Gets or sets the folder NEW's Select Template dialog starts in and a template named with no folder is looked for in,
+        /// as AutoCAD's Template Settings (TEMPLATEPATH); empty, the default, for <see cref="DefaultTemplateFolder"/>.
+        /// </summary>
+        public string TemplateFolder
+        {
+            get => _templateFolder;
+            set => _templateFolder = (value ?? string.Empty).Trim();
+        }
+
+        /// <summary>
+        /// Gets or sets the template QNEW starts a new drawing from, as AutoCAD's Default Template File Name for QNEW: a .dwt,
+        /// .dwg or .dxf, with its folder or in <see cref="TemplateFolder"/>; empty, the default, for the presenter's own
+        /// metric template. A file that is not found is said on the command line and the own template used.
+        /// </summary>
+        public string QnewTemplate
+        {
+            get => _qnewTemplate;
+            set => _qnewTemplate = (value ?? string.Empty).Trim();
+        }
+
+        /// <summary>Gets the folder the templates are looked for in: <see cref="TemplateFolder"/>, or <see cref="DefaultTemplateFolder"/> where it names none.</summary>
+        public string EffectiveTemplateFolder => _templateFolder.Length == 0 ? DefaultTemplateFolder : _templateFolder;
+
         /// <summary>Gets or sets how often a drawing with changes is saved aside, in minutes, 0 (never) to 240: 10 by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
         public int AutosaveMinutes
@@ -1157,6 +1192,10 @@ namespace GeometryHelper.Dxf.Viewer
             w.Value("exportLayout", _exportLayout);
             w.Value("openAfterExport", OpenAfterExport);
             w.Close();
+            w.Open("templates");
+            w.Value("folder", _templateFolder);
+            w.Value("qnew", _qnewTemplate);
+            w.Close();
             WriteInputAndRecords(w);
             w.Close();
             return w.ToString();
@@ -1334,6 +1373,8 @@ namespace GeometryHelper.Dxf.Viewer
                 Number("saveAndExport", "backupsKept", v => _s.BackupsKept = Whole(v));
                 Text("saveAndExport", "exportLayout", v => _s.ExportLayout = v);
                 Flag("saveAndExport", "openAfterExport", v => _s.OpenAfterExport = v);
+                Text("templates", "folder", v => _s.TemplateFolder = v);
+                Text("templates", "qnew", v => _s.QnewTemplate = v);
                 Flag("input", "autoComplete", v => _s.AutoComplete = v);
                 Flag("input", "autoCorrect", v => _s.AutoCorrect = v);
                 Flag("input", "searchSystemVariables", v => _s.SearchSystemVariables = v);

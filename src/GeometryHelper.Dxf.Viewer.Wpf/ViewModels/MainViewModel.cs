@@ -1036,8 +1036,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     Say("Command: " + line.Trim().ToUpperInvariant());
 
-                    // NEW needs no drawing open: it makes one.
+                    // NEW and QNEW need no drawing open: they make one, NEW from the template chosen in Select Template.
                     if (string.Equals(line.Trim(), "NEW", StringComparison.OrdinalIgnoreCase))
+                    {
+                        NewDrawingChoosingTemplate();
+                    }
+                    else if (string.Equals(line.Trim(), "QNEW", StringComparison.OrdinalIgnoreCase))
                     {
                         NewDrawing();
                     }
@@ -1221,6 +1225,32 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return false;
             }
 
+            // The type AutoCAD Drawing Template, or a name ending in .dwt: a template, after its Template Options.
+            CadTemplateOptionsRequest template = null;
+
+            if (
+                fileType == CadExportJob.Template
+                || (
+                    CadDrawingFile.IsTemplateName(path)
+                    && (fileType == null || CadExportJob.DwgVersionOfType(fileType) != null)
+                )
+            )
+            {
+                path = CadDrawingFile.IsTemplateName(path) ? path : System.IO.Path.ChangeExtension(path, ".dwt");
+                template = AskTemplateOptions(path);
+
+                if (template == null)
+                {
+                    return false;
+                }
+            }
+
+            return SaveAs(path, fileType, template);
+        }
+
+        /// <summary>Saves the drawing to a file, as a template where <paramref name="template"/> gives its options.</summary>
+        private bool SaveAs(string path, string fileType, CadTemplateOptionsRequest template)
+        {
             _current.Session.Escape();
             string old = _current.Path;
 
@@ -1254,7 +1284,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 using (CadProgressMeter meter = Progress.Start("Saving " + System.IO.Path.GetFileName(target)))
                 {
-                    if (fileType == null)
+                    if (template != null)
+                    {
+                        _current.Document.SaveAsTemplate(path, template.Description, template.IsMetric, meter);
+                    }
+                    else if (fileType == null)
                     {
                         _current.Document.SaveAs(path, meter);
                     }
@@ -1336,7 +1370,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// .dwg. Null with no drawing.
         /// </summary>
         /// <returns>The file asked for; null with no drawing.</returns>
-        public CadExportJob CreateSaveAsJob()
+        public CadExportJob CreateSaveAsJob() => BuildSaveAsJob(false);
+
+        /// <summary>
+        /// Makes what the Save Drawing As dialog the window shows offers: <see cref="CreateSaveAsJob()"/>'s types with AutoCAD
+        /// Drawing Template (*.dwt) listed after the DWG types, as AutoCAD 2021 lists it. The type chosen first is the template
+        /// where the drawing is one (saved to a .dwt) and where the dialog is that of Save As › Drawing Template
+        /// (<see cref="SaveAsTemplate"/>), which also offers the template folder of Global settings, made where it is missing,
+        /// with the drawing's name and the extension .dwt. Null with no drawing.
+        /// </summary>
+        /// <returns>The file asked for; null with no drawing.</returns>
+        public CadExportJob CreateSaveAsDialogJob() => BuildSaveAsJob(true);
+
+        private CadExportJob BuildSaveAsJob(bool listTemplate)
         {
             if (_current == null)
             {
@@ -1346,10 +1392,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CadDocument document = _current.Document;
             string own = document.SaveVersion ?? document.Database.Version;
             string dxf = CadExportJob.DxfTypeOfVersion(own);
-            bool dwg = (document.FileName ?? document.Title).EndsWith(".dwg", StringComparison.OrdinalIgnoreCase);
+            bool isTemplate = CadDrawingFile.IsTemplateName(document.FileName ?? document.Title);
+            bool dwg =
+                isTemplate
+                || (document.FileName ?? document.Title).EndsWith(".dwg", StringComparison.OrdinalIgnoreCase);
             string name = document.Title;
 
-            if (CadDrawingFile.IsDrawingName(name))
+            if (CadDrawingFile.IsDrawingName(name) || isTemplate)
             {
                 name = name.Substring(0, name.Length - 4);
             }
@@ -1360,6 +1409,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     ? System.IO.Path.GetDirectoryName(document.FileName)
                     : null;
             var types = new List<string>(CadExportJob.DwgSaveTypes);
+
+            if (listTemplate)
+            {
+                types.Add(CadExportJob.Template);
+            }
+
             types.AddRange(CadExportJob.DxfSaveTypes);
 
             if (!types.Contains(dxf))
@@ -1367,16 +1422,50 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 types.Add(dxf);
             }
 
-            return new CadExportJob(
-                "Save Drawing As",
-                types,
-                dwg
-                    ? CadExportJob.DwgTypeOfVersion(
-                        CadDrawingFile.IsDwgVersion(document.SaveVersion) ? document.SaveVersion : "AC1032"
-                    )
-                    : dxf,
-                folder == null ? name : System.IO.Path.Combine(folder, name)
-            );
+            string file = folder == null ? name : System.IO.Path.Combine(folder, name);
+            string type = dwg
+                ? CadExportJob.DwgTypeOfVersion(
+                    CadDrawingFile.IsDwgVersion(document.SaveVersion) ? document.SaveVersion : "AC1032"
+                )
+                : dxf;
+
+            if (listTemplate && (isTemplate || _saveAsTemplate))
+            {
+                type = CadExportJob.Template;
+                name = System.IO.Path.ChangeExtension(name, ".dwt");
+                file = name;
+
+                if (_saveAsTemplate)
+                {
+                    string templates = _settings.EffectiveTemplateFolder;
+                    file = CreateTemplateFolder(templates) ? System.IO.Path.Combine(templates, name) : name;
+                }
+                else if (folder != null)
+                {
+                    file = System.IO.Path.Combine(folder, name);
+                }
+            }
+
+            return new CadExportJob("Save Drawing As", types, type, file);
+        }
+
+        /// <summary>Makes the template folder where it is missing; false where it cannot be made.</summary>
+        private static bool CreateTemplateFolder(string folder)
+        {
+            try
+            {
+                System.IO.Directory.CreateDirectory(folder);
+                return true;
+            }
+            catch (Exception ex)
+                when (ex is IOException
+                    || ex is UnauthorizedAccessException
+                    || ex is ArgumentException
+                    || ex is NotSupportedException
+                )
+            {
+                return false;
+            }
         }
 
         /// <summary>Makes the view model of the Layer manager over the drawing shown; null with none. Dispose it when the dialog closes.</summary>
@@ -1786,6 +1875,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     {
                         // FILEDIA 0: the file and type typed at SAVEAS's questions, saved once the command has ended.
                         _afterCommand = () => SaveAs(typed.FileName, typed.FileType);
+                        e.Handled = true;
+                    }
+                    else if (e.Payload is CadTemplateOptionsRequest asTemplate)
+                    {
+                        // FILEDIA 0: SAVEAS Template with the file, description and measurement typed, saved as a template.
+                        _afterCommand = () => SaveAs(asTemplate.FileName, CadExportJob.Template, asTemplate);
                         e.Handled = true;
                     }
                     else if (SaveAsRequested != null)

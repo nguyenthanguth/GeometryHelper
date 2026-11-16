@@ -135,7 +135,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (Named(typed, "Template"))
                 {
-                    c.Write("A drawing template (*.dwt) is not written here.");
+                    foreach (CadPrompt prompt in SaveAsTemplateTyped(c, offered))
+                    {
+                        yield return prompt;
+                    }
+
                     yield break;
                 }
 
@@ -245,6 +249,58 @@ namespace GeometryHelper.Dxf.Viewer
                 )
             {
                 c.Write("Cannot save " + choice.File + ": " + exception.Message);
+                yield break;
+            }
+
+            c.Write("Saved " + c.Document.FileName + ".");
+            SayLeftOut(c);
+        }
+
+        /// <summary>
+        /// SAVEAS Template, typed: "Save drawing as &lt;Drawing1.dwt&gt;:", the file given the extension .dwt where it ends
+        /// otherwise, then the two questions of AutoCAD's Template Options dialog, "Enter template description:" (Enter for none)
+        /// and "Enter measurement [English/Metric] &lt;Metric&gt;:" (the drawing's own offered). The file is handed to the window
+        /// to save as a template, or saved here with no window (<see cref="CadDocument.SaveAsTemplate"/>), a DWG of AutoCAD 2018
+        /// with the description in its template section; the drawing is then known by that file.
+        /// </summary>
+        private static IEnumerable<CadPrompt> SaveAsTemplateTyped(CadCommandContext c, string offered)
+        {
+            string suggested = Path.ChangeExtension(offered, ".dwt");
+            yield return CadPrompt.ForString("Save drawing as", suggested);
+            string file = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim().Trim('"') : string.Empty;
+            file = file.Length == 0 ? suggested : file;
+            file = CadDrawingFile.IsTemplateName(file) ? file : Path.ChangeExtension(file, ".dwt");
+
+            yield return CadPrompt.ForString("Enter template description");
+            string description = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim() : string.Empty;
+
+            bool metric = c.Document.Database.Measurement == DxfMeasurementValue.Metric;
+            yield return CadPrompt.ForKeyword(
+                "Enter measurement",
+                new[] { "English", "Metric" },
+                metric ? "Metric" : "English"
+            );
+            metric = c.Input.Is("Metric") || (!c.Input.Is("English") && metric);
+
+            var options = new CadTemplateOptionsRequest(file, metric) { Description = description, IsAccepted = true };
+
+            if (c.Session.Request("SAVEAS", c.Document, options))
+            {
+                yield break;
+            }
+
+            try
+            {
+                c.Document.SaveAsTemplate(file, description, metric, null);
+            }
+            catch (Exception exception)
+                when (exception is IOException
+                    || exception is UnauthorizedAccessException
+                    || exception is ArgumentException
+                    || exception is NotSupportedException
+                )
+            {
+                c.Write("Cannot save " + file + ": " + exception.Message);
                 yield break;
             }
 
