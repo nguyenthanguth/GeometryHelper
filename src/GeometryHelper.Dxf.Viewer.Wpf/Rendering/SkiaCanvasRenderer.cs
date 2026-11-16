@@ -1220,7 +1220,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (dashes != null && dashes.Length > 0)
             {
-                stroke.PathEffect = DashEffect(dashes, zoom);
+                stroke.PathEffect = DashEffect(dashes, zoom, item.Style.DashPhase);
             }
 
             switch (item)
@@ -1470,7 +1470,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             );
         }
 
-        private static SKPathEffect DashEffect(double[] dashes, double zoom)
+        private static SKPathEffect DashEffect(double[] dashes, double zoom, double phase)
         {
             var intervals = new float[dashes.Length % 2 == 0 ? dashes.Length : dashes.Length * 2];
             double total = 0.0;
@@ -1482,7 +1482,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 total += intervals[i];
             }
 
-            return total < 3.0 ? null : SKPathEffect.CreateDash(intervals, 0f);
+            return total < 3.0 ? null : SKPathEffect.CreateDash(intervals, (float)(phase * zoom % total));
         }
 
         private static void DrawChain(

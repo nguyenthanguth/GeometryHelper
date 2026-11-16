@@ -74,6 +74,31 @@ namespace GeometryHelper.Dxf
         internal bool IsArc(int segment) => _segments[segment].Arc;
 
         /// <summary>
+        /// The wave the points of an arc segment make in the world: the point at an angle from the start is
+        /// <c>centre + u cos(angle) + v sin(angle)</c>, the angle from nought at the segment's start to <paramref name="sweep"/>
+        /// (below nought for an arc that runs clockwise) at its end.
+        /// </summary>
+        /// <param name="segment">The segment; an arc.</param>
+        /// <param name="centre">The centre of the arc.</param>
+        /// <param name="u">The radius to the start of the arc.</param>
+        /// <param name="v">The radius a quarter turn on from <paramref name="u"/>, in the plane of the arc.</param>
+        /// <param name="sweep">The angle the arc covers, signed.</param>
+        internal void GetArcWave(
+            int segment,
+            out GeoPoint3 centre,
+            out GeoVector3 u,
+            out GeoVector3 v,
+            out double sweep
+        )
+        {
+            _segments[segment]
+                .GetWave(out double cx, out double cy, out double z, out double r, out double a0, out sweep);
+            centre = World(new GeoPoint3(cx, cy, z));
+            u = WorldVector(new GeoVector3(r * Math.Cos(a0), r * Math.Sin(a0), 0.0));
+            v = WorldVector(new GeoVector3(-r * Math.Sin(a0), r * Math.Cos(a0), 0.0));
+        }
+
+        /// <summary>
         /// The area the chain closes in its plane, as AutoCAD reads that of a polyline: the polygon of its vertices, the last
         /// joined to the first, with what each arc adds or takes off; of the plane of its first two coordinates.
         /// </summary>
@@ -298,6 +323,24 @@ namespace GeometryHelper.Dxf
             internal bool Arc { get; }
 
             internal double Length { get; }
+
+            /// <summary>The centre, the height of the plane, the radius, the angle at the start and the signed sweep of an arc.</summary>
+            internal void GetWave(
+                out double cx,
+                out double cy,
+                out double z,
+                out double r,
+                out double a0,
+                out double sweep
+            )
+            {
+                cx = _cx;
+                cy = _cy;
+                z = _p1.Z;
+                r = _r;
+                a0 = _a0;
+                sweep = _theta;
+            }
 
             /// <summary>The signed area between the chord and the arc: what a bulge above nought adds to a loop counter-clockwise.</summary>
             internal double Area

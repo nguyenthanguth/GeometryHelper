@@ -433,10 +433,12 @@ User note 2026-11-12 evening (note.md 1-14):
 - [x] XCLIP follow-ups 3 (xclip4): Clipdepth cuts circles, arcs and lightweight polylines as AutoCAD (lines were cut),
       through nested INSERTs, MINSERT cells and external references; a tilted clip shows the ring at the height an
       entity lies flat; generate Polyline on a tilted clip as AutoCAD (normal, elevation, vertices)
-- [ ] (xclip5, running) XCLIP follow-ups 4: the flip arrow's click and direction (GUI); ellipse, spline, hatch, text, dimension, table and
-      heavy POLYLINE still drawn whole across a depth plane; a non-flat entity under a tilted clip keeps the block-plane
-      ring (AutoCAD cuts by the prism); a cut polyline restarts its linetype per piece; DrawXref's ring when an xref's
-      block origin differs from INSBASE; a nested MINSERT under planes not probed (S)
+- [x] XCLIP follow-ups 4 (xclip5): ellipses, splines and heavy 2D/3D polylines cut at the depth planes; dashes stay in
+      phase across a cut (PLINEGEN 0 and 1) as AutoCAD; non-flat curves under a tilted clip cut by the prism; dimension
+      and table pictures cut; a tilted MINSERT's rows spaced as AutoCAD (28.28 for 40 at 45 degrees, a display fault)
+- [ ] XCLIP follow-ups 5: text, hatch, solids and dimension words cut glyph by glyph as AutoCAD (a strip clip in
+      plan); an xref's clip boundary moved with its content when its INSBASE changes (ClipPointInWorld needs the base
+      point: a library change); dash continuity of cut circles and arcs not probed; the flip arrow's click (GUI) (S)
 - [x] Remove what is left of Part B (the Tekla drawing) from Dxf.Viewer; it moves to the Tekla drawing app (partb-cleanup: new-document hook neutral, MODEL tags, Hidden-lines recolour, Layer Owner column, DXF export rows gone; owner contract and drawing-plugin finder kept as neutral hooks) (M)
 
 User note 2026-11-12 (basic features first, advanced later):

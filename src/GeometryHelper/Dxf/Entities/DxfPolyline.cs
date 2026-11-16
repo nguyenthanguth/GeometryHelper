@@ -1831,6 +1831,9 @@ namespace GeometryHelper.Dxf
             }
         }
 
+        /// <summary>The chain of the vertices, for the presenter to follow the polyline along.</summary>
+        internal DxfBulgeChain DrawnChain() => Chain();
+
         /// <summary>The chain of the vertices, at the elevation, in the system of the normal.</summary>
         private DxfBulgeChain Chain()
         {

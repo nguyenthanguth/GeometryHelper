@@ -569,13 +569,23 @@ the aperture of a snap meet only the part inside. Each cell of a MINSERT is clip
 switched off draws the block whole. A clip made in a system tilted out of the plan has the region where its prism cuts the plane
 of the block, and the frame where its boundary stands in the plan, each entity of the block in the region of the height it lies
 flat at (a grid at height 50 shows from y 44.23 to 101.96 under the boundary that shows a grid at height 0 from y 73.09 to
-130.83); an entity that does not lie flat is shown in the region of the block's own plane, since the display keeps no height to
-cut it by. The front and back planes of Clipdepth leave out the entities of the block that lie wholly outside them, in height,
-and cut a line, a circle, an arc and a polyline (a lightweight one, arc segments included) that crosses one, as AutoCAD draws
-it: a circle standing on its edge (radius 30, about (50, 20, 0), in the plane of X and Z) with front 10 and back -10 is the two
-arcs at its ends, x 20 to 21.72 and 78.28 to 80. An INSERT in the block is cut by the same planes through its own placing, its
-scale, turn and tilt, and an external reference with its base point at the insertion point; any other entity that crosses a
-plane (an ellipse, a spline, a hatch, text) is drawn whole.
+130.83). A line, a circle, an arc, an ellipse, a spline or a polyline that does not lie flat is cut by the prism itself, where its
+path leaves the boundary seen along the clip's normal, and stands in no region (a line from (50, -100, 0) to (50, 100, 60) under a
+boundary tilted 30 degrees about X, y from -40 to 40, shows from y -54.13 to 24.61, AutoCAD 2021's PNGOUT of it giving -54.2 to 24.5, where the
+region of the plane at 0 would give -46.19 to 46.19); any other entity that does not lie flat is shown in the region of the block's
+own plane, since the display keeps no height to cut it by. The front and back planes of Clipdepth leave out the entities of
+the block that lie wholly outside them, in height, and cut a line, a circle, an arc, an ellipse, a spline and a polyline (a
+lightweight one, a 2D one and a 3D one, arc segments included) that crosses one, as AutoCAD draws it: a circle standing on its
+edge (radius 30, about (50, 20, 0), in the plane of X and Z) with front 10 and back -10 is the two arcs at its ends, x 20 to
+21.72 and 78.28 to 80, and an ellipse of semi-axes 30 and 15 standing so, the two arcs x 20 to 27.64 and 72.36 to 80. A line or a
+curve of a dashed linetype that is cut goes on with the pattern of the whole, as AutoCAD draws it (a polyline with PLINEGEN on
+or off alike): the pieces of a dashed zigzag start their dashes where those of the whole zigzag stood, and none restarts at the
+cut (`DisplayStyle.DashPhase`, which the canvas gives its dashes). The lines and curves of a dimension's picture are cut so. An INSERT in the block is cut by the same planes through its own
+placing, its scale, turn and tilt (each cell of an array through its own shift, which for a plane tilted out of the plan has a
+height: the rows of a MINSERT of a plane tilted 45 degrees about X, 40 apart, stand 28.28 apart in the plan and 28.28 higher
+each, as AutoCAD 2021 draws them), and an external reference with its base point at the insertion point; any other entity that
+crosses a plane (a hatch, text, a solid, a table's text) is drawn whole, where AutoCAD cuts it at the plane as it cuts a line,
+glyph by glyph.
 
 ### Keeping the lists
 

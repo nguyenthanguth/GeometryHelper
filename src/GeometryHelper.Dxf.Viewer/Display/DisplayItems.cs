@@ -18,6 +18,23 @@ namespace GeometryHelper.Dxf.Viewer
             Dashes = dashes;
         }
 
+        /// <summary>
+        /// Makes a style whose dashes start part way along their pattern, for a piece of a line or a curve that was cut from a
+        /// longer one and goes on from where the pattern of the whole stood at the piece's start.
+        /// </summary>
+        /// <param name="rgb">The colour as 0xRRGGBB.</param>
+        /// <param name="lineWeight">The line weight in millimetres.</param>
+        /// <param name="dashes">The dash pattern in drawing units.</param>
+        /// <param name="dashPhase">How far along the pattern the item starts, in drawing units.</param>
+        internal DisplayStyle(int rgb, double lineWeight, double[] dashes, double dashPhase)
+            : this(rgb, lineWeight, dashes)
+        {
+            DashPhase = dashPhase;
+        }
+
+        /// <summary>Gets how far along the dash pattern an item starts, in drawing units; nought for an item that starts the pattern.</summary>
+        internal double DashPhase { get; }
+
         /// <summary>Gets the colour as 0xRRGGBB.</summary>
         public int Rgb { get; }
 

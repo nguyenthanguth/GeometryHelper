@@ -3066,10 +3066,14 @@ written and kept, and they cut what the block holds in height, in the units of t
 the block is shown from the back plane to the front plane, planes included, and an entity that lies wholly above or below
 is left out. A block of a line rising from (0, 0, 0) to (100, 0, 100) and flat lines at heights -30, 10 and 30, with front 20
 and back -10, shows the rising line from x 0 to 20 and the flat line at 10 (AutoCAD 2021's PNGOUT of it draws the same). A
-line, circle, arc or polyline that crosses a plane is cut at it (a circle standing on its edge, radius 30 about (50, 20, 0),
-with front 10 and back -10 is left as the two arcs at the ends of its width, x 20 to 21.72 and 78.28 to 80; a polyline is cut
-in each of its line and arc segments, and at a vertex that stands on a plane); any other entity that crosses one (an ellipse, a
-spline, a hatch, text) is drawn whole, since the display keeps no height to cut it by. What an INSERT in the block holds is cut
+line, circle, arc, ellipse, spline or polyline (lightweight, 2D or 3D) that crosses a plane is cut at it (a circle standing on
+its edge, radius 30 about (50, 20, 0), with front 10 and back -10 is left as the two arcs at the ends of its width, x 20 to
+21.72 and 78.28 to 80; an ellipse of semi-axes 30 and 15 standing so, the two arcs x 20 to 27.64 and 72.36 to 80; a polyline is
+cut in each of its line and arc segments, and at a vertex that stands on a plane; a spline where its height meets a plane, found
+to the millionth of its parameter), and one with dashes goes on with the pattern of the whole, as AutoCAD draws it, the pieces
+of a dashed line or polyline starting their dashes where those of the whole stood; any other entity that crosses one (a hatch,
+text, a solid) is drawn whole, since the display keeps no height to cut it by, where AutoCAD cuts it at the plane glyph by glyph.
+The lines and curves of a dimension's picture are cut like those of a block. What an INSERT in the block holds is cut
 by the same planes carried through its placing (a block inserted in another scaled by 2 and lifted 5, the outer one given
 front 20 and back -10, shows its rising line from x 0 to 15), and an external reference by the planes measured from its base
 point, which stands at the insertion point: the drawing whose base point is (0, 0, 10) stands 10 lower. The planes are measured from the plane of the boundary, which goes with the block as the boundary does: the same
@@ -3105,7 +3109,9 @@ on the plan, where it stands in AutoCAD's own plan view, while the block is show
 the boundary's normal, cuts the plane of the block: a block at height 0 clipped to the rectangle (10, 10) to (90, 60) of a
 system at (100, 50, 20) turned 30 degrees about X shows from y 73.09 to 130.83 (AutoCAD 2021's PNGOUT of a grid of it), the
 frame from y 58.66 to 101.96; an entity of the block at another height is shown where the prism meets the plane at that height (a
-grid at height 50 shows from y 44.23 to 101.96), and one that does not lie flat where it meets the block's own plane. A clip whose plane is parallel to the block's is shown as before, however far apart the two are.
+grid at height 50 shows from y 44.23 to 101.96), a line or a curve that does not lie flat where its path leaves the prism (a line from (50, -100, 0) to
+(50, 100, 60) under a boundary tilted 30 degrees about X, y from -40 to 40, shows from y -54.13 to 24.61, AutoCAD 2021's PNGOUT of it giving -54.2 to 24.5), and any other
+entity that does not lie flat where the prism meets the block's own plane. A clip whose plane is parallel to the block's is shown as before, however far apart the two are.
 
 EXPLODE of a clipped reference breaks the whole block, as AutoCAD 2021's does (probed on a rectangle, a polygon, a clip
 turned inside out and a clip switched off): a block of a square 100 by 100 and a circle, clipped to a rectangle 40 by 50, gives
