@@ -393,8 +393,15 @@ namespace GeometryHelper.Dxf.Viewer
             return chosen.LineIndex;
         }
 
-        /// <summary>Takes every break out of the leader lines of a multileader.</summary>
+        /// <summary>Takes every break out of the leader lines of a multileader, and what it keeps of them.</summary>
         private static void ClearLeaderBreaks(DxfMLeader mleader)
+        {
+            ClearLeaderLineBreaks(mleader);
+            ForgetBreaks(mleader);
+        }
+
+        /// <summary>Takes every break out of the leader lines of a multileader, the BREAKDATA it keeps left as it is.</summary>
+        private static void ClearLeaderLineBreaks(DxfMLeader mleader)
         {
             foreach (int leader in mleader.GetLeaderIndexes())
             {
@@ -406,8 +413,43 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
             }
+        }
 
-            ForgetBreaks(mleader);
+        /// <summary>
+        /// Makes the breaks of a multileader again from what it keeps: Auto at the objects named that are still there, where
+        /// each crosses its leader lines now, and each break between two points where the points stand.
+        /// </summary>
+        private static void BreakAgain(CadDocument document, DxfMLeader mleader, List<DimensionBreak> kept)
+        {
+            ClearLeaderLineBreaks(mleader);
+            var cutters = new List<DxfEntity>();
+
+            foreach (DimensionBreak item in kept)
+            {
+                if (
+                    item.ObjectHandle != null
+                    && document.FindEntity(item.ObjectHandle) is DxfEntity found
+                    && !found.IsErased
+                    && !ReferenceEquals(found, mleader)
+                    && IsCutter(found)
+                )
+                {
+                    cutters.Add(found);
+                }
+            }
+
+            if (cutters.Count > 0)
+            {
+                BreakLeadersAt(mleader, cutters);
+            }
+
+            foreach (DimensionBreak item in kept)
+            {
+                if (item.ObjectHandle == null)
+                {
+                    ManualLeaderBreak(mleader, P2(item.First), P2(item.Second));
+                }
+            }
         }
 
         /// <summary>
@@ -505,12 +547,179 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
+        /// <summary>
+        /// DIMBREAK Multiple, as AutoCAD 2021 asks it: "Select dimensions:" (dimensions and multileaders both, probed: a level
+        /// dimension and a multileader with a line across both are broken, "2 objects modified"), then "Select object to break
+        /// dimensions or [Auto/Remove] &lt;Auto&gt;:", Auto at every object of the space, or at the objects picked one by one, or
+        /// Remove.
+        /// </summary>
+        private static IEnumerable<CadPrompt> DimBreakMany(CadCommandContext c)
+        {
+            yield return CadPrompt.ForSelection("Select dimensions");
+
+            if (c.Input.Kind != CadInputKind.Selection)
+            {
+                yield break;
+            }
+
+            IReadOnlyList<string> handles = c.Input.Handles;
+            yield return CadPrompt.ForEntity("Select object to break dimensions", new[] { "Auto", "Remove" }, "Auto");
+            bool remove = c.Input.Is("Remove");
+            List<string> picked = null;
+
+            if (c.Input.Kind == CadInputKind.Selection)
+            {
+                picked = new List<string> { c.Input.Handles[0] };
+
+                while (true)
+                {
+                    yield return CadPrompt.ForEntity("Select object to break dimensions");
+
+                    if (c.Input.Kind != CadInputKind.Selection)
+                    {
+                        break;
+                    }
+
+                    picked.Add(c.Input.Handles[0]);
+                }
+            }
+            else if (!remove && !c.Input.Is("Auto"))
+            {
+                yield break;
+            }
+
+            List<DxfDimension> dimensions = Changeable(c, handles, "Dimension break", d => true);
+            var leaders = new List<DxfMLeader>();
+
+            foreach (string handle in handles)
+            {
+                if (c.Document.FindEntity(handle) is DxfMLeader leader && !leaders.Contains(leader))
+                {
+                    var record = new CadEditRecord(
+                        CadEditRecordKind.PropertyChanged,
+                        leader.Handle,
+                        "Multileader break"
+                    );
+
+                    if (c.Document.EditGate.Allows(c.Document, leader, record, out string reason))
+                    {
+                        leaders.Add(leader);
+                    }
+                    else
+                    {
+                        c.Write(reason ?? "The multileader " + leader.Handle + " may not be changed.");
+                    }
+                }
+            }
+
+            if (dimensions.Count + leaders.Count == 0)
+            {
+                yield break;
+            }
+
+            string value =
+                remove ? "Remove"
+                : picked == null ? "Auto"
+                : string.Join(",", picked);
+            var planned = new List<CadEditRecord>();
+
+            foreach (DxfDimension dimension in dimensions)
+            {
+                planned.Add(
+                    new CadEditRecord(
+                        CadEditRecordKind.PropertyChanged,
+                        dimension.Handle,
+                        "Dimension break",
+                        null,
+                        value
+                    )
+                );
+            }
+
+            foreach (DxfMLeader leader in leaders)
+            {
+                planned.Add(
+                    new CadEditRecord(
+                        CadEditRecordKind.PropertyChanged,
+                        leader.Handle,
+                        "Multileader break",
+                        null,
+                        value
+                    )
+                );
+            }
+
+            CadEditResult done = c.Apply(planned, s =>
+            {
+                foreach (CadEditRecord record in planned)
+                {
+                    if (s.IsHandled(record.Handle))
+                    {
+                        continue;
+                    }
+
+                    DxfEntity entity = s.Document.FindEntity(record.Handle);
+
+                    if (entity is DxfMLeader leader)
+                    {
+                        if (remove)
+                        {
+                            ClearLeaderBreaks(leader);
+                        }
+                        else
+                        {
+                            BreakMLeaderAt(c, leader, picked);
+                        }
+
+                        continue;
+                    }
+
+                    var dimension = (DxfDimension)entity;
+                    OwnPicture(s.Database, dimension);
+
+                    if (remove)
+                    {
+                        ForgetBreaks(dimension);
+                        Redraw(dimension);
+                    }
+                    else
+                    {
+                        BreakAtWithin(c, dimension, picked);
+                        RedrawAnnotativeBreaks(dimension);
+                    }
+                }
+            });
+
+            if (done != null && done.Succeeded)
+            {
+                c.Write(Modified(dimensions.Count + leaders.Count));
+            }
+        }
+
+        /// <summary>The box a multileader fills (<see cref="DxfEntity.GeometricExtents"/>); empty for one with no line and no content.</summary>
+        private static GeoAabb3 MLeaderBox(DxfMLeader mleader)
+        {
+            try
+            {
+                return mleader.GeometricExtents;
+            }
+            catch (InvalidOperationException)
+            {
+                return GeoAabb3.Empty;
+            }
+        }
+
         /// <summary>Breaks a multileader at the objects given (every cutter of the space where none), the words among them measured in the drawing's fonts, and keeps what it was broken at.</summary>
         private static void BreakMLeaderAt(CadCommandContext c, DxfMLeader mleader, IReadOnlyList<string> picked)
         {
             using (Measuring(c.Document))
             {
-                KeepObjectBreaks(mleader, BreakLeadersAt(mleader, Cutters(c.Document, c.Space, mleader, picked)));
+                List<DxfEntity> cutters = Cutters(c.Document, c.Space, mleader, picked);
+                List<DxfEntity> crossed = BreakLeadersAt(mleader, cutters);
+                KeepObjectBreaks(
+                    mleader,
+                    picked == null ? NamedByAuto(MLeaderBox(mleader), cutters, crossed) : crossed
+                );
             }
         }
     }

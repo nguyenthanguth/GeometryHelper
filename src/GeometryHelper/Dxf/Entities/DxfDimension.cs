@@ -1812,6 +1812,16 @@ namespace GeometryHelper.Dxf
                         Numbers.Exact(ocs.TransformDegrees(degrees) + 0.0)
                     );
                 }
+                else if (angle.Key == 50 && this is DxfRotatedDimension)
+                {
+                    // AutoCAD leaves the rotation out of a linear dimension drawn level: turned, it has to be written.
+                    double turned = ocs.TransformDegrees(degrees) + 0.0;
+
+                    if (!Same(turned, 0.0))
+                    {
+                        g.Set(50, Numbers.Exact(turned), g.Sub, SubOrder);
+                    }
+                }
             }
         }
 

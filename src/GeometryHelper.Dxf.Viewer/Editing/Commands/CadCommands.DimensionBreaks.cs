@@ -59,6 +59,279 @@ namespace GeometryHelper.Dxf.Viewer
             internal GeoPoint3 Second { get; }
         }
 
+        /// <summary>
+        /// The box a dimension's picture fills where it stands, its points of definition among it, as AutoCAD 2021's
+        /// <c>GeometricExtents</c> of a dimension (a level dimension from (0, 0) to (100, 0), its line at y 20, fills
+        /// (0, 0) to (100, 20.18)); empty for a dimension with no picture.
+        /// </summary>
+        private static GeoAabb3 PictureBox(DxfDimension dimension)
+        {
+            GeoAabb3 box = GeoAabb3.Empty;
+            DxfBlockTableRecord picture = dimension.DimBlock;
+
+            if (picture == null)
+            {
+                return box;
+            }
+
+            GeoVector3 shift = dimension.DimBlockPosition.ToVector();
+
+            foreach (DxfEntity entity in picture)
+            {
+                if (entity.IsErased)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    GeoAabb3 one = entity.GeometricExtents;
+
+                    if (!one.IsEmpty)
+                    {
+                        one = new GeoAabb3(one.Min.Add(shift), one.Max.Add(shift));
+                        box = box.IsEmpty ? one : box.Union(one);
+                    }
+                }
+                catch (Exception ex) when (ex is InvalidOperationException || ex is NotSupportedException)
+                {
+                    // An entity with no extents adds nothing to the box.
+                }
+            }
+
+            return box;
+        }
+
+        /// <summary>The box of an object that breaks a dimension or a multileader; empty where it has none (an xline or a ray has none that is bounded).</summary>
+        private static GeoAabb3 BoxOfObject(DxfEntity entity)
+        {
+            try
+            {
+                return entity is DxfDimension dimension ? PictureBox(dimension)
+                    : entity is DxfXline || entity is DxfRay ? GeoAabb3.Empty
+                    : entity.GeometricExtents;
+            }
+            catch (Exception ex) when (ex is InvalidOperationException || ex is NotSupportedException)
+            {
+                return GeoAabb3.Empty;
+            }
+        }
+
+        /// <summary>Whether an xline (from minus infinity) or a ray (from its base) meets a box.</summary>
+        private static bool LineMeetsBox(DxfEntity line, GeoAabb3 box, double tolerance)
+        {
+            GeoPoint3 origin = line is DxfXline xline ? xline.BasePoint : ((DxfRay)line).BasePoint;
+            GeoVector3 way = line is DxfXline xdir ? xdir.UnitDir : ((DxfRay)line).UnitDir;
+            double low = line is DxfXline ? double.NegativeInfinity : 0.0;
+            double high = double.PositiveInfinity;
+
+            for (int axis = 0; axis < 2; axis++)
+            {
+                double start = axis == 0 ? origin.X : origin.Y;
+                double step = axis == 0 ? way.X : way.Y;
+                double min = (axis == 0 ? box.Min.X : box.Min.Y) - tolerance;
+                double max = (axis == 0 ? box.Max.X : box.Max.Y) + tolerance;
+
+                if (Math.Abs(step) < 1E-12)
+                {
+                    if (start < min || start > max)
+                    {
+                        return false;
+                    }
+
+                    continue;
+                }
+
+                double t1 = (min - start) / step;
+                double t2 = (max - start) / step;
+                low = Math.Max(low, Math.Min(t1, t2));
+                high = Math.Min(high, Math.Max(t1, t2));
+            }
+
+            return low <= high;
+        }
+
+        /// <summary>
+        /// The objects AutoCAD 2021 names in the BREAKDATA of an Auto: every object that can break the host whose box meets the
+        /// host's, whether it crosses it or not (a line inside a level dimension that touches none of its lines is named; a point,
+        /// a solid and a hatch are not), the newest first. AutoCAD takes a margin of about a pixel of its view round the boxes,
+        /// which the presenter, with no view of its own, does not.
+        /// </summary>
+        private static List<DxfEntity> MeetingBoxes(GeoAabb3 host, IEnumerable<DxfEntity> cutters)
+        {
+            var named = new List<DxfEntity>();
+
+            if (host.IsEmpty)
+            {
+                return named;
+            }
+
+            double tolerance = Tolerance.Default.EqualPoint;
+
+            foreach (DxfEntity entity in cutters)
+            {
+                if (entity is DxfXline || entity is DxfRay)
+                {
+                    if (LineMeetsBox(entity, host, tolerance))
+                    {
+                        named.Add(entity);
+                    }
+
+                    continue;
+                }
+
+                GeoAabb3 box = BoxOfObject(entity);
+
+                if (
+                    !box.IsEmpty
+                    && box.Min.X <= host.Max.X + tolerance
+                    && box.Max.X >= host.Min.X - tolerance
+                    && box.Min.Y <= host.Max.Y + tolerance
+                    && box.Max.Y >= host.Min.Y - tolerance
+                )
+                {
+                    named.Add(entity);
+                }
+            }
+
+            named.Sort((a, b) => NewerHandle(b.Handle, a.Handle));
+            return named;
+        }
+
+        /// <summary>What an Auto over the whole space names: the objects meeting the host's box and those that cross it, the newest first.</summary>
+        private static List<DxfEntity> NamedByAuto(
+            GeoAabb3 host,
+            IReadOnlyList<DxfEntity> cutters,
+            List<DxfEntity> crossed
+        )
+        {
+            List<DxfEntity> named = MeetingBoxes(host, cutters);
+
+            foreach (DxfEntity entity in crossed)
+            {
+                if (!named.Contains(entity))
+                {
+                    named.Add(entity);
+                }
+            }
+
+            named.Sort((a, b) => NewerHandle(b.Handle, a.Handle));
+            return named;
+        }
+
+        /// <summary>Compares two handles as the numbers they are written in, the greater first where it is the lesser's argument.</summary>
+        private static int NewerHandle(string first, string second)
+        {
+            string a = first ?? string.Empty;
+            string b = second ?? string.Empty;
+            return a.Length != b.Length ? a.Length.CompareTo(b.Length) : string.CompareOrdinal(a, b);
+        }
+
+        /// <summary>The handle of the dimension or multileader a BREAKDATA belongs to (its 330 after the marker AcDbBreakData); null where it names none.</summary>
+        internal static string BreakDataHost(DxfDBObject data)
+        {
+            bool inside = false;
+
+            foreach (DxfTypedValue group in data.Item.File.ObjectGroupsOf(data.Item))
+            {
+                if (group.TypeCode == 100)
+                {
+                    inside = group.Value == "AcDbBreakData";
+                }
+                else if (inside && group.TypeCode == 330 && !string.IsNullOrWhiteSpace(group.Value))
+                {
+                    return group.Value.Trim();
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Draws a dimension or multileader again where it keeps breaks and an object it was broken at, or it itself, changed:
+        /// an object erased is taken out of the breaks it keeps, and the breaks are made again at those left, where each
+        /// object crosses now (AutoCAD 2021 draws a dimension again from its BREAKDATA after any such edit). A dimension kept
+        /// by hand alone is left as the edit made it, its picture moved with it; a multileader is drawn from its BREAKDATA
+        /// every time, the break between two points where they stand now (AutoCAD keeps the points as picked and takes the feet
+        /// of them on the leader line moved). False where nothing was changed.
+        /// </summary>
+        internal static bool FollowBreaks(CadDocument document, DxfEntity host)
+        {
+            List<DimensionBreak> stored = StoredBreaks(host);
+
+            if (stored.Count == 0)
+            {
+                return false;
+            }
+
+            var kept = new List<DimensionBreak>();
+
+            foreach (DimensionBreak item in stored)
+            {
+                if (
+                    item.ObjectHandle == null
+                    || (document.FindEntity(item.ObjectHandle) is DxfEntity found && !found.IsErased)
+                )
+                {
+                    kept.Add(item);
+                }
+            }
+
+            bool dropped = kept.Count != stored.Count;
+
+            if (dropped)
+            {
+                StoreBreaks(host, kept);
+            }
+
+            using (Measuring(document))
+            {
+                if (host is DxfMLeader mleader)
+                {
+                    BreakAgain(document, mleader, kept);
+                    return true;
+                }
+
+                if (!(host is DxfDimension dimension) || (!dropped && !kept.Exists(b => b.ObjectHandle != null)))
+                {
+                    return dropped;
+                }
+
+                return Redraw(dimension) || dropped;
+            }
+        }
+
+        /// <summary>
+        /// Carries the breaks a dimension keeps by hand with it where it is moved, turned or scaled: their points go where the
+        /// dimension's go, as AutoCAD 2021 keeps them (a break from (60, 20) to (70, 20) of a level dimension moved 10 to the
+        /// right is kept from (70, 20) to (80, 20)). A multileader keeps the points as picked.
+        /// </summary>
+        internal static void CarryManualBreaks(DxfEntity entity, GeoTransform3 transform)
+        {
+            if (!(entity is DxfDimension))
+            {
+                return;
+            }
+
+            List<DimensionBreak> breaks = StoredBreaks(entity);
+
+            if (!breaks.Exists(b => b.ObjectHandle == null))
+            {
+                return;
+            }
+
+            StoreBreaks(
+                entity,
+                breaks
+                    .Select(b =>
+                        b.ObjectHandle != null
+                            ? b
+                            : new DimensionBreak(b.Line, transform.Transform(b.First), transform.Transform(b.Second))
+                    )
+                    .ToList()
+            );
+        }
+
         /// <summary>Keeps a break at each object given that crosses the dimension, after those it keeps, an object kept already not again.</summary>
         private static void KeepObjectBreaks(DxfEntity dimension, List<DxfEntity> crossed)
         {
@@ -124,7 +397,8 @@ namespace GeometryHelper.Dxf.Viewer
                     && database.TryGetObject(stored.ObjectHandle, out DxfDBObject found)
                     && found is DxfEntity entity
                     && !ReferenceEquals(entity, dimension)
-                    && (entity is DxfLine || entity is DxfPolyline || entity is DxfCircle || entity is DxfArc)
+                    && !entity.IsErased
+                    && IsCutter(entity)
                 )
                 {
                     cutters.Add(entity);

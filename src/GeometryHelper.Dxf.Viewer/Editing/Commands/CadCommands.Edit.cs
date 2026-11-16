@@ -1278,6 +1278,7 @@ namespace GeometryHelper.Dxf.Viewer
                         else
                         {
                             entity.TransformBy(kept?.Transform ?? transform);
+                            CarryManualBreaks(entity, kept?.Transform ?? transform);
                         }
 
                         kept?.Finish(entity);

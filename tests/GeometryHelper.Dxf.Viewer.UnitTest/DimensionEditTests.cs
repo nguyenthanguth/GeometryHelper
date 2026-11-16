@@ -471,7 +471,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void DimBreak_KeepsItsBreaksAsAutoCadDoes_AndBreaksTheDimensionAgainWhenItIsDrawnAnew()
         {
             // AutoCAD 2021 keeps DIMBREAK's breaks in a BREAKDATA under ACAD_BREAKDATA in the dimension's extension dictionary:
-            // Auto one AcDbBreakPointRef of 71 0, 91 -1 and the object in 331 for each object crossing it, the object naming the
+            // Auto one AcDbBreakPointRef of 71 0, 91 -1 and the object in 331 for each object meeting it, the newest first, the object naming the
             // BREAKDATA among its reactors; Manual one of 71 2, the points as picked and the line in 91 (0 the first extension
             // line, 3 the dimension line); Remove takes it out, the extension dictionary and the reactors with it.
             CadDocument document = WithDimension(out CadCommandSession session);
@@ -488,9 +488,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(
                 new[] { "70 0", "330 " + handle, "90 2" }
                     .Concat(Reference("0", "-1", "0", "0", "0", "0"))
-                    .Concat(new[] { "331 " + lines[0].Handle, "73 2", "92 0" })
+                    .Concat(new[] { "331 " + lines[1].Handle, "73 2", "92 0" })
                     .Concat(Reference("0", "-1", "0", "0", "0", "0"))
-                    .Concat(new[] { "331 " + lines[1].Handle, "73 2", "92 0" }),
+                    .Concat(new[] { "331 " + lines[0].Handle, "73 2", "92 0" }),
                 AfterMarker(data, "AcDbBreakData")
             );
             Assert.Contains(breakData, lines[0].GetPersistentReactorIds());

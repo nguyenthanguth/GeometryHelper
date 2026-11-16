@@ -601,12 +601,16 @@ the ones wanted.
 - [x] DIMBREAK Manual and multileaders (dimbreak2): Manual breaks the line nearest the first point, both points
       projected, angular arcs cut and rays numbered as AutoCAD, the centre mark left whole; DIMBREAK takes multileaders
       (Auto at every crossing, Manual, Remove; breaks stored as AutoCAD writes them: 90, 11, 12) and draws them
-- [ ] (dimbreak3, running) DIMBREAK follow-ups: breaks following a moved cutter (dimensions and multileaders: a regenerate-on-edit hook); Auto's
-      BREAKDATA names every object whose extents meet the host's (ours: only crossers); Auto on an angular arc; Multiple
-      with multileaders; ordinate and arc-length kinds; a several-line TrueType multileader held by half its last line's
-      ink; a block multileader of scale other than 1; TEXTALIGN with a reference text; REVCLOUDGRIPS on plain, ellipse
-      and Freehand clouds; a circle's grip order; PEDIT spline counts PARKED (52 of 238); GUI-only: Freehand spacing,
-      REFEDIT, TABLEEXPORT, pre-selection, BOUNDARY, FILTER, SPELL (S)
+- [x] DIMBREAK follow-ups (dimbreak3): breaks follow moved, turned, scaled and erased objects and hosts (CadBreakFollow,
+      as AutoCAD's console without a view); Auto names every object whose box meets the host's, newest first; Auto
+      breaks angular and arc-length arcs; Multiple takes multileaders too; group 50 written when a level DIMLINEAR is
+      turned (a fault the follow showed)
+- [ ] DIMBREAK follow-ups 2: Manual on ordinate and arc-length dimensions (AutoCAD numbers the ordinate leader 0, the
+      arc 3); AutoCAD's pixel margin round the boxes; SCALE of a dimension with breaks; COPY of a dimension with
+      BREAKDATA; a multileader's extents without words and arrow; DxfDimension.GeometricExtents throws; the arc-length
+      picture's zero-radius arc; a several-line TrueType multileader; a block multileader of scale other than 1;
+      TEXTALIGN with a reference text; REVCLOUDGRIPS on plain, ellipse and Freehand clouds; a circle's grip order; PEDIT
+      spline counts PARKED; GUI-only: Freehand spacing, REFEDIT, TABLEEXPORT, pre-selection, BOUNDARY, FILTER, SPELL (S)
 - [x] Layouts: twisted viewports drawn and entered as AutoCAD (two bugs: the turn's sense, group 12 in view coordinates);
       one undo step per wheel or pan gesture; ZOOM Previous per viewport (20 each); -SCALELISTEDIT; Isolate in the Layer
       manager; New VP Freeze on viewports made through the core's API (S)
@@ -918,7 +922,7 @@ the ones wanted.
       cells they change (300x6: a second SetDataLink 43.9 ms / 72.8 MB -> 2.8 ms / 6.9 MB, net48); the first merge and
       row insert map TABLECONTENT lazily (29.6 -> 13.5 ms); a handle read after an edit 0.26 -> 0.01 ms; bytes identical
       (60 pinned, 720 fuzz runs)
-- [ ] Tables follow-ups 11: the first SetDataLink still makes every cell's strings (22-29 ms: scan unread cells as
+- [ ] (tables12, running) Tables follow-ups 11: the first SetDataLink still makes every cell's strings (22-29 ms: scan unread cells as
       LinkRun does); CurrentLinks rebuilt after each edit (IsLinked 4-7 ms after a height); ContentKindsOf reads the whole
       TABLECONTENT on each write (~5 % of a row edit); 1-2 digit handles still read every record; series dates in a
       daylight-saving zone; GUI-only sides (S)
