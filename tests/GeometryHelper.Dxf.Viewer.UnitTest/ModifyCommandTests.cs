@@ -646,18 +646,5 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(4, lines.Count);
             Assert.All(lines, l => Assert.Equal(5.0, l.EndPoint.X - l.StartPoint.X, 9));
         }
-
-        [Fact]
-        public void ArrayAskedForAPath_SaysItIsNotBuilt()
-        {
-            CadDocument document = Drawing(TestDrawings.Line(0, 0, 5, 0, handle: "B1"));
-
-            CadCommandSession session = Start(document, "AR", new[] { "B1" }, Enter);
-            Assert.Equal("Enter array type [Rectangular/PAth/POlar] <Rectangular>:", session.PromptText);
-            Run(session, "PA");
-
-            Assert.Contains("Path arrays are not built yet: use Rectangular or POlar.", session.History);
-            Assert.False(document.CanUndo);
-        }
     }
 }

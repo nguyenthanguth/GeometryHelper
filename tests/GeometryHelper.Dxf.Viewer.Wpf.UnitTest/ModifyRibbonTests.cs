@@ -95,6 +95,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                             "FILLET",
                             "CHAMFER",
                             "ARRAYRECT",
+                            "ARRAYPATH",
                             "ARRAYPOLAR",
                             "DRAWORDER F",
                             "DRAWORDER B",

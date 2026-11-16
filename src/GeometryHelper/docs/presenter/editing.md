@@ -245,7 +245,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SAVE, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?), QUICKCALC, CAL, QUICKPROPERTIES |
-| modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too; a spline made a polyline within a precision), REVCLOUDPROPERTIES (Arc length), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN, CHANGE (Properties: Color, Elev, LAyer, LType, ltScale, LWeight, Thickness, TRansparency, Material, Annotative) |
+| modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too; a spline made a polyline within a precision), REVCLOUDPROPERTIES (Arc length), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPATH, ARRAYPOLAR, -ARRAY, OVERKILL, -OVERKILL, ALIGN, CHANGE (Properties: Color, Elev, LAyer, LType, ltScale, LWeight, Thickness, TRansparency, Material, Annotative) |
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a name typed may be a wildcard and every attributed block it matches is synced; what is picked that is no block, or a block with no attribute definitions, refused and another asked for, in the words of AutoCAD's own table of strings; an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, ATTEXT, -ATTEXT (Cdf, Sdf, Dxf, Objects), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK, REFEDIT, -REFEDIT (Ok, Next; All, Nested), REFSET (Add, Remove), REFCLOSE (Save, Discard), and the variables REFEDITNAME and XFADECTL |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | annotation | DIMOVERRIDE (Clear overrides), TEXTALIGN (alIgnment, Options, Point), MLEADEREDIT (Remove leaders, Add leaders), MLEADERALIGN (Options), MLEADERCOLLECT (Vertical, Horizontal, Wrap), ATTIPEDIT, SPELL (All, Dictionary) (see [Annotation commands](#annotation-commands)) |
@@ -2594,6 +2594,62 @@ OOPS brings back the objects the last ERASE, BLOCK or WBLOCK took out, with no q
 were erased from, one undo step. Only the last set comes back: a second OOPS does nothing, and neither does one after an
 erase that UNDO took back. They come back as copies, so a handle they had is gone and so is a tie to an object that stayed
 (a hatch to its boundary); the polyline WIPEOUT erases is not among them, as in AutoCAD.
+
+### ARRAYPATH and OVERKILL
+
+These were checked against AutoCAD 2021's console, driven through its standard input (probe modify2, 17 November).
+
+ARRAYPATH (and the PAth type of ARRAY) asks for the objects, then `Select path curve:` (a line, arc, circle, ellipse,
+polyline or spline; a pick that is none of them says `1 was filtered out` and asks again, and one of the objects to array
+says `Objects selected to be arrayed may not be selected as path curve.`), writes `Type = Path  Associative = No` and
+offers `Select grip to edit array or [ASsociative/Method/Base point/Tangent direction/Items/Rows/Levels/Align items/Z
+direction/eXit]<eXit>:`, the array drawn as a preview, until eXit or Enter makes it, one undo step. Every item is a separate
+object, as with ARRAYASSOCIATIVITY 0, and the objects themselves stay the first item. The items follow the path from the end
+nearest the pick (a closed path from its start, a circle from angle nought, counter-clockwise). Measure, the default,
+asks `Specify the distance between items along path or [Expression] <15.0000>:` (one and a half times the width of the
+objects), says `Maximum items = 4` and asks `Specify number of items or [Fill entire path/Expression] <4>:`: a path of 100
+measured by 30 holds 4 items, at 0, 30, 60 and 90, and a circle of radius 50 measured by 100 holds 3. Divide asks `Enter
+number of items along path or [Expression] <7>:` and spreads them evenly, the last at the end of an open path: 7 items on a
+path of 100 are 16.6667 apart. Each item carries the place of the objects relative to the start of the path with it, so
+objects 100 below the path stay 100 below it all along; Base point (`Specify base point or [Key point] <end of path
+curve>:`) names the point of the objects that goes on the start of the path, which moves them there as the first item (a
+line from (0, 0) to (10, 0) with its middle (5, 0) as the base point lies from (-5, 100) to (5, 100) on a path that starts
+at (0, 100)). Align items (`Align arrayed items to path? [Yes/No] <Yes>:`, Yes until changed) turns each item by the angle
+the path has turned since its start: the same line on a path that runs along Y = 100 and then up X = 100, measured by 60,
+has its third item from (200, 120) to (200, 130), upright. Tangent direction (`Specify first point of tangent direction
+vector or [Normal]:`, then `Specify second point of tangent direction vector:`) says in which direction the objects face
+the path, so that a direction of 90 degrees turns the first item minus 90 degrees about the start; Normal stands the items
+up with the path along their Z axis. Rows (`Enter the number of rows or [Expression] <1>:`, the distance between them, `Total`
+and the incrementing elevation) lie to the left of the way the path runs, turned or not, and Levels above along Z; two rows
+8 apart 5 higher and two levels 10 apart give copies at Z 0, 10, 5 and 15. Z direction asks `Maintain Z direction for all
+items in the array? [Yes/No] <Yes>:`; a path in the plane turns no item about its own direction, so the answer changes
+nothing. Associative arrays are not built (ASsociative says so), and neither are the grips of the array.
+
+OVERKILL asks for the objects and then shows the Delete Duplicate Objects dialog, -OVERKILL asks the same on the command
+line: `Current settings: Tolerance=0.000001, Ignore=None, Optimize polylines=Yes, Combine partial overlap=Yes, Combine
+end-to-end=Yes` and `Enter an option to change [Done/Ignore/tOlerance/optimize Plines/combine parTial overlap/combine
+Endtoend/Associativity] <done>:`, each option asking its question (`Specify tolerance for object comparison precision
+<0.000001>:`, `Optimize segments within plines [segment wiDth/Break polyline/Yes/No] <Yes>:`) and showing the settings again.
+The settings stay with the session ([`CadCommandSession.Overkill`](xref:GeometryHelper.Dxf.Viewer.CadCommandSession.Overkill))
+from one run to the next. The run writes `1 duplicate(s) deleted` and, where overlaps or ends that meet are combined, `2
+overlapping object(s) or segment(s) deleted`. Two lines, arcs, circles or points of the same place and properties are
+duplicates, and the later in the drawing stays (a line drawn from the other end is the same line); two polylines of the same
+vertices, as drawn or reversed, are duplicates too. On one straight line or one circle, a line or arc within another is
+deleted, those that overlap in part or meet end to end become one, the later of them stretched over the whole (lines from 0
+to 100, 50 to 150 and 200 to 250 and 250 to 300 become 0 to 150 and 200 to 300, and arcs of 300 to 40 degrees and 20 to 100
+one of 300 to 100); arcs that make a whole circle become a circle, and a circle holds the arcs of its own circle. A segment
+of a polyline takes part like a line: one deleted or combined with another is cut out of its polyline, which then is two
+(a polyline that doubles back on itself from (100, 0) to (50, 0) loses that segment and is two), and where a line lies on a
+segment the line goes and the polyline stays whole; two polylines overlapping on a segment lose it and a line of the whole
+takes its place. Repeated vertices go and consecutive collinear segments of a polyline join up in place
+((0, 0), (100, 0), (100, 0), (200, 0) becomes (0, 0), (200, 0)). The tolerance is the distance within which two points are
+one, and is half of it in each direction: of two parallel lines of one length 0.04 apart a tolerance of 0.1 deletes one and
+0.05 apart it does not. Ignore leaves the colour, layer, linetype, linetype scale, lineweight, thickness, transparency,
+plot style or material out of the comparison (`All` all of them), and the later object keeps its own. With partial overlaps
+off only exact duplicates go; with Optimize off polylines are compared whole; Break polylines off keeps a polyline whole
+(repeated vertices still go). The dialog has the same settings as boxes (the tolerance, the nine properties and the six
+options) and OK runs the command with them. Polyline arc segments are not compared by their parts, and associative objects
+are kept whatever the setting.
 
 ### Annotation commands
 

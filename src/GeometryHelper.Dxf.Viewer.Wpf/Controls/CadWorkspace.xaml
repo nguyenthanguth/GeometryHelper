@@ -3954,7 +3954,7 @@
                                                     Style="{StaticResource SplitArrow}"
                                                     IsEnabled="{Binding HasDocument}"
                                                     Click="OnRibbonMenu"
-                                                    ToolTip="Rectangular Array, Polar Array"
+                                                    ToolTip="Rectangular Array, Path Array, Polar Array"
                                                 >
                                                     <Path
                                                         Data="M1 1 4 4 7 1"
@@ -3977,6 +3977,15 @@
                                                                 Command="{Binding StartCommandCommand}"
                                                                 CommandParameter="ARRAYRECT"
                                                                 ToolTip="ARRAYRECT"
+                                                            />
+                                                            <MenuItem
+                                                                Style="{StaticResource GhMenuItem}"
+                                                                Header="Path Array"
+                                                                Tag="{StaticResource GhIconArrayPath}"
+                                                                Click="OnSplitChoice"
+                                                                Command="{Binding StartCommandCommand}"
+                                                                CommandParameter="ARRAYPATH"
+                                                                ToolTip="ARRAYPATH"
                                                             />
                                                             <MenuItem
                                                                 Style="{StaticResource GhMenuItem}"

@@ -1849,6 +1849,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "MATCHPROP":
                     OnMatchPropRequested(sender, e);
                     break;
+                case "OVERKILL":
+                    OnOverkillRequested(e);
+                    break;
                 case "PLOT":
                 case "PAGESETUP":
                     OnPlotRequested(sender, e);
