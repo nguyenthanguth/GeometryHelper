@@ -7,7 +7,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>
     /// The canvas's right-click menus, as AutoCAD 2021's with its default SHORTCUTMENU 11: the Default, Edit, Command and
     /// Grips menus of its menu file, their items in its order with its access keys, each mapped to the presenter's own command;
-    /// an item the presenter does not build is grey, with "Not built yet.", and the 3D ones (Subobject Selection Filter, 3D
+    /// an item the presenter does not build is grey, with "Not built yet." (SteeringWheels, Action Recorder, Convert PS to MS and the Add to Group items), and the 3D ones (Subobject Selection Filter, 3D
     /// Osnap) are left out.
     /// </summary>
     public sealed partial class MainViewModel
@@ -96,7 +96,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             items.Add(CadMenuItemViewModel.Separator());
             items.Add(NotBuilt(paper ? "Convert MS to PS" : "Convert PS to MS", 'v'));
             items.Add(MenuCommand("Quick Select...", "QSELECT", 'Q'));
-            items.Add(NotBuilt("QuickCalc"));
+            items.Add(MenuCommand("QuickCalc", "QUICKCALC"));
             items.Add(MenuCommand("Find...", "FIND", 'F'));
             items.Add(MenuCommand("Options...", "OPTIONS", 'O'));
             return items;
@@ -152,16 +152,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 )
             );
             items.Add(CadMenuItemViewModel.Separator());
-            items.Add(NotBuilt("Add Selected", 'd'));
+            items.Add(MenuCommand("Add Selected", "ADDSELECTED", 'd'));
             items.Add(CadMenuItemViewModel.Separator());
-            items.Add(NotBuilt("Select Similar", 't'));
+            items.Add(MenuCommand("Select Similar", "SELECTSIMILAR", 't'));
             items.Add(new CadMenuItemViewModel("Deselect All", ClearSelection, accessKey: 'A'));
             items.Add(CadMenuItemViewModel.Separator());
             items.Add(MenuCommand("Quick Select...", "QSELECT", 'Q'));
-            items.Add(NotBuilt("QuickCalc"));
+            items.Add(MenuCommand("QuickCalc", "QUICKCALC"));
             items.Add(MenuCommand("Find...", "FIND", 'F'));
             items.Add(new CadMenuItemViewModel("Properties", () => IsPropertiesPanelShown = true, accessKey: 's'));
-            items.Add(NotBuilt("Quick Properties"));
+            items.Add(MenuCommand("Quick Properties", "QUICKPROPERTIES"));
             return items;
         }
 
@@ -217,7 +217,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             items.Add(new CadMenuItemViewModel("Zoom", () => ChooseOption("'ZOOM"), !zooming, accessKey: 'Z'));
             items.Add(NotBuilt("SteeringWheels"));
             items.Add(CadMenuItemViewModel.Separator());
-            items.Add(NotBuilt("QuickCalc"));
+            items.Add(new CadMenuItemViewModel("QuickCalc", () => OpenQuickCalc(), HasCommand("QUICKCALC")));
             return items;
         }
 

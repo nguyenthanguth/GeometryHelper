@@ -70,7 +70,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             );
             Assert.Equal('i', items[0].AccessKey);
             Assert.True(items[0].IsEnabled);
-            Assert.False(items[1].IsEnabled);
+            Assert.True(items[1].IsEnabled);
+
+            // Add and Delete Current Scale and Add/Delete Scales run their commands on the text; Synchronize has no command.
+            Assert.Equal(
+                new[]
+                {
+                    "Add Current Scale",
+                    "Delete Current Scale",
+                    "Add/Delete Scales...",
+                    string.Empty,
+                    "Synchronize Multiple-scale Positions",
+                },
+                Headers(items[1].Items)
+            );
+            Assert.Equal(
+                new[] { true, true, true, false },
+                items[1].Items.Where(i => !i.IsSeparator).Select(i => i.IsEnabled)
+            );
         }
 
         [Fact]

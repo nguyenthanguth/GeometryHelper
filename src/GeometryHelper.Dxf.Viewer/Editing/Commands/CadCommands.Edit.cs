@@ -55,8 +55,48 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            c.Write("Current settings:  Copy mode = Multiple");
-            yield return CadPrompt.ForPoint("Specify base point", null, new[] { "Displacement" }, "Displacement");
+            // COPYMODE: 0, the default, copies again and again until Exit; 1 makes one copy. Typing Multiple for one run does not
+            // change it, mOde does.
+            bool setSingle = c.Remembered(CopyModeKey, 0.0) != 0.0;
+            bool single = setSingle;
+            c.Write("Current settings:  Copy mode = " + (single ? "Single" : "Multiple"));
+            c.Remember(CopyArrayKey, 0.0);
+
+            while (true)
+            {
+                yield return CadPrompt.ForPoint(
+                    "Specify base point",
+                    null,
+                    setSingle ? new[] { "Displacement", "mOde", "Multiple" } : new[] { "Displacement", "mOde" },
+                    "Displacement"
+                );
+
+                if (c.Input.Is("mOde"))
+                {
+                    yield return CadPrompt.ForKeyword(
+                        "Enter a copy mode option",
+                        new[] { "Single", "Multiple" },
+                        single ? "Single" : "Multiple"
+                    );
+
+                    if (c.Input.Is("Single") || c.Input.Is("Multiple"))
+                    {
+                        single = c.Input.Is("Single");
+                        setSingle = single;
+                        c.Remember(CopyModeKey, single ? 1.0 : 0.0);
+                    }
+
+                    continue;
+                }
+
+                if (c.Input.Is("Multiple"))
+                {
+                    single = false;
+                    continue;
+                }
+
+                break;
+            }
 
             if (!c.Input.IsPoint)
             {
@@ -84,7 +124,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             GeoPoint2 from = c.Input.Point;
             var placed = new List<List<string>>();
-            yield return CadPrompt.ForPoint("Specify second point or", from, null, "use first point as displacement");
+            yield return CadPrompt.ForPoint(
+                "Specify second point",
+                from,
+                new[] { "Array" },
+                "use first point as displacement"
+            );
 
             if (c.Input.IsNone)
             {
@@ -109,6 +154,30 @@ namespace GeometryHelper.Dxf.Viewer
                     placed.Add(
                         Transform(c, c.Selected, GeoTransform3.Translation(new GeoVector3(move.X, move.Y, 0.0)), true)
                     );
+
+                    if (single)
+                    {
+                        yield break;
+                    }
+                }
+                else if (c.Input.Is("Array"))
+                {
+                    var items = new List<string>();
+
+                    foreach (CadPrompt prompt in CopyArray(c, from, items))
+                    {
+                        yield return prompt;
+                    }
+
+                    if (items.Count > 0)
+                    {
+                        placed.Add(items);
+                    }
+
+                    if (single)
+                    {
+                        yield break;
+                    }
                 }
                 else if (c.Input.Is("Undo"))
                 {
@@ -123,7 +192,12 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                yield return CadPrompt.ForPoint("Specify second point", from, new[] { "Exit", "Undo" }, "Exit");
+                yield return CadPrompt.ForPoint(
+                    "Specify second point",
+                    from,
+                    new[] { "Array", "Exit", "Undo" },
+                    "Exit"
+                );
 
                 if (c.Input.Is("Exit"))
                 {

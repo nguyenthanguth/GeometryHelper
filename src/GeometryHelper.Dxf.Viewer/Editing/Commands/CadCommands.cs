@@ -26,6 +26,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             registry.Add(new CadCommand("MOVE", Move, true));
             registry.Add(new CadCommand("COPY", Copy, true));
+            AddCopyModesTo(registry);
+            AddSelectSimilarTo(registry);
+            AddTextWindowTo(registry);
             registry.Add(new CadCommand("ERASE", Erase, true));
             registry.Add(new CadCommand("OOPS", Oops));
             AddWipeoutTo(registry);

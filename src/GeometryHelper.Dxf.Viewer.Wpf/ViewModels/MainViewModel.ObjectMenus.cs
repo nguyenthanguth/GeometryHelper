@@ -238,15 +238,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return Submenu("Dimension Style", styles, 'D');
         }
 
-        /// <summary>Annotative Object Scale of AutoCAD's object menus: grey, the presenter keeping no annotative scales.</summary>
-        private static CadMenuItemViewModel AnnotativeScaleMenu() =>
+        /// <summary>
+        /// Annotative Object Scale of AutoCAD's object menus: Add Current Scale (AIOBJECTSCALEADD), Delete Current Scale
+        /// (AIOBJECTSCALEREMOVE) and Add/Delete Scales... (OBJECTSCALE) on the objects selected; Synchronize Multiple-scale
+        /// Positions grey, the presenter having no ANNORESET.
+        /// </summary>
+        private CadMenuItemViewModel AnnotativeScaleMenu() =>
             Submenu(
                 "Annotative Object Scale",
                 new[]
                 {
-                    NotBuilt("Add Current Scale", 'A'),
-                    NotBuilt("Delete Current Scale", 'D'),
-                    NotBuilt("Add/Delete Scales...", 'c'),
+                    OnSelection("Add Current Scale", "AIOBJECTSCALEADD", 'A'),
+                    OnSelection("Delete Current Scale", "AIOBJECTSCALEREMOVE", 'D'),
+                    OnSelection("Add/Delete Scales...", "OBJECTSCALE", 'c'),
                     CadMenuItemViewModel.Separator(),
                     NotBuilt("Synchronize Multiple-scale Positions", 'S'),
                 }

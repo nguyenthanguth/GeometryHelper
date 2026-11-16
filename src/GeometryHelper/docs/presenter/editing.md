@@ -233,18 +233,18 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 269 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 272 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
 | view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, -PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, VPCLIP (Polygonal, Delete), VPMAX, VPMIN, SCALELISTEDIT, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window), REDRAW, REDRAWALL, REGENALL, ISOLATEOBJECTS, HIDEOBJECTS, UNISOLATEOBJECTS, VPORTS, -VPORTS (Save, Restore, Delete, Join, SIngle, ?, 2, 3, 4, Toggle) |
-| edit | MOVE, COPY, ERASE, OOPS, ROTATE, SCALE, MIRROR, MIRROR3D (Object, Last, Zaxis, View, XY, YZ, ZX, 3points), EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
+| edit | MOVE, COPY (Array, Fit, mOde Single and Multiple; COPYMODE), ERASE, OOPS, ROTATE, SCALE, MIRROR, MIRROR3D (Object, Last, Zaxis, View, XY, YZ, ZX, 3points), EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
 | draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG (Chamfer, Elevation, Fillet, Thickness, Width; Area, Dimensions, Rotation), WIPEOUT (points, Polyline, Frames), SPLINE (Method: Fit, CV; Knots, Degree, Object; start and end Tangency, toLerance, Undo, Close), BLEND (CONtinuity: Tangent, Smooth), ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT and -MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT and -LAYOUT (Copy, Delete, New, Template, Rename, SAveas, Set, ?), DIVIDE (Block), MEASURE (Block) |
 | shapes and hatching | SOLID, REGION, HATCH, HATCHSETORIGIN, -HATCH (Properties, Select objects, draW boundary, remove Boundaries, Advanced: Boundary set, Retain boundary, Island detection, Style, Associativity, Gap tolerance, separate Hatches; DRaw order, Origin, ANnotative, hatch COlor, LAyer, Transparency, Undo), GRADIENT, HATCHEDIT, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Fit data: Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance; Close, Open, Join, Move vertex, Refine: Add, Delete, Elevate order, Move, Weight; rEverse, convert to Polyline, Undo), CLASSICINSERT |
 | multilines | MLINE (Justification, Scale, STyle; Close, Undo), MLEDIT (CC, OC, MC, CT, OT, MT, CJ, AV, DV, CS, CA, WA; Undo), MLSTYLE (?, Current, New, Modify, Rename, Delete, Load, Save), and the variables CMLJUST, CMLSCALE and CMLSTYLE (see [Multilines](#multilines)) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
-| utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SAVE, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?), QUICKCALC, CAL, QUICKPROPERTIES |
+| utilities | SELECTALL, SELECTSIMILAR (SEttings), ADDSELECTED, TEXTSCR, UNITS, -UNITS, SCRIPT, SAVE, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?), QUICKCALC, CAL, QUICKPROPERTIES |
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too; a spline made a polyline within a precision), REVCLOUDPROPERTIES (Arc length), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN, CHANGE (Properties: Color, Elev, LAyer, LType, ltScale, LWeight, Thickness, TRansparency, Material, Annotative) |
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a name typed may be a wildcard and every attributed block it matches is synced; what is picked that is no block, or a block with no attribute definitions, refused and another asked for, in the words of AutoCAD's own table of strings; an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, ATTEXT, -ATTEXT (Cdf, Sdf, Dxf, Objects), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK, REFEDIT, -REFEDIT (Ok, Next; All, Nested), REFSET (Add, Remove), REFCLOSE (Save, Discard), and the variables REFEDITNAME and XFADECTL |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
@@ -2595,6 +2595,41 @@ were erased from, one undo step. Only the last set comes back: a second OOPS doe
 erase that UNDO took back. They come back as copies, so a handle they had is gone and so is a tie to an object that stayed
 (a hatch to its boundary); the polyline WIPEOUT erases is not among them, as in AutoCAD.
 
+### COPY's options, SELECTSIMILAR, ADDSELECTED and the text window
+
+COPY asks as AutoCAD 2021 does: `Current settings:  Copy mode = Multiple`, then `Specify base point or [Displacement/mOde]
+<Displacement>:`, then `Specify second point or [Array] <use first point as displacement>:`, and in Multiple mode, after
+each copy, `Specify second point or [Array/Exit/Undo] <Exit>:`. `mOde` (`O` or `MO`) asks `Enter a copy mode option
+[Single/Multiple]` and sets COPYMODE, 0 for Multiple, the default, and 1 for Single, where COPY makes one copy and ends; in
+Single mode the base point prompt also offers `Multiple`, which makes this run a multiple one and leaves COPYMODE as it
+was. COPYMODE is kept by the session, as ATTREQ is. `Array` asks `Enter number of items to array:` (2 to 32767, the
+original counted; one outside is `Requires an integer between 2 and 32767.` and asked again; asked a second time in the
+same run it offers the number last given), then `Specify second point or [Fit]:`: a plain point is the step from one copy to
+the next, so 4 items with the point 30 along make copies at 30, 60 and 90; with `Fit` the point is the place of the last
+copy and the others are spaced evenly between it and the base point (3 items to 7,10 from the origin put copies at 3.5,5
+and 7,10), and `Array` goes back to the step. Enter at the number, with no default, or at the point, makes no copy and
+goes back to COPY's prompt. The whole array is one entry for Undo. A circle 10 in radius about (200, 0) copied with
+`Array`, 4 and the point (230, 0) has centres 200, 230, 260 and 290. A keyword that has lower-case letters before its
+capitals, as `mOde` and `eXit`, is taken by those letters and the capitals together at every prompt: `MO`, `MOD`, `EX`.
+
+SELECTSIMILAR (no alias) asks `Select objects or [SEttings]:` until Enter, or takes the objects selected before it, and
+selects every object of the space shown that is like one of them: the same kind of object and the properties
+SELECTSIMILARMODE names. Its bits are 1 Color, 2 Layer, 4 Linetype, 8 Linetype scale, 16 Lineweight, 32 Plot style, 64
+Object style (the text, dimension, multileader or table style) and 128 Name (the block of an insert, the pattern of a
+hatch); the default is 130, Layer and Name, and 0 matches the kind alone. A colour is compared as the object holds it, so
+an object BYLAYER is not like one of the layer's own colour, as in AutoCAD. Objects on a layer that is off or frozen, or
+hidden, are left out. In a drawing of lines A1 and A2 on layer Steel and A8 on layer Locked, picking A1 selects A1 and A2
+under 130 and all three under 0. `SEttings` shows the Select Similar Settings dialog, eight check boxes that set
+SELECTSIMILARMODE; with no window the command says so. Plot style is ticked and kept but every object counts as alike, the
+presenter keeping no named plot style on an object. ADDSELECTED asks `Select object:` (an object selected alone before it is
+taken), echoes the command that draws an object of that kind (`_.circle`) and runs it with the layer, colour, linetype,
+linetype scale and lineweight of the object picked as the drawing's own, which come back when it ends or Esc ends it. It
+draws LINE, CIRCLE, ARC, ELLIPSE, PLINE, POINT, XLINE, RAY, SOLID, HATCH, SPLINE (where the drawing has the command),
+TOLERANCE, LEADER, MLEADER, MTEXT, TEXT, TABLE and the dimension types; a block reference, an attribute or any other
+object gets `This kind of object cannot be added.` A colour of true colour is drawn as its nearest index. The Edit menu's
+Select Similar and Add Selected run them on the selection. TEXTSCR (F2) shows the text window: the command history, one
+line to a row, in a resizable list that follows the command line while it is open, with Copy (Ctrl+C) for the rows chosen or
+for all of them; F2 or Esc inside it closes it. With no window TEXTSCR says `The text window is shown by the window.`
 ### Annotation commands
 
 DIMOVERRIDE (DOV, DIMOVER) asks as AutoCAD 2021's does (probed in its console): "Enter dimension variable name to override
@@ -2850,7 +2885,7 @@ the picture of the scale of the space, and a multileader by the context data of 
 
 [`CadShortcuts`](xref:GeometryHelper.Dxf.Viewer.CadShortcuts) holds the aliases and the keys as data. The defaults are
 AutoCAD's: the 251 aliases of AutoCAD 2021's acad.pgp for the commands the presenter has (DXFOUT is a command of its own) and the four digits of the maintainer's (`1` LAYISO, `2` LAYERP, `22` LAYON, `3` LAYOFF), 255 in all, old names as `DTEXT` TEXT and `DDMODIFY` PROPERTIES among them (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
-DIMLINEAR, `MV` MVIEW, `MS` MSPACE, `PS` PSPACE, `BE` BEDIT, `BS` BSAVE, `BC` BCLOSE, and the rest) and 24 keys (F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F11 OTRACK, F12 DYN, Delete ERASE,
+DIMLINEAR, `MV` MVIEW, `MS` MSPACE, `PS` PSPACE, `BE` BEDIT, `BS` BSAVE, `BC` BCLOSE, and the rest) and 25 keys (F2 TEXTSCR, F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F11 OTRACK, F12 DYN, Delete ERASE,
 Ctrl+Z U, Ctrl+Y REDO, Ctrl+S QSAVE, Ctrl+1 PROPERTIES (shows or hides Properties), Ctrl+2 DRAWINGS (shows or hides the Drawings list), Ctrl+3 RIBBON (shows or hides the ribbon), Ctrl+A SELECTALL, Ctrl+C COPYCLIP, Ctrl+X CUTCLIP, Ctrl+V PASTECLIP, Ctrl+Shift+C COPYBASE, Ctrl+Shift+V PASTEBLOCK, Ctrl+P PLOT, Ctrl+Shift+A PICKSTYLE, Ctrl+W SELECTIONCYCLING, Ctrl+Shift+P QPMODE (switches the Quick Properties panel)). A registry's `Shortcuts` is replaced, from
 [global settings](app.md#global-settings), by another set; letters of either case are the same, and a name wins over an
 alias of the same letters. A settings file written before an alias joined the defaults gets it once: the file lists the
@@ -2871,7 +2906,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 | Kept in | Variables | A change |
 |---|---|---|
 | the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, CMLEADERSTYLE, CTABLESTYLE, MLEADERSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, WIPEOUTFRAME, XCLIPFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
-| the document or the session | PICKSTYLE, SELECTIONCYCLING, SHOWPAGESETUPFORNEWLAYOUTS, PICKFIRST, PICKADD, ATTREQ, ATTDIA, BINDTYPE, FILEDIA, CMDDIA, PDFSHX, PEDITACCEPT, PLINETYPE, DIMCONTINUEMODE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST, OLEFRAME, OLEHIDE, OLEQUALITY | at once, no undo step |
+| the document or the session | PICKSTYLE, SELECTIONCYCLING, SELECTSIMILARMODE, COPYMODE, SHOWPAGESETUPFORNEWLAYOUTS, PICKFIRST, PICKADD, ATTREQ, ATTDIA, BINDTYPE, FILEDIA, CMDDIA, PDFSHX, PEDITACCEPT, PLINETYPE, DIMCONTINUEMODE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST, OLEFRAME, OLEHIDE, OLEQUALITY | at once, no undo step |
 | the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, POLARDIST, SNAPTYPE, GRIDSTYLE, SNAPGRIDLEGACY, AUTOSNAP, DYNMODE, PICKBOX, GRIPSIZE, GRIPMULTIFUNCTIONAL, APERTURE, ZOOMWHEEL, TABLEINDICATOR, GRIPDYNCOLOR | at once, no undo step; kept in the settings file |
 | the window's toggles and snap of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, SNAPUNIT, GRIDUNIT, GRIDDISPLAY, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR | written into the drawing, as AutoCAD saves them there, and one undo step that keeps no copy of the drawing (see below) |
 | the window's lineweight toggle | LWDISPLAY | at once, no undo step; written into the drawing |
