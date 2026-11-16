@@ -479,6 +479,37 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void ADwgOfManyObjectsRead_TellsItsReadingInSteps_WhichThreadTookTheChunks()
+        {
+            string path = WrittenDwg(6_000);
+
+            try
+            {
+                var told = new List<double>();
+                CadDocument.Open(path, new Collects(told), CancellationToken.None);
+
+                // 6 030 objects are 12 chunks of 512 on several threads, the reading of them the share from 0.045 to 0.54: a
+                // chunk is a step of 0.04, so some ten shares are told within it, not the one jump from 0.045 to 0.54 that the
+                // calling thread alone told when the others took the chunks.
+                Assert.True(told.Count(share => share > 0.045 && share < 0.54) >= 8, string.Join(" ", told));
+                Assert.Equal(told.OrderBy(share => share).ToList(), told);
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+
+        private sealed class Collects : IProgress<double>
+        {
+            private readonly List<double> _told;
+
+            public Collects(List<double> told) => _told = told;
+
+            public void Report(double value) => _told.Add(value);
+        }
+
+        [Fact]
         public void ADwgOpenedWithATokenNotStopped_IsTheDocumentOpenedWithoutOne()
         {
             string path = WrittenDwg(3_000);
