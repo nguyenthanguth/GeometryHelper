@@ -2717,8 +2717,11 @@ typed at `Next point` runs along the axis nearest the cursor, so 60 with the cur
 `40,3` giving Y 3 as AutoCAD 2021 gives it; where one coordinate is asked, a number alone is that coordinate. Z, which a
 plan has none of, is asked as AutoCAD asks it and left out. Coordinates are those of the UCS. Each point a modifier asks
 may be snapped (END typed, or the menu). A modifier may be given by another at its prompt, as FROM with M2P for its base
-point, but TT and TK only at the command's own prompt, and FROM not at TK's `Next point`. Enter or text at TT's or a
-filter's prompt, and Enter at FROM's, go to the prompt they were typed at, so Enter at FROM's `Base point:` at LINE's
+point; AutoCAD 2021 takes TT and TK only at the command's own prompt or inside M2P, inside TT and TK only M2P, FROM and
+the filters inside FROM, M2P and a filter, and M2P not inside M2P. One it does not take is text that is no point: typed,
+or chosen from the Shift+right-click menu, the command line says the prompt and the word (`Base point: _tt`) and then the
+refusal below, and asks again; M2P chosen inside M2P says "Point or option keyword required.", and the text goes to the
+prompt it was typed at as text, never as a modifier. Enter or text at TT's or a filter's prompt, and Enter at FROM's, go to the prompt they were typed at, so Enter at FROM's `Base point:` at LINE's
 next point ends the LINE; FROM asks again for text, M2P for text and Enter, saying "Point or option keyword required."
 where the command's prompt has options and "Invalid point." where it has none; TK says "Invalid 2D point.", at
 `First tracking point:` going back to the command's prompt, and Enter at its `Next point` ends tracking. Esc cancels

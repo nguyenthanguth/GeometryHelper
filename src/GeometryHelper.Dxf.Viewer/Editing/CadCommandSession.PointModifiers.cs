@@ -48,11 +48,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// the last; .X, .Y, .Z, .XY, .XZ or .YZ asks "of" a point whose coordinates named are kept, then "(need YZ):" for the
         /// rest, a point whose coordinates asked are taken, or where one is asked a number alone. Coordinates are those of the
         /// <see cref="Ucs"/>, and Z, which a plan has none of, is asked as AutoCAD asks it and left out. A modifier typed at a
-        /// modifier's prompt nests in it, as FROM with M2P for its base point, and each point may be snapped; as AutoCAD 2021
-        /// takes them, TT and TK only at the command's own prompt, and FROM not at TK's. What is no point AutoCAD's way too:
-        /// Enter or text at TT's or a filter's prompt, and Enter at FROM's, is answered by the prompt they were typed at; FROM
-        /// and M2P ask again for text, M2P for Enter too; TK says "Invalid 2D point.", at its first prompt going back to the
-        /// prompt it was typed at. A leading underscore is allowed, as the menu sends "_from". A line of 100,50 FROM with the
+        /// modifier's prompt nests in it, as FROM with M2P for its base point, and each point may be snapped; AutoCAD 2021
+        /// takes TT and TK only at the command's own prompt or inside M2P, inside TT and TK only M2P, and M2P not inside M2P;
+        /// one it does not take is text that is no point, refused as that is, as the window's menu says it too. What is no
+        /// point AutoCAD's way too: Enter or text at TT's or a filter's prompt, and Enter at FROM's, is answered by the prompt
+        /// they were typed at, as text and never as a modifier; FROM and M2P ask again for text, M2P for Enter too; TK says
+        /// "Invalid 2D point.", at its first prompt going back to the prompt it was typed at. A leading underscore is
+        /// allowed, as the menu sends "_from". A line of 100,50 FROM with the
         /// offset @30,20 starts at (130, 70); M2P between (0, 0) and (100, 40) gives (50, 20); TK from (100, 0) to (130, 50)
         /// gives (100, 50); .X of (30, 999) with (888, 40) at "(need YZ):" gives (30, 40), and with 40,3 gives (30, 3).
         /// </summary>
@@ -90,8 +92,9 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// Whether a modifier is taken at the prompt waiting, as AutoCAD 2021 takes them: any at a command's own prompt; at a
-        /// modifier's, FROM, M2P and the filters, but not TT or TK, and not FROM at TK's.
+        /// Whether a modifier is taken at the prompt waiting, as AutoCAD 2021 takes them, probed pair by pair: any at a
+        /// command's own prompt; inside FROM or a filter, FROM, M2P and the filters but not TT or TK; inside M2P, FROM, the
+        /// filters, TT and TK; inside TT or TK, M2P alone; and M2P not inside an M2P at any depth.
         /// </summary>
         private bool Nests(ModifierKind kind)
         {
@@ -100,9 +103,21 @@ namespace GeometryHelper.Dxf.Viewer
                 return true;
             }
 
-            return kind != ModifierKind.Track
-                && kind != ModifierKind.Tracking
-                && !(kind == ModifierKind.From && _modifiers[_modifiers.Count - 1].Kind == ModifierKind.Tracking);
+            if (kind == ModifierKind.Mid && _modifiers.Exists(m => m.Kind == ModifierKind.Mid))
+            {
+                return false;
+            }
+
+            switch (_modifiers[_modifiers.Count - 1].Kind)
+            {
+                case ModifierKind.Track:
+                case ModifierKind.Tracking:
+                    return kind == ModifierKind.Mid;
+                case ModifierKind.Mid:
+                    return true;
+                default:
+                    return kind != ModifierKind.Track && kind != ModifierKind.Tracking;
+            }
         }
 
         /// <summary>

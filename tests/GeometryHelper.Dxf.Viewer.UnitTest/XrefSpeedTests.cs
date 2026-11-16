@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
+using GeometryHelper.UnitTest;
 using Xunit;
 
 namespace GeometryHelper.Dxf.Viewer.UnitTest
@@ -64,11 +66,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             double referenced = double.MaxValue;
             int directCount = 0;
             int referencedCount = 0;
+            var directs = new List<double>();
+            var referenceds = new List<double>();
 
             for (int i = 0; i < MostRuns && (i < Runs || referenced > 2.0 * direct); i++)
             {
-                direct = Math.Min(direct, Time(() => directCount = Shown(big)));
-                referenced = Math.Min(referenced, Time(() => referencedCount = Shown(hostPath)));
+                directs.Add(Time(() => directCount = Shown(big)));
+                direct = Math.Min(direct, directs[directs.Count - 1]);
+                referenceds.Add(Time(() => referencedCount = Shown(hostPath)));
+                referenced = Math.Min(referenced, referenceds[referenceds.Count - 1]);
             }
 
             Assert.True(
@@ -81,7 +87,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     + referenced.ToString("0", CultureInfo.InvariantCulture)
                     + " ms, opened alone in "
                     + direct.ToString("0", CultureInfo.InvariantCulture)
-                    + " ms."
+                    + " ms (every run: opened alone "
+                    + SpeedGuard.Describe(directs)
+                    + "; as a reference "
+                    + SpeedGuard.Describe(referenceds)
+                    + ")."
             );
         }
 

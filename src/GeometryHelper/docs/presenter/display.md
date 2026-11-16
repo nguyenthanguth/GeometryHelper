@@ -382,6 +382,11 @@ are kept. The entity objects bind themselves to their records as they are made, 
 another thread asked for meanwhile; they stay. Display lists, boxes, runs and insertion points, the bytes saved and the pixels in three views are those
 they were (167 samples and six generated drawings), as is the display of the 1 000 000 entities.
 
+An open polyline with a bulge in a tilted plane, which is read as a chain of arcs in space (`GeoPolylineArc3`), is held as a loop is: its arcs share
+one normal, which the chain keeps once, and the display reads each edge's from it (`GetNormalAt`); the array of normals is made, and kept, only when `Normals` is
+asked for, or where the last vertex was given a bulge or a normal, or two arcs face different ways. Twenty thousand such polylines are displayed with 812 bytes
+a polyline where they took 1 636 (.NET Framework 4.8), and the list is item for item what it was.
+
 `PrepareDisplay(space, progress, cancellationToken)` makes the list and the pick index of a space ahead, item for item the
 list `GetDisplay` makes, telling `progress` the share of the space's entities drawn every 4 096 of them and stopping, with
 an `OperationCanceledException`, when the token is cancelled; a list stopped is not kept, and is made whole when next
