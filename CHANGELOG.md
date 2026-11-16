@@ -99,6 +99,20 @@ AutoCAD's pictures (the five exact directions left out): at 240 out e3 6 to 4 of
 steps (OrientedCorrections, 23 tables of 36 directions) were fitted to 79 000 probes: read from the 30 degrees' steps only, the 15 between them had 731 of 39 576 wrong and have
 275; at 60 out 161 of 13 192 and 81. Angles of other sizes were not probed. 76 of the 111 sets of AutoCAD pictures (the radius, diameter, arc length, linear and redraw sets, tar1 to 26, t1 to
 t11, d2 to d5, tw1 to 17, m2 to m6) are byte for byte what they were, the 35 that changed all hold an angle's words put by DIMTEDIT, and the pictures differing of those with an AutoCAD picture are the same or fewer (a5 18 to 17 of 2 938).
+**FIXED.** The leader band of an angle's words put by DIMTEDIT is read by the direction of the angle's middle, not by its first ray, so that angles of other sizes than 60 degrees have the
+band AutoCAD 2021 draws: the table for a first ray is read at the middle's direction less 30 degrees (the first ray itself for an angle of 60). "30°", "90°", "120°" and "150°" put every 0.25
+at 36 directions round angles of those sizes from 0, 45, 90, ... 315 degrees, the arc 30 out (26 384 probes of each size) had 188, 208, 722 and 848 probes with the leader wrong and have 13, 25,
+345 and 373 (Arial, 9 894 probes of 30 and 90 degrees from 45, 180 and 270: 102 and 105 before, 47 and 60); the two other indexes, the first and the second ray, leave 192 to 838. The 1.4
+per cent left at 120 and 150 degrees is the words' width: "120°" put round an angle of 60 degrees has 371 of 25 481 wrong, where "60°" has 27 of 36 278, so words of other widths still have the
+band of the narrow words. The pictures differing from AutoCAD's of angles given the other way round and reflex (p2) are 17 of 576 before and 6 now.
+**CHANGED.** The correction of the leader band on arcs under 5.1 landings out is fitted across landings, where it was fitted to one (SHX's 5.83 for "60°"): rings of an angle of 60 degrees from 0
+with DIMASZ 4, DIMTXT 4 and 1.8 and DIMSCALE 2 (SHX) and with Arial 2.5 and 4 high and at DIMSCALE 2, 1.5 to 4.5 landings out (114 000 probes of AutoCAD 2021's pictures), with the arcs of 30 and 45
+out and the rings of 8 to 20 out. Leader presence differing from AutoCAD's pictures, before and now: e8 48 to 37 of 6 984 (Arial te8 50 to 38), e11 18 to 14 (te11 26 to 22, the loss of the last
+round undone), taq 63 to 61 of 6 860; the rings of SHX's landings other than 5.83 1 590 to 1 486, of Arial 1 029 to 951; worse: aq 75 to 78 of 6 860 and the rings of 8 to 20 out (SHX 5.83) 413 to
+432 of 17 612 (r8 153 to 160). The pictures differing of the other sets with an AutoCAD picture: e8 455 to 444, e11 57 to 53, te8 320 to 308, te11 108 to 104, taq 66 to 64, p2 17 to 6, aq 78 to 81; a3g (no
+AutoCAD picture) changed in its near-threshold leaders; the other 103 sets of the harness are byte for byte what they were. Not fitted: the rings of DIMTXT 4 (words 4 high with arrowheads of 2.5) which no table of this form follows (a fit without them
+leaves them at 1 128 where the old table had 1 050), and the jump of the band at the height of an arc's middle, whose 11 of 558 pictures (SHX; Arial 2) stay: a narrowing in the rise to that height
+by a profile of nodes, by a power, by the distance in landings and by landing-scaled units each moved them by trading against aq and taq, and no rule was found.
 **CHANGED.** The ACAD_TABLE of a table is written from its own bytes by `InsertRows`, `InsertRowsAndInherit`, `InsertColumns`, `InsertColumnsAndInherit`, `DeleteRows`,
 `DeleteColumns`, `SetRowHeight` and `SetColumnWidth`, where each wrote and then read again all of its 56 000 groups (931 cells) when the library had written the record
 whole before: each cell that comes out as it was is copied as it stands, the head and the cells made or changed are written, and the places of the cells are kept for the next

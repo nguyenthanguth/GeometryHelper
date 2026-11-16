@@ -1204,13 +1204,33 @@ namespace GeometryHelper.Dxf.Viewer
         /// landing have it too: e8 63 to 48 of 6 984, aq 93 to 75 and taq 75 to 63 of 6 860.
         /// </para>
         /// <para>
+        /// That fit saw one landing (SHX's 5.83), and the table lost on arcs of other landings (te11 24 to 26 of 6 984). It is
+        /// fitted again across landings: the rings of 8 to 20 out and, with DIMASZ 4, DIMTXT 4 and 1.8 and DIMSCALE 2 (SHX) and
+        /// Arial 2.5 and 4 high and at DIMSCALE 2, rings 1.5 to 4.5 landings out (o6, to6: 114 000 probes), and the arcs of 30 and
+        /// 45 out (e8, te8, aq, taq, e11, te11) with the rings of 8 to 20 out weighted up. Probes wrong now (before): 8 to 20 out
+        /// 432 (413), SHX's other landings 1 486 (1 590), Arial 951 (1 029); e8 37 (48) of 6 984, te8 38 (50), e11 14 (18), te11 22
+        /// (26), aq 78 (75), taq 61 (63). A second table in the square of how far the landing is over the radius takes the
+        /// 3 310 of these probes to 2 920 where this takes them to 3 109, but neither carries over to the DIMTXT 4 rings held out
+        /// of a fit (1 050 wrong with the old table, 1 128 and 1 098): the words 4 high with arrowheads of 2.5 are not a bigger
+        /// landing of the same shape, so that is left.
+        /// </para>
+        /// <para>
         /// The tables are those of an angle whose first ray stands at 0 degrees; the band of one that stands elsewhere is another
         /// (up to 2.5 wider or 1.75 narrower on some directions, in blocks that hold over several first rays): the table of
         /// <see cref="OrientedCorrections"/> for each first ray at 15 degrees' steps (<paramref name="firstRay"/>, read linearly
         /// between them) replaces ArcCorrections, fitted to 79 000 probes at 30 out. The probes wrong: 709 of 36 278 (first rays
         /// at 30 to 330 degrees) are 27, 741 of 42 874 (at 15 degrees' steps from 0) are 43; read from the first rays of 30
-        /// degrees' steps only, the 15 between them had 731 of 39 576 and have 275; at 60 out, 161 of 13 192 and 81. Angles of
-        /// other sizes were not probed.
+        /// degrees' steps only, the 15 between them had 731 of 39 576 and have 275; at 60 out, 161 of 13 192 and 81.
+        /// </para>
+        /// <para>
+        /// An angle of another size is read by the table of the angle of 60 degrees with the same middle: <paramref name="firstRay"/>
+        /// is the direction 30 degrees before the arc's middle (the first ray itself where the angle is 60 degrees wide). Probed
+        /// with "30°", "90°", "120°" and "150°" put every 0.25 at 36 directions round angles of those sizes from 0, 45, 90, ... 315
+        /// degrees, the arc 30 out (26 384 probes of each size), the probes wrong when read by the first ray are 188, 208, 722 and
+        /// 848, and 13, 25, 349 and 380 read by the middle; read by the second ray 192, 187, 616 and 838, and an index moved
+        /// from the middle by a twentieth of the sweep's excess over 60 degrees leaves 44 to 59 wrong at 30 and 90 degrees, by a
+        /// fifth 65 to 101. The 1.4 per cent left at 120 and 150 degrees is the words' width, not the angle: "120°" (7.08 wide,
+        /// 4 characters) put round an angle of 60 degrees has 371 of 25 481 wrong, where "60°" has 27 of 36 278.
         /// </para>
         /// </remarks>
         private static bool WordsStayOnTheArc(
@@ -1785,7 +1805,16 @@ namespace GeometryHelper.Dxf.Viewer
                                 ? offArc > StraightEdge(6.356, 0.48, scale, width, gap, arrow, beyond, height)
                                     || offArc < -StraightEdge(5.831, 0.456, scale, width, gap, arrow, beyond, height)
                             : !arcLength && radius >= NearestArc * landingLen
-                                ? !WordsStayOnTheArc(vertex, radius, start, at, landingLen, height, beyond, from)
+                                ? !WordsStayOnTheArc(
+                                    vertex,
+                                    radius,
+                                    start,
+                                    at,
+                                    landingLen,
+                                    height,
+                                    beyond,
+                                    middle - Math.PI / 6.0
+                                )
                             : offArc > outerEdge || offArc < -innerEdge
                         )
                     )
