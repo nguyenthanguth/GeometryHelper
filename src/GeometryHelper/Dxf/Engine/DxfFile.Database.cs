@@ -6797,7 +6797,7 @@ namespace GeometryHelper.Dxf
         /// </summary>
         internal string ExtensionDictionaryOf(DxfItem item)
         {
-            Rec head = HeadOf(item);
+            Rec head = OpeningOf(item);
             var walk = new GroupWalk(head);
             bool inDictionary = false;
 

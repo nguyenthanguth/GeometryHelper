@@ -616,7 +616,8 @@ namespace GeometryHelper.Dxf
         /// the handles to leave aside, and those of the types to leave aside, not read.
         /// One reading of the file for them all, so that the fields of a table of 16 000 cells are judged in one pass. The groups
         /// of a record are read one at a time, none kept, and a record whose bytes hold the digits of none of the handles, in any
-        /// case (<see cref="HexNeedle"/>), is not read at all, which spares a table's megabytes of bytes their groups.
+        /// case, or as the whole of a value line for a handle of digits alone (<see cref="HexNeedle"/>), is not read at all, which
+        /// spares a table's megabytes of bytes their groups.
         /// </summary>
         /// <returns>The handles pointed at, of those given, as they were given, each with the handle of the first record of the
         /// file that points at it (empty for one of no handle).</returns>
@@ -672,6 +673,7 @@ namespace GeometryHelper.Dxf
 
                     // The groups one at a time, none kept: a record of megabytes (a table's) is not made into a list of its groups
                     // for each reading of the file.
+                    _recordsWalked++;
                     var walk = new PairWalk(record);
                     walk.Next(out _);
                     bool more = walk.Next(out Pair pair);
@@ -754,6 +756,9 @@ namespace GeometryHelper.Dxf
         /// reading its groups: a pointer is a value of hexadecimal digits (<see cref="TryHex(byte[], int, int, out ulong)"/>, any
         /// case, zeros before), so a record whose bytes hold the digits of the handle in no case is not read. Searched from the
         /// digit of a letter, in both of its cases, which the text of a table's records holds rarely, a digit being everywhere.
+        /// A handle of digits alone has no such digit, and is searched for as the whole of a value line: its digits with nothing
+        /// but zeros, spaces and tabs before them on the line and nothing but spaces, tabs and the end of the line after them,
+        /// which a number holding the same digits (<c>190.5</c>, <c>1190</c>) does not make.
         /// </summary>
         private sealed class HexNeedle
         {
@@ -761,19 +766,30 @@ namespace GeometryHelper.Dxf
             // CONTENT) hold least come first.
             private const string Rarest = "FBDCAE";
 
+            // The handles of digits alone are each searched for by a pass over the bytes of a record: no more than a few of them,
+            // and none of fewer than three digits (a digit of one is in a tenth of the bytes), are, the records being read as they
+            // are for any other.
+            private const int MostPlain = 4;
+            private const int FewestPlain = 3;
+
             private readonly byte[] _digits;
             private readonly int _anchor;
 
-            private HexNeedle(byte[] digits, int anchor)
+            // How far each byte moves the window of the search of a handle of digits alone (Horspool); null for a handle with a letter.
+            private readonly int[] _shift;
+
+            private HexNeedle(byte[] digits, int anchor, int[] shift)
             {
                 _digits = digits;
                 _anchor = anchor;
+                _shift = shift;
             }
 
-            /// <summary>The needles of the handles given; null where one of them is of digits alone, which no record is told from by its bytes.</summary>
+            /// <summary>The needles of the handles given; null where a record cannot be told from its bytes by them: a handle of one or two digits, all of them digits, or more than a few of digits alone.</summary>
             internal static List<HexNeedle> Of(IEnumerable<ulong> handles)
             {
                 var needles = new List<HexNeedle>();
+                int plain = 0;
 
                 foreach (ulong handle in handles)
                 {
@@ -794,10 +810,28 @@ namespace GeometryHelper.Dxf
 
                     if (anchor < 0)
                     {
-                        return null;
+                        if (digits.Length < FewestPlain || ++plain > MostPlain)
+                        {
+                            return null;
+                        }
+
+                        var shift = new int[256];
+
+                        for (int c = 0; c < shift.Length; c++)
+                        {
+                            shift[c] = digits.Length;
+                        }
+
+                        for (int i = 0; i < digits.Length - 1; i++)
+                        {
+                            shift[digits[i]] = digits.Length - 1 - i;
+                        }
+
+                        needles.Add(new HexNeedle(digits, -1, shift));
+                        continue;
                     }
 
-                    needles.Add(new HexNeedle(digits, anchor));
+                    needles.Add(new HexNeedle(digits, anchor, null));
                 }
 
                 return needles;
@@ -808,12 +842,75 @@ namespace GeometryHelper.Dxf
             {
                 foreach (HexNeedle needle in needles)
                 {
+                    if (needle._shift != null)
+                    {
+                        if (needle.HoldsLine(record))
+                        {
+                            return true;
+                        }
+
+                        continue;
+                    }
+
                     byte upper = needle._digits[needle._anchor];
 
                     if (needle.Holds(record, upper) || needle.Holds(record, (byte)(upper | 0x20)))
                     {
                         return true;
                     }
+                }
+
+                return false;
+            }
+
+            /// <summary>Whether a record holds the digits of a handle of digits alone as the whole of a value line: zeros, spaces and tabs before it, spaces and tabs after it, as a value of a pointer is read.</summary>
+            private bool HoldsLine(Rec record)
+            {
+                byte[] bytes = record.Bytes;
+                int length = _digits.Length;
+                byte last = _digits[length - 1];
+                int at = record.Start + length - 1;
+
+                while (at < record.End)
+                {
+                    byte b = bytes[at];
+
+                    if (b == last)
+                    {
+                        int start = at - length + 1;
+                        int i = 0;
+
+                        while (i < length - 1 && bytes[start + i] == _digits[i])
+                        {
+                            i++;
+                        }
+
+                        if (i == length - 1)
+                        {
+                            byte before = start > record.Start ? bytes[start - 1] : (byte)'\n';
+                            byte after = at + 1 < record.End ? bytes[at + 1] : (byte)'\n';
+
+                            if (
+                                (
+                                    before == (byte)'0'
+                                    || before == (byte)' '
+                                    || before == (byte)'\t'
+                                    || before == (byte)'\n'
+                                )
+                                && (
+                                    after == (byte)' '
+                                    || after == (byte)'\t'
+                                    || after == (byte)'\r'
+                                    || after == (byte)'\n'
+                                )
+                            )
+                            {
+                                return true;
+                            }
+                        }
+                    }
+
+                    at += _shift[b];
                 }
 
                 return false;

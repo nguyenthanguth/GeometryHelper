@@ -489,6 +489,17 @@ namespace GeometryHelper.Dxf
         private Rec HeadOf(DxfItem item) => RecordAt(item, 0);
 
         /// <summary>
+        /// The first record of an entity for a read of the groups that open it (its extension dictionary): where cells
+        /// of a table are kept apart from the record (<see cref="PendingCells"/>), the record they were counted from, so that the
+        /// record is not copied to put them in for a read that stops before them. The groups after the opening may be stale.
+        /// </summary>
+        private Rec OpeningOf(DxfItem item)
+        {
+            PendingCells pending = item.Parent == null ? item.Piece?.Pending : null;
+            return pending != null ? pending.Base : RecordAt(item, 0);
+        }
+
+        /// <summary>
         /// Walks the groups of a record after its group 0, comments left out: for each, the code and the bytes of the value,
         /// a carriage return at the end of its line taken off.
         /// </summary>
@@ -1242,6 +1253,11 @@ namespace GeometryHelper.Dxf
         internal int WholeReadings => System.Threading.Volatile.Read(ref _wholeReadings);
 
         private int _wholeReadings;
+
+        /// <summary>How many records the searches for what points at a handle read group by group, those whose bytes could not be told to hold no pointer to it, for the tests of the cost of erasing fields.</summary>
+        internal int RecordsWalked => _recordsWalked;
+
+        private int _recordsWalked;
 
         /// <summary>
         /// The handles of the tables and styles of a drawing being completed that wait to be listed in its ACDB_RECOMPOSE_DATA

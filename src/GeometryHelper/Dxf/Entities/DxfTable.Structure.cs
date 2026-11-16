@@ -2612,18 +2612,27 @@ namespace GeometryHelper.Dxf
             WriteGroups(b, list, starts[cells], list.Count);
             b.Raw(record, record.End - old.Trailing, record.End);
             file.PutRecord(Item, 0, b);
-            Made(layout, from, old, list, starts[cells]);
+            Made(layout, from, old, list, starts[cells], false);
         }
 
         /// <summary>
         /// Keeps what is known of the record just written whole: the record noted as written whole, the layout read the list
         /// written, and the places of the cells those given, where the layout places the cells there too.
         /// </summary>
-        private void Made(Layout layout, int[] from, CellBytes old, List<KeyValuePair<int, string>> list, int cellsEnd)
+        private void Made(
+            Layout layout,
+            int[] from,
+            CellBytes old,
+            List<KeyValuePair<int, string>> list,
+            int cellsEnd,
+            bool copy = true
+        )
         {
             DxfFile.Rec now = Item.File.RecordAt(Item, 0);
             NoteWritten(now);
-            var read = new Layout(new DxfDimGroups(layout.Groups, new List<KeyValuePair<int, string>>(list)));
+            var read = new Layout(
+                new DxfDimGroups(layout.Groups, copy ? new List<KeyValuePair<int, string>>(list) : list)
+            );
             _layout = read;
             _pending.Clear();
             _layoutBytes = now.Bytes;
