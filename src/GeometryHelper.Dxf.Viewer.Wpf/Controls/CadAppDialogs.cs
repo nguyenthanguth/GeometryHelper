@@ -52,6 +52,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             "find",
             "attach",
             "layerstate-new",
+            "layerfilter",
         };
 
         /// <summary>Gets whether a <c>--dialog</c> names one of these dialogs.</summary>
@@ -408,6 +409,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                     var newStateWindow = new NewLayerStateWindow(naming);
                     (window, root) = (newStateWindow, newStateWindow.Body);
+                    break;
+                case "layerfilter":
+                    // New Property Filter of the Layer manager: a filter of the layers that are on, or on and frozen.
+                    LayerManagerViewModel layerManager = model.CreateLayerManager();
+                    LayerFilterEditViewModel filtering = null;
+                    layerManager.EditFilter = dialog =>
+                    {
+                        filtering = dialog;
+                        return false;
+                    };
+                    layerManager.NewPropertyFilter();
+                    if (!Showed(filtering, ref why))
+                    {
+                        break;
+                    }
+
+                    filtering.Name = "Layers in use";
+                    filtering.Rows[0].Name = "*";
+                    filtering.Rows[0].On = "On";
+                    filtering.AddRow();
+                    filtering.Rows[1].Freeze = "Freeze";
+                    var filterPropertiesWindow = new LayerFilterPropertiesWindow(filtering);
+                    (window, root) = (filterPropertiesWindow, filterPropertiesWindow.Body);
                     break;
                 default:
                     // A layer and a kind of object in the list, and the Layer line being made for the next one.

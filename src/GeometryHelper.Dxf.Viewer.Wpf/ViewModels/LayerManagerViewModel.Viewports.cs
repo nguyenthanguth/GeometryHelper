@@ -49,11 +49,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             private set => Set(ref _hasViewportColumns, value);
         }
 
-        /// <summary>Gets the width of the dialog: 1 400 with the VP columns, as the design of a layout draws it, else 900.</summary>
-        public double WindowWidth => HasViewportColumns ? 1400 : 900;
+        /// <summary>Gets the width of the dialog: the filter tree and the columns to Description make 1 380, 1 700 with the VP columns (the table scrolls sideways where they do not fit).</summary>
+        public double WindowWidth => HasViewportColumns ? 1700 : 1380;
 
-        /// <summary>Gets the height of the dialog: 660 with the VP columns, else 560.</summary>
-        public double WindowHeight => HasViewportColumns ? 660 : 560;
+        /// <summary>Gets the height of the dialog: 660 with the VP columns, else 600.</summary>
+        public double WindowHeight => HasViewportColumns ? 660 : 600;
+
+        /// <summary>Gets the narrowest the table is drawn: the width of its columns, 1 090, and with the VP columns 1 820; in a window narrower than that the table scrolls sideways.</summary>
+        public double TableMinWidth => HasViewportColumns ? 1820 : 1090;
 
         /// <summary>Gets whether a viewport is there for the VP columns to act on: one worked through, or one alone selected on the paper.</summary>
         public bool HasTargetViewport => _target != null;
@@ -190,6 +193,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _target = CadViewportLayerEditor.TargetViewport(Document);
             Raise(nameof(WindowWidth));
             Raise(nameof(WindowHeight));
+            Raise(nameof(TableMinWidth));
             Raise(nameof(HasTargetViewport));
             Raise(nameof(HasNamedPlotStyles));
             Raise(nameof(Title));

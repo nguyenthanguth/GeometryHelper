@@ -83,6 +83,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             RenameCommand = _rename;
             Document.Changed += OnChanged;
             Document.ActiveViewportChanged += OnActiveViewportChanged;
+            Document.LayerFilterChanged += OnLayerFilterChanged;
 
             // Everything changed while the dialog is open is one set for LAYERP, as AutoCAD's Layer Properties Manager makes one.
             Document.BeginLayerSet();
@@ -290,10 +291,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             Document.Changed -= OnChanged;
             Document.ActiveViewportChanged -= OnActiveViewportChanged;
+            Document.LayerFilterChanged -= OnLayerFilterChanged;
 
             if (!_disposed)
             {
                 _disposed = true;
+
+                // The filter chosen is kept in the drawing as the current one, as AutoCAD keeps it, one undo step where it changed.
+                Document.KeepLayerFilter();
                 Document.EndLayerSet();
             }
         }
@@ -325,6 +330,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(n => n, StringComparer.Ordinal)
                 .ToList();
+            RefreshFilters();
+            HashSet<string> shown = CadLayerFilters.Visible(
+                Document.Database,
+                Document.LayerFilterPath,
+                Document.InvertLayerFilter,
+                _target
+            );
+            int total = layers.Count;
+            layers = layers.Where(l => shown.Contains(l.Name)).ToList();
+            FilterStatus = StatusOf(layers.Count, total);
             Rows.Clear();
 
             foreach (CadLayerInfo layer in layers)
@@ -355,6 +370,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 if (record != null)
                 {
                     row.ReadViewport(record, _target);
+                    row.ReadColumns(record, Document.Database);
                 }
 
                 Rows.Add(row);

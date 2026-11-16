@@ -474,6 +474,66 @@ namespace GeometryHelper.Dxf.Viewer
             );
         }
 
+        /// <summary>The transparency of a layer as AutoCAD's column shows it, in per cent from 0 (solid) to 90: alpha 127 is 50.</summary>
+        /// <param name="transparency">The transparency, by alpha.</param>
+        /// <returns>The per cent, rounded; 0 for one that is not by alpha.</returns>
+        internal static int TransparencyPercent(DxfTransparency transparency) =>
+            transparency.IsByAlpha
+                ? (int)Math.Round((255 - transparency.Alpha) * 100.0 / 255.0, MidpointRounding.AwayFromZero)
+                : 0;
+
+        /// <summary>
+        /// Gives a layer a plot style of the drawing's plot style names, as -LAYER PStyle and the Plot Style column do. Refused in
+        /// a drawing plotted by colour, where AutoCAD names the plot style of a layer by its colour (<c>Color_30</c>) and takes no
+        /// other, and for a name the drawing has not.
+        /// </summary>
+        /// <param name="document">The document.</param>
+        /// <param name="name">The layer's name.</param>
+        /// <param name="plotStyle">The plot style's name, as Normal, letters of either case the same.</param>
+        /// <returns>What came of it.</returns>
+        public static CadEditResult SetPlotStyle(CadDocument document, string name, string plotStyle)
+        {
+            DxfLayerTableRecord layer = Find(document, name, out CadEditResult refused);
+
+            if (layer == null)
+            {
+                return refused;
+            }
+
+            if (document.Database.PlotStyleMode)
+            {
+                return Refuse("The drawing plots by colour: a layer has no plot style of its own to set.");
+            }
+
+            if (layer.IsDependent)
+            {
+                return Refuse("A layer of an external reference takes its plot style from the drawing it comes from.");
+            }
+
+            string wanted = (plotStyle ?? string.Empty).Trim();
+            DxfDBDictionary names = document.Database.PlotStyleNameDictionary;
+            string set = names
+                ?.Select(e => e.Key)
+                .FirstOrDefault(k => string.Equals(k, wanted, StringComparison.OrdinalIgnoreCase));
+
+            if (set == null)
+            {
+                return Refuse("The drawing has no plot style named \"" + wanted + "\".");
+            }
+
+            string layerName = layer.Name;
+            var record = new CadEditRecord(
+                CadEditRecordKind.TableChanged,
+                null,
+                "Plot style of " + layerName,
+                layer.PlotStyleName,
+                set
+            );
+            return document.ApplyEdit("LAYER", new[] { record }, s =>
+                s.Database.LayerTable[layerName].PlotStyleName = set
+            );
+        }
+
         /// <summary>Sets whether a layer is plotted, as -LAYER Plot does; one of an external reference marked 8, as AutoCAD 2021 marks it.</summary>
         /// <param name="document">The document.</param>
         /// <param name="name">The layer's name.</param>

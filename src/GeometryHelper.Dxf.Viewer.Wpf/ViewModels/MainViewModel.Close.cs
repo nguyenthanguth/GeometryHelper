@@ -212,6 +212,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             file.Session.UiRequested -= OnUiRequested;
             document.Changed -= OnDocumentChanged;
             document.ActiveViewportChanged -= OnActiveViewportChanged;
+            document.LayerFilterChanged -= OnLayerFilterChanged;
             StopWatchingReferences(document);
             document.Xrefs.Dispose();
             bool wasCurrent = file == _current;

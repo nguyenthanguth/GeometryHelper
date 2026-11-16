@@ -602,6 +602,89 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Gets or sets the name of the plot style of the layer, as AutoCAD's <c>PlotStyleName</c>: the entry of the drawing's plot
+        /// style names (ACAD_PLOTSTYLENAME) its group 390 points at, as Normal; empty where it points at none or the layer is
+        /// made in code and not added yet. A drawing plotted by colour (<see cref="DxfDatabase.PlotStyleMode"/>) names its
+        /// plot styles by the layer's colour (Color_30 for the colour 30), which the record does not keep: the entry it
+        /// points at is still Normal there.
+        /// </summary>
+        /// <value>Set, a name of the dictionary of plot style names, as Normal, written as the handle of its entry; the name the layer has changes nothing.</value>
+        /// <exception cref="ArgumentNullException">Thrown when the name set is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the drawing's dictionary of plot style names has no entry of the name set.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the layer is erased or in no file, when the drawing plots by colour
+        /// (<see cref="DxfDatabase.PlotStyleMode"/>), as AutoCAD answers ePlotStyleInColorDependentMode, or when the file is older than
+        /// R2000 (AC1015), which has no plot styles of layers.</exception>
+        public string PlotStyleName
+        {
+            get
+            {
+                string handle = Item?.File.ValueOf(Item, 390)?.Trim();
+                DxfDBDictionary names = Item?.File.Database?.PlotStyleNameDictionary;
+
+                if (string.IsNullOrEmpty(handle) || names == null)
+                {
+                    return string.Empty;
+                }
+
+                foreach (DxfDBDictionaryEntry entry in names)
+                {
+                    if (
+                        entry.Value != null
+                        && string.Equals(entry.Value.Handle, handle, StringComparison.OrdinalIgnoreCase)
+                    )
+                    {
+                        return entry.Key;
+                    }
+                }
+
+                return string.Empty;
+            }
+            set
+            {
+                if (value == null)
+                {
+                    throw new ArgumentNullException(nameof(value));
+                }
+
+                if (Item == null || IsErased)
+                {
+                    throw new InvalidOperationException("The layer is in no file, or erased, and takes no plot style.");
+                }
+
+                Since(1015, "plot styles of layers", "R2000 (AC1015)", true);
+
+                if (Item.File.Database == null || Item.File.Database.PlotStyleMode)
+                {
+                    throw new InvalidOperationException(
+                        "The drawing plots by colour, and a layer takes no plot style of its own, as AutoCAD answers ePlotStyleInColorDependentMode."
+                    );
+                }
+
+                DxfDBDictionary names = Item.File.Database.PlotStyleNameDictionary;
+                DxfDBObject entry = names != null && names.Contains(value.Trim()) ? names.GetAt(value.Trim()) : null;
+
+                if (entry?.Handle == null)
+                {
+                    throw new ArgumentException(
+                        "The drawing has no plot style named " + value.Trim() + ".",
+                        nameof(value)
+                    );
+                }
+
+                if (
+                    !string.Equals(
+                        Item.File.ValueOf(Item, 390)?.Trim(),
+                        entry.Handle,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                {
+                    Set(390, entry.Handle);
+                }
+            }
+        }
+
+        /// <summary>
         /// Gets whether the layer is in use, as AutoCAD's <c>IsUsed</c> after <see cref="DxfLayerTable.GenerateUsageData"/>:
         /// layer 0, Defpoints and the current layer (<c>$CLAYER</c>) always; any other where an entity is on it, in model space,
         /// paper space or a block, a vertex or an attribute among them, those added since the drawing was opened too. The layers

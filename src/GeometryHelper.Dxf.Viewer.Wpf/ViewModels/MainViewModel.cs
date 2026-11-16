@@ -1301,6 +1301,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     other.Document.Changed -= OnDocumentChanged;
                     other.Document.ActiveViewportChanged -= OnActiveViewportChanged;
+                    other.Document.LayerFilterChanged -= OnLayerFilterChanged;
                 }
 
                 _files[full] = _current;
@@ -1636,6 +1637,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             document.FontMissing += (s, e) => Say(e.Message);
             document.Changed += OnDocumentChanged;
             document.ActiveViewportChanged += OnActiveViewportChanged;
+            document.LayerFilterChanged += OnLayerFilterChanged;
             WatchReferences(document);
         }
 
@@ -2111,9 +2113,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        /// <summary>The layer filter, its inversion or its use for the layer box changed: the box lists the layers again.</summary>
+        private void OnLayerFilterChanged(object sender, EventArgs e)
+        {
+            if (_current != null && ReferenceEquals(sender, _current.Document))
+            {
+                Layers = SortedLayers(_current.Document);
+                Raise(nameof(CurrentLayer));
+            }
+        }
+
         private static IReadOnlyList<CadLayerInfo> SortedLayers(CadDocument document)
         {
-            var layers = document.Layers.ToList();
+            var layers = document.ToolbarLayers().ToList();
             layers.Sort(
                 (a, b) =>
                 {

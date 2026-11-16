@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace GeometryHelper.Dxf.Viewer.Wpf
@@ -20,10 +23,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             DataContext = model;
 
             // Wider in a layout, for the VP columns.
-            Width = model.WindowWidth;
-            Height = model.WindowHeight;
+            Width = Math.Min(model.WindowWidth, Math.Max(800, SystemParameters.WorkArea.Width - 16));
+            Height = Math.Min(model.WindowHeight, Math.Max(480, SystemParameters.WorkArea.Height - 16));
             model.PickColor = dialog => SelectColorWindow.Pick(this, dialog);
             model.PickLinetype = dialog => SelectLinetypeWindow.Pick(this, dialog);
+            model.EditFilter = dialog => LayerFilterPropertiesWindow.Ask(this, dialog);
             model.ShowMessage = message =>
             {
                 if (message == CadQuestionTexts.RenameRefused)
@@ -50,6 +54,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private LayerRowViewModel _clicked;
         private int _clickedAt;
         private bool _committing;
+
+        // Where the left button went down on a layer's name, for a drag of the layers onto a group filter.
+        private Point _dragFrom;
+
+        /// <summary>The layers dragged from the list onto a group filter: the names, as a string array.</summary>
+        internal const string LayerNamesFormat = "GeometryHelper.Dxf.Viewer.LayerNames";
 
         /// <summary>F2 on the table: the chosen layer's name cell opened, as in AutoCAD's Layer manager.</summary>
         private void OnTableKey(object sender, KeyEventArgs e)
@@ -79,6 +89,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
+            _dragFrom = e.GetPosition(null);
             int now = Environment.TickCount;
             bool slowSecond =
                 row == _clicked && row == Model.SelectedRow && unchecked(now - _clickedAt) > DoubleClickMilliseconds;
@@ -171,5 +182,174 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         private void OnClose(object sender, RoutedEventArgs e) => Close();
+
+        /// <summary>A layer's name dragged: the layers chosen, or the layer alone where it is not among them, go onto a group filter of the tree.</summary>
+        private void OnNameMove(object sender, MouseEventArgs e)
+        {
+            if (
+                e.LeftButton != MouseButtonState.Pressed
+                || !(((FrameworkElement)sender).DataContext is LayerRowViewModel row)
+                || (
+                    Math.Abs(e.GetPosition(null).X - _dragFrom.X) < SystemParameters.MinimumHorizontalDragDistance
+                    && Math.Abs(e.GetPosition(null).Y - _dragFrom.Y) < SystemParameters.MinimumVerticalDragDistance
+                )
+            )
+            {
+                return;
+            }
+
+            List<string> names = row.IsChosen ? Model.ChosenNames() : new List<string> { row.Name };
+            DragDrop.DoDragDrop(
+                (DependencyObject)sender,
+                new DataObject(LayerNamesFormat, names.ToArray()),
+                DragDropEffects.Copy
+            );
+        }
+
+        /// <summary>A layer dragged over a node of the filter tree: allowed over a group filter.</summary>
+        private void OnFilterDragOver(object sender, DragEventArgs e)
+        {
+            bool group = ((FrameworkElement)sender).DataContext is LayerFilterNodeViewModel node && node.IsGroup;
+            e.Effects = group && e.Data.GetDataPresent(LayerNamesFormat) ? DragDropEffects.Copy : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        /// <summary>Layers dropped on a node of the filter tree: added to it where it is a group filter.</summary>
+        private void OnFilterDrop(object sender, DragEventArgs e)
+        {
+            e.Handled = true;
+
+            if (
+                ((FrameworkElement)sender).DataContext is LayerFilterNodeViewModel node
+                && e.Data.GetData(LayerNamesFormat) is string[] names
+            )
+            {
+                Model.AddLayersToGroup(node, names);
+            }
+        }
+
+        /// <summary>A node chosen in the tree: its layers are listed.</summary>
+        private void OnFilterSelected(object sender, RoutedPropertyChangedEventArgs<object> e)
+        {
+            if (e.NewValue is LayerFilterNodeViewModel node)
+            {
+                Model.SelectedFilter = node;
+            }
+        }
+
+        /// <summary>F2 and Delete on the tree.</summary>
+        private void OnFilterKey(object sender, KeyEventArgs e)
+        {
+            if (e.OriginalSource is TextBox)
+            {
+                return;
+            }
+
+            if (e.Key == Key.F2)
+            {
+                Model.BeginRenameFilter(Model.SelectedFilter);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Delete)
+            {
+                Model.DeleteFilter(Model.SelectedFilter);
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>A double click on the name of a filter of the drawing opens it for a new name.</summary>
+        private void OnFilterNameDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ClickCount == 2 && ((FrameworkElement)sender).DataContext is LayerFilterNodeViewModel node)
+            {
+                if (node.Kind == LayerFilterNodeKind.Property)
+                {
+                    Model.ChangeFilter(node);
+                }
+                else
+                {
+                    Model.BeginRenameFilter(node);
+                }
+
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>Enter keeps the name typed in the tree, Esc the old one.</summary>
+        private void OnFilterNameBoxKey(object sender, KeyEventArgs e)
+        {
+            if (!(((FrameworkElement)sender).DataContext is LayerFilterNodeViewModel node))
+            {
+                return;
+            }
+
+            if (e.Key == Key.Enter)
+            {
+                CommitFilterName(node, (TextBox)sender);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Escape)
+            {
+                Model.CancelRenameFilter(node);
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>A click elsewhere keeps the name typed in the tree, as Enter does.</summary>
+        private void OnFilterNameBoxLeft(object sender, KeyboardFocusChangedEventArgs e)
+        {
+            if (
+                ((FrameworkElement)sender).DataContext is LayerFilterNodeViewModel node
+                && node.IsRenaming
+                && !_committing
+            )
+            {
+                CommitFilterName(node, (TextBox)sender);
+            }
+        }
+
+        private void CommitFilterName(LayerFilterNodeViewModel node, TextBox box)
+        {
+            _committing = true;
+
+            try
+            {
+                if (!Model.CommitRenameFilter(node) && node.IsRenaming)
+                {
+                    box.Focus();
+                    box.SelectAll();
+                }
+            }
+            finally
+            {
+                _committing = false;
+            }
+        }
+
+        /// <summary>A layer chosen in the right-click item Add to Group Filter: the layers chosen go into that group.</summary>
+        private void OnAddToGroupFilter(object sender, RoutedEventArgs e)
+        {
+            if (((FrameworkElement)sender).DataContext is LayerFilterNodeViewModel node)
+            {
+                Model.AddLayersToGroup(node, Model.ChosenNames());
+            }
+        }
+
+        /// <summary>A value chosen from the list of a cell that can be typed in: set at once, not when the cell is left.</summary>
+        private void OnCellDropDownClosed(object sender, EventArgs e) =>
+            ((ComboBox)sender).GetBindingExpression(ComboBox.TextProperty)?.UpdateSource();
+
+        /// <summary>Enter in a cell that is typed in: its value set, as leaving the cell sets it.</summary>
+        private void OnCellKey(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter)
+            {
+                return;
+            }
+
+            DependencyProperty property = sender is ComboBox ? ComboBox.TextProperty : TextBox.TextProperty;
+            ((FrameworkElement)sender).GetBindingExpression(property)?.UpdateSource();
+            e.Handled = true;
+        }
     }
 }
