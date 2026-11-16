@@ -674,6 +674,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowSelectSimilarSettings = dialog =>
                     SelectSimilarSettingsWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowTextWindow = dialog => TextWindow.ShowText(Window.GetWindow(this), dialog);
+                _model.ShowOverkill = dialog => OverkillWindow.Show(Window.GetWindow(this), dialog);
                 _model.AskKeepMTextChanges = question =>
                     MTextUnsavedChangesWindow.Ask(Window.GetWindow(this), question);
                 _model.ShowParagraph = dialog => ParagraphWindow.Show(Window.GetWindow(this), dialog);

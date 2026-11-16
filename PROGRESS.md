@@ -753,8 +753,8 @@ Wave 1 (High):
 - [x] (draw1) WIPEOUT command: points, Polyline (Erase polyline?), Frames (M)
 - [x] COPY Array (count, Fit) and mOde Single/Multiple (modify1)
 - [x] SELECTSIMILAR (with SEttings) and ADDSELECTED; the canvas menu items enabled (modify1)
-- [ ] (modify2, running) OVERKILL (duplicates and overlaps of lines, arcs, polyline segments; the dialog) (M)
-- [ ] (modify2, running) Path array (ARRAYPATH): Divide/Measure, Align items, Z direction, Base point, Tangent direction (M)
+- [x] (modify2) OVERKILL (duplicates and overlaps of lines, arcs, polyline segments; the dialog) (M)
+- [x] (modify2) Path array (ARRAYPATH): Divide/Measure, Align items, Z direction, Base point, Tangent direction (M)
 - [x] (draw1) OOPS (S); left: ERASE keeps a copy for OOPS (30 000 lines 0.39 -> 0.74 s), WIPEOUT of a heavy 2D POLYLINE
 - [x] (text1) MTEXT Background Mask dialog and the editor's Mask button (S)
 - [x] (text1) SCALETEXT, JUSTIFYTEXT, TXT2MTXT (S/S/M)

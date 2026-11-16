@@ -1855,6 +1855,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "TEXTSCR":
                     OnTextWindowRequested(e);
                     break;
+                case "OVERKILL":
+                    OnOverkillRequested(e);
+                    break;
                 case "PLOT":
                 case "PAGESETUP":
                     OnPlotRequested(sender, e);

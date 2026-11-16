@@ -148,7 +148,10 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("ARRAY", ArrayAny, true));
             registry.Add(new CadCommand("ARRAYRECT", ArrayRectangular, true));
             registry.Add(new CadCommand("ARRAYPOLAR", ArrayPolar, true));
+            registry.Add(new CadCommand("ARRAYPATH", ArrayPathCommand, true));
             registry.Add(new CadCommand("-ARRAY", ArrayTyped, true));
+            registry.Add(new CadCommand("OVERKILL", OverkillDialog, true));
+            registry.Add(new CadCommand("-OVERKILL", OverkillTyped, true));
             registry.Add(new CadCommand("ALIGN", Align, true));
             registry.Add(new CadCommand("TRIM", Trim));
             registry.Add(new CadCommand("EXTEND", ExtendCommand));

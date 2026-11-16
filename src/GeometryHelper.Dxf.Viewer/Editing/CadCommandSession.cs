@@ -174,6 +174,12 @@ namespace GeometryHelper.Dxf.Viewer
         public CadProgress Progress { get; set; } = new CadProgress();
 
         /// <summary>
+        /// Gets or sets the settings OVERKILL and -OVERKILL keep from one run to the next, as AutoCAD keeps them: the
+        /// tolerance, the properties ignored, and what is done with polylines and with overlaps. The defaults until changed.
+        /// </summary>
+        public CadOverkillSettings Overkill { get; set; } = new CadOverkillSettings();
+
+        /// <summary>
         /// Gets or sets the properties MATCHPROP copies, as the check boxes of its Property Settings dialog: every one until
         /// changed, as in AutoCAD. With Layer alone left checked, MATCHPROP moves the objects to the source's layer and keeps
         /// their colour.

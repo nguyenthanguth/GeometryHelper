@@ -8,8 +8,9 @@ namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
     /// ARRAY, ARRAYRECT, ARRAYPOLAR and -ARRAY as AutoCAD 2021 asks them on the command line, each making its copies as
-    /// separate objects, as AutoCAD does with ARRAYASSOCIATIVITY 0: associative arrays and path arrays are not built. The array
-    /// is made when the options end (eXit or Enter), one undo step; Esc makes none.
+    /// separate objects, as AutoCAD does with ARRAYASSOCIATIVITY 0: associative arrays are not built (the path type, ARRAYPATH,
+    /// is in <c>CadCommands.PathArray.cs</c>). The array is made when the options end (eXit or Enter), one undo step; Esc makes
+    /// none.
     /// </summary>
     internal static partial class CadCommands
     {
@@ -59,14 +60,9 @@ namespace GeometryHelper.Dxf.Viewer
                 "Rectangular"
             );
 
-            if (c.Input.Is("PAth"))
-            {
-                c.Write("Path arrays are not built yet: use Rectangular or POlar.");
-                yield break;
-            }
-
             IEnumerable<CadPrompt> rest =
-                c.Input.Is("POlar") ? PolarArray(c)
+                c.Input.Is("PAth") ? PathArray(c)
+                : c.Input.Is("POlar") ? PolarArray(c)
                 : c.Input.Kind == CadInputKind.Keyword ? RectangularArray(c)
                 : null;
 
