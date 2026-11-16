@@ -429,7 +429,7 @@ User note 2026-11-12 evening (note.md 1-14):
 - [x] XCLIP follow-ups 3 (xclip4): Clipdepth cuts circles, arcs and lightweight polylines as AutoCAD (lines were cut),
       through nested INSERTs, MINSERT cells and external references; a tilted clip shows the ring at the height an
       entity lies flat; generate Polyline on a tilted clip as AutoCAD (normal, elevation, vertices)
-- [ ] XCLIP follow-ups 4: the flip arrow's click and direction (GUI); ellipse, spline, hatch, text, dimension, table and
+- [ ] (xclip5, running) XCLIP follow-ups 4: the flip arrow's click and direction (GUI); ellipse, spline, hatch, text, dimension, table and
       heavy POLYLINE still drawn whole across a depth plane; a non-flat entity under a tilted clip keeps the block-plane
       ring (AutoCAD cuts by the prism); a cut polyline restarts its linetype per piece; DrawXref's ring when an xref's
       block origin differs from INSBASE; a nested MINSERT under planes not probed (S)
@@ -528,10 +528,13 @@ the ones wanted.
 - [x] Dimension follow-ups 16 (dims16): one angle-band rule from 2.5 landings out, with a sagitta correction table by
       direction (e8 106 -> 63, a7 58 -> 29, aq 130 -> 93, e11 92 -> 19, e13 66 -> 19); level words inside a circle by a
       new KeepsToLine law (t9 34 -> 19, t10 216 -> 80, t11 554 -> 140); a2's SHX probe fixed; e1 2 -> 1
-- [ ] (dims18, running) Dimension follow-ups 17: te5 10 -> 14 and te3 6 -> 7 (R240 Arial probes within 0.03 of the edge), d1 66 -> 70
-      (SHX jump probes below the arc middle), ta8 0 -> 1 after dims16; the table fitted at one 60-degree angle along +X
-      (other orientations extrapolated); arcs nearer than 2.5 landings; d2 R6/R7 ties, t6's turned diameter, words on an
-      aligned extension line (S)
+- [x] Dimension follow-ups 17 (dims18): the arc point of DIMTEDIT words by the nearer ray (e3 3 479 -> 40, te5 2 337 ->
+      10, d1 70 -> 11, p1 326 -> 4); the angular band read per first ray (13 first rays: 741 of 42 874 -> 43), faded as
+      1/radius past 16 landings, and fitted on arcs from 1.3 landings (near arcs 1 060 -> 415); 76 of 111 sets unchanged,
+      none with more pictures differing but te11 24 -> 26 and e1 1 -> 2
+- [ ] Dimension follow-ups 18: first-ray tables for angles of other sizes (90, 120, 30 degrees); the near table fitted
+      at a landing of 5.83 only (te11); d1's leader jump at the arc middle's height (11 left); d2 R6/R7 SHX on-landing
+      window; t6's turned diameter and words on an extension line at distance 0 (AutoCAD's rounding) (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
       ends in a fuzz join (20 cases to 1E-10) (S)
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in

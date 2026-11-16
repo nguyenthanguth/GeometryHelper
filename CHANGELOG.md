@@ -81,6 +81,24 @@ the shapes of the entities, which a display that does not keep them makes the he
 0.43 to 0.55 (.NET 8), their numbers being read again each time; the box of an arc (25 MB) and the string of each handle (32 MB, shared by the record, the items and the run).
 `DxfSpeed23Tests` (15) and `DisplaySpeed23Tests` (7).
 
+**FIXED.** The arc point of an angular dimension whose words are put by DIMTEDIT (or by Properties) is written as AutoCAD 2021 writes it. It stood where the dimension was
+made, a third of the way round from the first ray; AutoCAD writes two thirds where the point stands nearer the first ray than the second (as seen from the vertex, the short
+way round) and a third where it stands nearer the second, on the arc it was on under DIMTMOVE 1 and 2 and through the point itself under 0, for an angle of three points
+(group 10) and of two lines (group 16), the rays given either way round and for an angle past a half turn. An angle of 60 degrees from 0 with its words put at 215 degrees or at
+22.7 degrees has it at 40 degrees, put at 100 or 35 at 20; exactly between the rays (30 and 210 degrees) AutoCAD's own rounding decides. AutoCAD's pictures differing from ours:
+648 of three points and two lines under DIMTMOVE 0, 1 and 2 (p1) 326 before, 4 now; 576 with the rays the other way round and a reflex angle (p2) 151 and 17; the 558 pictures of
+the jump of the band at the height of an arc's middle (d1, SHX) 70 and 11, and in Arial (td1) 64 and 2; the 13 968 pictures of a ring of words round an arc of 240 out (e3) 3 479 and
+40 (26 of them at 210 degrees, between the rays).
+**CHANGED.** The leader of an angle's words put by DIMTEDIT under DIMTMOVE 1 is read on every arc from 1.3 landings out (a landing is half the words, a gap and an arrowhead), and
+by the band of AutoCAD 2021's pictures for each first ray. It was read by the rule from 2.5 landings out and by the fit before, and the table of the rule was fitted to an angle from 0
+degrees: a first ray at 30 to 330 degrees has AutoCAD draw the leader up to 2.5 sooner or later on some directions (709 of 36 278 probes wrong, "60°" put every 0.25 at 36
+directions round the angle at 30 out; 27 now) and an arc between 1.4 and 3.4 landings out is read by the table of the rule with a second one (1 238 wrong of 17 612 by the rule,
+1 060 by the fit, 415 now); the correction falls off as one over the radius beyond 16 landings out, where the 240 out arcs had too much of it. Leader presence differing from
+AutoCAD's pictures (the five exact directions left out): at 240 out e3 6 to 4 of 6 499 (Arial te3 7 to 4), e5 10 to 6 of 6 984 (te5 14 to 10); at 30 out e8 63 to 48 (te8 57 to
+50), aq 93 to 75 and taq 75 to 63 of 6 860, ta8 1 to 0 of 165; worse: e1 1 to 2 of 3 492 (a probe at 0.016 of the edge) and te11 24 to 26 of 6 984. The first rays at 15 degrees'
+steps (OrientedCorrections, 23 tables of 36 directions) were fitted to 79 000 probes: read from the 30 degrees' steps only, the 15 between them had 731 of 39 576 wrong and have
+275; at 60 out 161 of 13 192 and 81. Angles of other sizes were not probed. 76 of the 111 sets of AutoCAD pictures (the radius, diameter, arc length, linear and redraw sets, tar1 to 26, t1 to
+t11, d2 to d5, tw1 to 17, m2 to m6) are byte for byte what they were, the 35 that changed all hold an angle's words put by DIMTEDIT, and the pictures differing of those with an AutoCAD picture are the same or fewer (a5 18 to 17 of 2 938).
 **CHANGED.** The ACAD_TABLE of a table is written from its own bytes by `InsertRows`, `InsertRowsAndInherit`, `InsertColumns`, `InsertColumnsAndInherit`, `DeleteRows`,
 `DeleteColumns`, `SetRowHeight` and `SetColumnWidth`, where each wrote and then read again all of its 56 000 groups (931 cells) when the library had written the record
 whole before: each cell that comes out as it was is copied as it stands, the head and the cells made or changed are written, and the places of the cells are kept for the next

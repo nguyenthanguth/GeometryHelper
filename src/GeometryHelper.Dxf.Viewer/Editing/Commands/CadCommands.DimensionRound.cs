@@ -1042,12 +1042,18 @@ namespace GeometryHelper.Dxf.Viewer
         private static readonly double[] ExeReachLeft = { 1.65, 1.594, 1.429, 1.295, 1.149, 1.098, 1.134, 1.0 };
 
         // An arc this many landings out or more has the leader of its words read by WordsStayOnTheArc, a nearer one by the fit: the
-        // nearest arcs AutoCAD 2021 was probed on are 2.6 landings out (DIMSCALE 2 at 30 out).
-        private const double NearestArc = 2.5;
+        // nearest arcs AutoCAD 2021 was probed on for the rule are 1.4 landings out (8 out for "60°" of 2.5-high words in SHX, a
+        // landing of 5.83).
+        private const double NearestArc = 1.3;
+
+        // The arcs this many landings out or more need nothing of NearCorrections: the table of ArcCorrections was fitted at 30 out,
+        // 5.14 landings of 5.83.
+        private const double FarArc = 5.14;
 
         // What AutoCAD 2021's band of an angle's words has over WordsStayOnTheArc's distances, in units of the landing's sagitta
         // (room * room / radius), by the direction of the point from the vertex at every 10 degrees from 0, the point inside the
-        // circle or outside it; read between the nodes. Chosen to leave the fewest probes wrong (see WordsStayOnTheArc).
+        // circle or outside it; read between the nodes, for an angle whose first ray stands at 0 degrees (OrientedCorrections has
+        // the others). Chosen to leave the fewest probes wrong (see WordsStayOnTheArc).
         private static readonly double[,] ArcCorrections =
         {
             { -0.05, -0.10 }, // 0
@@ -1088,7 +1094,12 @@ namespace GeometryHelper.Dxf.Viewer
             { 0.00, 0.10 }, // 350
         };
 
-        private static double ArcCorrection(GeoPoint2 vertex, GeoPoint2 at, bool inside)
+        /// <summary>
+        /// The row of the table for a first ray, by the direction of a point from the vertex and the side of the circle, read
+        /// between the nodes of 10 degrees and between the first rays of 15: the table of ArcCorrections for a first ray at 0,
+        /// OrientedCorrections at 15, 30, ... 345 degrees.
+        /// </summary>
+        private static double ArcCorrection(GeoPoint2 vertex, GeoPoint2 at, bool inside, double firstRay)
         {
             int side = inside ? 0 : 1;
             double degrees = Math.Atan2(at.Y - vertex.Y, at.X - vertex.X) * 180.0 / Math.PI;
@@ -1101,9 +1112,44 @@ namespace GeometryHelper.Dxf.Viewer
             double place = degrees / 10.0;
             int i = Math.Min((int)Math.Floor(place), ArcCorrections.GetLength(0) - 1);
             double t = place - i;
-            return ArcCorrections[i, side] * (1.0 - t)
-                + ArcCorrections[(i + 1) % ArcCorrections.GetLength(0), side] * t;
+            double ray = firstRay * 180.0 / Math.PI / 15.0;
+            ray -= 24.0 * Math.Floor(ray / 24.0);
+            int one = Math.Min((int)Math.Floor(ray), 23);
+            double between = ray - one;
+            double Row(int slice) =>
+                slice == 0
+                    ? ArcCorrections[i, side] * (1.0 - t) + ArcCorrections[(i + 1) % 36, side] * t
+                    : OrientedCorrections[(slice - 1) * 36 + i, side] * (1.0 - t)
+                        + OrientedCorrections[(slice - 1) * 36 + (i + 1) % 36, side] * t;
+
+            return between < 1E-9 ? Row(one) : Row(one) * (1.0 - between) + Row((one + 1) % 24) * between;
         }
+
+        /// <summary>
+        /// The correction an arc under <see cref="FarArc"/> landings out has besides (NearCorrections by direction, read between
+        /// the nodes of 10 degrees), in units of the landing's sagitta.
+        /// </summary>
+        private static double NearCorrection(GeoPoint2 vertex, GeoPoint2 at, bool inside)
+        {
+            int side = inside ? 0 : 1;
+            double degrees = Math.Atan2(at.Y - vertex.Y, at.X - vertex.X) * 180.0 / Math.PI;
+
+            if (degrees < 0.0)
+            {
+                degrees += 360.0;
+            }
+
+            double place = degrees / 10.0;
+            int i = Math.Min((int)Math.Floor(place), NearCorrections.GetLength(0) - 1);
+            double t = place - i;
+            return NearCorrections[i, side] * (1.0 - t)
+                + NearCorrections[(i + 1) % NearCorrections.GetLength(0), side] * t;
+        }
+
+        // The correction above is in full on arcs up to this many landings out and falls off as one over the radius beyond: the
+        // 240 out arcs of AutoCAD 2021 (43 landings of 5.6) have 0.37 of it: the table fitted at 30 out left 6 of 6 499 probes
+        // wrong (Arial 7) and 10 of 6 984 (Arial 14) there, where 0.37 of it leaves 4 (Arial 4) and 6 (Arial 10).
+        private const double FullCorrection = 16.0;
 
         // How much of the room the symbol takes on wide sweeps (AngularLaidOut, symbolBend) is lost for each unit DIMGAP is past
         // half the words' height, and gained for each unit short of it.
@@ -1147,7 +1193,24 @@ namespace GeometryHelper.Dxf.Viewer
         /// 106 of 6 984 (12 styles) and 63 (Arial 103 and 57), 58 of 5 670 and 29 (Arial 82 and 17), 130 of 6 860 and 93 (Arial
         /// 108 and 75); 38 out 66 of 6 499 and 19, 45 out 92 and 19 of 6 984 (Arial 75 and 24), 60 out 69 and 21, 90 out 28 and 6,
         /// 240 out 8 and 6 (Arial 6 and 7; the 12 styles 18 and 10, Arial 10 and 14: probes within 0.03 of the edge, where the
-        /// correction is least sure), and 2 and 1 of the 3 492 along 240 out.
+        /// correction is least sure; <see cref="FullCorrection"/> takes them to 4, 4, 6 and 10), and 2 and 1 of the 3 492 along
+        /// 240 out (2 now).
+        /// </para>
+        /// <para>
+        /// Under 5.1 landings out (<see cref="FarArc"/>) the table of <see cref="NearCorrections"/> and the scalars of
+        /// <see cref="NearNarrowing"/> are added in, times how far the landing is over the radius past 1 / 5.14; fitted to AutoCAD
+        /// 2021's pictures of an angle from 0 at 8, 10, 12, 14, 16 and 20 out (1.4 to 3.4 landings of SHX's 5.83), 17 612 probes:
+        /// 1 238 wrong with the first table alone, 1 060 by the fit of the nearer arcs, 415 now. The arcs of 30 out with a longer
+        /// landing have it too: e8 63 to 48 of 6 984, aq 93 to 75 and taq 75 to 63 of 6 860.
+        /// </para>
+        /// <para>
+        /// The tables are those of an angle whose first ray stands at 0 degrees; the band of one that stands elsewhere is another
+        /// (up to 2.5 wider or 1.75 narrower on some directions, in blocks that hold over several first rays): the table of
+        /// <see cref="OrientedCorrections"/> for each first ray at 15 degrees' steps (<paramref name="firstRay"/>, read linearly
+        /// between them) replaces ArcCorrections, fitted to 79 000 probes at 30 out. The probes wrong: 709 of 36 278 (first rays
+        /// at 30 to 330 degrees) are 27, 741 of 42 874 (at 15 degrees' steps from 0) are 43; read from the first rays of 30
+        /// degrees' steps only, the 15 between them had 731 of 39 576 and have 275; at 60 out, 161 of 13 192 and 81. Angles of
+        /// other sizes were not probed.
         /// </para>
         /// </remarks>
         private static bool WordsStayOnTheArc(
@@ -1157,7 +1220,8 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 at,
             double room,
             double height,
-            double beyond
+            double beyond,
+            double firstRay
         )
         {
             double lift =
@@ -1227,7 +1291,20 @@ namespace GeometryHelper.Dxf.Viewer
                 inside ? (at.X < vertex.X ? -1.6 : 1.0)
                 : at.X < vertex.X ? -0.7
                 : -0.9;
-            double correction = (ArcCorrection(vertex, at, inside) + narrowing * lower) * room * room / radius;
+            double sagitta = room * room / radius;
+            double correction =
+                (ArcCorrection(vertex, at, inside, firstRay) + narrowing * lower)
+                * sagitta
+                * Math.Min(1.0, FullCorrection * room / radius);
+            double nearness = Math.Max(0.0, room / radius - 1.0 / FarArc);
+
+            if (nearness > 0.0)
+            {
+                int quarter = (inside ? 0 : 2) + (at.X < vertex.X ? 0 : 1);
+                correction +=
+                    (NearCorrection(vertex, at, inside) + NearNarrowing[quarter] * lower) * sagitta * nearness;
+            }
+
             return Math.Min(best, Sum((low + high) / 2.0)) <= 2.0 * (room + beyond) - 0.04 + correction + 1E-9;
         }
 
@@ -1708,7 +1785,7 @@ namespace GeometryHelper.Dxf.Viewer
                                 ? offArc > StraightEdge(6.356, 0.48, scale, width, gap, arrow, beyond, height)
                                     || offArc < -StraightEdge(5.831, 0.456, scale, width, gap, arrow, beyond, height)
                             : !arcLength && radius >= NearestArc * landingLen
-                                ? !WordsStayOnTheArc(vertex, radius, start, at, landingLen, height, beyond)
+                                ? !WordsStayOnTheArc(vertex, radius, start, at, landingLen, height, beyond, from)
                             : offArc > outerEdge || offArc < -innerEdge
                         )
                     )

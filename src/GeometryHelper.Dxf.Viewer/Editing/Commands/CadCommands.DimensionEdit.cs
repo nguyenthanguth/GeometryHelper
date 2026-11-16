@@ -613,7 +613,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// Moves the words of a dimension to a point, as AutoCAD 2021's DIMTEDIT moves them: a linear one's dimension line moved
         /// to run through the point where its DIMTMOVE is 0, the words above it there (on it, the line broken, for DIMTAD 0),
         /// and for 1 and 2 its words by the point, the line staying (see <see cref="PlaceMoved"/>); an angular one's arc through the point where it is 0, the words standing on
-        /// the arc there, above it as they read; a radius's or a diameter's words slid along its line, which stays, to where the
+        /// the arc there, above it as they read (and under every DIMTMOVE its arc point two thirds round from its first ray where the point
+        /// is nearer that ray than the second, else a third, see <see cref="ArcPointByWords"/>); a radius's or a diameter's words slid along its line, which stays, to where the
         /// point falls on it for DIMTMOVE 0 and 1 under DIMATFIT 3, and put at the point itself for 2; its line turned toward the
         /// point under DIMATFIT 0 to 2 at DIMTMOVE 0 (see <see cref="SettleRadial"/>); an ordinate's leader run to the words, with
         /// a jog, for DIMTMOVE 0 and 1. A radius of 20 at 30 degrees whose words are moved to 50 out at 60 degrees has them 43.3
@@ -626,21 +627,10 @@ namespace GeometryHelper.Dxf.Viewer
             switch (dimension)
             {
                 case DxfPoint3AngularDimension three when withLine:
-                    three.ArcPoint = P3(ArcUnder(P2(three.CenterPoint), P2(three.ArcPoint), at, 0.0));
+                    three.ArcPoint = ArcPointByWords(dimension, three.ArcPoint, at, true);
                     break;
                 case DxfLineAngularDimension2 two when withLine:
-                    if (
-                        Meet(
-                            new DxfLine(two.XLine1Start, two.XLine1End),
-                            new DxfLine(two.XLine2Start, two.XLine2End),
-                            new Tolerance(1E-9, 1E-9),
-                            out GeoPoint2 vertex
-                        )
-                    )
-                    {
-                        two.ArcPoint = P3(ArcUnder(vertex, P2(two.ArcPoint), at, 0.0));
-                    }
-
+                    two.ArcPoint = ArcPointByWords(dimension, two.ArcPoint, at, true);
                     break;
                 case DxfRadialDimension _ when withLine && dimension.Dimatfit != 3:
                 case DxfDiametricDimension _ when withLine && dimension.Dimatfit != 3:
@@ -664,6 +654,14 @@ namespace GeometryHelper.Dxf.Viewer
                             ? at
                             : OnLine(P2(diametric.FarChordPoint), P2(diametric.ChordPoint), at);
                     break;
+                case DxfPoint3AngularDimension three:
+                    three.ArcPoint = ArcPointByWords(dimension, three.ArcPoint, at, false);
+                    DragWords(dimension, at);
+                    return;
+                case DxfLineAngularDimension2 two:
+                    two.ArcPoint = ArcPointByWords(dimension, two.ArcPoint, at, false);
+                    DragWords(dimension, at);
+                    return;
                 default:
                     DragWords(dimension, at);
                     return;
@@ -671,6 +669,39 @@ namespace GeometryHelper.Dxf.Viewer
 
             dimension.TextPosition = P3(at);
             SettleRadial(dimension, at);
+        }
+
+        /// <summary>
+        /// The arc point of an angular dimension whose words are put by hand, as AutoCAD 2021 writes it after DIMTEDIT: two
+        /// thirds of the way round from the first ray where the point stands nearer that ray than the second (as seen from the
+        /// vertex, the short way round), a third where it stands nearer the second, on the arc it was on, or through the point
+        /// itself where <paramref name="through"/> says the arc moves to the words (DIMTMOVE 0). An angle of 60 degrees from 0
+        /// with its words put at 215 degrees or at 20 degrees has the arc point at 40 degrees, put at 40 degrees or at 180
+        /// degrees at 20; exactly between the rays (30 degrees and 210) AutoCAD's choice is its own rounding.
+        /// </summary>
+        private static GeoPoint3 ArcPointByWords(DxfDimension dimension, GeoPoint3 arc, GeoPoint2 at, bool through)
+        {
+            if (
+                !AngularRays(
+                    dimension,
+                    out GeoPoint2 vertex,
+                    out GeoPoint2 first,
+                    out GeoPoint2 second,
+                    out double radius
+                )
+                || (at - vertex).Length <= 1E-12
+            )
+            {
+                return arc;
+            }
+
+            double from = Math.Atan2(first.Y - vertex.Y, first.X - vertex.X);
+            double to = Math.Atan2(second.Y - vertex.Y, second.X - vertex.X);
+            double around = Math.Atan2(at.Y - vertex.Y, at.X - vertex.X);
+            bool nearFirst = ApartRoundTheCircle(around, from) < ApartRoundTheCircle(around, to);
+            double angle = from + CadGrips.Sweep(from, to) * (nearFirst ? 2.0 / 3.0 : 1.0 / 3.0);
+            double distance = through ? (at - vertex).Length : radius;
+            return new GeoPoint3(vertex.X + Math.Cos(angle) * distance, vertex.Y + Math.Sin(angle) * distance, arc.Z);
         }
 
         /// <summary>
