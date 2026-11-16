@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Dwg
 {
@@ -230,42 +231,18 @@ namespace GeometryHelper.Dwg
             _data.BitLong(Whole(groups, ref at, 90));
         }
 
-        /// <summary>The classes of the nodes of a constraint group that the writer knows (<c>DwgObjectReader.ReadConstraintNode</c>).</summary>
-        private static readonly HashSet<string> ConstraintNodes = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "AcConstrainedImplicitPoint",
-            "AcConstrainedBoundedLine",
-            "AcConstrainedArc",
-            "AcConstrainedCircle",
-            "AcConstrainedDatumLine",
-            "AcConstrained2PointsConstructionLine",
-            "AcPointCurveConstraint",
-            "AcPointCoincidenceConstraint",
-            "AcMidPointConstraint",
-            "AcCenterPointConstraint",
-            "AcColinearConstraint",
-            "AcParallelConstraint",
-            "AcPerpendicularConstraint",
-            "AcTangentConstraint",
-            "AcEqualLengthConstraint",
-            "AcEqualRadiusConstraint",
-            "AcFixedConstraint",
-            "AcHorizontalConstraint",
-            "AcDistanceConstraint",
-            "AcAngleConstraint",
-            "Ac3PointAngleConstraint",
-            "AcRadiusDiameterConstraint",
-        };
-
         /// <summary>Whether every node of the constraint group <paramref name="record"/> is of a class the writer knows.</summary>
         private static bool NodesAreKnown(DwgRecord record) =>
-            !record.Body.Exists(group => group.Key == 1 && !ConstraintNodes.Contains(group.Value.Trim()));
+            !record.Body.Exists(group => group.Key == 1 && !DxfConstraintNodes.IsKnown(group.Value.Trim()));
 
         /// <summary>
-        /// A group of constraints: its number and flag, its plane, the actions it owns that are written, in ascending order of
-        /// handle as a DWG keeps them (DXF lists them in the order of AutoCAD's own table), and its nodes. Before R2013 the
+        /// A group of constraints: its number and flag, its plane, the actions it owns that are written, in the order the groups
+        /// give (AutoCAD keeps them in an order of its own, no rule of their handles: a group read from a DWG and written again is
+        /// AutoCAD's own bytes, which the ascending order this once wrote was not), and its nodes. Before R2013 the
         /// layout is the first one, whichever the groups give: a group of the version 2 (the DXF of AutoCAD 2018) is taken
-        /// down to it as AutoCAD does when it saves such a drawing as R2010 or R2007.
+        /// down to it as AutoCAD does when it saves such a drawing as R2010 or R2007 (<see cref="Dxf.DxfVersionConverter"/>
+        /// has done so already in the text <c>DwgWriter</c> gives; a drawing parsed from the text of AC1032 and written
+        /// directly, as the tests do, comes here as it is).
         /// </summary>
         private void WriteAssocConstraintGroup()
         {
@@ -297,7 +274,6 @@ namespace GeometryHelper.Dwg
             }
 
             actions = Written(actions);
-            actions.Sort();
             int next = Whole(groups, ref at, 90);
 
             if (version2)
@@ -485,84 +461,6 @@ namespace GeometryHelper.Dwg
             public readonly List<KeyValuePair<int, string>> Fields = new List<KeyValuePair<int, string>>();
         }
 
-        /// <summary>The codes of the groups a node of <paramref name="kind"/> holds past its byte, in the order of DXF.</summary>
-        private static List<int> ConstraintFieldCodes(string kind, bool version2)
-        {
-            var codes = new List<int>();
-
-            void AddPoint(int code)
-            {
-                codes.AddRange(new[] { code, code + 10, code + 20 });
-            }
-
-            switch (kind)
-            {
-                case "AcConstrainedImplicitPoint":
-                    codes.AddRange(new[] { 330, 90, 280, 90, 90 });
-                    break;
-                case "AcConstrainedBoundedLine":
-                    codes.AddRange(new[] { 330, 90 });
-                    AddPoint(10);
-                    AddPoint(10);
-                    codes.Add(290);
-                    AddPoint(10);
-                    AddPoint(11);
-                    break;
-                case "AcConstrainedArc":
-                case "AcConstrainedCircle":
-                    codes.AddRange(new[] { 330, 90 });
-
-                    for (int i = 0; i < 3; i++)
-                    {
-                        AddPoint(10);
-                    }
-
-                    for (int i = 0; i < (version2 ? 4 : 3); i++)
-                    {
-                        codes.Add(40);
-                    }
-
-                    if (kind == "AcConstrainedArc")
-                    {
-                        AddPoint(10);
-                        AddPoint(11);
-                    }
-
-                    break;
-                case "AcConstrainedDatumLine":
-                case "AcConstrained2PointsConstructionLine":
-                    codes.AddRange(new[] { 330, 90 });
-                    AddPoint(10);
-                    AddPoint(10);
-                    break;
-                default:
-                    codes.AddRange(new[] { 90, 290, 290 });
-
-                    if (kind == "AcHorizontalConstraint")
-                    {
-                        codes.Add(90);
-                    }
-                    else if (
-                        kind == "AcDistanceConstraint"
-                        || kind == "AcAngleConstraint"
-                        || kind == "Ac3PointAngleConstraint"
-                        || kind == "AcRadiusDiameterConstraint"
-                    )
-                    {
-                        codes.AddRange(new[] { 340, 340, 280 });
-
-                        if (kind == "AcDistanceConstraint")
-                        {
-                            AddPoint(10);
-                        }
-                    }
-
-                    break;
-            }
-
-            return codes;
-        }
-
         /// <summary>
         /// The nodes of a constraint group from its groups: where the groups are of the version 2 (the layout of AutoCAD 2018,
         /// <c>DwgObjectReader.ReadAssocConstraintGroup2</c>) a directory of class and identifier and then each node by its
@@ -607,7 +505,7 @@ namespace GeometryHelper.Dwg
                     TakeConstraintNumbers(node, groups, ref at);
                     node.Byte = Whole(groups, ref at, 70);
 
-                    foreach (int code in ConstraintFieldCodes(node.Kind, true))
+                    foreach (int code in DxfConstraintNodes.FieldCodes(node.Kind, true))
                     {
                         node.Fields.Add(new KeyValuePair<int, string>(code, Take(groups, ref at, code, "0")));
                     }
@@ -662,7 +560,6 @@ namespace GeometryHelper.Dwg
             }
 
             actions = Written(actions);
-            actions.Sort();
             int next = Whole(groups, ref at, 90);
             int first = 0;
             int second = 0;

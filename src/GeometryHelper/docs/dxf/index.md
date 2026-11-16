@@ -141,6 +141,15 @@ drawing AutoCAD wrote come out of every version in the others as AutoCAD writes 
 TABLEGEOMETRY and the map of cell styles, before it goes down or stays (see [tables](tables.md#saving-tables-made-in-code)); the round trip of a table read
 from a file and not written to is not made going down: AutoCAD reads the table of the older form as the table it holds.
 
+The associative network of a dynamic block (its variables, its groups of 2D constraints and the network that owns them) goes down to
+R2010 and R2007 in the layout AutoCAD 2021 writes there: each action at version 1, without the four numbers that version 2 of R2013
+and R2018 adds, and a group of constraints with its nodes by identifier, each with its class, its group and its identifier, a circle
+and an arc with three reals where R2018 holds four (the fourth is 0 in every drawing seen). A DXF of R2010 or R2007 with a group in
+the layout of R2018 is no drawing to AutoCAD (`Premature end of object`); the 8 sample drawings that hold groups, saved so, open
+with `AUDIT` finding 0, 2, 10 and 0 errors in the four tried, as AutoCAD's own DXF of each does, and equal it group for group
+(all 3 204 dynamic objects of the 13 drawings in R2007, 3 203 in R2010, the other a group whose actions AutoCAD lists in another order). A group with a node of a class the library does not know
+(a concentric constraint, an ellipse) is left in the layout it has. See [DWG](dwg.md).
+
 R12 (`db.Save(path, "AC1009")`) is written as AutoCAD 2021 writes the same drawing as R12 (its own DXF of one drawing in each
 version, 1 300 lines, 130 hatches, 2 tables and 15 multileaders, which the rules were read from): four sections only (no
 CLASSES, no OBJECTS); the header of R12, 133 variables in its order, `$HANDLING` on and the names of the style, layer and

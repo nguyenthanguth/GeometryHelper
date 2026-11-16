@@ -446,32 +446,18 @@ namespace GeometryHelper.Dwg
 
             int entities = Count(_data.BitLong());
             _object.Add(73, entities);
-            var bound = new List<KeyValuePair<ulong, int[]>>(entities);
 
+            // The entities in the order the file keeps them, which is how AutoCAD's own DXF lists them more often than the order of
+            // their handles does (the handle order differs from it in 25 of the stretch actions of the sample drawings, this in 14).
             for (int i = 0; i < entities; i++)
             {
-                ulong entity = H();
-                var points = new int[Count(_data.BitLong())];
+                _object.Add(331, H());
+                int points = Count(_data.BitLong());
+                _object.Add(74, points);
 
-                for (int j = 0; j < points.Length; j++)
+                for (int j = 0; j < points; j++)
                 {
-                    points[j] = _data.BitLong();
-                }
-
-                bound.Add(new KeyValuePair<ulong, int[]>(entity, points));
-            }
-
-            // AutoCAD's DXF lists the entities by handle, whichever order the file keeps them in.
-            bound.Sort((a, b) => a.Key.CompareTo(b.Key));
-
-            foreach (KeyValuePair<ulong, int[]> one in bound)
-            {
-                _object.Add(331, one.Key);
-                _object.Add(74, one.Value.Length);
-
-                foreach (int point in one.Value)
-                {
-                    _object.Add(94, point);
+                    _object.Add(94, _data.BitLong());
                 }
             }
 

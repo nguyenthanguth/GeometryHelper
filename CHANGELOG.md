@@ -6,6 +6,26 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A DXF saved as R2010 or R2007 (`Save(path, "AC1024")`, `"AC1021"`) held the associative network of a dynamic block in the layout of R2018, which AutoCAD 2021 does not read
+there: it discarded the drawing at the first constraint group (`ACDBASSOC2DCONSTRAINTGROUP ... Premature end of object`, `ErrorStatus` 53), as it did the 8 `Dynamic Blocks` samples that hold groups
+(34 in all). The converter takes it down as AutoCAD does when it saves such a drawing: the network, the variables and the groups at version 1 without their four numbers more, and the nodes of
+a group by identifier with their class, their group, identifier and byte, the identifiers they name and what their class holds, a circle and an arc with three reals where the version 2 has four (the
+fourth is 0 in every sample, and in 21 curves made through the API as circles, arcs turned the other way, an arc through the zero angle and a circle with a thickness, fixed, tangent, concentric,
+of equal radius and solved; an ellipse keeps its ratio in a place of its own). The DWG writer reads the converter's text for R2010 and R2007 (it kept its own conversion for a drawing it is given as it
+is): the 1 080 files the 167 drawings of the corpus and the 13 R2018 saves give as the six versions are the same bytes as before. The 8 samples saved as DXF of R2010 and R2007 open with `AUDIT` at the 0, 2, 10 and 0 errors of
+Architectural - Metric, Civil - Imperial, Mechanical - Metric and Structural - Imperial that AutoCAD's own DXF of each gives, and 3 204 dynamic objects of the 13 drawings in R2007 and 3 203
+in R2010 equal AutoCAD's own DXF group for group and in order (the other is a group whose actions AutoCAD lists in another order in its DXF of R2010 than in that of R2018). A group with a
+node of a class the library does not know (`AcConcentricConstraint`, `AcConstrainedEllipse`, `AcConstrainedBoundedEllipse`) is left in the layout it has, as before.
+
+**CHANGED.** The entities a stretch action binds are read from a DWG in the order the file keeps them, and the actions a group of constraints owns are written in the order the groups give, where the
+reader sorted the entities by handle and the writer the actions. AutoCAD keeps both in an order of its own, which is no order of their handles (a turn of the handle order, `4FB8 4FB9 4FBB 4FAA 4FB0
+4FB7` for the handles `4FAA` to `4FBB`), and gives its own DXF a third order that turns the file's into another each time a drawing is saved and read again. Read in the file's order, AutoCAD's
+DXF of the 13 `Dynamic Blocks` originals lists the entities of its stretch actions as the file does in all but 4 of the 115 (7 by handle), that of the R2010 files it saves from them in all (5 by
+handle) and that of the R2018 files in all but 10 (13 by handle); the 102 stretch actions and the 34 groups of its R2018 files, and the 34 groups of its R2010 files, written again from the DXF the
+reader makes of them are AutoCAD's own bytes (the handle order wrote all 34 groups' handle streams differently). The 13 R2018 saves written as R2010 and R2007 and saved by AutoCAD as DXF differ from its
+own DXF in 5 and 6 objects where 8 and 14 did. Of the 1 080 files of the corpus run, the 56 of R2007 to R2018 of the 14 drawings that hold groups or stretch actions change, and their `AUDIT`
+verdict is that of the file before (32 files at 0 errors, 16 at 2, 8 at 10); the 1 024 others are the same bytes.
+
 **CHANGED.** The ACAD_TABLE of a table is written from its own bytes by `InsertRows`, `InsertRowsAndInherit`, `InsertColumns`, `InsertColumnsAndInherit`, `DeleteRows`,
 `DeleteColumns`, `SetRowHeight` and `SetColumnWidth`, where each wrote and then read again all of its 56 000 groups (931 cells) when the library had written the record
 whole before: each cell that comes out as it was is copied as it stands, the head and the cells made or changed are written, and the places of the cells are kept for the next
