@@ -5,7 +5,10 @@ using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Dxf.Viewer
 {
-    /// <summary>The edits of a polyline's hover menu: add a vertex, remove one, make a segment an arc or a line.</summary>
+    /// <summary>
+    /// The edits of a polyline's hover menu: add a vertex, remove one, make a segment an arc or a line. They work on a light
+    /// polyline and on a 2D POLYLINE of straight and arc segments alike; Add Vertex and Remove Vertex on a spline's points too.
+    /// </summary>
     public static partial class CadGrips
     {
         /// <summary>
@@ -15,16 +18,27 @@ namespace GeometryHelper.Dxf.Viewer
         /// segment is straight; the segment split keeps its widths, the width at the point being the one where the point falls
         /// along it. A straight segment splits in two straight ones; an arc segment in two arcs of the one arc through its start,
         /// the point and its end: a half circle from (0, 0) to (20, 0) given the point (10, -10) is two quarter circles, a bulge of
-        /// 0.4142 each.
+        /// 0.4142 each. A spline's point (<see cref="CadGripKind.Vertex"/>) gets a fit point after it where the spline has fit
+        /// data, else a control point, with the knot at the point of the curve nearest the point given.
         /// </summary>
         /// <param name="document">The document.</param>
-        /// <param name="handle">The handle of the polyline.</param>
+        /// <param name="handle">The handle of the polyline or spline.</param>
         /// <param name="gripIndex">The index of a vertex grip or a segment middle grip, as <see cref="Of"/> gives it.</param>
         /// <param name="point">Where the vertex goes, in drawing units.</param>
         /// <returns>What came of it: refused for an object on a locked layer, no polyline or no such grip.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the document is null.</exception>
         public static CadEditResult AddVertex(CadDocument document, string handle, int gripIndex, GeoPoint2 point)
         {
+            if (document != null && document.FindEntity(handle) is DxfSpline)
+            {
+                return AddSplineVertex(document, handle, gripIndex, point);
+            }
+
+            if (document != null && document.FindEntity(handle) is DxfPolyline2d)
+            {
+                return AddVertex2d(document, handle, gripIndex, point);
+            }
+
             CadEditResult refused = PolylineGrip(
                 document,
                 handle,
@@ -56,7 +70,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Takes a vertex out of a polyline, as the Remove Vertex item does, one undo step: the segment that now joins its
         /// two neighbours is straight, even where the segments either side of the vertex were arcs. A polyline of two vertices
-        /// keeps them, as AutoCAD keeps them; a closed one of three leaves two.
+        /// keeps them, as AutoCAD keeps them; a closed one of three leaves two. A spline keeps two fit points, or as many
+        /// control points as its degree and one.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="handle">The handle of the polyline.</param>
@@ -65,6 +80,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// <exception cref="ArgumentNullException">Thrown when the document is null.</exception>
         public static CadEditResult RemoveVertex(CadDocument document, string handle, int gripIndex)
         {
+            if (document != null && document.FindEntity(handle) is DxfSpline)
+            {
+                return RemoveSplineVertex(document, handle, gripIndex);
+            }
+
+            if (document != null && document.FindEntity(handle) is DxfPolyline2d)
+            {
+                return RemoveVertex2d(document, handle, gripIndex);
+            }
+
             CadEditResult refused = PolylineGrip(
                 document,
                 handle,
@@ -122,6 +147,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// <exception cref="ArgumentNullException">Thrown when the document is null.</exception>
         public static CadEditResult ConvertToArc(CadDocument document, string handle, int gripIndex, GeoPoint2 point)
         {
+            if (document != null && document.FindEntity(handle) is DxfPolyline2d)
+            {
+                return ConvertToArc2d(document, handle, gripIndex, point);
+            }
+
             CadEditResult refused = PolylineGrip(
                 document,
                 handle,
@@ -169,7 +199,7 @@ namespace GeometryHelper.Dxf.Viewer
             );
         }
 
-        /// <summary>Makes an arc segment of a polyline straight, as the Convert to Line item does, one undo step.</summary>
+        /// <summary>Makes an arc segment of a polyline straight, as the Convert to Line item does once its pick is made, one undo step.</summary>
         /// <param name="document">The document.</param>
         /// <param name="handle">The handle of the polyline.</param>
         /// <param name="gripIndex">The index of the segment middle grip, as <see cref="Of"/> gives it.</param>
@@ -177,6 +207,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// <exception cref="ArgumentNullException">Thrown when the document is null.</exception>
         public static CadEditResult ConvertToLine(CadDocument document, string handle, int gripIndex)
         {
+            if (document != null && document.FindEntity(handle) is DxfPolyline2d)
+            {
+                return ConvertToLine2d(document, handle, gripIndex);
+            }
+
             CadEditResult refused = PolylineGrip(
                 document,
                 handle,
@@ -259,8 +294,15 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The vertex a new vertex goes after: the grip's own, or the one the segment of a segment middle leaves from.</summary>
-        internal static int VertexAfter(DxfPolyline polyline, CadGrip grip, int gripIndex) =>
-            grip.Kind == CadGripKind.Vertex ? gripIndex : gripIndex - polyline.NumberOfVertices;
+        internal static int VertexAfter(DxfEntity polyline, CadGrip grip, int gripIndex) =>
+            grip.Kind == CadGripKind.Vertex
+                ? gripIndex
+                : gripIndex
+                    - (
+                        polyline is DxfPolyline2d heavy
+                            ? VerticesOf(heavy).Count
+                            : ((DxfPolyline)polyline).NumberOfVertices
+                    );
 
         /// <summary>How many segments a polyline draws: one fewer than its vertices, and the closing one where it is closed on more than two.</summary>
         private static int SegmentsOf(DxfPolyline polyline) =>
@@ -347,11 +389,15 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>A polyline with a vertex put after a vertex, for a point of the world: what the prompts of the menu items preview.</summary>
         internal static bool InsertVertexAfterAt(DxfEntity entity, int after, GeoPoint2 point) =>
-            entity is DxfPolyline polyline && InsertVertexAfter(polyline, after, Own(point, polyline.Normal.Z < 0.0));
+            entity is DxfPolyline polyline
+                ? InsertVertexAfter(polyline, after, Own(point, polyline.Normal.Z < 0.0))
+                : entity is DxfPolyline2d heavy && InsertVertexAfter(heavy, after, Own(point, heavy.Normal.Z < 0.0));
 
         /// <summary>A polyline with a segment bent through a point of the world: what the prompt of Convert to Arc previews.</summary>
         internal static bool BendIntoAt(DxfEntity entity, int segment, GeoPoint2 point) =>
-            entity is DxfPolyline polyline && BendInto(polyline, segment, Own(point, polyline.Normal.Z < 0.0));
+            entity is DxfPolyline polyline
+                ? BendInto(polyline, segment, Own(point, polyline.Normal.Z < 0.0))
+                : entity is DxfPolyline2d heavy && BendInto(heavy, segment, Own(point, heavy.Normal.Z < 0.0));
 
         private static bool BendSegment(DxfPolyline polyline, int segment, GeoPoint2 own, out double bulge)
         {

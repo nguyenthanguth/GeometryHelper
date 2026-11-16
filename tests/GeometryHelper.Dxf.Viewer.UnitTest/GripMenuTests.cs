@@ -107,7 +107,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Plan();
 
-            Assert.Empty(CadGripMenus.Of(document, "A1", 0));
+            Assert.Empty(CadGripMenus.Of(document, "A1", 2));
             Assert.Empty(CadGripMenus.Of(document, "A3", 0));
             Assert.Empty(CadGripMenus.Of(document, "A5", 99));
             Assert.Empty(CadGripMenus.Of(document, "ZZ", 0));
@@ -601,7 +601,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void RemoveVertexAndConvertToLineFromTheMenu_AreDoneAtOnce_OneUndoStepEach()
+        public void RemoveVertexFromTheMenu_IsDoneAtOnce_AndConvertToLineAsksForAPickFirst_OneUndoStepEach()
         {
             CadDocument document = Rectangle();
             CadCommandSession session = Session(document);
@@ -619,6 +619,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(document.Undo());
             Assert.True(CadGrips.ConvertToArc(document, "R1", 4, P(50, -20)).Succeeded);
             Assert.True(session.StartGripAction("R1", 4, CadGripAction.ConvertToLine));
+            Assert.True(session.IsRunning);
+            Assert.Equal("Pick to convert to line segment:", session.PromptText);
+            Run(session, P(50, 5));
             Assert.False(session.IsRunning);
             Assert.Equal(0.0, Poly(document).GetBulgeAt(0));
         }
