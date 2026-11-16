@@ -126,13 +126,16 @@ its DXF gives the count of the names it gave out as 0 and no names, as AutoCAD w
 A FIELD comes in the groups of AutoCAD's DXF: its evaluator and code (a code of more than 250 letters in pieces of 250
 under group 3, the rest under 2), the fields it holds (360) and the objects it names (331), its options and state
 (91, 92, 94, 95, 96), the values it keeps by name (93 and, for each, its name under 6 and its value), its own value as
-`ACFD_FIELD_VALUE` and the text it shows (301 and its length, 98). A value is a whole number, a real, a text or a date
-(its bytes under 92 and 310), with from AutoCAD 2007 its flags, unit, format and text; before then the format of the
+`ACFD_FIELD_VALUE` and the text it shows (301 and its length, 98). A value is a whole number, a real, a text, a date
+(its bytes under 92 and 310), a point (its doubles in bytes, under 11, 21 and 31) or an object (a handle, under 330, which
+the field of an object's property keeps its object by), with from AutoCAD 2007 its flags, unit, format and text; before then the format of the
 field is its group 4. AutoCAD's DXF gives the values by name in the order of their names, whichever order the file keeps
 them in, and the reader does the same: a field of a sheet set with its five values (`SheetSetCompId`,
 `SheetSetCompName`, `SheetSetFile`, `SheetSetId`, `SheetSetPropertyName`) comes out as AutoCAD's DXF of it. A file that
 AutoCAD 2005 saved holds no `ACFD_FIELDTEXT_CHECKSUM` that AutoCAD's DXF of it adds, and the reader does not make one. A
-field with a value of a kind not read (a point, a handle, a buffer) is left out. The FIELDLIST holds the fields of the
+field with a value of a kind not read (a buffer) is left out; the fields of an object's property, its area, its centre, its
+layer, which AutoCAD 2021 saved in a DWG of R2004, R2007 and R2018, are read to the same groups as its DXF of them and
+written back. The FIELDLIST holds the fields of the
 drawing (90 and 330), the SORTENTSTABLE the entities of a block with the handle each is sorted by (331 and 5, after the
 block under 330), and the DATALINK of a table the adapter, description, tooltip and connection (1, 300, 301, 302), its
 options, the time of its last update (170 to 177), the objects it fills (94 and 330) and its data map (`CUSTOMDATA`, a

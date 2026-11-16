@@ -92,9 +92,34 @@ namespace GeometryHelper.Dxf
                 );
             }
 
-            DxfField.Write(FieldDictionary(true), propertyName, field);
+            DxfField.Write(FieldDictionary(true), propertyName, field, WordsOf(this));
             return field;
         }
+
+        /// <summary>
+        /// Gives a property of the object a field described by a draft, written as <see cref="SetField(string, DxfField)"/>
+        /// writes one, with the values it was evaluated to; the field it had erased. The field written is given back.
+        /// </summary>
+        internal DxfField SetField(string propertyName, DxfFieldDraft draft)
+        {
+            CheckProperty(propertyName);
+            DxfFile file = InFile("be given a field");
+
+            if (!file.Supports(1018))
+            {
+                throw new InvalidOperationException(
+                    "A DXF older than R2004 (AC1018) has no FIELD: fields came with it."
+                );
+            }
+
+            return DxfField.Write(FieldDictionary(true), propertyName, draft);
+        }
+
+        /// <summary>The words of a text, an MTEXT or an attribute as its field keeps a checksum of; null for another object.</summary>
+        private static string WordsOf(DxfDBObject owner) =>
+            owner is DxfDBText text ? text.TextString
+            : owner is DxfMText mtext ? mtext.Contents
+            : null;
 
         /// <summary>
         /// Takes out the field of the object's words, as AutoCAD's <c>RemoveField()</c>: that of the property TEXT, as

@@ -33,6 +33,7 @@ namespace GeometryHelper.Dxf.Viewer
         private List<char> _alignments = new List<char>();
         private List<string> _paragraphCodes = new List<string>();
         private CadMTextLook _pending;
+        private readonly IReadOnlyList<string> _fieldShown;
         private State _changeStart;
         private bool _changed;
 
@@ -80,6 +81,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="styleFont">The font of the MTEXT's style: a TrueType family (Arial) or an SHX file (romans); null for none known.</param>
         /// <param name="styleIsShx">Whether the style's font is an SHX file, whose letters cannot be bold or italic.</param>
         /// <param name="defaultAlignment">How a paragraph with no alignment code is aligned, l, c or r, as the MTEXT's attachment says.</param>
+        /// <param name="fieldShown">The words each field written among the words as <c>%&lt;\AcVar Date&gt;%</c> came to, in the order of the fields: each is one place, shown as its words and written as its code.</param>
         public CadMTextEditor(
             string contents,
             double height,
@@ -87,9 +89,11 @@ namespace GeometryHelper.Dxf.Viewer
             double styleWidth,
             string styleFont = null,
             bool styleIsShx = false,
-            char defaultAlignment = 'l'
+            char defaultAlignment = 'l',
+            IReadOnlyList<string> fieldShown = null
         )
         {
+            _fieldShown = fieldShown;
             StyleWidth = styleWidth > 0.0 && !double.IsInfinity(styleWidth) ? styleWidth : 1.0;
             Height = height;
             StyleFont = styleFont;
@@ -98,7 +102,7 @@ namespace GeometryHelper.Dxf.Viewer
             Original = contents ?? string.Empty;
             OriginalFrame = frame ?? CadMTextFrame.Of(0.0);
             Frame = OriginalFrame;
-            Load(CadMTextContent.Parse(Original, height, StyleWidth));
+            Load(CadMTextContent.Parse(Original, height, StyleWidth, fieldShown));
         }
 
         /// <summary>Raised when the words, the looks, the caret or the selection change.</summary>
@@ -496,7 +500,7 @@ namespace GeometryHelper.Dxf.Viewer
             !string.Equals(Contents, Original, StringComparison.Ordinal)
             && !string.Equals(
                 Contents,
-                CadMTextContent.Parse(Original, Height, StyleWidth).Write(Height, DefaultAlignment),
+                CadMTextContent.Parse(Original, Height, StyleWidth, _fieldShown).Write(Height, DefaultAlignment),
                 StringComparison.Ordinal
             );
 
@@ -646,6 +650,111 @@ namespace GeometryHelper.Dxf.Viewer
             RemoveSelection();
             _cells.Insert(Caret, new Cell(shown, look, code));
             Caret++;
+            Anchor = Caret;
+            Raise();
+        }
+
+        /// <summary>
+        /// Inserts a field as AutoCAD's Insert Field does: one place, shown as the words the field came to and written as its code
+        /// in markers (<c>%&lt;\AcVar Date \f "dd/MM/yyyy"&gt;%</c>), in the look of the letters typed there.
+        /// </summary>
+        /// <param name="shown">The words the field shows.</param>
+        /// <param name="code">The field in its markers.</param>
+        /// <exception cref="ArgumentException">Thrown when the code is not one in markers, or there are no words to show.</exception>
+        public void InsertField(string shown, string code)
+        {
+            if (
+                string.IsNullOrEmpty(code)
+                || !code.StartsWith("%<", StringComparison.Ordinal)
+                || !code.EndsWith(">%", StringComparison.Ordinal)
+            )
+            {
+                throw new ArgumentException("A field is its code in the markers %< and >%.", nameof(code));
+            }
+
+            InsertSymbol(string.IsNullOrEmpty(shown) ? code : shown, code);
+        }
+
+        /// <summary>Gets the code of the field a place holds, in its markers; null where the place holds none.</summary>
+        /// <param name="index">The place.</param>
+        /// <returns>The code.</returns>
+        public string FieldCodeAt(int index) =>
+            index >= 0
+            && index < _cells.Count
+            && _cells[index].Code != null
+            && _cells[index].Code.StartsWith("%<", StringComparison.Ordinal)
+                ? _cells[index].Code
+                : null;
+
+        /// <summary>Gets whether any place holds a field.</summary>
+        public bool HasFields
+        {
+            get
+            {
+                foreach (Cell cell in _cells)
+                {
+                    if (cell.Code != null && cell.Code.StartsWith("%<", StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Makes the field a place holds words, as Convert Field To Text does: the words it showed, each letter a place of the look
+        /// the field had, written as they are and no longer as a code.
+        /// </summary>
+        /// <param name="index">The place, of a field.</param>
+        /// <exception cref="ArgumentException">Thrown when the place holds no field.</exception>
+        public void ConvertFieldToText(int index)
+        {
+            if (FieldCodeAt(index) == null)
+            {
+                throw new ArgumentException("The place holds no field.", nameof(index));
+            }
+
+            Save();
+            Cell field = _cells[index];
+            _cells.RemoveAt(index);
+            int at = index;
+
+            foreach (char letter in field.Text)
+            {
+                _cells.Insert(at++, new Cell(letter.ToString(), field.Look, null));
+            }
+
+            Caret = at;
+            Anchor = Caret;
+            Raise();
+        }
+
+        /// <summary>Gives the field a place holds another code and words, as Edit Field does; its look kept.</summary>
+        /// <param name="index">The place, of a field.</param>
+        /// <param name="shown">The words the new field shows.</param>
+        /// <param name="code">The field in its markers.</param>
+        /// <exception cref="ArgumentException">Thrown when the place holds no field or the code is not one in markers.</exception>
+        public void ReplaceField(int index, string shown, string code)
+        {
+            if (FieldCodeAt(index) == null)
+            {
+                throw new ArgumentException("The place holds no field.", nameof(index));
+            }
+
+            if (
+                string.IsNullOrEmpty(code)
+                || !code.StartsWith("%<", StringComparison.Ordinal)
+                || !code.EndsWith(">%", StringComparison.Ordinal)
+            )
+            {
+                throw new ArgumentException("A field is its code in the markers %< and >%.", nameof(code));
+            }
+
+            Save();
+            _cells[index] = new Cell(string.IsNullOrEmpty(shown) ? code : shown, _cells[index].Look, code);
+            Caret = index + 1;
             Anchor = Caret;
             Raise();
         }

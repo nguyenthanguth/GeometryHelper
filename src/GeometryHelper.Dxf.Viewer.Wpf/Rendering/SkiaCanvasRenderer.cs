@@ -1267,6 +1267,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     DrawFill(canvas, area, m, fill, options, background, item.Style.Rgb, isSelected || isHover, color);
                     break;
                 case DisplayText2 text when text.Parts != null:
+                    DrawFieldGround(canvas, text, m);
+
                     // An MTEXT of several looks: its runs and their lines, each in its own colour, all in the selection's when selected.
                     foreach (DisplayItem2 part in text.Parts)
                     {
@@ -1287,6 +1289,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                     break;
                 case DisplayText2 text:
+                    DrawFieldGround(canvas, text, m);
                     DrawText(canvas, text, m, zoom, stroke, fill, color, options);
                     break;
                 case DisplayViewport2 viewport:
@@ -2006,6 +2009,66 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             return face;
+        }
+
+        /// <summary>
+        /// The grey ground behind the words of a field (FIELDDISPLAY 1): the box of the text, a light grey that lets the drawing show
+        /// through; never plotted.
+        /// </summary>
+        private void DrawFieldGround(SKCanvas canvas, DisplayText2 text, Affine2 m)
+        {
+            if (!text.IsField || _plot != null)
+            {
+                return;
+            }
+
+            double[] corners;
+
+            if (text.Parts != null)
+            {
+                DisplayBox box = text.Bounds;
+                corners = new[] { box.MinX, box.MinY, box.MaxX, box.MinY, box.MaxX, box.MaxY, box.MinX, box.MaxY };
+            }
+            else
+            {
+                text.GetFrame(out double x0, out double y0, out double x1, out double y1);
+                double cos = Math.Cos(text.Rotation);
+                double sin = Math.Sin(text.Rotation);
+                corners = new[]
+                {
+                    text.X + x0 * cos - y0 * sin,
+                    text.Y + x0 * sin + y0 * cos,
+                    text.X + x1 * cos - y0 * sin,
+                    text.Y + x1 * sin + y0 * cos,
+                    text.X + x1 * cos - y1 * sin,
+                    text.Y + x1 * sin + y1 * cos,
+                    text.X + x0 * cos - y1 * sin,
+                    text.Y + x0 * sin + y1 * cos,
+                };
+            }
+
+            using (var builder = new SKPathBuilder())
+            {
+                builder.MoveTo((float)m.X(corners[0], corners[1]), (float)m.Y(corners[0], corners[1]));
+
+                for (int i = 2; i + 1 < corners.Length; i += 2)
+                {
+                    builder.LineTo((float)m.X(corners[i], corners[i + 1]), (float)m.Y(corners[i], corners[i + 1]));
+                }
+
+                builder.Close();
+
+                using (SKPath path = builder.Detach())
+                using (
+                    var ground = new SKPaint
+                    {
+                        Style = SKPaintStyle.Fill,
+                        Color = new SKColor(150, 150, 150, 70),
+                        IsAntialias = true,
+                    }
+                )
+                    canvas.DrawPath(path, ground);
+            }
         }
 
         private void DrawText(

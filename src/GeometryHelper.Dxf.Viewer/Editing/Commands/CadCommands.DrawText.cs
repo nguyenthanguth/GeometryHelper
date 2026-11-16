@@ -893,6 +893,12 @@ namespace GeometryHelper.Dxf.Viewer
                 ApplyBox(text, edit);
                 s.Append(c.Space, Current(c, text));
 
+                // The words the editor gave hold fields where it inserted one: evaluated and written with their FIELD objects.
+                if (words.Contains("%<\\"))
+                {
+                    CadFields.Set(text, words, FieldContext(c.Session, CadFieldContexts.Demand));
+                }
+
                 if (scale != null)
                 {
                     MakeAnnotative(s.Database, text);

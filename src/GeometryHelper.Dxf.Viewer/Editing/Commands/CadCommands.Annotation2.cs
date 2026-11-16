@@ -20,6 +20,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("SPELL", Spell));
             AddTextToolsTo(registry);
             registry.Add(new CadCommand("ATTDISP", AttributeDisplay));
+            AddFieldsTo(registry);
         }
     }
 }

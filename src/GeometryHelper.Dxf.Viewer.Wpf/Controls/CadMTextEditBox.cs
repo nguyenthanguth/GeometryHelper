@@ -413,7 +413,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             else if (e.ClickCount == 2)
             {
-                SelectWord(PlaceAt(at));
+                // A double click on a field is Edit Field; anywhere else it selects the word.
+                int place = PlaceAt(at);
+                int field =
+                    _model.Editor.FieldCodeAt(place) != null ? place
+                    : _model.Editor.FieldCodeAt(place - 1) != null ? place - 1
+                    : -1;
+
+                if (field < 0 || !_model.EditFieldAt(field))
+                {
+                    SelectWord(place);
+                }
             }
             else
             {
@@ -657,6 +667,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 case System.Windows.Input.Key.A:
                     editor.SelectAll();
+                    return true;
+                case System.Windows.Input.Key.F:
+                    _model.FieldCommand.Execute(null);
                     return true;
                 case System.Windows.Input.Key.B:
                     _model.ToggleCommand.Execute("Bold");

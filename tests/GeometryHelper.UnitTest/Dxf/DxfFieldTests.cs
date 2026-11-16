@@ -35,6 +35,9 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDBDictionary fields = (DxfDBDictionary)grid.ExtensionDictionary.GetAt("ACAD_FIELD");
 
             string saved = db.ToText();
+            // The root dictionary and the list of fields it names, made as AutoCAD makes them, change with the text.
+            DxfDBObject list = db.NamedObjectsDictionary.GetAt("ACAD_FIELDLIST");
+            Assert.Equal("FIELDLIST", list.Item.Type);
             OnlyTheseChanged(
                 text,
                 saved,
@@ -43,6 +46,8 @@ namespace GeometryHelper.UnitTest.Dxf
                 fields.Handle,
                 field.Handle,
                 child.Handle,
+                db.NamedObjectsDictionary.Handle,
+                list.Handle,
                 null
             );
             Assert.Equal(
@@ -66,11 +71,11 @@ namespace GeometryHelper.UnitTest.Dxf
                     + fields.Handle
                     + "\n100\nAcDbField\n  1\n_text\n  2\nDrawn %<\\_FldIdx 0>%\n 90\n1\n360\n"
                     + child.Handle
-                    + "\n 97\n0\n 91\n63\n 92\n0\n 94\n0\n 95\n1\n 96\n0\n300\n\n 93\n0\n  7\nACFD_FIELD_VALUE\n 93\n1\n 90\n0\n 94\n0\n300\n\n302\n\n304\nACVALUE_END\n301\n\n 98\n0\n",
+                    + "\n 97\n0\n 91\n63\n 92\n0\n 94\n5\n 95\n1\n 96\n0\n300\n\n 93\n1\n  6\nACFD_FIELDTEXT_CHECKSUM\n 93\n2\n 90\n2\n140\n4509.0\n 94\n0\n300\n\n302\n\n304\nACVALUE_END\n  7\nACFD_FIELD_VALUE\n 93\n3\n 90\n0\n 94\n0\n300\n\n302\n\n304\nACVALUE_END\n301\n\n 98\n0\n",
                 Records(saved).Single(r => HandleOf(r) == field.Handle)
             );
             Assert.Contains(
-                "100\nAcDbField\n  1\nAcVar\n  2\n\\AcVar Date \\f \"dd/MM/yyyy\"\n 90\n0\n 97\n0\n",
+                "100\nAcDbField\n  1\nAcVar\n  2\n\\AcVar Date \\f \"dd/MM/yyyy\"\n 90\n0\n 97\n0\n 91\n32\n 92\n0\n 94\n37\n 95\n1\n 96\n0\n300\n\n 93\n0\n  7\nACFD_FIELD_VALUE\n 93\n1\n 90\n0\n 94\n0\n300\ndd/MM/yyyy\n302\n\n304\nACVALUE_END\n301\n####\n 98\n4\n",
                 Records(saved).Single(r => HandleOf(r) == child.Handle),
                 StringComparison.Ordinal
             );
@@ -105,7 +110,7 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfField field = ByHandle<DxfDBText>(db, "64").SetField(new DxfField("%<\\AcVar Login>%"));
 
             Assert.Contains(
-                "  7\nACFD_FIELD_VALUE\n 90\n0\n301\n\n 98\n0\n",
+                " 97\n0\n  4\n\n 91\n63\n 92\n0\n 94\n37\n 95\n1\n 96\n0\n300\n\n 93\n0\n  7\nACFD_FIELD_VALUE\n 90\n0\n 91\n0\n301\n####\n 98\n4\n",
                 Records(db.ToText()).Single(r => HandleOf(r) == field.Handle),
                 StringComparison.Ordinal
             );
@@ -219,7 +224,11 @@ namespace GeometryHelper.UnitTest.Dxf
             // The extension dictionary stays, empty, as AutoCAD leaves it; released, the text is as it was read.
             Assert.Equal(0, grid.ExtensionDictionary.Count);
             grid.ReleaseExtensionDictionary();
-            OnlyTheseChanged(text, db.ToText(), (string)null);
+            // Only the root dictionary, which names the list of fields, and the list itself, which AutoCAD keeps once made, stay.
+            DxfDBObject list = db.NamedObjectsDictionary.GetAt("ACAD_FIELDLIST");
+            OnlyTheseChanged(text, db.ToText(), db.NamedObjectsDictionary.Handle, list.Handle, (string)null);
+            Assert.Contains("  0\nFIELDLIST\n", db.ToText(), StringComparison.Ordinal);
+            Assert.DoesNotContain("330\n" + words.Handle + "\n", db.ToText(), StringComparison.Ordinal);
             Assert.DoesNotContain(Records(db.ToText()), r => r.StartsWith("  0\nFIELD\n", StringComparison.Ordinal));
         }
 

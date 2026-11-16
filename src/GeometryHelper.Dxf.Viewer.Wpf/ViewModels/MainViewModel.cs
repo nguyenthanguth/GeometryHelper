@@ -1935,6 +1935,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "SCALELISTEDIT":
                 case "QLEADER":
                 case "TOLERANCE":
+                case "FIELD":
                     OnManagerRequested(e);
                     break;
                 case "VIEW":

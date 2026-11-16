@@ -1481,7 +1481,9 @@
                                 Style="{StaticResource AdaptiveButton}"
                                 Tag="{StaticResource IconField}"
                                 Content="Field"
-                                ToolTip="Fields are not built yet"
+                                Focusable="False"
+                                Command="{Binding FieldCommand}"
+                                ToolTip="Insert Field (Ctrl+F): the date, a property of an object, a document property or a system variable that updates"
                             />
                         </WrapPanel>
                     </local:RibbonPanel>

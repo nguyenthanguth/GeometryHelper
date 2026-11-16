@@ -272,10 +272,13 @@ extension dictionary names in its dictionary ACAD_FIELD under the property TEXT.
 words, `GetField(propertyName)` that of another property, and `SetField(new DxfField("Drawn %<\AcVar Date>%", true))` gives
 a TEXT, an MTEXT, an attribute or a dimension one, from R2004 on, written in the groups the DXF reference gives a FIELD: the
 text field (`_text`) of the code `Drawn %<\_FldIdx 0>%` and its child of AcVar, each owned by what names it, marked not
-evaluated, and the class FIELD listed. That layout has not yet been read by AutoCAD itself: its state (94 of 0), the empty
-value's flag (93 of 1) and the format of R2004 (group 4, which libredwg reads and the library does not write) are to be
-checked on a drawing AutoCAD saved, and so is which group `GetStringValue()` reads the value AutoCAD kept from (302, else 1;
-the 301 after it is not read). A field made of an object's property, `%<\AcObjProp Object(%<\_ObjId 2130>%).Area>%`, names no
+evaluated, and the class FIELD listed. The layout is the one AutoCAD 2021 writes for a field it has not evaluated, group for
+group (checked by AutoCAD 2021 reading and saving the fields the presenter wrote in a DXF and a DWG of R2004, R2007 and R2018):
+the text field in the state 5 with the checksum of the words the text has (`ACFD_FIELDTEXT_CHECKSUM`, each letter's code times
+its place from one: 7540 for "Drawn 17/11/2026"), each field in the state 37 shown as `####`, the date to be evaluated on demand
+only (91 of 32) and every other field in every context (91 of 63); the fields written are listed in the drawing's list of fields
+(ACAD_FIELDLIST of the root dictionary), made where the drawing has none. `GetStringValue()` reads the value AutoCAD kept
+(302, else 1) and the words a field shows are its 301. A field made of an object's property, `%<\AcObjProp Object(%<\_ObjId 2130>%).Area>%`, names no
 object here and cannot be evaluated. A field or one it holds already given to an object is refused. The words of the text are not changed; the library does not evaluate a field, and AutoCAD writes its value into
 them when it next evaluates its fields. `RemoveField()` takes a field out with its children, out of the drawing's
 ACAD_FIELDLIST too where it has one, and ACAD_FIELD with it once it is empty. `GetTextWithFieldCodes()` of a TEXT and
