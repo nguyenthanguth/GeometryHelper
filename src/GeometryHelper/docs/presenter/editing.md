@@ -2950,7 +2950,7 @@ step; a click on the block's own lines says `Selected object is not an attribute
 here. SPELL (SP) shows the window's Check Spelling dialog, as AutoCAD 2021's: Where to check (Entire drawing, every space;
 Current space/layout; Selected objects, whose button closes the dialog for `Select objects:` and shows it again), Start, Not in
 dictionary, Suggestions with the replacement typed above them, Ignore, Ignore All, Change, Change All (the word changed
-wherever it comes again), Add to Dictionary, the main dictionary (the built-in English list) and a custom dictionary file.
+wherever it comes again), Add to Dictionary, the main dictionary (the built-in English dictionary) and a custom dictionary file.
 Change with nothing typed takes the first suggestion and with none says `No suggestions.`. Undo takes back the last answer
 since Start, its word asked again and its change, Ignore All or Add to Dictionary forgotten. Settings... shows Check
 Spelling Settings ([`CadSpellSettings`](xref:GeometryHelper.Dxf.Viewer.CadSpellSettings), counted from the next Start):
@@ -2961,8 +2961,7 @@ dialog is open: Close writes the words changed, each text one edit of SPELL's on
 the custom dictionary file. The check is a public [`CadSpellCheck`](xref:GeometryHelper.Dxf.Viewer.CadSpellCheck). With no
 window SPELL is the command line form of Check Spelling: "Select objects or [All/Dictionary]:" takes objects, or Enter or
 All every TEXT, MTEXT and attribute of the space, and Dictionary "Enter custom dictionary file <none>:", a text file of words one
-to a line (`Cannot read custom dictionary.` where it cannot be read). Each word not in the built-in list (about 700 English
-words and drafting terms, the endings -s, -es, -ed, -ing, -ly, -er, -est and 's tried; words in capitals, with a digit or of
+to a line (`Cannot read custom dictionary.` where it cannot be read; in the window it starts as `sample.cus` of the settings folder, made by the first Add, and its prompt then reads that file). Each word not in the built-in dictionary (about 90 000 English words of the SCOWL lists in American and British spelling and the drafting terms, see the MTEXT editor's Spell Check in [display](display.md); the endings -s, -es, -ed, -ing, -ly, -er, -est and 's tried; words in capitals, with a digit or of
 one letter are passed over, as AutoCAD's settings pass uppercase words and words with numbers) is written with the words
 nearest it, `Not in dictionary: "wrold". Suggestions: world`, and "Enter replacement or [Ignore/ignore aLl/Add/Change/Stop]
 <Ignore>:" takes a replacement typed, Change (the first suggestion), Add (to the custom dictionary and its file), Ignore, ignore

@@ -956,7 +956,7 @@
 
             <!--
             The contextual Text Editor tab of the MTEXT editor, as the design draws it: Style, Formatting, Paragraph, Insert,
-            Spell Check (off: no dictionary ships), Tools, Options and Close. What is not built is greyed with its reason. To fit
+            Spell Check (the underline toggle and Edit Dictionaries), Tools, Options and Close. What is not built is greyed with its reason. To fit
             1 600 pixels Spell Check and Tools collapse and Insert becomes a small column; narrower, Options goes small and
             Paragraph collapses. Style, Formatting and Close never shrink, and Close stays the last panel.
             -->
@@ -1236,12 +1236,15 @@
                                     </ToggleButton>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                    <Button
-                                        Style="{StaticResource SmallButton}"
+                                    <ToggleButton
+                                        Style="{StaticResource SmallToggle}"
                                         Tag="{StaticResource IconMatch}"
                                         Content="Match"
                                         Margin="0,0,6,0"
-                                        ToolTip="Match Text Formatting is not built yet"
+                                        Focusable="False"
+                                        IsChecked="{Binding IsMatching, Mode=OneWay}"
+                                        Command="{Binding MatchCommand}"
+                                        ToolTip="Match Text Formatting: take the look of the letters selected, then select the letters to give it to"
                                     />
                                     <Button
                                         Style="{StaticResource EditorMenuButton}"
@@ -1488,7 +1491,7 @@
                         </WrapPanel>
                     </local:RibbonPanel>
 
-                    <!-- Spell Check: off, no dictionary ships with the app; it collapses first. -->
+                    <!-- Spell Check: the toggle of the red underline under words not in the dictionary, and Edit Dictionaries; it collapses first. -->
                     <local:RibbonPanel
                         Title="Spell Check"
                         MinFullWidth="132"
@@ -1496,23 +1499,27 @@
                         Icon="{StaticResource IconSpell}"
                     >
                         <StackPanel Orientation="Horizontal">
-                            <Button
-                                Style="{StaticResource BigButton}"
+                            <ToggleButton
+                                Style="{StaticResource BigToggle}"
                                 Tag="{StaticResource IconSpell}"
-                                Content="Spell Check off"
-                                ToolTip="No dictionary ships with the app"
+                                Content="Spell Check"
+                                Focusable="False"
+                                IsChecked="{Binding IsSpellCheckOn, Mode=TwoWay}"
+                                ToolTip="Underline the words not in the dictionary in red; right-click one for the words nearest it, Add Word and Ignore All"
                             />
                             <Button
                                 Style="{StaticResource BigButton}"
                                 Tag="{StaticResource IconDictionary}"
                                 Content="Edit Dictionaries"
                                 Margin="0"
-                                ToolTip="No dictionary ships with the app"
+                                Command="{Binding EditDictionariesCommand}"
+                                Focusable="False"
+                                ToolTip="The custom dictionary: add words and delete them"
                             />
                         </StackPanel>
                     </local:RibbonPanel>
 
-                    <!-- Tools: Find and Replace in the words; Import Text and AutoCAPS greyed. -->
+                    <!-- Tools: Find and Replace (its own dialog, Ctrl+H), Import Text from a .txt or .rtf file, and AutoCAPS. -->
                     <local:RibbonPanel
                         Title="Tools"
                         MinFullWidth="216"
@@ -1520,93 +1527,30 @@
                         Icon="{StaticResource IconFind}"
                     >
                         <StackPanel Orientation="Horizontal">
-                            <Grid>
-                                <ToggleButton
-                                    Style="{StaticResource BigToggle}"
-                                    Tag="{StaticResource IconFind}"
-                                    Content="Find &amp; Replace"
-                                    Focusable="False"
-                                    IsChecked="{Binding IsFindShown, Mode=TwoWay}"
-                                    ToolTip="Find and replace in the words"
-                                />
-                                <Popup
-                                    IsOpen="{Binding IsFindShown, Mode=TwoWay}"
-                                    StaysOpen="False"
-                                    Placement="Bottom"
-                                    AllowsTransparency="True"
-                                >
-                                    <Border
-                                        Background="{StaticResource GhHeader}"
-                                        BorderBrush="{StaticResource GhBorder}"
-                                        BorderThickness="1"
-                                        CornerRadius="4"
-                                        Padding="12,10"
-                                        Width="280"
-                                    >
-                                        <StackPanel>
-                                            <TextBlock
-                                                Text="Find what"
-                                                Foreground="{StaticResource GhTextMuted}"
-                                                Margin="0,0,0,2"
-                                            />
-                                            <TextBox
-                                                Style="{StaticResource GhTextBox}"
-                                                Text="{Binding FindText, UpdateSourceTrigger=PropertyChanged}"
-                                                Margin="0,0,0,6"
-                                            />
-                                            <TextBlock
-                                                Text="Replace with"
-                                                Foreground="{StaticResource GhTextMuted}"
-                                                Margin="0,0,0,2"
-                                            />
-                                            <TextBox
-                                                Style="{StaticResource GhTextBox}"
-                                                Text="{Binding ReplaceText, UpdateSourceTrigger=PropertyChanged}"
-                                                Margin="0,0,0,6"
-                                            />
-                                            <CheckBox
-                                                Style="{StaticResource GhCheckBox}"
-                                                Content="Match case"
-                                                IsChecked="{Binding MatchCase}"
-                                                Margin="0,0,0,8"
-                                            />
-                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                                <Button
-                                                    Style="{StaticResource GhDialogButton}"
-                                                    Content="Find Next"
-                                                    Padding="10,3"
-                                                    Margin="0,0,6,0"
-                                                    Command="{Binding FindNextCommand}"
-                                                />
-                                                <Button
-                                                    Style="{StaticResource GhDialogButton}"
-                                                    Content="Replace All"
-                                                    Padding="10,3"
-                                                    Command="{Binding ReplaceAllCommand}"
-                                                />
-                                            </StackPanel>
-                                            <TextBlock
-                                                Text="{Binding FindMessage}"
-                                                Foreground="{StaticResource GhTextMuted}"
-                                                Margin="0,6,0,0"
-                                                TextWrapping="Wrap"
-                                            />
-                                        </StackPanel>
-                                    </Border>
-                                </Popup>
-                            </Grid>
+                            <Button
+                                Style="{StaticResource BigButton}"
+                                Tag="{StaticResource IconFind}"
+                                Content="Find &amp; Replace"
+                                Command="{Binding FindReplaceCommand}"
+                                Focusable="False"
+                                ToolTip="Find and replace in the words  Ctrl+H"
+                            />
                             <Button
                                 Style="{StaticResource BigButton}"
                                 Tag="{StaticResource IconImport}"
                                 Content="Import Text"
-                                ToolTip="Importing text from a file is not built yet"
+                                Command="{Binding ImportTextCommand}"
+                                Focusable="False"
+                                ToolTip="Put the words of a .txt or .rtf file in at the caret (32 KB at most)"
                             />
-                            <Button
-                                Style="{StaticResource BigButton}"
+                            <ToggleButton
+                                Style="{StaticResource BigToggle}"
                                 Tag="{StaticResource IconCaps}"
                                 Content="AutoCAPS"
                                 Margin="0"
-                                ToolTip="AutoCAPS is not built yet"
+                                Focusable="False"
+                                IsChecked="{Binding IsAutoCaps, Mode=TwoWay}"
+                                ToolTip="Letters typed, pasted or imported go in as capitals; the words already there are not changed"
                             />
                         </StackPanel>
                     </local:RibbonPanel>

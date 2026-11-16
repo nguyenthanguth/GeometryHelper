@@ -683,6 +683,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowColumnSettings = dialog => ColumnSettingsWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowBackgroundMask = dialog => MTextMaskWindow.Show(Window.GetWindow(this), dialog);
                 _model.AskMTextSize = dialog => MTextSizeWindow.Ask(Window.GetWindow(this), dialog);
+                _model.ShowMTextFindReplace = editor => MTextFindReplaceWindow.Open(Window.GetWindow(this), editor);
+                _model.AskImportTextFile = AskImportTextFile;
+                _model.ShowCharacterMap = dialog => CharacterMapWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowDictionaries = dialog => SpellDictionariesWindow.Show(Window.GetWindow(this), dialog);
                 _model.InPlaceEditChanged += OnInPlaceEditChanged;
                 _model.TableLiveChanged += OnTableLiveChanged;
                 _model.ShowPlot = dialog => PlotWindow.Show(Window.GetWindow(this), dialog);
@@ -1483,6 +1487,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             AppMenu.DataContext = null;
+        }
+
+        /// <summary>Import Text's Select File: a .txt or .rtf file of the user's choosing; null where none is picked.</summary>
+        private string AskImportTextFile()
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = "Select File",
+                CheckFileExists = true,
+                Filter =
+                    "Text files (*.txt;*.rtf)|*.txt;*.rtf|Text files (*.txt)|*.txt|Rich text files (*.rtf)|*.rtf|All files (*.*)|*.*",
+            };
+            return dialog.ShowDialog(Window.GetWindow(this)) == true ? dialog.FileName : null;
         }
 
         /// <summary>A menu of the Text Editor tab: Symbol, Justification, Line Spacing, Case, Clear; the editor keeps the keyboard.</summary>

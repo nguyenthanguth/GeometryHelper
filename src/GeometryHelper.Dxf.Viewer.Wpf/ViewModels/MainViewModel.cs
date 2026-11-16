@@ -1718,6 +1718,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             file.Session.UiRequested += OnUiRequested;
             file.Session.SelectionFilter.FilePath = FilterListsPath;
             file.Session.Clipboard = _clipboard;
+            file.Session.SpellDictionaryPath = _spellDictionaryPath;
             file.Session.PlotStamp = _plotStamp;
             file.Session.Progress = Progress;
             ApplyTextDefaults(file.Session);

@@ -31,6 +31,11 @@ namespace GeometryHelper.Dxf.Viewer
                     SpellItems(c, SpellEntities(c, where, selected), out locked)
             );
 
+            if (c.Session.SpellDictionaryPath != null)
+            {
+                check.UseDictionary(c.Session.SpellDictionaryPath);
+            }
+
             while (true)
             {
                 check.IsSelecting = false;
@@ -158,8 +163,20 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var custom = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var ignored = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            string customFile = null;
+            string customFile = c.Session.SpellDictionaryPath;
             IReadOnlyList<string> chosen = null;
+
+            if (customFile != null && File.Exists(customFile))
+            {
+                try
+                {
+                    custom.UnionWith(CadSpelling.ReadDictionary(customFile));
+                }
+                catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+                {
+                    GeometryHelperLog.Warn("SPELL: the custom dictionary " + customFile + " was not read.", e);
+                }
+            }
 
             while (true)
             {
@@ -384,7 +401,14 @@ namespace GeometryHelper.Dxf.Viewer
         {
             try
             {
-                string text = File.ReadAllText(path, Encoding.UTF8);
+                string folder = Path.GetDirectoryName(path);
+
+                if (!string.IsNullOrEmpty(folder))
+                {
+                    Directory.CreateDirectory(folder);
+                }
+
+                string text = File.Exists(path) ? File.ReadAllText(path, Encoding.UTF8) : string.Empty;
                 File.AppendAllText(
                     path,
                     (text.Length > 0 && !text.EndsWith("\n", StringComparison.Ordinal) ? "\n" : string.Empty)

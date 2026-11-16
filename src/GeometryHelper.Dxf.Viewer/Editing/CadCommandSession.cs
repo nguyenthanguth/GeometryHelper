@@ -168,6 +168,13 @@ namespace GeometryHelper.Dxf.Viewer
         public ICadClipboard Clipboard { get; set; } = new CadMemoryClipboard();
 
         /// <summary>
+        /// Gets or sets the custom dictionary file SPELL starts with, AutoCAD's <c>sample.cus</c> form of words one to a line:
+        /// read where it exists, and the file Add to Dictionary appends to, made where it is not there; null, until set, for
+        /// none, SPELL then asking for one as before. The window sets the file in its settings folder.
+        /// </summary>
+        public string SpellDictionaryPath { get; set; }
+
+        /// <summary>
         /// Gets or sets the progress meter a command shows long work on (<see cref="CadCommandContext.Progress"/>): one of this
         /// session's own, shown nowhere, until set; the window sets the one of its status bar.
         /// </summary>
