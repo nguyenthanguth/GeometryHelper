@@ -383,6 +383,88 @@ EXPORTDWF (`EDWF`) and EXPORTDWFX (`EDWFX`) are in the registry for the aliases 
 writer, so each says `DWF files have no writer in the presenter: nothing was exported. EXPORTPDF writes a PDF.` and writes
 nothing.
 
+## PUBLISH and -PUBLISH
+
+PUBLISH plots several sheets at once, as AutoCAD 2021's Publish does: the Model and the layouts of the drawing open, and of
+other drawing files, to one PDF or to the printers their page setups name. The Output tab's Batch Plot and the application
+menu's Print, Batch Plot start it. The window's Publish dialog is over a list of sheets, each a row of **Sheet Name**,
+**Page Setup** and **Status**. A drawing called `plan-level2.dxf` with a Model and two layouts opens it on
+`plan-level2-Model`, `plan-level2-Layout1` and `plan-level2-Layout2`, in the order of the tabs. The name is edited in the
+row; one with `< > / \ " : ? * |` in it, or that another sheet has (letters of either case the same), is told and not taken,
+and a sheet added twice from files of one name is numbered (`plan-level2-Model (2)`).
+
+- **Add Sheets…** asks drawing files (DWG or DXF, several at once), reads each with the presenter's own readers and lists its
+  Model and layouts. The drawing that is open is used as it stands, with its edits not saved; a file that is not there, or
+  cannot be read, says so under the list (`Drawing not found`, `Drawing failed to load: …`) and the others are added.
+  **Include when adding sheets** Model and Layouts decide which spaces are listed.
+- **Remove**, **Remove All**, **Move Up** and **Move Down** change the list; sheets are published in its order.
+- **Page Setup** of a row is its own list: `<Default: None>` (the page setup its layout is set to, `<Default: A4 sheet>` where it
+  has been set to one), the page setups of that sheet's drawing by name, and **Import…**, which asks another drawing and, where
+  it holds several page setups, which one (Import Page Setups for Publishing); the row then reads `Imported: Big`. A sheet
+  plots by that page setup: its plotter, sheet, area, scale and offset. **Status** is `Loaded` for a sheet that can be
+  published, else why not (`Drawing not found`, `Drawing failed to load`, `Layout not found`, `Page setup not found`).
+- **Publish to** is the plotter named in the page setup, or PDF. For PDF, **Multi-sheet file** writes one file of a page for
+  each sheet, each page the size of its own sheet; **Single-sheet files** writes a file for each sheet, named by the sheet
+  (`plan-level2-Layout1.pdf`) in the **Output folder**, which is the first drawing's folder where it is empty. The multi-sheet
+  **File name** is the first drawing's name where it is empty (`plan-level2.pdf`). With the plotter named in the page
+  setup, a sheet whose page setup names a printer this computer has (`SavedPlotter`, as the Plot dialog reads it) is printed
+  there on the sheet of the printer's list nearest the size asked, **Number of copies** (1 to 99) times; a sheet whose plotter
+  is not a printer here (AutoCAD's `DWG To PDF.pc3`, or none) is written as a PDF of its own. DWF and DWFx have no writer: a
+  list of AutoCAD's that asks them is published as PDF, and says so.
+- **Publish in background** is a box that does nothing here: a publish runs at once. **Open in viewer when done** opens each PDF
+  written. The options a Publish was pressed with are the next dialog's.
+- The session's plot stamp (when on) and PDFSHX go on every sheet, as on a plot.
+
+The drawing open with a Model, Layout1 on ISO A3 and Layout2 on ISO A1, and a file added with Layout1 on ISO A4, published to
+one PDF (Include Model off) is three pages of 1 190.5512 by 841.8898, 2 383.937 by 1 683.7795 and 841.8898 by 595.2756
+points, by `CadPdfWriter.WritePages` of several drawings, the command line saying `Published 3 sheets to C:\Plans\set.pdf.`
+and `Publish complete: 3 sheets published.` A sheet that cannot be published, or whose plot area is empty, is told
+(`ghost-Model: Drawing not found. Not published.`) and the others are still written.
+
+**Load List…** and **Save List…** read and write a sheet list file, AutoCAD's `.dsd` (Drawing Set Description), which holds the
+sheets and where they go. A list loaded asks whether it replaces the sheets listed or is added after them. The file is
+text of the INI kind, written with CRLF lines (ASCII, or UTF-16 with its byte order mark where a name has other letters) and
+read as UTF-16 or UTF-8 by its byte order mark, else UTF-8, else Latin-1:
+
+```ini
+[DWF6Version]
+Ver=1
+[DWF6MinorVersion]
+MinorVer=1
+[DWF6Sheet:plan-level2-Layout1]
+DWG=C:\Plans\plan-level2.dxf
+Layout=Layout1
+Setup=A4 sheet
+OriginalSheetPath=C:\Plans\plan-level2.dxf
+Has Plot Port=0
+Has3DDWF=0
+[Target]
+Type=6
+DWF=C:\Plans\plan-level2.pdf
+OUT=C:\Plans\
+PWD=
+[SheetSet Properties]
+NoOfCopies=1
+ViewFile=FALSE
+```
+
+`Setup` is empty for the sheet's own page setup, the page setup's name, or `name|C:\Other\other.dxf` for one imported from
+that drawing. `Type` is AutoCAD's `SheetType`: 0 single-sheet DWF, 1 multi-sheet DWF, 2 the plotter named in the page setup,
+3 single-sheet DWFx, 4 multi-sheet DWFx, 5 single-sheet PDF, 6 multi-sheet PDF (the values read from
+AutoCAD 2021's own `Autodesk.AutoCAD.PlottingServices.SheetType`). `DWF` is the multi-sheet file, `OUT` the output folder,
+`NoOfCopies` the copies and `ViewFile` Open in viewer when done. A relative `DWG` is taken from the list's folder; a quoted path
+is unquoted; a sheet of a drawing that is not there stays in the list with its status. The other sections of a list AutoCAD wrote
+(`[PdfOptions]`, `[AutoCAD Block Data]`, `[MRU Local]` …) are kept and written back as they were. A sheet list that is no INI
+file (it has no `[DWF6Version]`) is told `Error reading list file.`
+
+`-PUBLISH` asks `Enter name of sheet list <C:\Plans\plan-level2.dsd>:`, the drawing's name beside the drawing, loads the
+file and publishes it at once, with no dialog: `Could not locate sheet list file.` where it is not there, `Error reading list
+file.`, and `There were no plottable sheets in the current operation.` where no sheet of it can be published, the words of
+AutoCAD 2021's own string table. With no window, or CMDDIA 0, PUBLISH asks the same question. The classes are
+[`CadPublishList`](xref:GeometryHelper.Dxf.Viewer.CadPublishList) (the sheets, the options, `Load`, `Save`, `Plan`),
+[`CadPublishOptions`](xref:GeometryHelper.Dxf.Viewer.CadPublishOptions) and
+[`CadDsdFile`](xref:GeometryHelper.Dxf.Viewer.CadDsdFile); the window's `CadPublisher` carries the plan out.
+
 ## PLOTSTAMP and -PLOTSTAMP
 
 A plot stamp is a few lines of text in a corner of the sheet, and the same words added to a log file.

@@ -1125,7 +1125,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>The sheet of a list that is the size of a wanted one in either turn, to a millimetre; else the list's first.</summary>
-        private static CadPaper ClosestPaper(IReadOnlyList<CadPaper> papers, CadPaper wanted)
+        internal static CadPaper ClosestPaper(IReadOnlyList<CadPaper> papers, CadPaper wanted)
         {
             foreach (CadPaper paper in papers)
             {

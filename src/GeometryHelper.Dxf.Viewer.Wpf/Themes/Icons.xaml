@@ -179,6 +179,7 @@
     <Geometry x:Key="GhIconPageSetup">M4 4h16v16H4zM8 8h8M8 12h8M8 16h5</Geometry>
     <Geometry x:Key="GhIconPlotPreview">M10 10m-6 0a6 6 0 1 0 12 0a6 6 0 1 0-12 0M14.5 14.5 20 20</Geometry>
     <Geometry x:Key="GhIconPlotStamp">M4 20h16M6 16h12v4H6zM9 16V9a3 3 0 1 1 6 0v7</Geometry>
+    <Geometry x:Key="GhIconBatchPlot">M7 3h12v14M4 6h12v15H4z</Geometry>
     <Geometry x:Key="GhIconExportPdf">
         M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M8 13h2a1.5 1.5 0 0 1 0 3H8v-5M13 16v-5h1.5a2.5 2.5 0 0 1 0 5z
     </Geometry>

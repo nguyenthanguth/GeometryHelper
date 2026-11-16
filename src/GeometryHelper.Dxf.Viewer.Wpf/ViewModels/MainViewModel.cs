@@ -1865,6 +1865,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "PREVIEW":
                     OnPreviewRequested(sender, e);
                     break;
+                case "PUBLISH":
+                case "-PUBLISH":
+                    OnPublishRequested(sender, e);
+                    break;
                 case "-PLOT":
                     OnPlotFileRequested(sender, e);
                     break;
