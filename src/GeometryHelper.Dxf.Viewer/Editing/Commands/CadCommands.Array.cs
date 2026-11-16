@@ -165,6 +165,7 @@ namespace GeometryHelper.Dxf.Viewer
                 // The array as it stands, as AutoCAD 2021 shows it while its grips and options are offered.
                 yield return CadPrompt
                     .ForPoint("Select grip to edit array", null, RectangularOptions, "eXit")
+                    .WithDefaultTight()
                     .Previewing(CadPreview.Moving(c, c.Selected, input => Moves().ConvertAll(CadPreview.Flat)));
 
                 if (c.Input.IsPoint)
@@ -193,7 +194,7 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     bool both = c.Input.Is("COUnt");
 
-                    foreach (CadPrompt prompt in Count(c, "Enter number of columns", columns, count))
+                    foreach (CadPrompt prompt in Count(c, "Enter the number of columns", columns, count))
                     {
                         yield return prompt;
                     }
@@ -202,7 +203,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (both)
                     {
-                        foreach (CadPrompt prompt in Count(c, "Enter number of rows", rows, count))
+                        foreach (CadPrompt prompt in Count(c, "Enter the number of rows", rows, count))
                         {
                             yield return prompt;
                         }
@@ -233,7 +234,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("Rows"))
                 {
-                    foreach (CadPrompt prompt in Count(c, "Enter number of rows", rows, count))
+                    foreach (CadPrompt prompt in Count(c, "Enter the number of rows", rows, count))
                     {
                         yield return prompt;
                     }
@@ -385,6 +386,7 @@ namespace GeometryHelper.Dxf.Viewer
                 // The array as it stands, as AutoCAD 2021 shows it while its grips and options are offered.
                 yield return CadPrompt
                     .ForPoint("Select grip to edit array", null, PolarOptions, "eXit")
+                    .WithDefaultTight()
                     .Previewing(
                         CadPreview.Moving(c, c.Selected, input =>
                             PolarMoves(centre, basePoint, items, step, rows, apart, turn).ConvertAll(CadPreview.Flat)
@@ -468,7 +470,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("ROWs"))
                 {
-                    foreach (CadPrompt prompt in Count(c, "Enter number of rows", rows, count))
+                    foreach (CadPrompt prompt in Count(c, "Enter the number of rows", rows, count))
                     {
                         yield return prompt;
                     }

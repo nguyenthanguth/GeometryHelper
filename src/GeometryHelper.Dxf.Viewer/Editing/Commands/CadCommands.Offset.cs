@@ -114,7 +114,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForEntity("Select object to offset", new[] { "Exit", "Undo" }, "Exit");
+                yield return CadPrompt
+                    .ForEntity("Select object to offset", new[] { "Exit", "Undo" }, "Exit")
+                    .Expecting("Exit");
 
                 if (c.Input.Is("Undo"))
                 {

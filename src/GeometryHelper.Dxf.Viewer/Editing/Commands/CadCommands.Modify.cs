@@ -78,12 +78,18 @@ namespace GeometryHelper.Dxf.Viewer
                     keywords.Add("Undo");
                 }
 
-                CadPrompt asked = CadPrompt.ForEntity(
-                    extend
-                        ? "Select object to extend or shift-select to trim"
-                        : "Select object to trim or shift-select to extend",
-                    keywords
-                );
+                CadPrompt asked = CadPrompt
+                    .ForEntity(
+                        extend
+                            ? "Select object to extend or shift-select to trim"
+                            : "Select object to trim or shift-select to extend",
+                        keywords
+                    )
+                    .Expecting(
+                        extend
+                            ? "Fence/Boundary edges/Crossing/mOde/Project"
+                            : "Fence/cuTting edges/Crossing/mOde/Project/Edge"
+                    );
 
                 // The object under the cursor previews the piece a trim takes out, faded, or the object an extension runs on,
                 // and with Shift held what the other command does to it.
@@ -794,6 +800,9 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
+        // What AutoCAD 2021 lists after "Expects a point or" to text at BREAK's "Select object:".
+        private const string BreakExpects = "Window/Last/Crossing/BOX/ALL/Fence/WPolygon/CPolygon";
+
         /// <summary>
         /// BREAK: the part of an object between two points taken out, the first point where it was picked unless First point
         /// gives another, @ for the second the same point, which breaks it in two there; round a circle counter-clockwise from
@@ -801,7 +810,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static IEnumerable<CadPrompt> Break(CadCommandContext c)
         {
-            yield return CadPrompt.ForEntity("Select object");
+            yield return CadPrompt.ForEntity("Select object").Expecting(BreakExpects);
 
             // AutoCAD 2021 says so of a multiline and asks again.
             while (
@@ -810,7 +819,7 @@ namespace GeometryHelper.Dxf.Viewer
             )
             {
                 c.Write("Object can't be broken");
-                yield return CadPrompt.ForEntity("Select object");
+                yield return CadPrompt.ForEntity("Select object").Expecting(BreakExpects);
             }
 
             if (c.Input.Kind != CadInputKind.Selection)
@@ -1357,11 +1366,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForEntity(
-                    "Select an object to measure",
-                    modes,
-                    modes[(int)c.Remembered("lengthen.mode", 2.0)]
-                );
+                yield return CadPrompt
+                    .ForEntity("Select an object to measure", modes, modes[(int)c.Remembered("lengthen.mode", 2.0)])
+                    .Expecting("Last/Fence/DElta/Percent/Total");
 
                 if (c.Input.Kind == CadInputKind.Selection)
                 {

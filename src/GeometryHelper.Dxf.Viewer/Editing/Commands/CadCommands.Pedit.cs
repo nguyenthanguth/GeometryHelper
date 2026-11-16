@@ -79,7 +79,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (handle == null)
             {
-                yield return CadPrompt.ForEntity("Select polyline", new[] { "Multiple" });
+                yield return CadPrompt
+                    .ForEntity("Select polyline", new[] { "Multiple" })
+                    .Expecting("Window/Last/Crossing/BOX/ALL/Fence/WPolygon/CPolygon/Multiple]:");
 
                 if (c.Input.Is("Multiple"))
                 {

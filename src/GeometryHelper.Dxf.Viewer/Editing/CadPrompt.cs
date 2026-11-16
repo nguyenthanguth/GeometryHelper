@@ -242,6 +242,20 @@ namespace GeometryHelper.Dxf.Viewer
             return this;
         }
 
+        /// <summary>
+        /// The words AutoCAD lists after "Expects a point or" when a prompt for one object is answered with text that is no
+        /// point: "Last/Fence/DElta/Percent/Total" at LENGTHEN's; null for the prompts that say "Expects a single object." (DIVIDE,
+        /// DIMRADIUS, DIMLINEAR's Select object and most of the rest).
+        /// </summary>
+        internal string Expected { get; private set; }
+
+        /// <summary>Gives a prompt for one object the options AutoCAD lists when it refuses text (<see cref="Expected"/>).</summary>
+        internal CadPrompt Expecting(string options)
+        {
+            Expected = options;
+            return this;
+        }
+
         // Keywords taken but not shown, as a grip edit takes MOVE or MO at its STRETCH prompt.
         private IReadOnlyList<string> _hidden = Array.Empty<string>();
 
@@ -277,7 +291,7 @@ namespace GeometryHelper.Dxf.Viewer
                         return text.Append(": <").Append(Default).Append('>').ToString();
                     }
 
-                    text.Append(" <").Append(Default).Append('>');
+                    text.Append(_defaultTight ? "<" : " <").Append(Default).Append('>');
                 }
 
                 return _noColon ? text.ToString() : text.Append(':').ToString();
@@ -311,6 +325,16 @@ namespace GeometryHelper.Dxf.Viewer
         internal CadPrompt WithoutColon()
         {
             _noColon = true;
+            return this;
+        }
+
+        // Whether the default follows the brackets with no space, as AutoCAD writes ARRAYRECT's "[...Levels/eXit]<eXit>:".
+        private bool _defaultTight;
+
+        /// <summary>Writes the default straight after the brackets, as AutoCAD writes the "&lt;eXit&gt;" of an array's "Select grip to edit array".</summary>
+        internal CadPrompt WithDefaultTight()
+        {
+            _defaultTight = true;
             return this;
         }
 

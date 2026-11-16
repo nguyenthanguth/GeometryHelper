@@ -37,7 +37,9 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else
                 {
-                    yield return CadPrompt.ForEntity("Select an annotation object", new[] { "Undo", "Mode" });
+                    yield return CadPrompt
+                        .ForEntity("Select an annotation object", new[] { "Undo", "Mode" })
+                        .Expecting("Last/Undo");
                 }
 
                 if (c.Input.Is("Undo"))

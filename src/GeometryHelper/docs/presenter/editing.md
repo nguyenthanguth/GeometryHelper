@@ -2242,6 +2242,28 @@ distance, two points, or option keyword.` and `Value must be positive and nonzer
 fillet radius, `Requires numeric distance or two points.` and `Value must be positive.` and are asked again. A line from (0, 0) to (100, 0) divided asks `Enter the number of segments or [Block]:` and
 a 1 there is refused the range, then 3 puts two points.
 
+A circle's radius says `Requires numeric radius, point on circumference, or "D".` to text, and its diameter `Requires numeric
+distance or second point.`; nought or below at either is `Value must be positive and nonzero.` and the prompt is asked
+again, where the command ended with that line. DONUT's inside diameter takes nought (a filled ring) and says `Value must be
+positive.` below it, its outside diameter `Value must be positive and nonzero.` at nought and below, each asked again, and
+`Requires numeric distance or two points.` to text. UNDO writes `Current settings: Auto = On, Control = All, Combine = Yes,
+Layer = Yes` and asks `Enter the number of operations to undo or [Auto/Control/BEgin/End/Mark/Back] <1>:`, saying
+`Requires an integer between 1 and 32767, or option keyword.` to text, 1.5, nought, a negative number and 32768 or more, and
+asking again; Mark keeps the place in the history of steps, and Back takes the steps back down to it, `Mark encountered`,
+or asks `This will undo everything. OK? <Y>` where no mark was kept. Auto, Control, BEgin and End are not built and say so.
+
+A prompt for one object answered with text says `*Invalid selection*` and then what AutoCAD 2021 lists for that prompt:
+`Expects a single object.` for most (DIVIDE, MEASURE, DIMRADIUS, DIMLINEAR's Select object, CENTERMARK), and `Expects a point or`
+with its options for BREAK (`Window/Last/Crossing/BOX/ALL/Fence/WPolygon/CPolygon`), OFFSET (`Exit`), FILLET and CHAMFER, LENGTHEN
+(`Last/Fence/DElta/Percent/Total`), TRIM and EXTEND, PEDIT, SPLINEDIT, HATCHEDIT, TEXTEDIT, LAYOFF, LAYFRZ and LAYULK. The
+corner of a window, a crossing or a BOX that is no point, or Enter there, says `Invalid window specification.` and asks the
+first corner again (the opposite corner of the implied window asks itself again); a point of a fence or a polygon that is no
+point says `Invalid response.`: both said `Point or option keyword required.` before. ARRAYRECT and ARRAYPOLAR ask `Enter the
+number of columns or [Expression] <4>:` and `Enter the number of rows or [Expression] <3>:`, and `Select grip to edit array
+or [...]<eXit>:` with the default straight after the brackets, as AutoCAD writes it; their `Type = Rectangular  Associative =
+No` line stays No, as the items are made as separate objects. SCALE asks `Specify scale factor or [Copy/Reference]:` with no
+default shown, and Enter takes the factor used last (1 at first).
+
 DIVIDE and MEASURE put points, or a block with Block (turned along the curve unless `Align block with object? [Yes/No]
 <Y>:` is answered No), at equal lengths along a line, arc, circle, ellipse, polyline or spline, as AutoCAD 2021 does:
 DIVIDE asks for 2 to 32767 segments and puts one between each, and on a closed curve one at its start too, so a circle
@@ -2775,6 +2797,18 @@ the options, FROM, M2P and TK's `Next point` asking their own prompt again, and 
 objects:` and asking it again; Enter at TT's or a filter's prompt or at FROM's ends the selection as Enter does. A point
 typed at "Select objects:" that lies on no object starts the window as well, `Select objects: 150,150` then `Specify opposite
 corner:`.
+
+A point typed after an object snap override, `END` or any of the others typed or chosen from the menu, is snapped as AutoCAD
+2021's console snaps it, at a point prompt, at "Select objects:" and at a prompt for one object (`CadCommandSession.SnapOverride`
+and `SnapAperture`, which the window sets with the snap's own and the cursor's aperture): the objects within the aperture of
+the point are looked at, and the snap point of any of them nearest the point is the answer, wherever it lies on the object,
+so with END, an aperture of 1.3 and a line from (0, 0) to (100, 0), 60,1 is (100, 0); with no object within the aperture
+the line `No Endpoint found for specified point.` is written (`Midpoint`, `Center`, `Quadrant`, `Node`, `Insert`, `Perpendicular`,
+and no name for NEArest and TANgent: `No found for specified point.`), then the words of the prompt, `Invalid point.` or `Point or option keyword
+required.`, or `*Invalid selection*` and the options at "Select objects:" and at a prompt for one object, and the prompt is
+asked again, the override spent. A point typed after one of the snaps not taken (INTersection, EXTension, PARallel,
+APParent, GCEnter) stays as typed, as after NONe; PERpendicular and TANgent need a base point, and the corner of a window and
+the point of a fence are not snapped by a typed point yet.
 
 ## Grips
 

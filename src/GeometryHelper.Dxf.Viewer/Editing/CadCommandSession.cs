@@ -553,7 +553,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// AUto; a point typed there picks as a click does, "Select objects: 50,0" then "1 found", and where it hits nothing
         /// starts the window as AutoCAD 2021 does, "Select objects: -50,-50" then "Specify opposite corner:"; anything else is
         /// "*Invalid selection*" with the options listed. A point modifier, FROM, M2P, TT, TK or a point filter, starts at a
-        /// prompt for a point or for objects (<see cref="StartPointModifier"/>).
+        /// prompt for a point or for objects (<see cref="StartPointModifier"/>). A point typed after an object snap override is
+        /// snapped to the object under it, or refused where none is found (<see cref="SnapOverride"/>).
         /// 'PAN or 'ZOOM typed at any prompt but one for text runs inside the command waiting (<see cref="IsTransparent"/>).
         /// </summary>
         /// <param name="text">The text.</param>
@@ -633,6 +634,16 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (TryPoint(typed, out GeoPoint2 pickedAt))
                     {
+                        // After an object snap override the point is the snap of the object under it, or no snap is found.
+                        if (!TrySnapTyped(ref pickedAt, out string absent))
+                        {
+                            Echo(echo);
+                            Write(absent);
+                            return Prompt.Kind == CadPromptKind.Selection
+                                ? InvalidSelection(null)
+                                : InvalidObject(null);
+                        }
+
                         // A point typed picks as a click does, written after the prompt as typed; one on nothing starts the
                         // window, as AutoCAD 2021's "Select objects: 150,150" then "Specify opposite corner:".
                         if (Prompt.Kind == CadPromptKind.Selection && StartWindowAt(pickedAt, echo))
@@ -652,9 +663,7 @@ namespace GeometryHelper.Dxf.Viewer
                         }
                     }
 
-                    return Prompt.Kind == CadPromptKind.Selection
-                        ? InvalidSelection(echo)
-                        : Invalid("*Invalid selection*", echo);
+                    return Prompt.Kind == CadPromptKind.Selection ? InvalidSelection(echo) : InvalidObject(echo);
                 case CadPromptKind.Point:
                     if (TryAngleOverride(typed, echo))
                     {
@@ -668,6 +677,13 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (TryPoint(typed, out GeoPoint2 point))
                     {
+                        if (!TrySnapTyped(ref point, out string none))
+                        {
+                            Echo(echo);
+                            Write(none);
+                            return Invalid(PointRefusal());
+                        }
+
                         return Answer(new CadInput(CadInputKind.Point, point, 0.0, typed, null), echo, point);
                     }
 
@@ -699,11 +715,7 @@ namespace GeometryHelper.Dxf.Viewer
                         return MissModifier(typed, echo);
                     }
 
-                    return Invalid(
-                        Prompt.Refusal
-                            ?? (Prompt.Keywords.Count > 0 ? "Point or option keyword required." : "Invalid point."),
-                        echo
-                    );
+                    return Invalid(PointRefusal(), echo);
                 case CadPromptKind.Distance:
                     if (TryLength(typed, out double distance))
                     {
@@ -1305,6 +1317,10 @@ namespace GeometryHelper.Dxf.Viewer
             Advance();
             return true;
         }
+
+        /// <summary>The words a prompt for a point says to what is no point: its own, "Point or option keyword required." where it has options, else "Invalid point.".</summary>
+        private string PointRefusal() =>
+            Prompt.Refusal ?? (Prompt.Keywords.Count > 0 ? "Point or option keyword required." : "Invalid point.");
 
         private bool Invalid(string message, string echo = null)
         {

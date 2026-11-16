@@ -300,8 +300,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
+                // AutoCAD 2021 shows no default here, and Enter takes the factor used last (1 at first).
                 yield return CadPrompt
-                    .ForDistance("Specify scale factor", center, new[] { "Copy", "Reference" }, Length(last))
+                    .ForDistance("Specify scale factor", center, new[] { "Copy", "Reference" })
                     .Previewing(CadPreview.MovingOne(c, c.Selected, input => Scaled(input.Number), true, !copy));
 
                 if (c.Input.Is("Copy"))
@@ -923,16 +924,82 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static IEnumerable<CadPrompt> Undo(CadCommandContext c)
         {
-            yield return CadPrompt.ForInteger("Enter the number of operations to undo", null, "1");
-            int count = c.Input.Kind == CadInputKind.Number ? (int)c.Input.Number : 1;
+            const string refused = "Requires an integer between 1 and 32767, or option keyword.";
+            c.Write("Current settings: Auto = On, Control = All, Combine = Yes, Layer = Yes");
 
-            if (count <= 0)
+            // A number below 1 or past 32767, as well as text and 2.5, is refused and asked again, as AutoCAD 2021 refuses it.
+            while (true)
             {
-                c.Write("Requires a positive integer.");
+                yield return CadPrompt
+                    .ForInteger(
+                        "Enter the number of operations to undo",
+                        new[] { "Auto", "Control", "BEgin", "End", "Mark", "Back" },
+                        "1"
+                    )
+                    .Refusing(refused);
+
+                if (c.Input.Kind != CadInputKind.Number || (c.Input.Number >= 1.0 && c.Input.Number <= 32767.0))
+                {
+                    break;
+                }
+
+                c.Write(refused);
+            }
+
+            if (c.Input.Is("Mark"))
+            {
+                c.Remember("undo.mark", c.Document.UndoPosition);
                 yield break;
             }
 
-            UndoSteps(c, count);
+            if (c.Input.Is("Back"))
+            {
+                bool marked = c.Remembered("undo.mark", -1.0) >= 0.0;
+
+                if (!marked)
+                {
+                    yield return CadPrompt.ForString("This will undo everything. OK?", "Y").WithoutColon();
+
+                    if (
+                        c.Input.Kind == CadInputKind.Text
+                        && c.Input.Text.StartsWith("N", StringComparison.OrdinalIgnoreCase)
+                    )
+                    {
+                        yield break;
+                    }
+                }
+
+                UndoBack(c, marked ? (int)c.Remembered("undo.mark", 0.0) : 0, marked);
+                yield break;
+            }
+
+            if (c.Input.Kind == CadInputKind.Keyword)
+            {
+                c.Write(
+                    "UNDO Auto, Control, BEgin and End are not built: Mark and Back and a number of operations are."
+                );
+                yield break;
+            }
+
+            UndoSteps(c, c.Input.Kind == CadInputKind.Number ? (int)c.Input.Number : 1);
+        }
+
+        /// <summary>UNDO Back: the steps taken back down to the mark UNDO Mark kept, "Mark encountered", or all of them where none was kept.</summary>
+        private static void UndoBack(CadCommandContext c, int mark, bool marked)
+        {
+            while (c.Document.UndoPosition > mark)
+            {
+                CadUndoStep step = c.Document.NextUndo;
+
+                if (step == null || !c.Document.Undo())
+                {
+                    break;
+                }
+
+                c.Write(step.Name);
+            }
+
+            c.Write(marked ? "Mark encountered" : "Everything has been undone");
         }
 
         private static IEnumerable<CadPrompt> UndoOne(CadCommandContext c)
