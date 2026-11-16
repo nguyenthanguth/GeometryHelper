@@ -498,10 +498,13 @@ the ones wanted.
       ("No Endpoint found for specified point." when none); a one-object prompt's second refusal line per command;
       window-corner and fence refusals; CIRCLE, DONUT, UNDO (Mark/Back built) and SCALE as AutoCAD 2021; the arrays'
       ]<eXit>: and "Enter the number of"
-- [ ] (aids5, running) Aids-vars follow-ups 4: a snap override before a window corner or fence point; INT/EXT/PAR/APP/GCE typed points;
-      "to" in the history for PER, NEA, TAN, PAR; ARRAYRECT Rows/Levels sequences (the console hung once on R);
-      BREAK's "No object found" and LAYOFF's "Nothing Selected."; LAYOFF/LAYFRZ [Settings/Undo]; UNDO Auto, Control,
-      BEgin, End; "W 1" at a corner; the pick-box aperture for a click under an override (S)
+- [x] Aids-vars follow-ups 4 (aids5): overrides at window corners and fence points (typed and clicked); INT and APP
+      typed (" and" for one object), EXT/PAR/GCE as AutoCAD; "to" for PER/NEA/TAN/PAR; BREAK "No object found", layer
+      commands "Nothing Selected." with LAYOFF/LAYFRZ [Settings/Undo]; "W 1" from the last point; ARRAYRECT/POLAR
+      Levels and Total as AutoCAD 2021
+- [ ] Aids-vars follow-ups 5: INT/APP clicked over one object (" and" on the canvas); the layer Settings changing picks
+      inside blocks and viewports; UNDO Auto, Control, BEgin, End; a window dragged while an override waits; NEA's
+      pixel-rounded point at the aperture edge; END typed at " and" (AutoCAD refuses) (S)
 - [x] MLEADERSCALE, CMLEADERSTYLE, LEADER and QLEADER (command line) as AutoCAD 2021
 - [x] QLEADER Leader Settings (AcadDim xrecord, DIMLDRBLK) and the Polar tab's additional angles, tracking and measurement, with the polar tooltip
 - [x] Leader follow-ups: every differing DIM* override in group order, DIMCLRT, hook along the UCS, INSERT copied and reused, LEADER/QLEADER previews, arrow pictures and User Arrow...
@@ -962,7 +965,7 @@ the ones wanted.
 - [x] Speed follow-ups 15 (speed16): a flat loop keeps no normals array, a two-vertex chain no 56-byte array, a TEXT
       style and INSERT block name one shared string: at 1M cold garbage 454 -> 404 MB, REGEN 276 -> 244 MB, kept heap 410
       -> 392 MB (net8); net48 cold 2.51 -> 2.36 s, REGEN 1.08 -> 0.97 s; lists, pixels and saved bytes identical
-- [ ] Speed follow-ups 16: GeoPolylineArc3's per-edge normals array (open bulged polylines); DisplayPolyline2 at 80
+- [ ] (speed17, running) Speed follow-ups 16: GeoPolylineArc3's per-edge normals array (open bulged polylines); DisplayPolyline2 at 80
       bytes (four bools); DxfDBObject's _pendingXData field; space.Snapshot() copying 8 MB at 1M; DxfEntity wrappers
       (36 MB: needs a non-binding construction path); REGEN's text group walk; a DWG read stopped mid-way (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel

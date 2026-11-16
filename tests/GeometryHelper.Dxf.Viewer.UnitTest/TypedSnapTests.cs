@@ -202,7 +202,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ASnapNotTaken_LeavesThePointAsTyped()
         {
-            CadCommandSession session = Snapping(CadSnapModes.Extension, "LINE");
+            CadCommandSession session = Snapping(CadSnapModes.Endpoint | CadSnapModes.Midpoint, "LINE");
 
             Run(session, "60,5");
 

@@ -138,6 +138,10 @@ namespace GeometryHelper.Dxf.Viewer
             var count = new Ref<int?>();
             var distance = new Ref<double?>();
 
+            // The levels asked and how far apart: the array is made in the plan (Planar says so), so only the prompts follow AutoCAD.
+            int levels = 1;
+            double deep = 1.0;
+
             // The moves of the copies, each column and row but the first, along the axes of the UCS.
             List<GeoTransform3> Moves()
             {
@@ -216,7 +220,7 @@ namespace GeometryHelper.Dxf.Viewer
                             CadPrompt prompt in Spacing(
                                 c,
                                 "Specify the distance between columns",
-                                "Specify the distance between first and last column",
+                                "Enter total distance between start and end columns",
                                 across,
                                 columns,
                                 distance
@@ -245,7 +249,7 @@ namespace GeometryHelper.Dxf.Viewer
                         CadPrompt prompt in Spacing(
                             c,
                             "Specify the distance between rows",
-                            "Specify the distance between first and last row",
+                            "Enter total distance between start and end rows",
                             up,
                             rows,
                             distance
@@ -305,12 +309,29 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("Levels"))
                 {
-                    foreach (CadPrompt prompt in Count(c, "Enter the number of levels", 1, count))
+                    foreach (CadPrompt prompt in Count(c, "Enter the number of levels", levels, count))
                     {
                         yield return prompt;
                     }
 
+                    levels = count.Value ?? levels;
                     Planar(c, 1.0);
+
+                    foreach (
+                        CadPrompt prompt in Spacing(
+                            c,
+                            "Specify the distance between levels",
+                            "Enter total distance between start and end levels",
+                            deep,
+                            levels,
+                            distance
+                        )
+                    )
+                    {
+                        yield return prompt;
+                    }
+
+                    deep = distance.Value ?? deep;
                     continue;
                 }
 
@@ -377,6 +398,8 @@ namespace GeometryHelper.Dxf.Viewer
             double step = Math.PI / 3.0;
             int rows = 1;
             double apart = 1.0;
+            int levels = 1;
+            double deep = 1.0;
             bool turn = true;
             var count = new Ref<int?>();
             var distance = new Ref<double?>();
@@ -481,7 +504,7 @@ namespace GeometryHelper.Dxf.Viewer
                         CadPrompt prompt in Spacing(
                             c,
                             "Specify the distance between rows",
-                            "Specify the distance between first and last row",
+                            "Enter total distance between start and end rows",
                             apart,
                             rows,
                             distance
@@ -504,12 +527,29 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("Levels"))
                 {
-                    foreach (CadPrompt prompt in Count(c, "Enter the number of levels", 1, count))
+                    foreach (CadPrompt prompt in Count(c, "Enter the number of levels", levels, count))
                     {
                         yield return prompt;
                     }
 
+                    levels = count.Value ?? levels;
                     Planar(c, 1.0);
+
+                    foreach (
+                        CadPrompt prompt in Spacing(
+                            c,
+                            "Specify the distance between levels",
+                            "Enter total distance between start and end levels",
+                            deep,
+                            levels,
+                            distance
+                        )
+                    )
+                    {
+                        yield return prompt;
+                    }
+
+                    deep = distance.Value ?? deep;
                     continue;
                 }
 
@@ -1010,7 +1050,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>Asks the distance between columns or rows, or with Total the distance from the first to the last.</summary>
+        /// <summary>
+        /// Asks the distance between columns, rows or levels, or with Total the distance from the first to the last, "Enter total
+        /// distance between start and end rows": nought at either is "Value must be nonzero." and asked again, as AutoCAD 2021
+        /// asks it.
+        /// </summary>
         private static IEnumerable<CadPrompt> Spacing(
             CadCommandContext c,
             string message,
@@ -1021,30 +1065,51 @@ namespace GeometryHelper.Dxf.Viewer
         )
         {
             result.Value = null;
-            yield return CadPrompt.ForDistance(message, null, new[] { "Total", "Expression" }, Length(now));
 
-            if (c.Input.Is("Total"))
+            while (true)
             {
-                yield return CadPrompt.ForDistance(
-                    total,
-                    null,
-                    new[] { "Expression" },
-                    Length(now * Math.Max(1, count - 1))
-                );
+                yield return CadPrompt.ForDistance(message, null, new[] { "Total", "Expression" }, Length(now));
+
+                if (c.Input.Is("Total"))
+                {
+                    // Nought is refused and the total asked again, not the distance between.
+                    while (true)
+                    {
+                        yield return CadPrompt.ForDistance(total, null, null, Length(now * Math.Max(1, count - 1)));
+
+                        if (c.Input.Kind != CadInputKind.Number || !IsNought(c, c.Input.Number))
+                        {
+                            break;
+                        }
+
+                        c.Write("Value must be nonzero.");
+                    }
+
+                    if (c.Input.Kind == CadInputKind.Number)
+                    {
+                        result.Value = count > 1 ? c.Input.Number / (count - 1) : now;
+                    }
+
+                    yield break;
+                }
+
+                if (c.Input.Kind == CadInputKind.Number && IsNought(c, c.Input.Number))
+                {
+                    c.Write("Value must be nonzero.");
+                    continue;
+                }
 
                 if (c.Input.Kind == CadInputKind.Number)
                 {
-                    result.Value = count > 1 ? c.Input.Number / (count - 1) : now;
+                    result.Value = c.Input.Number;
                 }
 
                 yield break;
             }
-
-            if (c.Input.Kind == CadInputKind.Number)
-            {
-                result.Value = c.Input.Number;
-            }
         }
+
+        private static bool IsNought(CadCommandContext c, double value) =>
+            Math.Abs(value) <= c.Session.Tolerance.EqualPoint;
 
         /// <summary>The box of the objects, those with none left out.</summary>
         private static GeoAabb3 Extents(CadCommandContext c, IReadOnlyList<string> handles)

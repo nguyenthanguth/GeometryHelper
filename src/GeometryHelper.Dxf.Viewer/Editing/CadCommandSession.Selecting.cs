@@ -184,9 +184,9 @@ namespace GeometryHelper.Dxf.Viewer
                 case "BOX":
                     return BeginOption(option, CadPrompt.ForPoint("Specify first corner"));
                 case "Fence":
-                    return BeginOption(option, CadPrompt.ForPoint("Specify first fence point"));
+                    return BeginOption(option, CadPrompt.ForPoint("Specify first fence point or pick/drag cursor"));
                 default:
-                    return BeginOption(option, CadPrompt.ForPoint("First polygon point"));
+                    return BeginOption(option, CadPrompt.ForPoint("First polygon point or pick/drag cursor"));
             }
         }
 
@@ -279,7 +279,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (_band.Count == 0)
             {
-                Ask(CadPrompt.ForPoint(fence ? "Specify first fence point" : "First polygon point"));
+                Ask(
+                    CadPrompt.ForPoint(
+                        fence
+                            ? "Specify first fence point or pick/drag cursor"
+                            : "First polygon point or pick/drag cursor"
+                    )
+                );
                 return;
             }
 
@@ -334,8 +340,26 @@ namespace GeometryHelper.Dxf.Viewer
                 return true;
             }
 
-            if (TryPoint(typed, out GeoPoint2 point))
+            // A number alone is a distance from the last point (the corner "W 1" gives), as a point prompt takes it.
+            if (TryPoint(typed, out GeoPoint2 point) || TryDistancePoint(typed, Prompt.BasePoint, out point))
             {
+                // After an object snap override the point is the snap of the object under it, as at any prompt for a point.
+                TypedSnapResult snapped = SnapTyped(ref point, echo, out string absent);
+
+                if (snapped == TypedSnapResult.Asking)
+                {
+                    return true;
+                }
+
+                if (snapped == TypedSnapResult.Missing)
+                {
+                    Echo(echo);
+                    Write(absent);
+                    return _option == "Window" || _option == "Crossing" || _option == "BOX"
+                        ? InvalidWindow(null)
+                        : Invalid("Invalid response.");
+                }
+
                 return OptionPoint(point, echo);
             }
 

@@ -43,7 +43,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(Erased(document, "A2"));
             Assert.False(Erased(document, "A3"));
             Assert.Contains("Select objects: F", session.History);
-            Assert.Contains("Specify first fence point:", session.History);
+            Assert.Contains("Specify first fence point or pick/drag cursor:", session.History);
         }
 
         [Fact]
@@ -71,7 +71,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Plan();
             CadCommandSession session = Run(Session(document), "ERASE", "WP");
-            Assert.Equal("First polygon point:", session.PromptText);
+            Assert.Equal("First polygon point or pick/drag cursor:", session.PromptText);
             Run(session, P(-10, -10), P(110, -10), P(110, 60), P(-10, 60), Enter);
             Assert.Equal("2 found", session.History.Last());
 

@@ -138,8 +138,8 @@ makes, as -ARRAY's "Rotate arrayed objects?" does.
 |---|---|
 | `W`, `C` | a window or a crossing by two corners (`Specify first corner:`, `Specify opposite corner:`), whichever way the box is drawn |
 | `BOX` | two corners, a window drawn left to right and a crossing right to left |
-| `F` | what a fence crosses, by points (`Specify first fence point:`, `Specify next fence point or [Undo]:`) until Enter |
-| `WP`, `CP` | what lies inside a polygon or what it touches, by points (`First polygon point:`, `Specify endpoint of line or [Undo]:`) until Enter |
+| `F` | what a fence crosses, by points (`Specify first fence point or pick/drag cursor:`, `Specify next fence point or [Undo]:`) until Enter |
+| `WP`, `CP` | what lies inside a polygon or what it touches, by points (`First polygon point or pick/drag cursor:`, `Specify endpoint of line or [Undo]:`) until Enter |
 | `ALL`, `L`, `P` | every object of the space; the last object made that the space shows; the objects the command before took |
 | `G` | the members of a group by name (`Enter group name:`) |
 | `R`, `A` | from `R` on, what is picked is taken out (`Remove objects:`) until `A` |
@@ -2804,11 +2804,34 @@ and `SnapAperture`, which the window sets with the snap's own and the cursor's a
 the point are looked at, and the snap point of any of them nearest the point is the answer, wherever it lies on the object,
 so with END, an aperture of 1.3 and a line from (0, 0) to (100, 0), 60,1 is (100, 0); with no object within the aperture
 the line `No Endpoint found for specified point.` is written (`Midpoint`, `Center`, `Quadrant`, `Node`, `Insert`, `Perpendicular`,
-and no name for NEArest and TANgent: `No found for specified point.`), then the words of the prompt, `Invalid point.` or `Point or option keyword
-required.`, or `*Invalid selection*` and the options at "Select objects:" and at a prompt for one object, and the prompt is
-asked again, the override spent. A point typed after one of the snaps not taken (INTersection, EXTension, PARallel,
-APParent, GCEnter) stays as typed, as after NONe; PERpendicular and TANgent need a base point, and the corner of a window and
-the point of a fence are not snapped by a typed point yet.
+`Intersection`, and no name for NEArest, TANgent, GCEnter, APParent, EXTension and PARallel: `No found for specified point.`),
+then the words of the prompt, `Invalid point.` or `Point or option keyword required.`, or `*Invalid selection*` and the options
+at "Select objects:" and at a prompt for one object, and the prompt is asked again, the override spent. The corner of a window
+and the point of a fence or a polygon are snapped the same way, typed or clicked (a click that starts or ends the implied
+window takes the snap `END` or the menu chose); where nothing is found there the words are `Invalid window specification.`
+(the first corner asked again, the opposite corner of the implied window asked as it was) or `Invalid response.` (the same
+prompt asked again). INTersection and APParent over two objects give their crossing, the one nearest the point; over one
+object the command line asks ` and` for a second, answered by a point on it (typed or clicked), and gives the crossing of the
+two, a line over a circle that cross twice giving the crossing nearer the second point; with no crossing it says `No
+Intersection found for specified point.` (`No found for specified point.` for APParent) and the words of the prompt INT was
+typed at, and text at ` and` is refused as that prompt refuses it, Enter answered by it. EXTension and PARallel, which need
+the cursor to rest on an object, find nothing at a point typed, and GCEnter finds the centroid of a closed polyline the
+point lies on and nothing elsewhere. The command line writes the snap chosen as `_per to`, `_nea to`, `_tan to` and `_par to`,
+and the others as `_end of`. A number alone at a corner of a window, a point of a fence or `Select objects:` (`W`, then `1`)
+is that far from the last point along the rubber band, as at any prompt for a point. NONe leaves the point as typed;
+PERpendicular and TANgent need a base point.
+
+BREAK says `No object found` to a point on nothing, where LAYOFF, LAYFRZ, LAYLCK and LAYULK say `Nothing Selected.`, each
+asking again. LAYOFF and LAYFRZ write `Current settings: Viewports=Vpfreeze, Block nesting level=Block` and ask `Select an
+object on the layer to be turned off or [Settings/Undo]:` (`frozen` at LAYFRZ); Settings asks `Enter setting type for
+[Viewports/Block selection]:` and then `In paper space viewport use [Vpfreeze/Off] <Vpfreeze>:` (`[Freeze/Vpfreeze]` at
+LAYFRZ) or `Enter Block Selection nesting level [Block/Entity/None] <Block>:`, text that is none being `Invalid option
+keyword.`; the settings are each command's own and kept for the session, and are shown but do not yet change what a pick
+inside a block or a viewport does. U says nothing while a layer is turned back and `Everything has been undone.` with none
+left. Enter at LAYLCK and LAYULK says `Nothing selected.` and asks again. ARRAYRECT and ARRAYPOLAR ask for the levels as for
+the rows, `Specify the distance between levels or [Total/Expression] <1.0000>:` after the number, Total being `Enter total
+distance between start and end levels <...>:` (columns and rows the same), and a distance of nought at either is `Value must
+be nonzero.` and asked again.
 
 ## Grips
 

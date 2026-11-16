@@ -810,7 +810,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static IEnumerable<CadPrompt> Break(CadCommandContext c)
         {
-            yield return CadPrompt.ForEntity("Select object").Expecting(BreakExpects);
+            yield return CadPrompt.ForEntity("Select object").Expecting(BreakExpects).MissingWith("No object found");
 
             // AutoCAD 2021 says so of a multiline and asks again.
             while (
@@ -819,7 +819,10 @@ namespace GeometryHelper.Dxf.Viewer
             )
             {
                 c.Write("Object can't be broken");
-                yield return CadPrompt.ForEntity("Select object").Expecting(BreakExpects);
+                yield return CadPrompt
+                    .ForEntity("Select object")
+                    .Expecting(BreakExpects)
+                    .MissingWith("No object found");
             }
 
             if (c.Input.Kind != CadInputKind.Selection)

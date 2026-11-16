@@ -632,10 +632,20 @@ namespace GeometryHelper.Dxf.Viewer
                         }
                     }
 
-                    if (TryPoint(typed, out GeoPoint2 pickedAt))
+                    if (
+                        TryPoint(typed, out GeoPoint2 pickedAt)
+                        || (Prompt.Kind == CadPromptKind.Selection && TryDistancePoint(typed, null, out pickedAt))
+                    )
                     {
                         // After an object snap override the point is the snap of the object under it, or no snap is found.
-                        if (!TrySnapTyped(ref pickedAt, out string absent))
+                        TypedSnapResult snapped = SnapTyped(ref pickedAt, echo, out string absent);
+
+                        if (snapped == TypedSnapResult.Asking)
+                        {
+                            return true;
+                        }
+
+                        if (snapped == TypedSnapResult.Missing)
                         {
                             Echo(echo);
                             Write(absent);
@@ -677,11 +687,22 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (TryPoint(typed, out GeoPoint2 point))
                     {
-                        if (!TrySnapTyped(ref point, out string none))
+                        TypedSnapResult snapped = SnapTyped(ref point, echo, out string none);
+
+                        if (snapped == TypedSnapResult.Asking)
+                        {
+                            return true;
+                        }
+
+                        if (snapped == TypedSnapResult.Missing)
                         {
                             Echo(echo);
                             Write(none);
-                            return Invalid(PointRefusal());
+
+                            // The opposite corner of the implied window is refused as a window's corner is.
+                            return Invalid(
+                                ReferenceEquals(Prompt, _windowFirst) ? "Invalid window specification." : PointRefusal()
+                            );
                         }
 
                         return Answer(new CadInput(CadInputKind.Point, point, 0.0, typed, null), echo, point);
@@ -692,16 +713,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (measured != null && TryLength(typed, out double along))
                     {
-                        // Direct distance entry: the distance along the rubber band, from the base point towards the cursor;
-                        // with an angle override along it, on the side of the base point the cursor is.
-                        GeoPoint2 from = measured.Value;
-                        GeoVector2 toward =
-                            AngleOverride.HasValue ? Overridden(from)
-                            : Cursor.HasValue ? (IsTrackingOn() ? Square(from, Cursor.Value) : Cursor.Value) - from
-                            : new GeoVector2(1.0, 0.0);
-                        double length = toward.Length;
-                        GeoVector2 unit = length > 0.0 ? toward / length : new GeoVector2(1.0, 0.0);
-                        GeoPoint2 reached = from + unit * along;
+                        GeoPoint2 reached = AlongTheBand(measured.Value, along);
                         return Answer(new CadInput(CadInputKind.Point, reached, 0.0, typed, null), echo, reached);
                     }
 
@@ -1526,6 +1538,44 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             point = relative ? LastPoint + ucs.ToWorld(offset) : ucs.ToWorld(GeoPoint2.Origin + offset);
+            return true;
+        }
+
+        /// <summary>
+        /// Direct distance entry: the point a distance along the rubber band lies at, from <paramref name="from"/> towards the
+        /// cursor; with an angle override along it, on the side of the point the cursor is; level, to the right, where there is
+        /// no cursor.
+        /// </summary>
+        private GeoPoint2 AlongTheBand(GeoPoint2 from, double along)
+        {
+            GeoVector2 toward =
+                AngleOverride.HasValue ? Overridden(from)
+                : Cursor.HasValue ? (IsTrackingOn() ? Square(from, Cursor.Value) : Cursor.Value) - from
+                : new GeoVector2(1.0, 0.0);
+            double length = toward.Length;
+            GeoVector2 unit = length > 0.0 ? toward / length : new GeoVector2(1.0, 0.0);
+            return from + unit * along;
+        }
+
+        /// <summary>
+        /// A number typed alone where a point is asked, taken as a distance from <paramref name="from"/> (the last point where
+        /// null) along the rubber band, as AutoCAD 2021 takes "W 1" at the corner of a window: the corner is 1 from the last
+        /// point.
+        /// </summary>
+        /// <param name="typed">The text typed.</param>
+        /// <param name="from">The point the distance is measured from; null for the last point.</param>
+        /// <param name="point">The point reached.</param>
+        /// <returns>Whether the text is a distance.</returns>
+        private bool TryDistancePoint(string typed, GeoPoint2? from, out GeoPoint2 point)
+        {
+            point = default;
+
+            if (!TryLength(typed, out double along))
+            {
+                return false;
+            }
+
+            point = AlongTheBand(from ?? LastPoint, along);
             return true;
         }
 

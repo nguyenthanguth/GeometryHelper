@@ -203,11 +203,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Snap.Override = modes;
             _current.Session.SnapOverride = modes;
             _current.Session.Write(
-                _current.Session.Prompt.Text + " _" + (info?.Keyword.ToLowerInvariant() ?? "non") + " of"
+                _current.Session.Prompt.Text
+                    + " _"
+                    + (info?.Keyword.ToLowerInvariant() ?? "non")
+                    + (SnapSaysTo(modes) ? " to" : " of")
             );
             SyncHistory();
             return true;
         }
+
+        /// <summary>
+        /// Whether the command line says "to" after the snap, as AutoCAD 2021 does for PERpendicular, NEArest, TANgent and
+        /// PARallel ("_per to"); "of" follows the others ("_end of").
+        /// </summary>
+        private static bool SnapSaysTo(CadSnapModes modes) =>
+            modes == CadSnapModes.Perpendicular
+            || modes == CadSnapModes.Nearest
+            || modes == CadSnapModes.Tangent
+            || modes == CadSnapModes.Parallel;
 
         /// <summary>
         /// Starts a point modifier at the prompt waiting for a point, as the Shift+right-click menu does: "_tt", "_from",

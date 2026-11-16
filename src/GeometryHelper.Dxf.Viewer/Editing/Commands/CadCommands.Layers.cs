@@ -16,16 +16,84 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The prefix the layers LAYISO turned off are remembered under, for LAYUNISO.</summary>
         private const string Isolated = "layiso:";
 
+        // The settings of LAYOFF and LAYFRZ, kept for the session as AutoCAD keeps them for each: how an object in a paper space
+        // viewport is treated (0 Vpfreeze, 1 Off at LAYOFF and Freeze at LAYFRZ, which says Off for both) and how deep a pick in
+        // a block goes (0 Block, 1 Entity, 2 None). The picks themselves still take the layer of the object picked.
+        private static readonly string[] BlockNesting = { "Block", "Entity", "None" };
+
+        /// <summary>"Current settings: Viewports=Vpfreeze, Block nesting level=Block", written by LAYOFF and LAYFRZ before they ask.</summary>
+        private static void WriteLayerSettings(CadCommandContext c, string key)
+        {
+            c.Write(
+                "Current settings: Viewports="
+                    + (c.Remembered(key + ".viewports", 0.0) > 0.5 ? "Off" : "Vpfreeze")
+                    + ", Block nesting level="
+                    + BlockNesting[(int)c.Remembered(key + ".block", 0.0)]
+            );
+        }
+
+        /// <summary>
+        /// The Settings option of LAYOFF and LAYFRZ: "Enter setting type for [Viewports/Block selection]:", then
+        /// "In paper space viewport use [Vpfreeze/Off] &lt;Vpfreeze&gt;:" (Freeze in place of Off at LAYFRZ) or "Enter Block
+        /// Selection nesting level [Block/Entity/None] &lt;Block&gt;:", each answered by a keyword or Enter, which keeps the
+        /// setting; text that is none is "Invalid option keyword." and asked again. The prompt for the object comes back.
+        /// </summary>
+        private static IEnumerable<CadPrompt> LayerSettings(CadCommandContext c, string key, string offWord)
+        {
+            yield return CadPrompt.ForKeyword("Enter setting type for", new[] { "Viewports", "Block selection" });
+
+            if (c.Input.Is("Viewports"))
+            {
+                double now = c.Remembered(key + ".viewports", 0.0);
+                yield return CadPrompt.ForKeyword(
+                    "In paper space viewport use",
+                    offWord == "Off" ? new[] { "Vpfreeze", "Off" } : new[] { offWord, "Vpfreeze" },
+                    now > 0.5 ? offWord : "Vpfreeze"
+                );
+
+                if (c.Input.Kind == CadInputKind.Keyword)
+                {
+                    c.Remember(key + ".viewports", c.Input.Is("Vpfreeze") ? 0.0 : 1.0);
+                }
+            }
+            else if (c.Input.Is("Block selection"))
+            {
+                int now = (int)c.Remembered(key + ".block", 0.0);
+                yield return CadPrompt.ForKeyword(
+                    "Enter Block Selection nesting level",
+                    BlockNesting,
+                    BlockNesting[now]
+                );
+
+                if (c.Input.Kind == CadInputKind.Keyword)
+                {
+                    c.Remember(key + ".block", Array.IndexOf(BlockNesting, c.Input.Text));
+                }
+            }
+        }
+
         private static IEnumerable<CadPrompt> LayerOff(CadCommandContext c)
         {
             var done = new List<string>();
+            WriteLayerSettings(c, "layoff");
             c.OpenUndoStep();
 
             while (true)
             {
                 yield return CadPrompt
-                    .ForEntity("Select an object on the layer to be turned off", new[] { "Undo" })
-                    .Expecting("Settings");
+                    .ForEntity("Select an object on the layer to be turned off", new[] { "Settings", "Undo" })
+                    .Expecting("Settings")
+                    .MissingWith("Nothing Selected.");
+
+                if (c.Input.Is("Settings"))
+                {
+                    foreach (CadPrompt prompt in LayerSettings(c, "layoff", "Off"))
+                    {
+                        yield return prompt;
+                    }
+
+                    continue;
+                }
 
                 if (c.Input.Is("Undo"))
                 {
@@ -61,13 +129,25 @@ namespace GeometryHelper.Dxf.Viewer
         private static IEnumerable<CadPrompt> LayerFreeze(CadCommandContext c)
         {
             var done = new List<string>();
+            WriteLayerSettings(c, "layfrz");
             c.OpenUndoStep();
 
             while (true)
             {
                 yield return CadPrompt
-                    .ForEntity("Select an object on the layer to be frozen", new[] { "Undo" })
-                    .Expecting("Settings");
+                    .ForEntity("Select an object on the layer to be frozen", new[] { "Settings", "Undo" })
+                    .Expecting("Settings")
+                    .MissingWith("Nothing Selected.");
+
+                if (c.Input.Is("Settings"))
+                {
+                    foreach (CadPrompt prompt in LayerSettings(c, "layfrz", "Freeze"))
+                    {
+                        yield return prompt;
+                    }
+
+                    continue;
+                }
 
                 if (c.Input.Is("Undo"))
                 {
@@ -88,14 +168,28 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static IEnumerable<CadPrompt> LayerLock(CadCommandContext c, bool locked)
         {
-            yield return CadPrompt
-                .ForEntity(
-                    locked
-                        ? "Select an object on the layer to be locked"
-                        : "Select an object on the layer to be unlocked"
-                )
-                .Expecting("Last");
-            string name = LayerOf(c);
+            string name;
+
+            // Enter picks nothing: "Nothing selected." and the prompt again, as AutoCAD 2021 asks until an object or Esc.
+            while (true)
+            {
+                yield return CadPrompt
+                    .ForEntity(
+                        locked
+                            ? "Select an object on the layer to be locked"
+                            : "Select an object on the layer to be unlocked"
+                    )
+                    .Expecting("Last")
+                    .MissingWith("Nothing Selected.");
+                name = LayerOf(c);
+
+                if (name != null || !c.Input.IsNone)
+                {
+                    break;
+                }
+
+                c.Write("Nothing selected.");
+            }
 
             if (name != null)
             {
@@ -286,7 +380,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (done.Count == 0)
             {
-                c.Write("Nothing to undo.");
+                c.Write("Everything has been undone.");
                 return;
             }
 
