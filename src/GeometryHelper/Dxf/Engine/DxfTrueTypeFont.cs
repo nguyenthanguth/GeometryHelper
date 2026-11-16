@@ -20,7 +20,7 @@ namespace GeometryHelper.Dxf
     /// bold or italic. Every read is bounded by the file and its tables: a file of another form, of CFF outlines
     /// (<c>OTTO</c>), cut short or of no A of ink is no font, and nothing throws.
     /// </remarks>
-    internal sealed class DxfTrueTypeFont : DxfFont
+    internal sealed partial class DxfTrueTypeFont : DxfFont
     {
         private const uint OfTrueType = 0x00010000;
         private const uint OfTrue = 0x74727565;

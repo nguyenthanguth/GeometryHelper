@@ -13,12 +13,13 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     internal static partial class CadCommands
     {
-        /// <summary>XLINE through points, horizontal, vertical, at an angle or bisecting one, each through-point a line, until Enter.</summary>
+        /// <summary>XLINE through points, horizontal, vertical, at an angle (or from a line object, Reference) or bisecting one, or offset from a line object, each through-point a line, until Enter.</summary>
         private static IEnumerable<CadPrompt> XLine(CadCommandContext c)
         {
-            yield return CadPrompt.ForPoint("Specify a point", null, new[] { "Hor", "Ver", "Ang", "Bisect" });
+            yield return CadPrompt.ForPoint("Specify a point", null, new[] { "Hor", "Ver", "Ang", "Bisect", "Offset" });
             GeoPoint2? from = null;
             GeoVector2 way = new GeoVector2(1.0, 0.0);
+            bool inWorld = false;
 
             if (c.Input.IsPoint)
             {
@@ -30,9 +31,44 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (c.Input.Is("Ang"))
             {
-                yield return CadPrompt.ForAngle("Enter angle of xline (" + Counted(c, 0.0) + ")");
+                yield return CadPrompt.ForAngle(
+                    "Enter angle of xline (" + Counted(c, 0.0) + ")",
+                    null,
+                    new[] { "Reference" }
+                );
 
-                if (c.Input.Kind == CadInputKind.Number)
+                if (c.Input.Is("Reference"))
+                {
+                    // The angle is counted from the line object picked, which is already in the world, so it is not turned by the UCS.
+                    var reference = new LineWayChoice();
+
+                    foreach (CadPrompt prompt in AskLineObject(c, reference))
+                    {
+                        yield return prompt;
+                    }
+
+                    if (reference.Way == null)
+                    {
+                        yield break;
+                    }
+
+                    yield return CadPrompt.ForAngle("Enter angle of xline", null, null, Counted(c, 0.0));
+                    double start = Math.Atan2(reference.Way.Value.Way.Y, reference.Way.Value.Way.X);
+                    double turn = 0.0;
+
+                    if (c.Input.Kind == CadInputKind.Number)
+                    {
+                        turn = c.Input.Number;
+                    }
+                    else if (!c.Input.IsNone)
+                    {
+                        yield break;
+                    }
+
+                    way = new GeoVector2(Math.Cos(start + turn), Math.Sin(start + turn));
+                    inWorld = true;
+                }
+                else if (c.Input.Kind == CadInputKind.Number)
                 {
                     way = new GeoVector2(Math.Cos(c.Input.Number), Math.Sin(c.Input.Number));
                 }
@@ -40,6 +76,15 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     yield break;
                 }
+            }
+            else if (c.Input.Is("Offset"))
+            {
+                foreach (CadPrompt prompt in XLineOffset(c))
+                {
+                    yield return prompt;
+                }
+
+                yield break;
             }
             else if (c.Input.Is("Bisect"))
             {
@@ -94,7 +139,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             // Hor, Ver and Ang are along the axes of the UCS and from its X axis.
-            way = c.Session.Ucs.ToWorld(way);
+            if (!inWorld)
+            {
+                way = c.Session.Ucs.ToWorld(way);
+            }
+
             GeoPoint2? through = from;
             GeoVector2 along = way;
 

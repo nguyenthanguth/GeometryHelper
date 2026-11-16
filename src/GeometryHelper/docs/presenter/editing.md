@@ -233,19 +233,19 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 290 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 296 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
 | view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, -PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, VPCLIP (Polygonal, Delete), VPMAX, VPMIN, SCALELISTEDIT, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window), REDRAW, REDRAWALL, REGENALL, ISOLATEOBJECTS, HIDEOBJECTS, UNISOLATEOBJECTS, VPORTS, -VPORTS (Save, Restore, Delete, Join, SIngle, ?, 2, 3, 4, Toggle) |
 | edit | MOVE, COPY (Array, Fit, mOde Single and Multiple; COPYMODE), ERASE, OOPS, ROTATE, SCALE, MIRROR, MIRROR3D (Object, Last, Zaxis, View, XY, YZ, ZX, 3points), EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
-| draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG (Chamfer, Elevation, Fillet, Thickness, Width; Area, Dimensions, Rotation), WIPEOUT (points, Polyline, Frames), SPLINE (Method: Fit, CV; Knots, Degree, Object; start and end Tangency, toLerance, Undo, Close), BLEND (CONtinuity: Tangent, Smooth), ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT and -MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT and -LAYOUT (Copy, Delete, New, Template, Rename, SAveas, Set, ?), DIVIDE (Block), MEASURE (Block) |
+| draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG (Chamfer, Elevation, Fillet, Thickness, Width; Area, Dimensions, Rotation), WIPEOUT (points, Polyline, Frames), SPLINE (Method: Fit, CV; Knots, Degree, Object; start and end Tangency, toLerance, Undo, Close), BLEND (CONtinuity: Tangent, Smooth), ELLIPSE (Arc), POINT, XLINE (Hor, Ver, Ang with Reference, Bisect, Offset with Through), RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT and -MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT and -LAYOUT (Copy, Delete, New, Template, Rename, SAveas, Set, ?), DIVIDE (Block), MEASURE (Block) |
 | shapes and hatching | SOLID, REGION, HATCH, HATCHSETORIGIN, -HATCH (Properties, Select objects, draW boundary, remove Boundaries, Advanced: Boundary set, Retain boundary, Island detection, Style, Associativity, Gap tolerance, separate Hatches; DRaw order, Origin, ANnotative, hatch COlor, LAyer, Transparency, Undo), GRADIENT, HATCHEDIT, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Fit data: Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance; Close, Open, Join, Move vertex, Refine: Add, Delete, Elevate order, Move, Weight; rEverse, convert to Polyline, Undo), CLASSICINSERT |
 | multilines | MLINE (Justification, Scale, STyle; Close, Undo), MLEDIT (CC, OC, MC, CT, OT, MT, CJ, AV, DV, CS, CA, WA; Undo), MLSTYLE (?, Current, New, Modify, Rename, Delete, Load, Save), and the variables CMLJUST, CMLSCALE and CMLSTYLE (see [Multilines](#multilines)) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, LAYMRG and -LAYMRG (Name, Undo), LAYDEL and -LAYDEL (Name, Undo), LAYCUR, COPYTOLAYER and -COPYTOLAYER (?, =, Displacement, eXit), VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, SELECTSIMILAR (SEttings), ADDSELECTED, TEXTSCR, UNITS, -UNITS, SCRIPT, SAVE, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?), QUICKCALC, CAL, QUICKPROPERTIES |
-| modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too; a spline made a polyline within a precision), REVCLOUDPROPERTIES (Arc length), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPATH, ARRAYPOLAR, -ARRAY, OVERKILL, -OVERKILL, ALIGN, CHANGE (Properties: Color, Elev, LAyer, LType, ltScale, LWeight, Thickness, TRansparency, Material, Annotative) |
+| modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too; a spline made a polyline within a precision), REVCLOUDPROPERTIES (Arc length), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPATH, ARRAYPOLAR, -ARRAY, OVERKILL, -OVERKILL, ALIGN, CHANGE (Properties: Color, Elev, LAyer, LType, ltScale, LWeight, Thickness, TRansparency, Material, Annotative), CHPROP (the same less Elev), SETBYLAYER (Settings), REVERSE, CHSPACE, BURST, TXTEXP, and the variable SETBYLAYERMODE |
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a name typed may be a wildcard and every attributed block it matches is synced; what is picked that is no block, or a block with no attribute definitions, refused and another asked for, in the words of AutoCAD's own table of strings; an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, ATTEXT, -ATTEXT (Cdf, Sdf, Dxf, Objects), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK, REFEDIT, -REFEDIT (Ok, Next; All, Nested), REFSET (Add, Remove), REFCLOSE (Save, Discard), and the variables REFEDITNAME and XFADECTL |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | annotation | DIMOVERRIDE (Clear overrides), TEXTALIGN (alIgnment, Options, Point), MLEADEREDIT (Remove leaders, Add leaders), MLEADERALIGN (Options), MLEADERCOLLECT (Vertical, Horizontal, Wrap), ATTIPEDIT, SPELL (All, Dictionary), SCALETEXT (Existing, Left, Center, Middle, Right, TL to BR; Paper height, Match object, Scale factor, Reference), JUSTIFYTEXT (Left, Align, Fit, Center, Middle, Right, TL to BR), TXT2MTXT (Settings), ATTDISP (Normal, ON, OFF) (see [Annotation commands](#annotation-commands)) |
@@ -2511,6 +2511,73 @@ the property), ltScale (nought is `Value must be nonzero.`, a negative one is ta
 0.35 mm with a word), Thickness and TRansparency (0 to 90 or ByLayer or ByBlock, `Requires an integer between 0 and 90.`).
 Each prompt offers the value the run gave last, else the drawing's current one, and Enter takes it. Material and Annotative
 are asked and change nothing: the presenter holds no materials and CHANGE leaves annotation to Properties. One undo step.
+
+**CHPROP, REVERSE, SETBYLAYER, CHSPACE, BURST, TXTEXP and XLINE Offset.** CHPROP asks `Select objects:` and then `Enter
+property to change [Color/LAyer/LType/ltScale/LWeight/Thickness/TRansparency/Material/Annotative]:` until Enter, as
+AutoCAD 2021 does: the questions of CHANGE's Properties option less Elev, asked and applied by the same code, so a line
+given colour 1 by one is the line the other gives. In a drawing of named plot styles (`$PSTYLEMODE` 0) both offer
+`PLotstyle` before Annotative, `Enter new plot style name or [?] <ByLayer>:`, which names an entry of the drawing's plot
+styles (`?` lists them) or ByLayer, which takes the object's own out.
+
+REVERSE asks `Select line, polyline, spline or helix to reverse direction:` and `Select objects:`, passes over what is not
+one of the four kinds without a word, and ends with `Object direction has been reversed.` once. A line runs from its end
+to its start; a polyline has its vertices in the other order, each bulge turned over and each segment's widths swapped, a
+closed one too: the square (0, 0), (10, 0), (10, 10) becomes (10, 10), (10, 0), (0, 0), as AutoCAD 2021's REVERSE and PEDIT
+Reverse made it (PEDIT Reverse of a closed polyline kept its first vertex before, as the library's `ReverseCurve` does; it
+does not now); a 3D polyline and a spline are turned the same way, and a linetype drawn along the object starts from its
+other end. A helix is not read by the presenter, so one is passed over. One undo step.
+
+SETBYLAYER asks as AutoCAD 2021 does, in the words of its own string table. It writes `Current active settings: Color
+Linetype Lineweight Transparency Material` (PlotStyle too in a drawing of named plot styles), asks `Select objects or
+[Settings]:`, then `Change ByBlock to ByLayer? [Yes/No] <Yes>:` and `Include blocks? [Yes/No] <Yes>:`, and ends with `1
+object modified, 2 objects did not need to be changed.` (or `All object properties already set to ByLayer; no objects
+modified.`, or `No properties selected to change.`). Each object has the properties that are on set to ByLayer; one that
+is ByBlock is left alone where ByBlock is not to be changed. With blocks included, the objects of the block definition of
+each reference selected, those of the blocks nested in it and the reference's attributes are changed too, so every other
+reference of the block shows them changed. Settings is the typed form of AutoCAD's dialog: `Enter a property to toggle
+[Color/LType/LWeight/Transparency/Material/PStyle] <done>:` switches one property on or off, again and again until Enter
+(PStyle says `Plot style cannot be changed when PSTYLEMODE is 1.` in a drawing of colour-dependent plot styles, whose
+objects have none). The variable SETBYLAYERMODE holds it: 1 colour, 2 linetype, 4 lineweight, 8 material, 16 plot style,
+32 transparency, 64 change ByBlock, 128 include blocks, 255 at first; the answers to the two last questions are kept in it
+as the dialog's boxes are. A material or a plot style is a handle of the drawing, taken out of the object. One undo step.
+
+CHSPACE moves objects between the paper and the model space a viewport shows, scaled to look the same, as AutoCAD 2021's
+does. On the Model tab it says `** Command not allowed in Model Tab **`; on a layout with no viewport to work through,
+`There are no active Model space viewports`. Through a viewport (MSPACE) it asks `Select objects:` for objects of model
+space, then `Set the SOURCE viewport active and press ENTER to continue.:`; on the paper it asks for objects of the paper
+(`Ignoring 3 selected viewport(s)` for the viewports among them) and `Set the TARGET viewport active and press ENTER to
+continue.:`. Enter takes the viewport worked through, the one last worked through, or the first of the layout; a point
+picked inside another viewport takes that one. With a viewport 200 by 100 showing model space at 1:10 about (1 000, 500),
+the paper circle of radius 10 about the middle of the frame becomes the model circle of radius 100 about (1 000, 500),
+`1 object(s) changed from PAPER space to MODEL space.` and `Objects were scaled by a factor of 10 to maintain visual
+appearance.`; the other way a model line from (100, 100) to (600, 300) is the paper line from (20, 20) to (70, 40). A
+twisted viewport turns the objects with its view. The command ends where the objects went: on the paper after a move to
+the paper, in the viewport after a move into model space. One undo step.
+
+BURST (Express Tools) asks `Select objects:` for block references and explodes each as EXPLODE does, but its attributes
+come out as TEXTs of the values they show (an attribute of several lines as an MTEXT), placed, styled and on the layer they
+were, an invisible one too, and a constant attribute of the block's definition becomes a TEXT of its value where a variable
+one is left out. What comes out on layer 0 goes to the layer of the reference, and what is ByBlock takes the reference's
+colour and linetype. A block that may not be exploded is passed over (`1 was not able to be exploded.`). One undo step.
+
+TXTEXP (Express Tools) writes `Select text to be EXPLODED: `, asks `Select objects:` for TEXT and MTEXT (not the text of a
+leader), replaces each with the lines of its letters and says `2 text object(s) have been exploded to lines.` and `The line
+objects have been placed on layer 0.` AutoCAD sends the text through a metafile and takes it back in; the presenter makes
+the letters as it draws them: a letter of an SHX font is an open polyline for each stroke, a letter of a TrueType font a
+closed polyline for each outline of it (an O is its ring and its hole, an I the four corners of its stem), the curves cut
+into six pieces each, read from the font's file (the `glyf` outlines of a .ttf, composite letters included; an OpenType
+file of CFF outlines is not read). An MTEXT is broken into the TEXTs EXPLODE makes of it first. The polylines are on layer
+0, ByLayer, in the space of the text. Text whose font file is not found or not read is left as it is, `1 text object(s)
+could not be exploded: their font has no outlines to read here.` One undo step.
+
+XLINE has an Offset option, `Specify offset distance or [Through] <Through>:`, as AutoCAD 2021 asks it: a distance (typed
+or by two points) or Through, then `Select a line object:` (a line, a ray, an xline, or the straight segment of a polyline
+nearest the pick; any other object, an arc segment too, says `No usable object selected`) and `Specify side to offset:`
+(or `Specify through point:`), an xline made at each, until Enter. A line from (0, 0) to (10, 5) offset 5 to its left gives
+the xline based at (-2.236, 4.472) along (0.894, 0.447), as AutoCAD lists it; a point on the line makes none. The distance
+(or Through) is the default of the next run. Ang has its Reference option, `Enter angle of xline (0) or [Reference]:`,
+`Select a line object:` and `Enter angle of xline <0>:`: the angle is counted from the object's own, so 45 from a segment
+running up is 135 degrees.
 -RENAME asks `Enter object type to rename [Block/dEtailviewstyle/Dimstyle/LAyer/LType/Material/multileadeRstyle/seCtionviewstyle/Style/Tablestyle/Ucs/VIew/VPort]:`,
 then `Enter old block name:` and `Enter new block name:` (`dimension style`, `layer`, `linetype`, `multileader style`, `text style`, `table style`, `ucs`, `view` or `viewport configuration` in the
 others' places). An old name that is empty, has a wildcard or a character no name has says `Invalid block name.` and asks again,

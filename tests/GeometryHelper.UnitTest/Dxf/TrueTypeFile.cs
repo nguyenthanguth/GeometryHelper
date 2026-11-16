@@ -27,6 +27,9 @@ namespace GeometryHelper.UnitTest.Dxf
             internal int Advance { get; }
 
             internal int[] Box { get; }
+
+            /// <summary>The whole record of the letter in glyf, its header and its contours, where it has outlines; null for the header alone, which draws none.</summary>
+            internal byte[] Record { get; set; }
         }
 
         /// <summary>
@@ -117,7 +120,9 @@ namespace GeometryHelper.UnitTest.Dxf
                     Join(
                         letters
                             .Where(l => l.Box != null)
-                            .Select(l => Join(U16(0), U16(l.Box[0]), U16(l.Box[1]), U16(l.Box[2]), U16(l.Box[3])))
+                            .Select(l =>
+                                l.Record ?? Join(U16(0), U16(l.Box[0]), U16(l.Box[1]), U16(l.Box[2]), U16(l.Box[3]))
+                            )
                             .ToArray()
                     )
                 },
@@ -147,7 +152,7 @@ namespace GeometryHelper.UnitTest.Dxf
             foreach (Letter letter in letters)
             {
                 loca.AddRange(U32((uint)glyph));
-                glyph += letter.Box == null ? 0 : 10;
+                glyph += letter.Box == null ? 0 : (letter.Record?.Length ?? 10);
             }
 
             loca.AddRange(U32((uint)glyph));

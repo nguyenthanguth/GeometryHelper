@@ -829,35 +829,7 @@ namespace GeometryHelper.Dxf.Viewer
                     break;
 
                 case "Reverse":
-                    PeditEach(c, handles, option, marks, (s, p) =>
-                    {
-                        // The frame of a 3D polyline turned round, the first vertex of a closed one too, and fitted again as it was.
-                        if (p is DxfPolyline3d three)
-                        {
-                            List<GeoPoint3> frame = Pedit3dFrame(three);
-                            frame.Reverse();
-                            Pedit3dWrite(three, frame, three.Closed, three.PolyType);
-                            return;
-                        }
-
-                        // A spline is fitted again on its frame turned round, its curve's vertices written anew as AutoCAD writes them.
-                        if (
-                            p is DxfPolyline2d heavy
-                            && (
-                                heavy.PolyType == DxfPoly2dType.QuadSplinePoly
-                                || heavy.PolyType == DxfPoly2dType.CubicSplinePoly
-                            )
-                        )
-                        {
-                            DxfPoly2dType type = heavy.PolyType;
-                            heavy.Straighten();
-                            heavy.ReverseCurve();
-                            heavy.ConvertToPolyType(type);
-                            return;
-                        }
-
-                        p.ReverseCurve();
-                    });
+                    PeditEach(c, handles, option, marks, (s, p) => ReverseOneWay(p));
                     break;
             }
         }

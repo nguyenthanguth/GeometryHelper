@@ -422,9 +422,23 @@ namespace GeometryHelper.Dxf.Viewer
         /// The Properties option: asks a property, then its value, until Enter. Each prompt offers the value of the run before it,
         /// else the drawing's own (CECOLOR, CLAYER and the like), and Enter on it applies that. A name the drawing lacks is said so.
         /// </summary>
-        private static IEnumerable<CadPrompt> ChangeProperty(CadCommandContext c)
+        private static IEnumerable<CadPrompt> ChangeProperty(CadCommandContext c, bool withElevation = true)
         {
             DxfDatabase db = c.Database;
+            var keywords = new List<string>(ChangeProperties);
+
+            // CHPROP has no Elev; a drawing of named plot styles has PLotstyle, before Annotative.
+            if (!withElevation)
+            {
+                keywords.Remove("Elev");
+            }
+
+            if (!db.PlotStyleMode)
+            {
+                keywords.Insert(keywords.IndexOf("Annotative"), "PLotstyle");
+            }
+
+            string plotStyle = "ByLayer";
             DxfColor colour = db.Cecolor;
             string layer = db.Clayer;
             string linetype = db.Celtype;
@@ -436,7 +450,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForKeyword("Enter property to change", ChangeProperties).Hiding("LTScale");
+                yield return CadPrompt.ForKeyword("Enter property to change", keywords).Hiding("LTScale");
 
                 if (c.Input.Kind != CadInputKind.Keyword)
                 {
@@ -690,6 +704,50 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     yield return CadPrompt.ForString("Enter new material name", "ByLayer");
                     c.Write("Materials are not held by the presenter: the material is not changed.");
+                }
+                else if (c.Input.Is("PLotstyle"))
+                {
+                    while (true)
+                    {
+                        yield return CadPrompt.ForString("Enter new plot style name or [?]", plotStyle);
+                        string typed = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim() : plotStyle;
+                        DxfDBDictionary names = db.PlotStyleNameDictionary;
+
+                        if (typed == "?")
+                        {
+                            c.Write(
+                                "Plot styles: ByLayer"
+                                    + (names == null ? string.Empty : " " + string.Join(" ", names.Select(e => e.Key)))
+                            );
+                            continue;
+                        }
+
+                        // ByLayer is no entry of the drawing: the object names none.
+                        string handle = null;
+
+                        if (!string.Equals(typed, "ByLayer", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (names == null || !names.Contains(typed))
+                            {
+                                c.Write("Plot style \"" + typed + "\" not found.");
+                                continue;
+                            }
+
+                            handle = names.GetAt(typed).Handle;
+                        }
+
+                        plotStyle = typed;
+                        string shown = typed;
+                        string chosen = handle;
+                        ChangeEach(
+                            c,
+                            "Plot style",
+                            e => e.Item.File.CommonValueOf(e.Item, 390),
+                            shown,
+                            e => e.Item.File.SetCommon(e.Item, 390, chosen)
+                        );
+                        break;
+                    }
                 }
                 else
                 {
