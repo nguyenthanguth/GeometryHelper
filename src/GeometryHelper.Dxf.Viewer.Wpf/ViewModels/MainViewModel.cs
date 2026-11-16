@@ -1633,6 +1633,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ApplyTextDefaults(file.Session);
             document.Fonts = _settings.ToFonts(SkiaCanvasRenderer.HasFamily);
             document.SupportFolders = _settings.SupportSearchFolders;
+            document.PlotStyleFolder = PlotStyleFolder;
             document.FontMissing += (s, e) => Say(e.Message);
             document.Changed += OnDocumentChanged;
             document.ActiveViewportChanged += OnActiveViewportChanged;
@@ -1857,6 +1858,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
                 case "OVERKILL":
                     OnOverkillRequested(e);
+                    break;
+                case "STYLESMANAGER":
+                    OnPlotStylesRequested(e);
                     break;
                 case "PLOT":
                 case "PAGESETUP":

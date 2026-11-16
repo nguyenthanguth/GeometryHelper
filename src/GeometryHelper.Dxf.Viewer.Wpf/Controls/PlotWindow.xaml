@@ -711,24 +711,29 @@
                                 <Button
                                     DockPanel.Dock="Right"
                                     Style="{StaticResource GhDialogButton}"
-                                    Width="30"
-                                    Padding="0,3"
+                                    Padding="12,3"
                                     Margin="6,0,0,0"
-                                    IsEnabled="False"
+                                    Content="New…"
+                                    Click="OnNewStyleSheet"
+                                    IsEnabled="{Binding CanNewStyleSheet}"
+                                    AutomationProperties.Name="New plot style table"
+                                    ToolTip="Make a plot style table in the plot style folder."
+                                />
+                                <Button
+                                    DockPanel.Dock="Right"
+                                    Style="{StaticResource GhDialogButton}"
+                                    Padding="12,3"
+                                    Margin="6,0,0,0"
+                                    Content="Edit…"
+                                    Click="OnEditStyleSheet"
+                                    IsEnabled="{Binding CanEditStyleSheet}"
                                     AutomationProperties.Name="Edit plot style table"
-                                    ToolTip="The three tables are built in and are not edited."
-                                >
-                                    <local:IconView
-                                        Size="14"
-                                        StrokeThickness="1.8"
-                                        Stroke="{StaticResource GhIcon}"
-                                        Data="M4 20h4L20 8l-4-4L4 16z"
-                                    />
-                                </Button>
+                                    ToolTip="Open the Plot Style Table Editor on the table chosen."
+                                />
                                 <ComboBox
                                     Style="{StaticResource GhComboBox}"
-                                    ItemsSource="{Binding StyleTables}"
-                                    SelectedItem="{Binding StyleTable, Mode=TwoWay}"
+                                    ItemsSource="{Binding StyleSheets}"
+                                    SelectedItem="{Binding StyleSheet, Mode=TwoWay}"
                                     AutomationProperties.Name="Plot style table"
                                 />
                             </DockPanel>

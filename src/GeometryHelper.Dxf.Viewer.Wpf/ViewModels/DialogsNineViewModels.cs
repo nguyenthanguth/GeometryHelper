@@ -402,7 +402,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             to.Paper = from.Paper;
             to.PlotWithPlotStyles = from.PlotWithPlotStyles;
-            to.StyleTable = from.StyleTable;
+            to.StyleSheet = from.StyleSheet;
             to.Landscape = from.Landscape;
             to.FitToPaper = from.FitToPaper;
             to.PaperUnits = from.PaperUnits;

@@ -172,8 +172,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             float y1 = (float)sheetToCanvas.Y(clip.MaxX, clip.MaxY);
             double perMillimetre = lineweightScale > 0.0 ? lineweightScale : sheetToCanvas.Scale;
             _plot = new PlotRules(
-                settings.EffectiveStyleTable,
+                CadPlotStyleResolver.Create(document, settings),
                 settings.PlotLineweights ? perMillimetre * (settings.ScaleLineweights ? page.Scale : 1.0) : 0.0,
+                perMillimetre,
                 shxText
             );
             canvas.Save();
@@ -1128,7 +1129,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             if (_plot != null)
             {
-                return Color(CadPlotStyles.Map(_plot.Table, item.Style.Rgb), 255);
+                return Color(_plot.Resolver.PenFor(item).Rgb, 255);
             }
 
             int rgb = isSelected
@@ -1208,8 +1209,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             // A selected or hovered entity is only coloured and thickened: its own dashes stay, as AutoCAD keeps a linetype
             // when it highlights.
             SKColor color = ColorOf(item, options, isSelected, isHover, background);
+            CadPlotPen pen = _plot?.Resolver.PenFor(item);
             float width =
-                _plot != null ? (float)(Math.Max(item.Style.LineWeight, 0.0) * _plot.LineweightScale)
+                _plot != null
+                    ? (float)(
+                        (pen.HasLineWeight ? pen.LineWeight : Math.Max(item.Style.LineWeight, 0.0))
+                        * _plot.LineweightScale
+                    )
                 : options.ShowLineWeights
                     ? (float)Math.Max(1.0, item.Style.LineWeight * 96.0 / 25.4 * options.LineweightScale)
                 : 1f;
@@ -1221,6 +1227,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (dashes != null && dashes.Length > 0)
             {
                 stroke.PathEffect = DashEffect(dashes, zoom, item.Style.DashPhase);
+            }
+
+            if (pen != null)
+            {
+                // What the plot style of the item sets: its own linetype, in millimetres of the sheet, and the shape of the
+                // line's ends and corners; the object's own end and join are the butt and the mitre the canvas draws.
+                if (pen.HasLinetype)
+                {
+                    stroke.PathEffect?.Dispose();
+                    stroke.PathEffect = pen.Dashes == null ? null : DashEffect(pen.Dashes, _plot.PerMillimetre, 0.0);
+                }
+
+                stroke.StrokeCap =
+                    pen.LineEnd == CadPlotLineEnd.Square ? SKStrokeCap.Square
+                    : pen.LineEnd == CadPlotLineEnd.Round || pen.LineEnd == CadPlotLineEnd.Diamond ? SKStrokeCap.Round
+                    : SKStrokeCap.Butt;
+                stroke.StrokeJoin =
+                    pen.LineJoin == CadPlotLineJoin.Bevel ? SKStrokeJoin.Bevel
+                    : pen.LineJoin == CadPlotLineJoin.Round ? SKStrokeJoin.Round
+                    : SKStrokeJoin.Miter;
             }
 
             switch (item)
@@ -2189,7 +2215,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             stroke.Color =
                 isSelected ? Color(options.SelectionColor, 255)
-                : _plot != null ? Color(CadPlotStyles.Map(_plot.Table, 0x808080), 255)
+                : _plot != null ? Color(_plot.Resolver.PlottedColor(0x808080), 255)
                 : Color(Visible(0x808080, paperBackground), 255);
             stroke.StrokeWidth =
                 isSelected ? 2f
@@ -2201,16 +2227,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The rules a plot is drawn by: the table its colours go through, the units of the canvas a millimetre of lineweight is, nought for the thinnest line, and whether the text of an SHX font is also written for a reader to find.</summary>
         private sealed class PlotRules
         {
-            public PlotRules(CadPlotStyleTable table, double lineweightScale, bool shxText)
+            public PlotRules(CadPlotStyleResolver resolver, double lineweightScale, double perMillimetre, bool shxText)
             {
-                Table = table;
+                Resolver = resolver;
                 LineweightScale = lineweightScale;
+                PerMillimetre = perMillimetre;
                 ShxText = shxText;
             }
 
-            public CadPlotStyleTable Table { get; }
+            public CadPlotStyleResolver Resolver { get; }
 
             public double LineweightScale { get; }
+
+            /// <summary>The units of the canvas a millimetre of the sheet is, for a linetype a plot style sets.</summary>
+            public double PerMillimetre { get; }
 
             public bool ShxText { get; }
         }

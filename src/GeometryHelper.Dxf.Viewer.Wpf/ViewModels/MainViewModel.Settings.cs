@@ -140,6 +140,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 ApplyTextDefaults(file.Session);
                 file.Document.Fonts = FontsOf(file.Document);
                 file.Document.SupportFolders = _settings.SupportSearchFolders;
+                file.Document.PlotStyleFolder = PlotStyleFolder;
             }
 
             SetCursor(0.0, 0.0);

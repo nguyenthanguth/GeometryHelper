@@ -178,6 +178,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ScaleNames = Scales.Select(s => s.Name).Concat(new[] { CustomScale }).ToList();
             PageSetups = PageSetupList();
             StyleTables = new[] { CadPlotStyleTable.Monochrome, CadPlotStyleTable.Grayscale, CadPlotStyleTable.None };
+            StyleSheets = StyleSheetsOf();
             Refresh();
         }
 
@@ -311,11 +312,175 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 ? "Grey for a raster device: the image size is set in pixels, not by DPI."
                 : "2D only: kept grey, as AutoCAD shows them for 2D Wireframe.";
 
-        /// <summary>Gets the words under the plot style table.</summary>
-        public string StyleNote =>
-            IsRaster
-                ? "The image is drawn on white, as the paper; colour 7 plots black. None keeps the colours."
-                : "Monochrome: every colour plots black (as monochrome.ctb). Grayscale: colours as greys. None: as displayed.";
+        /// <summary>
+        /// Gets the words under the plot style table: for a raster device what its image is; else the table's description, or
+        /// where it has none, that the table is the one chosen; none says colours plot as displayed; a table not in the folder
+        /// says so.
+        /// </summary>
+        public string StyleNote
+        {
+            get
+            {
+                if (IsRaster)
+                {
+                    return "The image is drawn on white, as the paper; colour 7 plots black. None keeps the colours.";
+                }
+
+                string name = _settings.StyleSheet;
+
+                if (name.Length == 0)
+                {
+                    return "No table: colours plot as displayed, white turned black on the white sheet.";
+                }
+
+                CadPlotStyleSheet sheet = CadPlotStyleFolder.Load(Document.PlotStyleFolder, name);
+                return sheet == null ? name + " is not in the plot style folder: colours plot as displayed."
+                    : sheet.Description.Length > 0 ? sheet.Description
+                    : name;
+            }
+        }
+
+        /// <summary>Gets the word the Plot style table list shows for no table: None.</summary>
+        public const string NoStyleSheet = "None";
+
+        /// <summary>
+        /// Gets the plot style tables to choose from, as AutoCAD's list: None, then the files of the document's plot style
+        /// folder of the kind the drawing plots by (.ctb for colour-dependent plot styles, .stb for named ones), and the
+        /// table the settings name where it is not among them (a page setup of another drawing).
+        /// </summary>
+        public IReadOnlyList<string> StyleSheets { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the plot style table by its file name, or <see cref="NoStyleSheet"/>; a name that is not in
+        /// <see cref="StyleSheets"/> is dropped. <see cref="StyleTable"/> is the same choice as one of the three tables first made in code.
+        /// </summary>
+        public string StyleSheet
+        {
+            get => _settings.StyleSheet.Length == 0 ? NoStyleSheet : _settings.StyleSheet;
+            set
+            {
+                if (value != null && StyleSheets.Contains(value))
+                {
+                    _settings.StyleSheet = value == NoStyleSheet ? string.Empty : value;
+                    RaiseStyleSheet();
+                }
+                else
+                {
+                    Raise(nameof(StyleSheet));
+                }
+            }
+        }
+
+        /// <summary>Gets whether the drawing plots by named plot styles (.stb tables) rather than by colour (.ctb).</summary>
+        public bool PlotsByName => !Document.Database.PlotStyleMode;
+
+        /// <summary>Gets whether Edit… can be pressed: the table chosen is a file of the plot style folder.</summary>
+        public bool CanEditStyleSheet =>
+            !string.IsNullOrWhiteSpace(Document.PlotStyleFolder)
+            && _settings.StyleSheet.Length > 0
+            && CadPlotStyleFolder
+                .Names(
+                    Document.PlotStyleFolder,
+                    _settings.StyleSheet.EndsWith(".stb", StringComparison.OrdinalIgnoreCase)
+                )
+                .Any(n => string.Equals(n, _settings.StyleSheet, StringComparison.OrdinalIgnoreCase));
+
+        /// <summary>Gets whether New… can be pressed: the document has a plot style folder to make the table in.</summary>
+        public bool CanNewStyleSheet => !string.IsNullOrWhiteSpace(Document.PlotStyleFolder);
+
+        /// <summary>Gets or sets how the window shows the Plot Style Table Editor: true when the table was saved. Null for none, when Edit… does nothing.</summary>
+        public Func<PlotStyleEditorViewModel, bool> ShowStyleEditor { get; set; }
+
+        /// <summary>Gets or sets how the window shows the Add Plot Style Table dialog: true when OK was pressed, which has made the file. Null for none, when New… does nothing.</summary>
+        public Func<PlotStyleNewViewModel, bool> ShowNewStyleSheet { get; set; }
+
+        /// <summary>
+        /// Edit… of the Plot style table box: the Plot Style Table Editor (<see cref="ShowStyleEditor"/>) over the table chosen,
+        /// read from the plot style folder. The list and the note are made again after, a table saved changing how the plot looks.
+        /// </summary>
+        /// <returns>True when the editor was shown.</returns>
+        public bool EditStyleSheet()
+        {
+            if (ShowStyleEditor == null || !CanEditStyleSheet)
+            {
+                return false;
+            }
+
+            CadPlotStyleSheet sheet = CadPlotStyleFolder.Load(Document.PlotStyleFolder, _settings.StyleSheet);
+
+            if (sheet == null)
+            {
+                Notice = "The plot style table " + _settings.StyleSheet + " could not be read.";
+                return false;
+            }
+
+            Notice = null;
+            ShowStyleEditor(new PlotStyleEditorViewModel(sheet, Document.PlotStyleFolder));
+            RaiseStyleSheet();
+            return true;
+        }
+
+        /// <summary>
+        /// New… of the Plot style table box: the Add Plot Style Table dialog (<see cref="ShowNewStyleSheet"/>) for a table of
+        /// the kind the drawing plots by; the table made is chosen and the Plot Style Table Editor opens on it.
+        /// </summary>
+        /// <returns>True when a table was made.</returns>
+        public bool NewStyleSheet()
+        {
+            if (ShowNewStyleSheet == null || !CanNewStyleSheet)
+            {
+                return false;
+            }
+
+            var dialog = new PlotStyleNewViewModel(Document.PlotStyleFolder, PlotsByName);
+
+            if (!ShowNewStyleSheet(dialog) || dialog.CreatedFileName.Length == 0)
+            {
+                return false;
+            }
+
+            _settings.StyleSheet = dialog.CreatedFileName;
+            RaiseStyleSheet();
+            EditStyleSheet();
+            return true;
+        }
+
+        private List<string> StyleSheetsOf()
+        {
+            var list = new List<string> { NoStyleSheet };
+            list.AddRange(CadPlotStyleFolder.Names(Document.PlotStyleFolder, PlotsByName));
+
+            if (
+                _settings.StyleSheet.Length > 0
+                && !list.Contains(_settings.StyleSheet, StringComparer.OrdinalIgnoreCase)
+            )
+            {
+                list.Add(_settings.StyleSheet);
+            }
+
+            return list;
+        }
+
+        /// <summary>The table chosen has changed, or what is in the folder: the list, the choice, the note and the buttons are read again.</summary>
+        private void RaiseStyleSheet()
+        {
+            StyleSheets = StyleSheetsOf();
+
+            foreach (
+                string name in new[]
+                {
+                    nameof(StyleSheets),
+                    nameof(StyleSheet),
+                    nameof(StyleTable),
+                    nameof(StyleNote),
+                    nameof(CanEditStyleSheet),
+                    nameof(CanNewStyleSheet),
+                }
+            )
+            {
+                Raise(name);
+            }
+        }
 
         /// <summary>Gets the document.</summary>
         public CadDocument Document { get; }
@@ -740,7 +905,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set
             {
                 _settings.StyleTable = value;
-                Raise(nameof(StyleTable));
+                RaiseStyleSheet();
             }
         }
 
@@ -1257,7 +1422,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     nameof(OffsetXText),
                     nameof(OffsetYText),
                     nameof(FitToPaper),
-                    nameof(StyleTable),
                     nameof(PlotLineweights),
                     nameof(PlotTransparency),
                     nameof(PlotWithPlotStyles),
@@ -1272,6 +1436,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Raise(name);
             }
 
+            RaiseStyleSheet();
             RefreshPicture();
         }
 

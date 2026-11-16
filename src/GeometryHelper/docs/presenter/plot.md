@@ -35,7 +35,7 @@ CadEditResult result = settings.ApplyTo(document, document.ModelSpace);
 | the offset from the printable area's corner | 46, 47 |
 | what is plotted: Display, Extents, Limits, Window or Layout | 74, the window 48, 49, 140, 141 |
 | the scale: paper millimetres to drawing units; 75 with 147 and flag 16 where it is one of AutoCAD's standard scales, 75 of 0 for Fit | 142, 143, 75, 147 |
-| the plot style table: `monochrome.ctb`, `grayscale.ctb`, or none | 7 |
+| the plot style table by the name of its file (`CadPlotSettings.StyleSheet`), as `monochrome.ctb`; empty for none | 7 |
 | centred (4), plot with plot styles (32), scale lineweights (64), plot lineweights (128) | 70 |
 
 Read back after the drawing is saved and opened again, every one of them is as it was written. A DXF of AC1027 and one of
@@ -79,8 +79,89 @@ CadPlotPage page = CadPlotPage.Compute(document, document.ModelSpace, settings, 
 
 ## Plot style tables
 
-The three tables are made in code; no `.ctb` file is read. [`CadPlotStyles.Map`](xref:GeometryHelper.Dxf.Viewer.CadPlotStyles)
-gives the colour an object plots in:
+A plot style table is a `.ctb` file (colour-dependent: 255 styles, one for each colour of AutoCAD's index) or a `.stb`
+file (named: Normal and the styles a drawing's objects and layers are given by name), as AutoCAD keeps them.
+[`CadPlotStyleSheet`](xref:GeometryHelper.Dxf.Viewer.CadPlotStyleSheet) reads and writes both:
+
+```csharp
+CadPlotStyleSheet sheet = CadPlotStyleSheet.Load(@"D:\Plot Styles\site.ctb");
+CadPlotStyle red = sheet.StyleForColorIndex(1);   // colour 1, red
+red.Rgb = 0x0000FF;                               // plots blue
+red.Screening = 50;                               // half way to white: #8080FF
+red.LineWeightIndex = sheet.LineWeightIndexOf(0.35);
+red.Linetype = 1;                                 // Dashed
+red.LineEnd = CadPlotLineEnd.Round;
+sheet.Save(@"D:\Plot Styles\site.ctb");
+```
+
+The file is the text of nested blocks (`plot_style{ 0{ name="Color_1 … } }`, the list `custom_lineweight_table{ … }`) packed as
+AutoCAD packs its PIA files: the head `PIAFILEVERSION_2.0,CTBVER1,compress` (`STBVER1` for a named table), a line break and
+`pmzlibcodec`, three whole numbers of four bytes (the Adler-32 of the packed stream, the length of the text, the length of
+the stream) and the text as a zlib stream. A table read and written again is the same text, byte for byte
+(`ToText()`), and the same file where the same runtime deflates it (`ToBytes()`); AutoCAD's own files inflate to the text
+the reader takes, a note after a number and a screening of 255 included. Each style keeps the properties of the editor:
+colour, dithering, grayscale, the pen numbers, screening, linetype, adaptive adjustment, lineweight, line end, line join,
+fill and its description.
+
+**What a plot does with a style.** The colour (the object's own, or the style's), grayscale, screening, lineweight, linetype
+and the end and join of the line are applied in a PDF, an image and a printout alike:
+
+| Property | Effect |
+|---|---|
+| Color | the style's colour, else the object's; the object's white (colour 7, or within 2 per cent of white) plots black, a colour the style sets plots as set |
+| Convert to grayscale | the grey of the colour's brightness, 0.299 red + 0.587 green + 0.114 blue |
+| Screening | 0 to 100 per cent: each channel part way to white, red #FF0000 at 50 is #FF8080 |
+| Lineweight | the table's lineweight list (27 entries from 0.05 to 2.11 mm; entry 0 is the object's own) |
+| Linetype | one of AutoCAD's 31 names (Solid, Dashed, … ISO Dash Triple Dot) as dashes of our own, a unit of which is a quarter of the style's pattern size (3.175 mm at 0.5 inch); the pattern is not adapted to the line's length |
+| Line end, line join | butt, square, round, diamond (drawn round) and the object's own; miter, bevel, round, diamond (drawn mitred) |
+| Dithering, pens, adaptive adjustment, fill style | kept and shown in the editor, not used: a PDF or an image has no pens to dither or number, and a filled area is plotted solid |
+
+A colour-dependent table gives an object the style of its colour: a true colour takes the style of the colour of AutoCAD's
+index nearest it (white is 7), and plots in its own colour where the style's colour is the object's. A named table gives it
+the style its entity names (group 380 of 3 and 390, the entry of the drawing's ACAD_PLOTSTYLENAME), else its layer's (group
+390 of the layer), else Normal; ByBlock is taken as Normal, and a block reference given a style gives it to everything it
+draws. [`CadPlotStyleResolver`](xref:GeometryHelper.Dxf.Viewer.CadPlotStyleResolver) does it for the items of a plot and
+is open to a caller that plots by itself:
+
+```csharp
+CadPlotStyleResolver resolver = CadPlotStyleResolver.Create(document, settings);   // settings.StyleSheet, "site.ctb"
+CadPlotPen pen = resolver.PenFor(item);                  // Rgb, LineWeight, Dashes, LineEnd, LineJoin
+string name = resolver.StyleNameOf("Walls", handle);    // Heavy, in a drawing of named plot styles
+```
+
+**The folder.** The tables are files of a folder, set in Global settings › Save and export › Plot style tables folder; where
+that is empty, the folder `PlotStyles` beside the settings file (`%AppData%\GeometryHelper\Drawing\PlotStyles`). The
+presenter makes it as it starts and writes the tables it makes itself there where they are missing, never replacing one
+the user edited: `acad.ctb` (changes nothing), `monochrome.ctb` (every colour black), `grayscale.ctb`, `Screening 25%.ctb`,
+50 and 75, and `acad.stb`, `monochrome.stb`, `grayscale.stb`. None is a file of AutoCAD's.
+[`CadDocument.PlotStyleFolder`](xref:GeometryHelper.Dxf.Viewer.CadDocument) is the folder a document plots from; left empty
+no disk is read and the built-in tables stand in, as does a built-in table missing from the folder.
+A table a drawing names that is not found, and is none of those, plots as None.
+
+**The plot style table settings.** [`CadPlotSettings.StyleSheet`](xref:GeometryHelper.Dxf.Viewer.CadPlotSettings) is the
+table's file name (group 7 of the plot settings), kept as the drawing spells it; `StyleTable` is the way in for the three
+tables first made in code (`monochrome.ctb`, `grayscale.ctb`, none).
+
+**In the dialogs.** The Plot style table list of the Plot and Page Setup dialogs shows None and the files of the folder of
+the kind the drawing plots by (`.ctb` where `$PSTYLEMODE` is 1, `.stb` where it is 0), with **Edit…** (the Plot Style Table
+Editor on the table chosen) and **New…** (Add Plot Style Table: a name and what to start from, nothing changed or a copy
+of a table of the folder; the table is made, chosen and opened in the editor). -PLOT's `Enter plot style table name` takes a
+name of the folder with or without its extension, and `?` lists them.
+
+The **Plot Style Table Editor** has three tabs. General: the file, its kind, the number of styles, its location, the
+description, Apply global scale factor to non-ISO linetypes and the scale factor. Table View: a row for each style and a
+column for each property. Form View: the list of styles on the left and the properties of the one chosen on the right, with
+Add Style and Delete Style for a named table (Normal can be neither deleted nor renamed). Save &amp; Close writes the file,
+Save As… writes another; a value typed that a property cannot take is dropped and the box shows what it had.
+
+**STYLESMANAGER** shows the Plot Styles folder: every `.ctb` and `.stb` file with its kind, description and the time it
+was written, Edit… (or a double-click), New…, Delete and Open folder. With no window it names the tables on the command line.
+Not done: Edit Lineweights, the Add-A-Plot-Style-Table wizard's other sources (PCP and PC2 files), CONVERTCTB and
+CONVERTPSTYLES, and the fill style of a filled area.
+
+**The colours of the three first tables.** [`CadPlotStyles.Map`](xref:GeometryHelper.Dxf.Viewer.CadPlotStyles) gives the
+colour an object plots in with each of the three tables first made in code, which a table not found falls back to, and
+which `monochrome.ctb`, `grayscale.ctb` and `acad.ctb` of the folder give in the same colours:
 
 | Table | Red | Green | Blue | White (colour 7) |
 |---|---|---|---|---|
@@ -89,7 +170,6 @@ gives the colour an object plots in:
 | None | red | green | blue | black |
 
 With Plot with plot styles off, the colours plot as with None.
-
 ## The PDF
 
 `CadPdfWriter.Write(path, document, space, settings, display)` writes one page through SkiaSharp's `SKDocument.CreatePdf`,
@@ -119,6 +199,7 @@ at once lost the map of their text in 3 to 6 of 64.
 |---|---|
 | PLOT, Ctrl+P | the Plot dialog, expanded, on the space's page setup; OK asks for the file and writes the PDF, or the PNG or JPEG of a raster device; with no window, -PLOT's prompts |
 | PAGESETUP | the Page Setup Manager, [below](#named-page-setups); where a host shows none, the same dialog titled Page Setup, whose OK writes the page setup to the layout |
+| STYLESMANAGER | the Plot Styles folder: the plot style tables to edit, make and delete, [below](#plot-style-tables) |
 | PREVIEW | the plot preview of the space's page setup over the whole window; its Plot asks for the file and writes the PDF |
 | -PLOT | AutoCAD's plot on the command line |
 

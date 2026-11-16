@@ -883,6 +883,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["SPLINEDIT"] = "Edit a spline",
             ["STRETCH"] = "Stretch objects crossed by a window",
             ["STYLE"] = "Text Style",
+            ["STYLESMANAGER"] = "Plot style tables: edit, make and delete",
             ["SUBTRACT"] = "Take regions away from regions",
             ["TABLE"] = "Insert a table",
             ["TABLEDIT"] = "Edit a table cell",
@@ -1527,6 +1528,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         Text("Save folder", () => s.SaveFolder, v => s.SaveFolder = v),
                         Number("Autosave every", "min", () => s.AutosaveMinutes, v => s.AutosaveMinutes = Whole(v)),
                         Number("Backups kept", null, () => s.BackupsKept, v => s.BackupsKept = Whole(v)),
+                    }
+                ),
+                new GlobalSettingSection(
+                    "Plot style tables",
+                    new[]
+                    {
+                        Text("Plot style tables folder", () => s.PlotStyleFolder, v => s.PlotStyleFolder = v),
+                        Info("Where it is empty", null, () =>
+                            CadPlotStyleFolder.Resolve(string.Empty, _model.SettingsPath)
+                        ),
                     }
                 ),
             };

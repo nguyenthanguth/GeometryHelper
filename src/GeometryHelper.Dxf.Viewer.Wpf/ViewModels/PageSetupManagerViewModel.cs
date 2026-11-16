@@ -610,10 +610,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 : settings.PaperUnits.ToString("0.####", CultureInfo.InvariantCulture)
                     + ":"
                     + settings.DrawingUnits.ToString("0.####", CultureInfo.InvariantCulture);
-            string table =
-                settings.StyleTable == CadPlotStyleTable.Monochrome ? "monochrome.ctb"
-                : settings.StyleTable == CadPlotStyleTable.Grayscale ? "grayscale.ctb"
-                : "no plot style table";
+            string table = settings.StyleSheet.Length == 0 ? "no plot style table" : settings.StyleSheet;
             return settings.Paper.Label + " · " + plotter + " · " + settings.Area + " " + scale + " · " + table;
         }
 
