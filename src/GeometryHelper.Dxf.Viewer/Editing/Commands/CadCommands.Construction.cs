@@ -361,22 +361,38 @@ namespace GeometryHelper.Dxf.Viewer
         {
             double inside = c.Remembered("donut.inside", 0.5);
             double outside = c.Remembered("donut.outside", 1.0);
-            yield return CadPrompt.ForDistance("Specify inside diameter of donut", null, null, Length(inside));
+
+            // The inside may be nought and the outside may not; below nought either is refused and asked again, as AutoCAD
+            // 2021 asks them ("Value must be positive." and "Value must be positive and nonzero.").
+            while (true)
+            {
+                yield return CadPrompt.ForDistance("Specify inside diameter of donut", null, null, Length(inside));
+
+                if (c.Input.Kind != CadInputKind.Number || c.Input.Number >= 0.0)
+                {
+                    break;
+                }
+
+                c.Write("Value must be positive.");
+            }
 
             if (c.Input.Kind == CadInputKind.Number)
             {
-                inside = Math.Abs(c.Input.Number);
+                inside = c.Input.Number;
             }
             else if (!c.Input.IsNone)
             {
                 yield break;
             }
 
-            yield return CadPrompt.ForDistance("Specify outside diameter of donut", null, null, Length(outside));
+            do
+            {
+                yield return CadPrompt.ForDistance("Specify outside diameter of donut", null, null, Length(outside));
+            } while (NotPositive(c));
 
             if (c.Input.Kind == CadInputKind.Number)
             {
-                outside = Math.Abs(c.Input.Number);
+                outside = c.Input.Number;
             }
             else if (!c.Input.IsNone)
             {

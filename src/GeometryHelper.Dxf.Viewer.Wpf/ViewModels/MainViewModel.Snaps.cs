@@ -201,6 +201,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             SnapModeInfo info = SnapModeTable.FirstOrDefault(i => i.Mode == modes && modes != CadSnapModes.None);
             Snap.Override = modes;
+            _current.Session.SnapOverride = modes;
             _current.Session.Write(
                 _current.Session.Prompt.Text + " _" + (info?.Keyword.ToLowerInvariant() ?? "non") + " of"
             );

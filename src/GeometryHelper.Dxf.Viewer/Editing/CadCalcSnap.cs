@@ -84,9 +84,32 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>The point, or null.</returns>
         internal static GeoPoint2? Snap(CadCommandSession session, string mode, string handle, GeoPoint2 pick)
         {
+            CadSnapKind kind = KindOf(mode);
+            bool fromLast = kind == CadSnapKind.Perpendicular || kind == CadSnapKind.Tangent;
+            return Snap(session, kind, handle, pick, fromLast ? session.LastPoint : (GeoPoint2?)null);
+        }
+
+        /// <summary>
+        /// The point a kind of snap gives on an object near a pick, as <see cref="Snap(CadCommandSession, string, string, GeoPoint2)"/>
+        /// does, with the point <c>per</c> and <c>tan</c> run from given: a typed point after an object snap override takes the
+        /// object under it so.
+        /// </summary>
+        /// <param name="session">The session, whose drawing is used.</param>
+        /// <param name="kind">The snap.</param>
+        /// <param name="handle">The object.</param>
+        /// <param name="pick">Where it was picked.</param>
+        /// <param name="from">The point perpendicular and tangent are from; null for the others.</param>
+        /// <returns>The point, or null.</returns>
+        internal static GeoPoint2? Snap(
+            CadCommandSession session,
+            CadSnapKind kind,
+            string handle,
+            GeoPoint2 pick,
+            GeoPoint2? from
+        )
+        {
             CadDocument document = session.Document;
             PickIndex whole = document.GetPickIndex(document.WorkingSpace);
-            CadSnapKind kind = KindOf(mode);
             PickIndex index;
             double aperture;
 
@@ -130,8 +153,6 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             var snap = new ObjectSnap(session.Tolerance) { IsOn = true, Override = ModeOf(kind) };
-            GeoPoint2? from =
-                kind == CadSnapKind.Perpendicular || kind == CadSnapKind.Tangent ? session.LastPoint : (GeoPoint2?)null;
             CadSnapResult found = snap.Snap(index, pick, aperture, from);
 
             if (found == null || found.Kind != kind)

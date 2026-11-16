@@ -26,10 +26,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForEntity(
-                    "Select first object",
-                    new[] { "Undo", "Polyline", "Radius", "Trim", "Multiple" }
-                );
+                yield return CadPrompt
+                    .ForEntity("Select first object", new[] { "Undo", "Polyline", "Radius", "Trim", "Multiple" })
+                    .Expecting("Window/Last/Crossing/BOX/Fence/WPolygon/CPolygon/Undo/Polyline/Radius/Trim");
 
                 if (c.Input.Is("Undo"))
                 {
@@ -195,10 +194,14 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForEntity(
-                    "Select first line",
-                    new[] { "Undo", "Polyline", "Distance", "Angle", "Trim", "mEthod", "Multiple" }
-                );
+                yield return CadPrompt
+                    .ForEntity(
+                        "Select first line",
+                        new[] { "Undo", "Polyline", "Distance", "Angle", "Trim", "mEthod", "Multiple" }
+                    )
+                    .Expecting(
+                        "Window/Last/Crossing/BOX/Fence/WPolygon/CPolygon/Undo/Polyline/Distance/Angle/Trim/mEthod"
+                    );
 
                 if (c.Input.Is("Undo"))
                 {

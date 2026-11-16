@@ -322,7 +322,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         bytes, 4 of 4); texts of R2000/R2004 in the drawing's code page with \U+ escapes (AutoCAD reads them back; was
         mojibake); R2000 viewport entity headers and frozen layers by code 5; MATERIAL in R2000/R2004 and the table style
         with its CELLSTYLEMAP in R2000-R2007 (bit-equal to AutoCAD's); corpus AUDIT as before, R2010+ byte-identical
-  - [ ] R3.3 follow-ups 9: visual styles before R2013 and the detail/section view styles before R2018 (ACAD_VISUALSTYLE
+  - [ ] (dxfconv5, running: visual styles, view styles) R3.3 follow-ups 9: visual styles before R2013 and the detail/section view styles before R2018 (ACAD_VISUALSTYLE
         left empty); an empty VP_ENT_HDR_CTRL in every R2000 file; R2007 table styles compared by DXFOUT, not only AUDIT;
         R2000 spline solids; the remaining stretch/group orders (AutoCAD's state); unknown node classes; an unexplained
         ErrorStatus 76; R2007 AppInfoHistory and SummaryInfo; the ISDYNAMIC heuristic; region GUI checks; spline edges
@@ -494,10 +494,14 @@ the ones wanted.
       window corners and fence points as AutoCAD 2021 (the Shift+right-click menu shown there); a typed point on
       nothing starts the window; the refusals of POLYGON, -ARRAY, ARRAYRECT/POLAR, DIVIDE, MEASURE, CHAMFER, FILLET in
       AutoCAD's words, asked again
-- [ ] (aids4, running) Aids-vars follow-ups 3: a typed point after an object snap override is snapped in AutoCAD ("No Endpoint found for
-      specified point."); a one-object prompt's second refusal line; window-corner and fence refusal wording; CIRCLE,
-      DONUT and UNDO refusals and UNDO's options; ARRAYRECT's prompt text (Enter the number of columns, <eXit>,
-      Associative = Yes); SCALE's factor prompt without a default (S)
+- [x] Aids-vars follow-ups 3 (aids4): a typed point after an object snap override is snapped within the aperture
+      ("No Endpoint found for specified point." when none); a one-object prompt's second refusal line per command;
+      window-corner and fence refusals; CIRCLE, DONUT, UNDO (Mark/Back built) and SCALE as AutoCAD 2021; the arrays'
+      ]<eXit>: and "Enter the number of"
+- [ ] Aids-vars follow-ups 4: a snap override before a window corner or fence point; INT/EXT/PAR/APP/GCE typed points;
+      "to" in the history for PER, NEA, TAN, PAR; ARRAYRECT Rows/Levels sequences (the console hung once on R);
+      BREAK's "No object found" and LAYOFF's "Nothing Selected."; LAYOFF/LAYFRZ [Settings/Undo]; UNDO Auto, Control,
+      BEgin, End; "W 1" at a corner; the pick-box aperture for a click under an override (S)
 - [x] MLEADERSCALE, CMLEADERSTYLE, LEADER and QLEADER (command line) as AutoCAD 2021
 - [x] QLEADER Leader Settings (AcadDim xrecord, DIMLDRBLK) and the Polar tab's additional angles, tracking and measurement, with the polar tooltip
 - [x] Leader follow-ups: every differing DIM* override in group order, DIMCLRT, hook along the UCS, INSERT copied and reused, LEADER/QLEADER previews, arrow pictures and User Arrow...

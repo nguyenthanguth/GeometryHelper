@@ -31,7 +31,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (handle == null)
             {
-                yield return CadPrompt.ForEntity("Select spline");
+                yield return CadPrompt
+                    .ForEntity("Select spline")
+                    .Expecting("Window/Last/Crossing/BOX/ALL/Fence/WPolygon/CPolygon/Group/Previous/AUto");
                 string picked = c.Input.Handles.FirstOrDefault();
 
                 if (picked == null)

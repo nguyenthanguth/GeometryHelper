@@ -93,7 +93,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadCommandSession session = Run(Session(Plan()), "ARRAYRECT", P(50, 0), Enter, "COU", "0", "3");
 
-            Assert.StartsWith("Enter number of rows", session.PromptText);
+            Assert.StartsWith("Enter the number of rows", session.PromptText);
         }
 
         [Theory]

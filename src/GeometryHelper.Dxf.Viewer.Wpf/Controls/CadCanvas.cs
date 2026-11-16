@@ -3391,6 +3391,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 session.Cursor = band;
                 session.PickAperture = pick;
+                session.SnapAperture = aperture;
             }
 
             // Over a grip's box the crosshair sits on the grip, and the status bar shows its point, as AutoCAD's.

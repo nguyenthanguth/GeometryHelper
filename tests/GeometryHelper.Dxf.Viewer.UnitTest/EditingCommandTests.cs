@@ -271,7 +271,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Near(new GeoPoint3(0, 100, 0), Entity<DxfLine>(document, "A1").EndPoint);
 
             Run(session, "SC", new[] { "A3" }, Enter, P(200, 0));
-            Assert.Equal("Specify scale factor or [Copy/Reference] <1.0000>:", session.PromptText);
+            Assert.Equal("Specify scale factor or [Copy/Reference]:", session.PromptText);
             Run(session, "2.5");
             Assert.Equal(25, Entity<DxfCircle>(document, "A3").Radius, 9);
 
@@ -401,7 +401,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "E", new[] { "A1" }, Enter, "E", new[] { "A2" }, Enter, "E", new[] { "A3" }, Enter);
 
             Run(session, "UNDO");
-            Assert.Equal("Enter the number of operations to undo <1>:", session.PromptText);
+            Assert.Equal(
+                "Enter the number of operations to undo or [Auto/Control/BEgin/End/Mark/Back] <1>:",
+                session.PromptText
+            );
             Run(session, "2");
             Assert.NotNull(document.FindEntity("A2"));
             Assert.Null(document.FindEntity("A1"));

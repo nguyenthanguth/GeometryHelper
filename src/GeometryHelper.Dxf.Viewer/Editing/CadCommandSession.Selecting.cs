@@ -339,7 +339,33 @@ namespace GeometryHelper.Dxf.Viewer
                 return OptionPoint(point, echo);
             }
 
-            return Invalid(Prompt.Keywords.Count > 0 ? "Point or option keyword required." : "Invalid point.", echo);
+            // AutoCAD 2021's words: a box says "Invalid window specification." and a fence or a polygon "Invalid response.".
+            if (_option == "Window" || _option == "Crossing" || _option == "BOX")
+            {
+                return InvalidWindow(echo);
+            }
+
+            return Invalid("Invalid response.", echo);
+        }
+
+        /// <summary>
+        /// What a corner of a window, a crossing or a BOX is answered with when it is no point (or Enter): "Invalid window
+        /// specification." and the first corner asked again, the opposite corner of the implied window asked as it was.
+        /// </summary>
+        private bool InvalidWindow(string echo)
+        {
+            Echo(echo);
+            Write("Invalid window specification.");
+
+            if (!ReferenceEquals(Prompt, _windowFirst))
+            {
+                _band.Clear();
+                Ask(CadPrompt.ForPoint("Specify first corner"));
+                return false;
+            }
+
+            Changed();
+            return false;
         }
 
         /// <summary>
@@ -355,6 +381,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             Write(Prompt.Text);
             string option = _option;
+
+            if (option == "Window" || option == "Crossing" || option == "BOX")
+            {
+                InvalidWindow(null);
+                return;
+            }
+
             var points = new List<GeoPoint2>(_band);
             EndOption();
             PickIndex index = Document.GetPickIndex(Document.WorkingSpace);
@@ -550,6 +583,24 @@ namespace GeometryHelper.Dxf.Viewer
             Write("*Invalid selection*");
             Write("Expects a point or");
             return Invalid(Expects);
+        }
+
+        /// <summary>
+        /// The invalid answer at a prompt for one object: "*Invalid selection*" and the words that prompt has, "Expects a single
+        /// object." or "Expects a point or" and the options it takes (<see cref="CadPrompt.Expected"/>).
+        /// </summary>
+        private bool InvalidObject(string echo)
+        {
+            Echo(echo);
+            Write("*Invalid selection*");
+
+            if (Prompt.Expected == null)
+            {
+                return Invalid("Expects a single object.");
+            }
+
+            Write("Expects a point or");
+            return Invalid(Prompt.Expected);
         }
     }
 }

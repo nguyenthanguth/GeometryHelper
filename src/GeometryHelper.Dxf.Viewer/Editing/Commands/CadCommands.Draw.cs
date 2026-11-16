@@ -243,27 +243,43 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint2 at = center;
                 double last = c.Remembered("circle", 0.0);
                 string offered = last > 0.0 ? Length(last) : null;
-                yield return CadPrompt
-                    .ForDistance("Specify radius of circle", center, new[] { "Diameter" }, offered)
-                    .Previewing(
-                        CadPreview.MakingOne(
-                            c,
-                            input => input.Number > 0.0 ? MakeCircle(c, at, input.Number) : null,
-                            true
-                        )
-                    );
 
-                if (c.Input.Is("Diameter"))
+                // A radius of nought or less is refused, as AutoCAD 2021 refuses it, and asked again.
+                do
                 {
                     yield return CadPrompt
-                        .ForDistance("Specify diameter of circle", center, null, last > 0.0 ? Length(2.0 * last) : null)
+                        .ForDistance("Specify radius of circle", center, new[] { "Diameter" }, offered)
+                        .Refusing("Requires numeric radius, point on circumference, or \"D\".")
                         .Previewing(
                             CadPreview.MakingOne(
                                 c,
-                                input => input.Number > 0.0 ? MakeCircle(c, at, input.Number / 2.0) : null,
+                                input => input.Number > 0.0 ? MakeCircle(c, at, input.Number) : null,
                                 true
                             )
                         );
+                } while (NotPositive(c));
+
+                if (c.Input.Is("Diameter"))
+                {
+                    do
+                    {
+                        yield return CadPrompt
+                            .ForDistance(
+                                "Specify diameter of circle",
+                                center,
+                                null,
+                                last > 0.0 ? Length(2.0 * last) : null
+                            )
+                            .Refusing("Requires numeric distance or second point.")
+                            .Previewing(
+                                CadPreview.MakingOne(
+                                    c,
+                                    input => input.Number > 0.0 ? MakeCircle(c, at, input.Number / 2.0) : null,
+                                    true
+                                )
+                            );
+                    } while (NotPositive(c));
+
                     radius = c.Input.Kind == CadInputKind.Number ? c.Input.Number / 2.0 : last;
                 }
                 else
@@ -286,6 +302,21 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 middle = center;
             double r = radius;
             c.Apply(null, s => s.Append(c.Space, MakeCircle(c, middle, r)));
+        }
+
+        /// <summary>
+        /// Says "Value must be positive and nonzero." of a number answered that is nought or less, which the prompt asks again,
+        /// as AutoCAD 2021 asks the radius and the diameter of a circle again.
+        /// </summary>
+        private static bool NotPositive(CadCommandContext c)
+        {
+            if (c.Input.Kind != CadInputKind.Number || c.Input.Number > 0.0)
+            {
+                return false;
+            }
+
+            c.Write("Value must be positive and nonzero.");
+            return true;
         }
 
         /// <summary>The circle CIRCLE makes, and previews, of a centre and a radius, in the current layer and colour.</summary>

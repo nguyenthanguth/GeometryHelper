@@ -1687,6 +1687,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             // so do the points acquired for tracking and the object clicked first for an apparent intersection.
             // The temporary track points (TT) given for the point asked stay acquired until it is given.
             Snap.Override = null;
+            _current.Session.SnapOverride = null;
             Snap.ClearAcquired();
 
             // POLARMODE 1 counts the polar angles from the last segment drawn, a line of the LINE running among them.

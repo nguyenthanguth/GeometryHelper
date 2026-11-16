@@ -23,7 +23,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForEntity("Select an object on the layer to be turned off", new[] { "Undo" });
+                yield return CadPrompt
+                    .ForEntity("Select an object on the layer to be turned off", new[] { "Undo" })
+                    .Expecting("Settings");
 
                 if (c.Input.Is("Undo"))
                 {
@@ -63,7 +65,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForEntity("Select an object on the layer to be frozen", new[] { "Undo" });
+                yield return CadPrompt
+                    .ForEntity("Select an object on the layer to be frozen", new[] { "Undo" })
+                    .Expecting("Settings");
 
                 if (c.Input.Is("Undo"))
                 {
@@ -84,9 +88,13 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static IEnumerable<CadPrompt> LayerLock(CadCommandContext c, bool locked)
         {
-            yield return CadPrompt.ForEntity(
-                locked ? "Select an object on the layer to be locked" : "Select an object on the layer to be unlocked"
-            );
+            yield return CadPrompt
+                .ForEntity(
+                    locked
+                        ? "Select an object on the layer to be locked"
+                        : "Select an object on the layer to be unlocked"
+                )
+                .Expecting("Last");
             string name = LayerOf(c);
 
             if (name != null)

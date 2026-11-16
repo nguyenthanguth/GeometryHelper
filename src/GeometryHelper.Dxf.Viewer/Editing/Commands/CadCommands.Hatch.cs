@@ -560,7 +560,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static IEnumerable<CadPrompt> HatchEdit(CadCommandContext c)
         {
-            yield return CadPrompt.ForEntity("Select hatch object");
+            yield return CadPrompt
+                .ForEntity("Select hatch object")
+                .Expecting("Window/Last/Crossing/BOX/ALL/Fence/WPolygon/CPolygon");
             string handle = c.Input.Handles.FirstOrDefault();
 
             if (handle == null)

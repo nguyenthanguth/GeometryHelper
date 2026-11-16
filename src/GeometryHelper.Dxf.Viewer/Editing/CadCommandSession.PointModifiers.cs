@@ -371,7 +371,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// A modifier's prompt refused as the prompt the modifier was typed at refuses text that is no point: "*Invalid selection*"
-        /// with the options listed at "Select objects:", the first line alone at a prompt for one object, "Point or option
+        /// with the options listed at "Select objects:", the first line and the prompt's own second one at a prompt for one object
+        /// (<see cref="CadPrompt.Expected"/>), "Point or option
         /// keyword required." at a prompt with options and "Invalid point." at one with none, the implied window's own having
         /// none.
         /// </summary>
@@ -382,7 +383,7 @@ namespace GeometryHelper.Dxf.Viewer
                 case CadPromptKind.Selection:
                     return InvalidSelection(echo);
                 case CadPromptKind.Entity:
-                    return Invalid("*Invalid selection*", echo);
+                    return InvalidObject(echo);
                 default:
                     bool options = asked.Keywords.Count > 0 && !ReferenceEquals(asked, _windowFirst);
                     return Invalid(options ? "Point or option keyword required." : "Invalid point.", echo);

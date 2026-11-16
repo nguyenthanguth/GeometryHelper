@@ -581,7 +581,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Start(document, "ARRAYRECT", new[] { "B1" }, Enter);
             Assert.Contains("Type = Rectangular  Associative = No", session.History);
             Assert.Equal(
-                "Select grip to edit array or [ASsociative/Base point/COUnt/Spacing/COLumns/Rows/Levels/eXit] <eXit>:",
+                "Select grip to edit array or [ASsociative/Base point/COUnt/Spacing/COLumns/Rows/Levels/eXit]<eXit>:",
                 session.PromptText
             );
             Run(session, "AS", "Y");
