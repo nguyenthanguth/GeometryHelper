@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace GeometryHelper.Dwg
 {
@@ -73,7 +76,7 @@ namespace GeometryHelper.Dwg
         private readonly List<DwgClass> _classes;
         private readonly List<DwgObject> _objects;
         private readonly Dictionary<ulong, DwgObject> _byHandle;
-        private readonly HashSet<ulong> _written = new HashSet<ulong>();
+        private readonly DwgHandleSet _written;
         private readonly Dictionary<ulong, int[]> _viewportNumbers = new Dictionary<ulong, int[]>();
         private readonly DwgDxfWriter _dxf;
         private readonly ProgressSteps _progress;
@@ -100,6 +103,7 @@ namespace GeometryHelper.Dwg
             // Made to hold every object of the file, so that neither is grown, and its arrays made and let go of, as they fill.
             _objects = new List<DwgObject>(container.ObjectMap.Count);
             _byHandle = new Dictionary<ulong, DwgObject>(container.ObjectMap.Count);
+            _written = new DwgHandleSet(container.ObjectMap.Count);
 
             // A DXF is some six times its DWG (1.2 to 11.9 in 182 drawings, 6 in the two of 300 000 entities): seven times the file is made at once, so that its array is not grown in most.
             _dxf = new DwgDxfWriter((int)Math.Min(container.Objects.LongLength * 7, 512L << 20));
@@ -120,57 +124,8 @@ namespace GeometryHelper.Dwg
             string page = _container.CodePage;
 
             _doubleByte = page == "ANSI_932" || page == "ANSI_936" || page == "ANSI_949" || page == "ANSI_950";
-            // The offsets by handle, made the first time a table asks for its style, so that a drawing of no table pays nothing.
-            Dictionary<ulong, long> offsets = null;
-            var reader = new DwgObjectReader(_container.Objects, _classes, _container.Version)
-            {
-                OffsetOf = handle =>
-                {
-                    if (offsets == null)
-                    {
-                        offsets = new Dictionary<ulong, long>();
-
-                        foreach (KeyValuePair<ulong, long> entry in _container.ObjectMap)
-                        {
-                            offsets[entry.Key] = entry.Value;
-                        }
-                    }
-
-                    return offsets.TryGetValue(handle, out long at) ? at : (long?)null;
-                },
-            };
-            int broken = 0;
-            string firstFault = null;
-            int read = 0;
             progress?.Stage(0.05, 0.6);
-
-            foreach (KeyValuePair<ulong, long> entry in _container.ObjectMap)
-            {
-                _stop.ThrowIfCancellationRequested();
-                progress?.Report(read++, _container.ObjectMap.Count);
-
-                try
-                {
-                    DwgObject one = reader.Read(entry.Key, entry.Value);
-                    _objects.Add(one);
-                    _byHandle[one.Handle] = one;
-                }
-                catch (Exception fault)
-                    when (fault is FormatException
-                        || fault is InvalidOperationException
-                        || fault is ArgumentException
-                        || fault is ArithmeticException
-                        || fault is IndexOutOfRangeException
-                    )
-                {
-                    // A decoder refuses broken bytes with a FormatException; the geometry it hands decoded values to may
-                    // refuse values no drawing has (a spline whose plane cannot be worked out) in its own way. Either is
-                    // one broken object.
-                    broken++;
-                    firstFault = firstFault
-                        ?? "the object " + entry.Key.ToString("X", CultureInfo.InvariantCulture) + ": " + fault.Message;
-                }
-            }
+            int broken = ReadObjects(progress, out string firstFault);
 
             Broken = broken;
             NumberPaperSpaces();
@@ -188,6 +143,231 @@ namespace GeometryHelper.Dwg
                         + firstFault
                 );
             }
+        }
+
+        /// <summary>
+        /// How many threads decode the objects of a file: 0 to let the size of the file and the machine decide (one thread
+        /// for a file of fewer than <see cref="ParallelFrom"/> objects, else as many as the machine has up to
+        /// <see cref="MostThreads"/>), 1 for the calling thread alone, or the number asked for whatever the file's size. The
+        /// DXF made is the same bytes for each; it is set by the tests and the benchmarks.
+        /// </summary>
+        internal static int DecodeThreads { get; set; }
+
+        /// <summary>The fewest objects a file holds for its objects to be decoded on several threads.</summary>
+        private const int ParallelFrom = 4096;
+
+        /// <summary>The most threads that decode the objects of a file.</summary>
+        private const int MostThreads = 8;
+
+        /// <summary>How many objects a thread takes at a time.</summary>
+        private const int ChunkSize = 512;
+
+        private static int ThreadsFor(int objects)
+        {
+            if (DecodeThreads > 0)
+            {
+                return DecodeThreads;
+            }
+
+            return objects < ParallelFrom ? 1 : Math.Min(Environment.ProcessorCount, MostThreads);
+        }
+
+        /// <summary>
+        /// A decoder refuses broken bytes with a <see cref="FormatException"/>; the geometry it hands decoded values to may
+        /// refuse values no drawing has (a spline whose plane cannot be worked out) in its own way. Either is one broken
+        /// object, left out and counted.
+        /// </summary>
+        private static bool IsBrokenObject(Exception fault) =>
+            fault is FormatException
+            || fault is InvalidOperationException
+            || fault is ArgumentException
+            || fault is ArithmeticException
+            || fault is IndexOutOfRangeException;
+
+        private static string FaultOf(ulong handle, Exception fault) =>
+            "the object " + handle.ToString("X", CultureInfo.InvariantCulture) + ": " + fault.Message;
+
+        /// <summary>
+        /// Decodes the objects of the file into <see cref="_objects"/> and <see cref="_byHandle"/> in the order of the object
+        /// map, and gives the number left out as broken and the first of their faults, as the map's order puts it.
+        /// </summary>
+        private int ReadObjects(ProgressSteps progress, out string firstFault)
+        {
+            List<KeyValuePair<ulong, long>> map = _container.ObjectMap;
+
+            // The offsets by handle, made the first time a table asks for its style, so that a drawing of no table pays nothing.
+            var offsets = new Lazy<Dictionary<ulong, long>>(
+                () =>
+                {
+                    var made = new Dictionary<ulong, long>();
+
+                    foreach (KeyValuePair<ulong, long> entry in map)
+                    {
+                        made[entry.Key] = entry.Value;
+                    }
+
+                    return made;
+                },
+                LazyThreadSafetyMode.ExecutionAndPublication
+            );
+
+            // A reader holds the object it is reading, so each thread has its own.
+            DwgObjectReader NewReader() =>
+                new DwgObjectReader(_container.Objects, _classes, _container.Version)
+                {
+                    OffsetOf = handle => offsets.Value.TryGetValue(handle, out long at) ? at : (long?)null,
+                };
+
+            int threads = ThreadsFor(map.Count);
+
+            if (threads > 1)
+            {
+                return ReadObjectsOnThreads(NewReader, threads, progress, out firstFault);
+            }
+
+            DwgObjectReader reader = NewReader();
+            int broken = 0;
+            firstFault = null;
+            int read = 0;
+
+            foreach (KeyValuePair<ulong, long> entry in map)
+            {
+                _stop.ThrowIfCancellationRequested();
+                progress?.Report(read++, map.Count);
+
+                try
+                {
+                    DwgObject one = reader.Read(entry.Key, entry.Value);
+                    _objects.Add(one);
+                    _byHandle[one.Handle] = one;
+                }
+                catch (Exception fault) when (IsBrokenObject(fault))
+                {
+                    broken++;
+                    firstFault = firstFault ?? FaultOf(entry.Key, fault);
+                }
+            }
+
+            return broken;
+        }
+
+        /// <summary>
+        /// Decodes the objects as <see cref="ReadObjects"/> does, in chunks of the map taken by <paramref name="threads"/>
+        /// threads, each with a reader of its own, the calling thread one of them. What the one thread would give comes out
+        /// the same: the objects are put in the order of the map after they are decoded, the first broken object told is the
+        /// first of the map and not the first to be met, a failure that is not one of a broken object is the one of the
+        /// lowest object, and a token stopped is answered by the threads leaving off at the next object.
+        /// </summary>
+        private int ReadObjectsOnThreads(
+            Func<DwgObjectReader> newReader,
+            int threads,
+            ProgressSteps progress,
+            out string firstFault
+        )
+        {
+            List<KeyValuePair<ulong, long>> map = _container.ObjectMap;
+            int count = map.Count;
+            var decoded = new DwgObject[count];
+            var gate = new object();
+            int broken = 0;
+            int firstBroken = int.MaxValue;
+            string firstText = null;
+            int failedAt = int.MaxValue;
+            Exception failure = null;
+            bool stopped = false;
+            int done = 0;
+            int caller = Environment.CurrentManagedThreadId;
+
+            Parallel.For(
+                0,
+                (count + ChunkSize - 1) / ChunkSize,
+                new ParallelOptions { MaxDegreeOfParallelism = threads },
+                newReader,
+                (chunk, state, reader) =>
+                {
+                    int from = chunk * ChunkSize;
+                    int to = Math.Min(from + ChunkSize, count);
+
+                    // Beyond a failure no object is of any use: the failure thrown is the lowest one.
+                    if (from > Volatile.Read(ref failedAt))
+                    {
+                        return reader;
+                    }
+
+                    for (int i = from; i < to; i++)
+                    {
+                        if (_stop.IsCancellationRequested)
+                        {
+                            Volatile.Write(ref stopped, true);
+                            state.Stop();
+                            return reader;
+                        }
+
+                        try
+                        {
+                            decoded[i] = reader.Read(map[i].Key, map[i].Value);
+                        }
+                        catch (Exception fault) when (IsBrokenObject(fault))
+                        {
+                            lock (gate)
+                            {
+                                broken++;
+
+                                if (i < firstBroken)
+                                {
+                                    firstBroken = i;
+                                    firstText = FaultOf(map[i].Key, fault);
+                                }
+                            }
+                        }
+                        catch (Exception fault)
+                        {
+                            lock (gate)
+                            {
+                                if (i < failedAt)
+                                {
+                                    Volatile.Write(ref failedAt, i);
+                                    failure = fault;
+                                }
+                            }
+
+                            break;
+                        }
+                    }
+
+                    int finished = Interlocked.Add(ref done, to - from);
+
+                    if (Environment.CurrentManagedThreadId == caller)
+                    {
+                        progress?.Report(finished, count);
+                    }
+
+                    return reader;
+                },
+                reader => { }
+            );
+
+            if (Volatile.Read(ref stopped))
+            {
+                _stop.ThrowIfCancellationRequested();
+            }
+
+            if (failure != null)
+            {
+                ExceptionDispatchInfo.Capture(failure).Throw();
+            }
+
+            foreach (DwgObject one in decoded)
+            {
+                if (one != null)
+                {
+                    _objects.Add(one);
+                    _byHandle[one.Handle] = one;
+                }
+            }
+
+            firstFault = firstText;
+            return broken;
         }
 
         /// <summary>The number of objects left out because they were broken.</summary>
@@ -705,10 +885,12 @@ namespace GeometryHelper.Dwg
             }
         }
 
+        [MethodImpl(DwgJit.Hot)]
         private DwgObject Find(ulong handle) =>
             handle != 0 && _byHandle.TryGetValue(handle, out DwgObject found) ? found : null;
 
         /// <summary>The name of the record at <paramref name="handle"/> as the bytes of the file; null where there is none.</summary>
+        [MethodImpl(DwgJit.Hot)]
         private byte[] NameOf(ulong handle) => Find(handle)?.RecordName;
 
         /// <summary>
@@ -816,6 +998,7 @@ namespace GeometryHelper.Dwg
             return true;
         }
 
+        [MethodImpl(DwgJit.Hot)]
         private void Write(DwgGroup group)
         {
             // A number held in the group itself, which is most of them, is written as it is, with no object made of it.
@@ -834,6 +1017,7 @@ namespace GeometryHelper.Dwg
             WriteOther(group);
         }
 
+        [MethodImpl(DwgJit.Hot)]
         private void WriteOther(DwgGroup group)
         {
             if (group.Value is DwgName name)
@@ -913,6 +1097,7 @@ namespace GeometryHelper.Dwg
             }
         }
 
+        [MethodImpl(DwgJit.Hot)]
         private void Write(List<DwgGroup> groups)
         {
             // Null for an object that has none of them: no list is made for it.
@@ -1027,6 +1212,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>The handle, the extension dictionary, the reactors and the owner every record starts with.</summary>
+        [MethodImpl(DwgJit.Hot)]
         private void WriteHead(DwgObject one, string name, ulong owner, int handleCode = 5)
         {
             _dxf.Write(0, name);
@@ -1112,6 +1298,7 @@ namespace GeometryHelper.Dwg
             _dxf.Write(0, "ENDSEC");
         }
 
+        [MethodImpl(DwgJit.Hot)]
         private void WriteEntity(DwgObject entity, ulong owner, bool paper, bool nested)
         {
             if (!_written.Add(entity.Handle))
@@ -1248,6 +1435,7 @@ namespace GeometryHelper.Dwg
         /// The entities <paramref name="holder"/> owns, under <paramref name="owner"/>: from R2004 the list it holds, in its
         /// order; before R2004 the chain from its first entity to its last.
         /// </summary>
+        [MethodImpl(DwgJit.Hot)]
         private void WriteOwned(DwgObject holder, ulong owner, bool paper, bool nested)
         {
             if (holder.Owned == null)
@@ -1268,6 +1456,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>The entities from <paramref name="first"/> to <paramref name="last"/>, each leading to the next.</summary>
+        [MethodImpl(DwgJit.Hot)]
         private void WriteChain(ulong first, ulong last, ulong owner, bool paper, bool nested)
         {
             ulong at = first;
@@ -1505,6 +1694,7 @@ namespace GeometryHelper.Dwg
             _dxf.Write(0, "ENDSEC");
         }
 
+        [MethodImpl(DwgJit.Hot)]
         private void WriteObject(DwgObject one)
         {
             if (one.IsEntity || one.IsControl || one.IsTableRecord || !one.Decoded || !_written.Add(one.Handle))

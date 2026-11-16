@@ -422,6 +422,17 @@ samples, 71 of the test files and 16 written by AutoCAD for the harness) is byte
 Of what remains in the 1.26 s, the reading of the objects is a third, much of it the collector walking the 300 000 objects it keeps while they are made; level with the DXF written,
 and the read of that DXF by `DxfDatabase` (0.12 s) comes after.
 
+The same opening takes about half the time the first time in a process since the objects of a DWG of 4 096 or more are decoded on up to eight threads (a reader of its own for each, 512 objects
+at a time, put back in the order of the file, so the DXF the DWG is made into is the same bytes whatever the threads), the numbers of that DXF are written as bytes in whole-number arithmetic under
+every runtime (the text of the older code to the byte: 900 000 000 doubles tried, 300 000 000 under each of .NET 8, .NET 10 and .NET Framework 4.8; under .NET Framework a number whose 15 digits come within a
+sixteenth of half the distance to its neighbour of being read back is left to the old way, its `double.Parse` not being exact), the handles written are kept in a table made once, which takes
+away the full collection the `HashSet` that grew made, and some sixty methods of the readers and writers are compiled fully at their first call (`AggressiveOptimization`, .NET Core only). A DWG of 300 000 lines
+and circles with coordinates of three decimals (11.2 MB, 41 MB as DXF) opens in 0.65 s where 1.28 under .NET 8 (.NET 10 0.71 s where 1.27; .NET Framework 4.8 0.88 s where 1.35) and the next time in 0.56 s where
+0.64 (.NET Framework 0.72 s where 1.15), medians of 9 runs alternated with the older build; display lists are those of the DXF, which is byte for byte the one it was for each of 274 DWGs, 1 001 written by the library
+and three generated, under the three runtimes. The next opening gains little under .NET 8: the collector, one thread, takes half of the time the objects take once they are warm. Left as they were: the one full
+collection that the read of the DXF makes in a first opening (26 to 29 ms, from the copy of an array that is more than a quarter unused), the tuple of 48 bytes that an MTEXT or an INSERT keeps of its contexts the first
+time they are asked for, and the walk for linked columns.
+
 A block's `Count` no longer makes a copy of its entities (7.8 MB at 1 000 000, 9.7 ms where 7.1), and the copy a walk makes (`GetEnumerator`, `AllItems`, `AllEntities`, `EntityByHandle`, which must be a copy, for the block is
 changed while it is walked) is made once for walks that follow one another with no entity added or removed between them, and held only until the collector wants it: the lookups by handle that a hatch, a leader and a viewport
 make each took 7.8 MB of garbage at 1 000 000 entities and take none. A walk that erases the entities as it meets them still passes over each of them once. Three more things were measured and left: the box of an arc (`DisplayArc2` is

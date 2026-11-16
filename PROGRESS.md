@@ -513,7 +513,7 @@ the ones wanted.
       typed (" and" for one object), EXT/PAR/GCE as AutoCAD; "to" for PER/NEA/TAN/PAR; BREAK "No object found", layer
       commands "Nothing Selected." with LAYOFF/LAYFRZ [Settings/Undo]; "W 1" from the last point; ARRAYRECT/POLAR
       Levels and Total as AutoCAD 2021
-- [ ] Aids-vars follow-ups 5: INT/APP clicked over one object (" and" on the canvas); the layer Settings changing picks
+- [ ] (aids6, running) Aids-vars follow-ups 5: INT/APP clicked over one object (" and" on the canvas); the layer Settings changing picks
       inside blocks and viewports; UNDO Auto, Control, BEgin, End; a window dragged while an override waits; NEA's
       pixel-rounded point at the aperture edge; END typed at " and" (AutoCAD refuses) (S)
 - [x] MLEADERSCALE, CMLEADERSTYLE, LEADER and QLEADER (command line) as AutoCAD 2021
@@ -572,7 +572,7 @@ the ones wanted.
       it (wrong leaders: 30 degrees 188 -> 13, 90 degrees 208 -> 25, 120 722 -> 345, 150 848 -> 373); the near table
       fitted across landings (e8 48 -> 37, te11 26 -> 22, o6 1 590 -> 1 486); 103 sets byte for byte; aq 78 -> 81 and
       o2 413 -> 432 the only ones worse
-- [ ] Dimension follow-ups 19: the words' width in the band ("120°", DIMADEC words with a first ray other than 0; 380 of
+- [ ] (dims20, running) Dimension follow-ups 19: the words' width in the band ("120°", DIMADEC words with a first ray other than 0; 380 of
       26 384 wrong); the DIMTXT 4 near rings (words, arrowhead and gap as separate terms); d1/aq/taq's jump at the arc
       middle's height (parked after 4 attempts); a3g changed with no AutoCAD picture; d2 R6/R7 SHX window; t6's turned
       diameter and words on an extension line at distance 0 (S)
@@ -1006,10 +1006,15 @@ the ones wanted.
 - [x] Speed follow-ups 17 (speed18): a 300 000-entity DWG opens in 1.26 s where 1.63 (net8; 0.74 s where 1.12 on a
       second open; net48 2.18 -> 1.53 s): the DXF written in one array and read in place, DwgObject 392 -> 120 bytes,
       bits read at once; the DXF text byte-identical on 182 DWGs; block Count and lookups by handle without an 8 MB copy
-- [ ] (speed19, running) Speed follow-ups 18: DWG objects decoded in parallel (0.42 s of a first open; check static decoders' thread
-      safety); the net48 DXF write (0.8 s: ToString("G15") + double.Parse per fraction); one more full GC from the 54 MB
-      DXF parse; DisplayArc2 stays 104 B (a box on demand costs 50-68 ms per million); LinkedColumns' 6 ms walk; MTEXT and
-      INSERT contexts tuples; REGEN's text group walk (S)
+- [x] Speed follow-ups 18 (speed19): DWG objects decoded on up to 8 threads (files of 4 096 objects or more, results in
+      map order), fractions written exactly in integer arithmetic (net48 381 -> 81 ns a number; Framework's inexact
+      double.Parse kept by a margin), a handle set made once, hot decoders compiled optimised at once: a 300 000-entity
+      DWG first open 1.28 -> 0.65 s (net8), 1.35 -> 0.88 s (net48); DXF text identical on 1 278 files, 3 runtimes,
+      1/8/auto threads. DECIDED: parallel decode and AggressiveOptimization kept (fuzzed, documented)
+- [ ] Speed follow-ups 19: the DXF write phase (WriteBlocks ~145 ms warm, ~480 ms cold: chunked rendering in order);
+      workstation GC pauses from 300 000 DwgObject graphs; the DXF parse (~0.1 s); the full GC from Take's copy of an
+      over-sized buffer; DwgJit.Hot for dimension, hatch and spline decoders; MTEXT/INSERT contexts tuples; LinkedColumns;
+      REGEN's text group walk (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)

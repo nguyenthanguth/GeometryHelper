@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace GeometryHelper.Dwg
@@ -300,6 +301,7 @@ namespace GeometryHelper.Dwg
         /// Throws <see cref="FormatException"/> where the object is broken: it runs past the file, its check sum is wrong,
         /// it carries another handle, or its data end before the last value of its type.
         /// </summary>
+        [MethodImpl(DwgJit.Hot)]
         public DwgObject Read(ulong handle, long offset)
         {
             var head = new DwgBitReader(_file, offset * 8, _file.LongLength * 8);
@@ -403,6 +405,7 @@ namespace GeometryHelper.Dwg
         /// The flags after the count of reactors: from R2004 a bit set where the object has no extension dictionary, from
         /// R2013 a bit for data kept in the data store. Returns whether the extension dictionary is left out.
         /// </summary>
+        [MethodImpl(DwgJit.Hot)]
         private bool ReadDictionaryFlags()
         {
             bool noDictionary = R2004Plus && _data.Bit();
@@ -416,9 +419,11 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>The next handle of the handles of the object, counted from the object's own where it is a relative one.</summary>
+        [MethodImpl(DwgJit.Hot)]
         private ulong H() => _handles.Handle(_object.Handle);
 
         /// <summary>A count read from the file, refused where the object cannot hold that many values of even one bit each.</summary>
+        [MethodImpl(DwgJit.Hot)]
         private int Count(long count)
         {
             if (count < 0 || count > _data.Remaining + _handles.Remaining)
@@ -429,6 +434,7 @@ namespace GeometryHelper.Dwg
             return (int)count;
         }
 
+        [MethodImpl(DwgJit.Hot)]
         private void ReadReactors(int count, bool noDictionary)
         {
             for (int i = 0; i < count; i++)
@@ -442,6 +448,7 @@ namespace GeometryHelper.Dwg
             }
         }
 
+        [MethodImpl(DwgJit.Hot)]
         private void ReadEntityCommon()
         {
             if (_data.Bit())
@@ -578,6 +585,7 @@ namespace GeometryHelper.Dwg
         /// what follows: 0x8000 a true colour as a bit long, 0x4000 a colour of a book named in the handles, 0x2000 a
         /// transparency as a bit long.
         /// </summary>
+        [MethodImpl(DwgJit.Hot)]
         private DwgColour ReadEntityColour()
         {
             int value = _data.BitShort() & 0xFFFF;
@@ -710,6 +718,7 @@ namespace GeometryHelper.Dwg
         /// byte saying its kind (the DXF group less 1000) and the value. A text is a byte of length, a short of code page
         /// and the bytes before R2007, a short of length and UTF-16 characters from R2007.
         /// </summary>
+        [MethodImpl(DwgJit.Hot)]
         private void ReadExtendedData()
         {
             while (true)
@@ -852,6 +861,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>Decodes the data of the type; false for a type that is not read.</summary>
+        [MethodImpl(DwgJit.Hot)]
         private bool ReadBody(int type)
         {
             switch (type)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -24,6 +25,7 @@ namespace GeometryHelper.Dwg
             return new[] { x, y, _data.BitDoubleDefault(basis[2]) };
         }
 
+        [MethodImpl(DwgJit.Hot)]
         private void ReadLine()
         {
             bool flat = _data.Bit();
@@ -50,6 +52,7 @@ namespace GeometryHelper.Dwg
             AddExtrusion(extrusion);
         }
 
+        [MethodImpl(DwgJit.Hot)]
         private void ReadCircle(bool arc)
         {
             double[] centre = _data.Point3();
@@ -73,6 +76,7 @@ namespace GeometryHelper.Dwg
             }
         }
 
+        [MethodImpl(DwgJit.Hot)]
         private void ReadPoint()
         {
             double[] point = _data.Point3();
@@ -348,6 +352,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>A TEXT (<paramref name="kind"/> 0), an ATTRIB (1) or an ATTDEF (2); false for an attribute of several lines, which is not read yet.</summary>
+        [MethodImpl(DwgJit.Hot)]
         private bool ReadText(int kind)
         {
             int flags = _data.RawChar();
@@ -682,6 +687,7 @@ namespace GeometryHelper.Dwg
             }
         }
 
+        [MethodImpl(DwgJit.Hot)]
         private void ReadInsert(bool array)
         {
             double[] insertion = _data.Point3();
@@ -931,6 +937,7 @@ namespace GeometryHelper.Dwg
             _object.Add(72, faces);
         }
 
+        [MethodImpl(DwgJit.Hot)]
         private void ReadLwPolyline()
         {
             int flags = _data.BitShort();
