@@ -590,8 +590,10 @@ a record of its own: its R2000 file holds each colour as the index in the object
 706590, is lost, the index 102 kept), where its DXF of R2000 says nothing. A DWG of R2000 written from a drawing of R2018 keeps the indexes
 (`DxfVersionConverter` is asked to leave the group 62 of a view style in the text it makes for a DWG, not for a DXF), and the section style of
 its own of `views_AC1015` is AutoCAD's bytes in its data, colours included; the detail style of its own is too but for a real of 1 unit in
-the last place (AutoCAD's DXF of R2018 prints 0.5200000000000001 for the 0.52 its R2000 file holds). The same drawing's DWG of R2000 read and
-written again still loses the colours, the DXF the reader makes of R2000 having none, as AutoCAD's own. The hatch background of a section view style, which AutoCAD's styles
+the last place (AutoCAD's DXF of R2018 prints 0.5200000000000001 for the 0.52 its R2000 file holds). The reader gives the index of each colour in
+the DXF it makes of a view style of R2000 (62, which AutoCAD's own DXF of R2000 leaves out; `DxfVersionConverter` leaves it out of a DXF it
+makes of R2000 and keeps it for a DWG), so that the same drawing's DWG of R2000 read and written again is AutoCAD's bytes in the section
+style's data, colours included, where it lost them. The hatch background of a section view style, which AutoCAD's styles
 hold as 257 (none), is written so where the DXF gives no colour.
 
 The tables of R2000, R2004 and R2007 are written. An ACAD_TABLE before R2010 is its block reference, then its flags, its columns and rows with
@@ -610,10 +612,37 @@ makes of them, are its bytes, handle references included (the reader gives the o
 and names the text style they hold, as DXF does; it gave them after the cells and by handle). The seven table drawings (`ttable`, `tstyles`,
 `tclean`, `tcustom`, `table`, `tall` and `tcell`, R2018) written as R2000, R2004 and R2007 open in AutoCAD 2021 with AUDIT 0 (21 of 21), and
 its DXFOUT of the tables, their content, geometry and data tables is that of its own file of the drawing, but for the proxy graphics of R2000
-(AutoCAD draws them anew, 2 544 bytes where 2 880), the flag 4 of an empty value of R2007 and the masks of the data table, which `DxfVersionConverter` makes by a rule that gives AutoCAD's masks for `table` and not for
-`ttable`, `tstyles`, `tall` and `tcell` (AutoCAD gives 0 in the second column of `ttable` and `tstyles`; AUDIT does not mind).
-A table with a number or a field in a cell (`tclean`) or a general value with nothing in it (`tcustom`) is still written as the block it is
-drawn with in R2000 and R2004, as `DxfVersionConverter` makes it: its form there knows only words and blocks. R2007 holds all of them.
+(AutoCAD draws them anew, 2 544 bytes where 2 880) and the flag 4 of an empty value of R2007.
+A table with a number in a cell (a whole number or a real, `tclean`), a general value with nothing in it (`tcustom`) or a field is a table
+in R2000 and R2004 too, as it is in R2007, where it was written as the block it is drawn with. The cell of those versions knows only
+words, so a number stands as the text it shows (the 302 of its value: `12`, `2.500000`), a general value as no words and a field as its
+handle (344) where the words would stand. The data table keeps the value of each as AutoCAD writes it: a number its flags 6, its type 1 or 2
+and its data, a general value 5 and 512, a field what the last field of the chain of its first children works out (a field of a table is
+the `_text` that names the field that works out the date, file name or number: for a year, `93=4 90=8 94=0 300=yyyy 302=2026`; a field not
+worked out, `93=1 90=0`), and the checksum of its words as of any text (0 for a field and a general value). A cell that names a field the
+drawing does not hold is written with no words, as AutoCAD's own file has it (the handle would be a null one, and AutoCAD refuses a table whose
+cell then lacks its words, ErrorStatus 53). The TABLECONTENT of R2000 and
+R2004 holds a value of the type 512 with its words in 1 (`90=512 1=`), as AutoCAD's files of `tcustom` do. A table whose cells hold a link to
+data, a value of another kind (a date, a point) or a text of more than 250 characters in its TABLECONTENT is still written as the block it is
+drawn with. The ACAD_TABLE, TABLECONTENT, TABLEGEOMETRY and data table of `tclean`, `tcustom`, `ttable`, `tstyles` and of two tables with a
+date, a file name, an author and a save date in their cells (the last three not worked out in a console, `####`), written from their R2018
+drawings as R2000 and R2004, are AutoCAD 2021's own files of the same drawings, read by the reader, group for group but for the proxy
+graphics of R2000, the masks of the data table of `tcustom` (below) and the size of the value of a date field (92: 16 in R2018 and 8 in
+R2000 and R2004, which the converter leaves at 16; one sample, so it is not made a rule). AutoCAD's DXFOUT of those 12 files is its DXFOUT
+of its own files, and the 42 files of the 14 drawings of the table tests (the seven above, two with fields and five with a property set at a
+time) written as R2000, R2004 and R2007 open with AUDIT 0.
+The mask of the data table of a cell is its alignment (0x01), its background colour with the fill (0x06) and each side that has a border of
+its own (the top 0x4440, right 0x8880, bottom 0x11100, left 0x22200), with the opposite side on the cell across the edge. A cell holds more in
+its flags than it set: a value that the table's own overrides give every cell, or that the style gives the row across the edge where two kinds
+of row meet (the lineweight of 0.35 under a title is also the one over the header), stands in the cell as one it set, and the mask of such a
+cell is 0, as AutoCAD's is in `ttable`, `tstyles` and `tclean` (12, 15 and 12 cells; the old rule gave a mask to 12 of the 12 cells of `ttable`
+and 6 of the 15 of `tstyles`, and wrote `tclean` as a block). What AutoCAD keeps is the mask of what was set one property at a time, which
+the file does not show: a lineweight set alone on a top border has 0x400, a colour 0x40, where a border set whole has 0x4440 (AutoCAD's masks
+of the 168 cells of three tables made a property at a time, `tall` and `tcell` are the first; the tests of 3 by 3 tables the second), and a
+value set that is the one the style gives is counted (`tcustom`: 2 of its 15 cells have a mask, 10 differ). The whole side is kept, as before.
+A table of R2000 and R2004 read from a DWG goes up to R2007 and later with its numbers and general values in the content (flags 6 and 5), and
+with the overrides of its cells where the reader puts them, between the state and the rotation, which `DxfVersionConverter` expected after the
+words, as AutoCAD's DXF has them (a table with an override in a cell, read from a DWG of R2000 or R2004, was the block it is drawn with).
 
 A table style of R2000 to R2007 that has no map of cell styles gets one, as AutoCAD writes it when it saves such a drawing: the style of a
 drawing of R2010 or later (every table style a DWG of R2018 holds, the DXF of AutoCAD alone listing its map) has the extension dictionary

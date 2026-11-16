@@ -450,13 +450,16 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ATableWithAFieldInACell_StaysTheBlockItIsDrawnWithWhereItsCellsHaveNoForm()
+        public void ATableWithACellLinkedToData_StaysTheBlockItIsDrawnWithWhereItsCellsHaveNoForm()
         {
-            // A cell with a field (344) is none of the cells the old form is made of: that table is the INSERT it was made, the
-            // other stays. (A height of its own, 140, is a cell of the old form: its table stays, DxfSaveVersionTableRoundTripTests.)
+            // A cell linked to data (a 92 that is not 0) is none of the cells the old form is made of: that table is the INSERT it
+            // was made, the other stays. (A height of its own, 140, is a cell of the old form: its table stays,
+            // DxfSaveVersionTableRoundTripTests; so is a field, 344, DwgTableValuesOfOlderVersionsTests.)
             string text = Encoding.GetEncoding(28591).GetString(DwgAnswerKey.Key("table_AC1021")).Replace("\r\n", "\n");
-            int at = text.IndexOf("\n145\n0.0\n", StringComparison.Ordinal);
-            string changed = text.Insert(at + "\n145\n0.0\n".Length, "344\n7A\n");
+            const string unlinked = "\n145\n0.0\n 92\n        0\n301\n";
+            int at = text.IndexOf(unlinked, StringComparison.Ordinal);
+            Assert.True(at >= 0);
+            string changed = text.Remove(at, unlinked.Length).Insert(at, unlinked.Replace("        0", "        1"));
             DxfDatabase database = DxfDatabase.Parse(changed);
 
             using (var stream = new MemoryStream())

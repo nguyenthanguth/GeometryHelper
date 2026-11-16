@@ -328,12 +328,15 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] Tables in older DWGs (dxfconv6): ACAD_TABLE, TABLECONTENT, TABLEGEOMETRY and DATATABLE written in R2000-R2007
         (AutoCAD's own tables bit-equal; 21 of 21 table files AUDIT 0); R2010/R2013 headers name AutoCAD 2021; R2000
         view style colours kept as indexes as AutoCAD does; Realistic's lighting model 2 below R2010 as AutoCAD
-  - [ ] (dxfconv7, running) R3.3 follow-ups 11: tables with a number, field or general-empty value still fall back to their block in
-        R2000/R2004 (AutoCAD writes them as tables); DATATABLE masks (AutoCAD writes 0 for ttable, tstyles); tcustom's
-        explicit default margins and borders (parked: changes R2010+ output); block and field cells of R2000-R2007 tables
-        not compared with AutoCAD; R2000 view-style colours lost through DXF; R2000 spline solids; the remaining
-        stretch/group orders; unknown node classes; ErrorStatus 76; R2007 AppInfoHistory and SummaryInfo; the ISDYNAMIC
-        heuristic; region GUI checks; spline edges and non-planar faces; orphan ACDSRECORDs; a parse cache (M)
+  - [x] Table values in older DWGs (dxfconv7): numbers, general-empty values and fields written as tables in R2000/R2004
+        (42 of 42 AUDIT 0; AutoCAD's DXFOUT of ours equals its own), DATATABLE masks by AutoCAD's rule, R2000 view-style
+        colours read back, tables of R2000/R2004 with cell overrides going back up as tables. DECIDED: tcustom's explicit
+        default margins and borders stay parked (AutoCAD's DXFOUT already equal; the fix risks R2010+ byte identity)
+  - [ ] R3.3 follow-ups 12: long text (over 250 characters) in a table with TABLECONTENT stays a block; links to data,
+        dates and points in cells stay blocks; tcustom's masks (AutoCAD counts set-equal values); the date field's 92;
+        the data table's 93 of a text cell; R2000 spline solids; the remaining stretch/group orders; unknown node
+        classes; ErrorStatus 76; R2007 AppInfoHistory and SummaryInfo; the ISDYNAMIC heuristic; region GUI checks; spline
+        edges and non-planar faces; orphan ACDSRECORDs; a parse cache (M)
   - [x] Dialogs 5 (dialogs5, design v139-v140): Multiline Style (with New/Modify page, Load), Multiline Edit Tools, the
         Hatch dialog's third column (one-colour gradient, colours, layer, transparency, origin, gap), Plot Stamp and PLOT's
         "Plot stamp on", Image Adjust, Attribute Extraction, Xbind
@@ -484,7 +487,7 @@ the ones wanted.
 - [x] MIRROR follow-ups 6 (mirror6): a hatch MIRROR keeps its normal, the loops (bulges, arcs, ellipses, splines)
       reflected in its plane, and MIRRHATCH 0/1 as AutoCAD; ROTATE normalises its angle (53 written 360 as AutoCAD);
       -OBJECTSCALE Add writes the view context; gradient angle 460 left alone; 1 200 of 1 239 oracle cases equal
-- [ ] MIRROR follow-ups 7: an annotative hatch's context direction under TransformBy turns about an axis other than z
+- [ ] (mirror7, running) MIRROR follow-ups 7: an annotative hatch's context direction under TransformBy turns about an axis other than z
       (39 of 1 239 cases; no command reaches them; 3 attempts, no rule found); the library's TransformBy reflects the
       pattern (MIRRHATCH 1 form) where AutoCAD's follows MIRRHATCH (default 0); MIRROR3D not in the presenter (S)
 - [x] Drafting aids: TK (TRACKING); check TT with OTRACK off, "(need YZ):" input and Enter at a modifier prompt
