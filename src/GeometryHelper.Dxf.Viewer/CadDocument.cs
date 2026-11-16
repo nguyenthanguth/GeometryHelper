@@ -474,6 +474,14 @@ namespace GeometryHelper.Dxf.Viewer
         public int OleFrame { get; set; } = 2;
 
         /// <summary>
+        /// Gets or sets AutoCAD's REVCLOUDGRIPS: whether a revision cloud shows the few grips of the shape it goes round, the
+        /// default, or one at each of its vertices as any polyline does (see <see cref="CadGrips.Shown"/>).
+        /// A cloud round the rectangle (0, 0) to (60, 40) with arcs 10 long has 8 grips at true, its 20 vertices and the middle
+        /// of each arc at false. AutoCAD keeps it in the registry; here it lasts as long as the document is open.
+        /// </summary>
+        public bool RevCloudGrips { get; set; } = true;
+
+        /// <summary>
         /// Gets or sets which OLE objects are shown and plotted, as AutoCAD's OLEHIDE: 0, the default, those of both spaces, 1
         /// those of paper space only, 2 those of model space only, 3 none. AutoCAD keeps it in the registry; here it lasts as
         /// long as the document is open. A display list already made keeps its objects until <see cref="Regen"/>.

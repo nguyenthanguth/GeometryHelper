@@ -581,12 +581,14 @@ the ones wanted.
 - [x] PEDIT/REVCLOUD follow-ups 3 (pedit4): REVCLOUD tiny shapes (2-vertex clouds, "Invalid shape" below 6), the four
       REVCLOUD* variables, Arc length setting MIN/MAX, the first cloud setting APPROXARCLEN, Modify making a new handle;
       -VPORTS ? and Delete with *Multiple, as AutoCAD; variance-1 arcs are random in AutoCAD (no match possible)
-- [ ] (pedit5, running) PEDIT/REVCLOUD follow-ups 4: PEDIT spline counts PARKED after 3 rounds (52 of 238 differ, ours 1-22 more; also for
-      control-point splines; AutoCAD's tolerance c/(p+1)^2 with c = 1/max|P''| when the maximum is at an end, 0.06-3.9 %
-      above at an inner knot; p=0 F gives 8 vs our 7); REVCLOUDGRIPS without effect yet; a tiny Modify path not probed;
-      GUI-only: Freehand spacing, first arc length in layout viewports, REFEDIT's line order and kept handles,
-      TABLEEXPORT's file, pre-selection, BOUNDARY, FILTER, SPELL; MLEADERALIGN/TEXTALIGN/DIMBREAK geometry (console hung
-      making TEXT+MLEADER+DIMLINEAR) (S)
+- [x] PEDIT/REVCLOUD follow-ups 4 (pedit5): REVCLOUDGRIPS 1 gives a cloud AutoCAD's few grips (corners and side middles,
+      a circle's five) and a drag redraws it at 1.1 x the mean chord (14 clouds to six decimals); Modify ends on a tiny
+      first point (1.1825 arcs); TEXTALIGN (144 runs) and DIMBREAK Auto (96 runs) already matched AutoCAD
+- [ ] PEDIT/REVCLOUD follow-ups 5: MLEADERALIGN geometry (MLEADER hangs the console: build multileaders through the
+      .NET API in a plugin); DIMBREAK Manual/Remove and on multileaders; TEXTALIGN with a reference text; a plain
+      polyline with 110-degree arcs, ellipse and Freehand clouds under REVCLOUDGRIPS; AutoCAD's grip order of a circle
+      (centre, +x, -x, +y, -y); PEDIT spline counts PARKED (52 of 238); GUI-only: Freehand spacing, REFEDIT, TABLEEXPORT,
+      pre-selection, BOUNDARY, FILTER, SPELL (S)
 - [x] Layouts: twisted viewports drawn and entered as AutoCAD (two bugs: the turn's sense, group 12 in view coordinates);
       one undo step per wheel or pan gesture; ZOOM Previous per viewport (20 each); -SCALELISTEDIT; Isolate in the Layer
       manager; New VP Freeze on viewports made through the core's API (S)
@@ -649,7 +651,7 @@ the ones wanted.
 - [x] Associative dimensions follow-ups 11 (assoc12): the arc point of words outside past a half turn by which end the
       words' middle is nearer (1 969 of 1 969 pictures), DIMJUST words on the arc by chord turns: tar55s 2 691 -> 228,
       tar52s 204 -> 36 differing pictures, 2 668 came right and none wrong
-- [ ] Associative dimensions follow-ups 12: the arrowheads-out lower edge (48 of 1 969: DIMGAP 0.18 without the symbol
+- [ ] (assoc13, running) Associative dimensions follow-ups 12: the arrowheads-out lower edge (48 of 1 969: DIMGAP 0.18 without the symbol
       wants 2.3 degrees more; an upper edge of the near window at 125-150 degrees); words-in thresholds at 181-200
       degrees (extra room 0.0006-0.066, no rule; all 228 tar55s left); DIMJUST words on arcs at radius 3 (one state
       flip) (S)

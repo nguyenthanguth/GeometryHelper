@@ -1615,7 +1615,8 @@ ended before it drew anything, and Modify, leave it. REVCLOUDMINARCLENGTH and RE
 written by Arc length and by REVCLOUDPROPERTIES, to two thirds and four thirds of the length at REVCLOUDARCVARIANCE 1 and to the
 length itself at 0 (30 gives 20 and 40, or 30 and 30), and nothing else changes them; the command goes by the approximate
 length, not by them. REVCLOUDARCSTYLE is a text, "Normal" or "Calligraphy" as the Style option sets it, which SETVAR takes
-whatever it says; only exactly "Calligraphy" draws calligraphy. REVCLOUDGRIPS is a switch, ON to begin with. At REVCLOUDARCVARIANCE
+whatever it says; only exactly "Calligraphy" draws calligraphy. REVCLOUDGRIPS is a switch, ON to begin with, kept by the document: ON shows the few grips of the shape a cloud goes
+round (below), OFF a grip at each vertex and each arc as for any polyline. At REVCLOUDARCVARIANCE
 1 AutoCAD's arcs vary at random from one cloud to the next (three rectangles of the same corners gave three sequences, each arc
 between two thirds and four thirds of the length, evenly spread), where the presenter's are one fixed sequence of the same kind.
 A Freehand cloud typed point by point in the console takes every point typed as a vertex, so the rule of the arc length along
@@ -1657,6 +1658,29 @@ its own vertices, with arcs of the new length, bulging the way its own do: a rec
 REVCLOUD draws with 20, a polygon cloud is drawn along the chords of its arcs, which cut its corners, so that the polygon
 (0, 0), (73, 0), (80, 41), (20, 52) drawn at 10 and given 15 has its sixth vertex at (72.5898, 4.2770) and not (73.3366,
 1.9715), as AutoCAD's console draws it. A cloud that is no cloud (no data) ends the command with nothing changed.
+
+A first point of Modify's path nearer the start than a little over an arc (1.1825 arcs, which AutoCAD's console puts between 1.18
+and 1.185: at arcs of 20 a point 23.6 from the start ends the command and one 23.7 from it goes on; at 100, 118 and 118.5; at 50, 59
+and 59.5; at 7, 8.2 and 8.3) ends the command at once, nothing said and nothing changed. The first arc counts, which varies at
+random in AutoCAD at REVCLOUDARCVARIANCE 1; the points after the first go on whatever their distance.
+
+Grips of a revision cloud, while REVCLOUDGRIPS is ON, are the few grips of the shape the cloud goes round, as AutoCAD 2021's
+`GetGripPoints` gives them (run in its console through a plugin). A closed cloud of six vertices or more with the REVCLOUD data
+whose vertices all lie on one circle has the grips of the circle: the centre, then the quadrants to the right, to the left, above
+and below. Any other has a vertex grip at each corner of its path, from its first vertex, and a middle grip at each side that
+follows: the corners are the vertices where the direction changes (the first vertex always), and a corner the arcs cut off, a
+vertex before it and one after it with the chord between them leaving the lines of both sides, is the point where the two lines
+meet, so that the cloud round the rectangle (0, 0) to (60, 40) with arcs 10 long has 8 grips, (0, 0), (0, 20), (0, 40), (30, 40),
+(60, 40), (60, 20), (60, 0), (30, 0), and the cloud round the polygon (100, 0), (160, 0), (160, 40), (130, 60), (100, 40) has 10,
+(130, 60) among them, which is no vertex of it. An open cloud, one of fewer than six vertices and a polyline with no cloud data
+keep the grips of a polyline; so does every cloud with REVCLOUDGRIPS OFF. A grip dragged draws the cloud again along the new
+shape, in place and as one undo step: a corner is moved to the point, a side by as much as its middle grip was, the centre of a
+circle likewise, and a quadrant gives the circle the radius that reaches the point. The arcs are 1.1 times the mean chord of
+the cloud before (a cloud of 20 arcs 10 long, its top middle dragged up 5 on a rectangle 60 by 40, is 19 vertices 11 apart; one
+of arcs 40 long round a rectangle 120 by 100 is drawn again with arcs of 41.657), laid from the first vertex, the last arc taking
+what is left, bulging the way they did, the data of the cloud kept. A cloud too small for two arcs is refused. The grips of a cloud
+with few grips have no grip menu. Left as it is: AutoCAD's own rule for which polyline is a cloud (it ignores the data, and takes
+a polyline whose arcs are 110 degrees) and the ellipse it fits to some clouds, whose axes it finds from the vertices only roughly.
 
 TABLE (TB) shows the Insert Table dialog ([`CadInsertTableRequest`](xref:GeometryHelper.Dxf.Viewer.CadInsertTableRequest)),
 asks `Specify insertion point:` (or two corners for Specify window) and opens the title for typing in the MTEXT editor:

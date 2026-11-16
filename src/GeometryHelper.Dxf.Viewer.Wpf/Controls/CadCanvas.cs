@@ -4382,7 +4382,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     continue;
                 }
 
-                foreach (CadGrip grip in CadGrips.Of(entity))
+                foreach (CadGrip grip in CadGrips.Shown(document, entity))
                 {
                     _grips.Add(new GripAt(handles[i], grip));
                 }
