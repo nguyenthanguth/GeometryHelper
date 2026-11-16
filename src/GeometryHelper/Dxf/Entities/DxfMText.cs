@@ -1867,8 +1867,9 @@ namespace GeometryHelper.Dxf
         /// carries one: its location and direction carried, its angle (50) given up for its direction, its height the stretch of
         /// its upright square to its direction, its width the stretch of its direction, the heights <c>\H</c> of its words scaled
         /// with it, its normal carried. Turned or mirrored, not scaled, its height and width are left as they were, a direction
-        /// along the world's x axis is not written where the record gave none, on any normal (an MTEXT along x mirrored across
-        /// a level line, of normal (0, 0, -1), reads along (1, 0, 0) with no 11, check mirror-3 GHM3B), and its normal is left
+        /// along the world's x axis (1, 0, 0) is not written, whether the record gave one or not (an MTEXT along x mirrored across
+        /// a level line, of normal (0, 0, -1), reads along (1, 0, 0) with no 11, check mirror-3 GHM3B; one turned 25 degrees about y
+        /// is written with its direction, (0.906, 0, -0.423), check mirror-9), and its normal is left
         /// out where it is the drawing's own, as AutoCAD 2021 writes them. A scale unlike along its direction and its upright stretches its box, as ezdxf stretches
         /// it; one that leans them is refused, an MTEXT having no lean. The height of its box (46) is stretched as its upright
         /// is, in columns or not: scaled by 2 about the origin, the MTEXT in a box 20 high is in one 40 high, as AutoCAD 2021
@@ -1895,11 +1896,12 @@ namespace GeometryHelper.Dxf
             }
 
             // A mirror keeps the words readable, as AutoCAD 2021's TransformBy keeps them: the MTEXT is turned over about its point
-            // before the mirror, across its upright or its baseline, and the point it is held by turned over with it.
-            if (transform.GetDeterminant() < 0.0 && TurnedOver(transform, out GeoTransform3 turn, out int held))
+            // before the mirror, across its upright or its baseline, and the point it is held by turned over with it, in the record
+            // and in every context of an annotative one.
+            if (transform.GetDeterminant() < 0.0 && TurnedOver(transform, out GeoTransform3 turn, out bool across))
             {
                 Move(transform.Multiply(turn));
-                Attachment = (DxfAttachmentPoint)held;
+                TurnAttachments(across);
                 return;
             }
 
@@ -1908,44 +1910,71 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// The turn-over a mirror gives an MTEXT so that its words stay readable, as AutoCAD 2021's <c>TransformBy</c> does it
-        /// (probed in its console on 8 MTEXTs of the planes (0, 0, 1), (0, 1, 0), (1, 1, 1) and (0, 0, -1) under 6 mirrors): a
+        /// (probed in its console on 8 MTEXTs of the planes (0, 0, 1), (0, 1, 0), (1, 1, 1) and (0, 0, -1) under 6 mirrors, and
+        /// on 18 annotative ones of 3 planes): a
         /// reflection about its point, across its upright (the plane square to its direction) where its direction mirrored and
         /// reversed reads in the half of the circle it reads in now, else across its baseline (the plane square to its
         /// upright); mirrored after it, the transformation is a turn and a move, so that the new direction is the mirror's
         /// image reversed in the one case and the image in the other, the new normal the mirror's image of the normal, and the
-        /// point the MTEXT is held by carried to the opposite side of its box, left for right or top for bottom. An MTEXT along
+        /// point the MTEXT is held by carried to the opposite side of its box, left for right or top for bottom
+        /// (<see cref="TurnAttachments"/>). An MTEXT along
         /// x held by its top left, mirrored across x = 40, reads along (1, 0, 0) from the mirrored point, held by its top
-        /// right, still of normal (0, 0, 1); across the line through (20, 5) and (10, 20) it reads along (0.385, -0.923).
-        /// Where the MTEXT has contexts (an annotative one) it is mirrored as it is, as before.
+        /// right, still of normal (0, 0, 1); across the line through (20, 5) and (10, 20) it reads along (0.385, -0.923). The
+        /// contexts of an annotative one (its point is theirs) are turned as the record is.
         /// </summary>
-        private bool TurnedOver(GeoTransform3 mirror, out GeoTransform3 turn, out int attachment)
+        private bool TurnedOver(GeoTransform3 mirror, out GeoTransform3 turn, out bool across)
         {
             turn = null;
-            attachment = 0;
+            across = false;
             GeoVector3 along = HasDirection() ? Point(11, Origin).ToVector() : OwnDirection;
             GeoVector3 upright = DxfOcsTransform.Cross(Normal, along);
 
-            if (!(along.Length > 0.0) || !(upright.Length > 0.0) || Shown(out _) != null)
+            if (!(along.Length > 0.0) || !(upright.Length > 0.0))
             {
                 return false;
             }
 
             along = along.Divide(along.Length);
             upright = upright.Divide(upright.Length);
-            bool across = DxfOcsTransform.AcrossUpright(along, Normal, mirror);
+            across = DxfOcsTransform.AcrossUpright(along, Normal, mirror);
             GeoPoint3 at = Point(10, Origin);
             turn = GeoTransform3.Mirror(new GeoPlane3(at, across ? along : upright));
-            int held = (int)OwnAttachment;
+            return true;
+        }
 
-            if (held >= 1 && held <= 9)
+        /// <summary>The point an MTEXT is held by (1 to 9) once it is turned over across its upright (left for right) or its baseline (top for bottom); any other number as it is.</summary>
+        private static int Held(int attachment, bool across)
+        {
+            if (attachment < 1 || attachment > 9)
             {
-                int column = (held - 1) % 3;
-                int row = (held - 1) / 3;
-                held = across ? (row * 3) + (2 - column) + 1 : ((2 - row) * 3) + column + 1;
+                return attachment;
             }
 
-            attachment = held;
-            return true;
+            int column = (attachment - 1) % 3;
+            int row = (attachment - 1) / 3;
+            return across ? (row * 3) + (2 - column) + 1 : ((2 - row) * 3) + column + 1;
+        }
+
+        /// <summary>Turns the point the MTEXT is held by over, in its record (71) and in each context it holds (70), as <see cref="TurnedOver"/> says.</summary>
+        private void TurnAttachments(bool across)
+        {
+            ShownContexts contexts = Shown(out _);
+            SetWhole(71, Held((int)OwnAttachment, across), 1);
+
+            if (contexts == null)
+            {
+                return;
+            }
+
+            foreach (DxfItem item in contexts.All)
+            {
+                ContextGroups context = ContextGroups.Read(item, MTextContext.Codes, false);
+
+                if (context.Has(MTextContext.Attached))
+                {
+                    context.Write(MTextContext.Attached, Held((int)context.Value(MTextContext.Attached, 1.0), across));
+                }
+            }
         }
 
         /// <summary>Moves the MTEXT by a transformation, as <see cref="TransformEntity"/> says, the turn-over of a mirror already put in it.</summary>
@@ -2017,22 +2046,27 @@ namespace GeometryHelper.Dxf
             }
 
             groups.AddRange(PointChanges(10, transform.Transform(Point(10, Origin)), Origin));
-            // A direction the record would read where it gives none, the world's x axis put into the new plane, is left out
-            // where the record gives none, as AutoCAD 2021 leaves it out: an MTEXT along x mirrored across a level line, of
-            // normal (0, 0, -1), is written with no direction (check mirror-3 GHM3B).
+            // A direction along the world's x axis is left out, as AutoCAD 2021 leaves it out, whether the record gave one or not
+            // and on whatever normal: an MTEXT along x mirrored across a level line, of normal (0, 0, -1), is written with no
+            // direction (check mirror-3 GHM3B). One in a plane tilted about y, whose x axis put into the plane reads as it does,
+            // is written all the same (an MTEXT along x turned 25 degrees about y reads along (0.906, 0, -0.423), check mirror-9).
             GeoVector3 unitDirection = newDirection.Divide(newDirection.Length);
-            GeoVector3 planeX = AlongWorldX(ocs.NewExtrusion);
             bool alongX =
-                !HasDirection()
-                && Math.Abs(unitDirection.X - planeX.X) <= 1E-12
-                && Math.Abs(unitDirection.Y - planeX.Y) <= 1E-12
-                && Math.Abs(unitDirection.Z - planeX.Z) <= 1E-12;
+                Math.Abs(unitDirection.X - 1.0) <= 1E-12
+                && Math.Abs(unitDirection.Y) <= 1E-12
+                && Math.Abs(unitDirection.Z) <= 1E-12;
 
             if (!alongX)
             {
                 // Scaled, the direction is still of unit length, as AutoCAD 2021 writes it: (0.825, 0.565) scaled by 2 stays so.
                 GeoVector3 written = unscaled ? newDirection : unitDirection;
                 groups.AddRange(PointChanges(11, new GeoPoint3(written.X, written.Y, written.Z), Origin));
+            }
+            else if (HasDirection())
+            {
+                groups.Add(new KeyValuePair<int, string>(11, null));
+                groups.Add(new KeyValuePair<int, string>(21, null));
+                groups.Add(new KeyValuePair<int, string>(31, null));
             }
 
             if (Value(50) != null)

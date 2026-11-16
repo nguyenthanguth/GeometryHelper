@@ -208,9 +208,13 @@ on the plane parallel to the view, the XY plane in a plan, `<0,0,0>` by default;
 to that plane of the UCS, `<0,0,0>` by default. Each object moves as its `TransformBy` mirrors it (a line across the XY plane
 keeps its points and takes the normal (0, 0, -1), a line from (0, 0) to (0, 50) across the YZ plane through (40, 0) runs from
 (80, 0) to (80, 50)), and a hatch follows MIRRHATCH, as it does under MIRROR. The mirror image replaces the source where Yes
-is answered, as MIRROR's does. A circle, an arc, a polyline and a SOLID keep the image of their normal, under MIRROR as under
-MIRROR3D, as AutoCAD 2021 leaves them (probed in its console): a circle across a vertical line keeps (0, 0, 1) and across the
-XY plane takes (0, 0, -1) with its centre where it was. An MTEXT is mirrored in its plane under MIRRTEXT 1, its normal
+is answered, as MIRROR's does. A circle, an arc, a polyline (a heavy POLYLINE too), a leader and a SOLID keep the image of
+their normal, under MIRROR as under MIRROR3D, as AutoCAD 2021 leaves them (probed in its console): a circle across a vertical
+line keeps (0, 0, 1) and across the XY plane takes (0, 0, -1) with its centre where it was; the arrowhead of a leader is
+filled the same triangle, its ring written from the other corner. A point's symbol is turned with the mirror (180 degrees
+across a vertical line), and the TEXT of any justification and the annotative TEXT and MTEXT that `TransformBy` now keeps
+readable (see the DXF text guide) are drawn by MIRROR as they were: its own flip of the words, probed against AutoCAD
+2021's, is not changed. An MTEXT is mirrored in its plane under MIRRTEXT 1, its normal
 turned over (a mirror across y = 100 of one along x at (100, 10) stands at (100, 190) with the normal (0, 0, -1)), and kept
 readable under 0, a text of another plane than the drawing's too.
 

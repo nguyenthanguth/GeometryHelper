@@ -29,16 +29,28 @@ db.ModelSpace.AppendEntity(text);   // Position (94.667, 50, 0): the ink of "ABC
   on two points 30 apart is 11.25 high. An annotative one is put so at every context. Its `GeometricExtents` are the ink of
   its words, the corners slanted by its oblique: "A" 4 high slanted 15 degrees reaches 3.738.
 - A TEXT, ATTDEF or ATTRIB mirrored by `TransformBy` stays readable, as AutoCAD 2021's does, where the drawing's
-  `FontSearchPath` measures its words and it is aligned left on its baseline: it is turned over in its own plane first, across
+  `FontSearchPath` measures its words: it is turned over in its own plane first, across
   its upright where its baseline mirrored and reversed reads in the half of the circle it reads in now (in the system of the
   image of its normal), through the middle of the box of its ink, else across its baseline through the middle of the ink's
   height, so that the mirror takes it to where the mirrored ink starts. "ABC" of txt.shx 3 high at (20, 40), inked 8
   wide, mirrored across x = 40 stands at (52, 40) reading along x, its normal still (0, 0, 1); across z = 0 at (28, 40) on
   the normal (0, 0, -1), its first point (-28, 40) in its system; across y = 30 at (20, 17); turned 34.4 degrees and mirrored
-  across x = 40 at (53.397, 44.517) turned to 325.6. Where no font measures it, or it is written backwards or upside down,
-  aligned any other way, an attribute of several lines or annotative, it is mirrored in its plane as before, its normal
+  across x = 40 at (53.397, 44.517) turned to 325.6. A text held by a second point is turned over the same way, its first
+  point worked out from the second as above and both points carried: "ABC" centred on (30, 45), its first point (26, 45),
+  across x = 40 stands at (46, 45) held at (50, 45) (AutoCAD 2021, its ink 8.445 wide: 45.555 held at 49.555); across
+  y = 30 at (26, 12) held at (30, 12). A text whose two points are the ends of its baseline (aligned, fitted, or held by its
+  right end) is turned over across the middle of its two points, so that its first point is the second mirrored and its second
+  the first, and it needs no font: aligned on (20, 40) and (40, 48) across x = 40 it runs from (60, 40) to (40, 48), turned
+  to 338.2 degrees; held by its right end at (30, 45) with its first point at (22, 45) it stands at (50, 45) held at (58, 45).
+  One held by its middle (72 of 4) turned across its upright keeps its second point mirrored and its first where the mirror
+  alone takes it ((26, 43.5) held at (30, 45) becomes (54, 43.5) held at (50, 45)), as AutoCAD 2021 leaves it. An annotative
+  text turns each of its contexts over so, each by the words at the height of its scale: "ABC" at 1:1 and 1:2 (3 and 6 high)
+  across x = 40 stands at 52 and 44, their ink 8 and 16 wide. Where no font measures the ink the turn-over needs (and a
+  text held by its ends or its middle across its upright needs none), or it is written backwards or upside down, an
+  attribute of several lines, or of 72 of 3, 4 or 5 with a vertical mode, it is mirrored in its plane as before, its normal
   turned over and its words backwards. An MTEXT stays readable under a mirror without a font: held by its top left and
-  mirrored across x = 40 it reads along its direction held by its top right, across y = 30 held by its bottom left.
+  mirrored across x = 40 it reads along its direction held by its top right, across y = 30 held by its bottom left, the
+  contexts of an annotative one held by the other side too.
 - A text moved by `TransformBy` (an attribute `SetAttributeFromBlock` places by its INSERT's `BlockTransform` too) that is
   scaled unlike along its two axes keeps the shape the scale makes of it, as AutoCAD 2021 gives it: its baseline's length over
   its height gives the width factor, the area its two axes span over the new baseline its height, and the new lean is that of
@@ -407,7 +419,10 @@ as AutoCAD 2021 reads it, not along the plane's own x axis: on the normal (0, 0,
 `Rotation` pi; on (0.6, 0, -0.8), (0.8, 0, 0.6) turned a quarter; on (1, 0, 0), whose plane holds no part of that axis,
 the plane's x axis. So an MTEXT along x mirrored across a level line is written with no direction, as AutoCAD writes it,
 and one given a normal whose plane's x axis reads otherwise is written with that direction, 11 of (-1, 0, 0) for
-(0, 0, -1).
+(0, 0, -1). A direction is left out only where it is the world's own x axis (1, 0, 0), whether the record gave one or not,
+as AutoCAD 2021 leaves it: an MTEXT with none, turned 25 degrees about y, reads along (0.906, 0, -0.423) as the world's
+x axis put into the new plane reads, and is written with that direction all the same; one along x of the normal (0, 1, 0)
+that is moved loses its 11 of (1, 0, 0).
 
 ### The codes of an MTEXT
 

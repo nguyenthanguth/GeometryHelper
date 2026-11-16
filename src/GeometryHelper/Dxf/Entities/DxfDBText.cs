@@ -781,7 +781,9 @@ namespace GeometryHelper.Dxf
 
             // A mirror keeps the words readable, as AutoCAD 2021's TransformBy keeps them, where the drawing's fonts measure them:
             // the text is turned over in its own plane first, so that what is mirrored is a turn and a move (TurnedOver).
-            GeoTransform3 turned = transform.GetDeterminant() < 0.0 ? TurnedOver(transform) : null;
+            GeoTransform3 given = transform;
+            GeoPoint3? first = null;
+            GeoTransform3 turned = transform.GetDeterminant() < 0.0 ? TurnedOver(transform, out first) : null;
 
             if (turned != null)
             {
@@ -791,9 +793,9 @@ namespace GeometryHelper.Dxf
             KeyValuePair<int, string>[] groups = TransformGroups(transform);
             List<DxfTypedValue> embedded = IsAttribute ? EmbeddedMoved(transform) : null;
 
-            // The contexts are worked out from the record as it is, and written after it; an attribute's of several lines with
-            // the MTEXT each holds, as AutoCAD 2021 carries them (check D35b).
-            List<KeyValuePair<ContextGroups, double[]>> contexts = _contextsStay ? null : ContextsMoved(transform);
+            // The contexts are worked out from the record as it is, and written after it, each turned over as the mirror turns it
+            // (ContextsMoved); an attribute's of several lines with the MTEXT each holds, as AutoCAD 2021 carries them (check D35b).
+            List<KeyValuePair<ContextGroups, double[]>> contexts = _contextsStay ? null : ContextsMoved(given, true);
             List<KeyValuePair<ContextGroups, double[]>> lines =
                 _contextsStay || embedded == null || !Embedded
                     ? null
@@ -831,6 +833,12 @@ namespace GeometryHelper.Dxf
             else
             {
                 SetText(groups);
+            }
+
+            // A text held by its middle, turned across its upright, keeps the first point the mirror alone gives it.
+            if (first.HasValue)
+            {
+                SetText(TextPointGroups(10, WorldToOcs(Normal, first.Value)));
             }
 
             WriteContexts(contexts);
@@ -910,7 +918,7 @@ namespace GeometryHelper.Dxf
         {
             if (!DxfOcsTransform.IsIdentity(transform))
             {
-                WriteContexts(ContextsMoved(transform));
+                WriteContexts(ContextsMoved(transform, false));
             }
         }
 
@@ -2205,9 +2213,11 @@ namespace GeometryHelper.Dxf
         /// The contexts as a transformation carries them, each with its new numbers, as <see cref="ContextText"/> numbers them,
         /// worked out from the record as it is: its point and second point at the elevation of the record, through the system
         /// of its plane, the second point only for a text not aligned left on its baseline, whose context AutoCAD 2021 leaves at
-        /// (0, 0); its angle turned. Null for a text of no context.
+        /// (0, 0); its angle turned. A mirror, where the contexts are to be turned over (<paramref name="turning"/>), turns each
+        /// over before it, as <see cref="TurnedContexts"/> works it out: "ABC" of 1:1 and of 1:2, 3 and 6 high, at (20, 40),
+        /// across x = 40 stand at 51.555 and 43.109, their ink 8.445 and 16.89 wide. Null for a text of no context.
         /// </summary>
-        private List<KeyValuePair<ContextGroups, double[]>> ContextsMoved(GeoTransform3 transform)
+        private List<KeyValuePair<ContextGroups, double[]>> ContextsMoved(GeoTransform3 given, bool turning)
         {
             ShownContexts contexts = TextContexts();
 
@@ -2216,13 +2226,17 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
-            var ocs = new DxfOcsTransform(Normal, transform);
+            List<KeyValuePair<GeoTransform3, GeoPoint3?>> turns =
+                turning && given.GetDeterminant() < 0.0 ? TurnedContexts(given) : null;
             double elevation = (TextPoint(10) ?? Origin).Z;
             bool aligned = !IsDefaultAlignment;
             var moved = new List<KeyValuePair<ContextGroups, double[]>>(contexts.All.Count);
 
-            foreach (DxfItem item in contexts.All)
+            for (int i = 0; i < contexts.All.Count; i++)
             {
+                DxfItem item = contexts.All[i];
+                GeoTransform3 transform = turns == null || turns[i].Key == null ? given : given.Multiply(turns[i].Key);
+                var ocs = new DxfOcsTransform(Normal, transform);
                 ContextGroups context = ContextText.Read(item);
                 double[] numbers = context.Copy();
 
@@ -2231,6 +2245,13 @@ namespace GeometryHelper.Dxf
                     GeoPoint3 point = ocs.TransformVertex(
                         new GeoPoint3(numbers[ContextText.X], numbers[ContextText.Y], elevation)
                     );
+
+                    // A text held by its middle, turned across its upright, keeps the first point the mirror alone gives it.
+                    if (turns != null && turns[i].Value.HasValue)
+                    {
+                        point = WorldToOcs(ocs.NewExtrusion, turns[i].Value.Value);
+                    }
+
                     numbers[ContextText.X] = point.X;
                     numbers[ContextText.Y] = point.Y;
                 }

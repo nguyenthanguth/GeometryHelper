@@ -900,7 +900,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Moves, turns, scales or mirrors the polyline, as AutoCAD's <c>TransformBy</c>, as ezdxf carries one: each vertex taken
         /// from the old plane at the elevation to the world, moved, and into the plane of the new normal; the elevation that of
-        /// the first vertex there, the widths and thickness scaled with it, the bulges kept. The vertices are written in one
+        /// the first vertex there, the widths and thickness scaled with it; under a mirror the normal is the image of the old one
+        /// as AutoCAD takes it, and every bulge changes its sign, as a <see cref="DxfPolyline"/>'s do. The vertices are written in one
         /// writing of the polyline, each in place, its handle kept.
         /// </summary>
         /// <param name="transform">The transformation.</param>
@@ -920,7 +921,7 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            var ocs = new DxfOcsTransform(Normal, transform);
+            var ocs = DxfOcsTransform.OfImage(Normal, transform);
             List<KeyValuePair<int, IReadOnlyList<DxfTypedValue>>> vertices = DxfFollowers.Vertices(Item);
 
             if (!ocs.ScaleUniform && vertices.Exists(v => DxfFollowers.Number(v.Value, 42, 0.0) != 0.0))
@@ -934,6 +935,7 @@ namespace GeometryHelper.Dxf
             bool elevated = GetString(10) != null || GetString(20) != null || GetString(30) != null;
             double elevation = GetDouble(30, 0.0);
             double first = 0.0;
+            bool reflects = ocs.Reflects;
             var records = new List<KeyValuePair<int, KeyValuePair<int, string>[]>>(vertices.Count);
 
             for (int i = 0; i < vertices.Count; i++)
@@ -950,6 +952,14 @@ namespace GeometryHelper.Dxf
                 var changes = new List<KeyValuePair<int, string>>(
                     DxfFollowers.PointChanges(vertex, 10, moved, Origin, 3)
                 );
+
+                // A mirror runs each arc the other way round in the system of the image of the normal: its bulge changes sign.
+                if (reflects && DxfFollowers.Number(vertex, 42, 0.0) != 0.0)
+                {
+                    changes.AddRange(
+                        DxfFollowers.NumberChange(vertex, 42, -DxfFollowers.Number(vertex, 42, 0.0), 0.0, false)
+                    );
+                }
 
                 foreach (int code in new[] { 40, 41 })
                 {

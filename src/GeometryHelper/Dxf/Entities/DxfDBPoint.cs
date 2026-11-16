@@ -130,8 +130,10 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Moves, turns, scales or mirrors the point, as AutoCAD's <c>TransformBy</c> does: its position is moved, and its
-        /// normal and thickness are carried as ezdxf carries them, as a <see cref="DxfLine"/>'s are; the turn of its symbol is
-        /// kept, as ezdxf keeps it. The record is written once.
+        /// normal and thickness are carried as ezdxf carries them, as a <see cref="DxfLine"/>'s are, a mirror taking the image of the
+        /// normal and the nought below nought its matrix leaves as nought; the turn of its symbol (<see cref="EcsRotation"/>) is
+        /// the angle the image of its x axis makes in the system of the new normal, from nought to a whole turn, as AutoCAD 2021
+        /// writes it (180 across x = 40, 30 for a turn of 30 degrees). The record is written once.
         /// </summary>
         /// <param name="transform">The transformation.</param>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
@@ -157,7 +159,25 @@ namespace GeometryHelper.Dxf
                 );
             }
 
-            SetGroups(Join(PointGroups(10, position, Origin), NormalGroups(raised.Divide(length))));
+            // The turn of its symbol is the angle the image of its x axis makes in the system of the new plane, from nought to a
+            // whole turn, as AutoCAD 2021 writes it: 180 where a mirror across x = 40 takes the x axis to -x, 112.6 across a line
+            // at 56.3 degrees, 30 for a turn of 30 degrees; none where it is nought.
+            GeoVector3 unit = raised.Divide(length);
+            double was = GetDouble(50, 0.0);
+            double turn = DxfOcsTransform.WholeTurn(new DxfOcsTransform(Normal, unit, transform).TransformDegrees(was));
+            KeyValuePair<int, string>[] angle =
+                turn < 1E-9 || turn > 360.0 - 1E-9
+                    ? (
+                        was == 0.0
+                            ? new KeyValuePair<int, string>[0]
+                            : new[] { new KeyValuePair<int, string>(50, null) }
+                    )
+                    : (
+                        Same(turn, was)
+                            ? new KeyValuePair<int, string>[0]
+                            : new[] { new KeyValuePair<int, string>(50, Numbers.Exact(turn)) }
+                    );
+            SetGroups(Join(PointGroups(10, position, Origin), NormalGroups(unit), angle));
 
             if (thickness != 0.0)
             {

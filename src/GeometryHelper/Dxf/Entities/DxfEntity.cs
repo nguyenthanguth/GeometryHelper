@@ -1888,6 +1888,9 @@ namespace GeometryHelper.Dxf
             }
 
             GeoVector3 unit = Math.Abs(length - 1.0) <= 1E-12 ? value : value.Divide(length);
+
+            // A nought below nought, as a mirror's matrix leaves one, is nought: (-0, 0, 1) is the drawing's normal, written as none.
+            unit = new GeoVector3(unit.X + 0.0, unit.Y + 0.0, unit.Z + 0.0);
             GeoVector3 now = GetNormal();
 
             if (Same(unit.X, now.X) && Same(unit.Y, now.Y) && Same(unit.Z, now.Z))
@@ -2816,8 +2819,10 @@ namespace GeometryHelper.Dxf
         {
             bool differs = false;
 
+            // A nought below nought, as a mirror's matrix leaves one, is nought: it changes nothing.
             for (int i = 0; i < values.Length; i++)
             {
+                values[i] += 0.0;
                 differs |= !Same(values[i], now[i]);
             }
 

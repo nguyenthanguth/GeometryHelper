@@ -1453,15 +1453,14 @@ namespace GeometryHelper.Dxf
                 record.Set(41, Real(Num(record.Text(41), 1.0) * factor));
             }
 
-            // AutoCAD leaves the pattern angle of a hatch it reflects as it was, and turns it with one it turns.
-            // A hatch pointing down, of normal (0, 0, -1), turned about x by exactly half a circle in its own plane, as by 300
-            // degrees, comes out pointing down still, and AutoCAD 2021 writes its pattern angle turned by -180 where the turn
-            // comes out +180 by arithmetic: 30 becomes -150, not 210 (probed over turns of 190 to 350 degrees about x of 18
-            // hatches, the change of sign at 270 where the new normal turns down). Any other half turn is written as it comes.
+            // AutoCAD leaves the pattern angle of a hatch it reflects as it was, and turns it with one it turns. A turn of half a
+            // circle (the image of the x axis of the plane the opposite of the new one) comes out as +180 or -180 by the sign of a
+            // nought or of the rounding left of one, and AutoCAD 2021 writes it the one way or the other, so that 30 becomes 210
+            // or -150: HalfTurn works the sign out as AutoCAD's sums come to it.
             if (record.Text(52) != null && !IsSolidFill && !reflects)
             {
                 double half =
-                    Math.Abs(turn - 180.0) <= 1E-9 && normal.Z < 0.0 && ocs.NewExtrusion.Z < 0.0 ? -180.0 : turn;
+                    Math.Abs(Math.Abs(turn) - 180.0) <= 1E-9 ? HalfTurn(normal, ocs.NewExtrusion, transform) : turn;
                 record.Set(52, Real(Num(record.Text(52), 0.0) + half));
             }
 
@@ -1482,6 +1481,45 @@ namespace GeometryHelper.Dxf
             }
 
             Write(record);
+        }
+
+        /// <summary>
+        /// The turn of half a circle of the pattern of a hatch whose plane goes from the system of one normal to that of another:
+        /// 180 or -180, by the sign of the nought (or of the rounding left of one) that the image of the old x axis makes along
+        /// the new y axis, the systems made by the arbitrary axis algorithm, as AutoCAD 2021's sums come to it. Probed on 14
+        /// normals under 117 turns about x, y and z, 198 half turns: 189 are the sign of that sum (the axes normalised by the
+        /// reciprocal of their length, the new y axis the cross product of the x axis with the normal, the sum taken from the
+        /// y term), and the rest a hatch pointing straight down, of normal (0, 0, -1), turned by 280 to 350 degrees about x to
+        /// one still pointing down, where AutoCAD writes -180 for the +180 of the sum: 30 becomes -150, not 210.
+        /// </summary>
+        private static double HalfTurn(GeoVector3 oldNormal, GeoVector3 newNormal, GeoTransform3 transform)
+        {
+            GeoVector3 across = transform.Transform(SystemOf(oldNormal, out _));
+            SystemOf(newNormal, out GeoVector3 up);
+            double y = (across.Y * up.Y) + (across.X * up.X) + (across.Z * up.Z);
+            bool positive = BitConverter.DoubleToInt64Bits(y) >= 0L;
+
+            if (positive && oldNormal.X == 0.0 && oldNormal.Y == 0.0 && oldNormal.Z < 0.0 && newNormal.Z < 0.0)
+            {
+                return -180.0;
+            }
+
+            return positive ? 180.0 : -180.0;
+        }
+
+        /// <summary>The x axis of the system of a normal, by the arbitrary axis algorithm, with the y axis in <paramref name="up"/>, worked out as <see cref="HalfTurn"/> needs them.</summary>
+        private static GeoVector3 SystemOf(GeoVector3 normal, out GeoVector3 up)
+        {
+            GeoVector3 from =
+                Math.Abs(normal.X) < 1.0 / 64.0 && Math.Abs(normal.Y) < 1.0 / 64.0
+                    ? new GeoVector3(0.0, 1.0, 0.0)
+                    : new GeoVector3(0.0, 0.0, 1.0);
+            GeoVector3 side = DxfOcsTransform.Cross(from, normal);
+            double reciprocal = 1.0 / Math.Sqrt((side.X * side.X) + (side.Y * side.Y) + (side.Z * side.Z));
+            var x = new GeoVector3(side.X * reciprocal, side.Y * reciprocal, side.Z * reciprocal);
+            GeoVector3 cross = DxfOcsTransform.Cross(x, normal);
+            up = new GeoVector3(-cross.X, -cross.Y, -cross.Z);
+            return x;
         }
 
         /// <summary>
