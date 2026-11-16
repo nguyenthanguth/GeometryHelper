@@ -107,7 +107,7 @@ session.Enter();
 | answers a point | as `x,y`, `@dx,dy`, `@distance<angle` or `distance<angle`; a number alone at a point prompt is a distance along the rubber band, towards the cursor, and at a point SETVAR asks, which has no band, a distance from the last point towards the cursor, as AutoCAD 2021 takes GRIDUNIT 5 |
 | answers a distance or an angle with no base point by two points | a point typed or picked asks `Specify second point:`, its rubber band from the first, and the distance between them, or the direction from the first to the second, is the answer, as AutoCAD 2021 takes them: POLARDIST 0,0 then 3,4 is 5, SNAPANG 0,0 then 1,1 is 45. `@dx,dy` at the second is measured from the first, the last point is left as it was, the prompt's keywords and point modifiers are taken there, Enter is the prompt's Enter, and text gets the prompt's refusal ("Requires numeric distance or two points.", "Requires valid numeric angle or two points.") and is asked again |
 | answers with a keyword | by its capital letters, as `U` for `Undo` in `[Close/Undo]` |
-| selects first, then starts a command | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR and EXPLODE take the selection made before them, and ask "Select objects:" where there is none |
+| selects first, then starts a command | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, MIRROR3D and EXPLODE take the selection made before them, and ask "Select objects:" where there is none |
 | answers "Select objects:" | by a click, a window, a crossing, a lasso, or one of AutoCAD 2021's options typed (below); Shift held takes out what a click, a box or a lasso picks |
 | presses Esc | ends the command; what a LINE drew stays, as in AutoCAD, and what a MOVE had not yet done is not done |
 
@@ -198,6 +198,18 @@ line at 60). The direction of the pattern of a context is reflected either way. 
 turn, so a turn of 360 degrees touches nothing and the line of a pattern that stood at 30 degrees, turned -30, is written at 360.
 -OBJECTSCALE Add on a hatch writes its view context from its default context as it stands.
 
+MIRROR3D mirrors the objects across a plane, as AutoCAD 2021 asks it: `Specify first point of mirror plane (3 points) or
+[Object/Last/Zaxis/View/XY/YZ/ZX/3points] <3points>:`, a point being the first of three, Enter asking for it, and then
+`Delete source objects? [Yes/No] <N>:`. Three points of a plan have no Z and lie in the XY plane ("The three points are
+collinear." and "The 1st and 2nd point coincide." ask the point again). Object takes the plane of a circle, an arc or a 2D
+polyline ("Improper type of object picked." for any other object); Last the plane of the last MIRROR3D, the XY plane through
+the origin where there was none; Zaxis a point on the plane and one on its normal ("The two points coincide."); View a point
+on the plane parallel to the view, the XY plane in a plan, `<0,0,0>` by default; XY, YZ and ZX a point on the plane parallel
+to that plane of the UCS, `<0,0,0>` by default. Each object moves as its `TransformBy` mirrors it (a line across the XY plane
+keeps its points and takes the normal (0, 0, -1), a line from (0, 0) to (0, 50) across the YZ plane through (40, 0) runs from
+(80, 0) to (80, 50)), and a hatch follows MIRRHATCH, as it does under MIRROR. The mirror image replaces the source where Yes
+is answered, as MIRROR's does.
+
 At MIRRTEXT 1 an MTEXT along x mirrored across a level line is of normal (0, 0, -1) and is written with no direction
 (group 11), as AutoCAD writes it: a record of no direction reads along the world's x axis put into its plane, here
 (1, 0, 0) turned 180 degrees. A multileader's sizes, the height of its words, its arrows and its landing gap, are kept to
@@ -218,7 +230,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | Group | Commands |
 |---|---|
 | view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, -PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, VPCLIP (Polygonal, Delete), VPMAX, VPMIN, SCALELISTEDIT, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window), REDRAW, REDRAWALL, REGENALL, ISOLATEOBJECTS, HIDEOBJECTS, UNISOLATEOBJECTS, VPORTS, -VPORTS (Save, Restore, Delete, Join, SIngle, ?, 2, 3, 4, Toggle) |
-| edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
+| edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, MIRROR3D (Object, Last, Zaxis, View, XY, YZ, ZX, 3points), EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
 | draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT and -MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT and -LAYOUT (Copy, Delete, New, Template, Rename, SAveas, Set, ?), DIVIDE (Block), MEASURE (Block) |
 | shapes and hatching | SOLID, REGION, HATCH, HATCHSETORIGIN, -HATCH (Properties, Select objects, draW boundary, remove Boundaries, Advanced: Boundary set, Retain boundary, Island detection, Style, Associativity, Gap tolerance, separate Hatches; DRaw order, Origin, ANnotative, hatch COlor, LAyer, Transparency, Undo), GRADIENT, HATCHEDIT, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Fit data: Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance; Close, Open, Join, Move vertex, Refine: Add, Delete, Elevate order, Move, Weight; rEverse, convert to Polyline, Undo), CLASSICINSERT |
 | multilines | MLINE (Justification, Scale, STyle; Close, Undo), MLEDIT (CC, OC, MC, CT, OT, MT, CJ, AV, DV, CS, CA, WA; Undo), MLSTYLE (?, Current, New, Modify, Rename, Delete, Load, Save), and the variables CMLJUST, CMLSCALE and CMLSTYLE (see [Multilines](#multilines)) |

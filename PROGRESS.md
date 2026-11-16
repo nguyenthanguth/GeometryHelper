@@ -461,7 +461,7 @@ User note 2026-11-12 evening (note.md 1-14):
 User note 2026-11-12 (basic features first, advanced later):
 - [x] Grips: a polyline's midpoint grip drawn as AutoCAD's short bar, not a square; hovering a vertex grip offers Stretch Vertex / Add Vertex / Remove Vertex, a midpoint grip Stretch / Add Vertex / Convert to Arc; Grip size (GRIPSIZE) under Pickbox size in Global settings > Appearance > Cursor (design first) (M)
 - [x] Grips follow-ups: MTEXT triangle and table grips sized from GRIPSIZE like the squares (look on screen at g 5) and their hover pink; Remove Vertex next to an arc and Add Vertex on an arc checked in AutoCAD; Undo inside Add Vertex; a clicked polyline vertex saying ** STRETCH VERTEX **; later: 2D POLYLINE, LINE/ARC/SPLINE/HATCH/dimension menus, Ctrl cycling (S)
-- [ ] Grips follow-ups 2: Add Vertex options and the MTEXT triangle size checked in the GUI against AutoCAD; Convert to Line as a pick prompt as AutoCAD's string says (check the GUI); later: 2D POLYLINE, LINE/ARC/SPLINE/HATCH/dimension menus, Ctrl cycling (S)
+- [ ] (grips3, running) Grips follow-ups 2: Add Vertex options and the MTEXT triangle size checked in the GUI against AutoCAD; Convert to Line as a pick prompt as AutoCAD's string says (check the GUI); later: 2D POLYLINE, LINE/ARC/SPLINE/HATCH/dimension menus, Ctrl cycling (S)
 - [x] Ctrl+1 toggles PROPERTIES (open closes, closed opens); DRAWINGS gets Ctrl+2 by default and toggles the same way (S)
 - [x] Progress meter on the status bar for open/save, callable by commands and plugins (CadProgress, design v128) (M)
 
@@ -487,9 +487,13 @@ the ones wanted.
 - [x] MIRROR follow-ups 6 (mirror6): a hatch MIRROR keeps its normal, the loops (bulges, arcs, ellipses, splines)
       reflected in its plane, and MIRRHATCH 0/1 as AutoCAD; ROTATE normalises its angle (53 written 360 as AutoCAD);
       -OBJECTSCALE Add writes the view context; gradient angle 460 left alone; 1 200 of 1 239 oracle cases equal
-- [ ] (mirror7, running) MIRROR follow-ups 7: an annotative hatch's context direction under TransformBy turns about an axis other than z
-      (39 of 1 239 cases; no command reaches them; 3 attempts, no rule found); the library's TransformBy reflects the
-      pattern (MIRRHATCH 1 form) where AutoCAD's follows MIRRHATCH (default 0); MIRROR3D not in the presenter (S)
+- [x] MIRROR follow-ups 7 (mirror7): DxfHatch.TransformBy keeps the pattern lines by default as AutoCAD's MIRRHATCH 0
+      (TransformBy(t, true) reflects them); an annotative hatch's context direction kept where the transformation takes
+      the hatch's own axes straight across (463 of 463 probed pairs); MIRROR3D with AutoCAD's options and words
+- [ ] MIRROR follow-ups 8: the normal of a mirrored CIRCLE, ARC, LWPOLYLINE, TEXT and SOLID (AutoCAD keeps the image of
+      the normal, the library turns it over; a text mirrored across its own plane moves its insertion in AutoCAD); a
+      mirror that also scales leaves a hatch's pattern scale in AutoCAD; group 52 of -150 vs 210; MakeEntityAnnotative
+      on a hatch of a non-z normal writes the direction in plane coordinates; Z in the presenter for MIRROR3D's points (S)
 - [x] Drafting aids: TK (TRACKING); check TT with OTRACK off, "(need YZ):" input and Enter at a modifier prompt
       against AutoCAD (S)
 - [x] Draw: AUDIT a drawing made with every ARC, CIRCLE, PLINE, TEXT and MTEXT option, and compare ARC and PLINE entity

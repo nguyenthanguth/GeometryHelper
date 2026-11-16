@@ -30,6 +30,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("ROTATE", Rotate, true));
             registry.Add(new CadCommand("SCALE", Scale, true));
             registry.Add(new CadCommand("MIRROR", Mirror, true));
+            registry.Add(new CadCommand("MIRROR3D", Mirror3D, true));
             registry.Add(new CadCommand("EXPLODE", Explode, true));
             registry.Add(new CadCommand("MATCHPROP", MatchProperties));
             registry.Add(new CadCommand("LAYER", Layer));
