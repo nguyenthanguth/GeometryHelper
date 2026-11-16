@@ -162,7 +162,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// Sets the view a viewport shows of model space, as <see cref="SetViewportView(string, GeoPoint2, double, string)"/>; a
         /// real-time zoom or pan, the wheel's or the middle button's, made straight after another joins its undo step, as
         /// AutoCAD 2021 combines consecutive real-time zooms and pans (UNDO Control Combine, on by default: UNDOCTL 61 has
-        /// its 16). ZOOM and PAN typed stay a step each, as AutoCAD's console undoes ZOOM 2X, ZOOM 2X and -PAN one U each.
+        /// its 16; with UNDO Control Combine No each is a step of its own). ZOOM and PAN typed stay a step each, as AutoCAD's console undoes ZOOM 2X, ZOOM 2X and -PAN one U each.
         /// </summary>
         /// <param name="handle">The handle of the viewport.</param>
         /// <param name="viewCenter">The view's centre, as the viewport keeps it.</param>
@@ -195,7 +195,7 @@ namespace GeometryHelper.Dxf.Viewer
             var was = (DxfViewport)FindEntity(handle);
             GeoPoint2 wasCenter = was.ViewCenter;
             double wasHeight = was.ViewHeight;
-            _realTime = realTime;
+            _realTime = realTime && UndoCombine;
 
             try
             {

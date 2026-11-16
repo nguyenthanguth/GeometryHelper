@@ -130,6 +130,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             string rich = RichText();
             var failures = new List<string>();
             int steps = 0;
+            int limited = 0;
             var outcomes = new SortedDictionary<string, int>(StringComparer.Ordinal);
 
             for (int seed = 0; seed < 2000; seed++)
@@ -192,8 +193,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 }
 
                 steps += undone;
+                limited += document.UndoControl == CadUndoControl.None || document.UndoLimit > 0 ? 1 : 0;
 
-                if (!string.Equals(start, document.Database.ToText(), StringComparison.Ordinal))
+                // A sequence that turned UNDO Control to None or One dropped the steps before it: they cannot be undone.
+                if (
+                    document.UndoControl != CadUndoControl.None
+                    && document.UndoLimit == 0
+                    && !string.Equals(start, document.Database.ToText(), StringComparison.Ordinal)
+                )
                 {
                     failures.Add("seed " + seed + ": undoing " + undone + " steps did not give the start back.");
                 }
@@ -201,7 +208,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             _output.WriteLine(
                 steps
-                    + " undo steps made and undone; commands "
+                    + " undo steps made and undone, "
+                    + limited
+                    + " sequences turned the undo list of UNDO Control off; commands "
                     + string.Join(", ", outcomes.Select(p => p.Key + " " + p.Value))
             );
             Assert.Empty(failures);

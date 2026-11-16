@@ -124,8 +124,11 @@ namespace GeometryHelper.Dxf.Viewer
             || (_groupRecords != null && _groupRecords.Count > 0)
             || (_ucs != null && _ucs.IsModified);
 
-        /// <summary>Gets whether there is a step to undo; false while a command's group of edits is open.</summary>
-        public bool CanUndo => _position > UndoFloor && _groupDepth == 0;
+        /// <summary>
+        /// Gets whether there is a step to undo; false while a command's group of edits is open, and while UNDO Control None has
+        /// the undo list turned off.
+        /// </summary>
+        public bool CanUndo => _position > UndoFloor && _groupDepth == 0 && _undoControl != CadUndoControl.None;
 
         /// <summary>Gets whether there is a step to redo; false while a command's group of edits is open.</summary>
         public bool CanRedo => _position < _steps.Count && _groupDepth == 0;
@@ -746,16 +749,8 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            // A step that joins the one before it (F7 pressed after a LINE) is taken back with it, as AutoCAD's U takes both.
-            var undone = new List<CadUndoStep> { _steps[_position - 1] };
-            _position--;
-
-            while (undone[undone.Count - 1].JoinsPrevious && _position > UndoFloor)
-            {
-                undone.Add(_steps[_position - 1]);
-                _position--;
-            }
-
+            List<CadUndoStep> undone = StepsToUndo(out int position);
+            _position = position;
             _realTimeStep = null;
             _realTimeViewStep = null;
             IReadOnlyList<CadEditRecord> records = RecordsOf(undone);
@@ -773,15 +768,8 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            var redone = new List<CadUndoStep> { _steps[_position] };
-            _position++;
-
-            while (_position < _steps.Count && _steps[_position].JoinsPrevious)
-            {
-                redone.Add(_steps[_position]);
-                _position++;
-            }
-
+            List<CadUndoStep> redone = StepsToRedo(out int position);
+            _position = position;
             _realTimeStep = null;
             _realTimeViewStep = null;
             IReadOnlyList<CadEditRecord> records = RecordsOf(redone);
@@ -1116,12 +1104,16 @@ namespace GeometryHelper.Dxf.Viewer
                 && _position == _steps.Count
                 && _savedPosition != _position
                 && ReferenceEquals(_steps[_position - 1], _realTimeStep)
+                && _realTimeStep.GroupId == _undoGroup
             )
             {
                 CadUndoStep before = _steps[_position - 1];
                 var joined = new List<CadEditRecord>(before.Records);
                 joined.AddRange(records);
-                _realTimeStep = _steps[_position - 1] = new CadUndoStep(before.Name, joined.ToArray());
+                _realTimeStep = _steps[_position - 1] = new CadUndoStep(before.Name, joined.ToArray())
+                {
+                    GroupId = before.GroupId,
+                };
                 _states[_position] = Keep();
                 ReadAround();
                 return;
@@ -1129,11 +1121,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             ForgetRedo();
 
-            var step = new CadUndoStep(name, records.ToArray());
+            var step = new CadUndoStep(name, records.ToArray()) { GroupId = _undoGroup };
             TieLayerSets(step);
             _steps.Add(step);
             _states.Add(Keep());
             _position++;
+            LimitUndo();
             _realTimeStep = _realTime ? step : null;
             _realTimeViewStep = null;
             ReadAround();
@@ -1167,23 +1160,31 @@ namespace GeometryHelper.Dxf.Viewer
                 && _position == _steps.Count
                 && _savedPosition != _position
                 && ReferenceEquals(_steps[_position - 1], _realTimeViewStep)
+                && _realTimeViewStep.GroupId == _undoGroup
             )
             {
                 CadUndoStep before = _steps[_position - 1];
                 _realTimeViewStep = _steps[_position - 1] = new CadUndoStep(
                     before.Name,
                     JoinViews(before.Records, records)
-                );
+                )
+                {
+                    GroupId = before.GroupId,
+                };
                 return;
             }
 
             ForgetRedo();
 
             bool joins = joinsPrevious && _position > UndoFloor;
-            var step = new CadUndoStep(joins ? _steps[_position - 1].Name : name, records.ToArray(), joins);
+            var step = new CadUndoStep(joins ? _steps[_position - 1].Name : name, records.ToArray(), joins)
+            {
+                GroupId = _undoGroup,
+            };
             _steps.Add(step);
             _states.Add(_states[_position]);
             _position++;
+            LimitUndo();
             _realTimeStep = null;
             _realTimeViewStep = _realTimeView ? step : null;
             ReadAround();

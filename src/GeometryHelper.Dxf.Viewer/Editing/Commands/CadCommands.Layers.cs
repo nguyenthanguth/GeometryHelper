@@ -18,8 +18,22 @@ namespace GeometryHelper.Dxf.Viewer
 
         // The settings of LAYOFF and LAYFRZ, kept for the session as AutoCAD keeps them for each: how an object in a paper space
         // viewport is treated (0 Vpfreeze, 1 Off at LAYOFF and Freeze at LAYFRZ, which says Off for both) and how deep a pick in
-        // a block goes (0 Block, 1 Entity, 2 None). The picks themselves still take the layer of the object picked.
+        // a block goes (0 Block, 1 Entity, 2 None). A pick takes the layer of the object by them (LayerPicked).
         private static readonly string[] BlockNesting = { "Block", "Entity", "None" };
+
+        /// <summary>A layer LAYOFF or LAYFRZ changed, with the viewport it was frozen in where it was frozen in one alone, for U.</summary>
+        private sealed class LayerChanged
+        {
+            public LayerChanged(string name, string viewport)
+            {
+                Name = name;
+                Viewport = viewport;
+            }
+
+            public string Name { get; }
+
+            public string Viewport { get; }
+        }
 
         /// <summary>"Current settings: Viewports=Vpfreeze, Block nesting level=Block", written by LAYOFF and LAYFRZ before they ask.</summary>
         private static void WriteLayerSettings(CadCommandContext c, string key)
@@ -74,7 +88,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static IEnumerable<CadPrompt> LayerOff(CadCommandContext c)
         {
-            var done = new List<string>();
+            var done = new List<LayerChanged>();
             WriteLayerSettings(c, "layoff");
             c.OpenUndoStep();
 
@@ -101,17 +115,24 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                string name = LayerOf(c);
+                string name = LayerOf(c, "layoff");
 
                 if (name == null)
                 {
                     yield break;
                 }
 
+                // In a viewport worked through, Viewports=Vpfreeze freezes the layer in that viewport alone.
+                DxfViewport viewport = ViewportToFreezeIn(c, "layoff");
+
                 if (string.Equals(name, c.Database.Clayer, StringComparison.OrdinalIgnoreCase))
                 {
                     yield return CadPrompt.ForKeyword(
-                        "Layer \"" + name + "\" is the current layer, do you want to turn it off?",
+                        "Layer \""
+                            + name
+                            + "\" is current, do you want to "
+                            + (viewport != null ? "Vpfreeze it" : "turn it off")
+                            + "?",
                         new[] { "Yes", "No" },
                         "No"
                     );
@@ -122,13 +143,19 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
 
+                if (viewport != null)
+                {
+                    FreezeInViewport(c, done, viewport, name, "LAYOFF");
+                    continue;
+                }
+
                 ChangeLayer(c, done, name, CadLayerEditor.SetOn(c.Document, name, false), "turned off");
             }
         }
 
         private static IEnumerable<CadPrompt> LayerFreeze(CadCommandContext c)
         {
-            var done = new List<string>();
+            var done = new List<LayerChanged>();
             WriteLayerSettings(c, "layfrz");
             c.OpenUndoStep();
 
@@ -155,14 +182,79 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                string name = LayerOf(c);
+                string name = LayerOf(c, "layfrz");
 
                 if (name == null)
                 {
                     yield break;
                 }
 
+                DxfViewport viewport = ViewportToFreezeIn(c, "layfrz");
+                bool current = string.Equals(name, c.Database.Clayer, StringComparison.OrdinalIgnoreCase);
+
+                if (current && viewport != null)
+                {
+                    yield return CadPrompt.ForKeyword(
+                        "Layer \"" + name + "\" is current, do you want to Vpfreeze it?",
+                        new[] { "Yes", "No" },
+                        "No"
+                    );
+
+                    if (!c.Input.Is("Yes"))
+                    {
+                        continue;
+                    }
+                }
+                else if (current)
+                {
+                    // LAYFRZ words it with one space after the full stop, where -LAYER and the Layer manager have two.
+                    c.Write("Cannot freeze layer \"" + name + "\". It is the CURRENT layer.");
+                    continue;
+                }
+
+                if (viewport != null)
+                {
+                    FreezeInViewport(c, done, viewport, name, "LAYFRZ");
+                    continue;
+                }
+
                 ChangeLayer(c, done, name, CadLayerEditor.SetFrozen(c.Document, name, true), "frozen");
+            }
+        }
+
+        /// <summary>
+        /// The viewport LAYOFF or LAYFRZ freezes a layer in: the one worked through, where its Viewports setting is Vpfreeze, as
+        /// AutoCAD 2021 does for an object picked in a paper space viewport; null where the layer is turned off or frozen
+        /// everywhere, with the setting at Off or Freeze, in model space, and on the paper of a layout.
+        /// </summary>
+        private static DxfViewport ViewportToFreezeIn(CadCommandContext c, string key) =>
+            c.Remembered(key + ".viewports", 0.0) > 0.5 ? null : c.Document.ActiveViewport;
+
+        /// <summary>Freezes the layer in a viewport as LAYOFF and LAYFRZ with Vpfreeze do: "Layer "WALLS" has been frozen in this viewport."</summary>
+        private static void FreezeInViewport(
+            CadCommandContext c,
+            List<LayerChanged> done,
+            DxfViewport viewport,
+            string name,
+            string command
+        )
+        {
+            CadEditResult result = CadViewportLayerEditor.SetFrozen(
+                c.Document,
+                new[] { viewport.Handle },
+                new[] { name },
+                true,
+                command
+            );
+
+            if (result.Succeeded)
+            {
+                done.Add(new LayerChanged(name, viewport.Handle));
+                c.Write("Layer \"" + name + "\" has been frozen in this viewport.");
+            }
+            else
+            {
+                c.Write(result.Message);
             }
         }
 
@@ -196,7 +288,7 @@ namespace GeometryHelper.Dxf.Viewer
                 c.OpenUndoStep();
                 ChangeLayer(
                     c,
-                    new List<string>(),
+                    new List<LayerChanged>(),
                     name,
                     CadLayerEditor.SetLocked(c.Document, name, locked),
                     locked ? "locked" : "unlocked"
@@ -347,11 +439,27 @@ namespace GeometryHelper.Dxf.Viewer
             c.Document.LayerPreviousMode = c.Input.Is("ON");
         }
 
-        /// <summary>The layer of the object the last prompt picked, by its name in the table; null where none was picked.</summary>
-        private static string LayerOf(CadCommandContext c)
+        /// <summary>
+        /// The layer of the object the last prompt picked, by its name in the table; null where none was picked. Given the key of
+        /// LAYOFF or LAYFRZ, a pick on a block reference takes the layer by their Block selection setting, as AutoCAD 2021 does
+        /// (<see cref="CadDocument.FindNestedPick"/>): Block the reference the object picked is in, the innermost, Entity the
+        /// object itself, None the reference picked.
+        /// </summary>
+        private static string LayerOf(CadCommandContext c, string key = null)
         {
             DxfEntity entity =
                 c.Input.Kind == CadInputKind.Selection ? c.Document.FindEntity(c.Input.Handles[0]) : null;
+
+            if (key != null && entity is DxfBlockReference top && c.Input.IsPickedAt)
+            {
+                int nesting = (int)c.Remembered(key + ".block", 0.0);
+
+                if (nesting != 2)
+                {
+                    entity = CadDocument.FindNestedPick(top, c.Input.Point, c.Session.PickAperture, nesting == 1);
+                }
+            }
+
             return entity == null || !c.Database.LayerTable.Has(entity.Layer)
                 ? null
                 : c.Database.LayerTable[entity.Layer].Name;
@@ -359,7 +467,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static void ChangeLayer(
             CadCommandContext c,
-            List<string> done,
+            List<LayerChanged> done,
             string name,
             CadEditResult result,
             string what
@@ -367,7 +475,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (result.Succeeded)
             {
-                done.Add(name);
+                done.Add(new LayerChanged(name, null));
                 c.Write("Layer \"" + name + "\" has been " + what + ".");
             }
             else
@@ -376,7 +484,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private static void UndoLayer(CadCommandContext c, List<string> done, Func<string, CadEditResult> back)
+        private static void UndoLayer(CadCommandContext c, List<LayerChanged> done, Func<string, CadEditResult> back)
         {
             if (done.Count == 0)
             {
@@ -384,7 +492,23 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            back(done[done.Count - 1]);
+            LayerChanged last = done[done.Count - 1];
+
+            if (last.Viewport != null)
+            {
+                CadViewportLayerEditor.SetFrozen(
+                    c.Document,
+                    new[] { last.Viewport },
+                    new[] { last.Name },
+                    false,
+                    c.Command.Name
+                );
+            }
+            else
+            {
+                back(last.Name);
+            }
+
             done.RemoveAt(done.Count - 1);
         }
 

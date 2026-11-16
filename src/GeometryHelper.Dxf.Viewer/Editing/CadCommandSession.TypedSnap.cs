@@ -143,6 +143,50 @@ namespace GeometryHelper.Dxf.Viewer
             return TypedSnapResult.Missing;
         }
 
+        /// <summary>Gets whether " and" is asked: INT or APP found one object and waits for a point on the second.</summary>
+        internal bool IsAskingSecondObject =>
+            _modifiers.Count > 0 && _modifiers[_modifiers.Count - 1].Kind == ModifierKind.Intersect;
+
+        /// <summary>
+        /// A point clicked while INTersection or APParent is the override, as AutoCAD 2021 takes a click: over one object alone
+        /// it asks " and" for the second, as it does for a point typed (<see cref="SnapOverride"/>), written after the prompt
+        /// the click answered; over two or none it asks nothing, the canvas's snap giving the crossing or the point.
+        /// </summary>
+        /// <param name="point">The point clicked, in the drawing.</param>
+        /// <param name="aperture">The aperture of the object snap in drawing units, 10 pixels over the zoom.</param>
+        /// <returns>Whether " and" is asked.</returns>
+        internal bool ClickFirstObject(GeoPoint2 point, double aperture)
+        {
+            CadSnapModes? modes = SnapOverride;
+
+            if (
+                Prompt == null
+                || !(modes == CadSnapModes.Intersection || modes == CadSnapModes.ApparentIntersection)
+                || IsAskingSecondObject
+            )
+            {
+                return false;
+            }
+
+            SnapAperture = aperture;
+            IReadOnlyList<string> near = Document
+                .GetPickIndex(Document.WorkingSpace)
+                .Pick(point.X, point.Y, Math.Max(aperture, 1E-9));
+
+            if (near.Count != 1)
+            {
+                return false;
+            }
+
+            SnapOverride = null;
+            AskSecondObject(
+                modes == CadSnapModes.Intersection ? CadSnapKind.Intersection : CadSnapKind.ApparentIntersection,
+                near[0],
+                Prompt.Text
+            );
+            return true;
+        }
+
         /// <summary>Keeps a snap point where it lies nearer the point typed than the one kept; the first of two as near stays.</summary>
         private static void Consider(GeoPoint2? found, GeoPoint2 point, ref GeoPoint2? best, ref double nearest)
         {

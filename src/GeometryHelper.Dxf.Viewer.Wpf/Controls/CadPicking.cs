@@ -191,6 +191,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 if (WantsPoint(session))
                 {
+                    // " and" asks for a point on the second object, which is picked as it is: no snap marker touches it.
+                    if (session.IsAskingSecondObject)
+                    {
+                        return session.Feed(cursor, false, control);
+                    }
+
+                    // INT or APP as the override, clicked over one object, asks " and" for the second, as typed.
+                    if (session.ClickFirstObject(cursor, aperture))
+                    {
+                        return true;
+                    }
+
                     CadSnapResult snapped = Snap(document, space, snap, cursor, aperture, session.Prompt.BasePoint);
 
                     // A click on the object an Extended Apparent Intersection offers picks it as the first of two, and takes no point.
@@ -215,6 +227,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 // picked at, as AutoCAD 2021 picks at the point the snap finds; where it finds none the click is the point.
                 if (snap != null && snap.Override.HasValue)
                 {
+                    if (session.ClickFirstObject(cursor, aperture))
+                    {
+                        return true;
+                    }
+
                     CadSnapResult snapped = Snap(document, space, snap, cursor, aperture, null);
 
                     if (snapped != null && snapped.Kind != CadSnapKind.None)

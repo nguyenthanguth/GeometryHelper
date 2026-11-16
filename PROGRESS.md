@@ -516,9 +516,13 @@ the ones wanted.
       typed (" and" for one object), EXT/PAR/GCE as AutoCAD; "to" for PER/NEA/TAN/PAR; BREAK "No object found", layer
       commands "Nothing Selected." with LAYOFF/LAYFRZ [Settings/Undo]; "W 1" from the last point; ARRAYRECT/POLAR
       Levels and Total as AutoCAD 2021
-- [ ] (aids6, running) Aids-vars follow-ups 5: INT/APP clicked over one object (" and" on the canvas); the layer Settings changing picks
-      inside blocks and viewports; UNDO Auto, Control, BEgin, End; a window dragged while an override waits; NEA's
-      pixel-rounded point at the aperture edge; END typed at " and" (AutoCAD refuses) (S)
+- [x] Aids-vars follow-ups 5 (aids6): UNDO Auto, Control (All/None/One), BEgin/End groups, Combine and Layer as AutoCAD
+      2021; LAYOFF/LAYFRZ Settings pick nested objects by Block/Entity/None and Vpfreeze a viewport worked through; INT
+      and APP clicked over one object ask " and"; snaps refused at " and"; a dragged box with an override snaps its
+      first corner
+- [ ] Aids-vars follow-ups 6: REDO as AutoCAD (only right after U/UNDO, redoing the whole undo); UNDO Layer combining
+      the layer dialog's operations; LAYOFF/LAYFRZ settings kept between sessions; objects inside external references
+      for the layer commands; the nested-object finder by geometry, not the smallest box; TK/M2P at " and" (S)
 - [x] MLEADERSCALE, CMLEADERSTYLE, LEADER and QLEADER (command line) as AutoCAD 2021
 - [x] QLEADER Leader Settings (AcadDim xrecord, DIMLDRBLK) and the Polar tab's additional angles, tracking and measurement, with the polar tooltip
 - [x] Leader follow-ups: every differing DIM* override in group order, DIMCLRT, hook along the UCS, INSERT copied and reused, LEADER/QLEADER previews, arrow pictures and User Arrow...
@@ -1014,7 +1018,7 @@ the ones wanted.
       double.Parse kept by a margin), a handle set made once, hot decoders compiled optimised at once: a 300 000-entity
       DWG first open 1.28 -> 0.65 s (net8), 1.35 -> 0.88 s (net48); DXF text identical on 1 278 files, 3 runtimes,
       1/8/auto threads. DECIDED: parallel decode and AggressiveOptimization kept (fuzzed, documented)
-- [ ] Speed follow-ups 19: the DXF write phase (WriteBlocks ~145 ms warm, ~480 ms cold: chunked rendering in order);
+- [ ] (speed20, running) Speed follow-ups 19: the DXF write phase (WriteBlocks ~145 ms warm, ~480 ms cold: chunked rendering in order);
       workstation GC pauses from 300 000 DwgObject graphs; the DXF parse (~0.1 s); the full GC from Take's copy of an
       over-sized buffer; DwgJit.Hot for dimension, hatch and spline decoders; MTEXT/INSERT contexts tuples; LinkedColumns;
       REGEN's text group walk (S)
