@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Dwg
@@ -139,7 +140,21 @@ namespace GeometryHelper.Dwg
         /// <paramref name="progress"/> as a share from 0 to 1, in thousandths, never going back, and 1 once opened: the DWG
         /// made into its DXF to 0.9, that DXF read to 1.
         /// </summary>
-        internal static DxfDatabase Open(string path, DxfReadOptions options, IProgress<double> progress)
+        internal static DxfDatabase Open(string path, DxfReadOptions options, IProgress<double> progress) =>
+            Open(path, options, progress, CancellationToken.None);
+
+        /// <summary>
+        /// Opens a DWG file as <see cref="Open(string, DxfReadOptions, IProgress{double})"/> does, giving it up when a token
+        /// says so: the token is looked at as the file's pages are unpacked, as its objects are read and written as DXF, and
+        /// as the walk over that DXF goes, so that a stop is answered in milliseconds and not at the end of the reading.
+        /// </summary>
+        /// <exception cref="OperationCanceledException">Thrown when the token is stopped before the file is read.</exception>
+        internal static DxfDatabase Open(
+            string path,
+            DxfReadOptions options,
+            IProgress<double> progress,
+            CancellationToken stop
+        )
         {
             if (path == null)
             {
@@ -148,16 +163,12 @@ namespace GeometryHelper.Dwg
 
             ProgressSteps steps = ProgressSteps.Of(progress);
             steps?.Within(0.0, 0.9);
-            byte[] dxf = ToDxf(File.ReadAllBytes(path), options?.SupportFolders, steps);
+            byte[] dxf = ToDxf(File.ReadAllBytes(path), options?.SupportFolders, steps, stop);
             steps?.Within(0.9, 1.0);
             steps?.Stage(0.0, 1.0);
-            DxfDatabase database;
 
-            using (var stream = new MemoryStream(dxf, false))
-            {
-                database = DxfDatabase.Open(stream);
-            }
-
+            // The bytes are the DXF's own from here, made for it alone: no copy of them is made to read them.
+            DxfDatabase database = DxfDatabase.Open(dxf, dxf.Length, stop);
             steps?.Done();
             return database;
         }
@@ -166,16 +177,22 @@ namespace GeometryHelper.Dwg
         /// The DXF that says what the DWG in <paramref name="file"/> says, as the bytes of a text DXF file in the drawing's
         /// code page; the files of shapes are looked for in <paramref name="supportFolders"/>.
         /// </summary>
-        internal static byte[] ToDxf(byte[] file, IList<string> supportFolders = null, ProgressSteps progress = null)
+        internal static byte[] ToDxf(
+            byte[] file,
+            IList<string> supportFolders = null,
+            ProgressSteps progress = null,
+            CancellationToken stop = default
+        )
         {
             try
             {
-                return DwgTranscoder.ToDxf(file, supportFolders, progress);
+                return DwgTranscoder.ToDxf(file, supportFolders, progress, stop);
             }
             catch (Exception fault)
                 when (!(fault is FormatException)
                     && !(fault is NotSupportedException)
                     && !(fault is OutOfMemoryException)
+                    && !(fault is OperationCanceledException)
                 )
             {
                 // The decoders check what they read, and this is the net under them: whatever broken data still leads

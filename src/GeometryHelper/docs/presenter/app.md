@@ -114,7 +114,10 @@ the drawing before `Open` returns, as before.
 Esc and Stop are answered within a few milliseconds, whatever the opening is doing. `CadDocument.Open(path, progress,
 cancellationToken)` looks at its token every 4 096 records as the text of a DXF is walked, its handles scanned and its
 entities of model space listed, and the display is looked at every 4 096 entities from the list of them on; a DWG is looked
-at once before it is read and not again until its display is made. On a DXF of 1 000 000 entities (77 MB) the time from Esc
+at before each page of it is unpacked, before each object is read, before each entity and object is written as DXF and every
+4 096 records as that DXF is walked, so that it is stopped as a DXF is (it was looked at once before it was read and not again
+until its display was made: a DWG of 300 000 entities, 1.6 s to read, stopped 100, 400 and 1 000 ms in answered 1 351, 1 180 and 545 ms late,
+and answers 1 ms late now, 31 ms at the very end). On a DXF of 1 000 000 entities (77 MB) the time from Esc
 to the window free, asked at 20 to 2 000 ms into the opening, was up to 0.74 s, and 0.4 to 0.5 s while the file was read,
 and is 59 ms at most now. Opened and drawn to the end, the drawing takes the time it took (open and display 5.3 to 5.6 s, 8.2 to 8.6 s under .NET
 Framework 4.8), and the display list is the one it was, item for item.

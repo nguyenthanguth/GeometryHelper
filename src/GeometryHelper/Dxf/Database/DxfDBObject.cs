@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using GeometryHelper.Export;
 using GeometryHelper.Geometry;
 
@@ -24,15 +25,34 @@ namespace GeometryHelper.Dxf
     public abstract partial class DxfDBObject
     {
         private DxfItem _item;
-        private List<DxfTypedValue> _pendingXData;
+
+        // The extended data set on an object that is in no file yet, which it is given when it is bound to a record: held here,
+        // and not in a field, for the few objects that have any (a table record made in code), where a field cost 8 bytes
+        // in each of the million entities a drawing of that size makes objects of.
+        private static readonly ConditionalWeakTable<DxfDBObject, List<DxfTypedValue>> PendingXData =
+            new ConditionalWeakTable<DxfDBObject, List<DxfTypedValue>>();
 
         /// <summary>An object made in code, given its record when it is added to a file.</summary>
         private protected DxfDBObject() { }
 
         /// <summary>An object of a record, the one that stands for it from now on.</summary>
         private protected DxfDBObject(DxfItem item)
+            : this(item, true) { }
+
+        /// <summary>
+        /// An object of a record, which stands for it from now on where <paramref name="bind"/> is true, and where it is
+        /// false is only read from it: the record does not hold it, so that the next object asked for it is another, as one
+        /// made for a read that keeps nothing of it, such as the display of a million LINEs.
+        /// </summary>
+        private protected DxfDBObject(DxfItem item, bool bind)
         {
-            Bind(item);
+            // An object made for a record has no extended data set before it, so none is looked for, as Bind looks.
+            _item = item;
+
+            if (bind)
+            {
+                item.KeepWrapper(this);
+            }
         }
 
         /// <summary>The record the object stands for: in its file, or in the file of its own an entity made in code is held in; null for a table record made in code.</summary>
@@ -44,16 +64,24 @@ namespace GeometryHelper.Dxf
         /// <summary>Whether the object is in a file to be saved, not one made in code and not yet added.</summary>
         internal bool IsResident => _item != null && !_item.File.IsDetached;
 
+        /// <summary>
+        /// Aims an object no record holds at another record, as <see cref="DxfEntity.Glance"/> reads one record after another
+        /// with the same object: from then on it reads that record. Not for an object a record holds or anything else holds.
+        /// </summary>
+        internal void Aim(DxfItem item)
+        {
+            _item = item;
+        }
+
         /// <summary>Makes the object stand for a record: one it was read from, or the one written when it was added to a file.</summary>
         internal void Bind(DxfItem item)
         {
             _item = item;
             item.KeepWrapper(this);
 
-            if (_pendingXData != null)
+            if (PendingXData.TryGetValue(this, out List<DxfTypedValue> data))
             {
-                List<DxfTypedValue> data = _pendingXData;
-                _pendingXData = null;
+                PendingXData.Remove(this);
                 XData = data;
             }
         }
@@ -800,7 +828,11 @@ namespace GeometryHelper.Dxf
             {
                 if (_item == null)
                 {
-                    return (_pendingXData ?? new List<DxfTypedValue>()).AsReadOnly();
+                    return (
+                        PendingXData.TryGetValue(this, out List<DxfTypedValue> pending)
+                            ? pending
+                            : new List<DxfTypedValue>()
+                    ).AsReadOnly();
                 }
 
                 return _item.File.XDataOf(_item);
@@ -862,7 +894,8 @@ namespace GeometryHelper.Dxf
                         );
                     }
 
-                    _pendingXData = groups;
+                    PendingXData.Remove(this);
+                    PendingXData.Add(this, groups);
                     return;
                 }
 

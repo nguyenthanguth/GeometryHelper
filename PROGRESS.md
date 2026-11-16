@@ -584,7 +584,7 @@ the ones wanted.
 - [x] PEDIT/REVCLOUD follow-ups 4 (pedit5): REVCLOUDGRIPS 1 gives a cloud AutoCAD's few grips (corners and side middles,
       a circle's five) and a drag redraws it at 1.1 x the mean chord (14 clouds to six decimals); Modify ends on a tiny
       first point (1.1825 arcs); TEXTALIGN (144 runs) and DIMBREAK Auto (96 runs) already matched AutoCAD
-- [ ] PEDIT/REVCLOUD follow-ups 5: MLEADERALIGN geometry (MLEADER hangs the console: build multileaders through the
+- [ ] (mleader2, running: MLEADERALIGN, the layer-off guard) PEDIT/REVCLOUD follow-ups 5: MLEADERALIGN geometry (MLEADER hangs the console: build multileaders through the
       .NET API in a plugin); DIMBREAK Manual/Remove and on multileaders; TEXTALIGN with a reference text; a plain
       polyline with 110-degree arcs, ellipse and Freehand clouds under REVCLOUDGRIPS; AutoCAD's grip order of a circle
       (centre, +x, -x, +y, -y); PEDIT spline counts PARKED (52 of 238); GUI-only: Freehand spacing, REFEDIT, TABLEEXPORT,
@@ -972,9 +972,13 @@ the ones wanted.
 - [x] Speed follow-ups 15 (speed16): a flat loop keeps no normals array, a two-vertex chain no 56-byte array, a TEXT
       style and INSERT block name one shared string: at 1M cold garbage 454 -> 404 MB, REGEN 276 -> 244 MB, kept heap 410
       -> 392 MB (net8); net48 cold 2.51 -> 2.36 s, REGEN 1.08 -> 0.97 s; lists, pixels and saved bytes identical
-- [ ] (speed17, running) Speed follow-ups 16: GeoPolylineArc3's per-edge normals array (open bulged polylines); DisplayPolyline2 at 80
-      bytes (four bools); DxfDBObject's _pendingXData field; space.Snapshot() copying 8 MB at 1M; DxfEntity wrappers
-      (36 MB: needs a non-binding construction path); REGEN's text group walk; a DWG read stopped mid-way (S)
+- [x] Speed follow-ups 16 (speed17): a DWG open stopped within 1 ms (was up to 1.35 s late: the token looked at per page
+      and per object); a display chain 80 -> 72 bytes (flags in the shared look); pending XData out of every object;
+      no 8 MB walk copy per display; no object kept per LINE/ARC/CIRCLE/LWPOLYLINE drawn; kept heap at 1M 391 -> 358 MB
+      (net8); lists, REGEN, saved bytes and pixels identical on 953 drawings
+- [ ] Speed follow-ups 17: DisplayArc2 (~100 bytes x 800 000); TEXT wrappers and contexts tuples (17 MB per 200 000);
+      DxfBlockTableRecord.Count/GetEnumerator/AllItems still copy 8 MB; LinkedColumns walks every record per display;
+      DWG object reading (~800 ms of 1.6 s for 300 000 entities); REGEN's text group walk (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)

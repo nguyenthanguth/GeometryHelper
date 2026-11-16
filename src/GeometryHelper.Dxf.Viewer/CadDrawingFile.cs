@@ -98,7 +98,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Reads a drawing file as <see cref="Open(string, IProgress{double})"/> does, a DXF given up when a token says so:
         /// its walk over the records looks at the token every 4 096 records, so that a stop is answered within a few
-        /// milliseconds even for a file of a million entities. A DWG is read as before, the token looked at once before it.
+        /// milliseconds even for a file of a million entities. A DWG is looked at before each page of it is unpacked, before
+        /// each object is read and before each entity and object is written as DXF, and then as that DXF is walked, so
+        /// that a stop is answered as fast as a DXF's, and not at the end of the reading.
         /// </summary>
         /// <exception cref="OperationCanceledException">Thrown when the token is stopped before the file is read.</exception>
         internal static DxfDatabase Open(string path, IProgress<double> progress, CancellationToken stop)
@@ -106,7 +108,7 @@ namespace GeometryHelper.Dxf.Viewer
             if (IsDwg(path))
             {
                 stop.ThrowIfCancellationRequested();
-                return DwgReader.Open(path, null, progress);
+                return DwgReader.Open(path, null, progress, stop);
             }
 
             progress?.Report(0.0);

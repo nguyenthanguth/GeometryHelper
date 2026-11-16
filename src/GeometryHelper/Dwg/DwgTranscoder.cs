@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using System.Threading;
 
 namespace GeometryHelper.Dwg
 {
@@ -76,6 +77,7 @@ namespace GeometryHelper.Dwg
         private readonly Dictionary<ulong, int[]> _viewportNumbers = new Dictionary<ulong, int[]>();
         private readonly DwgDxfWriter _dxf = new DwgDxfWriter();
         private readonly ProgressSteps _progress;
+        private readonly CancellationToken _stop;
         private readonly bool _doubleByte;
         private readonly int _version;
 
@@ -91,10 +93,11 @@ namespace GeometryHelper.Dwg
             Dictionary<int, string>
         >(StringComparer.OrdinalIgnoreCase);
 
-        private DwgTranscoder(DwgContainer container, ProgressSteps progress)
+        private DwgTranscoder(DwgContainer container, ProgressSteps progress, CancellationToken stop)
         {
             _container = container;
             _progress = progress;
+            _stop = stop;
             _version = DwgContainer.NumberOf(_container.Version);
             _header = DwgHeaderVariables.Read(_container);
             _classes = DwgClass.ReadAll(_container.Classes, _container.Version);
@@ -136,6 +139,7 @@ namespace GeometryHelper.Dwg
 
             foreach (KeyValuePair<ulong, long> entry in _container.ObjectMap)
             {
+                _stop.ThrowIfCancellationRequested();
                 progress?.Report(read++, _container.ObjectMap.Count);
 
                 try
@@ -190,25 +194,33 @@ namespace GeometryHelper.Dwg
         /// <remarks>
         /// The files of shapes are looked for in <paramref name="supportFolders"/>, in their order. How far it has got is
         /// told to <paramref name="progress"/> (null for none): its parts unpacked to 0.05, its objects read to 0.6, and the
-        /// DXF of them written to 1.
+        /// DXF of them written to 1. A token that is stopped is looked at before each page of a section is unpacked, before
+        /// each object is read and before each entity and object is written, and ends the work with an
+        /// <see cref="OperationCanceledException"/>.
         /// </remarks>
-        public static byte[] ToDxf(byte[] file, IList<string> supportFolders = null, ProgressSteps progress = null)
+        public static byte[] ToDxf(
+            byte[] file,
+            IList<string> supportFolders = null,
+            ProgressSteps progress = null,
+            CancellationToken stop = default
+        )
         {
             progress?.Stage(0.0, 0.05);
-            return ToDxf(DwgContainer.Read(file), supportFolders, progress);
+            return ToDxf(DwgContainer.Read(file, stop), supportFolders, progress, stop);
         }
 
         /// <summary>
         /// The DXF of the DWG whose parts <paramref name="container"/> holds, as
-        /// <see cref="ToDxf(byte[], IList{string}, ProgressSteps)"/>.
+        /// <see cref="ToDxf(byte[], IList{string}, ProgressSteps, CancellationToken)"/>.
         /// </summary>
         public static byte[] ToDxf(
             DwgContainer container,
             IList<string> supportFolders = null,
-            ProgressSteps progress = null
+            ProgressSteps progress = null,
+            CancellationToken stop = default
         )
         {
-            var transcoder = new DwgTranscoder(container, progress) { _supportFolders = supportFolders };
+            var transcoder = new DwgTranscoder(container, progress, stop) { _supportFolders = supportFolders };
             progress?.Stage(0.6, 1.0);
             transcoder.WriteHeader();
             transcoder.WriteClasses();
@@ -1051,6 +1063,7 @@ namespace GeometryHelper.Dwg
                 return;
             }
 
+            _stop.ThrowIfCancellationRequested();
             _progress?.Report(_written.Count, _objects.Count);
 
             if (!entity.Decoded)
@@ -1443,6 +1456,7 @@ namespace GeometryHelper.Dwg
                 return;
             }
 
+            _stop.ThrowIfCancellationRequested();
             _progress?.Report(_written.Count, _objects.Count);
 
             WriteHead(one, one.Name, one.Owner);

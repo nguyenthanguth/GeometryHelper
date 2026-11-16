@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 
 namespace GeometryHelper.Dwg
 {
@@ -20,7 +21,7 @@ namespace GeometryHelper.Dwg
         /// <summary>The largest factor by which a system page of R2007 may repeat its data; AutoCAD's repeat theirs a few times.</summary>
         private const long MaxRepeat = 1024;
 
-        private static DwgContainer ReadR21(byte[] file, string version)
+        private static DwgContainer ReadR21(byte[] file, string version, CancellationToken stop)
         {
             if (file.LongLength < PagesStart)
             {
@@ -83,21 +84,21 @@ namespace GeometryHelper.Dwg
             };
 
             container.Header = Section(
-                Join21(file, pages, Need21(sections, "AcDb:Header"), seed, ref budget),
+                Join21(file, pages, Need21(sections, "AcDb:Header"), seed, ref budget, stop),
                 HeaderStart,
                 HeaderEnd,
                 "header variables",
                 false
             );
             container.Classes = Section(
-                Join21(file, pages, Need21(sections, "AcDb:Classes"), seed, ref budget),
+                Join21(file, pages, Need21(sections, "AcDb:Classes"), seed, ref budget, stop),
                 ClassesStart,
                 ClassesEnd,
                 "classes",
                 false
             );
-            byte[] handles = Join21(file, pages, Need21(sections, "AcDb:Handles"), seed, ref budget);
-            container.Objects = Join21(file, pages, Need21(sections, "AcDb:AcDbObjects"), seed, ref budget);
+            byte[] handles = Join21(file, pages, Need21(sections, "AcDb:Handles"), seed, ref budget, stop);
+            container.Objects = Join21(file, pages, Need21(sections, "AcDb:AcDbObjects"), seed, ref budget, stop);
             container.ObjectMap = ReadObjectMap(handles, 0, handles.LongLength, container.Objects.LongLength);
 
             if (sections.TryGetValue("AcDb:Preview", out Descriptor21 preview))
@@ -105,14 +106,14 @@ namespace GeometryHelper.Dwg
                 try
                 {
                     // A preview no program needs to read the drawing: a page of it that is broken is no reason to refuse the file.
-                    container.Preview = Join21(file, pages, preview, seed, ref budget);
+                    container.Preview = Join21(file, pages, preview, seed, ref budget, stop);
                 }
                 catch (FormatException) { }
             }
 
             if (sections.TryGetValue("AcDb:Template", out Descriptor21 template))
             {
-                byte[] data = Join21(file, pages, template, seed, ref budget);
+                byte[] data = Join21(file, pages, template, seed, ref budget, stop);
 
                 if (data.Length >= 2)
                 {
@@ -424,7 +425,8 @@ namespace GeometryHelper.Dwg
             Dictionary<long, long[]> pages,
             Descriptor21 section,
             ulong seed,
-            ref long budget
+            ref long budget,
+            CancellationToken stop = default
         )
         {
             if (section.Encrypted == 1)
@@ -472,6 +474,8 @@ namespace GeometryHelper.Dwg
 
             foreach (Page21 page in section.Pages)
             {
+                stop.ThrowIfCancellationRequested();
+
                 if (!pages.TryGetValue(page.Number, out long[] place))
                 {
                     throw new FormatException(

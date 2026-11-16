@@ -537,7 +537,7 @@ namespace GeometryHelper.Dxf.Viewer
                 // The entities in the order they are drawn: the draw order's where the block has one or the Block Editor hides
                 // some, else the records of the block as they stand, an entity made of a record only where it is drawn.
                 IReadOnlyList<DxfEntity> content = null;
-                DxfItem[] items = null;
+                IReadOnlyList<DxfItem> items = null;
                 DxfSpace source = null;
                 int version = 0;
                 bool hasColumns = false;
@@ -598,7 +598,7 @@ namespace GeometryHelper.Dxf.Viewer
                 // by one copy when the next entity is drawn again or the walk is done.
                 int stretchFirst = 0,
                     stretchCount = 0;
-                int total = items != null ? items.Length : content.Count;
+                int total = items != null ? items.Count : content.Count;
 
                 for (int index = 0; index < total; index++)
                 {
@@ -711,7 +711,7 @@ namespace GeometryHelper.Dxf.Viewer
                     && source != null
                     && source.Version == version
                     && list.IsTiled
-                    && list.RunCount == items.Length
+                    && list.RunCount == items.Count
                 )
                 {
                     list.SourceSpace = source;
@@ -920,6 +920,10 @@ namespace GeometryHelper.Dxf.Viewer
             return byHandle.TryGetValue(handle, out int found) ? found : -1;
         }
 
+        // The objects of the records of the space as they are drawn, one of each of the few classes aimed at each record in turn, where no
+        // object is made for the record to keep: a display of a million entities kept 28 MB of objects it never read again.
+        private readonly DxfEntity.Glance _glance = new DxfEntity.Glance();
+
         /// <summary>Draws an entity and closes its run: its record, where the entity is not made yet; the run is kept whether it draws or not.</summary>
         private void DrawRun(DxfEntity entity, DxfItem item, string handle, Frame root, DisplayList2 list, bool shown)
         {
@@ -929,7 +933,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             try
             {
-                Draw(entity ?? DxfEntity.Of(item), root, list, null, shown);
+                Draw(entity ?? _glance.At(item), root, list, null, shown);
             }
             catch (Exception)
             {

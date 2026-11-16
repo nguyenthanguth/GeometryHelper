@@ -4793,9 +4793,11 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// The record of every entity <see cref="GetEnumerator"/> walks, in the order it walks them, no entity made of them:
         /// for the display, which makes the entity of a record only where it draws it. <paramref name="space"/> is the list they
-        /// are of and <paramref name="version"/> its version, taken with the records.
+        /// are of and <paramref name="version"/> its version, taken with the records. A block with no linked columns gives its
+        /// list itself, where it gave a copy of it (8 MB at a million entities, made on each display): the list is not to be
+        /// changed while the records are walked, as <see cref="DxfSpace"/> says of its own walk.
         /// </summary>
-        internal DxfItem[] WalkedItems(out DxfSpace space, out int version, out bool hasColumns)
+        internal IReadOnlyList<DxfItem> WalkedItems(out DxfSpace space, out int version, out bool hasColumns)
         {
             space = Space;
             version = 0;
@@ -4806,27 +4808,28 @@ namespace GeometryHelper.Dxf
                 return Array.Empty<DxfItem>();
             }
 
-            DxfItem[] items = space.Snapshot();
             version = space.Version;
-            HashSet<string> columns = LinkedColumns(items);
+            HashSet<string> columns = LinkedColumns(space);
 
             if (columns == null)
             {
-                return items;
+                return space;
             }
 
             hasColumns = true;
-            var walked = new List<DxfItem>(items.Length);
+            var walked = new List<DxfItem>(space.Count);
 
-            foreach (DxfItem item in items)
+            for (int i = 0; i < space.Count; i++)
             {
+                DxfItem item = space[i];
+
                 if (!item.IsRemoved && !IsColumn(item, columns))
                 {
                     walked.Add(item);
                 }
             }
 
-            return walked.ToArray();
+            return walked;
         }
 
         /// <summary>Whether an entity is an MTEXT that lists linked columns, which the walk of its block leaves to it.</summary>
@@ -4837,12 +4840,14 @@ namespace GeometryHelper.Dxf
         /// The handles of the linked columns the MTEXTs of entities list, letters of either case the same, found in one pass;
         /// null where none lists any.
         /// </summary>
-        private static HashSet<string> LinkedColumns(DxfItem[] items)
+        private static HashSet<string> LinkedColumns(IReadOnlyList<DxfItem> items)
         {
             HashSet<string> columns = null;
 
-            foreach (DxfItem item in items)
+            for (int index = 0; index < items.Count; index++)
             {
+                DxfItem item = items[index];
+
                 if (item.IsRemoved || item.Type != "MTEXT")
                 {
                     continue;

@@ -40,6 +40,10 @@ namespace GeometryHelper.Dxf
         private protected DxfEntity(DxfItem item)
             : base(item) { }
 
+        /// <summary>The object of a record of a file, which stands for it where <paramref name="bind"/> is true and is only read from it where false.</summary>
+        private protected DxfEntity(DxfItem item, bool bind)
+            : base(item, bind) { }
+
         /// <summary>
         /// An entity made in code from a shape, written as <see cref="DxfWriter"/> writes the shape, on layer 0 with no look of
         /// its own: <c>base(new GeoLine3(start, end))</c> is a LINE.
@@ -1678,6 +1682,66 @@ namespace GeometryHelper.Dxf
 
             DxfEntity made = DxfEntityTypes.Create(item) ?? new DxfUnknownEntity(item);
             return (DxfEntity)item.KeepWrapper(made);
+        }
+
+        /// <summary>
+        /// The objects of the records a read looks at once and keeps nothing of, as the display of a drawing reads each entity
+        /// once: <see cref="At"/> gives the object the record holds where there is one; else, for a LINE, an ARC, a CIRCLE or
+        /// an LWPOLYLINE, whose objects hold nothing a display reads but the record (a polyline's vertices are not read by
+        /// it), an object the record does not hold, the same one for every record of its class that follows, aimed at each
+        /// in turn; else the object <see cref="Of"/> makes and keeps. A million entities of those four classes had an object
+        /// each kept by the display, 24 to 32 bytes of each, 28 MB, which it never read again but through the record. The
+        /// record holds no object made here, so the one <see cref="Of"/> makes for it later is the only one anything else
+        /// is given: one object for one record, for every reader that keeps it. The object <see cref="At"/> gives is read
+        /// before the next record is asked for and let go of: it reads that record from then on.
+        /// </summary>
+        /// <remarks>
+        /// A TEXT, whose object keeps the contexts it read, was tried the same way and left as it was: its contexts were read
+        /// again at each REGEN, 6 per cent slower for 8 MB. An object made for each record and let go of, in place of one
+        /// aimed at each, made a REGEN of a million entities 7 to 10 per cent slower.
+        /// </remarks>
+        internal sealed class Glance
+        {
+            private DxfEntity _line;
+            private DxfEntity _arc;
+            private DxfEntity _circle;
+            private DxfEntity _polyline;
+
+            /// <summary>The object of a record, for a read that keeps nothing of it.</summary>
+            /// <param name="item">The record.</param>
+            /// <returns>The object the record holds, or one that is aimed at it and held by no record.</returns>
+            internal DxfEntity At(DxfItem item)
+            {
+                if (item.Wrapper is DxfEntity kept)
+                {
+                    return kept;
+                }
+
+                switch (item.Type)
+                {
+                    case "LINE":
+                        return _line = Aimed(_line, item, DxfLine.Unkept);
+                    case "ARC":
+                        return _arc = Aimed(_arc, item, DxfArc.Unkept);
+                    case "CIRCLE":
+                        return _circle = Aimed(_circle, item, DxfCircle.Unkept);
+                    case "LWPOLYLINE":
+                        return _polyline = Aimed(_polyline, item, DxfPolyline.Unkept);
+                    default:
+                        return Of(item);
+                }
+            }
+
+            private static DxfEntity Aimed(DxfEntity made, DxfItem item, Func<DxfItem, DxfEntity> make)
+            {
+                if (made == null)
+                {
+                    return make(item);
+                }
+
+                made.Aim(item);
+                return made;
+            }
         }
 
         /// <summary>

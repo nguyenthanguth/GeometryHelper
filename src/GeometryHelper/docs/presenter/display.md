@@ -387,6 +387,23 @@ one normal, which the chain keeps once, and the display reads each edge's from i
 asked for, or where the last vertex was given a bulge or a normal, or two arcs face different ways. Twenty thousand such polylines are displayed with 812 bytes
 a polyline where they took 1 636 (.NET Framework 4.8), and the list is item for item what it was.
 
+Four more things the display of 1 000 000 entities kept or made are gone (kept 358 MB where 391, garbage 363 MB where 404; .NET 8, `d1m.dxf`). A chain
+is an object of 72 bytes where it was 80: its four flags (closed, sampled, and for a chain of two which corner of its box each end is at) were four bools, which
+fill a word, so that folding them into one flags field would have left it at 80 (measured: 80 bytes with four bools, 80 with one byte, 72 with none); they
+are kept in the look the chain shares with the others of its style and layer (`DisplayLook.Chain`), which has one shared look for each of the
+at most 16 flags a chain of that style and layer has, so that the chain still holds the one reference. The extended data of an object in no file,
+which only a table record made in code has, is kept outside the object (a `ConditionalWeakTable`, asked only where an object made in code is bound to a
+record), and an object of a record is 8 bytes smaller, a LINE's 24 where 32. A LINE, an ARC, a CIRCLE and an LWPOLYLINE are drawn through one object of each class aimed at each
+record in turn (`DxfEntity.Glance`, one for each display builder), held by no record, where the display made an object for each and kept it, 20 MB: what the display
+reads of these (their layer, look and shapes, and for a polyline its width, which reads none of its vertices) it reads through the record, so the object
+holds nothing the next record needs; the object a reader that keeps one is given later (`FindEntity`, a walk of the block, an edit) is made then, as before, so
+there is still one for one record. An object made for each record and let go of was the first form: a REGEN of 1 000 000 entities 7 to 10 per cent slower, where one aimed at
+each is within the noise; a TEXT, whose object keeps the contexts it read, was tried the same way and left as it was (a REGEN 6 per cent slower for 8 MB). The records of
+the space are walked as the list of the space itself where the block has no linked columns, where each display and REGEN copied it (8 MB). The cold display takes 1.25 s where
+1.29 and a REGEN 0.57 s where 0.58 (medians of 9 runs alternated with the older build; .NET Framework 4.8 2.27 s where 2.33 and 1.00 s where 1.01; .NET 10 within its noise,
+1.30 s where 1.28 and 0.55 s as before). Display lists (every space, field for field), a REGEN of the first, the bytes a drawing saves and the pixels of two views, plain and with
+everything selected, are those they were on 953 drawings (812 DXF and 141 DWG of AutoCAD) under .NET 8 and .NET Framework 4.8, and on drawings of 100 000 and 1 000 000 entities.
+
 `PrepareDisplay(space, progress, cancellationToken)` makes the list and the pick index of a space ahead, item for item the
 list `GetDisplay` makes, telling `progress` the share of the space's entities drawn every 4 096 of them and stopping, with
 an `OperationCanceledException`, when the token is cancelled; a list stopped is not kept, and is made whole when next

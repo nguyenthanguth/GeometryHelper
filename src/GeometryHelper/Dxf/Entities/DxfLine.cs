@@ -47,8 +47,8 @@ namespace GeometryHelper.Dxf
         public DxfLine(GeoPoint3 startPoint, GeoPoint3 endPoint)
             : base(new GeoLine3(startPoint, endPoint)) { }
 
-        private DxfLine(DxfItem item)
-            : base(item) { }
+        private DxfLine(DxfItem item, bool bind)
+            : base(item, bind) { }
 
         /// <summary>
         /// Gets or sets where the line starts (groups 10, 20, 30), in world coordinates; the origin where the record gives none.
@@ -505,7 +505,10 @@ namespace GeometryHelper.Dxf
         }
 
         [DxfType("LINE")]
-        internal static DxfEntity Create(DxfItem item) => new DxfLine(item);
+        internal static DxfEntity Create(DxfItem item) => new DxfLine(item, true);
+
+        /// <summary>A line read from a record that does not hold it, as <see cref="DxfEntity.Glance"/> makes one.</summary>
+        internal static DxfEntity Unkept(DxfItem item) => new DxfLine(item, false);
 
         /// <inheritdoc/>
         private protected override IReadOnlyList<int> GroupOrder => Order;
