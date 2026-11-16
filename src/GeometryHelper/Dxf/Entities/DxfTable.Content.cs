@@ -284,6 +284,7 @@ namespace GeometryHelper.Dxf
 
             // The grid kept is changed by the edit: not kept again until the record is written, and not if it is not.
             _contentBytes = null;
+            _scanned = null;
 
             if (kept != null)
             {
@@ -1314,6 +1315,39 @@ namespace GeometryHelper.Dxf
                 }
             }
 
+            /// <summary>How many groups the cell holds, without making them where they are not made yet.</summary>
+            internal int Length => _groups != null ? _groups.Count : _sourceTo - _sourceFrom;
+
+            /// <summary>The code of the group at a place in the cell, found in the source where the cell's groups are not made yet.</summary>
+            internal int CodeAt(int at) => _groups != null ? _groups[at].Key : _source.Code(_sourceFrom + at);
+
+            /// <summary>The value of the group at a place in the cell, a string made only for that group where the cell's groups are not made yet.</summary>
+            internal string ValueAt(int at) => _groups != null ? _groups[at].Value : _source.Value(_sourceFrom + at);
+
+            /// <summary>The place in the cell of the first group of the code given from one place to before another; the place the search ends at where there is none.</summary>
+            internal int NextCode(int from, int to, int code)
+            {
+                if (_groups == null)
+                {
+                    return _source.Next(_sourceFrom + from, _sourceFrom + to, code) - _sourceFrom;
+                }
+
+                int at = from;
+
+                while (at < to && _groups[at].Key != code)
+                {
+                    at++;
+                }
+
+                return at;
+            }
+
+            /// <summary>Whether the group at a place in the cell is of the code given and its value, its spaces taken off, the text given, looked at in the source where the cell's groups are not made yet.</summary>
+            internal bool IsAt(int at, int code, string text) =>
+                _groups != null
+                    ? _groups[at].Key == code && _groups[at].Value.Trim() == text
+                    : _source.Is(_sourceFrom + at, code, text);
+
             /// <summary>
             /// The rows and columns of the range the cell names a link over (<see cref="LinkRunOf"/>); null where it names none.
             /// A cell whose groups are not made yet is looked at in the source, as far as its 92 after its custom data, and its
@@ -1406,17 +1440,22 @@ namespace GeometryHelper.Dxf
             internal bool Clean =>
                 Start >= 0 && Cells.Count == CellsAtRead && Cells.TrueForAll(c => c.Start >= 0 && !c.Dirty);
 
-            /// <summary>Adds the row's groups; where <paramref name="cells"/> is given, the place each cell's groups take among those of <paramref name="groups"/> is added to it.</summary>
-            internal void AddTo(List<KeyValuePair<int, string>> groups, List<ContentSpan> cells = null)
+            /// <summary>Adds the row's groups; where <paramref name="cell"/> is given, each cell is handed to it, after the groups added so far, in place of its groups being added.</summary>
+            internal void AddTo(List<KeyValuePair<int, string>> groups, Action<ContentGridCell> cell = null)
             {
                 groups.AddRange(Head);
                 groups.Add(ContentGrid.Counted(ReadCount, 90, Cells.Count));
 
-                foreach (ContentGridCell cell in Cells)
+                foreach (ContentGridCell each in Cells)
                 {
-                    int start = groups.Count;
-                    groups.AddRange(cell.Groups);
-                    cells?.Add(new ContentSpan(start, groups.Count, cell));
+                    if (cell == null)
+                    {
+                        groups.AddRange(each.Groups);
+                    }
+                    else
+                    {
+                        cell(each);
+                    }
                 }
 
                 groups.AddRange(Tail);
@@ -1737,29 +1776,13 @@ namespace GeometryHelper.Dxf
                 return groups;
             }
 
-            /// <summary>How many groups <see cref="Groups"/> lists.</summary>
-            internal int CountGroups()
-            {
-                int count = 2;
-                Columns.ForEach(c => count += c.Count);
-
-                foreach (ContentRow row in Rows)
-                {
-                    count += row.Head.Count + 1 + row.Tail.Count;
-                    row.Cells.ForEach(c => count += c.Groups.Count);
-                }
-
-                return count
-                    + (Merges == null ? _tail.Count : _mergesFrom + 1 + 4 * Merges.Count + _tail.Count - _mergesTo);
-            }
-
-            /// <summary>Adds the groups <see cref="Groups"/> lists to a list; where <paramref name="cells"/> is given, the place each cell's groups take among those of <paramref name="groups"/> is added to it, row by row.</summary>
-            internal void AddGroupsTo(List<KeyValuePair<int, string>> groups, List<ContentSpan> cells = null)
+            /// <summary>Adds the groups <see cref="Groups"/> lists to a list; where <paramref name="cell"/> is given, each cell is handed to it, row by row, after the groups added so far, in place of its groups being added.</summary>
+            internal void AddGroupsTo(List<KeyValuePair<int, string>> groups, Action<ContentGridCell> cell = null)
             {
                 groups.Add(Counted(_columnCount, 90, Columns.Count));
                 Columns.ForEach(c => groups.AddRange(c));
                 groups.Add(Counted(_rowCount, 91, Rows.Count));
-                Rows.ForEach(r => r.AddTo(groups, cells));
+                Rows.ForEach(r => r.AddTo(groups, cell));
 
                 if (Merges == null)
                 {
