@@ -426,9 +426,13 @@ User note 2026-11-12 evening (note.md 1-14):
 - [x] XCLIP follow-ups 2 (xclip3; REFEDIT by refedit): Clipdepth cuts the block in the display (slab along the clip
       normal; lines cut at the planes), Clipdepth by a point and equal planes as AutoCAD; a clip tilted out of the plan
       dragged by its own axes and shown by where its prism meets the block plane
-- [ ] (xclip4, running) XCLIP follow-ups 3: the flip arrow's click and direction (GUI); arcs, circles and polylines cut at the depth
-      planes (needs heights in display items); depth in external references; generate Polyline on a tilted clip; the
-      block plane at another absolute height; nested INSERTs in the slab (S)
+- [x] XCLIP follow-ups 3 (xclip4): Clipdepth cuts circles, arcs and lightweight polylines as AutoCAD (lines were cut),
+      through nested INSERTs, MINSERT cells and external references; a tilted clip shows the ring at the height an
+      entity lies flat; generate Polyline on a tilted clip as AutoCAD (normal, elevation, vertices)
+- [ ] XCLIP follow-ups 4: the flip arrow's click and direction (GUI); ellipse, spline, hatch, text, dimension, table and
+      heavy POLYLINE still drawn whole across a depth plane; a non-flat entity under a tilted clip keeps the block-plane
+      ring (AutoCAD cuts by the prism); a cut polyline restarts its linetype per piece; DrawXref's ring when an xref's
+      block origin differs from INSBASE; a nested MINSERT under planes not probed (S)
 - [x] Remove what is left of Part B (the Tekla drawing) from Dxf.Viewer; it moves to the Tekla drawing app (partb-cleanup: new-document hook neutral, MODEL tags, Hidden-lines recolour, Layer Owner column, DXF export rows gone; owner contract and drawing-plugin finder kept as neutral hooks) (M)
 
 User note 2026-11-12 (basic features first, advanced later):
@@ -475,7 +479,7 @@ the ones wanted.
       Global settings; TK (TRACKING); the named-dictionary guard in the table and multileader style editors
 - [x] Variables: FILEDIA for QSAVE of a new drawing, XATTACH, IMAGEATTACH, WBLOCK and INSERT's Browse; POLARMODE bits 1
       and 4 (angles from the last segment, POLARADDANG); leaders following DIMSCALE (S): MLEADER does not follow it in AutoCAD either
-- [ ] Follow-ups of aids-vars: refusal message for a modifier picked from the menu where it may not nest (S)
+- [ ] (small1, running) Follow-ups of aids-vars: refusal message for a modifier picked from the menu where it may not nest (S)
 - [x] MLEADERSCALE, CMLEADERSTYLE, LEADER and QLEADER (command line) as AutoCAD 2021
 - [x] QLEADER Leader Settings (AcadDim xrecord, DIMLDRBLK) and the Polar tab's additional angles, tracking and measurement, with the polar tooltip
 - [x] Leader follow-ups: every differing DIM* override in group order, DIMCLRT, hook along the UCS, INSERT copied and reused, LEADER/QLEADER previews, arrow pictures and User Arrow...
@@ -903,7 +907,7 @@ the ones wanted.
       run); FontFolder.Write waits until its file can be opened alone; UndoReadAhead, DisplayPatch, MTextDisplay and the
       xref ratio tests take best of several runs (the xref test moved into the speed collection); Viewer 10 full runs in
       a row and core twice green beside a CPU burner
-- [ ] Test isolation 3: CanvasPictureTests' hover limit (48 ms, no speed collection); a failure under memory or disk
+- [ ] (small1, running) Test isolation 3: CanvasPictureTests' hover limit (48 ms, no speed collection); a failure under memory or disk
       pressure would now list every run's times (S)
 - [x] Speed follow-ups 10 (speed11): the 1M MOVE slowdown was real (the patch looked up every handle's insertion point):
       MOVE + display 295 -> 165 ms (net8) / 540 -> 375 (net48); the look and hidden read in one cached walk, handles

@@ -1609,21 +1609,36 @@ namespace GeometryHelper.Dxf
         )
         {
             GeoPoint3 origin = BlockTableRecord?.Origin ?? Origin;
-            IReadOnlyList<GeoPoint2> cut = filter.GetSectionRing(-origin.Z);
+            IReadOnlyList<GeoPoint2> cut = GetClipSectionAt(filter, 0.0);
             slab = filter.GetSlab(origin);
-            section = outline;
+            section = cut != null && cut.Count == outline.Count ? cut : outline;
+        }
 
-            if (cut != null && cut.Count == outline.Count)
+        /// <summary>
+        /// The ring the clip's prism cuts a plane of the block in, in the same coordinates as <see cref="ClipOutline"/>: the plane is
+        /// level with the block's own, at a height in the coordinates its entities have.
+        /// </summary>
+        /// <param name="filter">The filter of the reference.</param>
+        /// <param name="height">The height of the plane in the block's coordinates, 0 for the plane a block is drawn in.</param>
+        /// <returns>The ring; null where the boundary's plane is parallel to the block's, and <see cref="ClipOutline"/> is the ring.</returns>
+        internal IReadOnlyList<GeoPoint2> GetClipSectionAt(DxfSpatialFilter filter, double height)
+        {
+            GeoPoint3 origin = BlockTableRecord?.Origin ?? Origin;
+            IReadOnlyList<GeoPoint2> cut = filter.GetSectionRing(height - origin.Z);
+
+            if (cut == null)
             {
-                var placed = new List<GeoPoint2>(cut.Count);
-
-                foreach (GeoPoint2 point in cut)
-                {
-                    placed.Add(new GeoPoint2(point.X + origin.X, point.Y + origin.Y));
-                }
-
-                section = placed.AsReadOnly();
+                return null;
             }
+
+            var placed = new List<GeoPoint2>(cut.Count);
+
+            foreach (GeoPoint2 point in cut)
+            {
+                placed.Add(new GeoPoint2(point.X + origin.X, point.Y + origin.Y));
+            }
+
+            return placed.AsReadOnly();
         }
 
         /// <summary>

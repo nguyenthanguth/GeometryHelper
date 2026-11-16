@@ -131,23 +131,13 @@ namespace GeometryHelper.Dxf.Viewer
                         foreach (string handle in clipped)
                         {
                             var reference = (DxfBlockReference)s.Document.FindEntity(handle);
-                            IReadOnlyList<GeoPoint2> ring = reference.ClipOutline;
+                            DxfPolyline made = BoundaryPolyline(reference);
 
-                            if (ring == null)
+                            if (made == null)
                             {
                                 continue;
                             }
 
-                            var made = new DxfPolyline();
-                            GeoTransform3 placed = reference.BlockTransform;
-
-                            for (int i = 0; i < ring.Count; i++)
-                            {
-                                GeoPoint3 world = placed.Transform(new GeoPoint3(ring[i].X, ring[i].Y, 0.0));
-                                made.AddVertexAt(i, new GeoPoint2(world.X, world.Y), 0.0, 0.0, 0.0);
-                            }
-
-                            made.Closed = true;
                             s.Append(c.Space, Current(c, made));
                         }
                     });
@@ -162,6 +152,74 @@ namespace GeometryHelper.Dxf.Viewer
 
                 yield break;
             }
+        }
+
+        /// <summary>
+        /// The closed polyline generate Polyline draws along the boundary of a clip, as AutoCAD 2021 draws it (probes of a boundary
+        /// made in systems lifted and tilted): in the plane the boundary stands in, where the reference puts it in the world,
+        /// its normal the boundary's Z axis and its elevation the plane's distance along it, and its vertices the boundary's
+        /// points in the system of that normal, a rectangle's four corners in the order they were picked.
+        /// </summary>
+        /// <returns>The polyline; null where the clip has fewer than three points.</returns>
+        private static DxfPolyline BoundaryPolyline(DxfBlockReference reference)
+        {
+            DxfSpatialFilter filter = reference.SpatialFilter;
+            IReadOnlyList<GeoPoint2> points = filter?.Points;
+
+            if (points == null || points.Count < 2)
+            {
+                return null;
+            }
+
+            if (points.Count == 2)
+            {
+                points = new[]
+                {
+                    points[0],
+                    new GeoPoint2(points[1].X, points[0].Y),
+                    points[1],
+                    new GeoPoint2(points[0].X, points[1].Y),
+                };
+            }
+
+            if (points.Count < 3)
+            {
+                return null;
+            }
+
+            // The boundary's axes in the world, from where the reference puts the origin and the ends of its two unit lengths.
+            GeoPoint3 origin = reference.ClipPointInWorld(filter, new GeoPoint2(0.0, 0.0));
+            GeoPoint3 alongX = reference.ClipPointInWorld(filter, new GeoPoint2(1.0, 0.0));
+            GeoPoint3 alongY = reference.ClipPointInWorld(filter, new GeoPoint2(0.0, 1.0));
+            GeoVector3 normal = new GeoVector3(
+                alongX.X - origin.X,
+                alongX.Y - origin.Y,
+                alongX.Z - origin.Z
+            ).CrossProduct(new GeoVector3(alongY.X - origin.X, alongY.Y - origin.Y, alongY.Z - origin.Z));
+            double tolerance = Tolerance.Default.EqualVector;
+            normal =
+                normal.Length <= tolerance ? GeoVector3.ZAxis
+                : Math.Abs(normal.X) <= tolerance * normal.Length && Math.Abs(normal.Y) <= tolerance * normal.Length
+                    ? new GeoVector3(0.0, 0.0, normal.Z < 0.0 ? -1.0 : 1.0)
+                : normal.Normalize();
+
+            var made = new DxfPolyline { Normal = normal };
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                GeoPoint3 world = reference.ClipPointInWorld(filter, points[i]);
+                GeoPoint3 own = DxfEntity.WorldToOcs(normal, world);
+
+                if (i == 0)
+                {
+                    made.Elevation = own.Z;
+                }
+
+                made.AddVertexAt(i, new GeoPoint2(own.X, own.Y), 0.0, 0.0, 0.0);
+            }
+
+            made.Closed = true;
+            return made;
         }
 
         private static CadEditRecord[] Reshaped(IReadOnlyList<string> handles)
