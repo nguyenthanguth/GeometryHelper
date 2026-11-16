@@ -1,0 +1,309 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.DrawingPropertiesWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="Drawing Properties"
+    Width="480"
+    Height="540"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <local:BoolToVisibilityConverter x:Key="Shown" />
+
+            <!-- The label of a row, muted, in its own column. -->
+            <Style x:Key="RowLabel" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
+
+            <!-- A row of the General and Statistics tabs: the label, then its text. -->
+            <DataTemplate x:Key="InfoRow">
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="130" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Style="{StaticResource RowLabel}" Text="{Binding Key}" VerticalAlignment="Top" />
+                    <TextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap" />
+                </Grid>
+            </DataTemplate>
+
+            <!-- A row of the Custom tab: its name, its value and the button that takes it out. -->
+            <DataTemplate x:Key="CustomRow">
+                <Grid Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150" />
+                        <ColumnDefinition Width="6" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="6" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox
+                        Style="{StaticResource StyleBox}"
+                        Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                        AutomationProperties.Name="Custom property name"
+                    />
+                    <TextBox
+                        Grid.Column="2"
+                        Style="{StaticResource StyleBox}"
+                        Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                        AutomationProperties.Name="Custom property value"
+                    />
+                    <Button
+                        Grid.Column="4"
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Delete"
+                        Padding="10,4"
+                        Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="{Binding}"
+                        AutomationProperties.Name="Delete custom property"
+                    />
+                </Grid>
+            </DataTemplate>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <!-- Header: the file's name and "Properties", dragged to move the dialog, and the close button. -->
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
+                    <TextBlock
+                        Text="{Binding WindowTitle}"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center"
+                    />
+                </DockPanel>
+            </Border>
+
+            <!-- Footer: why OK was refused, then OK and Cancel. -->
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Cancel"
+                            Padding="14,5"
+                            Margin="0,0,8,0"
+                            Click="OnCancel"
+                            IsCancel="True"
+                        />
+                        <Button
+                            Style="{StaticResource StylePrimaryButton}"
+                            Content="OK"
+                            Padding="18,5"
+                            Click="OnOk"
+                            IsDefault="True"
+                        />
+                    </StackPanel>
+                    <TextBlock
+                        Text="{Binding Notice}"
+                        Foreground="{StaticResource GhWarn}"
+                        VerticalAlignment="Center"
+                        TextWrapping="Wrap"
+                        Margin="0,0,12,0"
+                    />
+                </DockPanel>
+            </Border>
+
+            <!-- The tabs, in AutoCAD's order. -->
+            <Border DockPanel.Dock="Top" Padding="16,10,16,0">
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton
+                        Style="{StaticResource GhChip}"
+                        Content="General"
+                        IsChecked="{Binding IsGeneralTab, Mode=TwoWay}"
+                        Margin="0,0,6,0"
+                    />
+                    <RadioButton
+                        Style="{StaticResource GhChip}"
+                        Content="Summary"
+                        IsChecked="{Binding IsSummaryTab, Mode=TwoWay}"
+                        Margin="0,0,6,0"
+                    />
+                    <RadioButton
+                        Style="{StaticResource GhChip}"
+                        Content="Statistics"
+                        IsChecked="{Binding IsStatisticsTab, Mode=TwoWay}"
+                        Margin="0,0,6,0"
+                    />
+                    <RadioButton
+                        Style="{StaticResource GhChip}"
+                        Content="Custom"
+                        IsChecked="{Binding IsCustomTab, Mode=TwoWay}"
+                    />
+                </StackPanel>
+            </Border>
+
+            <Grid Margin="16,14">
+                <!-- General: the file, as the file system has it; read only. -->
+                <StackPanel Visibility="{Binding IsGeneralTab, Converter={StaticResource Shown}}">
+                    <TextBlock
+                        Text="{Binding FileName}"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Margin="0,0,0,12"
+                        TextTrimming="CharacterEllipsis"
+                    />
+                    <ItemsControl ItemsSource="{Binding General}" ItemTemplate="{StaticResource InfoRow}" />
+                    <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="0,1,0,0" Margin="0,4,0,10" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource RowLabel}" Text="Attributes:" Width="130" />
+                        <CheckBox
+                            Style="{StaticResource StyleCheck}"
+                            Content="Read-only"
+                            IsChecked="{Binding IsReadOnly, Mode=OneWay}"
+                            IsEnabled="False"
+                            Margin="0,0,16,0"
+                        />
+                        <CheckBox
+                            Style="{StaticResource StyleCheck}"
+                            Content="Hidden"
+                            IsChecked="{Binding IsHidden, Mode=OneWay}"
+                            IsEnabled="False"
+                        />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Summary: the texts the drawing carries. -->
+                <StackPanel Visibility="{Binding IsSummaryTab, Converter={StaticResource Shown}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="130" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Style="{StaticResource RowLabel}" Text="Title:" Margin="0,0,0,8" />
+                        <TextBox
+                            Grid.Column="1"
+                            Style="{StaticResource StyleBox}"
+                            Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
+                            Margin="0,0,0,8"
+                            AutomationProperties.Name="Title"
+                        />
+                        <TextBlock Grid.Row="1" Style="{StaticResource RowLabel}" Text="Subject:" Margin="0,0,0,8" />
+                        <TextBox
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Style="{StaticResource StyleBox}"
+                            Text="{Binding Subject, UpdateSourceTrigger=PropertyChanged}"
+                            Margin="0,0,0,8"
+                            AutomationProperties.Name="Subject"
+                        />
+                        <TextBlock Grid.Row="2" Style="{StaticResource RowLabel}" Text="Author:" Margin="0,0,0,8" />
+                        <TextBox
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            Style="{StaticResource StyleBox}"
+                            Text="{Binding Author, UpdateSourceTrigger=PropertyChanged}"
+                            Margin="0,0,0,8"
+                            AutomationProperties.Name="Author"
+                        />
+                        <TextBlock Grid.Row="3" Style="{StaticResource RowLabel}" Text="Keywords:" Margin="0,0,0,8" />
+                        <TextBox
+                            Grid.Row="3"
+                            Grid.Column="1"
+                            Style="{StaticResource StyleBox}"
+                            Text="{Binding Keywords, UpdateSourceTrigger=PropertyChanged}"
+                            Margin="0,0,0,8"
+                            AutomationProperties.Name="Keywords"
+                        />
+                        <TextBlock Grid.Row="4" Style="{StaticResource RowLabel}" Text="Comments:" Margin="0,0,0,8" />
+                        <TextBox
+                            Grid.Row="4"
+                            Grid.Column="1"
+                            Style="{StaticResource StyleBox}"
+                            Text="{Binding Comments, UpdateSourceTrigger=PropertyChanged}"
+                            Margin="0,0,0,8"
+                            AutomationProperties.Name="Comments"
+                        />
+                        <TextBlock Grid.Row="5" Style="{StaticResource RowLabel}" Text="Hyperlink base:" />
+                        <TextBox
+                            Grid.Row="5"
+                            Grid.Column="1"
+                            Style="{StaticResource StyleBox}"
+                            Text="{Binding HyperlinkBase, UpdateSourceTrigger=PropertyChanged}"
+                            AutomationProperties.Name="Hyperlink base"
+                        />
+                    </Grid>
+                    <TextBlock
+                        Margin="0,14,0,0"
+                        Foreground="{StaticResource GhTextMuted}"
+                        TextWrapping="Wrap"
+                        Text="The hyperlink base is the folder or web address that relative hyperlinks of the drawing start from."
+                    />
+                </StackPanel>
+
+                <!-- Statistics: when the drawing was made and saved, and for how long it was edited; read only. -->
+                <StackPanel Visibility="{Binding IsStatisticsTab, Converter={StaticResource Shown}}">
+                    <ItemsControl ItemsSource="{Binding Statistics}" ItemTemplate="{StaticResource InfoRow}" />
+                </StackPanel>
+
+                <!-- Custom: name and value rows, which fields of the drawing read. -->
+                <DockPanel Visibility="{Binding IsCustomTab, Converter={StaticResource Shown}}">
+                    <TextBlock
+                        DockPanel.Dock="Top"
+                        Style="{StaticResource RowLabel}"
+                        Text="Custom properties:"
+                        Margin="0,0,0,8"
+                    />
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Add"
+                            Padding="16,5"
+                            Command="{Binding AddCommand}"
+                            AutomationProperties.Name="Add custom property"
+                        />
+                    </StackPanel>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl
+                            ItemsSource="{Binding CustomProperties}"
+                            ItemTemplate="{StaticResource CustomRow}"
+                        />
+                    </ScrollViewer>
+                </DockPanel>
+            </Grid>
+        </DockPanel>
+    </Border>
+</Window>

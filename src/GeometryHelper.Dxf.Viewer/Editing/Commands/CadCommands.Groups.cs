@@ -244,7 +244,15 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            string old = group.Name;
+            foreach (CadPrompt prompt in RenameKnownGroup(c, group.Name, null))
+            {
+                yield return prompt;
+            }
+        }
+
+        /// <summary>Asks the new name of a group ("Enter a new name for group or [?]:") and renames it; <paramref name="renamed"/> is told the name it has then.</summary>
+        private static IEnumerable<CadPrompt> RenameKnownGroup(CadCommandContext c, string old, Action<string> renamed)
+        {
             string name = null;
 
             foreach (CadPrompt prompt in AskNewGroupName(c, "Enter a new name for group or", n => name = n))
@@ -257,9 +265,15 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Group", old, name) }, s =>
-                FindGroup(c, old).Name = name
+            CadEditResult result = c.Apply(
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Group", old, name) },
+                s => FindGroup(c, old).Name = name
             );
+
+            if (result.Succeeded)
+            {
+                renamed?.Invoke(name);
+            }
         }
 
         /// <summary>-GROUP Order, Add, Remove, Explode and Selectable, each of a group asked by name.</summary>
@@ -328,7 +342,15 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            bool add = option == "Add";
+            foreach (CadPrompt prompt in PickMembers(c, name, option == "Add"))
+            {
+                yield return prompt;
+            }
+        }
+
+        /// <summary>Asks for the objects to add to a group, or to remove from it ("Select objects to add to group..."), and makes the edit.</summary>
+        private static IEnumerable<CadPrompt> PickMembers(CadCommandContext c, string name, bool add)
+        {
             c.Write(add ? "Select objects to add to group..." : "Select objects to remove from group...");
 
             // The objects are picked one by one here, as AutoCAD's: a group taken whole would add or remove every member.

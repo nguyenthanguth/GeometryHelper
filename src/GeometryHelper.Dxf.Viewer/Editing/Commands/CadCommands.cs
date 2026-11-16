@@ -208,6 +208,7 @@ namespace GeometryHelper.Dxf.Viewer
             AddTableExportTo(registry);
             AddViewportMaximizeTo(registry);
             AddModify3To(registry);
+            AddMisc2To(registry);
         }
 
         /// <summary>A point of the plan in space, at nought height.</summary>

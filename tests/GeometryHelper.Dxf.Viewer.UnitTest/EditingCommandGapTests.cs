@@ -424,11 +424,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Plan();
 
             CadCommandSession session = Start(document, "MEA");
-            Assert.Equal("Enter an option [Distance/Radius/Angle/ARea/eXit] <Distance>:", session.PromptText);
+            Assert.Equal(
+                "Enter an option [Distance/Radius/Angle/ARea/Quick/Mode/eXit] <Distance>:",
+                session.PromptText
+            );
             Run(session, "R", new[] { "A3" });
             Assert.Equal("Radius = 10.0000", session.History[session.History.Count - 2]);
             Assert.Equal("Diameter = 20.0000", session.History.Last());
-            Assert.Equal("Enter an option [Distance/Radius/Angle/ARea/eXit] <eXit>:", session.PromptText);
+            Assert.Equal("Enter an option [Distance/Radius/Angle/ARea/Quick/Mode/eXit] <eXit>:", session.PromptText);
 
             Run(session, "A", new[] { "A4" });
             // Angles to the places of AUPREC, nought in a drawing whose header gives none, as AutoCAD 2021 reads it.

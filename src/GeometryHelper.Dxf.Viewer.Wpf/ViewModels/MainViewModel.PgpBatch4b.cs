@@ -84,6 +84,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "PON":
                     ShowPalettes();
                     return true;
+                case "CLEANSCREENON":
+                    CleanScreenOn();
+                    return true;
+                case "CLEANSCREENOFF":
+                    CleanScreenOff();
+                    return true;
                 default:
                     return false;
             }

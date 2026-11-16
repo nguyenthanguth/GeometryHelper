@@ -650,6 +650,8 @@ namespace GeometryHelper.Dwg
             }
 
             container.Add("AcDb:AppInfo", AppInfo(), 10, 0x180, false);
+            byte[] summary = DwgSummaryInfo.Write(_drawing, _number >= 1021);
+            container.Add("AcDb:SummaryInfo", summary, 12, DwgSummaryInfo.PageSize(summary), false);
             container.Add(
                 "AcDb:RevHistory",
                 new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 },
@@ -669,12 +671,12 @@ namespace GeometryHelper.Dwg
 
         /// <summary>
         /// The file of AutoCAD 2007, in the container of <see cref="DwgContainerWriter21"/>: the sections of the later
-        /// versions, the application information among them, and not the history of the applications and the summary
-        /// information; the preview is written where the drawing has a picture. AutoCAD stores the application information, its
+        /// versions, the application information and the summary information among them, and not the history of the applications;
+        /// the preview is written where the drawing has a picture. AutoCAD stores the application information, its
         /// history and the summary information unpacked (coding 1) with parity bytes made from what its own memory held, which
         /// no other program can write and AutoCAD 2021 checks; the section map says how each section is coded, and AutoCAD reads
-        /// the application information as well when it is coded 4, compressed with Reed-Solomon codes of its own kind, as the
-        /// header is.
+        /// the application information and the summary information as well when they are coded 4, compressed with Reed-Solomon
+        /// codes of its own kind, as the header is.
         /// </summary>
         private byte[] File2007(byte[] objects, List<KeyValuePair<ulong, long>> map, int codePage)
         {
@@ -690,6 +692,8 @@ namespace GeometryHelper.Dwg
             }
 
             container.Add("AcDb:AppInfo", AppInfo(), DwgContainerWriter21.LargePage, 4);
+            byte[] summary = DwgSummaryInfo.Write(_drawing, true);
+            container.Add("AcDb:SummaryInfo", summary, DwgSummaryInfo.PageSize(summary), 4);
             container.Add("AcDb:RevHistory", new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 }, 0x1000, 4);
             container.Add("AcDb:AcDbObjects", objects, DwgContainerWriter21.LargePage, 4);
             container.Add("AcDb:ObjFreeSpace", FreeSpace(map.Count), DwgContainerWriter21.LargePage, 4);

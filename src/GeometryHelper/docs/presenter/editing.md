@@ -233,7 +233,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 300 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 305 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -242,21 +242,22 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG (Chamfer, Elevation, Fillet, Thickness, Width; Area, Dimensions, Rotation), WIPEOUT (points, Polyline, Frames), SPLINE (Method: Fit, CV; Knots, Degree, Object; start and end Tangency, toLerance, Undo, Close), BLEND (CONtinuity: Tangent, Smooth), ELLIPSE (Arc), POINT, XLINE (Hor, Ver, Ang with Reference, Bisect, Offset with Through), RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT and -MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT and -LAYOUT (Copy, Delete, New, Template, Rename, SAveas, Set, ?), DIVIDE (Block), MEASURE (Block) |
 | shapes and hatching | SOLID, REGION, HATCH, HATCHSETORIGIN, -HATCH (Properties, Select objects, draW boundary, remove Boundaries, Advanced: Boundary set, Retain boundary, Island detection, Style, Associativity, Gap tolerance, separate Hatches; DRaw order, Origin, ANnotative, hatch COlor, LAyer, Transparency, Undo), GRADIENT, HATCHEDIT, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Fit data: Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance; Close, Open, Join, Move vertex, Refine: Add, Delete, Elevate order, Move, Weight; rEverse, convert to Polyline, Undo), CLASSICINSERT |
 | multilines | MLINE (Justification, Scale, STyle; Close, Undo), MLEDIT (CC, OC, MC, CT, OT, MT, CJ, AV, DV, CS, CA, WA; Undo), MLSTYLE (?, Current, New, Modify, Rename, Delete, Load, Save), and the variables CMLJUST, CMLSCALE and CMLSTYLE (see [Multilines](#multilines)) |
-| inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
+| inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea, Quick, Mode) |
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, PStyle, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, LAYMRG and -LAYMRG (Name, Undo), LAYDEL and -LAYDEL (Name, Undo), LAYCUR, COPYTOLAYER and -COPYTOLAYER (?, =, Displacement, eXit), VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, SELECTSIMILAR (SEttings), ADDSELECTED, TEXTSCR, UNITS, -UNITS, SCRIPT, SAVE, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?), QUICKCALC, CAL, QUICKPROPERTIES |
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too; a spline made a polyline within a precision), REVCLOUDPROPERTIES (Arc length), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPATH, ARRAYPOLAR, ARRAYEDIT, -ARRAY, OVERKILL, -OVERKILL, ALIGN, CHANGE (Properties: Color, Elev, LAyer, LType, ltScale, LWeight, Thickness, TRansparency, Material, Annotative), CHPROP (the same less Elev), SETBYLAYER (Settings), REVERSE, CHSPACE, BURST, TXTEXP, and the variable SETBYLAYERMODE |
-| blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a name typed may be a wildcard and every attributed block it matches is synced; what is picked that is no block, or a block with no attribute definitions, refused and another asked for, in the words of AutoCAD's own table of strings; an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, ATTEXT, -ATTEXT (Cdf, Sdf, Dxf, Objects), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK, REFEDIT, -REFEDIT (Ok, Next; All, Nested), REFSET (Add, Remove), REFCLOSE (Save, Discard), and the variables REFEDITNAME and XFADECTL |
+| blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a name typed may be a wildcard and every attributed block it matches is synced; what is picked that is no block, or a block with no attribute definitions, refused and another asked for, in the words of AutoCAD's own table of strings; an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, ATTEXT, -ATTEXT (Cdf, Sdf, Dxf, Objects), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), ATTREDEF, BAUTHORPALETTE, RESETBLOCK, REFEDIT, -REFEDIT (Ok, Next; All, Nested), REFSET (Add, Remove), REFCLOSE (Save, Discard), and the variables REFEDITNAME and XFADECTL |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | annotation | DIMOVERRIDE (Clear overrides), TEXTALIGN (alIgnment, Options, Point), MLEADEREDIT (Remove leaders, Add leaders), MLEADERALIGN (Options), MLEADERCOLLECT (Vertical, Horizontal, Wrap), ATTIPEDIT, SPELL (All, Dictionary), SCALETEXT (Existing, Left, Center, Middle, Right, TL to BR; Paper height, Match object, Scale factor, Reference), JUSTIFYTEXT (Left, Align, Fit, Center, Middle, Right, TL to BR), TXT2MTXT (Settings), ATTDISP (Normal, ON, OFF), FIELD (Height, Justify), UPDATEFIELD (see [Annotation commands](#annotation-commands)) |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT, EXPORT, -EXPORT (Dwf, dwfX, Pdf) ([Plotting](plot.md)) |
 | dimension | DIM (Angular, Baseline, Continue, Ordinate, aliGn, Distribute, Layer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE, DIMCENTER, CENTERMARK, CENTERLINE, -DIMSTYLE (ANnotative, Save, Restore, STatus, Variables, Apply, ?), DIMUPDATE |
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT, TABLEEXPORT |
-| selection | QSELECT, FILTER, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP |
+| selection | QSELECT, FILTER, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP, GROUPEDIT (Name; Add objects, Remove objects, REName) |
 | OLE objects | INSERTOBJ (a bitmap or a PNG, as a static picture), and the variables OLEFRAME, OLEHIDE and OLEQUALITY (see OLE objects below) |
 | metafiles | WMFIN (Basepoint, Scale, X, Y, Z, Rotate, Explode, REpeat), and the variables WMFBKGND and WMFFOREGND (see WMFIN below) |
 | references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), XOPEN, XBIND, -XBIND (Block, Dimstyle, LAyer, LType, Style), -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), IMAGEADJUST, -IMAGEADJUST (Contrast, Fade, Brightness), XCLIP (ON, OFF, Clipdepth, Delete, generate Polyline, New boundary), TRANSPARENCY |
 | housekeeping | PURGE, -PURGE (Blocks, Dimstyles, Groups, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All), RENAME, -RENAME (Block, Dimstyle, LAyer, LType, multileadeRstyle, Style, Tablestyle, Ucs, VIew, VPort) |
+| properties and links | DWGPROPS (the Drawing Properties dialog), HYPERLINK, -HYPERLINK (Remove, Insert: Area, Object) (see [Drawing properties, hyperlinks, GROUPEDIT, ATTREDEF and MEASUREGEOM Quick](#drawing-properties-hyperlinks-groupedit-attredef-and-measuregeom-quick)) |
 
 **Multilines (R2.1).**
 
@@ -2816,6 +2817,72 @@ off only exact duplicates go; with Optimize off polylines are compared whole; Br
 (repeated vertices still go). The dialog has the same settings as boxes (the tolerance, the nine properties and the six
 options) and OK runs the command with them. Polyline arc segments are not compared by their parts, and associative objects
 are kept whatever the setting.
+
+### Drawing properties, hyperlinks, GROUPEDIT, ATTREDEF and MEASUREGEOM Quick
+
+**DWGPROPS** shows AutoCAD 2021's Drawing Properties dialog (the window's `DrawingPropertiesWindow`; with none listening the command
+says `DWGPROPS is shown by the window.`, as AutoCAD has no typed form of it). Its tabs are General (the file: type, location, size
+as `12.50KB (12 800 bytes)`, created, modified and accessed, and the Read-only and Hidden boxes, greyed), Summary (Title, Subject,
+Author, Keywords, Comments, Hyperlink base), Statistics (Created and Modified from `$TDCREATE` and `$TDUPDATE`, Last saved by, Revision
+number, Total editing time from `$TDINDWG` written as `1 hour, 30 minutes`) and Custom (name and value rows, Add and Delete). OK writes
+the Summary tab and the custom properties through `DxfDatabase.SummaryInfo`, one undo step named DWGPROPS: into the header of a drawing
+of R2004 or later (`$TITLE`, `$SUBJECT`, `$AUTHOR`, `$KEYWORDS`, `$COMMENTS`, `$REVISIONNUMBER`, a `$CUSTOMPROPERTYTAG` and a
+`$CUSTOMPROPERTY` for each pair, `$HYPERLINKBASE`), into the DWGPROPS record of an older one; properties the same as the drawing's are
+no step. A custom property with a value and no name, or a name used twice (letters of either case the same), is refused in the
+dialog's footer and the dialog stays open; a row with no name and no value is left out. The dialog's data is a public
+[`CadDrawingPropertiesRequest`](xref:GeometryHelper.Dxf.Viewer.CadDrawingPropertiesRequest); the custom properties are what a FIELD
+of the drawing reads (`DxfDatabase.SummaryInfo.CustomProperties`). A save stamps `$TDUPDATE` and `$TDUUPDATE` with the time and
+`$LASTSAVEDBY` with the login name, each where the header has the variable, as AutoCAD does, so that Statistics shows when and by whom
+it was saved. A DWG of R2004 or later keeps the properties in its `AcDb:SummaryInfo` section, which the writer writes and the reader reads
+as AutoCAD 2021 lays it out (the bytes are checked against files it saved; see [DWG files](../dxf/dwg.md)): they survive a save as DXF
+and as DWG.
+
+**HYPERLINK** asks `Select objects:` (those selected before it are taken) and shows Insert Hyperlink; where an object selected has a
+link it is Edit Hyperlink, which starts from the first link found, OK replaces the links of every object selected with the one made,
+and Remove Link takes all of them out (`1 hyperlink deleted.`). Link to offers Existing File or Web Page (the address, Browse… for a
+file, and the named location in it), View of This Drawing (a view of the drawing, stored as a link with no address and the view as its
+place) and E-mail Address (the address and a subject, stored as `mailto:address?subject=...`); Text to display is what the tooltip
+shows. An address, text or place over 255 characters is refused in AutoCAD's words. The links are the extended data of the application
+PE_URL, as AutoCAD writes them ([`DxfEntity.Hyperlinks`](xref:GeometryHelper.Dxf.DxfEntity.Hyperlinks)). **-HYPERLINK** asks, in the words
+of AutoCAD's own string table, `Enter an option [Remove/Insert] <Insert>:`; Insert asks `Enter hyperlink insert option [Area/Object]
+<Object>:`, then for Object `Select objects:`, `Overwrite existing hyperlinks? [Yes/No] <Yes>:` where an object has one, `Enter hyperlink
+<current drawing>:`, `Enter named location <none>:` and `Enter description <none>:`; Area asks `First corner:` and `Other corner:` and draws the
+rectangle as a closed polyline on the layer URLLAYER (made where there is none; `URLLAYER is frozen.  Thaw URLLAYER to use Insert by
+Area.` or locked) carrying the link. Remove takes every link out of the objects, or, for one object with several, asks `Enter number,
+hyperlink, or * for all:`. With the cursor over an object with a link, no command running, a tooltip shows the link's text and
+`CTRL + click to follow link`; Ctrl+click follows it (`MainViewModel.FollowHyperlink`): a web or mail address, or a file other than a
+drawing, opens with the system's program (`OpenLink`), a DXF or DWG opens in the presenter, a link to a view restores it (-VIEW Restore),
+a file not there says `Hyperlink destination cannot be found.`. A relative path starts from the drawing's hyperlink base, or from its
+folder where that is empty. The Edit shortcut menu of such an object has Hyperlink: Open "text", Copy Hyperlink and Edit Hyperlink…. (The
+hyperlink cursor and HYPERLINKOPTIONS, which turn the tooltip and menu off, are not built, and Add to Favorites is left out.)
+
+**GROUPEDIT** asks `Select group or [Name]:` (an object of the group, or Name and the group by name; an object in no group is told `Object
+is not a member of any group.`), then `Enter an option [Add objects/Remove objects/REName]:` again and again until Enter. Add and Remove ask
+the objects as -GROUP's options do (picked one by one, a group not taken whole); REName asks `Enter a new name for group or [?]:` and the
+options go on with the new name. Each edit is one undo step named GROUPEDIT. The Home tab's Group Edit button and the Group submenu's Add
+to Group and Remove from Group of the Edit shortcut menu start it (the last two with the option ready).
+
+**ATTREDEF**, the Express Tools command, as AutoCAD 2021's own ATTREDEF.LSP does it (run in its console to check): `Enter name of the block
+you wish to redefine:` (`Block "X" is not defined. Please try again.`), `Select objects for new Block...`, `Specify insertion base point of new
+Block:`. The block is defined again from the objects, which are used up as -BLOCK uses them, and each reference of it in the space shown is put
+anew at its point, scale, rotation and normal: an attribute whose tag the new block has keeps its value, a new one is given the default
+of its definition, one the new block lacks is dropped. As AutoCAD's does, the new references are drawn on the current layer, not that of
+the old ones, and what an old reference carried (ATTEDIT's formats, extended data) is left behind; a reference on a locked layer is left
+as it is, and a new block with no attribute that is not constant is refused (`New block has no attributes.`). One undo step.
+
+**MEASUREGEOM Quick** is the option the prompt now offers beside Mode: `Enter an option [Distance/Radius/Angle/ARea/Quick/Mode/eXit]
+<Distance>:`; Quick asks `Move cursor or [Distance/Radius/Angle/ARea/Quick/Mode/eXit] <eXit>:` and draws, as the prompt's preview under
+the cursor, the dimensions of what it is over: a line's length (beside it) with the angle it makes where another line meets it and the
+distance across to a parallel line near on the cursor's side, a circle's or arc's radius, and, over nothing but inside a closed boundary (a
+closed polyline of straight sides or a circle), the width and height through the cursor and the area. A click writes the reading on the
+command line (`Length = 100.0000`, `Angle in XY Plane = 0°`, `Distance = 50.0000`, `Area = 6000.0000`, `Perimeter = 320.0000`);
+another option goes on with that measure, Enter ends. Mode asks `Always default to quick measure behavior? [Yes/No] <No>:`, and Yes makes
+MEASUREGEOM start at Quick. This is a simple version: lines, circles, arcs and the straight sides of lightweight polylines, nothing
+in a block or a viewport, and AutoCAD's Volume option is not offered.
+
+**CLEANSCREENON** and **CLEANSCREENOFF**, and Ctrl+0 (which switches between them), hide the ribbon, Properties and the Drawings list,
+each remembered as it was, and show them again; the command line and the status bar stay. A second CLEANSCREENON keeps what the first
+remembered.
 
 ### Annotation commands
 

@@ -401,6 +401,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         // The tip of the custom grip under the cursor: "Width = 900.00 · snaps 800 / 900 / 1000"; null for none.
         private string _gripTip;
 
+        // The tooltip of the object with a hyperlink the cursor is over, and where the cursor is; null for none.
+        private string _linkTip;
+        private Point _linkTipAt;
+
+        /// <summary>The tooltip shown over the object under the cursor that has a hyperlink; null for none.</summary>
+        internal string LinkTip => _linkTip;
+
         // The hot grips, each the handle of its object and its index there, the one a grip edit starts from first; a grip
         // Shift+clicked turns hot, and a grip edit runs while _gripEditing.
         private readonly List<KeyValuePair<string, int>> _hot = new List<KeyValuePair<string, int>>();
@@ -478,6 +485,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Raised by a double click on an object with no command running: the window edits a text in place, as AutoCAD's double click runs TEXTEDIT.</summary>
         public event EventHandler<CadObjectEventArgs> ObjectDoubleClicked;
+
+        /// <summary>Raised by a Ctrl+click on an object that has a hyperlink with no command running: the window follows the link, as AutoCAD's Ctrl+click does.</summary>
+        public event EventHandler<CadObjectEventArgs> HyperlinkClicked;
+
+        /// <summary>
+        /// Gets or sets what the tooltip over an object with a hyperlink says, given the object's handle: the words of its link and "CTRL + click to follow link" under them; null for an object with none. Null for no tooltips and no Ctrl+click.
+        /// </summary>
+        public Func<string, string> HyperlinkTooltip { get; set; }
 
         /// <summary>
         /// Gets or sets what a click with no command running inside a cell of a table does (the point, whether Shift was held):
@@ -1581,6 +1596,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 DrawPrompt(drawingContext, work, scale);
                 DrawBand(drawingContext, work, scale);
                 DrawCrosshair(drawingContext);
+                DrawLinkTip(drawingContext);
             }
 
             if (_lasso != null && view != null)
@@ -1710,6 +1726,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 CancelGesture();
                 _swallowUp = true;
+                e.Handled = true;
+            }
+            else if (
+                e.ChangedButton == MouseButton.Left
+                && ((KeysHeld?.Invoke() ?? Keyboard.Modifiers) & ModifierKeys.Control) != 0
+                && !IsRunning
+                && HyperlinkClicked != null
+                && HyperlinkTooltip != null
+                && ObjectAt(p) is string linked
+                && HyperlinkTooltip(linked) != null
+            )
+            {
+                // Ctrl+click on an object with a hyperlink follows it, and selects nothing.
+                CancelGesture();
+                _swallowUp = true;
+                HyperlinkClicked(this, new CadObjectEventArgs(linked));
                 e.Handled = true;
             }
             else if (
@@ -2023,6 +2055,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _restAt = null;
             CloseGripMenu();
 
+            if (_linkTip != null)
+            {
+                _linkTip = null;
+                InvalidateVisual();
+            }
+
             if (_mouse.HasValue)
             {
                 _mouse = null;
@@ -2081,6 +2119,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets or sets where a mouse event happened; null for the mouse itself. A test sets it, having no mouse to move.</summary>
         internal Func<MouseEventArgs, Point> Pointer { get; set; }
+
+        /// <summary>The modifier keys held for a Ctrl+click on a hyperlink, which a test sets in the place of the keyboard's; null reads the keyboard.</summary>
+        internal Func<ModifierKeys> KeysHeld { get; set; }
 
         private bool IsRunning => Session != null && Session.IsRunning;
 
@@ -3525,6 +3566,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     );
                 }
 
+                _linkTip = null;
                 SetHover(null);
                 RestartRest(cursor, aperture);
                 InvalidateVisual();
@@ -3552,6 +3594,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             IReadOnlyList<string> found = document.GetPickIndex(WorkSpace).Pick(x, y, pick);
             SetHover(found.Count > 0 ? found[0] : null);
+            string linkTip =
+                (session == null || !session.IsRunning) && found.Count > 0 ? HyperlinkTooltip?.Invoke(found[0]) : null;
+
+            if (linkTip != null || _linkTip != null)
+            {
+                _linkTip = linkTip;
+                _linkTipAt = p;
+                InvalidateVisual();
+            }
 
             if (session != null && session.Prompt != null)
             {
@@ -4987,6 +5038,41 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 dc.DrawRoundedRectangle(GripTipFill, GripTipEdge, box, 2.0, 2.0);
                 dc.DrawText(text, new Point(box.X + 8.0, box.Y + 3.0));
             }
+        }
+
+        /// <summary>The tooltip of an object with a hyperlink, beside the cursor: the words of its link, then "CTRL + click to follow link", as the grip tips are drawn.</summary>
+        private void DrawLinkTip(DrawingContext dc)
+        {
+            if (_linkTip == null)
+            {
+                return;
+            }
+
+            double dip = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+            var text = new FormattedText(
+                _linkTip,
+                CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                GripTipFace,
+                11.0,
+                GripTipInk,
+                dip
+            );
+            var box = new Rect(_linkTipAt.X + 16.0, _linkTipAt.Y + 18.0, text.Width + 16.0, text.Height + 6.0);
+
+            // Kept on the canvas: left of the cursor where it would run off the right, above it where it would run off the bottom.
+            if (box.Right > ActualWidth && _linkTipAt.X - 16.0 - box.Width >= 0.0)
+            {
+                box.X = _linkTipAt.X - 16.0 - box.Width;
+            }
+
+            if (box.Bottom > ActualHeight && _linkTipAt.Y - 18.0 - box.Height >= 0.0)
+            {
+                box.Y = _linkTipAt.Y - 18.0 - box.Height;
+            }
+
+            dc.DrawRoundedRectangle(GripTipFill, GripTipEdge, box, 2.0, 2.0);
+            dc.DrawText(text, new Point(box.X + 8.0, box.Y + 3.0));
         }
 
         /// <summary>

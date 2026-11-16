@@ -67,33 +67,88 @@ namespace GeometryHelper.Dxf.Viewer
             yield break;
         }
 
-        /// <summary>MEASUREGEOM: one measure after another, as DIST, AREA and the radius or angle of what is picked, until eXit.</summary>
+        private static readonly string[] MeasureOptions =
+        {
+            "Distance",
+            "Radius",
+            "Angle",
+            "ARea",
+            "Quick",
+            "Mode",
+            "eXit",
+        };
+
+        /// <summary>
+        /// MEASUREGEOM: one measure after another, as DIST, AREA and the radius or angle of what is picked, until eXit. Quick
+        /// measures under the cursor (<see cref="MeasureQuick"/>); Mode says whether MEASUREGEOM starts there. The Volume option
+        /// of AutoCAD's 3D measuring is not offered.
+        /// </summary>
         private static IEnumerable<CadPrompt> MeasureGeom(CadCommandContext c)
         {
             string offered = "Distance";
+            string choice = c.Remembered(QuickFirstKey, 0.0) != 0.0 ? "Quick" : null;
 
             while (true)
             {
-                yield return CadPrompt.ForKeyword(
-                    "Enter an option",
-                    new[] { "Distance", "Radius", "Angle", "ARea", "eXit" },
-                    offered
-                );
+                if (choice == null)
+                {
+                    yield return CadPrompt.ForKeyword("Enter an option", MeasureOptions, offered);
+                    choice = c.Input.Kind == CadInputKind.Keyword ? c.Input.Text : "eXit";
+                }
+
+                string chosen = choice;
+                choice = null;
                 IEnumerable<CadPrompt> measure;
 
-                if (c.Input.Is("Distance"))
+                if (string.Equals(chosen, "Quick", StringComparison.OrdinalIgnoreCase))
+                {
+                    var next = new Ref<string>();
+
+                    foreach (CadPrompt prompt in MeasureQuick(c, next))
+                    {
+                        yield return prompt;
+                    }
+
+                    if (next.Value == null)
+                    {
+                        yield break;
+                    }
+
+                    choice = next.Value;
+                    offered = "eXit";
+                    continue;
+                }
+
+                if (string.Equals(chosen, "Mode", StringComparison.OrdinalIgnoreCase))
+                {
+                    yield return CadPrompt.ForKeyword(
+                        "Always default to quick measure behavior?",
+                        new[] { "Yes", "No" },
+                        c.Remembered(QuickFirstKey, 0.0) != 0.0 ? "Yes" : "No"
+                    );
+
+                    if (c.Input.Kind == CadInputKind.Keyword)
+                    {
+                        c.Remember(QuickFirstKey, c.Input.Is("Yes") ? 1.0 : 0.0);
+                    }
+
+                    offered = "Mode";
+                    continue;
+                }
+
+                if (string.Equals(chosen, "Distance", StringComparison.OrdinalIgnoreCase))
                 {
                     measure = Dist(c);
                 }
-                else if (c.Input.Is("Radius"))
+                else if (string.Equals(chosen, "Radius", StringComparison.OrdinalIgnoreCase))
                 {
                     measure = MeasureRadius(c);
                 }
-                else if (c.Input.Is("Angle"))
+                else if (string.Equals(chosen, "Angle", StringComparison.OrdinalIgnoreCase))
                 {
                     measure = MeasureAngle(c);
                 }
-                else if (c.Input.Is("ARea"))
+                else if (string.Equals(chosen, "ARea", StringComparison.OrdinalIgnoreCase))
                 {
                     measure = Area(c);
                 }
@@ -108,6 +163,64 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 offered = "eXit";
+            }
+        }
+
+        // Whether MEASUREGEOM starts with Quick, as its Mode option sets (Always default to quick measure behavior).
+        private const string QuickFirstKey = "measuregeom.quick";
+
+        /// <summary>
+        /// MEASUREGEOM Quick: "Move cursor or [Distance/Radius/Angle/ARea/Quick/Mode/eXit] &lt;eXit&gt;:", the dimensions of what the
+        /// cursor is over drawn beside it (<see cref="CadQuickMeasure"/>) and, at a click, written on the command line: the
+        /// length and angle of a line, the radius of a circle, the distance to a parallel line near, the area and perimeter of the
+        /// boundary the cursor is in. Enter or eXit ends MEASUREGEOM; another option goes on with that measure, named in
+        /// <paramref name="next"/>.
+        /// </summary>
+        private static IEnumerable<CadPrompt> MeasureQuick(CadCommandContext c, Ref<string> next)
+        {
+            Func<double, string> angle = a => Degrees(c, c.Session.CountAngle(a)) + "°";
+
+            while (true)
+            {
+                double pixel = Math.Max(1E-9, c.Session.SnapAperture / 10.0);
+                CadPrompt prompt = CadPrompt
+                    .ForPoint("Move cursor", null, MeasureOptions, "eXit")
+                    .Previewing(CadPreview.Making(c, input =>
+                        {
+                            CadQuickMeasure.Reading reading = CadQuickMeasure.Read(
+                                c.Document,
+                                input.Point,
+                                pixel,
+                                angle
+                            );
+                            return CadQuickMeasure.Entities(reading, 12.0 * pixel);
+                        }));
+                yield return prompt;
+
+                if (c.Input.IsPoint)
+                {
+                    CadQuickMeasure.Reading reading = CadQuickMeasure.Read(c.Document, c.Input.Point, pixel, angle);
+
+                    foreach (string line in reading.Report)
+                    {
+                        c.Write(line);
+                    }
+
+                    continue;
+                }
+
+                if (c.Input.Kind != CadInputKind.Keyword || c.Input.Is("eXit"))
+                {
+                    yield break;
+                }
+
+                if (c.Input.Is("Quick"))
+                {
+                    continue;
+                }
+
+                next.Value = c.Input.Text;
+                yield break;
             }
         }
 

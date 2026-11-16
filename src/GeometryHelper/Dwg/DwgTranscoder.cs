@@ -1191,9 +1191,59 @@ namespace GeometryHelper.Dwg
                 {
                     _dxf.WriteValue(code, value);
                 }
+
+                // The properties of a drawing of R2004 or later follow the code page, as AutoCAD writes them.
+                if (name == "DWGCODEPAGE")
+                {
+                    WriteSummaryInfo();
+                }
             }
 
             _dxf.Write(0, "ENDSEC");
+        }
+
+        /// <summary>
+        /// The properties the section <c>AcDb:SummaryInfo</c> holds, as the variables of the header AutoCAD writes them in:
+        /// <c>$TITLE</c>, <c>$SUBJECT</c>, <c>$AUTHOR</c>, <c>$KEYWORDS</c>, <c>$COMMENTS</c>, <c>$LASTSAVEDBY</c> and
+        /// <c>$REVISIONNUMBER</c>, each where it is not empty, then a <c>$CUSTOMPROPERTYTAG</c> and a <c>$CUSTOMPROPERTY</c> for
+        /// each custom property. The base of the hyperlinks is the header's own <c>$HYPERLINKBASE</c>.
+        /// </summary>
+        private void WriteSummaryInfo()
+        {
+            DwgSummaryInfo.Fields fields = DwgSummaryInfo.Read(_container.SummaryInfo, _version >= 1021);
+
+            if (fields == null)
+            {
+                return;
+            }
+
+            string[] names =
+            {
+                "$TITLE",
+                "$SUBJECT",
+                "$AUTHOR",
+                "$KEYWORDS",
+                "$COMMENTS",
+                "$LASTSAVEDBY",
+                "$REVISIONNUMBER",
+            };
+
+            for (int i = 0; i < names.Length; i++)
+            {
+                if (fields.Texts[i].Length > 0)
+                {
+                    _dxf.Write(9, names[i]);
+                    _dxf.Write(1, fields.Texts[i]);
+                }
+            }
+
+            foreach (KeyValuePair<byte[], byte[]> property in fields.Custom)
+            {
+                _dxf.Write(9, "$CUSTOMPROPERTYTAG");
+                _dxf.Write(1, property.Key);
+                _dxf.Write(9, "$CUSTOMPROPERTY");
+                _dxf.Write(1, property.Value);
+            }
         }
 
         private void WriteClasses()

@@ -198,6 +198,9 @@ namespace GeometryHelper.Dwg
         /// <summary>The preview image of the file with its sentinels (<see cref="DwgPreview"/>); null where the file has none or it is broken, which the file does not hang on.</summary>
         public byte[] Preview { get; private set; }
 
+        /// <summary>The data of the <c>AcDb:SummaryInfo</c> section, where the file has one that is whole (R2004 and later); null where it has none or it is broken, which the file does not hang on.</summary>
+        public byte[] SummaryInfo { get; private set; }
+
         /// <summary>
         /// The version string of a file, its first six bytes, where they are those of a DWG (<c>AC</c> and four digits or
         /// such); null where the bytes are not the start of a DWG.

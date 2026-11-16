@@ -7,7 +7,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>
     /// The canvas's right-click menus, as AutoCAD 2021's with its default SHORTCUTMENU 11: the Default, Edit, Command and
     /// Grips menus of its menu file, their items in its order with its access keys, each mapped to the presenter's own command;
-    /// an item the presenter does not build is grey, with "Not built yet." (SteeringWheels, Action Recorder, Convert PS to MS and the Add to Group items), and the 3D ones (Subobject Selection Filter, 3D
+    /// an item the presenter does not build is grey, with "Not built yet." (SteeringWheels, Action Recorder and Convert PS to MS), and the 3D ones (Subobject Selection Filter, 3D
     /// Osnap) are left out.
     /// </summary>
     public sealed partial class MainViewModel
@@ -115,6 +115,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 items.Add(CadMenuItemViewModel.Separator());
             }
 
+            // The hyperlink of an object selected has its own menu, before the clipboard's, as AutoCAD's shows it.
+            CadMenuItemViewModel hyperlink = HyperlinkMenu();
+
+            if (hyperlink != null)
+            {
+                items.Add(hyperlink);
+                items.Add(CadMenuItemViewModel.Separator());
+            }
+
             items.Add(ClipboardMenu());
             items.Add(CadMenuItemViewModel.Separator());
             items.Add(IsolateMenu());
@@ -146,8 +155,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     {
                         MenuCommand("Group", "GROUP"),
                         MenuCommand("Ungroup", "UNGROUP"),
-                        NotBuilt("Add to Group"),
-                        NotBuilt("Remove from Group"),
+                        GroupEditItem("Add to Group", "Add"),
+                        GroupEditItem("Remove from Group", "Remove"),
                     }
                 )
             );
@@ -292,6 +301,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             HasCommand("DRAWORDER")
                 ? new CadMenuItemViewModel(header, () => StartCommandWithOption("DRAWORDER " + option), accessKey: key)
                 : NotBuilt(header, key);
+
+        /// <summary>An item of Group that starts GROUPEDIT with an option ready for its "Enter an option" prompt: the group is picked, then Add objects or Remove objects asks its objects.</summary>
+        private CadMenuItemViewModel GroupEditItem(string header, string option) =>
+            HasCommand("GROUPEDIT")
+                ? new CadMenuItemViewModel(header, () => StartCommandWithOption("GROUPEDIT " + option))
+                : NotBuilt(header);
 
         /// <summary>An item that starts a command of the drawing shown; grey where it has no such command.</summary>
         private CadMenuItemViewModel MenuCommand(string header, string command, char key = '\0') =>
