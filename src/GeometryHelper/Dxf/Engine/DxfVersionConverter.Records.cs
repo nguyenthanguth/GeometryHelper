@@ -118,6 +118,10 @@ namespace GeometryHelper.Dxf
                     {
                         ActionDown(record);
                     }
+                    else
+                    {
+                        ActionUp(record);
+                    }
 
                     break;
                 case "BLOCK_RECORD":

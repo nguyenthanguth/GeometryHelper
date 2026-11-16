@@ -413,6 +413,21 @@ namespace GeometryHelper.Dwg
                     }
 
                     break;
+                case "AcConstrainedEllipse":
+                case "AcConstrainedBoundedEllipse":
+                    H(4, DwgRecord.Hex(Take(groups, ref at, 330, "0")));
+                    _data.BitLong(Whole(groups, ref at, 90));
+                    _data.Point3(Point(groups, ref at, 10));
+                    _data.Point3(Point(groups, ref at, 11));
+                    _data.BitDouble(Real(groups, ref at, 40));
+
+                    if (kind == "AcConstrainedBoundedEllipse")
+                    {
+                        _data.Point3(Point(groups, ref at, 10));
+                        _data.Point3(Point(groups, ref at, 11));
+                    }
+
+                    break;
                 case "AcConstrainedDatumLine":
                 case "AcConstrained2PointsConstructionLine":
                     H(4, DwgRecord.Hex(Take(groups, ref at, 330, "0")));

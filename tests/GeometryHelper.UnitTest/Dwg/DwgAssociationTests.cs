@@ -705,5 +705,136 @@ namespace GeometryHelper.UnitTest.Dwg
                     .Select(g => g.Value.Trim())
             );
         }
+
+        #region An ellipse, a bounded ellipse and a concentric constraint
+
+        /// <summary>A node holding the same numbers whichever layout, and the same groups past its byte.</summary>
+        private const string EllipseFields = "330=F303|90=0|10=700.0|20=0.0|30=0.0|11=20.0|21=0.0|31=0.0|40=0.5";
+
+        private const string BoundedEllipseFields =
+            "330=0|90=0|10=800.0|20=0.0|30=0.0|11=20.0|21=5.0|31=0.0|40=0.4"
+            + "|10=814.5|20=8.8|30=0.0|11=795.3|21=-9.2|31=0.0";
+
+        private const string ConcentricFields = "90=0|290=0|290=1";
+
+        /// <summary>
+        /// The group of <see cref="Group2"/> with an ellipse (6), a bounded ellipse (7) and a concentric constraint of the two
+        /// (8) after its five nodes: the layouts of AutoCAD 2021's own DXF of a group holding them, with numbers made up here.
+        /// </summary>
+        private static string GroupOfEllipses2(string dictionary) =>
+            Group2(dictionary)
+                .Replace(Lines("90=8|90=0|90=0|290=0|90=5"), Lines("90=12|90=0|90=0|290=0|90=8"))
+                .Replace(
+                    Lines("1=AcDistanceConstraint|90=4|1=AcFixedConstraint|90=5"),
+                    Lines(
+                        "1=AcDistanceConstraint|90=4|1=AcFixedConstraint|90=5|1=AcConstrainedEllipse|90=6"
+                            + "|1=AcConstrainedBoundedEllipse|90=7|1=AcConcentricConstraint|90=8"
+                    )
+                )
+                .Replace(
+                    Lines("90=5|90=1|90=1|70=0|90=0|290=0|290=1"),
+                    Lines(
+                        "90=5|90=1|90=1|70=0|90=0|290=0|290=1"
+                            + "|90=6|90=1|90=8|70=0|"
+                            + EllipseFields
+                            + "|90=7|90=1|90=8|70=0|"
+                            + BoundedEllipseFields
+                            + "|90=8|90=2|90=6|90=7|70=4|"
+                            + ConcentricFields
+                    )
+                );
+
+        /// <summary>The same group in the first layout, by identifier with the class of each node and its group.</summary>
+        private static string GroupOfEllipses1(string dictionary) =>
+            Group(dictionary)
+                .Replace(Lines("90=8|90=5"), Lines("90=12|90=8"))
+                .Replace(
+                    Lines("1=AcFixedConstraint|330=F301|90=5|70=0|90=1|90=1|90=0|290=0|290=1"),
+                    Lines(
+                        "1=AcFixedConstraint|330=F301|90=5|70=0|90=1|90=1|90=0|290=0|290=1"
+                            + "|1=AcConstrainedEllipse|330=F301|90=6|70=0|90=1|90=8|"
+                            + EllipseFields
+                            + "|1=AcConstrainedBoundedEllipse|330=F301|90=7|70=0|90=1|90=8|"
+                            + BoundedEllipseFields
+                            + "|1=AcConcentricConstraint|330=F301|90=8|70=4|90=2|90=6|90=7|"
+                            + ConcentricFields
+                    )
+                );
+
+        [Fact]
+        public void ADwgOfR2010_IsReadAsTheDxfOfR2010_AndSavedAsR2018InTheSecondLayout()
+        {
+            // The text a DWG of R2010 reads as names R2010 (AC1024) and holds the first layout, so that it matches its header; saved
+            // as R2018 it holds the second under the header of R2018, and saved as R2010 again it stays as it is.
+            string text = Drawing(Group, out _);
+            byte[] dwg = DwgFileWriter.Write(DwgDrawing.Parse(text, null), "AC1024", out _);
+            byte[] dxf = DwgReader.ToDxf(dwg);
+
+            Assert.Equal("AC1024", VersionNamed(dxf));
+            Assert.Equal(4, Kept(1024, text, dxf, "F300", "F301", "F302", "F303"));
+
+            using (var stream = new System.IO.MemoryStream(dwg, false))
+            using (var up = new System.IO.MemoryStream())
+            using (var same = new System.IO.MemoryStream())
+            {
+                DxfDatabase db = DwgReader.Open(stream);
+                db.Save(up, "AC1032");
+                db.Save(same, "AC1024");
+
+                Assert.Equal("AC1032", VersionNamed(up.ToArray()));
+                Assert.Equal(1, Kept(Drawing(Group2, out _), up.ToArray(), "F301"));
+                Assert.Equal("AC1024", VersionNamed(same.ToArray()));
+                Assert.Equal(4, Kept(1024, text, same.ToArray(), "F300", "F301", "F302", "F303"));
+            }
+        }
+
+        /// <summary>The version a DXF names in its header (the value after <c>$ACADVER</c>).</summary>
+        private static string VersionNamed(byte[] dxf)
+        {
+            string[] lines = Encoding.UTF8.GetString(dxf).Replace("\r\n", "\n").Split('\n');
+            return lines[Array.IndexOf(lines, "$ACADVER") + 2].Trim();
+        }
+
+        [Fact]
+        public void AnEllipseABoundedEllipseAndAConcentricConstraint_AreWrittenToR2018AndReadBackEqual()
+        {
+            string text = Drawing(GroupOfEllipses2, out _);
+            byte[] dwg = DwgWriter.ToDwg(text, "AC1032", out IDictionary<string, int> leftOut);
+
+            Assert.DoesNotContain(leftOut.Keys, Dynamic);
+            Assert.Equal(4, Kept(text, DwgReader.ToDxf(dwg), "F300", "F301", "F302", "F303"));
+        }
+
+        [Fact]
+        public void AnEllipseABoundedEllipseAndAConcentricConstraint_AreWrittenToR2013AndReadBackEqual()
+        {
+            string text = Drawing(GroupOfEllipses2, out _);
+            byte[] dwg = DwgFileWriter.Write(DwgDrawing.Parse(text, null), "AC1027", out DwgFileWriter writer);
+
+            Assert.DoesNotContain(writer.LeftOut.Keys, Dynamic);
+            Assert.Equal(4, Kept(1027, text, DwgReader.ToDxf(dwg), "F300", "F301", "F302", "F303"));
+        }
+
+        [Fact]
+        public void AnEllipseABoundedEllipseAndAConcentricConstraint_AreWrittenToR2010AndReadBackEqual()
+        {
+            // The layout of AutoCAD 2010 holds them as the second does: the same groups past the byte of each node.
+            string text = Drawing(GroupOfEllipses1, out _);
+            byte[] dwg = DwgFileWriter.Write(DwgDrawing.Parse(text, null), "AC1024", out DwgFileWriter writer);
+
+            Assert.DoesNotContain(writer.LeftOut.Keys, Dynamic);
+            Assert.Equal(4, Kept(1024, text, DwgReader.ToDxf(dwg), "F300", "F301", "F302", "F303"));
+        }
+
+        [Fact]
+        public void AGroupOfTheFirstVersionHoldingAnEllipse_IsWrittenToR2018AsTheSecond()
+        {
+            string text = Drawing(GroupOfEllipses1, out _);
+            byte[] back = DwgReader.ToDxf(DwgWriter.ToDwg(text, "AC1032"));
+
+            Assert.Equal(1, Kept(Drawing(GroupOfEllipses2, out _), back, "F301"));
+        }
+
+        #endregion
     }
 }

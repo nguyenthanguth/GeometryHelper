@@ -180,7 +180,7 @@ BLOCKRADIALCONSTRAINTPARAMETER), a user parameter (BLOCKUSERPARAMETER), a proper
 BLOCKPROPERTIESTABLEGRIP) and the proxy node of the graph (ACDB_DYNAMICBLOCKPROXYNODE), and lean on the associative network
 of the block: the networks (ACDBASSOCNETWORK), the variables (ACDBASSOCVARIABLE), the dependencies (ACDBASSOCDEPENDENCY,
 ACDBASSOCGEOMDEPENDENCY, ACDBASSOCVALUEDEPENDENCY) with their bodies (ASSOCDIMDEPENDENCYBODY, BLOCKPARAMDEPENDENCYBODY) and
-the groups of 2D constraints (ACDBASSOC2DCONSTRAINTGROUP, with the 22 classes of node of the samples: points, lines, arcs,
+the groups of 2D constraints (ACDBASSOC2DCONSTRAINTGROUP, with the 22 classes of node of the samples and the three more of a group of two concentric curves and an ellipse: points, lines, arcs, ellipses,
 circles and the constraints between them). No source gives their layouts; each was read from AutoCAD 2021's own DWG bytes
 against its DXF of the same drawing. All 18 graphs are read from a DWG of AutoCAD 2010, which is how the samples are saved:
 the 1 789 objects of these types equal AutoCAD's DXF group for group, but for the order of what a group owns (the actions of
@@ -684,8 +684,7 @@ The DXF save of R2010 and R2007 (`db.Save(path, "AC1024")` and `"AC1021"`, and e
 down to that layout too, the converter doing what the writer did: the actions of the network, the variables and the groups at
 version 1 without their four numbers more, and the nodes of a group by identifier with their class, their group (the handle of
 the group), their identifier and byte, the identifiers they name and what their class holds, a circle and an arc with three reals.
-A group whose node is of a class the library does not know (`AcConcentricConstraint`, `AcConstrainedEllipse`, `AcConstrainedBoundedEllipse`,
-which a constraint of two curves concentric and an ellipse give) is left in the layout it has, which AutoCAD does not read in a
+A group in the layout of R2018 is no drawing to AutoCAD in a
 file of R2010 (`ACDBASSOC2DCONSTRAINTGROUP ... Premature end of object`, the drawing discarded: the DXF saves of the 8 samples
 with groups were refused so before, and open as AutoCAD's own DXF of R2010 does now, with `AUDIT` finding 0, 2, 10 and 0 errors in
 Architectural - Metric, Civil - Imperial, Mechanical - Metric and Structural - Imperial, in R2010 and in R2007). Of the 3 204 dynamic
@@ -695,6 +694,33 @@ than in that of R2018 (its DXF of R2007 lists them as that of R2018 does). The c
 turned the other way and one through the zero angle, a circle with a thickness; fixed, tangent, concentric, of equal radius
 and solved): the fourth real of the second layout stayed 0 in each of the 21 and in the 34 groups of the samples, and an ellipse
 holds its ratio, 0.5 and 0.4, in a place of its own, so nothing was found where the first layout keeps the fourth real.
+
+The same going up: a DXF of R2010 or R2007 saved as R2013 or R2018 (`Save(path, "AC1027")`, `"AC1032"`) has each action at version 1
+brought to version 2 with its four numbers 0, and a group of constraints given the layout of R2018: past the next identifier two
+numbers and a flag (all 0), the count, a directory of every node as class and identifier by identifier, then the nodes without their
+class, each with its identifier, the identifiers it names, its byte and what its class holds, a circle and an arc with a fourth
+real of 0 after their three. AutoCAD 2021 refused the file the converter gave before (`Premature end of object`, `ErrorStatus` 53), as it
+refused R2018 in R2010, 4 of the 4 tried. The 13 DXF files of R2010 that AutoCAD writes of the sample drawings, saved as R2018 and as
+R2013, and the 13 of R2007 saved as R2018 (39 files), open in AutoCAD with `AUDIT` finding the errors of its own DWG of R2010 of each (0, 2,
+10 and 0 in Architectural - Metric, Civil - Imperial, Mechanical - Metric and Structural - Imperial, 24 and 32 in the Annotation and Electrical
+drawings), and 3 196 of the 3 204 dynamic objects of the 13 drawings equal AutoCAD's DXF of R2018 of its own DWG of R2010 of each, group for
+group and in order; the other 8 are the stretch actions of Mechanical - Imperial, whose entities AutoCAD's two DXF files list in another order (the
+converter gives the order of the file it is given). A text goes up where its actions say version 1, not by its header: an action at version 2
+is left as it is, and a drawing saved in its own version is written byte for byte, as before. A DWG read from a file of R2010 names R2010
+in its header and holds the first layout (a DWG of R2007 names R2007), so that the text matches its header; saved as R2018 it holds the
+second under the header of R2018, and saved as R2010 again it is the text it was.
+
+A concentric constraint (`AcConcentricConstraint`), an ellipse (`AcConstrainedEllipse`) and an ellipse with its end points
+(`AcConstrainedBoundedEllipse`) are known as the other nodes are, in the DXF and in the DWG. A concentric constraint holds what a tangent one
+does (a number and two flags). An ellipse holds, past its pointer and a number, its centre (10), its major axis (11) and its ratio (40), and a
+bounded one its two end points (10 and 11) after them; the first layout and the second hold the same, with no fourth real. Two drawings
+made through AutoCAD's API hold them: seven circles and arcs with tangent, concentric and equal radius constraints, and a second with an ellipse, an
+elliptical arc and a line. The group of each, read from the DWG of R2018, R2010 and R2007, is AutoCAD's own DXF group for group (before, the
+reader left it out as broken), and written again, the group of the DWG of R2018 and of R2010 of each is AutoCAD's own bytes (its class number
+apart). The DXF of each saved as R2010 and R2007, and the DXF of R2010 and R2007 saved as R2018 and R2013, equal AutoCAD's own DXF of each version
+group for group; AutoCAD opens the 18 files made, with `AUDIT` finding the errors of its own file (4 in the first drawing, from the constraints
+set, none in the second), and refused the two DXF files of R2010 the converter gave before. A group with a node of another class is left in the
+layout it has.
 
 A REGION, 3DSOLID or BODY of a DWG of R2000 is written with its SAT, the text of ACIS 4.00, in the entity, as AutoCAD 2000's file
 keeps it: the flag of not empty, a bit AutoCAD 2000 sets to 1 where the later versions leave it at 0, the version 1, the text in

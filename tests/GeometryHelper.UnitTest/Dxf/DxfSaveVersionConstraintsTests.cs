@@ -282,5 +282,183 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Equal(fromR2018, fromR2010);
         }
+
+        #region Going up
+
+        [Fact]
+        public void ANetworkAndAVariableOfR2010_SavedAsR2018_HoldTheSecondVersionOfAnAction()
+        {
+            // The version 2: the four numbers after the three, all 0, as AutoCAD 2021 writes a drawing of R2010 as R2018.
+            string text = File("AC1024", Network("1", "F201", "F202"), Variable("1"), Group1());
+
+            foreach (string version in new[] { "AC1027", "AC1032" })
+            {
+                string saved = As(text, version);
+
+                Assert.Equal(Show(Groups(R2018(Network("2", "F201", "F202")), "F200")), Show(Groups(saved, "F200")));
+                Assert.Equal(Show(Groups(R2018(Variable("2")), "F202")), Show(Groups(saved, "F202")));
+            }
+        }
+
+        [Fact]
+        public void ANetworkAndAVariableOfR2007_SavedAsR2018_HoldTheSecondVersionOfAnAction()
+        {
+            string saved = As(File("AC1021", Network("1", "F201", "F202"), Variable("1"), Group1()), "AC1032");
+
+            Assert.Equal(Show(Groups(R2018(Variable("2")), "F202")), Show(Groups(saved, "F202")));
+        }
+
+        [Fact]
+        public void AConstraintGroupOfR2010_SavedAsR2018_IsInTheSecondLayout()
+        {
+            // The group of the smallest of AutoCAD's samples, as AutoCAD 2021's DXF of the drawing of R2010 as R2018 has it: a
+            // directory of the classes and identifiers, two numbers and a flag of 0 before it, then the nodes without their class.
+            string text = File("AC1024", Network("1", "F201", "F202"), Variable("1"), Group1());
+
+            foreach (string version in new[] { "AC1027", "AC1032" })
+            {
+                Assert.Equal(Show(Groups(R2018(Group2()), "F201")), Show(Groups(As(text, version), "F201")));
+            }
+        }
+
+        [Fact]
+        public void AConstraintGroupOfR2007_SavedAsR2018_IsInTheSecondLayout()
+        {
+            string saved = As(File("AC1021", Network("1", "F201", "F202"), Variable("1"), Group1()), "AC1032");
+
+            Assert.Equal(Show(Groups(R2018(Group2()), "F201")), Show(Groups(saved, "F201")));
+        }
+
+        [Fact]
+        public void AConstraintGroupOfR2018_TakenDownToR2010AndUpAgain_IsTheGroupItWas()
+        {
+            string text = R2018(Network("2", "F201", "F202"), Variable("2"), Group2());
+            string again = As(As(text, "AC1024"), "AC1032");
+
+            Assert.Equal(Show(Groups(text, "F201")), Show(Groups(again, "F201")));
+            Assert.Equal(Show(Groups(text, "F200")), Show(Groups(again, "F200")));
+            Assert.Equal(Show(Groups(text, "F202")), Show(Groups(again, "F202")));
+        }
+
+        [Fact]
+        public void ACircleOfAConstraintGroupOfR2010_GainsAFourthRealOfZeroWhenSavedAsR2018()
+        {
+            string circle1 =
+                "1=AcConstrainedCircle|330=F201|90=1|70=0|90=1|90=3|330=F203|90=0"
+                + "|10=1.0|20=2.0|30=0.0|10=0.0|20=0.0|30=1.0|10=1.0|20=0.0|30=0.0|40=25.4|40=0.0|40=6.28";
+            string text = File(
+                "AC1024",
+                Network("1", "F201", "F202"),
+                Variable("1"),
+                Group1(circle1 + "|" + ImplicitPoint1 + "|" + Distance1)
+            );
+            List<KeyValuePair<int, string>> group = Groups(As(text, "AC1032"), "F201");
+
+            Assert.Equal(new[] { "25.4", "0.0", "6.28", "0.0" }, group.Where(g => g.Key == 40).Select(g => g.Value));
+        }
+
+        [Fact]
+        public void AnArcOfAConstraintGroupOfR2010_GainsAFourthRealBeforeItsTwoEndPoints()
+        {
+            string arc1 =
+                "1=AcConstrainedArc|330=F201|90=1|70=0|90=1|90=3|330=F203|90=0"
+                + "|10=1.0|20=2.0|30=0.0|10=0.0|20=0.0|30=1.0|10=1.0|20=0.0|30=0.0|40=25.4|40=0.5|40=2.5"
+                + "|10=26.4|20=2.0|30=0.0|11=1.0|21=27.4|31=0.0";
+            string text = File(
+                "AC1024",
+                Network("1", "F201", "F202"),
+                Variable("1"),
+                Group1(arc1 + "|" + ImplicitPoint1 + "|" + Distance1)
+            );
+            string body = Show(Groups(As(text, "AC1032"), "F201"));
+
+            Assert.Contains("|40=25.4|40=0.5|40=2.5|40=0.0|10=26.4|20=2.0|30=0.0|11=1.0|21=27.4|31=0.0|", body);
+        }
+
+        [Fact]
+        public void TheNodesOfAConstraintGroupOfR2010_AreSavedAsR2018ByIdentifier()
+        {
+            // The nodes given the wrong way round come out by identifier, in the directory and the bodies.
+            string text = File(
+                "AC1024",
+                Network("1", "F201", "F202"),
+                Variable("1"),
+                Group1(Distance1 + "|" + ImplicitPoint1 + "|" + BoundedLine1)
+            );
+
+            Assert.Equal(Show(Groups(R2018(Group2()), "F201")), Show(Groups(As(text, "AC1032"), "F201")));
+        }
+
+        [Fact]
+        public void AConstraintGroupOfANodeNotKnown_IsLeftAsItIsWhenSavedAsR2018()
+        {
+            string text = File(
+                "AC1024",
+                Network("1", "F201", "F202"),
+                Variable("1"),
+                Group1(BoundedLine1 + "|1=AcMysteryConstraint|330=F201|90=2|70=0|90=0")
+            );
+            string saved = As(text, "AC1032");
+
+            Assert.Equal(Show(Groups(text, "F201")), Show(Groups(saved, "F201")));
+        }
+
+        // An ellipse, a bounded ellipse and a concentric constraint, which AutoCAD 2021 holds past the byte of a node in the groups
+        // of both layouts alike (the numbers are made up here).
+        private const string EllipseFields = "330=F203|90=0|10=700.0|20=0.0|30=0.0|11=20.0|21=0.0|31=0.0|40=0.5";
+
+        private const string BoundedEllipseFields =
+            "330=0|90=0|10=800.0|20=0.0|30=0.0|11=20.0|21=5.0|31=0.0|40=0.4"
+            + "|10=814.5|20=8.8|30=0.0|11=795.3|21=-9.2|31=0.0";
+
+        private const string ConcentricFields = "90=0|290=0|290=1";
+
+        private static readonly string EllipsesNodes1 =
+            "1=AcConstrainedEllipse|330=F201|90=1|70=0|90=1|90=4|"
+            + EllipseFields
+            + "|1=AcConstrainedBoundedEllipse|330=F201|90=2|70=0|90=1|90=4|"
+            + BoundedEllipseFields
+            + "|1=AcConcentricConstraint|330=F201|90=4|70=4|90=2|90=1|90=2|"
+            + ConcentricFields;
+
+        private static string EllipsesGroup2() =>
+            Group2(
+                "1=AcConstrainedEllipse|90=1|1=AcConstrainedBoundedEllipse|90=2|1=AcConcentricConstraint|90=4",
+                "90=1|90=1|90=4|70=0|"
+                    + EllipseFields
+                    + "|90=2|90=1|90=4|70=0|"
+                    + BoundedEllipseFields
+                    + "|90=4|90=2|90=1|90=2|70=4|"
+                    + ConcentricFields
+            );
+
+        [Fact]
+        public void AnEllipseABoundedEllipseAndAConcentricConstraintOfR2018_AreInTheFirstLayoutWhenSavedAsR2010()
+        {
+            string saved = As(R2018(Network("2", "F201", "F202"), Variable("2"), EllipsesGroup2()), "AC1024");
+
+            Assert.Equal(Show(Groups(File("AC1024", Group1(EllipsesNodes1)), "F201")), Show(Groups(saved, "F201")));
+        }
+
+        [Fact]
+        public void AnEllipseABoundedEllipseAndAConcentricConstraintOfR2010_AreInTheSecondLayoutWhenSavedAsR2018()
+        {
+            string text = File("AC1024", Network("1", "F201", "F202"), Variable("1"), Group1(EllipsesNodes1));
+
+            Assert.Equal(Show(Groups(R2018(EllipsesGroup2()), "F201")), Show(Groups(As(text, "AC1032"), "F201")));
+        }
+
+        [Fact]
+        public void AConstraintGroupOfR2010_SavedAsR2018_IsWrittenToADwgOfR2018TheSameAsTheGroupOfR2018()
+        {
+            // The DWG path reads the text the converter gives, and writes the bytes it wrote from the text of R2018.
+            string text = R2018(Network("2", "F201", "F202"), Variable("2"), Group2());
+            byte[] fromR2018 = DwgWriter.ToDwg(text, "AC1032");
+            byte[] fromR2010 = DwgWriter.ToDwg(As(As(text, "AC1024"), "AC1032"), "AC1032");
+
+            Assert.Equal(fromR2018, fromR2010);
+        }
+
+        #endregion
     }
 }
