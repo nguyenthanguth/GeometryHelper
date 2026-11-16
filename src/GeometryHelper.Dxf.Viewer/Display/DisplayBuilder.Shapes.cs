@@ -640,10 +640,31 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
 
-                list.Add(new DisplayFill2(new[] { ring.ToArray() }, false, style, handle, layer));
+                AddFilled(list, new[] { ring.ToArray() }, style, handle, layer);
             }
 
             return true;
+        }
+
+        /// <summary>Adds the rings of a wide polyline or a solid or gradient hatch: filled, or drawn by their outlines where FILLMODE is 0.</summary>
+        private void AddFilled(
+            DisplayList2 list,
+            IReadOnlyList<double[]> rings,
+            DisplayStyle style,
+            string handle,
+            string layer
+        )
+        {
+            if (_fill)
+            {
+                list.Add(new DisplayFill2(rings, false, style, handle, layer));
+                return;
+            }
+
+            foreach (double[] ring in rings)
+            {
+                list.Add(new DisplayPolyline2(ring, true, style, handle, layer));
+            }
         }
 
         private static void Ring(List<double> ring, Affine2 m, double x, double y)

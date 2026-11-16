@@ -201,7 +201,37 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     v => ChangeSettings(s => s.ShortcutMenu = v)
                 )
             );
+
+            // SAVETIME and ZOOMFACTOR: Global settings' autosave interval and wheel zoom step, as AutoCAD keeps them for the user.
+            registry.AddVariable(
+                CadSystemVariable.Integer(
+                    "SAVETIME",
+                    0,
+                    600,
+                    () => _settings.AutosaveMinutes,
+                    v => ChangeSettings(s => s.AutosaveMinutes = Math.Min(v, MaxAutosaveMinutes))
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Integer(
+                    "ZOOMFACTOR",
+                    3,
+                    100,
+                    () =>
+                        Math.Max(
+                            3,
+                            Math.Min(100, (int)Math.Round((_settings.WheelZoomFactor - 1.0) * WheelStepsPerFactor))
+                        ),
+                    v => ChangeSettings(s => s.WheelZoomFactor = 1.0 + v / WheelStepsPerFactor)
+                )
+            );
         }
+
+        // The most minutes Global settings keeps the autosave interval to, which SAVETIME's 600 is cut down to.
+        private const int MaxAutosaveMinutes = 240;
+
+        // ZOOMFACTOR 60, AutoCAD's start, is the wheel step of 1.5 Global settings starts at: the step is 1 + ZOOMFACTOR / 120.
+        private const double WheelStepsPerFactor = 120.0;
 
         /// <summary>
         /// SNAPMODE as AutoCAD 2021 reads it: 0 off, 1 on, and 2, which AutoCAD takes and reads back though its help lists only

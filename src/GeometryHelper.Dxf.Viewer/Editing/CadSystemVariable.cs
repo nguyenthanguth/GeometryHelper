@@ -155,10 +155,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             Func<double> read = get ?? throw new ArgumentNullException(nameof(get));
             Action<double> write = set ?? throw new ArgumentNullException(nameof(set));
-            var variable = new CadSystemVariable(name, CadVariableKind.Real, false, s => ShowAngle(s, read()));
-            variable._ask = c => AskAngle(c, variable, read, write);
-            variable._numbers = s => new[] { read() };
-            return variable;
+            return Angle(name, false, s => read(), (c, v) => write(v));
         }
 
         /// <summary>
@@ -325,6 +322,41 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var variable = new CadSystemVariable(name, CadVariableKind.Text, inDrawing, s => "\"" + get(s) + "\"");
             variable._ask = c => AskText(c, variable, take);
+            return variable;
+        }
+
+        /// <summary>
+        /// An angle, as ANGBASE: shown in the drawing's angle units, kept from nought up to a whole turn, in radians; one kept in
+        /// the drawing set as a step of undo named by the record; one that is plain is taken as typed, whatever ANGBASE and ANGDIR are.
+        /// </summary>
+        internal static CadSystemVariable Angle(
+            string name,
+            bool inDrawing,
+            Func<CadCommandSession, double> get,
+            Action<CadCommandContext, double> set,
+            string record = null,
+            bool plain = false
+        )
+        {
+            var variable = new CadSystemVariable(name, CadVariableKind.Real, inDrawing, s => ShowAngle(s, get(s)));
+            variable._ask = c => AskAngle(c, variable, get, set, record, plain);
+            variable._numbers = s => new[] { get(s) };
+            return variable;
+        }
+
+        /// <summary>
+        /// A text that may be none, as DIMLAYER: asked "Enter new value for DIMLAYER, or . for use current &lt;"use current"&gt;:",
+        /// a period handed to the take as an empty text; the take gives null, or why it refused.
+        /// </summary>
+        internal static CadSystemVariable Optional(
+            string name,
+            string none,
+            Func<CadCommandSession, string> get,
+            Func<CadCommandContext, string, string> take
+        )
+        {
+            var variable = new CadSystemVariable(name, CadVariableKind.Text, false, s => "\"" + get(s) + "\"");
+            variable._ask = c => AskOptional(c, variable, none, take);
             return variable;
         }
 
@@ -548,12 +580,15 @@ namespace GeometryHelper.Dxf.Viewer
         private static IEnumerable<CadPrompt> AskAngle(
             CadCommandContext c,
             CadSystemVariable variable,
-            Func<double> get,
-            Action<double> set
+            Func<CadCommandSession, double> get,
+            Action<CadCommandContext, double> set,
+            string record,
+            bool plain
         )
         {
-            double old = get();
-            yield return CadPrompt.ForAngle(variable.Message, null, null, ShowAngle(c.Session, old));
+            double old = get(c.Session);
+            CadPrompt prompt = CadPrompt.ForAngle(variable.Message, null, null, ShowAngle(c.Session, old));
+            yield return plain ? prompt.Plain() : prompt;
 
             if (
                 c.Input.Kind != CadInputKind.Number
@@ -571,7 +606,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (value != old)
             {
-                set(value);
+                variable.Store(c, record, CadCommands.Values(old), CadCommands.Values(value), () => set(c, value));
             }
         }
 
@@ -591,6 +626,29 @@ namespace GeometryHelper.Dxf.Viewer
             string refused = take(c, c.Input.Text.Trim().Trim('"'));
 
             // An edit refused has said why already; the reason given is written where there is one.
+            if (!string.IsNullOrEmpty(refused))
+            {
+                c.Write(refused);
+            }
+        }
+
+        private static IEnumerable<CadPrompt> AskOptional(
+            CadCommandContext c,
+            CadSystemVariable variable,
+            string none,
+            Func<CadCommandContext, string, string> take
+        )
+        {
+            yield return CadPrompt.ForString(variable.Message + ", or . for " + none, variable.GetValue(c.Session));
+
+            if (c.Input.Kind != CadInputKind.Text)
+            {
+                yield break;
+            }
+
+            string typed = c.Input.Text.Trim();
+            string refused = take(c, typed == "." ? string.Empty : typed.Trim('"'));
+
             if (!string.IsNullOrEmpty(refused))
             {
                 c.Write(refused);

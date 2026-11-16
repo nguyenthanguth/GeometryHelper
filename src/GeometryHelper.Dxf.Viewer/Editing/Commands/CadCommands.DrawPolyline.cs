@@ -326,6 +326,13 @@ namespace GeometryHelper.Dxf.Viewer
             var made = new DxfPolyline();
             made.AddVertexAt(0, from, Math.Tan(sweep / 4.0), widths[0], widths[1]);
             made.AddVertexAt(1, next, Math.Tan(sweep / 4.0), widths[1], widths[1]);
+
+            // PLINEGEN: the linetype runs on through the vertices as one pattern.
+            if (c.Database.Plinegen)
+            {
+                made.Plinegen = true;
+            }
+
             return Current(c, made);
         }
 

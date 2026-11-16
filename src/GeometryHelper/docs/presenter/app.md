@@ -302,7 +302,14 @@ nests in it, each resumed in turn; 'ZOOM at ZOOM's own prompt gets ZOOM's "Requi
 keyword."; 'SETVAR asks ">>Enter variable name or [?]:" and its value, and 'OSNAP, 'ORTHO, 'POLAR, 'GRID and 'SNAP do what they do at the Command prompt (OSNAP toggles the object snaps, as F3); 'CAL is the third: its prompts read ">>>> Expression:", it writes no value, and once the command resumes the value is
 typed at the prompt that was waiting (a point as 11,21,0, a distance as 7); another command typed with an apostrophe gets
 "** That command may not be invoked transparently **", the text then going to the prompt; Esc ends the command interrupted
-too. 'ZOOM at the Command prompt is ZOOM.
+too. 'ZOOM at the Command prompt is ZOOM. DIST, ID, LAYER, COLOR, LINETYPE, LWEIGHT, UNITS, QUICKCALC, DSETTINGS and TEXTSCR
+run inside a command the same way (`'DIST` asks `>>Specify first point:`, `'ID` `>>Specify point:`; a transparent ID, like
+a transparent DIST, leaves the point the command is drawn from where it was), and the name of any system variable with an
+apostrophe asks its value as SETVAR does: `'PDMODE` asks `>>Enter new value for PDMODE <0>:`. A command that shows a dialog
+runs its command-line form while it waits, as AutoCAD's console does: 'LAYER asks -LAYER's options (`>>Enter an option
+[Set/New/ON/...]:`), 'COLOR, 'LINETYPE, 'LWEIGHT and 'UNITS those of -COLOR, -LINETYPE, -LWEIGHT and -UNITS. A fifth command
+inside four is "Commands may not be nested more than 4 deep", the text going to the prompt. MEASUREGEOM
+is not transparent, as in AutoCAD.
 
 A point typed at "Select objects:" picks as a click does, written after the prompt: "Select objects: 50,0" then
 "1 found"; one on nothing starts the window, "Select objects: 150,150" then "Specify opposite corner:", as AutoCAD 2021's console does.

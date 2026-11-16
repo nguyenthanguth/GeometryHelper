@@ -768,8 +768,8 @@ Wave 1 (High):
 - [x] (modify1: Table, BATTMAN, BEDIT, QuickCalc, Select Similar, Add Selected, annotation scale items, Save As Other Formats; the rest have no command yet) Wire up greyed buttons and menu items whose commands exist (BEDIT, BATTMAN, TABLE, QuickCalc, Quick Properties,
       annotation scale items) (S)
 - [x] F2 text window (TEXTSCR), the command history (modify1; dialogs to add to the Design artifact)
-- [ ] (vars1, running) More transparent commands ('DIST, 'ID, 'LAYER, 'COLOR, 'UNITS, 'QUICKCALC) and variables typed transparently (S)
-- [ ] (vars1, running) Common system variables typable: TRIMEXTENDMODE, LUNITS/LUPREC/AUNITS/AUPREC/INSUNITS, ANGBASE/ANGDIR, PLINEWID,
+- [x] (vars1) More transparent commands ('DIST, 'ID, 'LAYER, 'COLOR, 'UNITS, 'QUICKCALC) and variables typed transparently (S)
+- [x] (vars1) Common system variables typable: TRIMEXTENDMODE, LUNITS/LUPREC/AUNITS/AUPREC/INSUNITS, ANGBASE/ANGDIR, PLINEWID,
       PLINEGEN, HPNAME/HPSCALE/HPANG/HPLAYER, DIMLAYER, DELOBJ, SAVETIME, FILLMODE and others (M)
 
 Wave 2 (Medium): BLEND; XLINE Offset; associative arrays and ARRAYEDIT; REVERSE, SETBYLAYER, CHPROP; BURST and TXTEXP;
