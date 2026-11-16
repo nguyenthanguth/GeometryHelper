@@ -71,7 +71,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             var items = new List<CadGripMenuItem>();
 
-            if (!(document.FindEntity(handle) is DxfPolyline polyline))
+            // The grips of a cloud with few grips are those of its shape, which have no menu.
+            if (
+                !(document.FindEntity(handle) is DxfPolyline polyline)
+                || CadCommands.RevCloudHasFewGrips(document, polyline)
+            )
             {
                 return items;
             }

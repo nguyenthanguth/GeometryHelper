@@ -501,6 +501,14 @@ namespace GeometryHelper.Dxf.Viewer
                 yield return CadPrompt.ForPoint("Specify next point", start);
             }
 
+            // A first point nearer the start than a little over an arc ends the command, nothing changed and nothing said, as
+            // AutoCAD 2021's does (probed through its standard input: at arcs of 20 a point 23.6 from the start ends it and one
+            // 23.7 from it goes on; at arcs of 100, 118 and 118.5; of 50, 59 and 59.5; of 7, 8.2 and 8.3).
+            if (c.Input.IsPoint && (c.Input.Point - start).Length < RevCloudTiny * cloud.Next(new Random(0)))
+            {
+                yield break;
+            }
+
             var path = new List<GeoPoint2> { start };
 
             while (c.Input.IsPoint || c.Input.Is("Undo"))
@@ -844,6 +852,12 @@ namespace GeometryHelper.Dxf.Viewer
                 c.Write("Invalid shape to create revision cloud.");
             }
         }
+
+        /// <summary>
+        /// How many arcs long the first segment of a path of Modify must be to go on: 1.1825, which the probes put between 1.18
+        /// and 1.185 (the arcs vary at random in AutoCAD, so that with REVCLOUDARCVARIANCE on it is a first arc of this cloud's).
+        /// </summary>
+        private const double RevCloudTiny = 1.1825;
 
         /// <summary>The fewest vertices a cloud has before AutoCAD 2021 calls its shape invalid.</summary>
         private const int RevCloudFewest = 6;

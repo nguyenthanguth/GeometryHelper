@@ -445,8 +445,8 @@ namespace GeometryHelper.Dxf.Viewer
                 CadSystemVariable.Switch(
                     "REVCLOUDGRIPS",
                     false,
-                    s => Kept(s, "revcloud.grips", 1.0) != 0.0,
-                    (c, v) => c.Remember("revcloud.grips", v ? 1.0 : 0.0),
+                    s => s.Document.RevCloudGrips,
+                    (c, v) => c.Document.RevCloudGrips = v,
                     null
                 )
             );

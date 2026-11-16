@@ -32,7 +32,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (KeyValuePair<string, int> grip in hot)
             {
-                origins.Add(CadGrips.Of(c.Document.FindEntity(grip.Key))[grip.Value].Point);
+                origins.Add(CadGrips.Shown(c.Document, c.Document.FindEntity(grip.Key))[grip.Value].Point);
             }
 
             GeoPoint2 basePoint = origins[0];
@@ -42,7 +42,8 @@ namespace GeometryHelper.Dxf.Viewer
             bool first = true;
 
             // One custom grip dragged previews its dynamic block worked out at the cursor, as AutoCAD 2021 redraws it.
-            CadGrip custom = hot.Count == 1 ? CadGrips.Of(c.Document.FindEntity(hot[0].Key))[hot[0].Value] : null;
+            CadGrip custom =
+                hot.Count == 1 ? CadGrips.Shown(c.Document, c.Document.FindEntity(hot[0].Key))[hot[0].Value] : null;
             CadPreview reshaped =
                 custom?.Custom == null || custom.Kind == CadGripKind.CustomFlip || custom.Kind == CadGripKind.CustomList
                     ? null

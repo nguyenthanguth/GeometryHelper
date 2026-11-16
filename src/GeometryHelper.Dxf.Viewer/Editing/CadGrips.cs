@@ -433,11 +433,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// The corner (50, 40) of a frame 40 by 20 from (10, 20) dragged to (60, 45) makes it 50 by 25, and dragged to (50, 50),
         /// 60 by 30; a frame of no width or height, or a point on the line of the corner across from it, is refused.
         /// A vertex of a multiline moves as AutoCAD 2021's MoveVertexAt moves it (<see cref="DxfMlineBuilder.MoveVertexAt"/>): a segment that
-        /// keeps its way keeps its cuts, one that turns is whole again.
+        /// keeps its way keeps its cuts, one that turns is whole again. A grip of a revision cloud with few grips (see
+        /// <see cref="Shown"/>) changes the shape the cloud goes round and draws the cloud again along it,
+        /// in place, as AutoCAD 2021's MoveGripPointsAt does: the arcs a tenth longer than the mean chord of the cloud was
+        /// (a cloud of 20 arcs 10 long round a rectangle 60 by 40, its top middle grip dragged up by 5, is 19 vertices 11
+        /// apart), a cloud too small for two arcs refused.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="handle">The handle of the entity.</param>
-        /// <param name="gripIndex">The index of the grip, as <see cref="Of"/> gives it.</param>
+        /// <param name="gripIndex">The index of the grip, as <see cref="Shown"/> gives it.</param>
         /// <param name="to">The point it is dragged to, in drawing units.</param>
         /// <returns>What came of it: refused for an entity on a locked layer, a grip it has not, or a shape that cannot be (an
         /// arc through three points in a line, a circle of no radius, a chord point dragged to its centre); failed, the
@@ -467,7 +471,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Refuse("The viewport is locked.");
             }
 
-            IReadOnlyList<CadGrip> grips = Of(entity);
+            IReadOnlyList<CadGrip> grips = Shown(document, entity);
 
             if (gripIndex < 0 || gripIndex >= grips.Count)
             {
@@ -528,6 +532,11 @@ namespace GeometryHelper.Dxf.Viewer
             string property = "Grip " + gripIndex;
             string was = CadCommands.Values(grip.Point.X, grip.Point.Y);
             string went = CadCommands.Values(to.X, to.Y);
+
+            if (CadCommands.RevCloudHasFewGrips(document, entity))
+            {
+                return DragRevCloud(document, handle, gripIndex, to, property, was, went);
+            }
 
             switch (grip.Kind)
             {

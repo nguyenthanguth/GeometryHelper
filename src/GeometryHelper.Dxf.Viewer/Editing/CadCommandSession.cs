@@ -339,7 +339,12 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 DxfEntity entity = Document.FindEntity(grip.Key);
 
-                if (entity != null && grip.Value >= 0 && grip.Value < CadGrips.Of(entity).Count && !hot.Contains(grip))
+                if (
+                    entity != null
+                    && grip.Value >= 0
+                    && grip.Value < CadGrips.Shown(Document, entity).Count
+                    && !hot.Contains(grip)
+                )
                 {
                     hot.Add(grip);
                 }
