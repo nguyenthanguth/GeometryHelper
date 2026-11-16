@@ -601,12 +601,19 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void RemoveVertexFromTheMenu_IsDoneAtOnce_AndConvertToLineAsksForAPickFirst_OneUndoStepEach()
+        public void RemoveVertexFromTheMenu_AsksForAPickLikeConvertToLine_OneUndoStepEach()
         {
             CadDocument document = Rectangle();
             CadCommandSession session = Session(document);
 
             Assert.True(session.StartGripAction("R1", 0, CadGripAction.RemoveVertex));
+
+            // AutoCAD 2021's string table (acdb24res.dll): "** REMOVE VERTEX **" and "Pick to remove vertex:".
+            Assert.True(session.IsRunning);
+            Assert.Equal("** REMOVE VERTEX **", session.History.Last());
+            Assert.Equal("Pick to remove vertex:", session.PromptText);
+            Assert.Equal(4, Poly(document).NumberOfVertices);
+            Run(session, P(50, 5));
 
             Assert.False(session.IsRunning);
             Assert.Equal(3, Poly(document).NumberOfVertices);

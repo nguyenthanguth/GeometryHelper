@@ -183,7 +183,7 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>
     /// The grips of each kind of entity and what dragging each does, as AutoCAD's: a line's two ends and middle, a circle's
     /// centre and four quadrants, an arc's ends, middle and centre, a polyline's vertices and the middles of its segments, a
-    /// text's and a block reference's insertion point, a hatch's one grip at the middle of the box its loops fill, an MTEXT's
+    /// text's and a block reference's insertion point, a hatch's grip at the middle of the box its loops fill and those of its boundary where it follows no objects, an MTEXT's
     /// location and the corners of its box or the grips of its columns, a viewport's four corners
     /// and middle, and a dimension's as AutoCAD 2021 gives them (see <see cref="Of"/>), its picture drawn anew after each drag.
     /// Entities of other kinds have none.
@@ -218,10 +218,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// (10, 20) has them at (10, 20), (10, 40), (50, 40) and (50, 20). A frame of no size has none.
         /// A multiline's, as AutoCAD 2021's: one at each vertex of the line it is drawn on, (0, 0), (100, 0) and (100, 100) for one through those points.
         /// A 2D POLYLINE of straight and arc segments has a light polyline's grips (a vertex grip on each vertex, then a segment
-        /// middle grip on each segment); one fitted with a curve or a spline has none. A spline's, as AutoCAD 2021's: a vertex grip on each
+        /// middle grip on each segment); one fitted with a curve or a spline has a vertex grip on each vertex of its frame alone
+        /// (four for a frame of four, whatever the curve has added), as AutoCAD 2021's GetGripPoints gives them, and dragging one
+        /// fits the curve or the spline again. A spline's, as AutoCAD 2021's: a vertex grip on each
         /// fit point, or on each control point where it has no fit data; a cubic through (0, 0), (30, 40), (60, 0) and (90, 40)
         /// has grips at those four points. A hatch's, one at the middle of the box its loops fill (<see cref="CadGripKind.Center"/>):
-        /// a rectangle 100 by 60 has it at (50, 30).
+        /// a rectangle 100 by 60 has it at (50, 30); where the hatch follows no objects (is not associative) then those of its
+        /// boundary, as AutoCAD 2021's GetGripPoints gives them: for each loop a vertex grip and one in the middle of the segment
+        /// that leaves it (<see cref="CadGripKind.Vertex"/> and <see cref="CadGripKind.Middle"/>), or the east, west, north and
+        /// south of a loop that is one circle (<see cref="CadGripKind.Quadrant"/>); a rectangle 100 by 60 has eight, from
+        /// (0, 0), (50, 0), (100, 0), (100, 30) to (0, 30), after the one at (50, 30).
         /// </summary>
         /// <param name="entity">The entity.</param>
         /// <returns>The grips in the order of their indices; empty for an entity with none.</returns>
@@ -315,18 +321,27 @@ namespace GeometryHelper.Dxf.Viewer
                     break;
                 }
 
+                case DxfPolyline2d fitted when IsPlan(fitted.Normal):
+                    // Fitted with a curve or a spline: the vertices of its frame, which the fitting did not make.
+                    foreach (DxfVertex2d vertex in FrameOf(fitted))
+                    {
+                        AddOwn(CadGripKind.Vertex, At(vertex), fitted.Normal.Z < 0.0);
+                    }
+
+                    break;
                 case DxfSpline spline:
                     SplineGrips(spline, at => Add(CadGripKind.Vertex, at.X, at.Y));
                     break;
                 case DxfHatch hatch when IsPlan(hatch.Normal):
                 {
-                    // One grip, at the middle of the box its loops fill, as AutoCAD 2021's GetGripPoints gives the hatch its own;
-                    // the grips at the vertices of a hatch's boundary are not given.
+                    // The grip at the middle of the box its loops fill, as AutoCAD 2021's GetGripPoints gives the hatch its own, then
+                    // the grips of its boundary where it follows no objects (see HatchBoundaryGrips).
                     GeoPoint2? centre = HatchCentre(hatch);
 
                     if (centre.HasValue)
                     {
                         Add(CadGripKind.Center, centre.Value.X, centre.Value.Y);
+                        HatchBoundaryGrips(hatch, (kind, at) => Add(kind, at.X, at.Y));
                     }
 
                     break;
@@ -662,6 +677,8 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 case DxfPolyline2d heavy:
                     return DragPolyline2d(document, heavy, handle, grip, gripIndex, to, property, was, went);
+                case DxfHatch hatch:
+                    return DragHatchBoundary(document, hatch, handle, gripIndex, grip, to, property, was, went);
                 case DxfSpline _:
                     return Reshape(document, handle, property, was, went, () =>
                         SplineStretchAt(document.FindEntity(handle), gripIndex, to)

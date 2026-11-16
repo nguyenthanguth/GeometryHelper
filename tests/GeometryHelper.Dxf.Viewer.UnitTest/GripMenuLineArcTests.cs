@@ -143,7 +143,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(session.StartGripAction("A1", 1, CadGripAction.Lengthen));
 
             Assert.Equal("** LENGTHEN **", session.History.Last());
-            Assert.Equal("Specify end point or [Base point/eXit]:", session.PromptText);
+            Assert.Equal("Specify end point or [Base point/Copy/Undo/eXit]:", session.PromptText);
             Assert.NotNull(session.Prompt.Preview);
 
             Run(session, P(180, 25));
@@ -163,14 +163,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             session.Tolerance = Tolerance.Default;
 
             Assert.True(session.StartGripAction("A4", 1, CadGripAction.Lengthen));
-            Assert.Equal("Specify end point of arc or [Base point/eXit]:", session.PromptText);
+            Assert.Equal("Specify end point of arc or [Base point/Copy/Undo/eXit]:", session.PromptText);
             Run(session, Esc);
             Assert.False(session.IsRunning);
             Assert.False(document.CanUndo);
 
             Assert.True(session.StartGripAction("A4", 2, CadGripAction.Radius));
             Assert.Equal("** RADIUS **", session.History.Last());
-            Assert.Equal("Specify radius or [Base point/eXit]:", session.PromptText);
+            Assert.Equal("Specify radius or [Base point/Copy/Undo/eXit]:", session.PromptText);
             Run(session, P(300, 35));
             Assert.Equal(35.0, Entity<DxfArc>(document, "A4").Radius, 9);
         }
@@ -187,6 +187,67 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             // From the base (10, 10) to (70, 10) is 60 along, so the end (100, 0) goes to (160, 0).
             Near(P(160, 0), P(Entity<DxfLine>(document, "A1").EndPoint.X, Entity<DxfLine>(document, "A1").EndPoint.Y));
+        }
+
+        private static int Lines(CadDocument document) =>
+            document.Database.ModelSpace.OfType<DxfLine>().Count(l => !l.IsErased);
+
+        [Fact]
+        public void LengthenWithCopy_MakesACopyLengthenedEachTime_TheOriginalStays_AndUndoTakesTheLastCopyBack()
+        {
+            CadDocument document = Plan();
+            CadCommandSession session = Session(document);
+            session.Tolerance = Tolerance.Default;
+            int before = Lines(document);
+
+            Assert.True(session.StartGripAction("A1", 1, CadGripAction.Lengthen));
+            Run(session, "Copy");
+            Assert.Equal("** LENGTHEN (multiple) **", session.History.Last());
+            Run(session, P(150, 40));
+            Run(session, P(180, 40));
+
+            // Two lines of 150 and 180 beside the one of 100, which is as it was; the prompt asks again.
+            Assert.True(session.IsRunning);
+            Assert.Equal(before + 2, Lines(document));
+            Near(P(100, 0), P(Entity<DxfLine>(document, "A1").EndPoint.X, Entity<DxfLine>(document, "A1").EndPoint.Y));
+            Assert.Contains(document.Database.ModelSpace.OfType<DxfLine>().Where(l => !l.IsErased), l =>
+                Math.Abs(l.EndPoint.X - 150.0) < 1E-9 && Math.Abs(l.EndPoint.Y) < 1E-9
+            );
+            Assert.Contains(document.Database.ModelSpace.OfType<DxfLine>().Where(l => !l.IsErased), l =>
+                Math.Abs(l.EndPoint.X - 180.0) < 1E-9 && Math.Abs(l.EndPoint.Y) < 1E-9
+            );
+
+            Run(session, "Undo");
+            Assert.Equal(before + 1, Lines(document));
+            Assert.DoesNotContain(document.Database.ModelSpace.OfType<DxfLine>().Where(l => !l.IsErased), l =>
+                Math.Abs(l.EndPoint.X - 180.0) < 1E-9 && Math.Abs(l.EndPoint.Y) < 1E-9
+            );
+
+            Run(session, "eXit");
+            Assert.False(session.IsRunning);
+            Assert.Equal(before + 1, Lines(document));
+        }
+
+        [Fact]
+        public void RadiusWithCopy_MakesAnArcOfThatRadius_TheOriginalKeepsItsOwn_AndUndoWithoutACopyDoesNothing()
+        {
+            CadDocument document = Plan();
+            CadCommandSession session = Session(document);
+            session.Tolerance = Tolerance.Default;
+            int before = document.Database.ModelSpace.OfType<DxfArc>().Count(a => !a.IsErased);
+
+            Assert.True(session.StartGripAction("A4", 2, CadGripAction.Radius));
+            Run(session, "Undo");
+            Run(session, "Copy");
+            Run(session, P(300, 35));
+            Run(session, Esc);
+
+            Assert.False(session.IsRunning);
+            Assert.Equal(20.0, Entity<DxfArc>(document, "A4").Radius, 9);
+            Assert.Equal(before + 1, document.Database.ModelSpace.OfType<DxfArc>().Count(a => !a.IsErased));
+            Assert.Contains(document.Database.ModelSpace.OfType<DxfArc>().Where(a => !a.IsErased), a =>
+                Math.Abs(a.Radius - 35.0) < 1E-9 && Math.Abs(a.StartAngle) < 1E-9
+            );
         }
 
         [Fact]

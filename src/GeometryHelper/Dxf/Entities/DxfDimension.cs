@@ -304,6 +304,46 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Gets or sets whether the first arrowhead is flipped (group 74), as the Flip Arrow of the dimension's grip menu in
+        /// AutoCAD 2021 writes it: an arrowhead that stands inside the extension lines stands outside, one that stands outside
+        /// stands inside. A dimension of 100 whose first arrowhead is flipped has it outside the first extension line, with a
+        /// short line (an arrowhead long) beyond it, and the dimension line drawn between its tip and where it would have begun.
+        /// Ticks and the arrowheads that take no room are not moved by it.
+        /// </summary>
+        internal bool FlipFirstArrow
+        {
+            get => Own().Whole(74, Own().Base, 0) != 0;
+            set => SetFlipArrow(74, value);
+        }
+
+        /// <summary>Gets or sets whether the second arrowhead is flipped (group 75); see <see cref="FlipFirstArrow"/>.</summary>
+        internal bool FlipSecondArrow
+        {
+            get => Own().Whole(75, Own().Base, 0) != 0;
+            set => SetFlipArrow(75, value);
+        }
+
+        /// <summary>Writes a flip flag (74 or 75) with the 73 before it, as AutoCAD 2021 writes the three together; nothing where it is as it was.</summary>
+        private void SetFlipArrow(int code, bool value)
+        {
+            if (value == (Own().Whole(code, Own().Base, 0) != 0))
+            {
+                return;
+            }
+
+            Write(g =>
+            {
+                foreach (int other in new[] { 73, 74, 75 })
+                {
+                    if (other == code || g.Find(other, g.Base) < 0)
+                    {
+                        g.Set(other, other == code && value ? "1" : "0", g.Base, BaseOrder);
+                    }
+                }
+            });
+        }
+
+        /// <summary>
         /// Gets or sets the turn of the text from the direction of the dimension line (group 53, in degrees), as AutoCAD's
         /// <c>TextRotation</c>: in radians; nought where the record gives none.
         /// </summary>

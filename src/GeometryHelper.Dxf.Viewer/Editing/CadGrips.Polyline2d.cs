@@ -9,7 +9,8 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>
     /// The edits of the grips of a 2D POLYLINE of straight and arc segments (<see cref="DxfPolyline2d"/> of type
     /// <see cref="DxfPoly2dType.SimplePoly"/>), the same as a light polyline's: stretch a vertex or a segment, add a vertex,
-    /// remove one, make a segment an arc or a line. A curve-fit or spline-fit one has no grips here.
+    /// remove one, make a segment an arc or a line. A curve-fit or spline-fit one has a grip on each vertex of its frame, which
+    /// <see cref="DragPolyline2d"/> moves and fits again, and no menu.
     /// </summary>
     public static partial class CadGrips
     {
@@ -28,6 +29,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The bulge of a segment of a 2D POLYLINE.</summary>
         internal static double BulgeOf(DxfEntity entity, int segment) =>
             VerticesOf((DxfPolyline2d)entity)[segment].Bulge;
+
+        /// <summary>The vertices of the frame of a POLYLINE fitted with a curve or a spline: those the fitting did not make, the vertices it was given.</summary>
+        private static List<DxfVertex2d> FrameOf(DxfPolyline2d heavy) =>
+            heavy
+                .Where(v =>
+                    v.VertexType == DxfVertex2dType.SimpleVertex || v.VertexType == DxfVertex2dType.SplineControlVertex
+                )
+                .ToList();
 
         private static GeoPoint2 At(DxfVertex2d vertex) => new GeoPoint2(vertex.Position.X, vertex.Position.Y);
 
@@ -55,6 +64,31 @@ namespace GeometryHelper.Dxf.Viewer
             bool below = heavy.Normal.Z < 0.0;
             GeoPoint2 own = Own(to, below);
             GeoVector2 shifted = own - Own(grip.Point, below);
+
+            if (heavy.PolyType != DxfPoly2dType.SimplePoly)
+            {
+                // A frame vertex of a fitted one: straightened, the vertex moved, and fitted again as AutoCAD 2021 refits it (a
+                // curve as before, a spline by SPLINETYPE and SPLINESEGS), probed: the frame (0, 0), (100, 0), (100, 60), (0, 60)
+                // with its second vertex dragged by (7, 5) is fitted through (107, 5).
+                return Reshape(document, handle, property, was, went, () =>
+                {
+                    var fitted = (DxfPolyline2d)document.FindEntity(handle);
+                    DxfPoly2dType type = fitted.PolyType;
+                    fitted.Straighten();
+                    MoveTo(VerticesOf(fitted)[gripIndex], own);
+
+                    if (type == DxfPoly2dType.FitCurvePoly)
+                    {
+                        fitted.CurveFit();
+                    }
+                    else
+                    {
+                        fitted.SplineFit();
+                    }
+
+                    return true;
+                });
+            }
 
             if (grip.Kind == CadGripKind.Vertex)
             {
@@ -110,6 +144,13 @@ namespace GeometryHelper.Dxf.Viewer
             if (CadLayerEditor.IsLocked(document.Database, heavy.Layer))
             {
                 return CadEditResult.Refuse("The object is on a locked layer.");
+            }
+
+            if (heavy.PolyType != DxfPoly2dType.SimplePoly)
+            {
+                return CadEditResult.Refuse(
+                    "A polyline fitted with a curve or a spline has its frame to stretch, no vertices to add, take out or bend."
+                );
             }
 
             IReadOnlyList<CadGrip> grips = Of(heavy);

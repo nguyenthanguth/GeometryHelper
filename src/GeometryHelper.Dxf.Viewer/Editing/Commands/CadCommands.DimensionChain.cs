@@ -70,9 +70,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// to each second origin given, continued from the last one's second extension line on the same line, or from the base
         /// extension line on a line DIMDLI further out each time. <paramref name="fromDim"/> runs them as DIM's Baseline and
         /// Continue do, which always ask for the extension line origin to go on from (Baseline and Continue turn one into the
-        /// other there) and give a baseline row an Offset.
+        /// other there) and give a baseline row an Offset. <paramref name="seed"/> is the dimension a grip's Continue Dimension
+        /// or Baseline Dimension goes on from, <paramref name="seedOrigin"/> the extension line origin of it the row starts at:
+        /// "** CONTINUE DIMENSION **" or "** BASELINE DIMENSION **" and "Specify endpoint of dimension line:" with Undo only,
+        /// as AutoCAD 2021's grip table words them; it ends at Enter or Esc.
         /// </summary>
-        private static IEnumerable<CadPrompt> DimChain(CadCommandContext c, bool baseline, bool fromDim = false)
+        private static IEnumerable<CadPrompt> DimChain(
+            CadCommandContext c,
+            bool baseline,
+            bool fromDim = false,
+            DxfDimension seed = null,
+            GeoPoint2? seedOrigin = null
+        )
         {
             if (DimStyle(c) == null)
             {
@@ -94,8 +103,22 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            Chain chain = last == null || fromDim ? null : ChainOf(last, null, baseline);
+            Chain chain =
+                seed != null ? ChainOf(seed, seedOrigin, baseline)
+                : last == null || fromDim ? null
+                : ChainOf(last, null, baseline);
             double? offset = null;
+
+            if (seed != null)
+            {
+                if (chain == null)
+                {
+                    c.Write("Dimension must be linear, ordinate, or angular.");
+                    yield break;
+                }
+
+                c.Write(baseline ? "** BASELINE DIMENSION **" : "** CONTINUE DIMENSION **");
+            }
 
             var made = new List<string>();
             var before = new List<Chain>();
@@ -202,12 +225,14 @@ namespace GeometryHelper.Dxf.Viewer
                 yield return (
                     chain.Ordinate
                         ? CadPrompt.ForPoint("Specify feature location", null, new[] { "Select", "Undo" }, "Select")
-                        : CadPrompt.ForPoint(
-                            fromDim ? "Specify second extension line origin" : "Specify a second extension line origin",
-                            chain.Origin,
-                            fromDim && baseline ? new[] { "Select", "Offset", "Undo" } : new[] { "Select", "Undo" },
-                            "Select"
-                        )
+                    : seed != null
+                        ? CadPrompt.ForPoint("Specify endpoint of dimension line", chain.Origin, new[] { "Undo" })
+                    : CadPrompt.ForPoint(
+                        fromDim ? "Specify second extension line origin" : "Specify a second extension line origin",
+                        chain.Origin,
+                        fromDim && baseline ? new[] { "Select", "Offset", "Undo" } : new[] { "Select", "Undo" },
+                        "Select"
+                    )
                 ).Previewing(shown);
 
                 if (c.Input.IsPoint)
