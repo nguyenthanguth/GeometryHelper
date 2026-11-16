@@ -284,6 +284,12 @@ namespace GeometryHelper.Dxf
 
             // The grid kept is changed by the edit: not kept again until the record is written, and not if it is not.
             _contentBytes = null;
+
+            if (kept != null)
+            {
+                kept.Flat = null;
+            }
+
             grid.Changed = false;
             grid.Dropped.Clear();
 
@@ -294,7 +300,7 @@ namespace GeometryHelper.Dxf
             {
                 for (int c = 0; c < grid.Rows[r].Cells.Count; c++)
                 {
-                    int[] run = LinkRunOf(grid.Rows[r].Cells[c].Groups);
+                    int[] run = grid.Rows[r].Cells[c].LinkRun();
 
                     if (run != null)
                     {
@@ -384,16 +390,7 @@ namespace GeometryHelper.Dxf
             if (kept != null)
             {
                 // The bytes before the groups and after them as they are, the cells not changed copied, the rest written.
-                int gridEnd = kept.GridEnd;
-                int gridAt = kept.GridAt;
-                kept.Record = Item.File.RewriteRecord(content, (b, old) =>
-                {
-                    b.Raw(old, old.Start, old.Start + gridAt);
-                    grid.WriteTo(b, old, gridEnd);
-                    kept.GridEnd = b.Length;
-                    b.Raw(old, old.Start + gridEnd, old.End);
-                });
-                _contentBytes = kept;
+                WriteContent(content, kept);
             }
             else
             {
@@ -1288,9 +1285,69 @@ namespace GeometryHelper.Dxf
         /// <summary>A cell of the TABLECONTENT, its groups from its 300 CELL to its TABLECELL_END, and whether it was taken out.</summary>
         private sealed class ContentGridCell
         {
-            internal ContentGridCell(List<KeyValuePair<int, string>> groups) => Groups = groups;
+            private List<KeyValuePair<int, string>> _groups;
+            private ContentSource _source;
+            private readonly int _sourceFrom;
+            private readonly int _sourceTo;
 
-            internal List<KeyValuePair<int, string>> Groups { get; }
+            internal ContentGridCell(List<KeyValuePair<int, string>> groups) => _groups = groups;
+
+            /// <summary>A cell whose groups are made from those of a source, from the one at <paramref name="from"/> to before <paramref name="to"/>, when they are first asked for.</summary>
+            internal ContentGridCell(ContentSource source, int from, int to)
+            {
+                _source = source;
+                _sourceFrom = from;
+                _sourceTo = to;
+            }
+
+            internal List<KeyValuePair<int, string>> Groups
+            {
+                get
+                {
+                    if (_groups == null)
+                    {
+                        _groups = _source.Range(_sourceFrom, _sourceTo);
+                        _source = null;
+                    }
+
+                    return _groups;
+                }
+            }
+
+            /// <summary>
+            /// The rows and columns of the range the cell names a link over (<see cref="LinkRunOf"/>); null where it names none.
+            /// A cell whose groups are not made yet is looked at in the source, as far as its 92 after its custom data, and its
+            /// groups are made only where that is odd.
+            /// </summary>
+            internal int[] LinkRun()
+            {
+                if (_groups == null)
+                {
+                    int end = _sourceFrom;
+
+                    while (end < _sourceTo && !_source.Is(end, 309, "DATAMAP_END"))
+                    {
+                        end++;
+                    }
+
+                    if (
+                        end + 1 >= _sourceTo
+                        || _source.Code(end + 1) != 92
+                        || !int.TryParse(
+                            _source.Value(end + 1).Trim(),
+                            NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out int linked
+                        )
+                        || (linked & 1) == 0
+                    )
+                    {
+                        return null;
+                    }
+                }
+
+                return LinkRunOf(Groups);
+            }
 
             internal bool Gone { get; set; }
 
@@ -1349,11 +1406,19 @@ namespace GeometryHelper.Dxf
             internal bool Clean =>
                 Start >= 0 && Cells.Count == CellsAtRead && Cells.TrueForAll(c => c.Start >= 0 && !c.Dirty);
 
-            internal void AddTo(List<KeyValuePair<int, string>> groups)
+            /// <summary>Adds the row's groups; where <paramref name="cells"/> is given, the place each cell's groups take among those of <paramref name="groups"/> is added to it.</summary>
+            internal void AddTo(List<KeyValuePair<int, string>> groups, List<ContentSpan> cells = null)
             {
                 groups.AddRange(Head);
                 groups.Add(ContentGrid.Counted(ReadCount, 90, Cells.Count));
-                Cells.ForEach(c => groups.AddRange(c.Groups));
+
+                foreach (ContentGridCell cell in Cells)
+                {
+                    int start = groups.Count;
+                    groups.AddRange(cell.Groups);
+                    cells?.Add(new ContentSpan(start, groups.Count, cell));
+                }
+
                 groups.AddRange(Tail);
             }
         }
@@ -1459,102 +1524,108 @@ namespace GeometryHelper.Dxf
             internal static ContentGrid Read(DxfFile file, DxfItem content) => Read(file.TailOf(content, 0));
 
             /// <summary>The TABLECONTENT read from its groups as <see cref="DxfFile.TailOf"/> gives them; null where it is not in the form AutoCAD writes.</summary>
-            internal static ContentGrid Read(List<DxfTypedValue> all)
-            {
-                int from = all.FindIndex(x => x.TypeCode == 100 && x.Value.Trim() == "AcDbLinkedTableData") + 1;
+            internal static ContentGrid Read(List<DxfTypedValue> all) => Read(new ListSource(all));
 
-                if (from <= 0 || from >= all.Count || all[from].TypeCode != 90)
+            /// <summary>The TABLECONTENT read from the groups of a map of its record, each cell's groups made when they are first asked for; null where it is not in the form AutoCAD writes.</summary>
+            internal static ContentGrid Read(DxfFile.TailMap map) => Read(new MapSource(map));
+
+            private static ContentGrid Read(ContentSource s)
+            {
+                int from = 0;
+
+                while (from < s.Count && !s.Is(from, 100, "AcDbLinkedTableData"))
+                {
+                    from++;
+                }
+
+                from = from < s.Count ? from + 1 : 0;
+
+                if (from <= 0 || from >= s.Count || s.Code(from) != 90)
                 {
                     return null;
                 }
 
-                var g = new List<KeyValuePair<int, string>>(all.Count - from);
+                var grid = new ContentGrid { From = from, _columnCount = s.Pair(from) };
+                int i = from + 1;
 
-                for (int k = from; k < all.Count; k++)
+                for (int k = Number(s.Value(from)); grid.Columns.Count < k; )
                 {
-                    g.Add(new KeyValuePair<int, string>(all[k].TypeCode, all[k].Value));
-                }
-                var grid = new ContentGrid { From = from, _columnCount = g[0] };
-                int i = 1;
-
-                for (int k = Number(g[0].Value); grid.Columns.Count < k; )
-                {
-                    int end = Block(g, i, 300, "COLUMN", "TABLECOLUMN_END");
+                    int end = Block(s, i, 300, "COLUMN", "TABLECOLUMN_END");
 
                     if (end < 0)
                     {
                         return null;
                     }
 
-                    grid.Columns.Add(g.GetRange(i, end - i));
+                    grid.Columns.Add(s.Range(i, end));
                     i = end;
                 }
 
-                if (i >= g.Count || g[i].Key != 91)
+                if (i >= s.Count || s.Code(i) != 91)
                 {
                     return null;
                 }
 
-                grid._rowCount = g[i];
-                int rows = Number(g[i].Value);
+                grid._rowCount = s.Pair(i);
+                int rows = Number(s.Value(i));
                 i++;
 
                 for (int r = 0; r < rows; r++)
                 {
                     if (
-                        i + 2 >= g.Count
-                        || !Is(g[i], 301, "ROW")
-                        || !Is(g[i + 1], 1, "LINKEDTABLEDATAROW_BEGIN")
-                        || g[i + 2].Key != 90
+                        i + 2 >= s.Count
+                        || !s.Is(i, 301, "ROW")
+                        || !s.Is(i + 1, 1, "LINKEDTABLEDATAROW_BEGIN")
+                        || s.Code(i + 2) != 90
                     )
                     {
                         return null;
                     }
 
                     int rowStart = i;
-                    var head = g.GetRange(i, 2);
-                    KeyValuePair<int, string> count = g[i + 2];
+                    var head = s.Range(i, i + 2);
+                    KeyValuePair<int, string> count = s.Pair(i + 2);
                     var cells = new List<ContentGridCell>();
                     i += 3;
 
                     for (int k = Number(count.Value); cells.Count < k; )
                     {
-                        int end = Block(g, i, 300, "CELL", "TABLECELL_END");
+                        int end = Block(s, i, 300, "CELL", "TABLECELL_END");
 
                         if (end < 0)
                         {
                             return null;
                         }
 
-                        cells.Add(new ContentGridCell(g.GetRange(i, end - i)) { GroupFrom = i, GroupTo = end });
+                        cells.Add(new ContentGridCell(s, i, end) { GroupFrom = i - from, GroupTo = end - from });
                         i = end;
                     }
 
                     int last = i;
 
-                    while (last < g.Count && !Is(g[last], 309, "TABLEROW_END"))
+                    while (last < s.Count && !s.Is(last, 309, "TABLEROW_END"))
                     {
                         last++;
                     }
 
-                    if (last >= g.Count)
+                    if (last >= s.Count)
                     {
                         return null;
                     }
 
                     grid.Rows.Add(
-                        new ContentRow(head, count, cells, g.GetRange(i, last + 1 - i))
+                        new ContentRow(head, count, cells, s.Range(i, last + 1))
                         {
-                            GroupFrom = rowStart,
-                            GroupTo = last + 1,
+                            GroupFrom = rowStart - from,
+                            GroupTo = last + 1 - from,
                             CellsAtRead = cells.Count,
                         }
                     );
                     i = last + 1;
                 }
 
-                grid._tail = g.GetRange(i, g.Count - i);
-                grid.TailAt = i;
+                grid._tail = s.Range(i, s.Count);
+                grid.TailAt = i - from;
                 grid.ReadMerges();
                 grid.ColumnsAtRead = grid.Columns.Count;
                 grid.RowsAtRead = grid.Rows.Count;
@@ -1562,16 +1633,16 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>Where a block of a TABLECONTENT that begins at a place with the group given ends, after its 309 of the end given; -1 where it is not so.</summary>
-            private static int Block(List<KeyValuePair<int, string>> g, int at, int code, string begin, string end)
+            private static int Block(ContentSource s, int at, int code, string begin, string end)
             {
-                if (at >= g.Count || !Is(g[at], code, begin))
+                if (at >= s.Count || !s.Is(at, code, begin))
                 {
                     return -1;
                 }
 
-                for (int i = at + 1; i < g.Count; i++)
+                for (int i = at + 1; i < s.Count; i++)
                 {
-                    if (Is(g[i], 309, end))
+                    if (s.Is(i, 309, end))
                     {
                         return i + 1;
                     }
@@ -1661,21 +1732,44 @@ namespace GeometryHelper.Dxf
             /// <summary>The groups of the TABLECONTENT as it stands, from the count of its columns on; each count as it was read where it is the same.</summary>
             internal List<KeyValuePair<int, string>> Groups()
             {
-                var groups = new List<KeyValuePair<int, string>> { Counted(_columnCount, 90, Columns.Count) };
+                var groups = new List<KeyValuePair<int, string>>();
+                AddGroupsTo(groups);
+                return groups;
+            }
+
+            /// <summary>How many groups <see cref="Groups"/> lists.</summary>
+            internal int CountGroups()
+            {
+                int count = 2;
+                Columns.ForEach(c => count += c.Count);
+
+                foreach (ContentRow row in Rows)
+                {
+                    count += row.Head.Count + 1 + row.Tail.Count;
+                    row.Cells.ForEach(c => count += c.Groups.Count);
+                }
+
+                return count
+                    + (Merges == null ? _tail.Count : _mergesFrom + 1 + 4 * Merges.Count + _tail.Count - _mergesTo);
+            }
+
+            /// <summary>Adds the groups <see cref="Groups"/> lists to a list; where <paramref name="cells"/> is given, the place each cell's groups take among those of <paramref name="groups"/> is added to it, row by row.</summary>
+            internal void AddGroupsTo(List<KeyValuePair<int, string>> groups, List<ContentSpan> cells = null)
+            {
+                groups.Add(Counted(_columnCount, 90, Columns.Count));
                 Columns.ForEach(c => groups.AddRange(c));
                 groups.Add(Counted(_rowCount, 91, Rows.Count));
-                Rows.ForEach(r => r.AddTo(groups));
+                Rows.ForEach(r => r.AddTo(groups, cells));
 
                 if (Merges == null)
                 {
                     groups.AddRange(_tail);
-                    return groups;
+                    return;
                 }
 
                 groups.AddRange(_tail.GetRange(0, _mergesFrom));
                 groups.AddRange(MergeGroups());
                 groups.AddRange(_tail.GetRange(_mergesTo, _tail.Count - _mergesTo));
-                return groups;
             }
 
             /// <summary>

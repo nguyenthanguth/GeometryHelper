@@ -931,6 +931,29 @@ namespace GeometryHelper.Dxf
             return shared;
         }
 
+        /// <summary>
+        /// The handle of an entity as <see cref="LookOf(DxfItem, out string)"/> finds it, the first group 5 (105 of a DIMSTYLE)
+        /// of its record, its spaces taken off, null where there is none or it is empty: the groups walked up to it, not to the
+        /// record's end, which every group of a table's megabytes is.
+        /// </summary>
+        internal string HandleOf(DxfItem item)
+        {
+            Rec record = HeadOf(item);
+            int wanted = record.Type == "DIMSTYLE" ? 105 : 5;
+            var walk = new GroupWalk(record);
+
+            while (walk.Next(out int code, out int start, out int end))
+            {
+                if (code == wanted)
+                {
+                    string text = Text(record, start, end).Trim();
+                    return string.IsNullOrEmpty(text) ? null : text;
+                }
+            }
+
+            return null;
+        }
+
         /// <summary>How many looks <see cref="LookOf(DxfItem, out string, out bool)"/> remembers by their bytes, found by the hash of them: a few more than the layers and colours of a usual drawing.</summary>
         private const int LookSlots = 64;
 

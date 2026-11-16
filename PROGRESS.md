@@ -498,7 +498,7 @@ the ones wanted.
       ("No Endpoint found for specified point." when none); a one-object prompt's second refusal line per command;
       window-corner and fence refusals; CIRCLE, DONUT, UNDO (Mark/Back built) and SCALE as AutoCAD 2021; the arrays'
       ]<eXit>: and "Enter the number of"
-- [ ] Aids-vars follow-ups 4: a snap override before a window corner or fence point; INT/EXT/PAR/APP/GCE typed points;
+- [ ] (aids5, running) Aids-vars follow-ups 4: a snap override before a window corner or fence point; INT/EXT/PAR/APP/GCE typed points;
       "to" in the history for PER, NEA, TAN, PAR; ARRAYRECT Rows/Levels sequences (the console hung once on R);
       BREAK's "No object found" and LAYOFF's "Nothing Selected."; LAYOFF/LAYFRZ [Settings/Undo]; UNDO Auto, Control,
       BEgin, End; "W 1" at a corner; the pick-box aperture for a click under an override (S)
@@ -884,10 +884,14 @@ the ones wanted.
       merges read 1 375 -> 10 records; a merge across field 700000 3.4 -> 1.3 ms), a merge no longer copies the 1.1 MB
       TABLECONTENT twice, smaller allocations; SetFormula and the cell setters were already spliced; lazy layout and
       unmerge parked (0.1 ms, a flat-record copy)
-- [ ] (tables11, running) Tables follow-ups 10: RemoveDataLink/SetDataLink read and write the whole TABLECONTENT (8-24 ms at 300 rows):
-      read links from the kept grid; the first merge of a file's table reads TABLECONTENT (10-45 ms: a lazy
-      ContentBytesOf); Own()'s two list copies (1.8 MB) an edit; Item.Handle re-walks the table record after each edit;
-      1-2 digit handles still read every record; series dates in a daylight-saving zone; GUI-only sides (S)
+- [x] Tables follow-ups 10 (tables11): SetDataLink and RemoveDataLink read links from the kept grid and write only the
+      cells they change (300x6: a second SetDataLink 43.9 ms / 72.8 MB -> 2.8 ms / 6.9 MB, net48); the first merge and
+      row insert map TABLECONTENT lazily (29.6 -> 13.5 ms); a handle read after an edit 0.26 -> 0.01 ms; bytes identical
+      (60 pinned, 720 fuzz runs)
+- [ ] Tables follow-ups 11: the first SetDataLink still makes every cell's strings (22-29 ms: scan unread cells as
+      LinkRun does); CurrentLinks rebuilt after each edit (IsLinked 4-7 ms after a height); ContentKindsOf reads the whole
+      TABLECONTENT on each write (~5 % of a row edit); 1-2 digit handles still read every record; series dates in a
+      daylight-saving zone; GUI-only sides (S)
 - [x] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
 
 - [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand
