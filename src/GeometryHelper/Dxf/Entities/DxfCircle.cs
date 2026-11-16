@@ -509,8 +509,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Moves, turns, scales or mirrors the circle, as AutoCAD's <c>TransformBy</c> does: its centre, normal, radius and
-        /// thickness are carried as ezdxf carries a circle's, in the system of its normal, the new normal square to the
-        /// images of the old system's x and y axes. The record is written once.
+        /// thickness are carried as ezdxf carries a circle's, in the system of its normal, the new normal the image of the old
+        /// one, as AutoCAD takes it (square to the images of the old system's x and y axes, and turned over by a mirror). The
+        /// record is written once.
         /// </summary>
         /// <param name="transform">The transformation, one that scales the circle's plane alike both ways.</param>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
@@ -579,8 +580,9 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// A circle or an arc moved as ezdxf's <c>OCSTransform</c> moves one: the new normal is the image of the old system's x
-        /// axis crossed with that of its y axis, the centre is taken into the world, moved and taken into the new system, the
+        /// A circle or an arc moved as ezdxf's <c>OCSTransform</c> moves one, but for the normal: the new normal is the image of
+        /// the old one, as AutoCAD takes it, which is the image of the old system's x axis crossed with that of its y axis
+        /// where the transformation turns and scales, and its opposite under a mirror; the centre is taken into the world, moved and taken into the new system, the
         /// radius is the length of the image of the radius along the old x axis, and the thickness is the height along the
         /// new normal of the image of the old thickness. Refused where the images of the two axes differ in length or are not
         /// square.
@@ -613,7 +615,10 @@ namespace GeometryHelper.Dxf
                 );
             }
 
-            newNormal = cross.Divide(length);
+            // The image of the normal, as AutoCAD takes it: the cross product of the images of the axes is its opposite where the
+            // transformation is a mirror.
+            newNormal =
+                cross.DotProduct(transform.Transform(normal)) < 0.0 ? cross.Divide(-length) : cross.Divide(length);
             newCentre = WorldToOcs(newNormal, transform.Transform(OcsToWorld(normal, centre)));
             newRadius = transform.Transform(u.Multiply(radius)).Length;
             GeoVector3 raised = transform.Transform(normal.Multiply(thickness));

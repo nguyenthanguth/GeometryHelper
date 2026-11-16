@@ -47,6 +47,35 @@ namespace GeometryHelper.Dxf
             ScaleUniform = true;
         }
 
+        /// <summary>
+        /// The transformation seen from the system of an extrusion, carried into the system of the image of that extrusion, as
+        /// AutoCAD 2021's <c>TransformBy</c> takes the normal of a circle, an arc, a polyline, a SOLID or a text: the old normal
+        /// moved by the transformation. Where the transformation does not reflect, that is the extrusion the axes make, so
+        /// the same as <see cref="DxfOcsTransform(GeoVector3, GeoTransform3)"/>; a mirror turns the cross product of the images
+        /// of the axes the other way round, and the extrusion kept here is the image: a circle mirrored across a vertical plane
+        /// keeps its normal (0, 0, 1) and one mirrored across its own plane has (0, 0, -1), its centre in the world where it
+        /// was.
+        /// </summary>
+        /// <param name="extrusion">The extrusion the entity has now.</param>
+        /// <param name="m">The transformation.</param>
+        internal static DxfOcsTransform OfImage(GeoVector3 extrusion, GeoTransform3 m)
+        {
+            var made = new DxfOcsTransform(extrusion, m);
+            return made.NewExtrusion.DotProduct(m.Transform(extrusion)) < 0.0
+                ? new DxfOcsTransform(made, made.NewExtrusion.Multiply(-1.0))
+                : made;
+        }
+
+        /// <summary>The transformation of another, carried into the system of an extrusion given, its test of a plane scaled alike kept.</summary>
+        private DxfOcsTransform(DxfOcsTransform other, GeoVector3 newExtrusion)
+        {
+            _m = other._m;
+            _old = other._old;
+            _new = new Axes(newExtrusion);
+            NewExtrusion = _new.Z;
+            ScaleUniform = other.ScaleUniform;
+        }
+
         /// <summary>The extrusion of the new system, of unit length.</summary>
         internal GeoVector3 NewExtrusion { get; }
 
@@ -220,6 +249,30 @@ namespace GeometryHelper.Dxf
             long bits = BitConverter.DoubleToInt64Bits(value);
             bits += (value > 0.0) == (direction > 0) ? 1 : -1;
             return BitConverter.Int64BitsToDouble(bits);
+        }
+
+        /// <summary>
+        /// Whether a direction reads in the right half of the circle, from just past -90 degrees to 90, as AutoCAD 2021 halves
+        /// it for the words of a text: one straight up is in it, one straight down is not. The direction is in the system of a
+        /// normal, the x and y of the world's taken into it.
+        /// </summary>
+        internal static bool RightHalf(GeoVector3 along, GeoVector3 normal)
+        {
+            GeoVector3 local = new Axes(normal).FromWorld(along);
+            return local.X > Tolerance.Default.EqualVector
+                || (Math.Abs(local.X) <= Tolerance.Default.EqualVector && local.Y > 0.0);
+        }
+
+        /// <summary>
+        /// Whether a mirror turns the words of a text over across their upright, reversing their baseline, so that they stay
+        /// readable, as AutoCAD 2021's <c>TransformBy</c> does: where the baseline mirrored and reversed reads, in the system of
+        /// the image of the normal, in the half of the circle it reads in now in the system of the normal; else across the
+        /// baseline.
+        /// </summary>
+        internal static bool AcrossUpright(GeoVector3 along, GeoVector3 normal, GeoTransform3 mirror)
+        {
+            GeoVector3 imageNormal = OfImage(normal, mirror).NewExtrusion;
+            return RightHalf(along, normal) == RightHalf(mirror.Transform(along).Multiply(-1.0), imageNormal);
         }
 
         /// <summary>A direction of unit length, as ezdxf makes one: multiplied by one over its length.</summary>

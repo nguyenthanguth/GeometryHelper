@@ -79,12 +79,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void AnArcMirrored_WhichAutoCadLeavesSeenFromBelow_HasItsGripsWhereItIsDrawn_AndIsDraggedThere()
+        public void AnArcMirrored_WhichAutoCadLeavesItsNormalUp_HasItsGripsWhereItIsDrawn_AndIsDraggedThere()
         {
             CadDocument document = Plan();
             Run(Session(document), "MI", new[] { "A4" }, Enter, P(400, 0), P(400, 10), "Y");
             DxfArc arc = Entity<DxfArc>(document, "A4");
-            Assert.True(arc.Normal.Z < 0.0);
+            // AutoCAD 2021's MIRROR (probed, mirror-8) keeps the image of the normal: (0, 0, 1) across a vertical line.
+            Assert.True(arc.Normal.Z > 0.0);
 
             var grips = CadGrips.Of(arc);
             Near(P(arc.StartPoint.X, arc.StartPoint.Y), grips[0].Point, 1E-9);

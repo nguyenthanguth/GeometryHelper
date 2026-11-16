@@ -215,7 +215,7 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AnArcMovedOrMirrored_IsWhereEzdxfMovesIt()
+        public void AnArcMovedOrMirrored_IsWhereEzdxfMovesIt_ButForTheNormalOfAMirror()
         {
             // ezdxf 1.4.5 Arc.transform on the oracle's turn: centre (-8.39403305092514, -33.696328646153326, 27.762230114410592),
             // radius 12.000000000000002, from (-18.06313549824982, -37.68495506177682, 33.64434854060114) to
@@ -228,14 +228,16 @@ namespace GeometryHelper.UnitTest.Dxf
             Near(new GeoPoint3(-18.06313549824982, -37.68495506177682, 33.64434854060114), arc.StartPoint, 1E-9);
             Near(new GeoPoint3(0.6855215940005207, -28.91018848112107, 21.544951789413876), arc.EndPoint, 1E-9);
 
-            // Mirrored in x the arc turns about: ezdxf swaps its ends, from (52.07092963472077, -5.141310238787757,
-            // 19.784516704098756) to (29.03238150247498, -10.197322616342973, 15.475675578386973).
+            // Mirrored in x the arc runs the other way round about the image of its normal, as AutoCAD 2021 takes it, not
+            // about the cross product of the images of its axes, which is its opposite (ezdxf's): the same circle and the same
+            // ends, the first from (29.03238150247498, -10.197322616342973, 15.475675578386973) to (52.07092963472077,
+            // -5.141310238787757, 19.784516704098756), ezdxf's last and first.
             DxfArc mirrored = ByHandle<DxfArc>(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000), "40");
             mirrored.TransformBy(Mirror);
             Near(new GeoPoint3(40.58987321400701, -8.097707103020358, 17.928429140015904), mirrored.Center, 1E-9);
-            Near(new GeoVector3(0.2672612419124244, -0.5345224838248488, -0.8017837257372733), mirrored.Normal, 1E-9);
-            Near(new GeoPoint3(52.07092963472077, -5.141310238787757, 19.784516704098756), mirrored.StartPoint, 1E-9);
-            Near(new GeoPoint3(29.03238150247498, -10.197322616342973, 15.475675578386973), mirrored.EndPoint, 1E-9);
+            Near(new GeoVector3(-0.2672612419124244, 0.5345224838248488, 0.8017837257372733), mirrored.Normal, 1E-9);
+            Near(new GeoPoint3(29.03238150247498, -10.197322616342973, 15.475675578386973), mirrored.StartPoint, 1E-9);
+            Near(new GeoPoint3(52.07092963472077, -5.141310238787757, 19.784516704098756), mirrored.EndPoint, 1E-9);
         }
 
         private static void Near(GeoPoint3 expected, GeoPoint3 actual, double relative) =>

@@ -499,10 +499,13 @@ the ones wanted.
 - [x] MIRROR follow-ups 7 (mirror7): DxfHatch.TransformBy keeps the pattern lines by default as AutoCAD's MIRRHATCH 0
       (TransformBy(t, true) reflects them); an annotative hatch's context direction kept where the transformation takes
       the hatch's own axes straight across (463 of 463 probed pairs); MIRROR3D with AutoCAD's options and words
-- [ ] (mirror8, running) MIRROR follow-ups 8: the normal of a mirrored CIRCLE, ARC, LWPOLYLINE, TEXT and SOLID (AutoCAD keeps the image of
-      the normal, the library turns it over; a text mirrored across its own plane moves its insertion in AutoCAD); a
-      mirror that also scales leaves a hatch's pattern scale in AutoCAD; group 52 of -150 vs 210; MakeEntityAnnotative
-      on a hatch of a non-z normal writes the direction in plane coordinates; Z in the presenter for MIRROR3D's points (S)
+- [x] MIRROR follow-ups 8 (mirror8): a mirrored CIRCLE, ARC, LWPOLYLINE and SOLID keep the image of their normal as
+      AutoCAD (48 entities x 13 transformations to 1E-9), a mirrored TEXT/MTEXT turned readable about its words as
+      AutoCAD, a hatch's pattern scale kept under a scaling mirror, 52 at a half turn as AutoCAD, the annotative context
+      direction a world vector, MTEXT's direction kept unit; the presenter's MIRROR looks as before
+- [ ] MIRROR follow-ups 9: justified TEXT mirrored (AutoCAD recomputes 10 from the alignment point); annotative TEXT and
+      MTEXT and TEXT without a font fall back; POINT group 50 under TransformBy; MTEXT's 11 omitted on a tilted plane;
+      the hatch half-turn sign rule not understood; POLYLINE 2D and LEADER normals not probed (S)
 - [x] Drafting aids: TK (TRACKING); check TT with OTRACK off, "(need YZ):" input and Enter at a modifier prompt
       against AutoCAD (S)
 - [x] Draw: AUDIT a drawing made with every ARC, CIRCLE, PLINE, TEXT and MTEXT option, and compare ARC and PLINE entity

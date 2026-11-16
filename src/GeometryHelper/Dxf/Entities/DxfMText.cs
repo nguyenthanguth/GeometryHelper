@@ -1894,6 +1894,63 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
+            // A mirror keeps the words readable, as AutoCAD 2021's TransformBy keeps them: the MTEXT is turned over about its point
+            // before the mirror, across its upright or its baseline, and the point it is held by turned over with it.
+            if (transform.GetDeterminant() < 0.0 && TurnedOver(transform, out GeoTransform3 turn, out int held))
+            {
+                Move(transform.Multiply(turn));
+                Attachment = (DxfAttachmentPoint)held;
+                return;
+            }
+
+            Move(transform);
+        }
+
+        /// <summary>
+        /// The turn-over a mirror gives an MTEXT so that its words stay readable, as AutoCAD 2021's <c>TransformBy</c> does it
+        /// (probed in its console on 8 MTEXTs of the planes (0, 0, 1), (0, 1, 0), (1, 1, 1) and (0, 0, -1) under 6 mirrors): a
+        /// reflection about its point, across its upright (the plane square to its direction) where its direction mirrored and
+        /// reversed reads in the half of the circle it reads in now, else across its baseline (the plane square to its
+        /// upright); mirrored after it, the transformation is a turn and a move, so that the new direction is the mirror's
+        /// image reversed in the one case and the image in the other, the new normal the mirror's image of the normal, and the
+        /// point the MTEXT is held by carried to the opposite side of its box, left for right or top for bottom. An MTEXT along
+        /// x held by its top left, mirrored across x = 40, reads along (1, 0, 0) from the mirrored point, held by its top
+        /// right, still of normal (0, 0, 1); across the line through (20, 5) and (10, 20) it reads along (0.385, -0.923).
+        /// Where the MTEXT has contexts (an annotative one) it is mirrored as it is, as before.
+        /// </summary>
+        private bool TurnedOver(GeoTransform3 mirror, out GeoTransform3 turn, out int attachment)
+        {
+            turn = null;
+            attachment = 0;
+            GeoVector3 along = HasDirection() ? Point(11, Origin).ToVector() : OwnDirection;
+            GeoVector3 upright = DxfOcsTransform.Cross(Normal, along);
+
+            if (!(along.Length > 0.0) || !(upright.Length > 0.0) || Shown(out _) != null)
+            {
+                return false;
+            }
+
+            along = along.Divide(along.Length);
+            upright = upright.Divide(upright.Length);
+            bool across = DxfOcsTransform.AcrossUpright(along, Normal, mirror);
+            GeoPoint3 at = Point(10, Origin);
+            turn = GeoTransform3.Mirror(new GeoPlane3(at, across ? along : upright));
+            int held = (int)OwnAttachment;
+
+            if (held >= 1 && held <= 9)
+            {
+                int column = (held - 1) % 3;
+                int row = (held - 1) / 3;
+                held = across ? (row * 3) + (2 - column) + 1 : ((2 - row) * 3) + column + 1;
+            }
+
+            attachment = held;
+            return true;
+        }
+
+        /// <summary>Moves the MTEXT by a transformation, as <see cref="TransformEntity"/> says, the turn-over of a mirror already put in it.</summary>
+        private void Move(GeoTransform3 transform)
+        {
             // An MTEXT has no lean: a transformation that leans its frame is refused, before anything is written, as a circle
             // refuses one that makes it an ellipse.
             GeoVector3 frame = HasDirection() ? Point(11, Origin).ToVector() : OwnDirection;
@@ -1973,9 +2030,9 @@ namespace GeometryHelper.Dxf
 
             if (!alongX)
             {
-                groups.AddRange(
-                    PointChanges(11, new GeoPoint3(newDirection.X, newDirection.Y, newDirection.Z), Origin)
-                );
+                // Scaled, the direction is still of unit length, as AutoCAD 2021 writes it: (0.825, 0.565) scaled by 2 stays so.
+                GeoVector3 written = unscaled ? newDirection : unitDirection;
+                groups.AddRange(PointChanges(11, new GeoPoint3(written.X, written.Y, written.Z), Origin));
             }
 
             if (Value(50) != null)

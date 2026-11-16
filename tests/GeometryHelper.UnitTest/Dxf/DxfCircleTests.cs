@@ -228,7 +228,7 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ACircleMoved_IsWhereEzdxfMovesIt_AndAShearIsRefused()
+        public void ACircleMoved_IsWhereEzdxfMovesIt_ButForTheNormalOfAMirror_AndAShearIsRefused()
         {
             // ezdxf 1.4.5 Circle.transform on the oracle's turn: centre (-9.448676414223495, 6.496392865538491,
             // 6.318630227715507), extrusion (-0.3947397981737998, 0.0713924994178759, -0.9160150668873175), radius 7.500000000000001.
@@ -242,7 +242,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(7.500000000000001, circle.Radius, 12);
             Assert.Throws<ArgumentException>(() => circle.TransformBy(Shear));
 
-            // A mirror in x: the normal comes up, the centre (13, 20, -5).
+            // A mirror in x: the normal stays (0, 0, -1), the image of the normal, as AutoCAD 2021 takes it, where ezdxf turns
+            // it up; the centre (13, 20, -5) either way.
             DxfCircle mirrored = ByHandle<DxfCircle>(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000), "3F");
             mirrored.TransformBy(
                 new GeoTransform3(
@@ -256,7 +257,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 )
             );
             Near(new GeoPoint3(13.0, 20.0, -5.0), mirrored.Center);
-            Near(new GeoVector3(0.0, 0.0, 1.0), mirrored.Normal);
+            Near(new GeoVector3(0.0, 0.0, -1.0), mirrored.Normal);
         }
 
         private static void Near(GeoPoint3 expected, GeoPoint3 actual) =>

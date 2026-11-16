@@ -862,7 +862,9 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Moves, turns, scales or mirrors the polyline, as AutoCAD's <c>TransformBy</c>, as ezdxf carries one: each vertex taken
         /// from the old plane to the world, moved, and into the plane of the new normal, square to where the old plane's axes
-        /// go; the elevation that of the first vertex there, the widths and thickness scaled with it, the bulges kept.
+        /// go; the elevation that of the first vertex there, the widths and thickness scaled with it, the bulges kept; under a mirror the
+        /// normal is the image of the old one as AutoCAD takes it, and every bulge changes its sign: (60, 10), (80, 10) with a
+        /// bulge of 0.5 across x = 40 is (20, 10), (0, 10) with -0.5.
         /// </summary>
         /// <param name="transform">The transformation.</param>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
@@ -881,7 +883,7 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            var ocs = new DxfOcsTransform(Normal, transform);
+            var ocs = DxfOcsTransform.OfImage(Normal, transform);
             List<List<KeyValuePair<int, string>>> vertices = Vertices();
 
             if (!ocs.ScaleUniform && HasBulges)
@@ -895,6 +897,9 @@ namespace GeometryHelper.Dxf
             double elevation = Elevation;
             double newElevation = elevation;
 
+            // A mirror runs each arc the other way round in the system of the image of the normal: its bulge changes sign.
+            bool reflects = ocs.Reflects;
+
             for (int i = 0; i < vertices.Count; i++)
             {
                 List<KeyValuePair<int, string>> vertex = vertices[i];
@@ -907,6 +912,11 @@ namespace GeometryHelper.Dxf
 
                 Put(vertex, 10, moved.X, 0.0, false);
                 Put(vertex, 20, moved.Y, 0.0, false);
+
+                if (reflects && Value(vertex, 42, 0.0) != 0.0)
+                {
+                    Put(vertex, 42, -Value(vertex, 42, 0.0), 0.0, false);
+                }
 
                 foreach (int code in new[] { 40, 41 })
                 {

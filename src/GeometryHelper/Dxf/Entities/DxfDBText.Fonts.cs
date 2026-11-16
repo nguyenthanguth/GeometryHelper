@@ -303,6 +303,71 @@ namespace GeometryHelper.Dxf
             return Position.GetVectorTo(placed);
         }
 
+        /// <summary>
+        /// The turn-over a mirror gives a text so that its words stay readable, as AutoCAD 2021's <c>TransformBy</c> does it
+        /// (probed in its console on texts of the planes (0, 0, 1), (0, 1, 0), (1, 1, 1) and (0, 0, -1) under 6 mirrors; the
+        /// words measured in txt.shx 3 high): a reflection in the text's own plane before the mirror, across the upright of
+        /// its words where its baseline mirrored and reversed reads in the half of the circle it reads in now, else across its
+        /// baseline, through the middle of the box of its ink along it or up it. Mirrored after it, the transformation is a
+        /// turn and a move, so that the words are not written backwards and its point moves with the width of its ink: "ABC"
+        /// 3 high at (20, 40), its ink 8.445 wide, mirrored across x = 40 stands at (51.555, 40), still reading along x, and
+        /// mirrored across the plane it lies in at (28.445, 40) on the normal (0, 0, -1), its first point (-28.445, 40) there.
+        /// Null where the words are not measured (<see cref="IsMeasured"/>), as with no fonts, a text written backwards or
+        /// upside down, or of several lines; where the text is aligned any way but left on its baseline, which is turned over
+        /// as it was before (the second point it is held by would need the box of its words as <see cref="Realign"/> puts them
+        /// there); and where it has contexts (an annotative text), whose points would each need their own turn-over.
+        /// </summary>
+        /// <param name="mirror">The mirror.</param>
+        /// <returns>The turn-over, to be followed by the mirror; null where the text is mirrored as it is.</returns>
+        internal GeoTransform3 TurnedOver(GeoTransform3 mirror)
+        {
+            if (!IsDefaultAlignment || TextContexts() != null)
+            {
+                return null;
+            }
+
+            DxfTextLine words = Words(Height, WidthFactor, out DxfFont font, out DxfFonts.Big big);
+
+            if (words != null && font is DxfTrueTypeFont)
+            {
+                words = DxfFonts.Text(font, big, TextString.Trim(' '), Height, WidthFactor);
+            }
+
+            if (words == null || !words.HasInk)
+            {
+                return null;
+            }
+
+            GeoVector3 normal = Normal;
+            GeoPoint3 position = Position;
+            GeoPoint3 at = WorldToOcs(normal, position);
+            double turn = Rotation;
+            GeoVector3 along = OcsToWorld(normal, new GeoPoint3(at.X + Math.Cos(turn), at.Y + Math.Sin(turn), at.Z))
+                .ToVector()
+                .Subtract(position.ToVector());
+            GeoVector3 up = normal.CrossProduct(along);
+
+            if (!(along.Length > 0.0) || !(up.Length > 0.0))
+            {
+                return null;
+            }
+
+            along = along.Divide(along.Length);
+            up = up.Divide(up.Length);
+
+            if (DxfOcsTransform.AcrossUpright(along, normal, mirror))
+            {
+                return GeoTransform3.Mirror(
+                    new GeoPlane3(position.Add(along.Multiply((words.InkLeft + words.InkRight) / 2.0)), along)
+                );
+            }
+
+            double middle = words.Box(out _, out _, out double bottom, out double top)
+                ? (bottom + top) / 2.0
+                : Height / 2.0;
+            return GeoTransform3.Mirror(new GeoPlane3(position.Add(up.Multiply(middle)), up));
+        }
+
         /// <summary>The height of an aligned text, or the width factor of a fitted one, worked out anew after its first point is set, as <see cref="Realign"/> works it out; nothing for a text of another justification, whose first point is its own.</summary>
         private void Refit()
         {

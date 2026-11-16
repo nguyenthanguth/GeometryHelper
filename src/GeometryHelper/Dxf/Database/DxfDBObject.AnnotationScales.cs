@@ -474,11 +474,17 @@ namespace GeometryHelper.Dxf
                 }
             }
 
+            // The direction is a vector of the world, whatever the plane of the hatch, as AutoCAD 2021 writes it: a pattern at 30
+            // degrees on a hatch of normal (0, 1, 0) holds (-0.866, 0, 0.5), not (0.866, 0.5, 0).
             double angle = Rec(52, 0.0) * (Math.PI / 180.0);
+            var normal = new GeoVector3(Rec(210, 0.0), Rec(220, 0.0), Rec(230, 1.0));
+            GeoVector3 direction = new DxfOcsTransform.Axes(normal).ToWorld(
+                new GeoVector3(Math.Cos(angle), Math.Sin(angle), 0.0)
+            );
             groups.Add(Pair(40, factor));
-            groups.Add(Pair(10, Math.Cos(angle)));
-            groups.Add(Pair(20, Math.Sin(angle)));
-            groups.Add(Pair(30, 0.0));
+            groups.Add(Pair(10, direction.X));
+            groups.Add(Pair(20, direction.Y));
+            groups.Add(Pair(30, direction.Z));
 
             // The loops: the count (91) and the type of each (92) in the order the record lists them.
             var types = new List<string>();

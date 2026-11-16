@@ -236,6 +236,34 @@ namespace GeometryHelper.Dxf.Viewer
             });
         }
 
+        /// <summary>
+        /// How MIRROR with MIRRTEXT 1 moves an MTEXT, and a TEXT that <see cref="InPlane"/> leaves (one whose plane is not the
+        /// drawing's), as AutoCAD 2021's MIRROR leaves an MTEXT (probed in its console, mirror-8): mirrored in the plane it
+        /// lies in too, so that the words are the reflection of the box and not kept readable, as the entity's own
+        /// <c>TransformBy</c> would keep them. An MTEXT along x at (100, 10) mirrored across y = 100 stands at (100, 190) with
+        /// the normal (0, 0, -1) and reads along (1, 0, 0), written with no direction. Null for any other object.
+        /// </summary>
+        private static ReadableMirror InOwnPlane(DxfEntity entity, GeoTransform3 mirror)
+        {
+            switch (entity)
+            {
+                case DxfDBText text:
+                    return new ReadableMirror(
+                        mirror.Multiply(GeoTransform3.Mirror(new GeoPlane3(text.Position, text.Normal))),
+                        null,
+                        null
+                    );
+                case DxfMText mtext:
+                    return new ReadableMirror(
+                        mirror.Multiply(GeoTransform3.Mirror(new GeoPlane3(mtext.Location, mtext.Normal))),
+                        null,
+                        null
+                    );
+                default:
+                    return null;
+            }
+        }
+
         /// <summary>The turn-over of a TEXT, attribute or definition in its own plane before the mirror; null where its plane is not the drawing's.</summary>
         private static GeoTransform3 TextFlip(
             CadDocument document,
