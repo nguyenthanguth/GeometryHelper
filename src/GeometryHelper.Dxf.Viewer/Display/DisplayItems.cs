@@ -1424,6 +1424,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         public IReadOnlyList<DisplayItem2> Parts => _extra?.Parts;
 
+        /// <summary>
+        /// Gets whether the words are those of a field, which the canvas draws on a grey ground that is not plotted, as AutoCAD does
+        /// where FIELDDISPLAY is 1; the ground covers the box of the text.
+        /// </summary>
+        public bool IsField { get; internal set; }
+
         /// <summary>Gets whether the canvas draws the letters in the bold face of <see cref="FontName"/>, as a run of an MTEXT coded <c>|b1</c> is drawn.</summary>
         public bool IsBold
         {
@@ -1557,6 +1563,7 @@ namespace GeometryHelper.Dxf.Viewer
         )
             : base(from.Style, from.Handle, from.Layer)
         {
+            IsField = from.IsField;
             _backward = from._backward;
             FontName = from.FontName;
             Text = from.Text;

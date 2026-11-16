@@ -383,7 +383,7 @@ namespace GeometryHelper.Dxf
         public byte[] ThumbnailBitmap => File.Thumbnail();
 
         /// <summary>The value of a variable kept out of the header: the header's of its name where a file keeps one there, else the group 1 of its DICTIONARYVAR; null where there is none.</summary>
-        private string Variable(string name)
+        internal string Variable(string name)
         {
             IReadOnlyList<DxfTypedValue> header = File.HeaderOf("$" + name);
 
@@ -414,7 +414,7 @@ namespace GeometryHelper.Dxf
         /// Sets a variable kept out of the header: the header's where the file keeps it there, else its DICTIONARYVAR's group 1,
         /// the DICTIONARYVAR added where there is none, and the dictionary of variables with it where there is none.
         /// </summary>
-        private void SetVariable(string name, string value)
+        internal void SetVariable(string name, string value)
         {
             IReadOnlyList<DxfTypedValue> header = File.HeaderOf("$" + name);
 

@@ -663,6 +663,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowScaleList = dialog => ScaleListEditWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowLeaderSettings = dialog => LeaderSettingsWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowGeometricTolerance = dialog => GeometricToleranceWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowField = dialog => FieldWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowInputSearchOptions = dialog => InputSearchOptionsWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowViewManager = dialog => ViewManagerWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowDrawingUnits = dialog => DrawingUnitsWindow.Show(Window.GetWindow(this), dialog);
@@ -1534,7 +1535,34 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 e.Handled = true;
                 _model.CancelInPlace();
             }
+            else if (e.Key == Key.F && (Keyboard.Modifiers & ModifierKeys.Control) != 0 && _model.ShowField != null)
+            {
+                // Insert Field: the field's code goes in the box at the caret, as the words of a TEXT hold it while it is edited.
+                e.Handled = true;
+                _fieldDialogShown = true;
+
+                try
+                {
+                    CadFieldRequest request = _model.NewFieldRequest();
+                    string code = _model.AskField(request);
+
+                    if (code != null)
+                    {
+                        int at = InPlaceTextBox.SelectionStart;
+                        InPlaceTextBox.SelectedText = code;
+                        InPlaceTextBox.CaretIndex = at + code.Length;
+                    }
+                }
+                finally
+                {
+                    _fieldDialogShown = false;
+                    InPlaceTextBox.Focus();
+                }
+            }
         }
+
+        // Whether the Field dialog is open over the edit box: the box losing the keyboard to it does not end the edit.
+        private bool _fieldDialogShown;
 
         /// <summary>The edit box losing the keyboard to another part of the window ends the edit with its words, as a click outside it does.</summary>
         private void OnInPlaceLostFocus(object sender, KeyboardFocusChangedEventArgs e)
@@ -1543,6 +1571,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model != null
                 && _model.IsTextEditShown
                 && InPlaceTextBox.IsVisible
+                && !_fieldDialogShown
                 && !InPlaceTextBox.IsKeyboardFocusWithin
                 && e.NewFocus is UIElement
             )

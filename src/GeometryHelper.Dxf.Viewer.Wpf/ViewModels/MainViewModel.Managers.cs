@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 namespace GeometryHelper.Dxf.Viewer.Wpf
 {
@@ -37,6 +38,52 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets how the workspace shows Leader Settings (QLEADER's Settings); the action it closed with is in its request.</summary>
         public Func<LeaderSettingsViewModel, bool> ShowLeaderSettings { get; set; }
 
+        /// <summary>Gets or sets how the workspace shows the Field dialog (FIELD, and Insert Field of the text editor); the action it closed with is in its request.</summary>
+        internal Func<FieldDialogViewModel, bool> ShowField { get; set; }
+
+        /// <summary>A Field dialog for the drawing shown: its previews are evaluated with the session's system variables.</summary>
+        internal CadFieldRequest NewFieldRequest() =>
+            new CadFieldRequest(
+                Session != null
+                    ? CadCommands.FieldContext(Session, CadFieldContexts.Demand)
+                    : new CadFieldContext(Document)
+            );
+
+        /// <summary>
+        /// Asks for a field in the Field dialog while a text editor is open, where no command can ask for an object: Select object
+        /// gives the object selected in the drawing, said at once where none is.
+        /// </summary>
+        /// <param name="request">The dialog, with the field to edit loaded where one is.</param>
+        /// <returns>The field in its markers; null where the dialog was cancelled or the window shows none.</returns>
+        internal string AskField(CadFieldRequest request)
+        {
+            while (ShowField != null)
+            {
+                request.Action = CadFieldAction.Cancel;
+                ShowField(new FieldDialogViewModel(request));
+
+                if (request.Action != CadFieldAction.SelectObject)
+                {
+                    return request.Action == CadFieldAction.Ok && request.Code.Length > 0 ? request.Code : null;
+                }
+
+                string picked = Document?.Selection.Handles.FirstOrDefault();
+
+                if (picked == null)
+                {
+                    Session?.Write(
+                        "Select an object of the drawing before the text editor is opened: the Object field reads it."
+                    );
+                }
+                else
+                {
+                    request.SetObject(picked);
+                }
+            }
+
+            return null;
+        }
+
         /// <summary>Gets or sets how the workspace shows Geometric Tolerance (TOLERANCE, and the Tolerance of LEADER and QLEADER); the action it closed with is in its request.</summary>
         public Func<GeometricToleranceViewModel, bool> ShowGeometricTolerance { get; set; }
 
@@ -73,6 +120,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
                 case CadQLeaderRequest leader when ShowLeaderSettings != null:
                     e.Handled = ShowLeaderSettings(new LeaderSettingsViewModel(leader));
+                    break;
+                case CadFieldRequest field when ShowField != null:
+                    e.Handled = ShowField(new FieldDialogViewModel(field));
                     break;
                 case CadToleranceRequest tolerance when ShowGeometricTolerance != null:
                     e.Handled = ShowGeometricTolerance(new GeometricToleranceViewModel(tolerance));

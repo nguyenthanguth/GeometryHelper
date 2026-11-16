@@ -2020,6 +2020,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     DrawText(text, frame, list, style, handle, layerName, textFactor);
+                    MarkField(text, before, list);
 
                     // A TEXT of the space and an ATTRIB shown give the snap Insertion the point they are placed by.
                     if (
@@ -2058,6 +2059,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     DrawMText(words, frame, list, style, handle, layerName);
+                    MarkField(mtext, before, list);
 
                     if (
                         frame.RootHandle == null
@@ -3284,6 +3286,23 @@ namespace GeometryHelper.Dxf.Viewer
 
             marks = lined.ToArray();
             return words.ToString();
+        }
+
+        /// <summary>Marks the text just drawn as that of a field, where the document draws fields on a grey ground and the text holds one.</summary>
+        private void MarkField(DxfEntity text, int before, DisplayList2 list)
+        {
+            if (
+                _document == null
+                || !_document.FieldDisplay
+                || list.Count <= before
+                || !(list.Items[list.Count - 1] is DisplayText2 drawn)
+                || !CadFields.Has(text)
+            )
+            {
+                return;
+            }
+
+            drawn.IsField = true;
         }
 
         /// <summary>

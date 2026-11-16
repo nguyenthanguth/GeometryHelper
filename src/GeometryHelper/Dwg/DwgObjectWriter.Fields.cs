@@ -305,6 +305,15 @@ namespace GeometryHelper.Dwg
                     Take(groups, ref at, 92, "0");
                     value.Bytes = Unhex(Take(groups, ref at, 310));
                     break;
+                case 16:
+                case 32:
+                    value.Point[0] = DwgRecord.Double(Take(groups, ref at, 11, "0"));
+                    value.Point[1] = DwgRecord.Double(Take(groups, ref at, 21, "0"));
+                    value.Point[2] = value.Type == 32 ? DwgRecord.Double(Take(groups, ref at, 31, "0")) : 0.0;
+                    break;
+                case 64:
+                    value.Handle = DwgRecord.Hex(Take(groups, ref at, 330, "0"));
+                    break;
                 default:
                     value.Text = Take(groups, ref at, 1);
                     break;
@@ -357,6 +366,22 @@ namespace GeometryHelper.Dwg
                         byte[] raw = value.Bytes ?? new byte[0];
                         _data.BitLong(raw.Length);
                         _data.Bytes(raw);
+                        break;
+                    case 16:
+                    case 32:
+                        int doubles = value.Type == 32 ? 3 : 2;
+                        var point = new byte[8 * doubles];
+
+                        for (int k = 0; k < doubles; k++)
+                        {
+                            BitConverter.GetBytes(value.Point[k]).CopyTo(point, 8 * k);
+                        }
+
+                        _data.BitLong(point.Length);
+                        _data.Bytes(point);
+                        break;
+                    case 64:
+                        H(4, value.Handle);
                         break;
                     default:
                         // A string as UTF-16 (before R2007 in the code page) with its closing zero, counted in bytes.

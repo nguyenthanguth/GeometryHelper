@@ -154,21 +154,24 @@ namespace GeometryHelper.Dxf.Viewer
                     return new CadInPlaceEdit(
                         CadInPlaceKind.MText,
                         mtext.Handle,
-                        mtext.Contents,
+                        CadFields.CodesOf(mtext),
                         P2(mtext.Location),
                         mtext.TextHeight,
                         mtext.Rotation,
                         mtext.Width,
                         mtext.TextStyleName,
                         (int)mtext.Attachment
-                    );
+                    )
+                    {
+                        FieldShown = CadFields.ShownOf(mtext),
+                    };
                 case DxfAttributeDefinition _:
                     return null;
                 case DxfDBText text when !mtextOnly:
                     return new CadInPlaceEdit(
                         CadInPlaceKind.Text,
                         text.Handle,
-                        text.TextString,
+                        CadFields.CodesOf(text),
                         P2(text.Position),
                         text.Height,
                         text.Rotation,
@@ -265,7 +268,10 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 string label = entity is DxfDimension ? "Text override" : "Contents";
                 string value = entity is DxfDimension && words == "<>" ? string.Empty : words;
-                CadEditResult result = CadPropertyEditor.Set(c.Document, new[] { edit.Handle }, label, value);
+                CadEditResult result =
+                    CadFields.IsText(entity) && (CadFields.Has(entity) || value.Contains("%<\\"))
+                        ? WriteFieldWords(c, entity, edit.Value, value)
+                        : CadPropertyEditor.Set(c.Document, new[] { edit.Handle }, label, value);
 
                 if (!result.Succeeded)
                 {
@@ -353,6 +359,34 @@ namespace GeometryHelper.Dxf.Viewer
 
             c.CloseUndoStep();
             return done;
+        }
+
+        /// <summary>
+        /// Writes the words an edit ended with into a text that holds fields or now does: the fields in them made, evaluated and
+        /// written with their FIELD objects, as one undo step of the command; refused on a locked layer.
+        /// </summary>
+        private static CadEditResult WriteFieldWords(CadCommandContext c, DxfEntity entity, string was, string words)
+        {
+            string handle = entity.Handle;
+
+            if (CadLayerEditor.IsLocked(c.Database, entity.Layer))
+            {
+                return CadEditResult.Refuse(
+                    "The " + CadDocument.KindName(entity) + " " + handle + " is on a locked layer."
+                );
+            }
+
+            CadFieldContext context = FieldContext(c.Session, CadFieldContexts.Demand);
+            return c.Apply(
+                new[] { new CadEditRecord(CadEditRecordKind.PropertyChanged, handle, "Contents", was, words) },
+                s =>
+                {
+                    if (!s.IsHandled(handle))
+                    {
+                        CadFields.Set(s.Document.FindEntity(handle), words, context);
+                    }
+                }
+            );
         }
 
         /// <summary>Gives an MTEXT the width, attachment, line spacing and background mask its editor set, the attachment point kept where it is.</summary>

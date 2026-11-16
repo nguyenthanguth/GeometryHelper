@@ -378,12 +378,31 @@ namespace GeometryHelper.Dxf
         /// <see cref="Made"/>: the field in the entry's place, owned by the dictionary, each child after it owned by its parent and
         /// named by it (360). The FIELD of the name, where there is one, is erased with its children.
         /// </summary>
-        internal static void Write(DxfDBDictionary fields, string key, DxfField made)
+        internal static void Write(DxfDBDictionary fields, string key, DxfField made, string words)
+        {
+            Write(fields, key, Unevaluated(made, words));
+        }
+
+        /// <summary>
+        /// Writes a field described by a draft into a dictionary of fields under a name, with its children, in the layout of
+        /// <see cref="Layout"/>: the FIELD of the name, where there is one, erased with its children, the fields written
+        /// listed in the drawing's list of fields (ACAD_FIELDLIST), made where the drawing has none, as AutoCAD lists them.
+        /// </summary>
+        /// <returns>The field written, which is the field made in code of the draft where it names one.</returns>
+        internal static DxfField Write(DxfDBDictionary fields, string key, DxfFieldDraft draft)
         {
             DxfFile file = fields.Item.File;
             file.AddClass("FIELD", "AcDbField", 1152);
             EraseOld(fields, key);
-            WriteTree(file, Made(made, file.Supports(1021)), groups => fields.Add(key, "FIELD", groups));
+            var written = new List<DxfItem>();
+            DxfItem root = WriteTree(
+                file,
+                Layout(draft, file.Supports(1021)),
+                groups => fields.Add(key, "FIELD", groups),
+                written
+            );
+            Register(file, written);
+            return (DxfField)OfObject(root);
         }
 
         /// <summary>
@@ -714,7 +733,12 @@ namespace GeometryHelper.Dxf
         /// Writes a field and its children: the field by the way given, its groups after its marker AcDbField with a
         /// placeholder for each child's handle; then each child, owned by it; then the handles in the placeholders' places.
         /// </summary>
-        private static DxfItem WriteTree(DxfFile file, Node node, Func<Action<DxfFile.Builder>, DxfItem> add)
+        private static DxfItem WriteTree(
+            DxfFile file,
+            Node node,
+            Func<Action<DxfFile.Builder>, DxfItem> add,
+            List<DxfItem> listed = null
+        )
         {
             DxfItem item = add(b =>
             {
@@ -727,11 +751,14 @@ namespace GeometryHelper.Dxf
             });
 
             node.Made?.Bind(item);
+            listed?.Add(item);
             var handles = new List<string>(node.Children.Count);
 
             foreach (Node child in node.Children)
             {
-                handles.Add(WriteTree(file, child, groups => file.AddObject("FIELD", item.Handle, groups)).Handle);
+                handles.Add(
+                    WriteTree(file, child, groups => file.AddObject("FIELD", item.Handle, groups), listed).Handle
+                );
             }
 
             IReadOnlyList<DxfTypedValue> written = file.GroupsOf(item);
@@ -797,6 +824,383 @@ namespace GeometryHelper.Dxf
             node.Groups.Add(G(301, string.Empty));
             node.Groups.Add(G(98, "0"));
             return node;
+        }
+
+        /// <summary>
+        /// The field as a draft to be evaluated and written again: its evaluator, code, format, children and the handles of the
+        /// objects it reads, and when it is evaluated; none of the values it kept. A child that names no FIELD is left out.
+        /// </summary>
+        internal DxfFieldDraft ToDraft()
+        {
+            var draft = new DxfFieldDraft { Evaluator = EvaluatorId, Code = GetFieldCode() };
+            bool counted = false;
+            bool formatted = false;
+
+            foreach (DxfTypedValue group in Own())
+            {
+                if (group.TypeCode == 331)
+                {
+                    draft.Objects.Add(group.Value.Trim());
+                }
+                else if (group.TypeCode == 4 && !formatted && !counted)
+                {
+                    formatted = true;
+                    draft.Format = group.Value;
+                }
+                else if (group.TypeCode == 91 && !counted)
+                {
+                    counted = true;
+                    draft.Option = int.TryParse(
+                        group.Value,
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out int o
+                    )
+                        ? o
+                        : DxfFieldDraft.Automatic;
+                }
+            }
+
+            foreach (DxfField child in GetChildren())
+            {
+                if (child != null)
+                {
+                    draft.Children.Add(child.ToDraft());
+                }
+            }
+
+            return draft;
+        }
+
+        /// <summary>The words the field shows (301), as it last showed them; empty for one made in code and not evaluated.</summary>
+        internal string ShownText()
+        {
+            if (Item == null)
+            {
+                return string.Empty;
+            }
+
+            string shown = string.Empty;
+
+            foreach (DxfTypedValue group in Own())
+            {
+                if (group.TypeCode == 301)
+                {
+                    shown = group.Value;
+                }
+            }
+
+            return shown;
+        }
+
+        // The data a text field keeps its words' checksum under, and the value AutoCAD shows for a field it has not evaluated.
+        internal const string ChecksumKey = "ACFD_FIELDTEXT_CHECKSUM";
+        private const string NotEvaluated = "####";
+
+        /// <summary>
+        /// The draft of a field made in code, as AutoCAD writes one it has not evaluated: its state initialised and modified
+        /// (5 of a text field, 37 of a field), not evaluated (95 of 1), its value empty and shown as <c>####</c>, a text
+        /// field with the checksum of the words the object has, a field of the date to be evaluated on demand only (91 of 32)
+        /// and every other in every context (63).
+        /// </summary>
+        private static DxfFieldDraft Unevaluated(DxfField field, string words)
+        {
+            var draft = new DxfFieldDraft
+            {
+                Evaluator = field._madeEvaluator,
+                Code = field._madeCode,
+                Made = field,
+            };
+
+            foreach (DxfField child in field._madeChildren)
+            {
+                draft.Children.Add(Unevaluated(child, null));
+            }
+
+            if (field.IsTextField)
+            {
+                draft.Data.Add(
+                    new KeyValuePair<string, DxfFieldValue>(ChecksumKey, DxfFieldValue.Checksum(Checksum(words)))
+                );
+                draft.Value = new DxfFieldValue { Flags = 3 };
+                return draft;
+            }
+
+            string format = FormatOf(field._madeCode);
+            draft.Format = format;
+            draft.Option = IsDate(field._madeCode) ? DxfFieldDraft.OnDemand : DxfFieldDraft.Automatic;
+            draft.State = 37;
+            draft.Value = DxfFieldValue.None(format);
+            draft.Shown = NotEvaluated;
+            return draft;
+        }
+
+        /// <summary>Whether the code of a field is of the variable Date, which AutoCAD evaluates on demand only.</summary>
+        internal static bool IsDate(string code) =>
+            code.StartsWith(@"\AcVar Date", StringComparison.Ordinal)
+            && (code.Length == 11 || code[11] == ' ' || code[11] == '\\');
+
+        /// <summary>The format of a code, the text of its <c>\f "..."</c>; empty where it has none.</summary>
+        internal static string FormatOf(string code)
+        {
+            int at = code.IndexOf(@"\f """, StringComparison.Ordinal);
+            int end = at < 0 ? -1 : code.IndexOf('"', at + 4);
+            return end < 0 ? string.Empty : code.Substring(at + 4, end - at - 4);
+        }
+
+        /// <summary>
+        /// The checksum AutoCAD keeps of the words of a text field, to know that they were not changed outside it: each letter
+        /// (UTF-16 unit) counted as many times as its place from one, 1 for the first; 0 for none.
+        /// </summary>
+        internal static double Checksum(string words)
+        {
+            double sum = 0.0;
+
+            for (int i = 0; words != null && i < words.Length; i++)
+            {
+                sum += (i + 1.0) * words[i];
+            }
+
+            return sum;
+        }
+
+        /// <summary>
+        /// A draft as the groups of its FIELD and those of its children, after the marker AcDbField, in the layout of AutoCAD
+        /// 2021: the evaluator (1), the code (2, with pieces of 250 in 3), the children (90, a 360 each), the objects read (97, a 331
+        /// each), before R2007 the format (4), when it is evaluated (91), how it is filed (92), its state (94), its status (95),
+        /// the error and its message (96, 300), the values kept by name (93, a 6 and a value each, in the order of their names),
+        /// ACFD_FIELD_VALUE and its own value, the words it shows (301) and their length (98). A value is, from R2007, its
+        /// flags (93), type (90), value, unit (94), format (300), words (302) and 304 ACVALUE_END; before it, its type and
+        /// value alone.
+        /// </summary>
+        private static Node Layout(DxfFieldDraft draft, bool r2007)
+        {
+            var node = new Node { Made = draft.Made };
+            node.Groups.Add(G(1, draft.Evaluator));
+            node.Groups.AddRange(CodeGroups(draft.Code));
+            node.Groups.Add(G(90, draft.Children.Count.ToString(CultureInfo.InvariantCulture)));
+
+            foreach (DxfFieldDraft child in draft.Children)
+            {
+                node.Groups.Add(G(360, "0"));
+                node.Children.Add(Layout(child, r2007));
+            }
+
+            node.Groups.Add(G(97, draft.Objects.Count.ToString(CultureInfo.InvariantCulture)));
+
+            foreach (string handle in draft.Objects)
+            {
+                node.Groups.Add(G(331, handle));
+            }
+
+            if (!r2007)
+            {
+                node.Groups.Add(G(4, draft.Format));
+            }
+
+            node.Groups.Add(G(91, draft.Option.ToString(CultureInfo.InvariantCulture)));
+            node.Groups.Add(G(92, draft.Filing.ToString(CultureInfo.InvariantCulture)));
+            node.Groups.Add(G(94, draft.State.ToString(CultureInfo.InvariantCulture)));
+            node.Groups.Add(G(95, draft.Status.ToString(CultureInfo.InvariantCulture)));
+            node.Groups.Add(G(96, draft.Error.ToString(CultureInfo.InvariantCulture)));
+            node.Groups.Add(G(300, draft.Message));
+            node.Groups.Add(G(93, draft.Data.Count.ToString(CultureInfo.InvariantCulture)));
+
+            foreach (KeyValuePair<string, DxfFieldValue> data in draft.Data)
+            {
+                node.Groups.Add(G(6, data.Key));
+                AddValue(node.Groups, data.Value, r2007);
+            }
+
+            node.Groups.Add(G(7, "ACFD_FIELD_VALUE"));
+            AddValue(node.Groups, draft.Value, r2007);
+            node.Groups.Add(G(301, draft.Shown));
+            node.Groups.Add(G(98, draft.Shown.Length.ToString(CultureInfo.InvariantCulture)));
+            return node;
+        }
+
+        private static void AddValue(List<KeyValuePair<int, string>> groups, DxfFieldValue value, bool r2007)
+        {
+            if (r2007)
+            {
+                groups.Add(G(93, value.Flags.ToString(CultureInfo.InvariantCulture)));
+            }
+
+            groups.Add(G(90, value.Type.ToString(CultureInfo.InvariantCulture)));
+
+            // Of R2007 on, a value that holds nothing writes no value; before, one of no type writes a long of nought.
+            if (!r2007 || (value.Flags & 1) == 0)
+            {
+                switch (value.Type)
+                {
+                    case 0:
+                    case 1:
+                        groups.Add(G(91, value.Long.ToString(CultureInfo.InvariantCulture)));
+                        break;
+                    case 2:
+                        groups.Add(G(140, Number(value.Double)));
+                        break;
+                    case 8:
+                        string bytes = DateBytes(value.Date, r2007);
+                        groups.Add(G(92, (bytes.Length / 2).ToString(CultureInfo.InvariantCulture)));
+                        groups.Add(G(310, bytes));
+                        break;
+                    case 16:
+                    case 32:
+                        groups.Add(G(11, Number(value.X)));
+                        groups.Add(G(21, Number(value.Y)));
+
+                        if (value.Type == 32)
+                        {
+                            groups.Add(G(31, Number(value.Z)));
+                        }
+
+                        break;
+                    case 64:
+                        groups.Add(G(330, value.Handle));
+                        break;
+                    default:
+                        groups.Add(G(1, value.Text));
+                        break;
+                }
+            }
+
+            if (r2007)
+            {
+                groups.Add(G(94, value.Unit.ToString(CultureInfo.InvariantCulture)));
+                groups.Add(G(300, value.Format));
+                groups.Add(G(302, value.Shown));
+                groups.Add(G(304, "ACVALUE_END"));
+            }
+        }
+
+        /// <summary>A real as AutoCAD writes one in a FIELD: the shortest text of 15 to 17 digits that reads back as it was, with a point where it is a whole number.</summary>
+        private static string Number(double value)
+        {
+            // The fewest digits, of 15 to 17, that read back as the same real: AutoCAD writes 314.1592653589793, not 314.15926535897933.
+            string text = null;
+
+            for (int digits = 15; digits <= 17 && text == null; digits++)
+            {
+                string candidate = value.ToString(
+                    "G" + digits.ToString(CultureInfo.InvariantCulture),
+                    CultureInfo.InvariantCulture
+                );
+
+                if (double.Parse(candidate, CultureInfo.InvariantCulture) == value || digits == 17)
+                {
+                    text = candidate;
+                }
+            }
+
+            return text.IndexOfAny(new[] { '.', 'E' }) < 0 ? text + ".0" : text;
+        }
+
+        /// <summary>
+        /// A date as its bytes in hexadecimal: from R2007 the 16 of a Windows <c>SYSTEMTIME</c> in the time of the place (year,
+        /// month, day of the week, day, hour, minute, second and millisecond, each in two bytes), before it the seconds
+        /// since 1970 in universal time in four bytes and four of nought.
+        /// </summary>
+        private static string DateBytes(DateTime date, bool r2007)
+        {
+            var bytes = new List<byte>();
+
+            if (r2007)
+            {
+                foreach (
+                    int part in new[]
+                    {
+                        date.Year,
+                        date.Month,
+                        (int)date.DayOfWeek,
+                        date.Day,
+                        date.Hour,
+                        date.Minute,
+                        date.Second,
+                        date.Millisecond,
+                    }
+                )
+                {
+                    bytes.Add((byte)part);
+                    bytes.Add((byte)(part >> 8));
+                }
+            }
+            else
+            {
+                DateTime utc = TimeZoneInfo.ConvertTimeToUtc(
+                    DateTime.SpecifyKind(date, DateTimeKind.Unspecified),
+                    TimeZoneInfo.Local
+                );
+                bytes.AddRange(
+                    BitConverter.GetBytes(
+                        (uint)(utc - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalSeconds
+                    )
+                );
+                bytes.AddRange(new byte[4]);
+            }
+
+            var hex = new StringBuilder(bytes.Count * 2);
+
+            foreach (byte b in bytes)
+            {
+                hex.Append(b.ToString("X2", CultureInfo.InvariantCulture));
+            }
+
+            return hex.ToString();
+        }
+
+        /// <summary>
+        /// Lists the fields written in the drawing's list of fields (ACAD_FIELDLIST of its root dictionary, a FIELDLIST of an
+        /// id set), as AutoCAD lists every field it makes, the list made where the drawing has none.
+        /// </summary>
+        private static void Register(DxfFile file, List<DxfItem> written)
+        {
+            string root = file.KeptRootDictionaryHandle();
+            DxfItem rootItem = root == null ? null : file.ObjectItem(root);
+
+            if (rootItem == null || !(OfObject(rootItem) is DxfDBDictionary dictionary))
+            {
+                return;
+            }
+
+            if (!dictionary.Contains("ACAD_FIELDLIST"))
+            {
+                file.AddClass("FIELDLIST", "AcDbFieldList", 1152);
+                dictionary.Add("ACAD_FIELDLIST", "FIELDLIST", b =>
+                {
+                    b.Group(100, "AcDbIdSet");
+                    b.Group(90, "0");
+                    b.Group(100, "AcDbFieldList");
+                });
+            }
+
+            DxfDBObject list = dictionary.GetAt("ACAD_FIELDLIST");
+
+            if (list?.Item == null || list.Item.IsRemoved || list.Item.Type != "FIELDLIST")
+            {
+                return;
+            }
+
+            var g = new DxfDimGroups(list.Item);
+            int at = g.List.FindIndex(group => group.Key == 100 && group.Value.Trim() == "AcDbFieldList");
+            at = at < 0 ? g.List.Count : at;
+
+            foreach (DxfItem item in written)
+            {
+                g.Insert(at++, new KeyValuePair<int, string>(330, item.Handle));
+            }
+
+            int count = g.Find(90, g.All);
+
+            if (count >= 0)
+            {
+                g.List[count] = new KeyValuePair<int, string>(
+                    90,
+                    g.List.FindAll(group => group.Key == 330).Count.ToString(CultureInfo.InvariantCulture)
+                );
+            }
+
+            g.Write(new[] { 100, 90, 330 });
         }
 
         /// <summary>

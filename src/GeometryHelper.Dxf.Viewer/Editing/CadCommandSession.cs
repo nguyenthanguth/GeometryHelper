@@ -1138,6 +1138,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Asks the window for something and gives back what it did and answered.</summary>
         internal CadUiRequestEventArgs Ask(string name, CadDocument document = null, object payload = null)
         {
+            // The fields of a drawing about to be plotted are evaluated again where FIELDEVAL has the plot bit.
+            if (name == "-PLOT" && document != null)
+            {
+                document.UpdateFields(CadFieldContexts.Plot);
+            }
+
             var args = new CadUiRequestEventArgs(name, document, payload);
             UiRequested?.Invoke(this, args);
             return args;

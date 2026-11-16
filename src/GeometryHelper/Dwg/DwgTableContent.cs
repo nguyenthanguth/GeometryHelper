@@ -125,8 +125,14 @@ namespace GeometryHelper.Dwg
         /// <summary>The flags; 1 where the value is of the general kind and holds nothing.</summary>
         public int Flags = 1;
 
-        /// <summary>The type: 0 unknown, 1 a long, 2 a double, 4 a string, 512 general.</summary>
+        /// <summary>The type: 0 unknown, 1 a long, 2 a double, 4 a string, 8 a date, 64 an object, 512 general.</summary>
         public int Type;
+
+        /// <summary>The handle of the object of a value of the type 64, which a field of an object's property keeps its object by.</summary>
+        public ulong Handle;
+
+        /// <summary>The point of a value of the type 16 (x and y) or 32 (x, y and z).</summary>
+        public double[] Point = new double[3];
 
         /// <summary>A long value.</summary>
         public int Long;

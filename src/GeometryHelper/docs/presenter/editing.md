@@ -233,7 +233,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 291 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 293 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -248,7 +248,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too; a spline made a polyline within a precision), REVCLOUDPROPERTIES (Arc length), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPATH, ARRAYPOLAR, -ARRAY, OVERKILL, -OVERKILL, ALIGN, CHANGE (Properties: Color, Elev, LAyer, LType, ltScale, LWeight, Thickness, TRansparency, Material, Annotative) |
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a name typed may be a wildcard and every attributed block it matches is synced; what is picked that is no block, or a block with no attribute definitions, refused and another asked for, in the words of AutoCAD's own table of strings; an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, ATTEXT, -ATTEXT (Cdf, Sdf, Dxf, Objects), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK, REFEDIT, -REFEDIT (Ok, Next; All, Nested), REFSET (Add, Remove), REFCLOSE (Save, Discard), and the variables REFEDITNAME and XFADECTL |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
-| annotation | DIMOVERRIDE (Clear overrides), TEXTALIGN (alIgnment, Options, Point), MLEADEREDIT (Remove leaders, Add leaders), MLEADERALIGN (Options), MLEADERCOLLECT (Vertical, Horizontal, Wrap), ATTIPEDIT, SPELL (All, Dictionary), SCALETEXT (Existing, Left, Center, Middle, Right, TL to BR; Paper height, Match object, Scale factor, Reference), JUSTIFYTEXT (Left, Align, Fit, Center, Middle, Right, TL to BR), TXT2MTXT (Settings), ATTDISP (Normal, ON, OFF) (see [Annotation commands](#annotation-commands)) |
+| annotation | DIMOVERRIDE (Clear overrides), TEXTALIGN (alIgnment, Options, Point), MLEADEREDIT (Remove leaders, Add leaders), MLEADERALIGN (Options), MLEADERCOLLECT (Vertical, Horizontal, Wrap), ATTIPEDIT, SPELL (All, Dictionary), SCALETEXT (Existing, Left, Center, Middle, Right, TL to BR; Paper height, Match object, Scale factor, Reference), JUSTIFYTEXT (Left, Align, Fit, Center, Middle, Right, TL to BR), TXT2MTXT (Settings), ATTDISP (Normal, ON, OFF), FIELD (Height, Justify), UPDATEFIELD (see [Annotation commands](#annotation-commands)) |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT, EXPORT, -EXPORT (Dwf, dwfX, Pdf) ([Plotting](plot.md)) |
 | dimension | DIM (Angular, Baseline, Continue, Ordinate, aliGn, Distribute, Layer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE, DIMCENTER, CENTERMARK, CENTERLINE, -DIMSTYLE (ANnotative, Save, Restore, STatus, Variables, Apply, ?), DIMUPDATE |
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT, TABLEEXPORT |
@@ -2864,6 +2864,37 @@ turn, each the default of the next run: "Specify the width of the MTEXT, 0 for n
 [Yes/No] <Yes>:" (No runs them together by spaces, wrapped at the width), "Erase the original texts? [Yes/No] <Yes>:" and
 "Order the texts by position or as selected? [Position/Selection] <Position>:". AutoCAD's console has no TXT2MTXT, so the
 question here is the presenter's own.
+
+FIELD, UPDATEFIELD and the variables FIELDEVAL and FIELDDISPLAY make and keep fields as AutoCAD 2021 does (what a field gives for
+each format and the FIELD objects written were probed through its console; the console has no FIELD or UPDATEFIELD, so their prompts
+are the presenter's). A field is evaluated code in the words of a TEXT or an MTEXT, `%<\AcVar Date \f "dd/MM/yyyy">%`: the date
+and time (Date, CreateDate, SaveDate), the properties of the drawing (Author, Title, Subject, Keywords, Comments, HyperlinkBase,
+LastSavedBy, Filename, Filesize, Login), its page setup (PageSetupName, PaperSize, PlotOrientation, PlotDeviceName, PlotStyleTable,
+PlotScale), a system variable (`\AcVar CTAB`), a property of an object (`\AcObjProp Object(%<\_ObjId 122>%).Area`, the object by its
+handle in decimal: the Area, Center, Radius, Length, Angle, Layer, Color and ObjectName of a line, circle, arc, ellipse, polyline,
+text, MTEXT, block reference, hatch or region), a formula (`\AcExpr 2*3+1`, 7) and a DIESEL expression (`\AcDiesel
+$(if,$(>,2,1),yes,no)`, yes). The format after `\f` is AutoCAD's: `%lu2%pr2` an area of 314.159265 as 314.16, `%lu1%pr3` 3.142E+02,
+`%lu4%pr0` of 50 inches 4'-2", `%lu5%pr2` 314 1/4, `%ps[A=,mm2]` A=314.16mm2, `%ct8[0.0001]` the value times 0.0001, `%th44`
+600,000.00 of 600000 with `%ds44` the comma a point, `%zs8` 600.000 as 600, `%au1%pr2` 53.13 degrees as 53d8', `%au4%pr2` N 36d52' E, `%tc1`
+upper case (`%tc2` lower, `%tc3` first capital, `%tc4` each word), `%fn6` the name of the file and its extension (`%fn2` the name, `%fn4` the
+extension, `%fn1` the path); a date by its letters, `M/d/yyyy h:mm tt` as 11/17/2026 3:21 AM. A field that cannot be worked out shows
+`####` and one with nothing to show `----` (the date a drawing was made where it was never saved). FIELD shows the Field dialog (the
+categories All, Date & Time, Document, Linked, Objects, Other and Plot, the names in each, a preview and the field expression;
+Select object asks "Select an object:" and shows it again; the sheet set fields, BlockPlaceholder, NamedObject, LispVariable and Hyperlink are
+not built); OK asks "Specify start point of multiline text [Height/Justify]:" and makes an MTEXT of the field there, one undo step.
+In the MTEXT editor the Field button of the Insert panel and Ctrl+F show the same dialog and put the field at the caret as one place,
+shown as the words it came to on a grey ground and written as its code; a double click on a field is Edit Field and puts the new field
+in its place. A TEXT edited in place shows its fields as their codes, and Ctrl+F puts a code at the caret. Words with a field in them
+that a TEXTEDIT or the editor ends with make the fields, evaluate them and write the FIELD objects (the ACAD_FIELD dictionary of the
+extension dictionary, and the drawing's ACAD_FIELDLIST), so that AutoCAD 2021 opens the file with live fields; its console read and
+saved the fields of a DXF and a DWG of R2004, R2007 and R2018 as the same groups. UPDATEFIELD asks "Select objects:" and evaluates the
+fields of the TEXTs and MTEXTs selected again, `2 field(s) found. 2 field(s) updated.`, one undo step: an area changes after the
+circle does only then, or where FIELDEVAL says. FIELDEVAL (31 at the start, kept in the drawing as a variable of its dictionary) is the
+bits that update fields on their own: 1 when the drawing is opened, 2 when it is saved, 4 when it is plotted, 8 for eTransmit, 16 on
+REGEN; a field made in the dialog is evaluated in every one of them, the date too. FIELDDISPLAY (1) draws the box of a text with a
+field on a light grey ground that is never plotted; 0 draws none. The Contents of Properties are plain words: set there, they take
+the field out. Convert Field To Text is `ConvertFieldToText()` of the library. A drawing older than AutoCAD 2004 holds no field: the
+words the field comes to are written.
 
 ATTDISP asks "Enter attribute visibility setting [Normal/ON/OFF] <Normal>:": Normal shows the attributes that are not
 invisible, ON all of them and OFF none; a change says `Regenerating model.`, draws every

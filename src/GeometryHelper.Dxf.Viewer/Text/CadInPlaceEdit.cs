@@ -60,8 +60,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the handle of the entity edited; null for an MTEXT being made.</summary>
         public string Handle { get; }
 
-        /// <summary>Gets the words as written.</summary>
+        /// <summary>
+        /// Gets the words as written: of a text with fields the words with the code of each field in its place,
+        /// <c>Drawn %&lt;\AcVar Date \f "dd/MM/yyyy"&gt;%</c>.
+        /// </summary>
         public string Value { get; }
+
+        /// <summary>Gets the words each field written in <see cref="Value"/> came to, in their order, for the editor to show; empty where the text has none.</summary>
+        public System.Collections.Generic.IReadOnlyList<string> FieldShown { get; internal set; } =
+            Array.Empty<string>();
 
         /// <summary>Gets where the text stands.</summary>
         public GeoPoint2 Location { get; }

@@ -173,6 +173,20 @@ namespace GeometryHelper.Dwg
                     case 8:
                         value.Bytes = _data.Bytes(Count(_data.BitLong()));
                         break;
+                    case 16:
+                    case 32:
+                        // A point is kept as its doubles in bytes, as a date is.
+                        byte[] raw = _data.Bytes(Count(_data.BitLong()));
+
+                        for (int k = 0; k < 3 && raw.Length >= 8 * (k + 1); k++)
+                        {
+                            value.Point[k] = BitConverter.ToDouble(raw, 8 * k);
+                        }
+
+                        break;
+                    case 64:
+                        value.Handle = H();
+                        break;
                     default:
                         throw new FormatException(
                             "The field has a value of the kind " + value.Type + ", which is not read."
@@ -265,6 +279,18 @@ namespace GeometryHelper.Dwg
                     case 8:
                         _object.Add(92, value.Bytes.Length);
                         _object.Add(310, Hex(value.Bytes));
+                        break;
+                    case 16:
+                        _object.Add(11, value.Point[0]);
+                        _object.Add(21, value.Point[1]);
+                        break;
+                    case 32:
+                        _object.Add(11, value.Point[0]);
+                        _object.Add(21, value.Point[1]);
+                        _object.Add(31, value.Point[2]);
+                        break;
+                    case 64:
+                        _object.Add(330, value.Handle);
                         break;
                     default:
                         _object.Add(1, Encoding.UTF8.GetBytes(value.Text));

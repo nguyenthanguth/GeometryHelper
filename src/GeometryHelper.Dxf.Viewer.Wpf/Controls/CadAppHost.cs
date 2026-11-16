@@ -1316,6 +1316,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     );
                     (window, root) = (attdef, attdef.Body);
                     return true;
+                case "field":
+                    // The Field dialog on Date, or on the field named after the colon (field:Author).
+                    var fieldRequest = new CadFieldRequest(new CadFieldContext(document));
+
+                    if (parts.Length > 1)
+                    {
+                        CadFieldName named = CadFieldRequest
+                            .NamesOf("All")
+                            .FirstOrDefault(n => string.Equals(n.Name, parts[1], StringComparison.OrdinalIgnoreCase));
+
+                        if (named != null)
+                        {
+                            fieldRequest.Choose(named);
+                        }
+                    }
+
+                    var fieldWindow = new FieldWindow(new FieldDialogViewModel(fieldRequest));
+                    (window, root) = (fieldWindow, fieldWindow.Body);
+                    return true;
                 case "bedit":
                 case "bsaveas":
                     // Edit Block Definition on the block named after the colon, else the first of the drawing's; Save Block As empty.

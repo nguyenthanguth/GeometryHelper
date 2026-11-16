@@ -101,7 +101,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 model?.StyleWidthOf(edit.StyleName) ?? 1.0,
                 styleFont,
                 styleIsShx,
-                "lcr"[column]
+                "lcr"[column],
+                edit.FieldShown
             );
             Editor.Changed += (s, e) =>
             {
@@ -164,6 +165,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ClearCommand = new DelegateCommand(_ => Editor.ClearFormatting());
             AlignCommand = new DelegateCommand(p => Editor.SetAlignment(((string)p)[0]));
             SymbolCommand = new DelegateCommand(p => InsertSymbol(p as TextEditorChoice));
+            FieldCommand = new DelegateCommand(_ => InsertField());
             JustifyCommand = new DelegateCommand(p => Justify(p as TextEditorChoice));
             LineSpacingCommand = new DelegateCommand(p => SetLineSpacing(p as TextEditorChoice));
             FindNextCommand = new DelegateCommand(_ =>
@@ -426,6 +428,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets the command of a symbol of the Symbol menu.</summary>
         public ICommand SymbolCommand { get; }
+
+        /// <summary>Gets the command of Insert Field (Ctrl+F): the Field dialog, then the field at the caret.</summary>
+        public ICommand FieldCommand { get; }
 
         /// <summary>Gets the command of a justification of the Justification menu.</summary>
         public ICommand JustifyCommand { get; }
@@ -798,53 +803,57 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "Columns":
                     return ColumnsMenu();
                 case "Editor":
-                    return new[]
-                    {
-                        new CadMenuItemViewModel(
-                            "Paragraph Alignment",
+                    return FieldMenu()
+                        .Concat(
                             new[]
                             {
                                 new CadMenuItemViewModel(
-                                    "Left",
-                                    () => Editor.SetAlignment('l'),
-                                    true,
-                                    null,
-                                    IsAlignedLeft
+                                    "Paragraph Alignment",
+                                    new[]
+                                    {
+                                        new CadMenuItemViewModel(
+                                            "Left",
+                                            () => Editor.SetAlignment('l'),
+                                            true,
+                                            null,
+                                            IsAlignedLeft
+                                        ),
+                                        new CadMenuItemViewModel(
+                                            "Centre",
+                                            () => Editor.SetAlignment('c'),
+                                            true,
+                                            null,
+                                            IsAlignedCentre
+                                        ),
+                                        new CadMenuItemViewModel(
+                                            "Right",
+                                            () => Editor.SetAlignment('r'),
+                                            true,
+                                            null,
+                                            IsAlignedRight
+                                        ),
+                                        new CadMenuItemViewModel(
+                                            "Justified",
+                                            () => Editor.SetAlignment('j'),
+                                            true,
+                                            null,
+                                            IsJustified
+                                        ),
+                                        new CadMenuItemViewModel(
+                                            "Distributed",
+                                            () => Editor.SetAlignment('d'),
+                                            true,
+                                            null,
+                                            IsDistributed
+                                        ),
+                                    }
                                 ),
-                                new CadMenuItemViewModel(
-                                    "Centre",
-                                    () => Editor.SetAlignment('c'),
-                                    true,
-                                    null,
-                                    IsAlignedCentre
-                                ),
-                                new CadMenuItemViewModel(
-                                    "Right",
-                                    () => Editor.SetAlignment('r'),
-                                    true,
-                                    null,
-                                    IsAlignedRight
-                                ),
-                                new CadMenuItemViewModel(
-                                    "Justified",
-                                    () => Editor.SetAlignment('j'),
-                                    true,
-                                    null,
-                                    IsJustified
-                                ),
-                                new CadMenuItemViewModel(
-                                    "Distributed",
-                                    () => Editor.SetAlignment('d'),
-                                    true,
-                                    null,
-                                    IsDistributed
-                                ),
+                                new CadMenuItemViewModel("Paragraph…", () => ShowParagraph(false), !Edit.IsTableCell),
+                                new CadMenuItemViewModel("Bullets and Lists", BulletsMenu(false)),
+                                new CadMenuItemViewModel("Columns", !Edit.IsTableCell, ColumnsMenu()),
                             }
-                        ),
-                        new CadMenuItemViewModel("Paragraph…", () => ShowParagraph(false), !Edit.IsTableCell),
-                        new CadMenuItemViewModel("Bullets and Lists", BulletsMenu(false)),
-                        new CadMenuItemViewModel("Columns", !Edit.IsTableCell, ColumnsMenu()),
-                    };
+                        )
+                        .ToList();
                 case "Ruler":
                     return new[]
                     {
@@ -1005,6 +1014,93 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     Editor.SetOverline(!look.Overline);
                     break;
             }
+        }
+
+        /// <summary>
+        /// Insert Field, as the Text Editor tab's button and Ctrl+F do it: the Field dialog, then the field it ends with at the
+        /// caret in place of the selection, shown as the words it comes to and written as its code. Where the selection is one
+        /// field the dialog edits it instead, as a double click does.
+        /// </summary>
+        public void InsertField()
+        {
+            if (_model?.Document == null || _model.ShowField == null)
+            {
+                return;
+            }
+
+            if (Editor.SelectionLength == 1 && EditFieldAt(Editor.SelectionStart))
+            {
+                return;
+            }
+
+            CadFieldRequest request = _model.NewFieldRequest();
+            string code = _model.AskField(request);
+
+            if (code != null)
+            {
+                Editor.InsertField(request.Preview, code);
+            }
+        }
+
+        /// <summary>
+        /// Edit Field, as a double click on a field in the text does it: the Field dialog on the field of the place, which the
+        /// field it ends with takes the place of.
+        /// </summary>
+        /// <param name="index">The place.</param>
+        /// <returns>False where the place holds no field.</returns>
+        public bool EditFieldAt(int index)
+        {
+            string was = Editor.FieldCodeAt(index);
+
+            if (was == null || _model?.ShowField == null)
+            {
+                return false;
+            }
+
+            CadFieldRequest request = _model.NewFieldRequest();
+            request.Load(was);
+            string code = _model.AskField(request);
+
+            if (code != null)
+            {
+                Editor.ReplaceField(index, request.Preview, code);
+            }
+
+            return true;
+        }
+
+        /// <summary>The place of the field the caret is at: the one selected alone, else the one before the caret, else the one after; -1 for none.</summary>
+        private int FieldAtCaret()
+        {
+            int caret = Editor.Caret;
+
+            if (Editor.SelectionLength == 1 && Editor.FieldCodeAt(Editor.SelectionStart) != null)
+            {
+                return Editor.SelectionStart;
+            }
+
+            return Editor.FieldCodeAt(caret - 1) != null ? caret - 1
+                : Editor.FieldCodeAt(caret) != null ? caret
+                : -1;
+        }
+
+        /// <summary>The field items of the editor's right-click: Insert Field, and where the caret is at a field Edit Field and Convert Field To Text, as AutoCAD's.</summary>
+        private IEnumerable<CadMenuItemViewModel> FieldMenu()
+        {
+            var items = new List<CadMenuItemViewModel>
+            {
+                new CadMenuItemViewModel("Insert Field…    Ctrl+F", InsertField, _model?.ShowField != null),
+            };
+            int field = FieldAtCaret();
+
+            if (field >= 0)
+            {
+                items.Add(new CadMenuItemViewModel("Edit Field…", () => EditFieldAt(field), _model?.ShowField != null));
+                items.Add(new CadMenuItemViewModel("Convert Field To Text", () => Editor.ConvertFieldToText(field)));
+            }
+
+            items.Add(new CadMenuItemViewModel(string.Empty, null));
+            return items;
         }
 
         private void InsertSymbol(TextEditorChoice choice)

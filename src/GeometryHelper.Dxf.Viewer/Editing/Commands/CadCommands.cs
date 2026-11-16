@@ -313,6 +313,8 @@ namespace GeometryHelper.Dxf.Viewer
                 c.Document.PointViewHeight = c.Session.WorkView.VisibleBox.Height;
             }
 
+            // The fields are evaluated again where FIELDEVAL has the regen bit.
+            c.Document.UpdateFields(CadFieldContexts.Regen);
             c.Document.Regen();
             yield break;
         }

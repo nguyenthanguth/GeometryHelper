@@ -948,6 +948,7 @@ namespace GeometryHelper.Dxf.Viewer
             _tiles?.WriteTo(Database);
             var said = new List<string>();
             List<DxfEntity> hidden = ShowIsolated();
+            UpdateFields(CadFieldContexts.Save);
 
             try
             {

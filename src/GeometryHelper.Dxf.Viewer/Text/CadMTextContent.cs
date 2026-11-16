@@ -248,6 +248,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the code written for the run where it is one; null for letters.</summary>
         public string Code { get; }
 
+        /// <summary>Gets whether the run is a field, written as its code in markers, <c>%&lt;\AcVar Date&gt;%</c>, and shown as the words it came to.</summary>
+        public bool IsField => Code != null && Code.StartsWith("%<", StringComparison.Ordinal);
+
         /// <inheritdoc/>
         public override string ToString() => Code ?? Text;
     }
@@ -414,6 +417,28 @@ namespace GeometryHelper.Dxf.Viewer
         public static CadMTextContent Parse(string contents, double height, double styleWidth)
         {
             return new Reader(contents ?? string.Empty, height, styleWidth > 0.0 ? styleWidth : 1.0).Read();
+        }
+
+        /// <summary>
+        /// Reads the words as <see cref="Parse(string, double, double)"/> does, a field written among them as <c>%&lt;\AcVar
+        /// Date&gt;%</c> read as one run that shows the words it came to and is written back as its code.
+        /// </summary>
+        /// <param name="contents">The words with their codes and the codes of their fields; null is none.</param>
+        /// <param name="height">The MTEXT's height, which <c>H2x;</c> doubles.</param>
+        /// <param name="styleWidth">The width factor of the MTEXT's style.</param>
+        /// <param name="fieldShown">The words each field came to, in the order of the fields; the code itself where the list is short.</param>
+        /// <returns>The content.</returns>
+        internal static CadMTextContent Parse(
+            string contents,
+            double height,
+            double styleWidth,
+            IReadOnlyList<string> fieldShown
+        )
+        {
+            return new Reader(contents ?? string.Empty, height, styleWidth > 0.0 ? styleWidth : 1.0)
+            {
+                FieldShown = fieldShown,
+            }.Read();
         }
 
         /// <summary>Writes the content in AutoCAD's codes, as the class says.</summary>
@@ -637,6 +662,10 @@ namespace GeometryHelper.Dxf.Viewer
             private string _paragraphCodes;
             private bool _startsColumn;
             private int _at;
+            private int _fieldAt;
+
+            /// <summary>The words each field of the text came to, in the order of the fields; null for none.</summary>
+            internal IReadOnlyList<string> FieldShown { get; set; }
 
             public Reader(string text, double height, double styleWidth)
             {
@@ -664,6 +693,10 @@ namespace GeometryHelper.Dxf.Viewer
                     else if (c == '\\' && _at + 1 < _text.Length)
                     {
                         Code();
+                    }
+                    else if (c == '%' && _at + 1 < _text.Length && _text[_at + 1] == '<' && Field())
+                    {
+                        // A field read as a run of its own.
                     }
                     else if (c == '%' && _at + 2 < _text.Length && _text[_at + 1] == '%')
                     {
@@ -918,6 +951,32 @@ namespace GeometryHelper.Dxf.Viewer
                         (_paragraphCodes ?? string.Empty)
                         + (kept.Count == parts.Length ? written : "\\p" + string.Join(",", kept) + ";");
                 }
+            }
+
+            /// <summary>Reads a field, its code from <c>%&lt;</c> to the <c>&gt;%</c> that closes it, markers inside it counted; false where none closes it.</summary>
+            private bool Field()
+            {
+                int depth = 0;
+
+                for (int i = _at; i + 1 < _text.Length; i++)
+                {
+                    if (_text[i] == '%' && _text[i + 1] == '<')
+                    {
+                        depth++;
+                        i++;
+                    }
+                    else if (_text[i] == '>' && _text[i + 1] == '%' && --depth == 0)
+                    {
+                        string code = _text.Substring(_at, i + 2 - _at);
+                        string shown = FieldShown != null && _fieldAt < FieldShown.Count ? FieldShown[_fieldAt] : code;
+                        _fieldAt++;
+                        Symbol(shown, code);
+                        _at = i + 2;
+                        return true;
+                    }
+                }
+
+                return false;
             }
 
             private void Percent()

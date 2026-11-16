@@ -486,7 +486,7 @@ namespace GeometryHelper.Dxf.Viewer
                     switch (label)
                     {
                         case "Contents":
-                            write = e => ((DxfDBText)e).TextString = text;
+                            write = e => CadFields.ReplaceWords(e, text);
                             return text.Length > 0 ? null : "A text has contents.";
                         case "Height":
                             write = e => ((DxfDBText)e).Height = v;
@@ -510,7 +510,7 @@ namespace GeometryHelper.Dxf.Viewer
                     switch (label)
                     {
                         case "Contents":
-                            write = e => ((DxfMText)e).Contents = text;
+                            write = e => CadFields.ReplaceWords(e, text);
                             return text.Length > 0 ? null : "An MTEXT has contents.";
                         case "Text height":
                             write = e => ((DxfMText)e).TextHeight = v;

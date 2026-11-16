@@ -1112,28 +1112,30 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AFieldOfATextTakenOut_LeavesTheDrawingsListOfFields_ItAndItsChildren()
         {
-            DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
-            DxfDBText text = db.ModelSpace.OfType<DxfDBText>().First();
-            DxfField field = text.SetField(new DxfField("Drawn %<\\AcVar Date>%", true));
-            string child = field.GetChildren()[0].Handle;
-            string saved = db.ToText();
-            string root = Records(saved).First(r => r.StartsWith("  0\nDICTIONARY\n", StringComparison.Ordinal));
-            Assert.DoesNotContain(Records(saved), r => HandleOf(r) == "FFF1");
-            string listed = saved
+            // A drawing that has a list of fields already, as AutoCAD saves one: the field made is listed in it with its child.
+            string r2018 = DxfFileEzdxfDrawings.R2018;
+            string root = Records(r2018).First(r => r.StartsWith("  0\nDICTIONARY\n", StringComparison.Ordinal));
+            Assert.DoesNotContain(Records(r2018), r => HandleOf(r) == "FFF1");
+            string listed = r2018
                 .Replace(root, root + "  3\nACAD_FIELDLIST\n350\nFFF1\n")
                 .Replace(
                     "  0\nENDSEC\n  0\nEOF\n",
                     "  0\nFIELDLIST\n  5\nFFF1\n330\n"
                         + HandleOf(root)
-                        + "\n100\nAcDbIdSet\n 90\n2\n330\n"
-                        + field.Handle
-                        + "\n330\n"
-                        + child
-                        + "\n100\nAcDbFieldList\n  0\nENDSEC\n  0\nEOF\n"
+                        + "\n100\nAcDbIdSet\n 90\n0\n100\nAcDbFieldList\n  0\nENDSEC\n  0\nEOF\n"
                 );
             DxfDatabase readDb = DxfDatabase.Parse(listed);
+            DxfDBText text = readDb.ModelSpace.OfType<DxfDBText>().First();
+            DxfField field = text.SetField(new DxfField("Drawn %<\\AcVar Date>%", true));
+            string child = field.GetChildren()[0].Handle;
 
-            readDb.ModelSpace.OfType<DxfDBText>().First().RemoveField();
+            Assert.Contains(
+                "100\nAcDbIdSet\n 90\n2\n330\n" + field.Handle + "\n330\n" + child + "\n100\nAcDbFieldList\n",
+                Records(readDb.ToText()).Single(r => HandleOf(r) == "FFF1"),
+                StringComparison.Ordinal
+            );
+
+            text.RemoveField();
 
             Assert.EndsWith(
                 "100\nAcDbIdSet\n 90\n0\n100\nAcDbFieldList\n",
