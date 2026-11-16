@@ -328,7 +328,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] Tables in older DWGs (dxfconv6): ACAD_TABLE, TABLECONTENT, TABLEGEOMETRY and DATATABLE written in R2000-R2007
         (AutoCAD's own tables bit-equal; 21 of 21 table files AUDIT 0); R2010/R2013 headers name AutoCAD 2021; R2000
         view style colours kept as indexes as AutoCAD does; Realistic's lighting model 2 below R2010 as AutoCAD
-  - [ ] R3.3 follow-ups 11: tables with a number, field or general-empty value still fall back to their block in
+  - [ ] (dxfconv7, running) R3.3 follow-ups 11: tables with a number, field or general-empty value still fall back to their block in
         R2000/R2004 (AutoCAD writes them as tables); DATATABLE masks (AutoCAD writes 0 for ttable, tstyles); tcustom's
         explicit default margins and borders (parked: changes R2010+ output); block and field cells of R2000-R2007 tables
         not compared with AutoCAD; R2000 view-style colours lost through DXF; R2000 spline solids; the remaining
@@ -446,9 +446,13 @@ User note 2026-11-12 evening (note.md 1-14):
 - [x] XCLIP follow-ups 4 (xclip5): ellipses, splines and heavy 2D/3D polylines cut at the depth planes; dashes stay in
       phase across a cut (PLINEGEN 0 and 1) as AutoCAD; non-flat curves under a tilted clip cut by the prism; dimension
       and table pictures cut; a tilted MINSERT's rows spaced as AutoCAD (28.28 for 40 at 45 degrees, a display fault)
-- [ ] (xclip6, running) XCLIP follow-ups 5: text, hatch, solids and dimension words cut glyph by glyph as AutoCAD (a strip clip in
-      plan); an xref's clip boundary moved with its content when its INSBASE changes (ClipPointInWorld needs the base
-      point: a library change); dash continuity of cut circles and arcs not probed; the flip arrow's click (GUI) (S)
+- [x] XCLIP follow-ups 5 (xclip6): text, MTEXT, hatch, solid and 3D face crossing a depth plane cut to AutoCAD's strip;
+      an xref's clip kept in the drawing's own coordinates with its INSBASE, as AutoCAD stores it; closed curves split
+      at their start so dashes stay in phase as AutoCAD (156/156, 512/512, 65/65 pixels on dashes)
+- [ ] XCLIP follow-ups 6: a tilted text or hatch drawn upright in plan inside the strip (AutoCAD squeezes it); dashes of
+      a non-flat curve measured along the plan (AutoCAD: along the curve); images and OLE frames across a plane; grips of
+      an xref boundary after INSBASE changed (thread CadDocument into CadGrips.Of); Clipdepth planes after an INSBASE
+      change not probed; the flip arrow's click (GUI) (S)
 - [x] Remove what is left of Part B (the Tekla drawing) from Dxf.Viewer; it moves to the Tekla drawing app (partb-cleanup: new-document hook neutral, MODEL tags, Hidden-lines recolour, Layer Owner column, DXF export rows gone; owner contract and drawing-plugin finder kept as neutral hooks) (M)
 
 User note 2026-11-12 (basic features first, advanced later):
@@ -597,7 +601,7 @@ the ones wanted.
 - [x] DIMBREAK Manual and multileaders (dimbreak2): Manual breaks the line nearest the first point, both points
       projected, angular arcs cut and rays numbered as AutoCAD, the centre mark left whole; DIMBREAK takes multileaders
       (Auto at every crossing, Manual, Remove; breaks stored as AutoCAD writes them: 90, 11, 12) and draws them
-- [ ] DIMBREAK follow-ups: breaks following a moved cutter (dimensions and multileaders: a regenerate-on-edit hook); Auto's
+- [ ] (dimbreak3, running) DIMBREAK follow-ups: breaks following a moved cutter (dimensions and multileaders: a regenerate-on-edit hook); Auto's
       BREAKDATA names every object whose extents meet the host's (ours: only crossers); Auto on an angular arc; Multiple
       with multileaders; ordinate and arc-length kinds; a several-line TrueType multileader held by half its last line's
       ink; a block multileader of scale other than 1; TEXTALIGN with a reference text; REVCLOUDGRIPS on plain, ellipse
@@ -995,7 +999,7 @@ the ones wanted.
 - [x] Speed follow-ups 17 (speed18): a 300 000-entity DWG opens in 1.26 s where 1.63 (net8; 0.74 s where 1.12 on a
       second open; net48 2.18 -> 1.53 s): the DXF written in one array and read in place, DwgObject 392 -> 120 bytes,
       bits read at once; the DXF text byte-identical on 182 DWGs; block Count and lookups by handle without an 8 MB copy
-- [ ] Speed follow-ups 18: DWG objects decoded in parallel (0.42 s of a first open; check static decoders' thread
+- [ ] (speed19, running) Speed follow-ups 18: DWG objects decoded in parallel (0.42 s of a first open; check static decoders' thread
       safety); the net48 DXF write (0.8 s: ToString("G15") + double.Parse per fraction); one more full GC from the 54 MB
       DXF parse; DisplayArc2 stays 104 B (a box on demand costs 50-68 ms per million); LinkedColumns' 6 ms walk; MTEXT and
       INSERT contexts tuples; REGEN's text group walk (S)

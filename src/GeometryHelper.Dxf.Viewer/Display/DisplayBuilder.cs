@@ -2567,14 +2567,24 @@ namespace GeometryHelper.Dxf.Viewer
                     reference.GetClipView(reference.DrawnFilter, clip, out _, out planes);
                 }
 
-                // The planes (Clipdepth) of this reference and of the blocks it stands in, in the coordinates of the drawing's own
-                // entities: its base point, not the origin of the block that names it, is what stands at the insertion point.
+                // The planes (Clipdepth) of the blocks this reference stands in, in the coordinates of the drawing's own entities:
+                // its base point, not the origin of the block that names it, is what stands at the insertion point. Its own are
+                // kept in the drawing's coordinates already, as its boundary is.
                 IReadOnlyList<DxfSpatialFilter.Slab> held = frame.Slabs;
-                inner.Slabs = ShiftedSlabs(
-                    PlacedSlabs(held, held == null ? null : reference.BlockTransform, planes, 0.0, 0.0, 0.0),
-                    origin.X - basePoint.X,
-                    origin.Y - basePoint.Y,
-                    origin.Z - basePoint.Z
+                inner.Slabs = PlacedSlabs(
+                    held == null
+                        ? null
+                        : ShiftedSlabs(
+                            PlacedSlabs(held, reference.BlockTransform, null, 0.0, 0.0, 0.0),
+                            origin.X - basePoint.X,
+                            origin.Y - basePoint.Y,
+                            origin.Z - basePoint.Z
+                        ),
+                    GeoTransform3.Identity,
+                    planes,
+                    0.0,
+                    0.0,
+                    0.0
                 );
 
                 if (clip == null)
@@ -2583,8 +2593,10 @@ namespace GeometryHelper.Dxf.Viewer
                     return;
                 }
 
-                // Clipped (XCLIP), the drawing shows inside the boundary alone, and the frame of the boundary is drawn over it.
-                DisplayClip2 ring = WorldRing(clip, own.Then(frame.Matrix));
+                // Clipped (XCLIP), the drawing shows inside the boundary alone, and the frame of the boundary is drawn over it. The
+                // boundary is in the drawing's own coordinates, so it is placed as its content is: with the drawing's base point
+                // at the insertion point, and goes with the content when that base point changes.
+                DisplayClip2 ring = WorldRing(clip, placed.Then(frame.Matrix));
                 DisplayClipRegion before = list.PushClip(ring);
 
                 try
@@ -2620,10 +2632,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else
                     {
-                        foreach (DxfEntity drawn in Slice(frame.Slabs, entity))
-                        {
-                            Draw(drawn, frame, list, null);
-                        }
+                        DrawSliced(frame.Slabs, entity, frame, list, false);
                     }
                 }
                 catch (Exception)
@@ -2941,10 +2950,7 @@ namespace GeometryHelper.Dxf.Viewer
                         }
                         else
                         {
-                            foreach (DxfEntity drawn in Slice(slabs, entity))
-                            {
-                                Draw(drawn, inner, list, null);
-                            }
+                            DrawSliced(slabs, entity, inner, list, false);
                         }
                     }
                     catch (Exception)
@@ -2995,10 +3001,7 @@ namespace GeometryHelper.Dxf.Viewer
                         }
                         else
                         {
-                            foreach (DxfEntity drawn in Slice(slabs, entity))
-                            {
-                                Draw(drawn, inner, list, null, shown[i] > 0);
-                            }
+                            DrawSliced(slabs, entity, inner, list, shown[i] > 0);
                         }
                     }
                 }

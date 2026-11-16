@@ -56,10 +56,19 @@ filter is read from and written to a DWG of R2000 and later with the rest of the
 finding nothing. A boundary in a plane tilted to the drawing's is kept whole; the presenter draws its frame as its projection on the plan and
 the block where the boundary's prism cuts the block's plane, as AutoCAD 2021 does (a line or a curve that does not lie flat where its path
 leaves the prism), and its front and back planes cut the block in height: a line, circle, arc, ellipse, spline or polyline, 2D and 3D included, that
-crosses one is cut at it, a dashed one carrying on the pattern of the whole. The boundary and the base point of an external reference
-whose block origin is not the drawing's `Insbase` are a case AutoCAD 2021 moves together (a clip of 20 to 80 on a drawing
-reloaded with its base point at 70 shows from -50 to 10), which the presenter does not yet: its entities move by the difference,
-its boundary stays where the insertion point puts it.
+crosses one is cut at it, a dashed one carrying on the pattern of the whole; a text, an MTEXT, a hatch, a solid or a 3D face in a
+plane that is tilted out of the plan is cut where the planes meet its plane, as the strip of the plan between them.
+
+The clip of an INSERT of an external reference is kept in the drawing's own coordinates, base point and all, as AutoCAD 2021
+keeps it (entget of the filter of a drawing whose base point is (70, 0, 0), attached at (100, 0, 0) and clipped to the rectangle
+(130, 10) to (190, 40) of the world: the inverse of the placing is the shift by -30, and the boundary the drawing's x 100 to
+160): `ClipTo` writes it so and `ClipOutline` gives the ring so, where an ordinary block's is measured from its origin (the shift
+by -100 there). The boundary and the content of the drawing move together when the drawing's base point changes (a clip of 20 to
+80 on a drawing reloaded with its base point at 70 stands from -50 to 10, AutoCAD 2021's PNGOUT of it). The presenter places the
+ring by the base point the drawing has now and makes a boundary picked at x 130 to 190 stand there; the library, which has only the
+origin the block records, takes that origin for the base point. A clip of an external reference made by an earlier version, which
+kept the boundary from the insertion point, is read as the drawing's own coordinates, and stands a base point away where that
+is not the origin.
 
 ## Units and extents
 

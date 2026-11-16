@@ -217,10 +217,20 @@ namespace GeometryHelper.Dxf.Viewer
                     return parts;
                 }
 
-                foreach (DxfCurve piece in curve.GetSplitCurves(real))
+                IReadOnlyList<DxfCurve> split = curve.GetSplitCurves(real);
+                int wrap = WrapIndex(curve, split);
+
+                for (int i = 0; i < split.Count; i++)
                 {
+                    DxfCurve piece = split[i];
+
                     if (Holds(piece.GetPointAtParameter(0.5 * (piece.StartParam + piece.EndParam))))
                     {
+                        if (i == wrap && TrySplitAtSeam(curve, piece, parts))
+                        {
+                            continue;
+                        }
+
                         RememberCut(piece, curve);
                         parts.Add(piece);
                     }

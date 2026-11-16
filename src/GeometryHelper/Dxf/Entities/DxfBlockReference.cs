@@ -1527,7 +1527,9 @@ namespace GeometryHelper.Dxf
         /// whose origin is (10, 20) clipped to the rectangle that, as the reference stands, covers its lower left corner 40 by 30
         /// is the ring (10, 20), (50, 20), (50, 50), (10, 50), whatever the reference is moved, turned or scaled to afterwards. A
         /// rectangle's two corners are given as the four of a ring. Null where the reference is not clipped; given whether the clip
-        /// is on (<see cref="DxfSpatialFilter.IsEnabled"/>) or off.
+        /// is on (<see cref="DxfSpatialFilter.IsEnabled"/>) or off. Of an external reference the ring is in the drawing's own
+        /// coordinates, base point and all, as AutoCAD 2021 keeps it: a boundary of a drawing whose base point is (70, 0, 0),
+        /// attached at (100, 0, 0), that stands at x 130 to 190 of the world is the ring x 100 to 160.
         /// </summary>
         public IReadOnlyList<GeoPoint2> ClipOutline
         {
@@ -1547,7 +1549,7 @@ namespace GeometryHelper.Dxf
                     return null;
                 }
 
-                GeoPoint3 origin = BlockTableRecord?.Origin ?? Origin;
+                GeoPoint3 origin = ClipOrigin;
                 var placed = new List<GeoPoint2>(ring.Count);
 
                 foreach (GeoPoint2 point in ring)
@@ -1560,13 +1562,27 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// The point the coordinates of the clip are measured from, in the block's own: the block's origin, where an ordinary
+        /// block is clipped (a block whose origin is (10, 20) inserted at (1000, 0) has the inverse of its placing, the shift by
+        /// -1000, in its filter). Of an external reference none: AutoCAD 2021 keeps the clip of one in the drawing's own
+        /// coordinates, base point and all (PNGOUT and entget of a drawing whose base point is (70, 0, 0) attached at (100, 0, 0)
+        /// and clipped to the rectangle (130, 10) to (190, 40) of the world: the inverse of its placing is a shift by -30, so
+        /// that the boundary is the drawing's 100 to 160), so that the boundary goes with the drawing's content when its base
+        /// point changes, and the origin the block records is the base point only for placing.
+        /// </summary>
+        private GeoPoint3 ClipOrigin =>
+            BlockTableRecord != null && BlockTableRecord.IsFromExternalReference
+                ? GeoPoint3.Origin
+                : BlockTableRecord?.Origin ?? Origin;
+
+        /// <summary>
         /// A point of the clip boundary as the reference stands in the world: the point taken into the block through the filter's
         /// matrices and placed by <see cref="BlockTransform"/>, as <see cref="ClipOutline"/> does for the whole ring.
         /// </summary>
         internal GeoPoint3 ClipPointInWorld(DxfSpatialFilter filter, GeoPoint2 clipPoint)
         {
             GeoPoint3 block = filter.ToBlock(clipPoint);
-            GeoPoint3 origin = BlockTableRecord?.Origin ?? Origin;
+            GeoPoint3 origin = ClipOrigin;
             return BlockTransform.Transform(new GeoPoint3(block.X + origin.X, block.Y + origin.Y, block.Z + origin.Z));
         }
 
@@ -1584,7 +1600,7 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
-            GeoPoint3 origin = BlockTableRecord?.Origin ?? Origin;
+            GeoPoint3 origin = ClipOrigin;
             GeoPoint3 block = unplaced.Transform(world);
             return filter.TryFromBlock(
                 new GeoPoint3(block.X - origin.X, block.Y - origin.Y, block.Z - origin.Z),
@@ -1608,7 +1624,7 @@ namespace GeometryHelper.Dxf
             out DxfSpatialFilter.Slab slab
         )
         {
-            GeoPoint3 origin = BlockTableRecord?.Origin ?? Origin;
+            GeoPoint3 origin = ClipOrigin;
             IReadOnlyList<GeoPoint2> cut = GetClipSectionAt(filter, 0.0);
             slab = filter.GetSlab(origin);
             section = cut != null && cut.Count == outline.Count ? cut : outline;
@@ -1623,7 +1639,7 @@ namespace GeometryHelper.Dxf
         /// <returns>The ring; null where the boundary's plane is parallel to the block's, and <see cref="ClipOutline"/> is the ring.</returns>
         internal IReadOnlyList<GeoPoint2> GetClipSectionAt(DxfSpatialFilter filter, double height)
         {
-            GeoPoint3 origin = BlockTableRecord?.Origin ?? Origin;
+            GeoPoint3 origin = ClipOrigin;
             IReadOnlyList<GeoPoint2> cut = filter.GetSectionRing(height - origin.Z);
 
             if (cut == null)
@@ -1658,7 +1674,20 @@ namespace GeometryHelper.Dxf
         /// finite number, or the transformation flattens space.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the reference is in no file, is erased, or is of a file of R12,
         /// which has no extension dictionaries.</exception>
-        public void ClipTo(IReadOnlyList<GeoPoint2> boundary, GeoTransform3 worldToClip)
+        public void ClipTo(IReadOnlyList<GeoPoint2> boundary, GeoTransform3 worldToClip) =>
+            ClipToBy(boundary, worldToClip, null);
+
+        /// <summary>
+        /// Clips the block as <see cref="ClipTo(IReadOnlyList{GeoPoint2}, GeoTransform3)"/> does, of an external reference by the
+        /// base point its drawing has now: the boundary is kept in the drawing's own coordinates, so that it stands where it was
+        /// picked when the drawing's base point is not the origin the host's block records (a drawing changed since the host was
+        /// saved).
+        /// </summary>
+        /// <param name="boundary">The points of the boundary in the clip coordinate system.</param>
+        /// <param name="worldToClip">The transformation that carries the world into the clip coordinate system.</param>
+        /// <param name="xrefBase">The base point of the drawing an external reference names, as it stands at the insertion point
+        /// now; null for the origin the block records, and for any other reference.</param>
+        internal void ClipToBy(IReadOnlyList<GeoPoint2> boundary, GeoTransform3 worldToClip, GeoPoint3? xrefBase)
         {
             if (boundary == null)
             {
@@ -1686,7 +1715,20 @@ namespace GeometryHelper.Dxf
             // The reference as it stands, the block's origin taken to the origin of the block's own coordinates: the clip keeps
             // its boundary against that.
             GeoTransform3 placing = BlockTransform;
-            GeoPoint3 origin = BlockTableRecord?.Origin ?? Origin;
+            GeoPoint3 origin = ClipOrigin;
+
+            if (xrefBase.HasValue && BlockTableRecord != null && BlockTableRecord.IsFromExternalReference)
+            {
+                // The drawing's own coordinates, its base point at the insertion point: the point of them that the placing maps
+                // the block's recorded origin to is the base point's.
+                GeoPoint3 recorded = BlockTableRecord.Origin;
+                origin = new GeoPoint3(
+                    recorded.X - xrefBase.Value.X,
+                    recorded.Y - xrefBase.Value.Y,
+                    recorded.Z - xrefBase.Value.Z
+                );
+            }
+
             GeoPoint3 shifted = placing.Transform(origin);
             double[] placed =
             {

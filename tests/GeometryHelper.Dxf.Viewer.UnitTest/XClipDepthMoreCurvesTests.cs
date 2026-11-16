@@ -83,9 +83,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             List<DisplayBox> boxes = Drawn(document, handle);
 
-            Assert.Equal(2, boxes.Count);
+            // The arc at x 72.36 to 80 holds the start of the ellipse (its parameter 0, x 80) and is two, one each side of it.
+            Assert.Equal(3, boxes.Count);
             AssertBox(boxes[0], 20.0, 50.0 - 30.0 * Math.Sqrt(1.0 - 4.0 / 9.0));
             AssertBox(boxes[1], 50.0 + 30.0 * Math.Sqrt(1.0 - 4.0 / 9.0), 80.0);
+            AssertBox(boxes[2], 50.0 + 30.0 * Math.Sqrt(1.0 - 4.0 / 9.0), 80.0);
         }
 
         [Fact]

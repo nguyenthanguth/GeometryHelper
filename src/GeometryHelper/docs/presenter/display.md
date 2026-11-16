@@ -622,12 +622,30 @@ edge (radius 30, about (50, 20, 0), in the plane of X and Z) with front 10 and b
 21.72 and 78.28 to 80, and an ellipse of semi-axes 30 and 15 standing so, the two arcs x 20 to 27.64 and 72.36 to 80. A line or a
 curve of a dashed linetype that is cut goes on with the pattern of the whole, as AutoCAD draws it (a polyline with PLINEGEN on
 or off alike): the pieces of a dashed zigzag start their dashes where those of the whole zigzag stood, and none restarts at the
-cut (`DisplayStyle.DashPhase`, which the canvas gives its dashes). The lines and curves of a dimension's picture are cut so. An INSERT in the block is cut by the same planes through its own
+cut (`DisplayStyle.DashPhase`, which the canvas gives its dashes): AutoCAD 2021's PNGOUT of a dashed circle and of a dashed
+closed polyline tilted 45 degrees about X, cut by the planes, has every pixel of every piece on a dash of the whole (156 of 156
+and 512 of 512), and the pattern of a closed curve begins at its start, so that the piece that holds the start is two, one each
+side of it, the pattern beginning again there (a circle standing on its edge, radius 30, with front 10 and back -10 is three
+arcs: from the start at x 20 to 21.72 with no phase, the one at x 78.28 to 80 starting 58.28 along and the one that ends at
+the start 118.28 along). The lines and curves of a dimension's picture are cut so. An INSERT in the block is cut by the same planes through its own
 placing, its scale, turn and tilt (each cell of an array through its own shift, which for a plane tilted out of the plan has a
 height: the rows of a MINSERT of a plane tilted 45 degrees about X, 40 apart, stand 28.28 apart in the plan and 28.28 higher
-each, as AutoCAD 2021 draws them), and an external reference with its base point at the insertion point; any other entity that
-crosses a plane (a hatch, text, a solid, a table's text) is drawn whole, where AutoCAD cuts it at the plane as it cuts a line,
-glyph by glyph.
+each, as AutoCAD 2021 draws them), and an external reference with its base point at the insertion point. A text, an MTEXT, a
+hatch, a solid or a 3D face (a dimension's words, arrowheads and a table's text among them) that a plane crosses is cut where
+the planes meet its own plane, glyph by glyph as AutoCAD 2021 cuts it (PNGOUT in plan of a text, an MTEXT, a hatch and a solid in a
+plane tilted 45 degrees about X, with front 20 and back 5: what is left is the strip of the plan where the plane's height lies
+between them, here y from 5 to 20, and in a block nested in another one placed at y 10, y 15 to 30): the height along the plane is a
+straight function of the plan, so the part kept is a strip held by the entity's box grown, drawn in a region of its own inside
+the clip's (a flat entity under a clip made in a tilted system is cut the same way, by where the tilted planes meet its plan). A
+plane standing upright is seen edge-on in the plan, where its height does not change along the plan, and is drawn whole; so is
+any other entity that crosses a plane and has no plane of its own (an image, an OLE frame). The display draws a text or a
+hatch of a tilted plane upright in the plan as it does anywhere, not squeezed as AutoCAD's plan is, so that the strip of the plan
+is AutoCAD's and the glyphs in it are the display's. A text whose font the drawing does not find has no extents: it is judged by its
+position and the reach of its words, and cut by the same strip.
+
+An external reference's clip boundary is in its drawing's own coordinates and goes with the drawing's content when its base point
+($INSBASE) changes: the boundary of 20 to 80 of a drawing whose base point was 0 and is 70 now stands from -50 to 10, as AutoCAD 2021
+draws it (PNGOUT).
 
 ### Keeping the lists
 

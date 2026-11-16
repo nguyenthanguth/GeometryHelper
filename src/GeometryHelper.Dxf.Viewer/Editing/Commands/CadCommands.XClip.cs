@@ -466,9 +466,10 @@ namespace GeometryHelper.Dxf.Viewer
                 foreach (string handle in references)
                 {
                     var reference = (DxfBlockReference)s.Document.FindEntity(handle);
-                    reference.ClipTo(
+                    reference.ClipToBy(
                         inverted ? InvertedAbout(reference, boundary, worldToClip) : boundary,
-                        worldToClip
+                        worldToClip,
+                        s.Document.XrefBaseOf(reference)
                     );
                 }
             });
