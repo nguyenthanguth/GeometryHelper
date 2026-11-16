@@ -3514,19 +3514,28 @@
                                 Icon="{StaticResource GhIconLine}"
                             >
                                 <!--
-                                Draw's slide-out: Point, Divide, Measure and 2D Solid, as AutoCAD 2021 keeps them there; Hatch, Gradient and
-                                Boundary are the split in the body (design RibbonBodies).
+                                Draw's slide-out: Spline, then Point, Divide, Measure and 2D Solid, as AutoCAD 2021 keeps them there; Hatch,
+                                Gradient and Boundary are the split in the body (design RibbonBodies).
                                 -->
                                 <local:RibbonPanel.Header>
                                     <ToggleButton
                                         Style="{StaticResource SlideOutTitle}"
                                         IsEnabled="{Binding HasDocument}"
                                         Content="Draw ▾"
-                                        ToolTip="More of Draw: Point, Divide, Measure, 2D Solid"
+                                        ToolTip="More of Draw: Spline, Point, Divide, Measure, 2D Solid"
                                     />
                                 </local:RibbonPanel.Header>
                                 <local:RibbonPanel.SlideOut>
                                     <StackPanel Width="260">
+                                        <Button
+                                            Style="{StaticResource SlideOutItem}"
+                                            Tag="{StaticResource GhIconSpline}"
+                                            Content="Spline"
+                                            IsEnabled="{Binding HasDocument}"
+                                            Command="{Binding StartCommandCommand}"
+                                            CommandParameter="SPLINE"
+                                            ToolTip="Spline (SPLINE)"
+                                        />
                                         <Button
                                             Style="{StaticResource SlideOutItem}"
                                             Tag="{StaticResource GhIconPoint}"
@@ -3699,7 +3708,7 @@
                                         HorizontalAlignment="Center"
                                         IsEnabled="{Binding HasDocument}"
                                         Click="OnRibbonMenu"
-                                        ToolTip="More of Modify: Break at Point, Break, Join, Lengthen, Align"
+                                        ToolTip="More of Modify: Break at Point, Break, Join, Lengthen, Align, Blend"
                                     >
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Style="{StaticResource GroupTitle}" Text="Modify" />
@@ -3750,6 +3759,13 @@
                                                     Command="{Binding StartCommandCommand}"
                                                     CommandParameter="ALIGN"
                                                     ToolTip="ALIGN"
+                                                />
+                                                <MenuItem
+                                                    Style="{StaticResource GhMenuItem}"
+                                                    Header="Blend"
+                                                    Command="{Binding StartCommandCommand}"
+                                                    CommandParameter="BLEND"
+                                                    ToolTip="BLEND"
                                                 />
                                             </ContextMenu>
                                         </Button.ContextMenu>

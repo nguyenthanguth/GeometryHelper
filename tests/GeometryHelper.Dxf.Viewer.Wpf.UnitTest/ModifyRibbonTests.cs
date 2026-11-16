@@ -89,6 +89,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                             "JOIN",
                             "LENGTHEN",
                             "ALIGN",
+                            "BLEND",
                             "TRIM",
                             "EXTEND",
                             "FILLET",

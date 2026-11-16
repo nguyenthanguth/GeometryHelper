@@ -1404,6 +1404,36 @@ namespace GeometryHelper.Dxf
                 );
             }
 
+            WritePeriodic(p, polygon, rational, weights);
+        }
+
+        /// <summary>
+        /// Makes the spline the periodic one of a polygon taken as the points of one period, of a degree, as
+        /// <see cref="ClosePeriodic"/> writes it, for a polygon of fewer points than the degree and one too: AutoCAD 2021's SPLINE
+        /// command, asked for a closed spline of degree 3 through 3 points, wrote 6 control points and the knots 0, 0, 0, 0, 1, 2,
+        /// 3, 3, 3, 3, and through 5 points of degree 5 it wrote 10 control points, the points going round the period again.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the polygon has fewer than 3 points.</exception>
+        internal void SetPeriodicControlPoints(int degree, IReadOnlyList<GeoPoint3> polygon)
+        {
+            if (polygon.Count < 3)
+            {
+                throw new InvalidOperationException("A closed spline takes 3 control points at least.");
+            }
+
+            WritePeriodic(degree, polygon, false, null);
+        }
+
+        /// <summary>The periodic data of a polygon of one period: clamped at the seam, with the flags 2048, 2 and 1.</summary>
+        private void WritePeriodic(
+            int p,
+            IReadOnlyList<GeoPoint3> polygon,
+            bool rational,
+            IReadOnlyList<double> weights
+        )
+        {
+            int m = polygon.Count;
+
             // The knots of the curve as it runs on round, a period before and after: the floating point k is the control point
             // (k + m - p) mod m of the period, as InterpolatePeriodic lays them.
             var u = new List<double>(m + 2 * p + 1);
@@ -1427,7 +1457,7 @@ namespace GeometryHelper.Dxf
 
             for (int k = 0; k < m + p; k++)
             {
-                int j = (k + m - p) % m;
+                int j = ((k + m - p) % m + m) % m;
                 double w = rational ? weights[j] : 1.0;
                 pw.Add(new[] { polygon[j].X * w, polygon[j].Y * w, polygon[j].Z * w, w });
             }

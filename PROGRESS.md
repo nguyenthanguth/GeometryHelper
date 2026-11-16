@@ -747,7 +747,7 @@ variables). Wave 1 is built first, basics first; Wave 2 and 3 after. The open fo
 chase speed or a few pictures stay parked unless they are real faults.
 
 Wave 1 (High):
-- [ ] (spline1, running) SPLINE command (Fit/CV, Knots, Object, Close, fit tolerance, tangents) (M)
+- [x] SPLINE command (spline1): Method Fit/CV, Knots, Object, Close, start and end Tangency, toLerance kept, preview; BLEND (Tangent as AutoCAD, Smooth as our own G2 quintic). Left: fitting near the points under toLerance, the planar flag and normal, Object on 3D polylines
 - [ ] (draw1, running) RECTANG options: Chamfer, Elevation, Fillet, Thickness, Width, Area, Dimensions, Rotation (S)
 - [ ] (draw1, running) WIPEOUT command: points, Polyline (Erase polyline?), Frames (M)
 - [ ] COPY Array (count, Fit) and mOde Single/Multiple (S)

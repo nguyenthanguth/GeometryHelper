@@ -177,6 +177,7 @@ namespace GeometryHelper.Dxf.Viewer
                     ["SU"] = "SUBTRACT",
                     ["IN"] = "INTERSECT",
                     ["SO"] = "SOLID",
+                    ["SPL"] = "SPLINE",
                     ["SPE"] = "SPLINEDIT",
                     ["DDINSERT"] = "CLASSICINSERT",
                     ["ST"] = "STYLE",
