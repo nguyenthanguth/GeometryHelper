@@ -6,6 +6,21 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** XCLIP Clipdepth cuts a circle, an arc and a polyline that cross a plane, as it cuts a line, as AutoCAD 2021 draws them (PNGOUT of accoreconsole, front view and
+plan): a circle standing on its edge (radius 30, about (50, 20, 0), in the plane of X and Z) with front 10 and back -10 is left as the two arcs at the ends of its width, x 20 to 21.72
+and 78.28 to 80; the zigzag (10, 0), (30, 30), (50, -30), (90, 20) in X and Z is left as three pieces, x 10 to 16.67, 36.67 to 43.33 and 66 to 82. A lightweight polyline is cut in each
+of its line and arc segments (the arc segment's wave of heights is solved, not sampled) and at a vertex that stands on a plane, a closed one included, and its pieces keep its widths and
+look. What an INSERT inside the clipped block holds is cut by the same planes carried through the INSERT's placing: the block of the five lines nested in another, scaled by 2 and lifted 5,
+with front 20 and back -10, shows its rising line from x 0 to 15 (AutoCAD 2021 left 15), and a nested block tilted 45 degrees about X shows the first 20 of its line in plan, as AutoCAD does. An
+external reference is cut by the planes measured from its base point, which stands at the insertion point: the drawing whose base point is (0, 0, 10) stands 10 lower and its rising line is
+left for 30 of x where one at (0, 0, 0) leaves 20 (AutoCAD 2021's PNGOUT of both). An ellipse, a spline, a hatch and text that cross a plane are still drawn whole.
+**NEW.** A clip made in a system tilted out of the plan shows each entity of the block where the boundary's prism meets the plane at the entity's own height, not only at the block's plane:
+a grid at height 50 under the boundary that shows a grid at height 0 from y 73.09 to 130.83 shows from y 44.23 to 101.96, as AutoCAD 2021's PNGOUT draws it. An entity that does not lie flat
+keeps the ring of the block's plane. A clip whose plane is parallel to the block's, which is every clip the presenter makes, is drawn as before.
+**FIXED.** XCLIP generate Polyline draws the polyline where the boundary stands, not on the plane of the world: a boundary made in a system lifted 15 gives a polyline of elevation 15, and one
+made in a system at (100, 50, 20) turned 30 degrees about X (AutoCAD 2021 wrote both) the polyline of the normal (0, -0.5, 0.866), elevation -7.679 and vertices (110, 63.30), (190, 63.30),
+(190, 113.30), (110, 113.30) in its own system, where it was flat at elevation 0 whatever the boundary's plane.
+
 **CHANGED.** The search of the file for what else points at a field a cell lets go of (`DxfField.Erase`, behind a merge across a field, a text set or a reset over one, and `SetFormula` over another
 formula) passes over the records that cannot point at a handle of digits alone, as it did for a handle with a letter in it. A pointer's value is the handle's digits with nothing but zeros, spaces and
 tabs before them and spaces, tabs and the end of the line after them, so only a record whose bytes hold the digits as the whole of a value line is read group by group; a number that holds the same

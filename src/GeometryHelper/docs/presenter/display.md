@@ -546,9 +546,15 @@ plot and the images written clip every item to its region. The frame of the boun
 finds a clipped item only where its region does, a window takes the reference by the box of what is shown, and a crossing and
 the aperture of a snap meet only the part inside. Each cell of a MINSERT is clipped by its own place, and a clip that is
 switched off draws the block whole. A clip made in a system tilted out of the plan has the region where its prism cuts the plane
-of the block, and the frame where its boundary stands in the plan. The front and back planes of Clipdepth leave out the items
-of the block that lie wholly outside them, in height, and cut a line that crosses one; the display keeps no height, so any other
-entity that crosses a plane is drawn whole.
+of the block, and the frame where its boundary stands in the plan, each entity of the block in the region of the height it lies
+flat at (a grid at height 50 shows from y 44.23 to 101.96 under the boundary that shows a grid at height 0 from y 73.09 to
+130.83); an entity that does not lie flat is shown in the region of the block's own plane, since the display keeps no height to
+cut it by. The front and back planes of Clipdepth leave out the entities of the block that lie wholly outside them, in height,
+and cut a line, a circle, an arc and a polyline (a lightweight one, arc segments included) that crosses one, as AutoCAD draws
+it: a circle standing on its edge (radius 30, about (50, 20, 0), in the plane of X and Z) with front 10 and back -10 is the two
+arcs at its ends, x 20 to 21.72 and 78.28 to 80. An INSERT in the block is cut by the same planes through its own placing, its
+scale, turn and tilt, and an external reference with its base point at the insertion point; any other entity that crosses a
+plane (an ellipse, a spline, a hatch, text) is drawn whole.
 
 ### Keeping the lists
 

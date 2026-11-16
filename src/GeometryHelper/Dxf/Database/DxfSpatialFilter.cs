@@ -299,6 +299,28 @@ namespace GeometryHelper.Dxf
 
             /// <summary>Gets the height above the boundary's plane of a point of the block, its coordinates as its entities have them.</summary>
             public double HeightAt(double x, double y, double z) => X * x + Y * y + Z * z + Offset;
+
+            /// <summary>
+            /// Gets the same planes for the entities of a block placed inside this one, as the height of a point of that block:
+            /// the point is carried to the coordinates of this block by a placing, moved on by a shift, and measured here. An
+            /// INSERT in a clipped block is cut by the clip's planes through this.
+            /// </summary>
+            /// <param name="placing">The placing of the inner block in this one, its <c>BlockTransform</c>.</param>
+            /// <param name="shift">How far the placed block moves on in this block's coordinates: a cell of an array, or an
+            /// external reference's base point brought to the insertion point.</param>
+            /// <returns>The planes in the inner block's coordinates.</returns>
+            public Slab Through(GeoTransform3 placing, GeoVector3 shift) =>
+                new Slab(
+                    X * placing[0, 0] + Y * placing[1, 0] + Z * placing[2, 0],
+                    X * placing[0, 1] + Y * placing[1, 1] + Z * placing[2, 1],
+                    X * placing[0, 2] + Y * placing[1, 2] + Z * placing[2, 2],
+                    X * (placing[0, 3] + shift.X)
+                        + Y * (placing[1, 3] + shift.Y)
+                        + Z * (placing[2, 3] + shift.Z)
+                        + Offset,
+                    Front,
+                    Back
+                );
         }
 
         /// <summary>

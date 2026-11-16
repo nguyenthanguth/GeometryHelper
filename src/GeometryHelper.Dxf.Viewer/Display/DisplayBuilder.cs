@@ -1501,6 +1501,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             public int Depth { get; set; }
 
+            /// <summary>
+            /// The clipping planes (XCLIP Clipdepth) of the references this block stands in, in the coordinates of its own
+            /// entities; null where none has any.
+            /// </summary>
+            public IReadOnlyList<DxfSpatialFilter.Slab> Slabs { get; set; }
+
             public Frame Child(Affine2 matrix) =>
                 new Frame(matrix)
                 {
@@ -2301,6 +2307,10 @@ namespace GeometryHelper.Dxf.Viewer
                 reference.GetClipView(reference.DrawnFilter, clip, out section, out slab);
             }
 
+            // The planes of the blocks this INSERT stands in, carried into its block; none outside a clipped block with planes.
+            IReadOnlyList<DxfSpatialFilter.Slab> held = frame.Slabs;
+            GeoTransform3 carried = held == null ? null : reference.BlockTransform;
+
             for (int r = 0; r < rows; r++)
             {
                 for (int c = 0; c < columns; c++)
@@ -2314,9 +2324,11 @@ namespace GeometryHelper.Dxf.Viewer
                     // the boundary itself.
                     DisplayClipRegion before = null;
                     DisplayClip2 frameRing = clip == null ? null : WorldRing(clip, placed.Then(frame.Matrix));
-                    DisplayClip2 ring = ReferenceEquals(section, clip)
-                        ? frameRing
-                        : WorldRing(section, placed.Then(frame.Matrix));
+                    bool tilted = !ReferenceEquals(section, clip);
+                    DisplayClip2 ring = tilted ? null : frameRing;
+                    SectionLevels levels = tilted
+                        ? new SectionLevels(reference, reference.DrawnFilter, placed.Then(frame.Matrix), frameRing)
+                        : null;
 
                     if (ring != null)
                     {
@@ -2325,13 +2337,30 @@ namespace GeometryHelper.Dxf.Viewer
 
                     try
                     {
-                        DrawBlock(block, placed, reference, frame, list, handle, layerName, style, slab);
+                        DrawBlock(
+                            block,
+                            placed,
+                            reference,
+                            frame,
+                            list,
+                            handle,
+                            layerName,
+                            style,
+                            PlacedSlabs(held, carried, slab, dx * cos - dy * sin, dx * sin + dy * cos),
+                            levels
+                        );
                     }
                     finally
                     {
+                        levels?.Leave(list);
+
                         if (ring != null)
                         {
                             list.PopClip(before);
+                        }
+
+                        if (frameRing != null)
+                        {
                             DrawClipFrame(frameRing, list, handle, layerName, style);
                         }
                     }
@@ -2502,6 +2531,22 @@ namespace GeometryHelper.Dxf.Viewer
                 inner.BlockRgb = style.Rgb;
                 inner.BlockLineWeight = style.LineWeight;
                 IReadOnlyList<GeoPoint2> clip = ClipOf(reference);
+                DxfSpatialFilter.Slab planes = null;
+
+                if (clip != null)
+                {
+                    reference.GetClipView(reference.DrawnFilter, clip, out _, out planes);
+                }
+
+                // The planes (Clipdepth) of this reference and of the blocks it stands in, in the coordinates of the drawing's own
+                // entities: its base point, not the origin of the block that names it, is what stands at the insertion point.
+                IReadOnlyList<DxfSpatialFilter.Slab> held = frame.Slabs;
+                inner.Slabs = ShiftedSlabs(
+                    PlacedSlabs(held, held == null ? null : reference.BlockTransform, planes, 0.0, 0.0),
+                    origin.X - basePoint.X,
+                    origin.Y - basePoint.Y,
+                    origin.Z - basePoint.Z
+                );
 
                 if (clip == null)
                 {
@@ -2540,7 +2585,17 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 try
                 {
-                    Draw(entity, frame, list, null);
+                    if (frame.Slabs == null)
+                    {
+                        Draw(entity, frame, list, null);
+                    }
+                    else
+                    {
+                        foreach (DxfEntity drawn in Slice(frame.Slabs, entity))
+                        {
+                            Draw(drawn, frame, list, null);
+                        }
+                    }
                 }
                 catch (Exception)
                 {
@@ -2803,7 +2858,8 @@ namespace GeometryHelper.Dxf.Viewer
             string handle,
             string layerName,
             DisplayStyle style,
-            DxfSpatialFilter.Slab slab = null
+            IReadOnlyList<DxfSpatialFilter.Slab> slabs = null,
+            SectionLevels levels = null
         )
         {
             if (block == null)
@@ -2812,6 +2868,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             Frame inner = frame.Child(placement.Then(frame.Matrix));
+            inner.Slabs = slabs;
             inner.RootHandle = handle;
             inner.BlockLayer = layerName;
             inner.BlockRgb = style.Rgb;
@@ -2838,11 +2895,18 @@ namespace GeometryHelper.Dxf.Viewer
 
                     try
                     {
-                        DxfEntity drawn = entity;
+                        levels?.Enter(entity, list);
 
-                        if (slab == null || TrySlice(slab, entity, out drawn))
+                        if (slabs == null)
                         {
-                            Draw(drawn, inner, list, null);
+                            Draw(entity, inner, list, null);
+                        }
+                        else
+                        {
+                            foreach (DxfEntity drawn in Slice(slabs, entity))
+                            {
+                                Draw(drawn, inner, list, null);
+                            }
                         }
                     }
                     catch (Exception)
@@ -2876,11 +2940,18 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (shown[i] >= 0)
                     {
-                        DxfEntity drawn = entity;
+                        levels?.Enter(entity, list);
 
-                        if (slab == null || TrySlice(slab, entity, out drawn))
+                        if (slabs == null)
                         {
-                            Draw(drawn, inner, list, null, shown[i] > 0);
+                            Draw(entity, inner, list, null, shown[i] > 0);
+                        }
+                        else
+                        {
+                            foreach (DxfEntity drawn in Slice(slabs, entity))
+                            {
+                                Draw(drawn, inner, list, null, shown[i] > 0);
+                            }
                         }
                     }
                 }
