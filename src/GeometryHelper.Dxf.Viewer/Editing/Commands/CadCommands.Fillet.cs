@@ -384,17 +384,22 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static IEnumerable<CadPrompt> AskRadius(CadCommandContext c)
         {
-            yield return CadPrompt.ForDistance("Specify fillet radius", null, null, Length(c.Database.Filletrad));
-
-            if (c.Input.Kind != CadInputKind.Number)
+            while (true)
             {
-                yield break;
-            }
+                yield return CadPrompt.ForDistance("Specify fillet radius", null, null, Length(c.Database.Filletrad));
 
-            if (c.Input.Number < 0.0)
-            {
+                if (c.Input.Kind != CadInputKind.Number)
+                {
+                    yield break;
+                }
+
+                // A radius below nought is refused and asked again, as AutoCAD 2021 asks it.
+                if (c.Input.Number >= 0.0)
+                {
+                    break;
+                }
+
                 c.Write("Value must be positive.");
-                yield break;
             }
 
             double radius = c.Input.Number;
@@ -421,27 +426,40 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (string.Equals(option, "Distance", StringComparison.Ordinal))
             {
-                yield return CadPrompt.ForDistance(
-                    "Specify first chamfer distance",
-                    null,
-                    null,
-                    Length(c.Database.Chamfera)
-                );
-                double first = c.Input.Kind == CadInputKind.Number ? c.Input.Number : c.Database.Chamfera;
+                // A distance below nought is refused and asked again, as AutoCAD 2021 asks it.
+                double first;
 
-                if (first < 0.0)
+                while (true)
                 {
+                    yield return CadPrompt.ForDistance(
+                        "Specify first chamfer distance",
+                        null,
+                        null,
+                        Length(c.Database.Chamfera)
+                    );
+                    first = c.Input.Kind == CadInputKind.Number ? c.Input.Number : c.Database.Chamfera;
+
+                    if (first >= 0.0)
+                    {
+                        break;
+                    }
+
                     c.Write("Value must be positive.");
-                    yield break;
                 }
 
-                yield return CadPrompt.ForDistance("Specify second chamfer distance", null, null, Length(first));
-                double second = c.Input.Kind == CadInputKind.Number ? c.Input.Number : first;
+                double second;
 
-                if (second < 0.0)
+                while (true)
                 {
+                    yield return CadPrompt.ForDistance("Specify second chamfer distance", null, null, Length(first));
+                    second = c.Input.Kind == CadInputKind.Number ? c.Input.Number : first;
+
+                    if (second >= 0.0)
+                    {
+                        break;
+                    }
+
                     c.Write("Value must be positive.");
-                    yield break;
                 }
 
                 SetHeader(c, "$CHAMFERA", c.Database.Chamfera, first, d => d.Chamfera = first);
@@ -450,18 +468,24 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (string.Equals(option, "Angle", StringComparison.Ordinal))
             {
-                yield return CadPrompt.ForDistance(
-                    "Specify chamfer length on the first line",
-                    null,
-                    null,
-                    Length(c.Database.Chamferc)
-                );
-                double length = c.Input.Kind == CadInputKind.Number ? c.Input.Number : c.Database.Chamferc;
+                double length;
 
-                if (length < 0.0)
+                while (true)
                 {
+                    yield return CadPrompt.ForDistance(
+                        "Specify chamfer length on the first line",
+                        null,
+                        null,
+                        Length(c.Database.Chamferc)
+                    );
+                    length = c.Input.Kind == CadInputKind.Number ? c.Input.Number : c.Database.Chamferc;
+
+                    if (length >= 0.0)
+                    {
+                        break;
+                    }
+
                     c.Write("Value must be positive.");
-                    yield break;
                 }
 
                 yield return CadPrompt

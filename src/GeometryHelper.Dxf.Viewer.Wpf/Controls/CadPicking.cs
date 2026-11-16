@@ -98,6 +98,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
+        /// Gets whether the prompt waiting takes the point modifiers and the object snaps of the Shift+right-click menu: a point, a
+        /// distance or an angle, and, as AutoCAD 2021 takes them, objects, "Select objects:" or a prompt for one object, where the
+        /// point they give picks.
+        /// </summary>
+        public static bool WantsModifiers(CadCommandSession session) => WantsPoint(session) || WantsObjects(session);
+
+        /// <summary>
         /// Gets whether a right-click while a command runs shows a menu rather than being Enter, as AutoCAD's SHORTCUTMENU 11
         /// has it: the Grips menu while a grip edit runs, the Command menu while the prompt offers options in its brackets
         /// ("Specify next point or [Undo]:"); "Specify first point:" and "Select objects:" offer none, so a right-click there is
@@ -199,7 +206,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         : session.Feed(snapped?.Point ?? cursor, false, control);
                 }
 
-                return WantsObjects(session) && session.Feed(cursor, shift);
+                if (!WantsObjects(session))
+                {
+                    return false;
+                }
+
+                // An object snap taken for the next point (the Shift+right-click menu, END typed) gives the point the object is
+                // picked at, as AutoCAD 2021 picks at the point the snap finds; where it finds none the click is the point.
+                if (snap != null && snap.Override.HasValue)
+                {
+                    CadSnapResult snapped = Snap(document, space, snap, cursor, aperture, null);
+
+                    if (snapped != null && snapped.Kind != CadSnapKind.None)
+                    {
+                        cursor = snapped.Point;
+                    }
+                }
+
+                return session.Feed(cursor, shift);
             }
 
             int before = document.Selection.Count;

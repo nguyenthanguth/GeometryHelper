@@ -487,8 +487,14 @@ the ones wanted.
       and 4 (angles from the last segment, POLARADDANG); leaders following DIMSCALE (S): MLEADER does not follow it in AutoCAD either
 - [x] Follow-ups of aids-vars (small1): a modifier picked from the menu where it may not nest is refused as AutoCAD 2021
       (the TT/FROM/M2P/TK/filter nesting table probed; Base point: _tt and the refusal in the history)
-- [ ] Aids-vars follow-ups 2: TT, FROM and snaps at "Select objects:" (AutoCAD takes them; our menu is not shown there);
-      POLYGON's refusal wording ("Requires an integer between 3 and 1024.") (S)
+- [x] Aids-vars follow-ups 2 (aids3): TT, FROM, M2P, TK, filters and snaps at Select objects, one-object prompts,
+      window corners and fence points as AutoCAD 2021 (the Shift+right-click menu shown there); a typed point on
+      nothing starts the window; the refusals of POLYGON, -ARRAY, ARRAYRECT/POLAR, DIVIDE, MEASURE, CHAMFER, FILLET in
+      AutoCAD's words, asked again
+- [ ] Aids-vars follow-ups 3: a typed point after an object snap override is snapped in AutoCAD ("No Endpoint found for
+      specified point."); a one-object prompt's second refusal line; window-corner and fence refusal wording; CIRCLE,
+      DONUT and UNDO refusals and UNDO's options; ARRAYRECT's prompt text (Enter the number of columns, <eXit>,
+      Associative = Yes); SCALE's factor prompt without a default (S)
 - [x] MLEADERSCALE, CMLEADERSTYLE, LEADER and QLEADER (command line) as AutoCAD 2021
 - [x] QLEADER Leader Settings (AcadDim xrecord, DIMLDRBLK) and the Polar tab's additional angles, tracking and measurement, with the polar tooltip
 - [x] Leader follow-ups: every differing DIM* override in group order, DIMCLRT, hook along the UCS, INSERT copied and reused, LEADER/QLEADER previews, arrow pictures and User Arrow...
@@ -871,7 +877,7 @@ the ones wanted.
       merges read 1 375 -> 10 records; a merge across field 700000 3.4 -> 1.3 ms), a merge no longer copies the 1.1 MB
       TABLECONTENT twice, smaller allocations; SetFormula and the cell setters were already spliced; lazy layout and
       unmerge parked (0.1 ms, a flat-record copy)
-- [ ] Tables follow-ups 10: RemoveDataLink/SetDataLink read and write the whole TABLECONTENT (8-24 ms at 300 rows):
+- [ ] (tables11, running) Tables follow-ups 10: RemoveDataLink/SetDataLink read and write the whole TABLECONTENT (8-24 ms at 300 rows):
       read links from the kept grid; the first merge of a file's table reads TABLECONTENT (10-45 ms: a lazy
       ContentBytesOf); Own()'s two list copies (1.8 MB) an edit; Item.Handle re-walks the table record after each edit;
       1-2 digit handles still read every record; series dates in a daylight-saving zone; GUI-only sides (S)

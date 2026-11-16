@@ -424,10 +424,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Session(document);
 
             Assert.False(session.StartPointModifier("FROM"));
-            Run(session, "ERASE");
+            Run(session, "POLYGON");
 
             Assert.False(session.StartPointModifier("M2P"));
-            Assert.Equal("Select objects:", session.PromptText);
+            Assert.Equal("Enter number of sides <4>:", session.PromptText);
         }
     }
 }

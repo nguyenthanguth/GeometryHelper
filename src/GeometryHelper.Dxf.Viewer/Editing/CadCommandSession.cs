@@ -113,6 +113,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         // The prompt and the point typed at "Select objects:", written in place of the prompt alone as the point picks; null else.
         private string _typedPick;
+
+        // A point a modifier gave is picking at "Select objects:": its line is written already, so the pick writes none of its own.
+        private bool _quietPick;
         private CadCommand _gripCommand;
         private bool _grouped;
         private List<string> _script;
@@ -449,7 +452,8 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            if (_option != null)
+            // The prompt of a point modifier, asked inside an option's, takes its point as any modifier's does.
+            if (_option != null && _modifiers.Count == 0)
             {
                 return OptionPoint(point, Prompt.Text);
             }
@@ -457,7 +461,8 @@ namespace GeometryHelper.Dxf.Viewer
             if (_multiple != null && Prompt.Kind == CadPromptKind.Selection)
             {
                 // Multiple: the points are kept, and the objects at them found at Enter.
-                Write(_typedPick ?? Prompt.Text);
+                WritePick();
+                _trackPoints.Clear();
                 _multiple.Add(point);
                 Changed();
                 return true;
@@ -475,9 +480,12 @@ namespace GeometryHelper.Dxf.Viewer
                         .GetPickIndex(Document.WorkingSpace)
                         .Pick(point.X, point.Y, PickAperture);
 
+                    // The tracking a temporary track point gave was for this point.
+                    _trackPoints.Clear();
+
                     if (picked.Count == 0)
                     {
-                        Write(_typedPick ?? Prompt.Text);
+                        WritePick();
 
                         if (!Prompt.QuietMiss)
                         {
@@ -499,7 +507,7 @@ namespace GeometryHelper.Dxf.Viewer
                                 Shift = shift,
                                 IsPickedAt = true,
                             },
-                            _typedPick ?? Prompt.Text,
+                            PickEcho,
                             null
                         );
                     }
@@ -542,9 +550,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// every object of the space, Window, Crossing and BOX by two corners, Fence, WPolygon and CPolygon by points until
         /// Enter, Last the object made last, Previous the objects the command before took, Group by name, Remove and Add to
         /// take out and put in, Undo the last change, Multiple points until Enter, SIngle to end with the first objects taken,
-        /// AUto; a point typed there picks as a click does, "Select objects: -50,-50" then "0 found" where it hits nothing,
-        /// starting no window; anything else is "*Invalid selection*" with the options listed.
-        /// A point modifier, FROM, M2P, TT, TK or a point filter, starts at a prompt for a point (<see cref="StartPointModifier"/>).
+        /// AUto; a point typed there picks as a click does, "Select objects: 50,0" then "1 found", and where it hits nothing
+        /// starts the window as AutoCAD 2021 does, "Select objects: -50,-50" then "Specify opposite corner:"; anything else is
+        /// "*Invalid selection*" with the options listed. A point modifier, FROM, M2P, TT, TK or a point filter, starts at a
+        /// prompt for a point or for objects (<see cref="StartPointModifier"/>).
         /// 'PAN or 'ZOOM typed at any prompt but one for text runs inside the command waiting (<see cref="IsTransparent"/>).
         /// </summary>
         /// <param name="text">The text.</param>
@@ -567,9 +576,10 @@ namespace GeometryHelper.Dxf.Viewer
                 return true;
             }
 
-            if (_option != null)
+            // An option's point prompt (a corner of a window, a point of a fence) takes the modifiers as any prompt for a point.
+            if (_option != null && _modifiers.Count == 0)
             {
-                return OptionText(text.Trim());
+                return (!_refeeding && StartPointModifier(text)) || OptionText(text.Trim());
             }
 
             string typed = Prompt.Kind == CadPromptKind.String ? text : text.Trim();
@@ -623,8 +633,13 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (TryPoint(typed, out GeoPoint2 pickedAt))
                     {
-                        // A point typed picks as a click does, written after the prompt as typed; one on nothing finds
-                        // none and asks again, starting no window, as AutoCAD 2021's "Select objects: -50,-50 0 found".
+                        // A point typed picks as a click does, written after the prompt as typed; one on nothing starts the
+                        // window, as AutoCAD 2021's "Select objects: 150,150" then "Specify opposite corner:".
+                        if (Prompt.Kind == CadPromptKind.Selection && StartWindowAt(pickedAt, echo))
+                        {
+                            return true;
+                        }
+
                         _typedPick = echo;
 
                         try
@@ -821,7 +836,7 @@ namespace GeometryHelper.Dxf.Viewer
             // A box that ends the implied window was written with the window's prompt (EndWindow).
             if (!_windowWritten)
             {
-                Write(_typedPick ?? Prompt.Text);
+                WritePick();
             }
 
             _windowWritten = false;
@@ -886,7 +901,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            if (_option != null)
+            if (_option != null && _modifiers.Count == 0)
             {
                 OptionEnter();
                 return;

@@ -95,7 +95,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>An option typed at "Select objects:", by its capital letters or whole.</summary>
         private bool SelectOption(string option, string echo)
         {
-            Write(echo);
+            Echo(echo);
 
             switch (option)
             {
@@ -200,6 +200,15 @@ namespace GeometryHelper.Dxf.Viewer
             return true;
         }
 
+        /// <summary>Writes the line a prompt and its answer make, where it was not written already (null).</summary>
+        private void Echo(string echo)
+        {
+            if (echo != null)
+            {
+                Write(echo);
+            }
+        }
+
         /// <summary>Shows a prompt the session asks itself, in place of the command's.</summary>
         private void Ask(CadPrompt prompt)
         {
@@ -229,7 +238,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return Invalid("Invalid input.", echo);
             }
 
-            Write(echo);
+            Echo(echo);
             LastPoint = point;
             _band.Add(point);
 
@@ -293,11 +302,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Text typed at an option's prompt: a point, Undo, or a group's name.</summary>
         private bool OptionText(string typed)
         {
-            string echo = Prompt.Text + " " + typed;
+            // Text a modifier handed on has its echo written already.
+            string echo = _refeeding ? null : Prompt.Text + " " + typed;
 
             if (_option == "Group")
             {
-                Write(echo);
+                Echo(echo);
                 List<string> members = GroupMembers(typed);
                 EndOption();
 
@@ -318,7 +328,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (Prompt.MatchKeyword(typed) == "Undo")
             {
-                Write(echo);
+                Echo(echo);
                 _band.RemoveAt(_band.Count - 1);
                 AskNextPoint();
                 return true;
@@ -536,7 +546,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The invalid answer at "Select objects:", with the options AutoCAD lists.</summary>
         private bool InvalidSelection(string echo)
         {
-            Write(echo);
+            Echo(echo);
             Write("*Invalid selection*");
             Write("Expects a point or");
             return Invalid(Expects);

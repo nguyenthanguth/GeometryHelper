@@ -107,6 +107,35 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
+        /// A point typed, or given by a modifier, at "Select objects:" that lies on no object: the point is the first corner of
+        /// the implied window, as AutoCAD 2021 takes it. Where it lies on an object, nothing starts and it picks as a click does.
+        /// </summary>
+        /// <param name="point">The point, in the coordinates of the space.</param>
+        /// <param name="echo">The line to write first, the prompt and the point typed; null where the modifier wrote its own.</param>
+        /// <returns>Whether the window was started.</returns>
+        private bool StartWindowAt(GeoPoint2 point, string echo)
+        {
+            if (
+                Prompt == null
+                || Prompt.Kind != CadPromptKind.Selection
+                || _option != null
+                || _multiple != null
+                || Document.GetPickIndex(Document.WorkingSpace).Pick(point.X, point.Y, PickAperture).Count > 0
+            )
+            {
+                return false;
+            }
+
+            if (echo != null)
+            {
+                Write(echo);
+            }
+
+            _trackPoints.Clear();
+            return StartWindowInSelection(point);
+        }
+
+        /// <summary>
         /// F, WP or CP typed at the opposite corner of the window inside "Select objects:": the fence or polygon from the
         /// corner; Enter (no words) is refused there, as at the Command prompt. False for anything else.
         /// </summary>
@@ -132,7 +161,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            Write(echo);
+            Echo(echo);
             _option = keyword;
             _windowFirst = null;
             AskNextPoint();

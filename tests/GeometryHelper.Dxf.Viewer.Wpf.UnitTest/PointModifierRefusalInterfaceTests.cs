@@ -56,7 +56,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.False(model.ModifyPoint("_tt"));
 
             Assert.Contains("Enter number of sides <4>: _tt", model.History);
-            Assert.Equal("Requires an integer value or option keyword.", model.History.Last());
+            Assert.Equal("Requires an integer between 3 and 1024.", model.History.Last());
             Assert.Equal("Enter number of sides <4>:", model.Prompt);
         }
 
