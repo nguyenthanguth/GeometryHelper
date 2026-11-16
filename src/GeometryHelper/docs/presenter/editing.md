@@ -3384,7 +3384,7 @@ lines from (0, 0), the grip at (0, 0) and MO to (10, 20) moves both; RO 90 then 
 
 ### Hover menus
 
-A polyline's grips are AutoCAD 2021's multi-functional ones. A vertex is a square, `2 × GRIPSIZE + 5` pixels across (15 at
+A polyline's grips (a light one's and a 2D POLYLINE's of straight and arc segments) are AutoCAD 2021's multi-functional ones. A vertex is a square, `2 × GRIPSIZE + 5` pixels across (15 at
 the default of 5); the middle of a segment is a bar along it, 22 by 6 at 5 (37 by 10 at 10, 10 by 3 at 1), lying along the
 chord of an arc segment, which is the tangent at the arc's middle; a rotated view turns the bar with its segment. A grip
 under the cursor is pink (`#FF7F7F`, AutoCAD's GRIPHOVER) and a clicked one red, both unedged; the others are the grip
@@ -3406,6 +3406,15 @@ canvas): a light popup, rows of 22 pixels, the row under the cursor highlighted,
 | vertex | Stretch Vertex, Add Vertex, Remove Vertex |
 | middle of a straight segment | Stretch, Add Vertex, Convert to Arc |
 | middle of an arc segment | Stretch, Add Vertex, Convert to Line |
+| end of a line or an arc | Stretch, Lengthen |
+| middle of an arc | Stretch, Radius |
+| point of a spline | Stretch Fit Point, Add Fit Point, Remove Fit Point (fit data), or Stretch Vertex, Add Vertex, Remove Vertex (control points) |
+| grip of a hatch | Stretch, Hatch Scale, Hatch Angle, Origin Point |
+
+The words, the command line texts and the prompts are those of AutoCAD 2021's grip table, read from the string tables of
+`acdb24res.dll` and `acadres.dll` (the console cannot show a menu: its `MultiModesGripPE` is not loaded, so the table was read
+as strings, and `GetGripPoints` gave the grips themselves). The middle of a line, the centre of an arc and the quadrants of a
+circle have no menu.
 
 The menu closes when the cursor leaves both the grip and the menu, on Esc, on a click elsewhere, and when the selection
 or the command changes. A click on the grip itself is the grip edit as before, `** STRETCH **`. Choosing a row calls
@@ -3432,11 +3441,39 @@ undo step named GRIP, and Esc at its prompt changes nothing:
 - Convert to Arc says `** CONVERT TO ARC **` and asks `Specify midpoint of arc segment:`, the polyline drawn bent through the
   cursor; a chord of 100 with the point 20 off its middle gets a bulge of 0.4 (the sagitta over half the chord), above
   nought where the point is to the right of the way the segment runs. A point on the line of the segment is refused.
-- Convert to Line makes an arc segment straight at once.
+- Convert to Line says `** CONVERT TO LINE **` and asks `Pick to convert to line segment:`, as AutoCAD's string has it: any
+  point picked makes the arc segment straight (one undo step), Enter or Esc leaves it an arc. Remove Vertex has a twin string,
+  `Pick to remove vertex:`, and stays at once.
+- Lengthen says `** LENGTHEN **` and asks `Specify end point or [Base point/eXit]:` (`Specify end point of arc` for an arc),
+  the entity drawn with the end at the cursor. A line's end goes to where the point falls along the line's own way, the other
+  end and the way kept: a line from (0, 0) to (100, 0) lengthened at its end by (150, 40) runs to (150, 0); a point behind the
+  other end is refused (the line would turn round). An arc's end goes round the arc to the angle the point has from the centre,
+  the radius and the other end kept: an arc of radius 20 from 0 to 90 degrees lengthened at its end by a point at (-10, 30)
+  from its centre ends at 108.4 degrees; the other end, or the centre, is refused. Base point takes the point as far from the
+  base as the grip is from where it stands.
+- Radius says `** RADIUS **` and asks `Specify radius or [Base point/eXit]:`: the radius is the distance of the point from the
+  centre, the centre and the two angles kept, so that the ends move along their rays (an arc of radius 20 given a point 35
+  from its centre has radius 35). AutoCAD's own words for what it keeps are not in its table; the centre and the angles are
+  this presenter's reading, not checked in the GUI.
+- A spline's menu works on its fit points where it has fit data, else on its control points. Stretch moves the point (a fit
+  point moved makes the spline fit through it, a control point moved bends the curve); Add puts a fit point after the grip's
+  (after the last it extends the end), or a control point where the nearest point of the curve is, saying `** ADD FIT POINT **`
+  and `Specify new fit point` or `** ADD CONTROL VERTEX **` and `Specify new vertex point`; Remove takes the point out at once,
+  grey on a spline of two fit points or of a degree and one control points. The small grip AutoCAD puts beside the first
+  point to switch between fit points and control vertices (at 4 grip sizes right of and below it, probed) is not given.
+- A hatch has one grip, at the middle of the box its loops fill (the grips of a non-associative boundary's vertices, which
+  AutoCAD also gives, are not). Stretch moves the hatch; Hatch Scale says `** HATCH SCALE **` and asks `Specify hatch scale:`
+  (a number, or a point whose distance from the grip is the scale), Hatch Angle `** HATCH ANGLE **` and `Specify hatch angle:`
+  (an angle, or a point whose direction from the grip is the angle), Origin Point `** ORIGIN POINT **` and `Specify origin
+  point:`, which lays the pattern from the point as HATCHSETORIGIN does. Scale and angle keep the origin. A solid fill or a
+  gradient has Stretch alone, so no menu; a pattern made by the user has no scale or origin. How AutoCAD turns the cursor into
+  a scale or an angle is not in its strings: this is the presenter's reading, not checked in the GUI.
 
-The static members are `CadGrips.AddVertex`, `RemoveVertex`, `ConvertToArc` and `ConvertToLine`, each one undo step.
-Other grips (LINE, ARC, SPLINE, HATCH, dimension text) have no menu yet, and Ctrl cycling through a grip's options is not
-built: Ctrl held as the first point is picked still turns Copy on.
+The static members are `CadGrips.AddVertex`, `RemoveVertex`, `ConvertToArc`, `ConvertToLine`, `Lengthen`, `ChangeRadius`,
+`ChangeHatchScale`, `ChangeHatchAngle` and `SetHatchOrigin`, each one undo step. The grips of a 2D POLYLINE fitted with a curve
+or a spline are not given, and the dimension grips (Continue Dimension, Baseline Dimension, Flip Arrow, the text moves) and
+a spline's fit/control switch have no menu yet; Ctrl cycling through a grip's options is not built: Ctrl held as the first
+point is picked still turns Copy on.
 
 ## Properties
 

@@ -183,8 +183,8 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>
     /// The grips of each kind of entity and what dragging each does, as AutoCAD's: a line's two ends and middle, a circle's
     /// centre and four quadrants, an arc's ends, middle and centre, a polyline's vertices and the middles of its segments, a
-    /// text's and a block reference's insertion point, an MTEXT's location and the corners of its box or the grips of its
-    /// columns, a viewport's four corners
+    /// text's and a block reference's insertion point, a hatch's one grip at the middle of the box its loops fill, an MTEXT's
+    /// location and the corners of its box or the grips of its columns, a viewport's four corners
     /// and middle, and a dimension's as AutoCAD 2021 gives them (see <see cref="Of"/>), its picture drawn anew after each drag.
     /// Entities of other kinds have none.
     /// </summary>
@@ -217,6 +217,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// upper right to the lower right (<see cref="CadGripKind.Corner"/>); a frame 40 by 20 with its lower left corner at
         /// (10, 20) has them at (10, 20), (10, 40), (50, 40) and (50, 20). A frame of no size has none.
         /// A multiline's, as AutoCAD 2021's: one at each vertex of the line it is drawn on, (0, 0), (100, 0) and (100, 100) for one through those points.
+        /// A 2D POLYLINE of straight and arc segments has a light polyline's grips (a vertex grip on each vertex, then a segment
+        /// middle grip on each segment); one fitted with a curve or a spline has none. A spline's, as AutoCAD 2021's: a vertex grip on each
+        /// fit point, or on each control point where it has no fit data; a cubic through (0, 0), (30, 40), (60, 0) and (90, 40)
+        /// has grips at those four points. A hatch's, one at the middle of the box its loops fill (<see cref="CadGripKind.Center"/>):
+        /// a rectangle 100 by 60 has it at (50, 30).
         /// </summary>
         /// <param name="entity">The entity.</param>
         /// <returns>The grips in the order of their indices; empty for an entity with none.</returns>
@@ -286,36 +291,42 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 case DxfPolyline polyline when IsPlan(polyline.Normal):
+                    PolylineGrips(
+                        grips,
+                        polyline.NumberOfVertices,
+                        polyline.Closed,
+                        polyline.Normal.Z < 0.0,
+                        polyline.GetPoint2dAt,
+                        polyline.GetBulgeAt
+                    );
+                    break;
+                case DxfPolyline2d heavy when heavy.PolyType == DxfPoly2dType.SimplePoly && IsPlan(heavy.Normal):
                 {
-                    int n = polyline.NumberOfVertices;
+                    // A POLYLINE of straight and arc segments has the grips of a light one, as AutoCAD 2021 gives them (probed).
+                    List<DxfVertex2d> vertices = heavy.ToList();
+                    PolylineGrips(
+                        grips,
+                        vertices.Count,
+                        heavy.Closed,
+                        heavy.Normal.Z < 0.0,
+                        i => new GeoPoint2(vertices[i].Position.X, vertices[i].Position.Y),
+                        i => vertices[i].Bulge
+                    );
+                    break;
+                }
 
-                    bool below = polyline.Normal.Z < 0.0;
+                case DxfSpline spline:
+                    SplineGrips(spline, at => Add(CadGripKind.Vertex, at.X, at.Y));
+                    break;
+                case DxfHatch hatch when IsPlan(hatch.Normal):
+                {
+                    // One grip, at the middle of the box its loops fill, as AutoCAD 2021's GetGripPoints gives the hatch its own;
+                    // the grips at the vertices of a hatch's boundary are not given.
+                    GeoPoint2? centre = HatchCentre(hatch);
 
-                    for (int i = 0; i < n; i++)
+                    if (centre.HasValue)
                     {
-                        AddOwn(CadGripKind.Vertex, polyline.GetPoint2dAt(i), below);
-                    }
-
-                    int segments = polyline.Closed && n > 2 ? n : n - 1;
-
-                    for (int i = 0; i < segments; i++)
-                    {
-                        GeoPoint2 from = polyline.GetPoint2dAt(i);
-                        GeoPoint2 to = polyline.GetPoint2dAt((i + 1) % n);
-
-                        // The way the grip's bar lies: along the chord, which is also the tangent at an arc's middle.
-                        GeoVector2 chord = to - from;
-                        double length = chord.Length;
-                        var along = length > 0.0 ? new GeoVector2(chord.X / length, chord.Y / length) : default;
-
-                        grips.Add(
-                            new CadGrip(
-                                grips.Count,
-                                CadGripKind.SegmentMiddle,
-                                Own(SegmentMiddle(from, to, polyline.GetBulgeAt(i)), below),
-                                below ? new GeoVector2(-along.X, along.Y) : along
-                            )
-                        );
+                        Add(CadGripKind.Center, centre.Value.X, centre.Value.Y);
                     }
 
                     break;
@@ -405,6 +416,47 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return grips;
+        }
+
+        /// <summary>
+        /// The grips of a polyline of either kind: a vertex grip on each vertex, then a segment middle grip on each segment, one
+        /// less than the vertices, and the closing one where it is closed on more than two.
+        /// </summary>
+        private static void PolylineGrips(
+            List<CadGrip> grips,
+            int n,
+            bool closed,
+            bool below,
+            Func<int, GeoPoint2> point,
+            Func<int, double> bulge
+        )
+        {
+            for (int i = 0; i < n; i++)
+            {
+                grips.Add(new CadGrip(grips.Count, CadGripKind.Vertex, Own(point(i), below)));
+            }
+
+            int segments = closed && n > 2 ? n : n - 1;
+
+            for (int i = 0; i < segments; i++)
+            {
+                GeoPoint2 from = point(i);
+                GeoPoint2 to = point((i + 1) % n);
+
+                // The way the grip's bar lies: along the chord, which is also the tangent at an arc's middle.
+                GeoVector2 chord = to - from;
+                double length = chord.Length;
+                var along = length > 0.0 ? new GeoVector2(chord.X / length, chord.Y / length) : default;
+
+                grips.Add(
+                    new CadGrip(
+                        grips.Count,
+                        CadGripKind.SegmentMiddle,
+                        Own(SegmentMiddle(from, to, bulge(i)), below),
+                        below ? new GeoVector2(-along.X, along.Y) : along
+                    )
+                );
+            }
         }
 
         /// <summary>
@@ -608,6 +660,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             switch (entity)
             {
+                case DxfPolyline2d heavy:
+                    return DragPolyline2d(document, heavy, handle, grip, gripIndex, to, property, was, went);
+                case DxfSpline _:
+                    return Reshape(document, handle, property, was, went, () =>
+                        SplineStretchAt(document.FindEntity(handle), gripIndex, to)
+                    );
                 case DxfLine _:
                     return Reshape(document, handle, property, was, went, () =>
                         document.FindEntity(handle) is DxfLine l && Set(l, gripIndex == 0, to)

@@ -461,7 +461,14 @@ User note 2026-11-12 evening (note.md 1-14):
 User note 2026-11-12 (basic features first, advanced later):
 - [x] Grips: a polyline's midpoint grip drawn as AutoCAD's short bar, not a square; hovering a vertex grip offers Stretch Vertex / Add Vertex / Remove Vertex, a midpoint grip Stretch / Add Vertex / Convert to Arc; Grip size (GRIPSIZE) under Pickbox size in Global settings > Appearance > Cursor (design first) (M)
 - [x] Grips follow-ups: MTEXT triangle and table grips sized from GRIPSIZE like the squares (look on screen at g 5) and their hover pink; Remove Vertex next to an arc and Add Vertex on an arc checked in AutoCAD; Undo inside Add Vertex; a clicked polyline vertex saying ** STRETCH VERTEX **; later: 2D POLYLINE, LINE/ARC/SPLINE/HATCH/dimension menus, Ctrl cycling (S)
-- [ ] (grips3, running) Grips follow-ups 2: Add Vertex options and the MTEXT triangle size checked in the GUI against AutoCAD; Convert to Line as a pick prompt as AutoCAD's string says (check the GUI); later: 2D POLYLINE, LINE/ARC/SPLINE/HATCH/dimension menus, Ctrl cycling (S)
+- [x] Grips follow-ups 2 (grips3): grip menus of LINE and ARC (Stretch, Lengthen, Radius), SPLINE (fit points and
+      control vertices: Stretch, Add, Remove), HATCH (a centre grip: Stretch, Hatch Scale, Hatch Angle, Origin Point)
+      and 2D POLYLINE (as a light polyline); Convert to Line asks a pick as AutoCAD's string says; Add Vertex's
+      options already matched (AutoCAD's string table)
+- [ ] Grips follow-ups 3: dimension grip menus (Continue/Baseline, Flip Arrow, Move Text variants); Remove Vertex as a
+      pick ("Pick to remove vertex:" exists in AutoCAD's strings); Copy and Undo in Lengthen/Radius; the spline
+      fit/control switch grip; hatch boundary grips (non-associative); fit-curve and spline-fit 2D polyline grips; Ctrl
+      cycling of grip modes; the MTEXT triangle size (GUI); a Wpf test of the new menus (S)
 - [x] Ctrl+1 toggles PROPERTIES (open closes, closed opens); DRAWINGS gets Ctrl+2 by default and toggles the same way (S)
 - [x] Progress meter on the status bar for open/save, callable by commands and plugins (CadProgress, design v128) (M)
 
