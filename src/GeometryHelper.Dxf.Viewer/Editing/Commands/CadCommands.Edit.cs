@@ -922,28 +922,139 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
+        /// <summary>"Current settings: Auto = On, Control = All, Combine = Yes, Layer = Yes", written by UNDO before it asks.</summary>
+        private static string UndoSettings(CadDocument document) =>
+            "Current settings: Auto = "
+            + (document.UndoAuto ? "On" : "Off")
+            + ", Control = "
+            + document.UndoControl
+            + ", Combine = "
+            + (document.UndoCombine ? "Yes" : "No")
+            + ", Layer = "
+            + (document.UndoLayer ? "Yes" : "No");
+
+        /// <summary>
+        /// UNDO's Control option: "Enter an UNDO control option [All/None/One/Combine/Layer] &lt;All&gt;:", All keeping every
+        /// step, None turning U off and One keeping the last step alone; Combine and Layer ask "Combine zoom and pan
+        /// operations? [Yes/No] &lt;Yes&gt;:" and "Combine layer dialog operations? [Yes/No] &lt;Yes&gt;:", Enter being Yes.
+        /// Text that names none is "Invalid option keyword." and the prompt again, as it is for Yes and No "Yes or No, please."
+        /// </summary>
+        private static IEnumerable<CadPrompt> UndoControlOption(CadCommandContext c)
+        {
+            CadDocument document = c.Document;
+            yield return CadPrompt.ForKeyword(
+                "Enter an UNDO control option",
+                new[] { "All", "None", "One", "Combine", "Layer" },
+                "All"
+            );
+
+            if (c.Input.Is("Combine") || c.Input.Is("Layer"))
+            {
+                bool combine = c.Input.Is("Combine");
+                yield return CadPrompt
+                    .ForKeyword(
+                        combine ? "Combine zoom and pan operations?" : "Combine layer dialog operations?",
+                        new[] { "Yes", "No" },
+                        "Yes"
+                    )
+                    .Refusing("Yes or No, please.");
+
+                if (combine)
+                {
+                    document.UndoCombine = c.Input.Is("Yes");
+                }
+                else
+                {
+                    document.UndoLayer = c.Input.Is("Yes");
+                }
+            }
+            else if (c.Input.Is("All") || c.Input.Is("None") || c.Input.Is("One"))
+            {
+                document.SetUndoControl(
+                    c.Input.Is("None") ? CadUndoControl.None
+                    : c.Input.Is("One") ? CadUndoControl.One
+                    : CadUndoControl.All
+                );
+            }
+        }
+
         private static IEnumerable<CadPrompt> Undo(CadCommandContext c)
         {
             const string refused = "Requires an integer between 1 and 32767, or option keyword.";
-            c.Write("Current settings: Auto = On, Control = All, Combine = Yes, Layer = Yes");
+            c.Write(UndoSettings(c.Document));
+
+            // With UNDO turned off the Control option is all there is to ask, as AutoCAD 2021 has it.
+            if (c.Document.UndoControl == CadUndoControl.None)
+            {
+                foreach (CadPrompt prompt in UndoControlOption(c))
+                {
+                    yield return prompt;
+                }
+
+                yield break;
+            }
+
+            // With Control One U takes back the last command and nothing before it: only that number or Control is asked.
+            bool single = c.Document.UndoControl == CadUndoControl.One;
 
             // A number below 1 or past 32767, as well as text and 2.5, is refused and asked again, as AutoCAD 2021 refuses it.
             while (true)
             {
-                yield return CadPrompt
-                    .ForInteger(
-                        "Enter the number of operations to undo",
-                        new[] { "Auto", "Control", "BEgin", "End", "Mark", "Back" },
-                        "1"
-                    )
-                    .Refusing(refused);
+                yield return single
+                    ? CadPrompt
+                        .ForInteger("Enter an option", new[] { "Control" }, "1")
+                        .WithoutOr()
+                        .Refusing("Requires an integer value 1, or option keyword.")
+                    : CadPrompt
+                        .ForInteger(
+                            "Enter the number of operations to undo",
+                            new[] { "Auto", "Control", "BEgin", "End", "Mark", "Back" },
+                            "1"
+                        )
+                        .Refusing(refused);
 
-                if (c.Input.Kind != CadInputKind.Number || (c.Input.Number >= 1.0 && c.Input.Number <= 32767.0))
+                if (
+                    c.Input.Kind != CadInputKind.Number
+                    || (single ? c.Input.Number == 1.0 : c.Input.Number >= 1.0 && c.Input.Number <= 32767.0)
+                )
                 {
                     break;
                 }
 
-                c.Write(refused);
+                c.Write(single ? "Requires an integer value 1, or option keyword." : refused);
+            }
+
+            if (c.Input.Is("Control"))
+            {
+                foreach (CadPrompt prompt in UndoControlOption(c))
+                {
+                    yield return prompt;
+                }
+
+                yield break;
+            }
+
+            if (c.Input.Is("Auto"))
+            {
+                yield return CadPrompt.ForKeyword(
+                    "Enter UNDO Auto mode",
+                    new[] { "ON", "OFF" },
+                    c.Document.UndoAuto ? "On" : "Off"
+                );
+                c.Document.UndoAuto = c.Input.Is("ON");
+                yield break;
+            }
+
+            if (c.Input.Is("BEgin"))
+            {
+                c.Document.BeginUndoGroup();
+                yield break;
+            }
+
+            if (c.Input.Is("End"))
+            {
+                c.Document.EndUndoGroup();
+                yield break;
             }
 
             if (c.Input.Is("Mark"))
@@ -973,30 +1084,30 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            if (c.Input.Kind == CadInputKind.Keyword)
-            {
-                c.Write(
-                    "UNDO Auto, Control, BEgin and End are not built: Mark and Back and a number of operations are."
-                );
-                yield break;
-            }
-
             UndoSteps(c, c.Input.Kind == CadInputKind.Number ? (int)c.Input.Number : 1);
         }
 
         /// <summary>UNDO Back: the steps taken back down to the mark UNDO Mark kept, "Mark encountered", or all of them where none was kept.</summary>
         private static void UndoBack(CadCommandContext c, int mark, bool marked)
         {
+            var names = new List<string>();
+
             while (c.Document.UndoPosition > mark)
             {
-                CadUndoStep step = c.Document.NextUndo;
+                string name = c.Document.NextUndoLabel;
 
-                if (step == null || !c.Document.Undo())
+                if (name == null || !c.Document.Undo())
                 {
                     break;
                 }
 
-                c.Write(step.Name);
+                names.Add(name);
+            }
+
+            // The names of the steps taken back stand on one line, as AutoCAD 2021 writes them: "LINE LINE", "Mark encountered".
+            if (names.Count > 0)
+            {
+                c.Write(string.Join(" ", names));
             }
 
             c.Write(marked ? "Mark encountered" : "Everything has been undone");
@@ -1004,37 +1115,67 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static IEnumerable<CadPrompt> UndoOne(CadCommandContext c)
         {
+            // UNDO Control None turns U off; UNDO, which asks the control option then, turns it on again.
+            if (c.Document.UndoControl == CadUndoControl.None)
+            {
+                c.Write("U command disabled.  Use UNDO command to turn it on");
+                yield break;
+            }
+
             UndoSteps(c, 1);
-            yield break;
         }
 
+        /// <summary>
+        /// Takes back a number of steps and writes their names on one line, as AutoCAD 2021 writes them ("LINE LINE"; a group is
+        /// "GROUP LINE CIRCLE LINE", and counts as one), and "Everything has been undone" where it ran out of steps, or, under
+        /// UNDO Control One, where the one it keeps is taken back.
+        /// </summary>
         private static void UndoSteps(CadCommandContext c, int count)
         {
+            var names = new List<string>();
+            bool ranOut = false;
+
             for (int i = 0; i < count; i++)
             {
-                CadUndoStep step = c.Document.NextUndo;
+                string name = c.Document.NextUndoLabel;
 
-                if (step == null || !c.Document.Undo())
+                if (name == null || !c.Document.Undo())
                 {
-                    c.Write("Everything has been undone");
-                    return;
+                    ranOut = true;
+                    break;
                 }
 
-                c.Write(step.Name);
+                names.Add(name);
+            }
+
+            if (names.Count > 0)
+            {
+                c.Write(string.Join(" ", names));
+            }
+
+            if (ranOut || (names.Count > 0 && c.Document.UndoControl == CadUndoControl.One))
+            {
+                c.Write("Everything has been undone");
             }
         }
 
         private static IEnumerable<CadPrompt> Redo(CadCommandContext c)
         {
-            CadUndoStep step = c.Document.NextRedo;
+            string name = c.Document.NextRedoLabel;
 
-            if (step == null || !c.Document.Redo())
+            if (name == null || !c.Document.Redo())
             {
-                c.Write("Nothing to redo.");
+                c.Write("Nothing to redo");
                 yield break;
             }
 
-            c.Write(step.Name);
+            c.Write(name);
+
+            // The last step put again is the end of the list, as AutoCAD 2021 says after a REDO that brings the drawing back.
+            if (!c.Document.CanRedo)
+            {
+                c.Write("Everything has been redone");
+            }
         }
 
         /// <summary>

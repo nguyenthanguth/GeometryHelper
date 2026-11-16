@@ -194,10 +194,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             // Layer 0 is current: AutoCAD asks first.
             Run(session, (object)new[] { "A2" });
-            Assert.Equal(
-                "Layer \"0\" is the current layer, do you want to turn it off? [Yes/No] <No>:",
-                session.PromptText
-            );
+            Assert.Equal("Layer \"0\" is current, do you want to turn it off? [Yes/No] <No>:", session.PromptText);
             Run(session, "Y", Enter);
             Assert.True(document.Database.LayerTable["0"].IsOff);
 
@@ -220,7 +217,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(document.Database.LayerTable["Steel"].IsFrozen);
             Assert.False(document.Database.LayerTable["0"].IsFrozen);
             Assert.Contains("Layer \"Steel\" has been frozen.", session.History);
-            Assert.Contains("Cannot freeze layer \"0\".  It is the CURRENT layer.", session.History);
+            Assert.Contains("Cannot freeze layer \"0\". It is the CURRENT layer.", session.History);
 
             Run(session, "LAYTHW");
             Assert.False(document.Database.LayerTable["Steel"].IsFrozen);

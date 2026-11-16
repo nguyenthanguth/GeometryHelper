@@ -200,6 +200,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             SnapModeInfo info = SnapModeTable.FirstOrDefault(i => i.Mode == modes && modes != CadSnapModes.None);
+
+            // " and" takes no override either: what the menu chose is answered as typed text, which that prompt refuses.
+            if (_current.Session.IsAskingSecondObject)
+            {
+                _current.Session.Feed("_" + (info?.Keyword.ToLowerInvariant() ?? "non"));
+                SyncHistory();
+                return true;
+            }
+
             Snap.Override = modes;
             _current.Session.SnapOverride = modes;
             _current.Session.Write(
@@ -436,7 +445,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         private bool TakeSnapOverride(CadCommandSession session, string word)
         {
-            if (!CadPicking.WantsModifiers(session) || session.Prompt.MatchKeyword(word) != null)
+            // " and" takes no override: AutoCAD 2021 refuses END there as it refuses any text, and the prompt INT was typed at is asked again.
+            if (
+                !CadPicking.WantsModifiers(session)
+                || session.IsAskingSecondObject
+                || session.Prompt.MatchKeyword(word) != null
+            )
             {
                 return false;
             }

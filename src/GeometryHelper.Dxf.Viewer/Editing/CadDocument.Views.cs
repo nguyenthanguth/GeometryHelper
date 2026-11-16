@@ -109,7 +109,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else
             {
-                _realTimeView = realTime;
+                _realTimeView = realTime && UndoCombine;
 
                 try
                 {

@@ -2333,7 +2333,20 @@ positive.` below it, its outside diameter `Value must be positive and nonzero.` 
 Layer = Yes` and asks `Enter the number of operations to undo or [Auto/Control/BEgin/End/Mark/Back] <1>:`, saying
 `Requires an integer between 1 and 32767, or option keyword.` to text, 1.5, nought, a negative number and 32768 or more, and
 asking again; Mark keeps the place in the history of steps, and Back takes the steps back down to it, `Mark encountered`,
-or asks `This will undo everything. OK? <Y>` where no mark was kept. Auto, Control, BEgin and End are not built and say so.
+or asks `This will undo everything. OK? <Y>` where no mark was kept. The names of the steps UNDO, U and Back take back stand
+on one line, `LINE LINE` for `UNDO 2`, and `Everything has been undone` follows where it ran out of steps. BEgin makes the
+commands that follow, to End, one group: U and REDO take it whole and write `GROUP LINE CIRCLE LINE` for the steps in the
+order they were made; U inside an open group takes one step of it, and a second BEgin closes the group open and starts a new
+one; End with no group open says nothing. Control asks `Enter an UNDO control option [All/None/One/Combine/Layer] <All>:`:
+None turns U off (`U command disabled.  Use UNDO command to turn it on`) and UNDO then asks that option alone, Enter being
+All; One keeps the last command alone, UNDO asking `Enter an option [Control] <1>:` (`Requires an integer value 1, or option
+keyword.` to anything but 1 and Control), and U writing `Everything has been undone` after it; the steps made before None
+or One was set, and while None was on, cannot be undone once All is back. None and One show `Auto = Off` and All `Auto = On`.
+Auto asks `Enter UNDO Auto mode [ON/OFF] <On>:` (the current setting is the default) and is kept and shown; the presenter has
+no menu macros that run several commands, which it groups. Combine and Layer ask `Combine zoom and pan operations?
+[Yes/No] <Yes>:` and `Combine layer dialog operations? [Yes/No] <Yes>:` (`Yes or No, please.` to anything else); Combine No
+makes each real-time zoom and pan of the wheel and the middle button a step of its own, and Layer is kept and shown. REDO says
+`Nothing to redo` with none, and `Everything has been redone` after the last step it brings back.
 
 A prompt for one object answered with text says `*Invalid selection*` and then what AutoCAD 2021 lists for that prompt:
 `Expects a single object.` for most (DIVIDE, MEASURE, DIMRADIUS, DIMLINEAR's Select object, CENTERMARK), and `Expects a point or`
@@ -2913,7 +2926,11 @@ prompt asked again). INTersection and APParent over two objects give their cross
 object the command line asks ` and` for a second, answered by a point on it (typed or clicked), and gives the crossing of the
 two, a line over a circle that cross twice giving the crossing nearer the second point; with no crossing it says `No
 Intersection found for specified point.` (`No found for specified point.` for APParent) and the words of the prompt INT was
-typed at, and text at ` and` is refused as that prompt refuses it, Enter answered by it. EXTension and PARallel, which need
+typed at, and text at ` and` is refused as that prompt refuses it, Enter answered by it; so is an object snap there, END or
+`_end` typed or chosen from the Shift+right-click menu, written ` and END` and then the prompt's refusal, and the prompt INT
+was typed at asked again. A click over one object does the same on the canvas, ` and` asked at `Select objects:` too, and
+the click that answers ` and` is taken as it lies, with no snap of the ones that are on. A box dragged at `Select objects:`
+with `END` waiting takes it at the corner the drag began at and spends it. EXTension and PARallel, which need
 the cursor to rest on an object, find nothing at a point typed, and GCEnter finds the centroid of a closed polyline the
 point lies on and nothing elsewhere. The command line writes the snap chosen as `_per to`, `_nea to`, `_tan to` and `_par to`,
 and the others as `_end of`. A number alone at a corner of a window, a point of a fence or `Select objects:` (`W`, then `1`)
@@ -2925,9 +2942,19 @@ asking again. LAYOFF and LAYFRZ write `Current settings: Viewports=Vpfreeze, Blo
 object on the layer to be turned off or [Settings/Undo]:` (`frozen` at LAYFRZ); Settings asks `Enter setting type for
 [Viewports/Block selection]:` and then `In paper space viewport use [Vpfreeze/Off] <Vpfreeze>:` (`[Freeze/Vpfreeze]` at
 LAYFRZ) or `Enter Block Selection nesting level [Block/Entity/None] <Block>:`, text that is none being `Invalid option
-keyword.`; the settings are each command's own and kept for the session, and are shown but do not yet change what a pick
-inside a block or a viewport does. U says nothing while a layer is turned back and `Everything has been undone.` with none
-left. Enter at LAYLCK and LAYULK says `Nothing selected.` and asks again. ARRAYRECT and ARRAYPOLAR ask for the levels as for
+keyword.`; the settings are each command's own and kept for the session. Block selection decides which layer a pick on a block
+reference takes, as AutoCAD 2021's console does over blocks three deep (a reference BO on LB holding a reference BI on LN
+that holds a line on LI): Block takes the reference the object picked is in, the innermost (LN), Entity the object itself
+(LI; a line on layer 0 is layer 0, and layer 0 being current is asked about), None the reference picked (LB); a pick on a line
+BO holds directly is LB at Block and None and its own layer at Entity. The nested object is the one whose box, put where the
+blocks draw it, holds the point within the pick aperture, the smallest where several do, the way REFEDIT picks a nested
+object; the objects of an external reference are not gone into. Viewports decides what a pick in a viewport worked through
+does: at Vpfreeze the layer is frozen in that viewport alone (`Layer "WALLS" has been frozen in this viewport.`, the layer
+still on and thawed in the others, U thawing it there) and at Off (Freeze at LAYFRZ) it is turned off (frozen) everywhere;
+on the Model tab and on the paper of a layout the layer is changed everywhere whatever the setting. The current layer is
+asked about with `Layer "WALLS" is current, do you want to turn it off? [Yes/No] <No>:` (`Vpfreeze it` for a viewport), and
+LAYFRZ says `Cannot freeze layer "WALLS". It is the CURRENT layer.` of it with one space after the full stop, where -LAYER
+has two. U says nothing while a layer is turned back and `Everything has been undone.` with none left. Enter at LAYLCK and LAYULK says `Nothing selected.` and asks again. ARRAYRECT and ARRAYPOLAR ask for the levels as for
 the rows, `Specify the distance between levels or [Total/Expression] <1.0000>:` after the number, Total being `Enter total
 distance between start and end levels <...>:` (columns and rows the same), and a distance of nought at either is `Value must
 be nonzero.` and asked again.

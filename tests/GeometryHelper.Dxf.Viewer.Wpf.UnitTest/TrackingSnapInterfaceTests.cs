@@ -128,9 +128,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             model.Execute("APP");
 
             Assert.Equal(CadSnapKind.ExtendedApparentIntersection, model.SnapAt(new GeoPoint2(1000, 1), 2.0).Kind);
-            Assert.False(model.ClickAt(new GeoPoint2(1000, 1), 2.0));
-            Assert.Equal("Specify first point:", model.Prompt);
-            Assert.Equal(CadSnapKind.ApparentIntersection, model.SnapAt(new GeoPoint2(5001, 1000), 2.0).Kind);
+            Assert.True(model.ClickAt(new GeoPoint2(1000, 1), 2.0));
+
+            // The click asks " and" for the second object, as a point typed after APP does; a click on it gives the crossing.
+            Assert.Equal(" and", model.Prompt);
 
             model.ClickAt(new GeoPoint2(5001, 1000), 2.0);
             model.ClickAt(new GeoPoint2(6000.5, 2500.5), 2.0);

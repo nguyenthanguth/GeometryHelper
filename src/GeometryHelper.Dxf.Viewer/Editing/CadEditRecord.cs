@@ -128,6 +128,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         internal bool JoinsPrevious { get; }
 
+        /// <summary>
+        /// Gets or sets the group UNDO BEgin opened that the step was made in; the steps of a group that is closed are taken
+        /// back and put again together, as AutoCAD's U takes a GROUP. Nought for a step made outside any group.
+        /// </summary>
+        internal int GroupId { get; set; }
+
         /// <summary>Gets or sets the set of layer settings the step kept for LAYERP, which undoing the step takes out; null for a step that changed none.</summary>
         internal CadLayerChange LayerMade { get; set; }
 

@@ -624,7 +624,7 @@ namespace GeometryHelper.Dxf.Viewer
                         return Answer(new CadInput(CadInputKind.Text, default, 0.0, typed, null), echo, null);
                     }
 
-                    return Invalid("Invalid option keyword.", echo);
+                    return Invalid(Prompt.Refusal ?? "Invalid option keyword.", echo);
                 case CadPromptKind.Selection:
                 case CadPromptKind.Entity:
                     if (Prompt.Kind == CadPromptKind.Selection)

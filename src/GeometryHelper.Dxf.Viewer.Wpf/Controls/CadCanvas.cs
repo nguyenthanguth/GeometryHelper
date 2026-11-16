@@ -1925,6 +1925,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
                 else if (boxing && SelectByDragging)
                 {
+                    // An object snap override waiting snaps the corner the drag began at, as it snaps the first corner of a box
+                    // clicked, and is spent there: the corner the button is let go at is taken as it lies.
+                    if (TryOverride(corner, out GeoPoint2 overridden))
+                    {
+                        corner = overridden;
+                    }
+
                     CancelGesture();
                     SelectBox(corner, from, at, shift);
                 }
