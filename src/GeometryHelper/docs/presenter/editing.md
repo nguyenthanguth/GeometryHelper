@@ -2911,6 +2911,34 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 | the window's toggles and snap of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, SNAPUNIT, GRIDUNIT, GRIDDISPLAY, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR | written into the drawing, as AutoCAD saves them there, and one undo step that keeps no copy of the drawing (see below) |
 | the window's lineweight toggle | LWDISPLAY | at once, no undo step; written into the drawing |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |
+| the header of the drawing, too | LUNITS, LUPREC, AUNITS, AUPREC, ANGBASE, ANGDIR, INSUNITS, MEASUREMENT, UNITMODE, PLINEWID, PLINEGEN, FILLMODE, ELEVATION, THICKNESS, LIMCHECK, SPLFRAME, QTEXTMODE, ATTMODE, SPLINETYPE, SPLINESEGS, USERI1 to USERI5, USERR1 to USERR5 | one undo step |
+| the document or the session, too | HPNAME, HPSCALE, HPANG, HPLAYER, HPASSOC, HPDOUBLE, HPGAPTOL, HPORIGINMODE (the hatch settings), DIMLAYER, CIRCLERAD, POLYSIDES, TRIMEXTENDMODE, CMDECHO, EXPERT, HIGHLIGHT, PICKAUTO, PICKDRAG, OSNAPZ, ARRAYASSOCIATIVITY, LASTPOINT | at once, no undo step |
+| the window's Global settings, too | SAVETIME, ZOOMFACTOR | at once, no undo step; kept in the settings file |
+| read only, too | DISTANCE, AREA, PERIMETER | |
+
+The units variables are the header's and what UNITS sets, so that LUPREC 2 writes the points of Recent Input to two places;
+LUNITS takes 1 to 5, LUPREC and AUPREC 0 to 8, AUNITS 0 to 4, INSUNITS 0 to 24 (a drawing of R12 has no `$INSUNITS` or
+`$MEASUREMENT` and says so) and ANGBASE any angle, kept from 0 up to a turn and taken as typed, `-5` being `355`, whatever
+ANGBASE and ANGDIR are. PLINEWID is the width PLINE starts at (`Current line-width is 5.0000`), a negative one refused with
+`Cannot set PLINEWID to that value.` and not asked again; PLINEGEN 1 gives the polylines PLINE, RECTANG and POLYGON make the
+linetype generation of the whole polyline. FILLMODE 0 draws a SOLID, a wide polyline and a solid or gradient hatch by its
+outline, every space drawn again; 1 fills them. HPNAME takes SOLID, a gradient (GR_LINEAR), `_USER` or `U` and any pattern
+of the presenter's set, `xyz` being `Cannot set HPNAME to that value.`; HPSCALE above nought, HPANG, HPLAYER (`.` for the
+current layer, any name taken, and a layer the drawing has not leaves the hatch on the current one), HPASSOC, HPDOUBLE,
+HPGAPTOL 0 to 5000 and HPORIGINMODE 0 to 5 are the settings the next HATCH makes its hatch with, which the hatch dialog and
+-HATCH hold too. DIMLAYER is the layer new dimensions go on (`.` for the current layer), the same DIM's LAyer sets.
+CIRCLERAD is the radius CIRCLE offers (`Specify radius of circle or [Diameter] <12.5000>:`), POLYSIDES the number of sides
+POLYGON offers, 3 to 1024, and TRIMEXTENDMODE 1 Quick or 0 Standard the mode TRIM and EXTEND start in. SAVETIME is the
+autosave interval in minutes, 0 to 600, Global settings keeping 240 at most, and ZOOMFACTOR, 3 to 100, the step of a notch of
+the wheel, 1 + ZOOMFACTOR / 120: 60 is the 1.5 Global settings starts at. DISTANCE, AREA and PERIMETER give the last measure
+DIST and AREA made (AREA and DIST are commands too, so SETVAR AREA reads the variable), and LASTPOINT the last point
+in the UCS, which `LASTPOINT` typed sets. CMDECHO, EXPERT, HIGHLIGHT, PICKAUTO, PICKDRAG, OSNAPZ, ARRAYASSOCIATIVITY, ELEVATION,
+THICKNESS, MEASUREMENT, UNITMODE, LIMCHECK, SPLFRAME, QTEXTMODE, ATTMODE, SPLINETYPE, SPLINESEGS and the USERI and USERR
+variables keep their value, in the header for the drawing's and for the session for the rest, and nothing in the presenter
+reads it yet: the presenter draws in the plane, has no associative array, no QTEXT, no limits check and no drawn
+selection highlight to turn off, and it takes a window by a drag or by two clicks whatever PICKDRAG says. SPLINETYPE takes only 5 and 6 (AutoCAD takes any
+number 0 to 32767) and SPLINESEGS any but 0. `'` before a variable's name (`'PDMODE`) at a prompt asks it inside the
+command; see [the app](app.md).
 
 FILLETRAD 5 writes `$FILLETRAD` 40 `5` into the header and U takes it back to 10. OSMODE 4133 ticks Endpoint, Center,
 Intersection and Extension, and 16391 ticks Endpoint, Midpoint and Center with OSNAP off. With no window, ORTHOMODE and

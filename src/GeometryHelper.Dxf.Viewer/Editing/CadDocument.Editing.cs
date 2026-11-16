@@ -1935,11 +1935,12 @@ namespace GeometryHelper.Dxf.Viewer
             public HashSet<string> Layers { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         }
 
-        /// <summary>Whether a setting of the header changes how every space is drawn: $LTSCALE, $PDMODE and $PDSIZE.</summary>
+        /// <summary>Whether a setting of the header changes how every space is drawn: $LTSCALE, $PDMODE, $PDSIZE and $FILLMODE.</summary>
         private static bool Redraws(string property) =>
             string.Equals(property, "$LTSCALE", StringComparison.Ordinal)
             || string.Equals(property, "$PDMODE", StringComparison.Ordinal)
-            || string.Equals(property, "$PDSIZE", StringComparison.Ordinal);
+            || string.Equals(property, "$PDSIZE", StringComparison.Ordinal)
+            || string.Equals(property, "$FILLMODE", StringComparison.Ordinal);
 
         /// <summary>Drops or marks stale the display lists of the spaces edits touched and raises <see cref="Changed"/>.</summary>
         private void Announce(CadChangeKind kind, string name, IReadOnlyList<CadEditRecord> records)

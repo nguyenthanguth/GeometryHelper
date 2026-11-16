@@ -353,6 +353,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             polygon.Closed = true;
+
+            if (c.Database.Plinegen)
+            {
+                polygon.Plinegen = true;
+            }
+
             return Current(c, polygon);
         }
 

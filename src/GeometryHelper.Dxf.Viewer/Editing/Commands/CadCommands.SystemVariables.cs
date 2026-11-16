@@ -20,6 +20,7 @@ namespace GeometryHelper.Dxf.Viewer
         internal static void AddVariablesTo(CadCommandRegistry registry)
         {
             registry.Add(new CadCommand("SETVAR", SetVariable));
+            AddMoreVariablesTo(registry);
 
             // The layer, colour, linetype, lineweight and linetype scale new objects take.
             registry.AddVariable(CadSystemVariable.Text("CLAYER", true, s => s.Document.Database.Clayer, CurrentLayer));

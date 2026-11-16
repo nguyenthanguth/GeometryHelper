@@ -5,7 +5,8 @@ using GeometryHelper.Geometry;
 namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
-    /// PAN, ZOOM, CAL, SETVAR and the settings ORTHO, POLAR, OSNAP, GRID and SNAP run inside another command, as AutoCAD 2021
+    /// PAN, ZOOM, CAL, SETVAR, the settings ORTHO, POLAR, OSNAP, GRID and SNAP, DIST, ID, LAYER, COLOR, LINETYPE, LWEIGHT,
+    /// UNITS, QUICKCALC, DSETTINGS, TEXTSCR and the name of any system variable run inside another command, as AutoCAD 2021
     /// runs 'PAN and 'ZOOM: typed with an apostrophe at any prompt
     /// but one for text, they ask their own prompts after "&gt;&gt;", and once they end the command they interrupted writes
     /// "Resuming LINE command." and asks its prompt again, the objects "Select objects:" gathered still gathered. One nests
@@ -16,7 +17,8 @@ namespace GeometryHelper.Dxf.Viewer
     public sealed partial class CadCommandSession
     {
         // The commands that run inside another, as AutoCAD's transparent PAN, ZOOM, CAL, SETVAR and the settings ORTHO, POLAR,
-        // OSNAP, GRID and SNAP.
+        // OSNAP, GRID and SNAP, the inquiries DIST and ID, the settings LAYER, COLOR, LINETYPE, LWEIGHT and UNITS, QUICKCALC,
+        // DSETTINGS and TEXTSCR; a system variable's name is transparent too (see TryTransparent).
         private static readonly string[] Transparents =
         {
             "PAN",
@@ -28,7 +30,36 @@ namespace GeometryHelper.Dxf.Viewer
             "POLAR",
             "GRID",
             "SNAP",
+            "DIST",
+            "ID",
+            "LAYER",
+            "-LAYER",
+            "COLOR",
+            "-COLOR",
+            "LINETYPE",
+            "-LINETYPE",
+            "LWEIGHT",
+            "-LWEIGHT",
+            "UNITS",
+            "-UNITS",
+            "QUICKCALC",
+            "DSETTINGS",
+            "TEXTSCR",
         };
+
+        // What a transparent command that shows a dialog runs instead: its prompts on the command line, which is what the
+        // dialog's name asks for in AutoCAD's console, so that 'LAYER asks "Enter an option [?/Make/Set/...]:".
+        private static readonly Dictionary<string, string> TransparentForms = new Dictionary<string, string>
+        {
+            ["LAYER"] = "-LAYER",
+            ["COLOR"] = "-COLOR",
+            ["LINETYPE"] = "-LINETYPE",
+            ["LWEIGHT"] = "-LWEIGHT",
+            ["UNITS"] = "-UNITS",
+        };
+
+        // How many commands may wait inside one another, the one running among them, as AutoCAD 2021 allows.
+        private const int NestingLimit = 4;
 
         // The commands a transparent one interrupted, the one it returns to last.
         private readonly Stack<Suspended> _suspended = new Stack<Suspended>();
@@ -39,7 +70,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// 'PAN or 'ZOOM typed at a prompt: the command waiting is put aside and the transparent one runs. Another command
         /// typed with an apostrophe is "** That command may not be invoked transparently **", the text then going to the
-        /// prompt as typed, as AutoCAD's; a name no command has goes to the prompt alone.
+        /// prompt as typed, as AutoCAD's; a name no command has goes to the prompt alone, unless it is a system variable's,
+        /// which asks its new value as SETVAR does ('PDMODE). A fifth command inside four is "Commands may not be nested more
+        /// than 4 deep", the text again going to the prompt.
         /// </summary>
         /// <returns>Whether the text was taken here.</returns>
         private bool TryTransparent(string text)
@@ -53,15 +86,31 @@ namespace GeometryHelper.Dxf.Viewer
 
             CadCommand command = Registry.Find(typed.Substring(1));
 
+            // A variable's name is a transparent command of its own: it asks its new value, in SETVAR's words.
+            if (command == null && Registry.FindVariable(typed.Substring(1)) is CadSystemVariable variable)
+            {
+                command = new CadCommand(variable.Name, c => CadCommands.TypedVariable(c, variable));
+            }
+            else if (command != null && Array.IndexOf(Transparents, command.Name) < 0)
+            {
+                Write("** That command may not be invoked transparently **");
+                return false;
+            }
+
             if (command == null)
             {
                 return false;
             }
 
-            if (Array.IndexOf(Transparents, command.Name) < 0)
+            if (_suspended.Count + 1 >= NestingLimit)
             {
-                Write("** That command may not be invoked transparently **");
+                Write("Commands may not be nested more than " + NestingLimit + " deep");
                 return false;
+            }
+
+            if (TransparentForms.TryGetValue(command.Name, out string form))
+            {
+                command = Registry.Find(form) ?? command;
             }
 
             string echo = Prompt.Text + " " + typed;
@@ -102,7 +151,13 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             CadCommand command = Registry.Find(name.Substring(1));
-            return command != null && Array.IndexOf(Transparents, command.Name) >= 0 ? name.Substring(1) : null;
+
+            if (command == null)
+            {
+                return Registry.FindVariable(name.Substring(1)) != null ? name.Substring(1) : null;
+            }
+
+            return Array.IndexOf(Transparents, command.Name) >= 0 ? name.Substring(1) : null;
         }
 
         /// <summary>

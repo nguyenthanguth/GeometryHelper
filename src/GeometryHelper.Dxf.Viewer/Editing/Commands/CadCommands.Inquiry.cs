@@ -33,6 +33,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             // The angle and the deltas are along the axes of the UCS, as AutoCAD reports them.
             GeoVector2 d = c.Session.Ucs.ToUcs(c.Input.Point - a);
+            c.Remember(DistanceKey, d.Length);
             c.Write(
                 "Distance = "
                     + Length(d.Length)
@@ -137,6 +138,7 @@ namespace GeometryHelper.Dxf.Viewer
                 )
                 {
                     c.Write("Area = " + Length(shape.Area) + ", Perimeter = " + Length(shape.Perimeter));
+                    KeepArea(c, shape.Area, shape.Perimeter);
 
                     if (mode == null)
                     {
@@ -170,6 +172,7 @@ namespace GeometryHelper.Dxf.Viewer
                     : curve.Closed ? "Perimeter"
                     : "Length";
                 c.Write("Area = " + Length(curve.Closed ? curve.Area : 0.0) + ", " + around + " = " + Length(length));
+                KeepArea(c, curve.Closed ? curve.Area : 0.0, length);
 
                 if (mode == null)
                 {
@@ -230,6 +233,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             c.Write("Area = " + Length(Math.Abs(twice) / 2.0) + ", Perimeter = " + Length(perimeter));
+            KeepArea(c, Math.Abs(twice) / 2.0, perimeter);
             measured?.Invoke(Math.Abs(twice) / 2.0);
         }
 

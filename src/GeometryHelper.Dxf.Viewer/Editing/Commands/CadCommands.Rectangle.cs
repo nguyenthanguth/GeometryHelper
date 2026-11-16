@@ -152,6 +152,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             rectangle.Closed = true;
+
+            if (c.Database.Plinegen)
+            {
+                rectangle.Plinegen = true;
+            }
+
             double elevation = c.Remembered(RectangleElevationKey, 0.0);
             double thickness = c.Remembered(RectangleThicknessKey, 0.0);
 

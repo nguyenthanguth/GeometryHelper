@@ -83,6 +83,9 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly double _ltScale;
         private readonly int _pdmode;
         private readonly double _pdsize;
+
+        // FILLMODE: whether solids, wide polylines and solid or gradient hatches are filled (1) or drawn by their outlines (0).
+        private readonly bool _fill = true;
         private double _pointViewHeight = 1.0;
         private readonly DisplayStyle _defaultStyle = new DisplayStyle(0xFFFFFF, 0.0, null);
 
@@ -194,11 +197,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             _ltScale = scale > 0.0 ? scale : 1.0;
 
-            // How points are drawn, read once as LTSCALE is: a change of PDMODE or PDSIZE makes a new builder.
+            // How points are drawn and whether fills are, read once as LTSCALE is: a change of PDMODE, PDSIZE or FILLMODE makes a new builder.
             try
             {
                 _pdmode = database.Pdmode;
                 _pdsize = database.Pdsize;
+                _fill = database.Fillmode;
             }
             catch (Exception)
             {
@@ -2197,7 +2201,7 @@ namespace GeometryHelper.Dxf.Viewer
             Shapes:
             IReadOnlyList<object> shapes = entity.GeometryOrOne(out object one);
             bool mask = entity is DxfWipeout;
-            bool fill = entity is DxfSolid;
+            bool fill = entity is DxfSolid && _fill;
 
             _inBlock = frame.Depth > 0;
 
@@ -3886,13 +3890,13 @@ namespace GeometryHelper.Dxf.Viewer
                     mid = style.Rgb;
                 }
 
-                list.Add(new DisplayFill2(rings, false, PlainStyleOf(mid, style.LineWeight), handle, layerName));
+                AddFilled(list, rings, PlainStyleOf(mid, style.LineWeight), handle, layerName);
                 return;
             }
 
             if (hatch.IsSolidFill)
             {
-                list.Add(new DisplayFill2(rings, false, style, handle, layerName));
+                AddFilled(list, rings, style, handle, layerName);
                 return;
             }
 
