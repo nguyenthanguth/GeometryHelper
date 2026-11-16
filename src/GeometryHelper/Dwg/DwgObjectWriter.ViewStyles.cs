@@ -14,9 +14,9 @@ namespace GeometryHelper.Dwg
             public int Index;
             public int Rgb;
 
-            public static ViewColour Of(Cursor groups)
+            public static ViewColour Of(Cursor groups, int otherwise = 256)
             {
-                var colour = new ViewColour { Index = groups.Int(62, 256), Rgb = -1 };
+                var colour = new ViewColour { Index = groups.Int(62, otherwise), Rgb = -1 };
 
                 if (groups.At(420))
                 {
@@ -29,7 +29,7 @@ namespace GeometryHelper.Dwg
 
         private void Write(ViewColour colour)
         {
-            if (colour.Index == 257 && colour.Rgb < 0)
+            if (R2004Plus && colour.Index == 257 && colour.Rgb < 0)
             {
                 _data.BitShort(0);
                 _data.BitLong(unchecked((int)0xC8000000));
@@ -42,7 +42,8 @@ namespace GeometryHelper.Dwg
 
         /// <summary>
         /// The part every model documentation view style starts with: its version, description, whether it is modified for
-        /// recompute, its display name and its flags.
+        /// recompute and, from R2018, its display name and its flags (a file before it keeps those in a record of the style's
+        /// extension dictionary, which is written as any other; a style of that form written as R2018 takes them from it).
         /// </summary>
         private void WriteModelDocViewStyle()
         {
@@ -50,8 +51,87 @@ namespace GeometryHelper.Dwg
             _data.BitShort(style.Int(70));
             T(style.Text(3));
             _data.Bit(style.Int(290) != 0);
-            T(style.Text(300));
-            _data.BitLong(style.Int(90));
+
+            if (R2018Plus)
+            {
+                DwgRecord kept = style.At(300) ? null : NameRecordOfViewStyle(_record);
+                string name = style.Text(300);
+                int flags = style.Int(90);
+
+                if (kept != null)
+                {
+                    List<KeyValuePair<int, string>> groups = kept.Body;
+
+                    for (int i = 0; i + 1 < groups.Count; i++)
+                    {
+                        if (groups[i].Key == 102 && groups[i].Value.Trim() == "DISPLAYNAME" && groups[i + 1].Key == 1)
+                        {
+                            name = groups[i + 1].Value;
+                        }
+                        else if (groups[i].Key == 102 && groups[i].Value.Trim() == "FLAGS" && groups[i + 1].Key == 90)
+                        {
+                            flags = DwgRecord.Int(groups[i + 1].Value);
+                        }
+                    }
+                }
+
+                T(name);
+                _data.BitLong(flags);
+            }
+        }
+
+        /// <summary>
+        /// The record of the extension dictionary of a detail or section view style of R2013 and before that holds its display
+        /// name and its flags (<c>DISPLAYNAME</c> and <c>FLAGS</c> under <c>ACAD_XREC_ROUNDTRIP</c>); null for a style of
+        /// another form or with none.
+        /// </summary>
+        private DwgRecord NameRecordOfViewStyle(DwgRecord style)
+        {
+            if ((style.Type != "ACDBDETAILVIEWSTYLE" && style.Type != "ACDBSECTIONVIEWSTYLE") || style.XDictionary == 0)
+            {
+                return null;
+            }
+
+            DwgRecord dictionary = _drawing.Find(style.XDictionary);
+
+            if (dictionary == null || dictionary.Type != "DICTIONARY")
+            {
+                return null;
+            }
+
+            DwgGroups entries = dictionary.Of("AcDbDictionary");
+            int at = entries.Each(3).FindIndex(name => name.Trim() == "ACAD_XREC_ROUNDTRIP");
+            DwgRecord record = at < 0 ? null : _drawing.Find(DwgRecord.Hex(entries.Each(360)[at]));
+            return
+                record != null
+                && record.Type == "XRECORD"
+                && record.Body.Exists(g => g.Key == 102 && g.Value.Trim() == "DISPLAYNAME")
+                ? record
+                : null;
+        }
+
+        /// <summary>
+        /// Whether a record is what AutoCAD takes into a detail or section view style when it saves it as R2018: the extension
+        /// dictionary of a style of R2013 and before and its record of the display name and the flags.
+        /// </summary>
+        public bool IsRoundTripOfViewStyle(DwgRecord record)
+        {
+            if (record.Type != "XRECORD" && record.Type != "DICTIONARY")
+            {
+                return false;
+            }
+
+            DwgRecord owner = _drawing.Find(record.Owner);
+
+            if (record.Type == "XRECORD")
+            {
+                return owner != null && IsRoundTripOfViewStyle(owner);
+            }
+
+            return record.Type == "DICTIONARY"
+                && owner != null
+                && owner.XDictionary == record.Handle
+                && NameRecordOfViewStyle(owner) != null;
         }
 
         private void WriteDetailViewStyle()
@@ -162,7 +242,7 @@ namespace GeometryHelper.Dwg
             string pattern = style.Text(300);
             style.Int(71);
             ViewColour hatchColour = ViewColour.Of(style);
-            ViewColour hatchBackground = ViewColour.Of(style);
+            ViewColour hatchBackground = ViewColour.Of(style, R2004Plus ? 256 : 257);
             string hatchPattern = style.Text(300);
             double hatchScale = style.Double(40, 1.0);
             int hatchTransparency = style.Int(90);

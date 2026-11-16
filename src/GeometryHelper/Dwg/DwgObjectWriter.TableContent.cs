@@ -1087,7 +1087,9 @@ namespace GeometryHelper.Dwg
         /// </summary>
         private void WriteCellStyleMap()
         {
-            List<NamedCellStyle> named = CellStylesIn(_record);
+            List<NamedCellStyle> named = CellStyleMapStyles.TryGetValue(_record.Handle, out DwgRecord style)
+                ? RowCellStylesOf(style)
+                : CellStylesIn(_record);
             _data.BitLong(named.Count);
 
             foreach (NamedCellStyle one in named)
@@ -1116,6 +1118,48 @@ namespace GeometryHelper.Dwg
             double vertical = style.Double(41, 0.06);
             style.Int(280);
             style.Int(281);
+            List<NamedCellStyle> named = RowCellStyles(style, flow, horizontal, vertical, out DwgCellStyle table);
+
+            // AutoCAD 2021 writes 101 here also where the style holds 101 and 102.
+            _data.RawChar(version);
+            T(description);
+            _data.BitLong(flags);
+            _data.BitLong(101);
+            _handles.Handle(3, 0);
+            WriteCellStyle(table);
+            _data.BitLong(4);
+            _data.BitLong(2);
+            T("Table");
+
+            // Then the cell styles of its own (101 on) its CELLSTYLEMAP holds.
+            named.AddRange(CellStylesOf(_record).FindAll(one => one.Id >= 101));
+
+            // Each cell style after its own id, as AutoCAD writes it: the ids 4 and 5 there crashed AutoCAD 2021.
+            _data.BitLong(named.Count);
+
+            foreach (NamedCellStyle one in named)
+            {
+                _data.BitLong(one.Id);
+                WriteCellStyle(one.Style);
+                _data.BitLong(one.Id);
+                _data.BitLong(one.Kind);
+                T(one.Name);
+            }
+        }
+
+        /// <summary>
+        /// The cell style Table of a table style (<paramref name="table"/>) and the three of its rows, from its groups after
+        /// the margins (the cursor stands at the first row): the rows of DXF are data, title and header; the file holds title
+        /// (1), header (2) and data (3), always from the groups, which an edit changes.
+        /// </summary>
+        private List<NamedCellStyle> RowCellStyles(
+            Cursor style,
+            int flow,
+            double horizontal,
+            double vertical,
+            out DwgCellStyle table
+        )
+        {
             bool margins = horizontal != 0.06 || vertical != 0.06;
             var rows = new DwgCellStyle[3];
 
@@ -1124,7 +1168,7 @@ namespace GeometryHelper.Dwg
                 rows[i] = RowStyleOf(style);
             }
 
-            var table = new DwgCellStyle
+            table = new DwgCellStyle
             {
                 Type = 5,
                 HasData = true,
@@ -1137,26 +1181,12 @@ namespace GeometryHelper.Dwg
                 },
             };
 
-            // AutoCAD 2021 writes 101 here also where the style holds 101 and 102.
-            _data.RawChar(version);
-            T(description);
-            _data.BitLong(flags);
-            _data.BitLong(101);
-            _handles.Handle(3, 0);
-
             foreach (DwgCellStyle one in new[] { table, rows[0], rows[1], rows[2] })
             {
                 one.MarginFlags = margins ? 1 : 0;
                 one.Margins = new[] { vertical, horizontal, vertical, horizontal, 0.18, 0.18 };
             }
 
-            WriteCellStyle(table);
-            _data.BitLong(4);
-            _data.BitLong(2);
-            T("Table");
-
-            // The rows of DXF are data, title and header; the file holds title (1), header (2) and data (3), always from
-            // the groups, which an edit changes; then the cell styles of its own (101 on) its CELLSTYLEMAP holds.
             DwgCellStyle[] ordered = { rows[1], rows[2], rows[0] };
             string[] names = { "_TITLE", "_HEADER", "_DATA" };
             ordered[0].Merge = 0x8000;
@@ -1175,19 +1205,25 @@ namespace GeometryHelper.Dwg
                 );
             }
 
-            named.AddRange(CellStylesOf(_record).FindAll(one => one.Id >= 101));
+            return named;
+        }
 
-            // Each cell style after its own id, as AutoCAD writes it: the ids 4 and 5 there crashed AutoCAD 2021.
-            _data.BitLong(named.Count);
-
-            foreach (NamedCellStyle one in named)
-            {
-                _data.BitLong(one.Id);
-                WriteCellStyle(one.Style);
-                _data.BitLong(one.Id);
-                _data.BitLong(one.Kind);
-                T(one.Name);
-            }
+        /// <summary>
+        /// The cell styles AutoCAD keeps in the CELLSTYLEMAP of a table style that has none of its own in the file, as the
+        /// file writer makes one for it before R2010: its three rows, from the style's groups.
+        /// </summary>
+        private List<NamedCellStyle> RowCellStylesOf(DwgRecord record)
+        {
+            var style = new Cursor(record.Of("AcDbTableStyle"));
+            style.Int(280);
+            style.Text(3);
+            int flow = style.Int(70);
+            style.Int(71);
+            double horizontal = style.Double(40, 0.06);
+            double vertical = style.Double(41, 0.06);
+            style.Int(280);
+            style.Int(281);
+            return RowCellStyles(style, flow, horizontal, vertical, out _);
         }
 
         /// <summary>A cell style of a table style: its id (1 to 3 its rows, 101 on its own), kind, name and looks.</summary>

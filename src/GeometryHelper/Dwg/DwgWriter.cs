@@ -21,7 +21,7 @@ namespace GeometryHelper.Dwg
     /// VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, ACAD_TABLE, and REGION, 3DSOLID and BODY
     /// with their ACIS data in the data store of the file, and of the objects DICTIONARY, XRECORD, LAYOUT, GROUP,
     /// MLINESTYLE, MLEADERSTYLE, TABLESTYLE, DBCOLOR, IMAGEDEF, RASTERVARIABLES, WIPEOUTVARIABLES, MATERIAL, VISUALSTYLE
-    /// (of the form of R2013 and later, its 58 properties), the detail and section view styles, the manager of the
+    /// (in the form of each version), the detail and section view styles, the manager of the
     /// persistent names of subentities beside solids, the TABLECONTENT and TABLEGEOMETRY a table keeps for a round trip, the
     /// data of a dynamic block of a linear parameter and a stretch action (from AutoCAD 2007; a block whose graph holds
     /// another expression is written without it),
@@ -30,7 +30,7 @@ namespace GeometryHelper.Dwg
     /// style from the groups DXF keeps of R2007, the cell styles of its rows, columns and whole from the TABLECONTENT it
     /// keeps for a round trip or else from its own overrides (93 to 96), and its table style's cell styles from the
     /// style's rows, then those of its own (101 on) from the CELLSTYLEMAP AutoCAD writes in DXF alone; that map, and the
-    /// extension dictionary of the table style that holds it, are not written, as AutoCAD writes no such object in a DWG.
+    /// extension dictionary of the table style that holds it, are not written from R2010, as AutoCAD writes no such object there (a file before it holds them).
     /// A REGION, 3DSOLID or BODY is written with its ACIS data in the data store of the file: where the section ACDSDATA
     /// holds its SAB, as a DXF of R2013 and later gives it, and where it holds SAT text, as a DXF of R2004 to R2010 gives
     /// it, turned into the SAB AutoCAD 2021 writes for R2018 and named by a GUID, the one its extended data kept (else one

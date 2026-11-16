@@ -775,6 +775,13 @@ namespace GeometryHelper.Dxf
                         }
                     }
                     else if (
+                        (type == "ACDBDETAILVIEWSTYLE" || type == "ACDBSECTIONVIEWSTYLE")
+                        && (_source >= 1032) != (_target >= 1032)
+                    )
+                    {
+                        ViewStyleRoundTrip(record);
+                    }
+                    else if (
                         (_target < 1021 && type.StartsWith("ACSH_", StringComparison.Ordinal))
                         || (_target < 1024 && type == "ACDB_TEXTOBJECTCONTEXTDATA_CLASS")
                         || (_target < 1027 && Bodies.Contains(type) && IsBinaryBody(record))

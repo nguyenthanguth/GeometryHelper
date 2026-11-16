@@ -71,6 +71,12 @@ namespace GeometryHelper.Dwg
         public Dictionary<ulong, ulong> ViewportHeaders { get; } = new Dictionary<ulong, ulong>();
 
         /// <summary>
+        /// For a file before R2010, the CELLSTYLEMAP the file writer made for a table style that has none (the handle of the map
+        /// to the style): its cell styles are the style's three rows.
+        /// </summary>
+        public Dictionary<ulong, DwgRecord> CellStyleMapStyles { get; } = new Dictionary<ulong, DwgRecord>();
+
+        /// <summary>
         /// An encoder of the records of <paramref name="drawing"/> into objects of <paramref name="version"/> (such as 1032),
         /// whose types of 500 and up are numbered by <paramref name="classes"/> (the DXF names in their order), and which
         /// writes the handles of <paramref name="written"/> alone, 0 for any other.
@@ -195,7 +201,14 @@ namespace GeometryHelper.Dwg
             if (_classes.TryGetValue(type, out int number) && Encoder(type) != null)
             {
                 return
-                    (type == "VISUALSTYLE" && !IsListedVisualStyle(record) && RoundTripOfVisualStyle(record) == null)
+                    (
+                        type == "VISUALSTYLE"
+                        && (
+                            R2013Plus
+                                ? !IsListedVisualStyle(record) && RoundTripOfVisualStyle(record) == null
+                                : IsListedVisualStyle(record)
+                        )
+                    )
                     || (
                         type == "ACDBASSOC2DCONSTRAINTGROUP"
                         && (!NodesAreKnown(record) || (!R2010Plus && !HoldsRoundTripOf2007))
@@ -507,11 +520,11 @@ namespace GeometryHelper.Dwg
                 case "MATERIAL":
                     return WriteMaterial;
                 case "VISUALSTYLE":
-                    return R2013Plus ? WriteVisualStyle : (Action)null;
+                    return WriteVisualStyle;
                 case "ACDBDETAILVIEWSTYLE":
-                    return R2018Plus ? WriteDetailViewStyle : (Action)null;
+                    return WriteDetailViewStyle;
                 case "ACDBSECTIONVIEWSTYLE":
-                    return R2018Plus ? WriteSectionViewStyle : (Action)null;
+                    return WriteSectionViewStyle;
                 case "SORTENTSTABLE":
                     return WriteSortEntitiesTable;
                 case "FIELDLIST":
@@ -754,13 +767,13 @@ namespace GeometryHelper.Dwg
 
         /// <summary>
         /// Whether the application at <paramref name="start"/> is the stamp <c>AcDbSavedByObjectVersion</c> of ACAD on a visual
-        /// style of R2010 or before that is written as R2013 or later: AutoCAD brings the style up to its own version and keeps
-        /// no stamp.
+        /// style of R2013 or before that is written as R2018: AutoCAD brings the style up to its own version and keeps no stamp.
         /// </summary>
         private bool IsVersionStampOfConvertedStyle(List<KeyValuePair<int, string>> groups, int start) =>
             start + 1 < groups.Count
             && groups[start].Value.Trim() == "ACAD"
             && groups[start + 1].Value.Trim() == "AcDbSavedByObjectVersion"
+            && R2018Plus
             && RoundTripOfVisualStyle(_record) != null;
 
         /// <summary>
@@ -770,6 +783,23 @@ namespace GeometryHelper.Dwg
         private void WriteExtendedData()
         {
             List<KeyValuePair<int, string>> groups = _record.XData;
+
+            // A visual style AutoCAD saves before R2018 carries the stamp of the version it was saved by (0), which the style of a
+            // drawing of R2018 or one made in code does not have until it is brought down.
+            if (
+                _record.Type == "VISUALSTYLE"
+                && !R2018Plus
+                && !groups.Exists(g => g.Key == 1000 && g.Value.Trim() == "AcDbSavedByObjectVersion")
+            )
+            {
+                groups = new List<KeyValuePair<int, string>>(groups)
+                {
+                    new KeyValuePair<int, string>(1001, "ACAD"),
+                    new KeyValuePair<int, string>(1000, "AcDbSavedByObjectVersion"),
+                    new KeyValuePair<int, string>(1070, "0"),
+                };
+            }
+
             RoundTripColour kept = R2004Plus ? RoundTripColourOf(_record) : null;
 
             if (kept != null)

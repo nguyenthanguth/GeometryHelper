@@ -506,9 +506,8 @@ that says it is referenced, set on every record AutoCAD writes; a dimension styl
 the handles of its base UCS and its named UCS (null); an MTEXT holds the bit after its line spacing factor. The objects written so
 equal AutoCAD's own bytes (the table records, the dimension style, the layouts, the vertices and the SEQEND, the LINE, CIRCLE,
 ELLIPSE, SPLINE, RAY and XLINE, 2 of 3 MTEXT objects of `text`), but where AutoCAD kept an extrusion (0, 0, 1) in full on an
-entity a probe had set it on (it is 6 bits longer: the ARC, SOLID, TRACE and TEXT of the test drawings) and the dictionaries of the
-visual styles and of the view styles, which list objects the writer leaves out (a visual style is not written before R2013 and a detail
-or section view style not before R2018; the materials and the table styles are, see below).
+entity a probe had set it on (it is 6 bits longer: the ARC, SOLID, TRACE and TEXT of the test drawings; the visual styles, the view
+styles, the materials and the table styles are written too, see below).
 The 167 drawings of AutoCAD 2021's samples and of the tests, each written as R2000 and opened in AutoCAD 2021 with `AUDIT`: all 167
 open, 160 with 0 errors, the other 7 with the errors of their originals (24, 24, 2, 2, 32, 32 and 10), and the 4 tables that had 6
 each have none.
@@ -533,7 +532,7 @@ write them as soft pointers, code 4). The writer gave the viewport no header and
 AutoCAD's own R2000 file of `vports` (4 numbered viewports and a fifth with no number, which has no header) were not its bytes. The
 table lists an entry that names no viewport first and then one for each numbered viewport in the order of the numbers, as AutoCAD's two
 files of that drawing list them (5 entries); each entry is a table record with no name that points back at its viewport (type 0x47), and
-the entries are written from the handles past every handle the drawing names, those of the records left out too (from the last handle written they met the handles of the visual styles that are left out, and the dictionary of the visual styles then named headers: AUDIT found `eNotThatKindOfClass` twice or three times in each of 13 of the sample drawings). A drawing with no numbered viewport has no table, as before. The
+the entries are written from the handles past every handle the drawing names, those of the records left out too (from the last handle written they met the handles of the visual styles, which a file of R2000 then left out, and the dictionary of the visual styles named headers: AUDIT found `eNotThatKindOfClass` twice or three times in each of 13 of the sample drawings). A drawing with no numbered viewport has the table too, empty, as every file of R2000 AutoCAD writes has it (`text`, `tables`, `curves` and `polys`: the object B of 22 bits, no entry, and the header variable of the viewport entities naming it, H B, where the writer gave no table and the variable 0). The
 five viewport objects of `vports` are AutoCAD's own bits and handle codes but for the numbers of the headers they name, and its table
 and entries have the structure of AutoCAD's own (a name left empty, where AutoCAD gave the first of one of its files the name "1" and
 chained the headers, which depends on the viewport that was current when it was saved).
@@ -550,12 +549,55 @@ name. The table style, its two dictionaries and the cell style map of AutoCAD's 
 The writer left them out before: a table style was counted among the types left out of a file of R2000, R2004 and R2007 and the
 dictionaries of the materials and of the table styles came out empty.
 
+The visual styles are written in R2000 to R2013 too, as AutoCAD writes them. A style of R2000, R2004 and R2007 is its 28 properties each
+in a place of its own (the opacity and the specular level, the colour and the mono colour of the face, the edges, the display; R2007 holds
+one real more), a colour of R2000 its index alone and no colour 257; one of R2010 is its type, its version and whether it is for AutoCAD's
+own use, then the same 28 properties each followed by how it is applied; R2013 is as R2018. Every style AutoCAD saves before R2018 carries
+the stamp `AcDbSavedByObjectVersion` of 0 in its extended data, which a style of R2018 or one made in code does not have until it is brought
+down, and its extension dictionary, with the 30 properties R2013 added and how each is applied (`ACAD_XREC_ROUNDTRIP`), is written like any
+other (it was written beside styles that were left out). The 24 visual styles of AutoCAD's own R2000 file `text` and the 25 of its R2004,
+R2007, R2010 and R2013 files of one drawing (`matvis`), each written again from the DXF the reader makes of the file, are its bytes, handle
+references included (124 of 124); the drawing's R2018 file written as R2004, R2007, R2010 and R2013 gives AutoCAD's own styles group for
+group, but the lighting model of one style (Realistic) in R2004 and R2007, 3 where AutoCAD's files hold 2 and no DXF of R2018 can say so.
+The detail and section view styles are written in every version before R2018 as in R2018, less the display name and the flags, which an
+older file keeps as `DISPLAYNAME` and `FLAGS` in the record `ACAD_XREC_ROUNDTRIP` of the style's extension dictionary, written like any
+other record. A style going down from R2018 is given that dictionary and record (`DxfVersionConverter`, which `DxfDatabase.Save` and
+`DwgWriter` use, makes them with the next handles, as AutoCAD does); one going up takes them back into its own groups, in the converter and
+in the writer of a DWG of R2018, which does not write the dictionary and the record. The default styles of `text` and of `matvis` in each
+version from R2000 to R2013 and the two styles of its own of `views_AC1018` (a true colour, a colour by block, lineweights, a hatch of 60 %
+transparency, three hatch angles) are AutoCAD's bytes written again (12 of 12); the styles of `matvis` of R2004, R2007 and R2010 written as
+R2018 are the bytes of AutoCAD's own R2018 file (6 of 6). A colour of a view style is not in the DXF of R2000, so the two styles of its own
+of `views_AC1015` differ from AutoCAD's bytes in their colours alone; the hatch background of a section view style, which AutoCAD's styles
+hold as 257 (none), is written so where the DXF gives no colour.
+
+A table style of R2000 to R2007 that has no map of cell styles gets one, as AutoCAD writes it when it saves such a drawing: the style of a
+drawing of R2010 or later (every table style a DWG of R2018 holds, the DXF of AutoCAD alone listing its map) has the extension dictionary
+AutoCAD gives it, empty or none, and the file writer makes the CELLSTYLEMAP in it (or makes the dictionary), with the next handles, from the
+style's three rows as the cell styles `_TITLE`, `_HEADER` and `_DATA`, a margin only where the style's differ from 0.06 and a border only
+where it is not the default. The map was left out before, and AutoCAD's own DXFOUT of the file then made one itself, whose six borders per cell
+style it lists (`94 6`) where its own file of the same drawing has none (`94 0`). Compared through DXFOUT (R2007, both made by AutoCAD 2021, one
+of the drawing saved by AutoCAD as R2007 and one of the file written here), the table styles and the maps of eight drawings (`table`,
+`tstyles`, `tcustom`, `tclean`, `ttable`, `tcell`, `tall` and `tables`, 11 styles) are the same group for group but for three things: the
+reactor of a table, the tables not being written before R2010; the style of `table` that has no name, whose rows name no text style, which is
+written with Standard where AutoCAD's file has none (AUDIT cannot repair it); and the map of the style Standard of `tcustom`, whose R2018 object
+holds a margin and six borders of its own that equal the defaults and that the DXF, which gives only the style's rows, cannot carry. The
+bytes of the map written for the style Standard of `ttable` are AutoCAD's own but the bits of the handles. AutoCAD keeps the map a file
+holds only where the file's header names AutoCAD 2021 as the application that saved it, 33 and the maintenance release 174 in the bytes 0x11
+and 0x12 of every file of R2000 to R2013 it writes (R2018 has 33 and 0, and a file of R2007 or R2018 the writer wrote named it already); of
+a file that names another it recomposes the cell styles from the style's rows. The writer named the version of the format there in a file
+of R2000 and R2004 (23 and 15, 25 and 104), and AutoCAD's DXFOUT of such a file listed six borders in each cell style (`94 6`) even of the
+maps that were its own bytes (those of the R2000 files `text` and `tables`); patching the two bytes of such a file to 33 and 174 gave the
+map of AutoCAD's own file. The header of a file of R2000 and R2004 names it now (and that of R2004 at 0x16 and 0x17 too, where AutoCAD's own
+does), and AutoCAD's DXFOUT of the files written from `ttable`, `tcustom`, `tstyles`, `tclean`, `tables` and `text` as R2000 and R2004 is
+that of its own files but for the style `Standard` of `tcustom`, as it is in R2007. A file of R2010 and R2013 still names the version of the
+format (29 and 226, 31 and 125): it holds no map to keep, and what AutoCAD would then not recompose in its tables was not tried.
+
 | Part | Written |
 |---|---|
 | Header | every header variable of the version; those a DXF does not give (a drawing of `DxfWriter` gives few) as AutoCAD 2021 gives a new drawing |
 | Tables | VPORT, LTYPE, LAYER, STYLE, VIEW, UCS, APPID, DIMSTYLE, BLOCK_RECORD |
 | Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs, of one line or of several, SOLID, TRACE, 3DFACE, SHAPE given by its number (see below), DIMENSION (every kind), VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, ACAD_TABLE, REGION, 3DSOLID and BODY with their ACIS data (see below) |
-| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, TABLESTYLE, DBCOLOR, IMAGEDEF, IMAGEDEF_REACTOR, RASTERVARIABLES, WIPEOUTVARIABLES, SPATIAL_FILTER (the clip of an INSERT, XCLIP), MATERIAL, VISUALSTYLE (of AutoCAD 2004 and later), the detail and section view styles, the manager of the persistent names of subentities, FIELD, FIELDLIST, SORTENTSTABLE and DATALINK, the data of a dynamic block (its graph and its parameters, grips and actions, the properties table, the user parameter, the proxy node and the network of variables and dependencies and the groups of constraints, see above), the TABLECONTENT and TABLEGEOMETRY a table keeps for a round trip, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
+| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, TABLESTYLE (before R2010 with its CELLSTYLEMAP), DBCOLOR, IMAGEDEF, IMAGEDEF_REACTOR, RASTERVARIABLES, WIPEOUTVARIABLES, SPATIAL_FILTER (the clip of an INSERT, XCLIP), MATERIAL, VISUALSTYLE, the detail and section view styles, the manager of the persistent names of subentities, FIELD, FIELDLIST, SORTENTSTABLE and DATALINK, the data of a dynamic block (its graph and its parameters, grips and actions, the properties table, the user parameter, the proxy node and the network of variables and dependencies and the groups of constraints, see above), the TABLECONTENT and TABLEGEOMETRY a table keeps for a round trip, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
 | Of each | layer, linetype, colour (index, true colour, transparency, a colour of a book through its DBCOLOR), linetype scale, visibility, lineweight, material, plot style, owner, reactors, extension dictionary, extended data, proxy graphics |
 
 A record of another type is left out and counted: one Warn line of `GeometryHelperLog` names the types with the count of

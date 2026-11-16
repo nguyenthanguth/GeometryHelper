@@ -234,22 +234,144 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>
+        /// Moves the next handle past every handle the drawing names, left out ones too, for a dictionary entry that names a
+        /// record left out must not find an object of ours under its handle.
+        /// </summary>
+        private void PastEveryHandle()
+        {
+            ulong seed = DwgRecord.Hex(_drawing.HeaderText("HANDSEED", "0"));
+            _handseed = Math.Max(_handseed, seed > 0 ? seed - 1 : 0);
+
+            foreach (DwgRecord record in _drawing.All)
+            {
+                _handseed = Math.Max(_handseed, record.Handle);
+            }
+        }
+
+        /// <summary>
+        /// Lists the class CELLSTYLEMAP where a file before R2010 is given a map for a table style (<see cref="AddCellStyleMaps"/>)
+        /// and its CLASSES section does not list it.
+        /// </summary>
+        private void ListClassOfCellStyleMaps()
+        {
+            if (
+                _number >= 1024
+                || _drawing.Classes.Exists(c => c.Of(null).Text(1).Trim() == "CELLSTYLEMAP")
+                || !_drawing.Objects.Exists(r => r.Type == "TABLESTYLE" && NeedsCellStyleMap(r))
+            )
+            {
+                return;
+            }
+
+            var record = new DwgRecord { Type = "CLASS" };
+            record.Groups.Add(new KeyValuePair<int, string>(1, "CELLSTYLEMAP"));
+            record.Groups.Add(new KeyValuePair<int, string>(2, "AcDbCellStyleMap"));
+            record.Groups.Add(new KeyValuePair<int, string>(3, "ObjectDBX Classes"));
+            record.Groups.Add(new KeyValuePair<int, string>(90, "1152"));
+            record.Groups.Add(new KeyValuePair<int, string>(280, "0"));
+            record.Groups.Add(new KeyValuePair<int, string>(281, "0"));
+            record.Split();
+            _drawing.Classes.Add(record);
+        }
+
+        /// <summary>
+        /// A table style of a file before R2010 keeps its cell styles in a CELLSTYLEMAP under its extension dictionary, in
+        /// the entry <c>ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP</c>, which AutoCAD makes for each style it saves so and
+        /// the DXF of a drawing of R2010 or later does not hold. The map is made here, with the next handle, for each style
+        /// that has none, in its extension dictionary or in one made for it; the map's cell styles are the style's three rows.
+        /// </summary>
+        private void AddCellStyleMaps(List<DwgRecord> records)
+        {
+            foreach (
+                DwgRecord style in records.FindAll(record => record.Type == "TABLESTYLE" && NeedsCellStyleMap(record))
+            )
+            {
+                PastEveryHandle();
+                DwgRecord dictionary = style.XDictionary == 0 ? null : _drawing.Find(style.XDictionary);
+                string mapHandle;
+
+                if (dictionary != null && dictionary.Type == "DICTIONARY" && _written.Contains(dictionary.Handle))
+                {
+                    mapHandle = (++_handseed).ToString("X", CultureInfo.InvariantCulture);
+                    dictionary.Body = new List<KeyValuePair<int, string>>(dictionary.Body)
+                    {
+                        new KeyValuePair<int, string>(3, CellStyleMapEntry),
+                        new KeyValuePair<int, string>(360, mapHandle),
+                    };
+                }
+                else
+                {
+                    string dictionaryHandle = (++_handseed).ToString("X", CultureInfo.InvariantCulture);
+                    mapHandle = (++_handseed).ToString("X", CultureInfo.InvariantCulture);
+                    dictionary = new DwgRecord { Type = "DICTIONARY" };
+                    dictionary.Groups.AddRange(
+                        new[]
+                        {
+                            new KeyValuePair<int, string>(5, dictionaryHandle),
+                            new KeyValuePair<int, string>(
+                                330,
+                                style.Handle.ToString("X", CultureInfo.InvariantCulture)
+                            ),
+                            new KeyValuePair<int, string>(100, "AcDbDictionary"),
+                            new KeyValuePair<int, string>(280, "1"),
+                            new KeyValuePair<int, string>(281, "1"),
+                            new KeyValuePair<int, string>(3, CellStyleMapEntry),
+                            new KeyValuePair<int, string>(360, mapHandle),
+                        }
+                    );
+                    dictionary.Split();
+                    style.XDictionary = dictionary.Handle;
+                    _written.Add(dictionary.Handle);
+                    records.Add(dictionary);
+                }
+
+                string owner = dictionary.Handle.ToString("X", CultureInfo.InvariantCulture);
+                var map = new DwgRecord { Type = "CELLSTYLEMAP" };
+                map.Groups.AddRange(
+                    new[]
+                    {
+                        new KeyValuePair<int, string>(5, mapHandle),
+                        new KeyValuePair<int, string>(102, "{ACAD_REACTORS"),
+                        new KeyValuePair<int, string>(330, owner),
+                        new KeyValuePair<int, string>(102, "}"),
+                        new KeyValuePair<int, string>(330, owner),
+                        new KeyValuePair<int, string>(100, "AcDbCellStyleMap"),
+                    }
+                );
+                map.Split();
+                _objects.CellStyleMapStyles[map.Handle] = style;
+                _written.Add(map.Handle);
+                records.Add(map);
+            }
+        }
+
+        private const string CellStyleMapEntry = "ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP";
+
+        /// <summary>
+        /// Whether a table style of a file before R2010 has no CELLSTYLEMAP to its name: it has no extension dictionary, or one
+        /// that holds no entry <c>ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP</c> (AutoCAD gives a style of R2010 or later an
+        /// empty one where it has no map to keep).
+        /// </summary>
+        private bool NeedsCellStyleMap(DwgRecord style)
+        {
+            DwgRecord held = style.XDictionary == 0 ? null : _drawing.Find(style.XDictionary);
+            return held == null
+                || held.Type != "DICTIONARY"
+                || !held.Of("AcDbDictionary").Each(3).Exists(name => name.Trim() == CellStyleMapEntry);
+        }
+
+        /// <summary>
         /// A file of R2000 holds a table of viewport entity headers (an object of its own, named in the header variables as
-        /// the viewport entities) and a header for each viewport AutoCAD has numbered (group 69 over 0), which the viewport
-        /// points to; AutoCAD lists one that names no viewport first. They are made here, for a drawing that holds such a
-        /// viewport and no other: the table takes the handle B where the drawing has none, as AutoCAD gives it, and the
-        /// headers the next handles past every one the drawing names, in the order of the viewports' numbers.
+        /// the viewport entities, empty where no viewport is numbered) and a header for each viewport AutoCAD has numbered
+        /// (group 69 over 0), which the viewport points to; AutoCAD lists one that names no viewport first. They are made
+        /// here: the table takes the handle B where the drawing has none, as AutoCAD gives it, and the headers the next
+        /// handles past every one the drawing names, in the order of the viewports' numbers.
         /// </summary>
         private void AddViewportHeaders(List<DwgRecord> records)
         {
             List<DwgRecord> viewports = records.FindAll(record =>
                 record.Type == "VIEWPORT" && record.Of("AcDbViewport").Int(69) > 0
             );
-
-            if (viewports.Count == 0)
-            {
-                return;
-            }
 
             viewports.Sort(
                 (a, b) =>
@@ -258,23 +380,14 @@ namespace GeometryHelper.Dwg
                     return order != 0 ? order : a.Handle.CompareTo(b.Handle);
                 }
             );
-            // Past every handle the drawing names, left out ones too, for a dictionary entry that names a record left out
-            // must not find an object of ours under its handle.
-            ulong seed = DwgRecord.Hex(_drawing.HeaderText("HANDSEED", "0"));
-            _handseed = Math.Max(_handseed, seed > 0 ? seed - 1 : 0);
-
-            foreach (DwgRecord record in _drawing.All)
-            {
-                _handseed = Math.Max(_handseed, record.Handle);
-            }
-
+            PastEveryHandle();
             var table = new DwgRecord { Type = DwgObjectWriter.ViewportHeaderControl, Records = new List<DwgRecord>() };
             table.Handle = _drawing.Find(0xB) == null ? 0xB : ++_handseed;
             _viewportHeaders = table.Handle;
             _written.Add(table.Handle);
             records.Add(table);
 
-            for (int i = 0; i <= viewports.Count; i++)
+            for (int i = 0; viewports.Count > 0 && i <= viewports.Count; i++)
             {
                 var header = new DwgRecord
                 {
@@ -362,6 +475,7 @@ namespace GeometryHelper.Dwg
         private byte[] Write(ProgressSteps progress)
         {
             ListClassesOfFields();
+            ListClassOfCellStyleMaps();
 
             foreach (DwgRecord one in _drawing.Classes)
             {
@@ -386,6 +500,7 @@ namespace GeometryHelper.Dwg
                     || record.Type == "ENDTAB"
                     || (_number >= 1024 && DwgObjectWriter.IsOfDxfAlone(record))
                     || (_number >= 1027 && _objects.IsRoundTripOfVisualStyle(record))
+                    || (_number >= 1032 && _objects.IsRoundTripOfViewStyle(record))
                     || (_number >= 1018 && _objects.IsRoundTripOfLayerColour(record))
                 )
                 {
@@ -443,6 +558,11 @@ namespace GeometryHelper.Dwg
                 }
 
                 records.RemoveAll(record => !_written.Contains(record.Handle));
+            }
+
+            if (_number < 1024)
+            {
+                AddCellStyleMaps(records);
             }
 
             if (_number == 1015)
@@ -623,8 +743,8 @@ namespace GeometryHelper.Dwg
             head[0x0B] = (byte)_maintenance;
             head[0x0C] = 1;
             Long(head, 0x0D, (int)previewAt);
-            head[0x11] = (byte)DwgContainerWriter.DwgVersionNumber(_version);
-            head[0x12] = (byte)_maintenance;
+            head[0x11] = DwgContainerWriter.SavedByVersion;
+            head[0x12] = DwgContainerWriter.SavedByMaintenance;
             head[0x13] = (byte)codePage;
             head[0x14] = (byte)(codePage >> 8);
             Long(head, 0x15, 6);
