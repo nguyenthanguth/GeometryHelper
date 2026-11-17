@@ -78,11 +78,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                     while (ring.Count > 0)
                     {
-                        yield return CadPrompt.ForPoint(
-                            "Specify endpoint of line",
-                            ring[ring.Count - 1],
-                            new[] { "Undo" }
-                        );
+                        yield return CadPrompt
+                            .ForPoint("Specify endpoint of line", ring[ring.Count - 1], new[] { "Undo" })
+                            .Banding(CadSelectionBandKind.CrossingPolygon, ring);
 
                         if (c.Input.Is("Undo"))
                         {
@@ -130,7 +128,15 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
 
-                yield return CadPrompt.ForPoint("Specify opposite corner", first);
+                // The box of a window or a crossing drawn as at "Select objects:": a plain click takes it by the way it is dragged.
+                yield return CadPrompt
+                    .ForPoint("Specify opposite corner", first)
+                    .Banding(
+                        mode == "C" ? CadSelectionBandKind.Crossing
+                            : mode == "W" ? CadSelectionBandKind.Window
+                            : CadSelectionBandKind.Box,
+                        new[] { first }
+                    );
 
                 if (!c.Input.IsPoint)
                 {

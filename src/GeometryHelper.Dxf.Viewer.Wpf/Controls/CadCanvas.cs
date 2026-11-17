@@ -5407,7 +5407,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             // does: SCALE's factor shows the band alone from it.
             if (basePoint.HasValue && session.Prompt.Band == null && band)
             {
-                dc.DrawLine(RubberPen, ToScreen(view, basePoint.Value, scale), to);
+                // A prompt for the opposite corner of a box draws the rectangle the corners make, as AutoCAD's ZOOM Window does.
+                if (session.Prompt.AsksCorner)
+                {
+                    dc.DrawRectangle(null, RubberPen, new Rect(ToScreen(view, basePoint.Value, scale), to));
+                }
+                else
+                {
+                    dc.DrawLine(RubberPen, ToScreen(view, basePoint.Value, scale), to);
+                }
             }
 
             DrawTracking(dc, view, scale, Session?.Prompt?.BasePoint);
