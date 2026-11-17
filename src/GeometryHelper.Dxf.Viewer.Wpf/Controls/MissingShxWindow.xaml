@@ -5,7 +5,7 @@
     xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
     Title="Missing SHX files"
     Width="640"
-    Height="460"
+    SizeToContent="Height"
     WindowStyle="None"
     ResizeMode="NoResize"
     ShowInTaskbar="False"
@@ -228,163 +228,241 @@
                 </DockPanel>
             </Border>
 
-            <Grid Margin="16,14,16,0">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-
-                <!-- The warning and what it means. -->
-                <DockPanel Margin="0,0,0,10">
-                    <local:IconView
-                        DockPanel.Dock="Left"
-                        Size="20"
-                        StrokeThickness="2"
-                        Stroke="#E3B341"
-                        Data="M12 3 2 20h20zM12 10v4M12 17v.5"
-                        VerticalAlignment="Top"
-                        Margin="0,0,10,0"
-                    />
-                    <TextBlock Text="{Binding Explanation}" TextWrapping="Wrap" />
-                </DockPanel>
-
-                <!-- The table: the missing file, the styles that use it, what it is drawn in or the replacement chosen. -->
-                <Border
-                    Grid.Row="1"
-                    BorderBrush="{StaticResource GhBorder}"
-                    BorderThickness="1"
-                    CornerRadius="4"
-                    Background="{StaticResource GhBg}"
-                    Margin="0,0,0,10"
-                >
-                    <DockPanel>
-                        <Grid
-                            DockPanel.Dock="Top"
-                            Background="{StaticResource GhHeader}"
-                            TextElement.Foreground="{StaticResource GhTextMuted}"
-                            TextElement.FontSize="11"
-                            TextElement.FontWeight="Medium"
-                        >
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="180" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="210" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Missing file" Margin="10,5" />
-                            <TextBlock Grid.Column="1" Text="Styles that use it" Margin="10,5" />
-                            <TextBlock Grid.Column="2" Text="Drawn in" Margin="10,5" />
-                        </Grid>
-                        <ScrollViewer MaxHeight="165" VerticalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding Rows}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate DataType="{x:Type local:MissingShxRowViewModel}">
-                                        <Border
-                                            BorderBrush="{StaticResource GhHeader}"
-                                            BorderThickness="0,1,0,0"
-                                            MinHeight="32"
-                                        >
-                                            <Grid VerticalAlignment="Center">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="180" />
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="210" />
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Orientation="Horizontal" Margin="10,4">
-                                                    <TextBlock
-                                                        Text="{Binding File}"
-                                                        FontFamily="{StaticResource GhMonoFont}"
-                                                        VerticalAlignment="Center"
-                                                    />
-                                                    <Border
-                                                        Background="{StaticResource GhSelected}"
-                                                        CornerRadius="3"
-                                                        Padding="5,0"
-                                                        Margin="6,0,0,0"
-                                                        VerticalAlignment="Center"
-                                                        Visibility="{Binding IsBigFont, Converter={StaticResource Shown}}"
-                                                    >
-                                                        <TextBlock Text="BIG FONT" FontSize="9" FontWeight="SemiBold" />
-                                                    </Border>
-                                                </StackPanel>
-                                                <TextBlock
-                                                    Grid.Column="1"
-                                                    Text="{Binding Styles}"
-                                                    Foreground="{StaticResource GhIcon}"
-                                                    Margin="10,4"
-                                                    VerticalAlignment="Center"
-                                                    TextWrapping="Wrap"
-                                                />
-                                                <Grid Grid.Column="2" Margin="10,4" VerticalAlignment="Center">
-                                                    <ComboBox
-                                                        Style="{StaticResource GhComboBox}"
-                                                        ItemsSource="{Binding Options}"
-                                                        SelectedItem="{Binding Replacement, Mode=TwoWay}"
-                                                        ItemContainerStyle="{StaticResource OptionItem}"
-                                                        ItemTemplate="{StaticResource OptionTemplate}"
-                                                        ToolTip="{Binding File, StringFormat='Replacement for {0}'}"
-                                                        Visibility="{Binding DataContext.Replace, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource Shown}}"
-                                                    />
-                                                    <StackPanel
-                                                        Orientation="Horizontal"
-                                                        Visibility="{Binding DataContext.Replace, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource Hidden}}"
-                                                    >
-                                                        <TextBlock
-                                                            Text="{Binding DrawnInText}"
-                                                            FontFamily="{StaticResource GhMonoFont}"
-                                                        />
-                                                        <TextBlock
-                                                            Text=" (FONTALT)"
-                                                            Foreground="{StaticResource GhTextMuted}"
-                                                            Visibility="{Binding IsDrawnByFontAlt, Converter={StaticResource Shown}}"
-                                                        />
-                                                    </StackPanel>
-                                                </Grid>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
+            <StackPanel Margin="16,14,16,0">
+                <!-- The SHX files: the warning and what it means, the table, and what to do. Shown where SHX files are missing. -->
+                <StackPanel Margin="0,0,0,10" Visibility="{Binding HasShx, Converter={StaticResource Shown}}">
+                    <DockPanel Margin="0,0,0,10">
+                        <local:IconView
+                            DockPanel.Dock="Left"
+                            Size="20"
+                            StrokeThickness="2"
+                            Stroke="#E3B341"
+                            Data="M12 3 2 20h20zM12 10v4M12 17v.5"
+                            VerticalAlignment="Top"
+                            Margin="0,0,10,0"
+                        />
+                        <TextBlock Text="{Binding Explanation}" TextWrapping="Wrap" />
                     </DockPanel>
-                </Border>
 
-                <!-- What to do. -->
-                <StackPanel Grid.Row="2">
-                    <RadioButton
-                        Style="{StaticResource ChoiceCard}"
-                        GroupName="Shx"
-                        IsChecked="{Binding Replace, Mode=TwoWay}"
+                    <!-- The table: the missing file, the styles that use it, what it is drawn in or the replacement chosen. -->
+                    <Border
+                        BorderBrush="{StaticResource GhBorder}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Background="{StaticResource GhBg}"
+                        Margin="0,0,0,10"
                     >
-                        <StackPanel>
-                            <TextBlock Text="Specify a replacement for each SHX file" FontWeight="SemiBold" />
-                            <TextBlock
-                                Text="Pick a font for each row from the fonts found, or Browse… for a file. The choice holds while the drawing is open."
-                                Foreground="{StaticResource GhTextMuted}"
-                                TextWrapping="Wrap"
-                                Margin="0,2,0,0"
-                            />
-                        </StackPanel>
-                    </RadioButton>
-                    <RadioButton
-                        Style="{StaticResource ChoiceCard}"
-                        GroupName="Shx"
-                        IsChecked="{Binding Ignore, Mode=TwoWay}"
-                        Margin="0"
-                    >
-                        <StackPanel>
-                            <TextBlock Text="Ignore the missing SHX files and continue" FontWeight="SemiBold" />
-                            <TextBlock
-                                Text="{Binding IgnoreDetail}"
-                                Foreground="{StaticResource GhTextMuted}"
-                                TextWrapping="Wrap"
-                                Margin="0,2,0,0"
-                            />
-                        </StackPanel>
-                    </RadioButton>
+                        <DockPanel>
+                            <Grid
+                                DockPanel.Dock="Top"
+                                Background="{StaticResource GhHeader}"
+                                TextElement.Foreground="{StaticResource GhTextMuted}"
+                                TextElement.FontSize="11"
+                                TextElement.FontWeight="Medium"
+                            >
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="180" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="210" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Missing file" Margin="10,5" />
+                                <TextBlock Grid.Column="1" Text="Styles that use it" Margin="10,5" />
+                                <TextBlock Grid.Column="2" Text="Drawn in" Margin="10,5" />
+                            </Grid>
+                            <ScrollViewer MaxHeight="165" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding Rows}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type local:MissingShxRowViewModel}">
+                                            <Border
+                                                BorderBrush="{StaticResource GhHeader}"
+                                                BorderThickness="0,1,0,0"
+                                                MinHeight="32"
+                                            >
+                                                <Grid VerticalAlignment="Center">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="180" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="210" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Orientation="Horizontal" Margin="10,4">
+                                                        <TextBlock
+                                                            Text="{Binding File}"
+                                                            FontFamily="{StaticResource GhMonoFont}"
+                                                            VerticalAlignment="Center"
+                                                        />
+                                                        <Border
+                                                            Background="{StaticResource GhSelected}"
+                                                            CornerRadius="3"
+                                                            Padding="5,0"
+                                                            Margin="6,0,0,0"
+                                                            VerticalAlignment="Center"
+                                                            Visibility="{Binding IsBigFont, Converter={StaticResource Shown}}"
+                                                        >
+                                                            <TextBlock
+                                                                Text="BIG FONT"
+                                                                FontSize="9"
+                                                                FontWeight="SemiBold"
+                                                            />
+                                                        </Border>
+                                                    </StackPanel>
+                                                    <TextBlock
+                                                        Grid.Column="1"
+                                                        Text="{Binding Styles}"
+                                                        Foreground="{StaticResource GhIcon}"
+                                                        Margin="10,4"
+                                                        VerticalAlignment="Center"
+                                                        TextWrapping="Wrap"
+                                                    />
+                                                    <Grid Grid.Column="2" Margin="10,4" VerticalAlignment="Center">
+                                                        <ComboBox
+                                                            Style="{StaticResource GhComboBox}"
+                                                            ItemsSource="{Binding Options}"
+                                                            SelectedItem="{Binding Replacement, Mode=TwoWay}"
+                                                            ItemContainerStyle="{StaticResource OptionItem}"
+                                                            ItemTemplate="{StaticResource OptionTemplate}"
+                                                            ToolTip="{Binding File, StringFormat='Replacement for {0}'}"
+                                                            Visibility="{Binding DataContext.Replace, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource Shown}}"
+                                                        />
+                                                        <StackPanel
+                                                            Orientation="Horizontal"
+                                                            Visibility="{Binding DataContext.Replace, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource Hidden}}"
+                                                        >
+                                                            <TextBlock
+                                                                Text="{Binding DrawnInText}"
+                                                                FontFamily="{StaticResource GhMonoFont}"
+                                                            />
+                                                            <TextBlock
+                                                                Text=" (FONTALT)"
+                                                                Foreground="{StaticResource GhTextMuted}"
+                                                                Visibility="{Binding IsDrawnByFontAlt, Converter={StaticResource Shown}}"
+                                                            />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- What to do. -->
+                    <StackPanel>
+                        <RadioButton
+                            Style="{StaticResource ChoiceCard}"
+                            GroupName="Shx"
+                            IsChecked="{Binding Replace, Mode=TwoWay}"
+                        >
+                            <StackPanel>
+                                <TextBlock Text="Specify a replacement for each SHX file" FontWeight="SemiBold" />
+                                <TextBlock
+                                    Text="Pick a font for each row from the fonts found, or Browse… for a file. The choice holds while the drawing is open."
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    TextWrapping="Wrap"
+                                    Margin="0,2,0,0"
+                                />
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton
+                            Style="{StaticResource ChoiceCard}"
+                            GroupName="Shx"
+                            IsChecked="{Binding Ignore, Mode=TwoWay}"
+                            Margin="0"
+                        >
+                            <StackPanel>
+                                <TextBlock Text="Ignore the missing SHX files and continue" FontWeight="SemiBold" />
+                                <TextBlock
+                                    Text="{Binding IgnoreDetail}"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    TextWrapping="Wrap"
+                                    Margin="0,2,0,0"
+                                />
+                            </StackPanel>
+                        </RadioButton>
+                    </StackPanel>
                 </StackPanel>
-            </Grid>
+
+                <!-- The TrueType fonts the machine has not: read only, with what each is drawn in. -->
+                <StackPanel Margin="0,0,0,14" Visibility="{Binding HasTrueType, Converter={StaticResource Shown}}">
+                    <Border
+                        Height="1"
+                        Background="{StaticResource GhBorder}"
+                        Margin="0,2,0,12"
+                        Visibility="{Binding HasShx, Converter={StaticResource Shown}}"
+                    />
+                    <DockPanel Margin="0,0,0,10">
+                        <local:IconView
+                            DockPanel.Dock="Left"
+                            Size="20"
+                            StrokeThickness="2"
+                            Stroke="#E3B341"
+                            Data="M12 3 2 20h20zM12 10v4M12 17v.5"
+                            VerticalAlignment="Top"
+                            Margin="0,0,10,0"
+                        />
+                        <TextBlock Text="{Binding TrueTypeExplanation}" TextWrapping="Wrap" />
+                    </DockPanel>
+                    <Border
+                        BorderBrush="{StaticResource GhBorder}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Background="{StaticResource GhBg}"
+                    >
+                        <DockPanel>
+                            <Grid
+                                DockPanel.Dock="Top"
+                                Background="{StaticResource GhHeader}"
+                                TextElement.Foreground="{StaticResource GhTextMuted}"
+                                TextElement.FontSize="11"
+                                TextElement.FontWeight="Medium"
+                            >
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="180" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Missing TrueType font" Margin="10,5" />
+                                <TextBlock Grid.Column="1" Text="Drawn in" Margin="10,5" />
+                            </Grid>
+                            <ScrollViewer MaxHeight="165" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding TrueTypeRows}" Focusable="False">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type local:MissingTrueTypeRowViewModel}">
+                                            <Border
+                                                BorderBrush="{StaticResource GhHeader}"
+                                                BorderThickness="0,1,0,0"
+                                                MinHeight="32"
+                                            >
+                                                <Grid VerticalAlignment="Center">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="180" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock
+                                                        Text="{Binding Family}"
+                                                        FontFamily="{StaticResource GhMonoFont}"
+                                                        Margin="10,4"
+                                                        VerticalAlignment="Center"
+                                                        TextTrimming="CharacterEllipsis"
+                                                    />
+                                                    <TextBlock
+                                                        Grid.Column="1"
+                                                        Text="{Binding DrawnIn}"
+                                                        Foreground="{StaticResource GhIcon}"
+                                                        Margin="10,4"
+                                                        VerticalAlignment="Center"
+                                                        TextWrapping="Wrap"
+                                                    />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+            </StackPanel>
         </DockPanel>
     </Border>
 </Window>

@@ -450,6 +450,103 @@ namespace GeometryHelper.Dxf.Viewer
             return found;
         }
 
+        /// <summary>
+        /// The TrueType families and files the drawing names that are not found: those of its text styles, and those an MTEXT's
+        /// font codes (<c>\fGulim|b0|i0|c129|p50;</c>) switch its words to, each looked for as <see cref="Resolve"/> looks for
+        /// it. A name is listed once whatever its case, spelled as the first of its spellings in ordinal order, and the list
+        /// is in the order of the names. The words of the MTEXTs of model space, the layouts and the blocks are read; those
+        /// of dimensions, leaders and attributes are not.
+        /// </summary>
+        internal IReadOnlyList<string> MissingTrueType(DxfDatabase database, string drawingFolder)
+        {
+            if (database == null || IsOff)
+            {
+                return Array.Empty<string>();
+            }
+
+            var found = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            void Add(CadMissingFont missing)
+            {
+                if (
+                    missing != null
+                    && !missing.IsShx
+                    && (
+                        !found.TryGetValue(missing.Name, out string kept)
+                        || string.CompareOrdinal(missing.Name, kept) < 0
+                    )
+                )
+                {
+                    found[missing.Name] = missing.Name;
+                }
+            }
+
+            foreach (DxfTextStyleTableRecord style in database.TextStyleTable)
+            {
+                if (!style.IsShapeFile)
+                {
+                    Face(
+                        style.FileName,
+                        style.BigFontFileName,
+                        style.Font.TypeFace,
+                        drawingFolder,
+                        out CadMissingFont missing,
+                        out _
+                    );
+                    Add(missing);
+                }
+            }
+
+            // Each font an MTEXT's codes name is asked once, as the display asks it: \f for a typeface, \F for a file.
+            var asked = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (DxfBlockTableRecord block in database.BlockTable)
+            {
+                foreach (DxfEntity entity in block)
+                {
+                    string contents = (entity as DxfMText)?.Contents;
+
+                    if (
+                        string.IsNullOrEmpty(contents)
+                        || (
+                            contents.IndexOf("\\f", StringComparison.Ordinal) < 0
+                            && contents.IndexOf("\\F", StringComparison.Ordinal) < 0
+                        )
+                    )
+                    {
+                        continue;
+                    }
+
+                    foreach (CadMTextParagraph paragraph in CadMTextContent.Parse(contents, 1.0).Paragraphs)
+                    {
+                        foreach (CadMTextRun run in paragraph.Runs)
+                        {
+                            string font = run.Look.Font;
+                            bool shx = run.Look.IsShx;
+
+                            if (font != null && asked.Add((shx ? "F" : "f") + font))
+                            {
+                                Face(
+                                    shx ? font : null,
+                                    null,
+                                    shx ? null : font,
+                                    drawingFolder,
+                                    out CadMissingFont missing,
+                                    out _
+                                );
+                                Add(missing);
+                            }
+                        }
+                    }
+                }
+            }
+
+            return found
+                .Values.OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(n => n, StringComparer.Ordinal)
+                .ToList();
+        }
+
         /// <summary>The face a text style is drawn in, found as <see cref="Resolve"/> finds it, a font not found left unsaid.</summary>
         internal CadFontFace FaceOf(string fileName, string bigFontFileName, string typeface, string drawingFolder) =>
             Face(fileName, bigFontFileName, typeface, drawingFolder, out _, out _);

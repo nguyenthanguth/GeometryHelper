@@ -48,7 +48,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <c>save-changes</c>, <c>mtext-unsaved</c>, <c>options</c> or <c>settings:Category</c> (Global settings), <c>plugins</c>,
     /// <c>plugin-settings</c>, <c>plugin-untrusted</c>, <c>color</c>, <c>truecolor</c>, <c>truecolor-rgb</c>,
     /// <c>dsettings[:Tab]</c>, <c>osnap-menu</c>, <c>snap-menu</c>, <c>canvas-menu</c>, <c>drawings-menu</c>, <c>scale-menu</c>,
-    /// <c>missing-shx</c>, <c>missing-shx-replace</c>, <c>ptype</c>, <c>linetype</c>, <c>linetype-load</c>,
+    /// <c>missing-shx</c>, <c>missing-shx-replace</c>, <c>missing-fonts</c>, <c>missing-fonts-truetype</c>, <c>ptype</c>, <c>linetype</c>, <c>linetype-load</c>,
     /// <c>select-linetype</c>, <c>hatch</c>,
     /// <c>hatch-gradient</c>, <c>hatch-user</c>, <c>hatch-solid</c>, <c>hatch-file</c>, <c>block</c>, <c>insert</c>,
     /// <c>wblock</c>, <c>attdef</c>, <c>eattedit[:Tab]</c>, <c>style</c>, <c>style-new</c>, <c>dimstyle</c>,
@@ -105,7 +105,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         protected virtual string Usage =>
             "Usage: "
             + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app")
-            + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Home|Insert|Annotate|Parametric|View|Manage|Output|Plugins|Settings] [--dialog save-changes|mtext-unsaved|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|constraints[:0|1|2]|parameters|osnap-menu|snap-menu|canvas-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|scalelist|qleader|qleader-line|qleader-attach|selectarrow|tolerance|tolerance-filled|tolerance-full|gdtsymbol|gdtmaterial|inputsearch|view|newview|units|units-direction|xref|xref-tree|plot:png|plot:jpg|plot-custom|plot-view|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|mlstyle|mlstyle-new|mlstyle-new-page|mlstyle-modify|mlstyle-load|mledit|plotstamp|plotstamp-advanced|plotstamp-fields|imageadjust|attext|xbind|insertobject|recovery|spell|spell-settings|objectscale|objectscale-add|insertlayout|templateoptions|saveaspdf|pdf-override|pdf-options|rename|lweight|boundary|viewports|viewports-named|filter|layerfilter|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
+            + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Home|Insert|Annotate|Parametric|View|Manage|Output|Plugins|Settings] [--dialog save-changes|mtext-unsaved|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|constraints[:0|1|2]|parameters|osnap-menu|snap-menu|canvas-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|missing-fonts|missing-fonts-truetype|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|scalelist|qleader|qleader-line|qleader-attach|selectarrow|tolerance|tolerance-filled|tolerance-full|gdtsymbol|gdtmaterial|inputsearch|view|newview|units|units-direction|xref|xref-tree|plot:png|plot:jpg|plot-custom|plot-view|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|mlstyle|mlstyle-new|mlstyle-new-page|mlstyle-modify|mlstyle-load|mledit|plotstamp|plotstamp-advanced|plotstamp-fields|imageadjust|attext|xbind|insertobject|recovery|spell|spell-settings|objectscale|objectscale-add|insertlayout|templateoptions|saveaspdf|pdf-override|pdf-options|rename|lweight|boundary|viewports|viewports-named|filter|layerfilter|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
 
         /// <summary>
         /// Runs the app on the STA thread of its entry point: the window until it is closed, or the screenshot where the first
@@ -729,51 +729,93 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 width = 260;
                 height = MeasuredHeight(root, width);
             }
-            else if (dialogName != null && dialogName.StartsWith("missing-shx", StringComparison.OrdinalIgnoreCase))
+            else if (
+                dialogName != null
+                && (
+                    dialogName.StartsWith("missing-shx", StringComparison.OrdinalIgnoreCase)
+                    || dialogName.StartsWith("missing-fonts", StringComparison.OrdinalIgnoreCase)
+                )
+            )
             {
                 // Missing SHX files for the drawing opened, or for a drawing of three styles whose SHX files are missing;
-                // missing-shx-replace on Specify a replacement.
+                // missing-shx-replace on Specify a replacement. missing-fonts adds two TrueType styles the machine has not
+                // (Missing Fonts), and missing-fonts-truetype has those alone.
                 CadDocument document = model.Document;
                 IReadOnlyList<CadMissingFont> missing = document?.FindMissingFonts() ?? Array.Empty<CadMissingFont>();
+                IReadOnlyList<string> trueType = document?.FindMissingTrueTypeFonts() ?? Array.Empty<string>();
 
-                if (missing.Count == 0)
+                if (missing.Count == 0 && trueType.Count == 0)
                 {
+                    bool withTrueType = dialogName.StartsWith("missing-fonts", StringComparison.OrdinalIgnoreCase);
+                    bool withShx = !dialogName.Contains("-truetype");
                     var database = new DxfDatabase("AC1027");
+
                     database.TextStyleTable["Standard"].FileName = CadFonts.BuiltInName + ".shx";
-                    database.TextStyleTable.Add(
-                        new DxfTextStyleTableRecord
-                        {
-                            Name = "HZ",
-                            FileName = CadFonts.BuiltInName + ".shx",
-                            BigFontFileName = "hztxt.shx",
-                        }
-                    );
-                    database.TextStyleTable.Add(
-                        new DxfTextStyleTableRecord
-                        {
-                            Name = "Notes-CN",
-                            FileName = CadFonts.BuiltInName + ".shx",
-                            BigFontFileName = "hztxt.shx",
-                        }
-                    );
-                    database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "Dims", FileName = "romand.shx" });
-                    database.TextStyleTable.Add(
-                        new DxfTextStyleTableRecord { Name = "TITLE", FileName = "romand.shx" }
-                    );
-                    database.TextStyleTable.Add(
-                        new DxfTextStyleTableRecord { Name = "TSSD_Note", FileName = "tssdeng.shx" }
-                    );
+
+                    if (withShx)
+                    {
+                        database.TextStyleTable.Add(
+                            new DxfTextStyleTableRecord
+                            {
+                                Name = "HZ",
+                                FileName = CadFonts.BuiltInName + ".shx",
+                                BigFontFileName = "hztxt.shx",
+                            }
+                        );
+                        database.TextStyleTable.Add(
+                            new DxfTextStyleTableRecord
+                            {
+                                Name = "Notes-CN",
+                                FileName = CadFonts.BuiltInName + ".shx",
+                                BigFontFileName = "hztxt.shx",
+                            }
+                        );
+                        database.TextStyleTable.Add(
+                            new DxfTextStyleTableRecord { Name = "Dims", FileName = "romand.shx" }
+                        );
+                        database.TextStyleTable.Add(
+                            new DxfTextStyleTableRecord { Name = "TITLE", FileName = "romand.shx" }
+                        );
+                        database.TextStyleTable.Add(
+                            new DxfTextStyleTableRecord { Name = "TSSD_Note", FileName = "tssdeng.shx" }
+                        );
+                    }
+
+                    if (withTrueType)
+                    {
+                        database.TextStyleTable.Add(
+                            new DxfTextStyleTableRecord
+                            {
+                                Name = "KR-Notes",
+                                Font = new DxfFontDescriptor("DotumChe", false, false, 0, 34),
+                            }
+                        );
+                        database.TextStyleTable.Add(
+                            new DxfTextStyleTableRecord
+                            {
+                                Name = "KR-Title",
+                                Font = new DxfFontDescriptor("Batang", false, false, 0, 18),
+                            }
+                        );
+                    }
+
                     document = CadDocument.From(database, "plan-level2.dxf");
-                    document.Fonts = new GlobalSettings().ToFonts();
+                    document.Fonts = new GlobalSettings().ToFonts(f => f == "Arial");
                     missing = document.FindMissingFonts();
+                    trueType = document.FindMissingTrueTypeFonts();
                 }
 
-                var dialog = new MissingShxWindow(new MissingShxViewModel(document, missing));
+                var dialog = new MissingShxWindow(new MissingShxViewModel(document, missing, trueType, "Arial"));
                 dialog.Model.Replace = dialogName.EndsWith("-replace", StringComparison.OrdinalIgnoreCase);
                 root = dialog.Body;
                 window = dialog;
                 width = (int)dialog.Width;
-                height = (int)dialog.Height;
+
+                // The rows of the lists are made as the content is laid out the first time: lay it out, then measure.
+                height = MeasuredHeight(root, width);
+                root.Arrange(new Rect(0, 0, width, height));
+                root.UpdateLayout();
+                height = MeasuredHeight(root, width);
             }
             else if (string.Equals(dialogName, "ptype", StringComparison.OrdinalIgnoreCase))
             {

@@ -6,9 +6,10 @@ using System.Runtime.CompilerServices;
 namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
-    /// The Missing SHX files dialog, shown once as a drawing opens whose text styles name SHX fonts not found, through a
-    /// function the workspace sets, so that a test drives it with none; the replacements chosen in it kept for the drawing
-    /// while it is open, through a change of Global settings too.
+    /// The Missing SHX files dialog, shown once as a drawing opens whose text styles name SHX fonts not found, or whose
+    /// styles and MTEXTs name TrueType fonts the machine has not (then titled Missing Fonts), through a function the
+    /// workspace sets, so that a test drives it with none; the replacements chosen in it kept for the drawing while it is
+    /// open, through a change of Global settings too.
     /// </summary>
     public sealed partial class MainViewModel
     {
@@ -23,7 +24,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Shows the Missing SHX files dialog for a drawing just opened, where Global settings show it and its text styles name
-        /// SHX fonts not found: OK draws the files in the replacements chosen and keeps them for the drawing; Do not show again
+        /// SHX fonts not found, or TrueType fonts the machine has not (listed, with what they are drawn in, and not chosen): OK draws the files in the replacements chosen and keeps them for the drawing; Do not show again
         /// with OK turns the dialog off in Global settings and saves them; Cancel keeps the FONTALT replacement.
         /// </summary>
         private void OfferMissingFonts(CadDocument document)
@@ -34,13 +35,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             IReadOnlyList<CadMissingFont> missing = document.FindMissingFonts();
+            IReadOnlyList<string> trueType = document.FindMissingTrueTypeFonts();
 
-            if (missing.Count == 0)
+            if (missing.Count == 0 && trueType.Count == 0)
             {
                 return;
             }
 
-            var dialog = new MissingShxViewModel(document, missing);
+            var dialog = new MissingShxViewModel(document, missing, trueType, _settings.DrawingFont);
 
             if (!ShowMissingShx(dialog))
             {

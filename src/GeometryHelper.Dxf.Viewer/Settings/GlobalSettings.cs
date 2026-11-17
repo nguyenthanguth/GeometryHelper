@@ -729,8 +729,10 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Gets or sets whether the Missing SHX files dialog is shown once as a drawing opens whose text styles name SHX fonts
-        /// not found, as AutoCAD shows it: on by default; its Do not show again turns it off. The command line says the
-        /// missing files in one line either way.
+        /// not found, as AutoCAD shows it, or whose styles and MTEXTs name TrueType fonts the machine has not (it is then
+        /// titled Missing Fonts): on by default; its Do not show again turns it off, and the Fonts section of Global settings
+        /// turns it on again. The command line says the missing files in one line either way. Saved as
+        /// <c>showMissingShxDialog</c>, the key it has always had.
         /// </summary>
         public bool ShowMissingShxDialog { get; set; } = true;
 
