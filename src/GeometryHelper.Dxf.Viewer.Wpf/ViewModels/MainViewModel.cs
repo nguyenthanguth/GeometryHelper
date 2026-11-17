@@ -97,6 +97,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private CadWorkspaceExtension _selectedTab;
         private string _banner;
         private string _selectionLabel = string.Empty;
+        private IReadOnlyList<string> _selectionKinds = Array.Empty<string>();
+        private IReadOnlyList<CadSelectionKind> _kindRows = Array.Empty<CadSelectionKind>();
+        private string _kindName;
+        private string _kindSelection = string.Empty;
         private IReadOnlyList<PropertyGroupViewModel> _groups = Array.Empty<PropertyGroupViewModel>();
         private IReadOnlyList<CadLayerInfo> _layers = Array.Empty<CadLayerInfo>();
         private string _commandText = string.Empty;
@@ -434,7 +438,47 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string SelectionLabel
         {
             get => _selectionLabel;
-            private set => Set(ref _selectionLabel, value);
+            private set
+            {
+                if (Set(ref _selectionLabel, value))
+                {
+                    Raise(nameof(SelectedKind));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the rows the selection box of Properties drops down, as <see cref="CadProperties.Kinds"/> words them: "All (7)", then
+        /// one for each kind of object selected with its count ("MText (5)", "OLE Object (2)"); one row, the box's own text, where
+        /// there is one kind or no selection.
+        /// </summary>
+        public IReadOnlyList<string> SelectionKinds
+        {
+            get => _selectionKinds;
+            private set => Set(ref _selectionKinds, value);
+        }
+
+        /// <summary>
+        /// Gets or sets the row of <see cref="SelectionKinds"/> chosen, the same text as <see cref="SelectionLabel"/>. Choosing a kind
+        /// shows the properties of its objects alone, as though only they were selected, and the rows edit only them, while the
+        /// selection of the drawing stays whole; "All" returns to the common properties. Another selection returns the box to All.
+        /// A text that is not a row is ignored.
+        /// </summary>
+        public string SelectedKind
+        {
+            get => _selectionLabel;
+            set
+            {
+                CadSelectionKind row = _kindRows.FirstOrDefault(k =>
+                    string.Equals(k.Label, value, StringComparison.Ordinal)
+                );
+
+                if (row != null && row.Name != _kindName)
+                {
+                    _kindName = row.Name;
+                    UpdateProperties();
+                }
+            }
         }
 
         /// <summary>Gets the groups of rows Properties shows, their values edited in place.</summary>
@@ -1623,6 +1667,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             registry.Add(new CadCommand("LAYMCUR", MakeCurrent, true));
             registry.Add(new CadCommand("LAYMCH", MatchLayer, true));
             registry.Add(new CadCommand("CLOSE", CloseCommandBody));
+            registry.Add(new CadCommand("SELECT", SelectCommandBody));
             AddCloseAllWindowCommands(registry);
             AddWindowCommands(registry);
             AddWindowVariables(registry);
@@ -2368,6 +2413,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 HideImageTab();
                 HidePdfTab();
                 SelectionLabel = string.Empty;
+                _kindRows = Array.Empty<CadSelectionKind>();
+                SelectionKinds = Array.Empty<string>();
                 PropertyGroups = Array.Empty<PropertyGroupViewModel>();
                 PropertiesBanner = null;
                 UpdateQuickProperties();
@@ -2382,6 +2429,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             SyncHatchTab();
             SyncImageTab(handles);
             SyncPdfTab(handles);
+
+            // The selection box lists the kinds of object selected; with one chosen, its objects alone are shown and edited, the
+            // drawing's selection staying whole. Another selection returns the box to All; so does a kind no longer selected.
+            string selection = string.Join("|", handles);
+
+            if (!string.Equals(selection, _kindSelection, StringComparison.Ordinal))
+            {
+                _kindSelection = selection;
+                _kindName = null;
+            }
+
+            IReadOnlyList<CadSelectionKind> kinds = CadProperties.Kinds(_current.Document, handles);
+            CadSelectionKind kindChosen = kinds.FirstOrDefault(k => k.Name == _kindName) ?? kinds.FirstOrDefault();
+            _kindName = kindChosen?.Name;
+            List<string> shown = kindChosen == null ? handles : kindChosen.Handles.ToList();
             // In the Block Editor a parameter or an action selected shows its own properties, as AutoCAD's palette does.
             CadAuthoringElement element = null;
 
@@ -2404,13 +2466,28 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CadSelectionInfo info =
                 element != null
                     ? CadBlockAuthoring.Describe(element)
-                    : CadProperties.Describe(_current.Document, Space, handles, View);
+                    : CadProperties.Describe(_current.Document, Space, shown, View);
             string banner = null;
 
             foreach (CadWorkspaceExtension extension in _extensions)
             {
-                info = extension.DescribeSelection(_current.Document, handles, info, out string said) ?? info;
+                info = extension.DescribeSelection(_current.Document, shown, info, out string said) ?? info;
                 banner = said ?? banner;
+            }
+
+            // Where the box's text is not that of a row (nothing selected, an element of the Block Editor, an extension's own
+            // words), the list is that one row.
+            if (kindChosen == null || kindChosen.Label != info.Label)
+            {
+                kinds = new[] { new CadSelectionKind(null, info.Label, shown) };
+            }
+
+            _kindRows = kinds;
+            List<string> labels = kinds.Select(k => k.Label).ToList();
+
+            if (!labels.SequenceEqual(_selectionKinds))
+            {
+                SelectionKinds = labels;
             }
 
             PropertiesBanner = banner;
@@ -2438,7 +2515,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     {
                         rows.Add(
                             new PropertyRowViewModel(row, row.Choices, (r, text) =>
-                                CommitCustomProperty(handles, r.Label, text)
+                                CommitCustomProperty(shown, r.Label, text)
                             )
                         );
                         continue;
@@ -2449,9 +2526,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         row.Label == "Contents" && info.Label == "MText (1)"
                             ? new[] { EditMTextOption }
                             : OptionsOf(row.Label) ?? row.Choices;
-                    rows.Add(
-                        new PropertyRowViewModel(row, options, (r, text) => CommitProperty(handles, r.Label, text))
-                    );
+                    rows.Add(new PropertyRowViewModel(row, options, (r, text) => CommitProperty(shown, r.Label, text)));
                 }
 
                 groups.Add(new PropertyGroupViewModel(group.Title, rows));
@@ -2459,6 +2534,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             SelectionLabel = info.Label;
             PropertyGroups = groups;
+            Raise(nameof(IsPickAddOn));
             RaiseViewportScale();
             UpdateQuickProperties();
         }

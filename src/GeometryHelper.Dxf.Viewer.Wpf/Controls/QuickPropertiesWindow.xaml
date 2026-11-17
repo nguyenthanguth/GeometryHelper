@@ -22,7 +22,7 @@
         </ResourceDictionary>
     </Window.Resources>
 
-    <!-- Design QuickProperties: the kind and count of the selection, then Color, Layer and Linetype, edited in place. -->
+    <!-- Design QuickProperties: the kind and count of the selection as a list of All and each kind, then Color, Layer and Linetype, edited in place. -->
     <Border
         x:Name="Root"
         Background="{StaticResource GhPanel}"
@@ -50,7 +50,13 @@
                         Click="OnClose"
                         ToolTip="Close"
                     />
-                    <TextBlock Text="{Binding SelectionLabel}" VerticalAlignment="Center" Margin="2,0,0,0" />
+                    <ComboBox
+                        Style="{StaticResource GhComboBox}"
+                        Margin="0,0,4,0"
+                        AutomationProperties.Name="Selected objects"
+                        ItemsSource="{Binding SelectionKinds}"
+                        SelectedItem="{Binding SelectedKind, Mode=TwoWay}"
+                    />
                 </DockPanel>
             </Border>
             <ItemsControl ItemsSource="{Binding QuickPropertyRows}">

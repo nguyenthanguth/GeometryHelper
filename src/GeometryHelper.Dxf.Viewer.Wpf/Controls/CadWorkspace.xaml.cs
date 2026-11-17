@@ -1851,6 +1851,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        /// <summary>Select Objects and Quick Select beside the selection box of Properties: the command named by the button's Tag is started.</summary>
+        private void OnPaletteCommand(object sender, RoutedEventArgs e) =>
+            (DataContext as MainViewModel)?.StartCommand((sender as FrameworkElement)?.Tag as string);
+
         /// <summary>A value of Properties: Enter commits it, Esc puts the old one back.</summary>
         private void OnValueKeyDown(object sender, KeyEventArgs e)
         {

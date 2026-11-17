@@ -6307,26 +6307,80 @@
                         Visibility="{Binding HasDocument, Converter={StaticResource Hidden}}"
                         Text="No selection.&#x0a;Open a file to see its properties."
                     />
-                    <Border
+                    <!-- The selection box: a list of All and one row for each kind of object selected with its count; a kind
+                         chosen shows and edits its objects alone. Beside it, Toggle value of PICKADD, Select Objects and Quick Select. -->
+                    <DockPanel
                         DockPanel.Dock="Top"
                         Margin="12,8"
-                        Background="{StaticResource GhInput}"
-                        CornerRadius="4"
-                        Padding="8,5"
                         Visibility="{Binding HasDocument, Converter={StaticResource Shown}}"
                     >
-                        <DockPanel>
-                            <local:IconView
-                                DockPanel.Dock="Right"
-                                Size="12"
-                                StrokeThickness="2.5"
-                                Stroke="{StaticResource GhTextMuted}"
-                                Data="{StaticResource GhIconChevron}"
-                                VerticalAlignment="Center"
-                            />
-                            <TextBlock Text="{Binding SelectionLabel}" />
-                        </DockPanel>
-                    </Border>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="6,0,0,0">
+                            <ToggleButton
+                                Width="26"
+                                Height="26"
+                                Margin="0,0,2,0"
+                                AutomationProperties.Name="Toggle value of PICKADD"
+                                IsChecked="{Binding IsPickAddOn, Mode=TwoWay}"
+                                ToolTip="Toggle value of PICKADD system variable"
+                            >
+                                <ToggleButton.Style>
+                                    <Style TargetType="ToggleButton" BasedOn="{StaticResource GhFlatButton}">
+                                        <Style.Triggers>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter Property="Background" Value="{StaticResource GhSelected}" />
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ToggleButton.Style>
+                                <local:IconView
+                                    Size="16"
+                                    StrokeThickness="1.8"
+                                    Stroke="{StaticResource GhIcon}"
+                                    Data="{StaticResource GhIconPickAdd}"
+                                />
+                            </ToggleButton>
+                            <Button
+                                Width="26"
+                                Height="26"
+                                Margin="0,0,2,0"
+                                Style="{StaticResource GhFlatButton}"
+                                AutomationProperties.Name="Select Objects"
+                                Tag="SELECT"
+                                Click="OnPaletteCommand"
+                                ToolTip="Select Objects"
+                            >
+                                <local:IconView
+                                    Size="16"
+                                    StrokeThickness="1.8"
+                                    Stroke="{StaticResource GhIcon}"
+                                    Data="{StaticResource GhIconSelectObjects}"
+                                />
+                            </Button>
+                            <Button
+                                Width="26"
+                                Height="26"
+                                Style="{StaticResource GhFlatButton}"
+                                AutomationProperties.Name="Quick Select"
+                                Tag="QSELECT"
+                                Click="OnPaletteCommand"
+                                ToolTip="Quick Select"
+                            >
+                                <local:IconView
+                                    Size="16"
+                                    StrokeThickness="1.8"
+                                    Stroke="{StaticResource GhIcon}"
+                                    Data="{StaticResource GhIconQuickSelect}"
+                                />
+                            </Button>
+                        </StackPanel>
+                        <ComboBox
+                            Style="{StaticResource GhComboBox}"
+                            Height="26"
+                            AutomationProperties.Name="Selected objects"
+                            ItemsSource="{Binding SelectionKinds}"
+                            SelectedItem="{Binding SelectedKind, Mode=TwoWay}"
+                        />
+                    </DockPanel>
                     <!-- The owner banner: what an extension says of a selection it owns. -->
                     <Border
                         DockPanel.Dock="Top"

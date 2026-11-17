@@ -86,6 +86,39 @@ namespace GeometryHelper.Dxf.Viewer
         public IReadOnlyList<CadPropertyGroup> Groups { get; }
     }
 
+    /// <summary>
+    /// One row of the list the selection box of the Properties panel drops down: all the objects selected, or those of one kind
+    /// among them. Seven objects, five MTEXTs and two OLE frames, give "All (7)", "MText (5)" and "OLE Object (2)".
+    /// </summary>
+    public sealed class CadSelectionKind
+    {
+        /// <summary>Makes a row.</summary>
+        /// <param name="name">The kind's name as <see cref="CadProperties.Describe(CadDocument, CadSpace, IReadOnlyCollection{string})"/> writes it; null for the row of the whole selection.</param>
+        /// <param name="label">The text of the row: the name and the count in brackets, "All (7)" for the whole selection of several kinds.</param>
+        /// <param name="handles">The handles of the objects of the row, in order.</param>
+        public CadSelectionKind(string name, string label, IReadOnlyList<string> handles)
+        {
+            Name = name;
+            Label = label ?? throw new ArgumentNullException(nameof(label));
+            Handles = handles ?? throw new ArgumentNullException(nameof(handles));
+        }
+
+        /// <summary>Gets the kind's name, "MText" or "Line"; null for the row of the whole selection.</summary>
+        public string Name { get; }
+
+        /// <summary>Gets the text of the row, as the selection box reads where the row is chosen.</summary>
+        public string Label { get; }
+
+        /// <summary>Gets the handles of the objects of the row, in order, those the Properties panel then shows and edits.</summary>
+        public IReadOnlyList<string> Handles { get; }
+
+        /// <summary>Gets how many objects the row holds.</summary>
+        public int Count => Handles.Count;
+
+        /// <inheritdoc/>
+        public override string ToString() => Label;
+    }
+
     /// <summary>Describes a selection for the Properties panel, as AutoCAD's Properties palette does.</summary>
     public static partial class CadProperties
     {
@@ -179,23 +212,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             space = space ?? document.CurrentSpace;
-            var entities = new List<DxfEntity>();
-
-            if (handles != null)
-            {
-                var sorted = new List<string>(handles);
-                sorted.Sort(StringComparer.OrdinalIgnoreCase);
-
-                foreach (string handle in sorted)
-                {
-                    DxfEntity entity = document.FindEntity(handle);
-
-                    if (entity != null)
-                    {
-                        entities.Add(entity);
-                    }
-                }
-            }
+            List<DxfEntity> entities = Selected(document, handles);
 
             if (entities.Count == 0)
             {
@@ -228,6 +245,103 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return new CadSelectionInfo(label, merged);
+        }
+
+        /// <summary>The entities of the handles the document has, in the order of their handles.</summary>
+        private static List<DxfEntity> Selected(CadDocument document, IReadOnlyCollection<string> handles)
+        {
+            var entities = new List<DxfEntity>();
+
+            if (handles != null)
+            {
+                var sorted = new List<string>(handles);
+                sorted.Sort(StringComparer.OrdinalIgnoreCase);
+
+                foreach (string handle in sorted)
+                {
+                    DxfEntity entity = document.FindEntity(handle);
+
+                    if (entity != null)
+                    {
+                        entities.Add(entity);
+                    }
+                }
+            }
+
+            return entities;
+        }
+
+        /// <summary>
+        /// The list the selection box of the Properties palette drops down, as AutoCAD's does: the whole selection first, then, where
+        /// there are objects of several kinds, one row for each kind with its count, in the order of the kinds' names. Of seven
+        /// objects, five MTEXTs and two OLE frames, the rows read "All (7)", "MText (5)" and "OLE Object (2)"; of three lines the one
+        /// row reads "Line (3)", which is the whole selection. <see cref="Describe(CadDocument, CadSpace, IReadOnlyCollection{string})"/>
+        /// of a row's handles shows its properties as though only those objects were selected.
+        /// </summary>
+        /// <param name="document">The document.</param>
+        /// <param name="handles">The handles of the selected entities; null or empty for none. A handle the document has no entity of is passed over.</param>
+        /// <returns>The rows; none with no object selected.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the document is null.</exception>
+        public static IReadOnlyList<CadSelectionKind> Kinds(CadDocument document, IReadOnlyCollection<string> handles)
+        {
+            if (document == null)
+            {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            List<DxfEntity> entities = Selected(document, handles);
+            var rows = new List<CadSelectionKind>();
+
+            if (entities.Count == 0)
+            {
+                return rows;
+            }
+
+            var byKind = new SortedDictionary<string, List<string>>(KindOrder.Instance);
+
+            foreach (DxfEntity entity in entities)
+            {
+                string kind = KindOf(entity);
+
+                if (!byKind.TryGetValue(kind, out List<string> own))
+                {
+                    own = new List<string>();
+                    byKind.Add(kind, own);
+                }
+
+                own.Add(entity.Handle);
+            }
+
+            var all = entities.Select(e => e.Handle).ToList();
+            string total = all.Count.ToString(CultureInfo.InvariantCulture);
+
+            if (byKind.Count == 1)
+            {
+                rows.Add(new CadSelectionKind(null, byKind.Keys.First() + " (" + total + ")", all));
+                return rows;
+            }
+
+            rows.Add(new CadSelectionKind(null, "All (" + total + ")", all));
+
+            foreach (KeyValuePair<string, List<string>> kind in byKind)
+            {
+                string count = kind.Value.Count.ToString(CultureInfo.InvariantCulture);
+                rows.Add(new CadSelectionKind(kind.Key, kind.Key + " (" + count + ")", kind.Value));
+            }
+
+            return rows;
+        }
+
+        /// <summary>The order of the kinds' names in the list: by name without regard to case, then by the letters themselves.</summary>
+        private sealed class KindOrder : IComparer<string>
+        {
+            public static readonly KindOrder Instance = new KindOrder();
+
+            public int Compare(string x, string y)
+            {
+                int order = StringComparer.OrdinalIgnoreCase.Compare(x, y);
+                return order != 0 ? order : StringComparer.Ordinal.Compare(x, y);
+            }
         }
 
         /// <summary>The groups of no selection: the current settings, the plot style, the view and Misc.</summary>

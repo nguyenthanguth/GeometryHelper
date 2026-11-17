@@ -161,6 +161,8 @@
     </Geometry>
     <!-- Round 2 (design RibbonPgpButtons): the slide-out items of Draw, Text, Leaders and Dimensions, and Model Viewports. -->
     <Geometry x:Key="GhIconSelectObjects">M4 4l7 16 2-7 7-2z</Geometry>
+    <!-- The Toggle value of PICKADD button of Properties: the pointer with a plus. -->
+    <Geometry x:Key="GhIconPickAdd">M4 4l6 14 2-5.5 5.5-2zM18 3v6M15 6h6</Geometry>
     <Geometry x:Key="GhIconHatch">M4 4h16v16H4zM4 12l8-8M4 20 20 4M12 20l8-8</Geometry>
     <Geometry x:Key="GhIconGradient">M4 4h16v16H4zM8 4v16M12 4v16</Geometry>
     <Geometry x:Key="GhIconBoundary">M4 4h16v16H4zM9 12h6M12 9v6</Geometry>
