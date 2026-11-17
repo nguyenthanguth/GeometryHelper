@@ -105,24 +105,36 @@
                     <TextBlock Style="{StaticResource StyleGroup}" Text="Insert options" />
                     <RadioButton
                         Foreground="{StaticResource GhText}"
+                        GroupName="Start"
                         Content="Start from empty table"
-                        IsChecked="True"
+                        IsChecked="{Binding StartFromEmpty, Mode=TwoWay}"
                         Margin="0,0,0,6"
                     />
                     <RadioButton
-                        Foreground="{StaticResource GhTextMuted}"
+                        Foreground="{StaticResource GhText}"
+                        GroupName="Start"
                         Content="From a data link"
-                        IsEnabled="False"
+                        IsEnabled="{Binding HasDataLinks}"
+                        IsChecked="{Binding FromDataLink, Mode=TwoWay}"
                         Margin="0,0,0,6"
                     />
+                    <ComboBox
+                        Style="{StaticResource GhComboBox}"
+                        Margin="22,0,0,6"
+                        IsEnabled="{Binding FromDataLink}"
+                        ItemsSource="{Binding DataLinks}"
+                        SelectedItem="{Binding DataLink, Mode=TwoWay}"
+                        AutomationProperties.Name="Data link"
+                    />
                     <RadioButton
-                        Foreground="{StaticResource GhTextMuted}"
+                        Foreground="{StaticResource GhText}"
+                        GroupName="Start"
                         Content="From object data in the drawing (Data Extraction)"
-                        IsEnabled="False"
+                        IsChecked="{Binding FromDataExtraction, Mode=TwoWay}"
                         Margin="0,0,0,6"
                     />
                     <TextBlock
-                        Text="Data links (Excel, CSV) and Data Extraction are not offered: shown greyed for parity."
+                        Text="A table from a data link has the rows and columns of the link's data; Data Extraction opens its wizard after OK."
                         Foreground="{StaticResource GhTextMuted}"
                         FontSize="11"
                         TextWrapping="Wrap"
@@ -146,7 +158,7 @@
                     />
 
                     <TextBlock Style="{StaticResource StyleGroup}" Text="Column and row settings" />
-                    <Grid>
+                    <Grid IsEnabled="{Binding SetsColumnsAndRows}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="90" />
                             <ColumnDefinition Width="70" />

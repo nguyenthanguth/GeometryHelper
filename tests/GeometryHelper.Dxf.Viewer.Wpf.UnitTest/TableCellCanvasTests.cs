@@ -450,6 +450,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                             "Data Format…",
                             "Match Cell",
                             "Remove All Property Overrides",
+                            "Data Link…",
                             "Insert",
                             "Edit Text",
                             "Delete All Contents",

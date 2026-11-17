@@ -51,7 +51,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The text of a cell as it shows: nothing for a cell of a merged block that is not its first, else its text with the codes of its look taken off.</summary>
-        private static string CellText(DxfTable table, int row, int column)
+        internal static string CellText(DxfTable table, int row, int column)
         {
             DxfCellRange block = table.GetMergeRange(row, column);
 

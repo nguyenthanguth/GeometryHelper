@@ -228,4 +228,8 @@
     </Geometry>
     <Geometry x:Key="GhIconDelConstraint">M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13M10 11v6M14 11v6</Geometry>
     <Geometry x:Key="GhIconParameters">M4 5h16v14H4zM4 10h16M10 10v9M13 13l5 5M18 13l-5 5</Geometry>
+    <Geometry x:Key="GhIconExtractData">M4 4h10v4H4zM4 10h10v4H4zM4 16h10v4H4zM17 8l4 4-4 4M14 12h7</Geometry>
+    <Geometry x:Key="GhIconDataLink">M4 5h12v10H4zM4 10h12M10 5v10M16 17l2 2 3-4M13 21h-3a4 4 0 0 1 0-4h3</Geometry>
+    <Geometry x:Key="GhIconDownloadSource">M12 3v12M7 10l5 5 5-5M4 21h16</Geometry>
+    <Geometry x:Key="GhIconUploadSource">M12 15V3M7 8l5-5 5 5M4 21h16</Geometry>
 </ResourceDictionary>

@@ -772,6 +772,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowFindReplace = dialog => FindReplaceWindow.Show(Window.GetWindow(this), dialog);
                 AttachViewUtility();
                 AttachDialogsFive();
+                AttachDataLinks();
                 MainViewModel shown = _model;
                 _model.ShowExternalReferences = palette =>
                     ExternalReferencesWindow.ShowPalette(Window.GetWindow(this), shown, palette);

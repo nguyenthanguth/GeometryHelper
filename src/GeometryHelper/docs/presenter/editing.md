@@ -233,7 +233,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 379 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 383 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -252,7 +252,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT, WMFOUT, PSOUT (what to plot, preview, units, scale, size), STLOUT, SVGOUT, EXPORT, -EXPORT (Dwf, dwfX, Pdf) ([Plotting](plot.md)) |
 | dimension | DIM (Angular, Baseline, Continue, Ordinate, aliGn, Distribute, Layer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMINSPECT, -DIMINSPECT (Add, Remove; Round, Angular, None), DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE, DIMCENTER, CENTERMARK, CENTERLINE, -DIMSTYLE (ANnotative, Save, Restore, STatus, Variables, Apply, ?), DIMUPDATE |
 | parametric | GCCOINCIDENT (Object, Autoconstrain), GCCOLLINEAR, GCEQUAL (Multiple), GCCONCENTRIC, GCPARALLEL, GCPERPENDICULAR, GCTANGENT, GCFIX (Object), GCHORIZONTAL, GCVERTICAL (2Points), GCSYMMETRIC (2Points), GCSMOOTH, GEOMCONSTRAINT, AUTOCONSTRAIN (Settings), CONSTRAINTBAR (Show, Hide, Reset), DELCONSTRAINT, DCLINEAR, DCHORIZONTAL, DCVERTICAL, DCALIGNED, DCANGULAR, DCRADIUS, DCDIAMETER, DIMCONSTRAINT, DCCONVERT, DCFORM, DCDISPLAY, -PARAMETERS (New, Edit, Rename, Delete, ?), PARAMETERS, PARAMETERSCLOSE, CONSTRAINTSETTINGS; the variables CCONSTRAINTFORM, CONSTRAINTBARDISPLAY, CONSTRAINTBARMODE, CONSTRAINTINFER, CONSTRAINTNAMEFORMAT, DYNCONSTRAINTMODE, CONSTRAINTSOLVEMODE, PARAMETERCOPYMODE, PARAMETERSSTATUS, CONSTRAINTRELAX (see Parametric constraints below) |
-| tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT, TABLEEXPORT |
+| tables | TABLE, -TABLE (Style, Width, Height, data Link), TABLESTYLE, TABLEDIT, TABLEEXPORT, DATALINK, DATALINKUPDATE, DATAEXTRACTION, -DATAEXTRACTION |
 | selection | QSELECT, FILTER, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP, GROUPEDIT (Name; Add objects, Remove objects, REName) |
 | OLE objects | INSERTOBJ (a bitmap or a PNG, as a static picture), and the variables OLEFRAME, OLEHIDE and OLEQUALITY (see OLE objects below) |
 | metafiles | WMFIN (Basepoint, Scale, X, Y, Z, Rotate, Explode, REpeat), and the variables WMFBKGND and WMFFOREGND (see WMFIN below) |
@@ -1975,6 +1975,55 @@ system's code page, `.csv` added to a name with none; a file that cannot be writ
 as AutoCAD 2021 spells it), and nothing is said when it is written. The drawing is not changed, so there is no undo step.
 The table menu's Table Style items stay grey: Save as New Table Style and Set As Table in Current Table Style keep a
 starting table in the style, which the library's table style does not hold.
+
+### Data links and data extraction
+
+DATALINK opens the Data Link Manager (a drawing of AutoCAD 2007 or later; with no window it lists the links). A data link
+is a DATALINK object of the drawing's ACAD_DATALINK dictionary, made as AutoCAD 2021 makes the link of its Excel adapter
+(`AcExcel`, read from the Data Links sample drawing): its tooltip, its connection string (`parts.xlsx!Sheet1!A1:C5`; the
+sheet alone for the entire sheet, the name alone for a named range), its options, its update options (`0x1C0001` as AutoCAD
+sets them: update row heights and column widths, allow writing to the source, the `0x20000` flag where the workbook's formatting
+is not used), when it was last updated, the objects it is tied to and its custom data (`ACEXCEL_UPDATEOPTIONS`,
+`ACEXCEL_CONNECTION_STRING` and `ACEXCEL_SOURCEDATE`, the date of the file as a SYSTEMTIME). The sources are an `.xlsx`
+workbook and a `.csv` file, read by code of the presenter's own (no Excel): shared and inline strings, numbers shown as their
+formats show them (percent, thousands, decimals, dates and times), booleans, the value last kept with a formula (nothing
+is evaluated), a cell's alignment, fill and text colour. A workbook of the older `.xls` kind is told so and not read. The
+manager's New Excel Data Link (name, file with its full, relative or no path, entire sheet, named range or range, a preview,
+Use Excel formatting and Allow writing to the source file), Edit, Rename, Delete (`The data link is being used and cannot be
+deleted.` while a table uses it) and Update are each one undo step; a name in use says `Data link name in use.`
+
+A table is linked to a link by Link Cell (the Table Cell tab and the cell's `Data Link...`, which opens Select a Data
+Link), by TABLE's `From a data link` or by -TABLE's `data Link` option (`Enter the name of a data link or [?]:`). The data is
+put in from the cell, rows and columns added to hold it, a merged title in the way made single cells, and the block is linked as
+one range in the table's TABLECONTENT as AutoCAD links one. DATALINKUPDATE asks `Select an option [Update data link/Write data
+link] <Update>:` then `Select objects or [Data link/all data linKs]:` (tables, a link by name with `?` to list, or all) and
+says `n data link(s) updated successfully.`, `could not be updated`, `written out successfully`, `could not be written out` or
+`do not allow their data to be written out`, as AutoCAD 2021's string tables give them. An update reads the source again and
+makes each table's block the size of the data again; Write puts the table's cells back in the workbook (a cell with a formula
+is left) or the CSV file, the other cells and parts as they were. The cell menu's Data Links (Edit Data Link, Update Table Data
+Links, Download Changes from Source File, Upload User Changes to Source File, Detach Data Link) and the ribbon's Link Cell,
+Download from Source and Upload to Source do the same.
+
+DATAEXTRACTION (alias EATTEXT, the Extract Data button of the Insert tab's Linking & Extraction panel) is the Data Extraction
+wizard of eight pages: Begin (a new extraction, a .dxe as a template, or one to edit; Next asks where the .dxe is saved),
+Define Data Source (drawing files and folders, the current drawing, or the objects selected, which closes the wizard for the
+picking and shows it again at the page; extract from blocks, xrefs, model space only), Select Objects (the object types and
+block names with their counts, Display all, blocks only, non-blocks only, blocks with attributes only, in-use only),
+Select Properties (by category: Attribute, Dynamic Block, Drawing, General, Geometry, Misc), Refine Data (the columns in their
+order, renamed, combine identical rows with a Count, the Count and Name columns, a sort, a filter of AutoCAD's eleven
+conditions, a preview), Choose Output (a table in the drawing, a file of `.xlsx`, `.csv` or `.txt`) and Table Style (the style
+and the title). Finish saves the settings, writes the file and asks `Specify insertion point:` for the table. The table is
+made of a title row (merged), the header row and the data rows; its header and data cells are one range linked to a data link
+named `Data Extraction - file.dxe`, adapter `Autodesk.AutoCAD.DataExtraction.DxDataLinkAdapter`, options 5, update options
+`0x60000`, connection string the .dxe's name, as AutoCAD 2021 wrote it in its Data Extraction sample. DATALINKUPDATE runs the
+extraction again from the .dxe on the drawing as it stands and makes the table's block the size of the result. -DATAEXTRACTION
+asks the same by the command line: `Enter name of an existing data extraction file or [New] <New>:`, what to extract from, the
+types and properties (names separated by commas, All, or ? to list), the combining and the Count and Name columns, a column to
+sort by, the table and its title, an output file, and the .dxe's name. The .dxe is XML of the presenter's own
+(`GeometryHelperDataExtraction`): the .dxe AutoCAD writes is a serialised .NET object that only AutoCAD reads, and is refused
+in words, as the presenter's is not read by AutoCAD. A table of a drawing before AutoCAD 2007 is inserted with no link and
+the command line says so. Not built: sheet sets as a source, `.xls` and `.mdb` output, Link External Data, formula columns, totals
+footers, folder monitoring, an xref's own objects, the notifications of out-of-date tables.
 
 While cells are selected the table is framed by its column letters (A, B ... Z, AA) and row numbers, those of the
 selection on amber, as AutoCAD 2021 draws them with TABLEINDICATOR 1; TABLEINDICATOR 0 hides them, and the variable is

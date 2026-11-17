@@ -217,6 +217,7 @@ namespace GeometryHelper.Dxf.Viewer
             AddHatchOriginTo(registry);
             AddHatchBoundariesTo(registry);
             AddTableExportTo(registry);
+            AddDataLinksTo(registry);
             AddViewportMaximizeTo(registry);
             AddModify3To(registry);
             AddMisc2To(registry);

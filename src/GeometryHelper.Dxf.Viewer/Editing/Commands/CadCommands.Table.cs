@@ -44,6 +44,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets the height of a data row in lines of its text, 1 or more.</summary>
         public int RowHeightLines { get; set; } = 1;
 
+        /// <summary>
+        /// Gets or sets the name of the data link the table is made from ("From a data link"); empty for a table started from
+        /// nothing. The table then has the rows and columns of the link's data, and <see cref="Columns"/> and <see cref="DataRows"/> are not read.
+        /// </summary>
+        public string DataLink { get; set; } = string.Empty;
+
+        /// <summary>Gets or sets whether the table is made from the data of the drawing's objects ("From object data in the drawing (Data Extraction)"): the Data Extraction wizard follows.</summary>
+        public bool FromDataExtraction { get; set; }
+
         /// <summary>Gets or sets what was pressed: OK, or Cancel.</summary>
         public CadDialogAction Action { get; set; }
     }
@@ -86,6 +95,26 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (request.Action != CadDialogAction.Ok)
             {
+                yield break;
+            }
+
+            if (request.FromDataExtraction)
+            {
+                foreach (CadPrompt prompt in DataExtraction(c))
+                {
+                    yield return prompt;
+                }
+
+                yield break;
+            }
+
+            if (!string.IsNullOrEmpty(request.DataLink))
+            {
+                foreach (CadPrompt prompt in TableFromDataLink(c, request.TableStyle, request.DataLink))
+                {
+                    yield return prompt;
+                }
+
                 yield break;
             }
 
@@ -214,9 +243,57 @@ namespace GeometryHelper.Dxf.Viewer
             int columns = (int)c.Remembered("table.columns", 5);
             yield return CadPrompt.ForInteger(
                 "Enter number of columns",
-                null,
+                new[] { "data Link" },
                 columns.ToString(CultureInfo.InvariantCulture)
             );
+
+            if (c.Input.Is("data Link"))
+            {
+                if (CadDataLinks.List(c.Document).Count == 0)
+                {
+                    c.Write("No data links exist in the current drawing.");
+                    c.Write("To create a data link use the DATALINK command.");
+                    yield break;
+                }
+
+                while (true)
+                {
+                    yield return CadPrompt.ForKeywordOrText("Enter the name of a data link or", new[] { "?" }, null);
+
+                    if (c.Input.Is("?"))
+                    {
+                        c.Write("Data Link Name");
+                        c.Write("---------------");
+
+                        foreach (CadDataLinkInfo info in CadDataLinks.List(c.Document))
+                        {
+                            c.Write(info.Name);
+                        }
+
+                        continue;
+                    }
+
+                    string typed = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim() : string.Empty;
+
+                    if (typed.Length == 0)
+                    {
+                        yield break;
+                    }
+
+                    if (CadDataLinks.Find(c.Document, typed) == null)
+                    {
+                        c.Write("Data link not found.");
+                        continue;
+                    }
+
+                    foreach (CadPrompt prompt in TableFromDataLink(c, style, typed))
+                    {
+                        yield return prompt;
+                    }
+
+                    yield break;
+                }
+            }
 
             if (c.Input.Kind == CadInputKind.Number)
             {
