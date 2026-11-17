@@ -880,7 +880,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Gets or sets the size of the crosshair drawn at the cursor, in per cent of the canvas's larger side, with the pickbox
-        /// at its middle while no point is asked for, as AutoCAD's CURSORSIZE: 0, the default, for the system's cross.
+        /// at its middle while no point is asked for, as AutoCAD's CURSORSIZE: 0, the default, for the system's cross. At 100 the
+        /// lines run across the whole canvas whatever the cursor position (through a viewport, across its frame).
         /// </summary>
         public double CrosshairPercent
         {
@@ -4792,7 +4793,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
             }
 
-            double half = _crosshairPercent / 100.0 * Math.Max(ActualWidth, ActualHeight) / 2.0;
+            // At 100 the lines are infinite, as AutoCAD's: long enough to leave the canvas, turned or not, from any cursor
+            // position; the canvas clips them. Below it they are that share of the canvas's larger side long.
+            double half =
+                _crosshairPercent >= 100.0
+                    ? Math.Sqrt(ActualWidth * ActualWidth + ActualHeight * ActualHeight)
+                    : _crosshairPercent / 100.0 * Math.Max(ActualWidth, ActualHeight) / 2.0;
             double box = PickboxPixels;
             bool windowing = (_boxing && _boxFrom.HasValue) || _lasso != null;
             bool picking = !CadPicking.WantsPoint(Session) && !windowing;
@@ -4812,10 +4818,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 along = new Vector(Math.Cos(axis + first), -Math.Sin(axis + first));
                 up = new Vector(Math.Cos(axis + second), -Math.Sin(axis + second));
             }
+
+            // Through a viewport the lines stop at its frame, as AutoCAD's crosshair shows in the current viewport alone.
+            DxfViewport frame = Through;
+
+            if (frame != null)
+            {
+                dc.PushClip(FrameGeometry(frame));
+            }
             dc.DrawLine(pen, at - half * along, at - gap * along);
             dc.DrawLine(pen, at + gap * along, at + half * along);
             dc.DrawLine(pen, at + half * up, at + gap * up);
             dc.DrawLine(pen, at - gap * up, at - half * up);
+
+            if (frame != null)
+            {
+                dc.Pop();
+            }
 
             if (picking)
             {

@@ -45,6 +45,10 @@ width factor of drawing text. A file that holds them keeps them, and OK writes t
 | Save and export | the save folder, autosave (how often, and its format, DXF or DWG); Template settings: the template folder and the default template for QNEW (see [Drawing templates](#drawing-templates)) | empty, which is the user's Documents (a new model drawing goes into its folder `GeometryHelper Drawing`), 10 minutes, DXF; template folder empty, which is `%AppData%\GeometryHelper\Drawing\Template`, no default template for QNEW, which is the built-in metric one |
 | Drawing text (file only) | the font a style's missing font is drawn in where the replacement is not found either, the heights and the width factor of drawing text: TEXT and MTEXT start from the text height and write the width factor, and DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER and DIMANGULAR write their text at the text height | drawing font Arial, text 2.5, titles 5, width factor 0.8 |
 
+The crosshair size (`CrosshairPercent`, CURSORSIZE) is a share of the canvas: at 5 % each line is 5 % of the larger side of
+the canvas long, centred on the cursor; at 100 % the lines are infinite, as AutoCAD's, and run from edge to edge of the
+canvas (through a viewport, of its frame) wherever the cursor is.
+
 On the Shortcuts page a Keys cell takes the keys pressed in it, as the shortcut key box of AutoCAD's Customize User
 Interface does: Ctrl+Shift+D pressed shows `Ctrl+Shift+D` in place of the command's keys, Backspace or Delete clears them,
 and Esc gives back those it had when the cell was entered. A key with Ctrl or Alt, or F1 to F24, is taken; a letter alone or
