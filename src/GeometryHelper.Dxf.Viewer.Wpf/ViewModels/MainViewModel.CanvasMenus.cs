@@ -7,7 +7,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>
     /// The canvas's right-click menus, as AutoCAD 2021's with its default SHORTCUTMENU 11: the Default, Edit, Command and
     /// Grips menus of its menu file, their items in its order with its access keys, each mapped to the presenter's own command;
-    /// an item the presenter does not build is grey, with "Not built yet." (SteeringWheels and Action Recorder), and the 3D ones (Subobject Selection Filter, 3D Osnap) are left
+    /// an item the presenter does not build is grey, with "Not built yet." (SteeringWheels), and the Action Recorder and the 3D ones (Subobject Selection Filter, 3D Osnap) are left
     /// out.
     /// </summary>
     public sealed partial class MainViewModel
@@ -22,8 +22,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Command menu at every prompt, with neither 4 nor 8 none; no menu is Enter.
         /// <para>
         /// The Default menu: Repeat and the command run last (once one has run), Clipboard (Cut, Copy, Copy with Base Point,
-        /// Paste, Paste as Block, Paste to Original Coordinates), Isolate, Undo, Redo, Pan, Zoom, SteeringWheels, Action
-        /// Recorder, Convert PS to MS, Quick Select..., QuickCalc, Find... and Options.... The Edit menu: Repeat, the items of
+        /// Paste, Paste as Block, Paste to Original Coordinates), Isolate, Undo, Redo, Pan, Zoom, SteeringWheels,
+        /// Convert PS to MS, Quick Select..., QuickCalc, Find... and Options.... The Edit menu: Repeat, the items of
         /// the object menu AutoCAD merges in for the objects selected (Edit... for one text, Polyline for one polyline, Size
         /// Columns Equally and the rest for one table, Display Locked for viewports; none for objects of more than one kind),
         /// Clipboard, Isolate, Erase, Move, Copy Selection, Scale, Rotate, Draw Order, Group, Add Selected, Select Similar,
@@ -85,14 +85,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             items.Add(MenuCommand("Pan", "PAN", 'a'));
             items.Add(MenuCommand("Zoom", "ZOOM", 'Z'));
             items.Add(NotBuilt("SteeringWheels"));
-            items.Add(CadMenuItemViewModel.Separator());
-            items.Add(
-                new CadMenuItemViewModel(
-                    "Action Recorder",
-                    false,
-                    new[] { NotBuilt("Play"), CadMenuItemViewModel.Separator(), NotBuilt("Record"), NotBuilt("Stop") }
-                )
-            );
             items.Add(CadMenuItemViewModel.Separator());
             items.Add(MenuCommand(paper ? "Convert MS to PS" : "Convert PS to MS", "CHSPACE", 'v'));
             items.Add(MenuCommand("Quick Select...", "QSELECT", 'Q'));

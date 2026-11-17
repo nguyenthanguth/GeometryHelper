@@ -250,7 +250,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 string dwg = LineDwg(folder, "plan.dwg");
                 string dxf = folder.Write("plan.dxf", CadTemplate.CreateMetric());
                 var model = new MainViewModel();
-                model.ApplySettings(new GlobalSettings { AutosaveMinutes = 5, BackupsKept = 2 });
+                model.ApplySettings(new GlobalSettings { AutosaveMinutes = 5 });
                 Assert.True(model.Open(dwg));
                 model.Execute("LINE 0,100 100,100");
                 model.Enter();
@@ -261,12 +261,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 string[] written = model.Autosave().ToArray();
 
                 // Before, both were plan.autosave1.dxf: the second pushed the first to plan.autosave2.dxf.
-                string ofDwg = Path.Combine(folder.FullPath, "plan.dwg.autosave1.dxf");
-                string ofDxf = Path.Combine(folder.FullPath, "plan.autosave1.dxf");
+                string ofDwg = Path.Combine(folder.FullPath, "plan.dwg.autosave.dxf");
+                string ofDxf = Path.Combine(folder.FullPath, "plan.autosave.dxf");
                 Assert.Equal(new[] { ofDwg, ofDxf }, written);
                 Assert.Equal(2, CadDocument.Open(ofDwg).EntityCount);
                 Assert.Equal(1, CadDocument.Open(ofDxf).EntityCount);
-                Assert.False(File.Exists(Path.Combine(folder.FullPath, "plan.autosave2.dxf")));
+                Assert.False(File.Exists(Path.Combine(folder.FullPath, "plan.autosave1.dxf")));
                 model.Refresh();
                 Assert.DoesNotContain(model.FileRows, r => r.Label.Contains("autosave"));
             }

@@ -135,25 +135,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
-        public void AutosaveKeepsRotatingCopiesBesideTheFileAndNeverWritesTheFile()
+        public void AutosaveWritesOneCopyBesideTheFileOverAndOverAndNeverWritesTheFile()
         {
             var model = new MainViewModel();
             string room = _folder.Write("room.dxf", TestFiles.Room(out _, out _));
             byte[] before = File.ReadAllBytes(room);
-            model.ApplySettings(new GlobalSettings { AutosaveMinutes = 5, BackupsKept = 2 });
+            model.ApplySettings(new GlobalSettings { AutosaveMinutes = 5 });
             Assert.True(model.Open(room));
             Assert.Empty(model.Autosave());
             AddLine(model);
 
-            Assert.Equal(new[] { Path.Combine(_folder.FullPath, "room.autosave1.dxf") }, model.Autosave());
+            Assert.Equal(new[] { Path.Combine(_folder.FullPath, "room.autosave.dxf") }, model.Autosave());
             model.Autosave();
             model.Autosave();
 
-            Assert.True(File.Exists(Path.Combine(_folder.FullPath, "room.autosave1.dxf")));
-            Assert.True(File.Exists(Path.Combine(_folder.FullPath, "room.autosave2.dxf")));
-            Assert.False(File.Exists(Path.Combine(_folder.FullPath, "room.autosave3.dxf")));
+            Assert.True(File.Exists(Path.Combine(_folder.FullPath, "room.autosave.dxf")));
+            Assert.False(File.Exists(Path.Combine(_folder.FullPath, "room.autosave1.dxf")));
+            Assert.False(File.Exists(Path.Combine(_folder.FullPath, "room.autosave2.dxf")));
             Assert.Equal(before, File.ReadAllBytes(room));
-            Assert.Equal(4, CadDocument.Open(Path.Combine(_folder.FullPath, "room.autosave1.dxf")).EntityCount);
+            Assert.Equal(4, CadDocument.Open(Path.Combine(_folder.FullPath, "room.autosave.dxf")).EntityCount);
             model.Refresh();
             Assert.DoesNotContain(model.FileRows, r => r.Label.Contains("autosave"));
 

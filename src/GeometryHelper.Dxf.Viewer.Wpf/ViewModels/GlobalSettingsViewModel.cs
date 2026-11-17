@@ -1080,7 +1080,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 ),
                 new GlobalSettingCategory(
                     "Save and export",
-                    "Where drawings are saved, how often a drawing with changes is saved aside and how many backups are kept; and the templates: the folder NEW's Select Template starts in, and the template QNEW starts a new drawing from (empty, the built-in metric template), as AutoCAD's Template Settings of its Files tab."
+                    "Where drawings are saved, how often a drawing with changes is saved aside, as one copy written over each time, and in which format (DXF or DWG); and the templates: the folder NEW's Select Template starts in, and the template QNEW starts a new drawing from (empty, the built-in metric template), as AutoCAD's Template Settings of its Files tab."
                 ),
             };
             CategoryCommand = new DelegateCommand(p =>
@@ -1633,7 +1633,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     {
                         Text("Save folder", () => s.SaveFolder, v => s.SaveFolder = v),
                         Number("Autosave every", "min", () => s.AutosaveMinutes, v => s.AutosaveMinutes = Whole(v)),
-                        Number("Backups kept", null, () => s.BackupsKept, v => s.BackupsKept = Whole(v)),
+                        Choice(
+                            "Autosave format",
+                            GlobalSettings.AutosaveFormats,
+                            () => s.AutosaveFormat,
+                            v => s.AutosaveFormat = v
+                        ),
                     }
                 ),
                 new GlobalSettingSection(
@@ -1732,7 +1737,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>
         /// Imports the aliases of an acad.pgp file into the Shortcuts page, as AutoCAD reads them, its entries winning: an alias
         /// new is added to its command, one of another command is moved, and one whose command this app does not have is
-        /// skipped; the notice says how many. Nothing is applied until Apply or OK.
+        /// skipped, and so is one that is the name of another command of this app (acad.pgp's <c>DXFOUT, *SAVEAS</c>: a name
+        /// wins over an alias, and the page marks such an alias as a conflict, which would keep Apply and OK off); the notice
+        /// says how many. Nothing is applied until Apply or OK.
         /// </summary>
         /// <param name="path">The .pgp file.</param>
         /// <returns>Whether the file was read; false, said in the notice, where it was not.</returns>
@@ -1768,13 +1775,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             int added = 0,
                 changed = 0,
                 same = 0,
-                skipped = 0;
+                skipped = 0,
+                named = 0;
 
             foreach (KeyValuePair<string, string> pair in aliases)
             {
                 if (!rows.TryGetValue(pair.Value, out ShortcutRowViewModel target))
                 {
                     skipped++;
+                    continue;
+                }
+
+                // A name wins over an alias where a word is typed, so an alias that is the name of another command could never
+                // be used and the page would show it in red, which keeps Apply and OK off: DXFOUT, SAVEAS's alias in AutoCAD.
+                if (
+                    rows.ContainsKey(pair.Key)
+                    && !string.Equals(pair.Key, target.Command, StringComparison.OrdinalIgnoreCase)
+                )
+                {
+                    named++;
                     continue;
                 }
 
@@ -1819,6 +1838,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                             + skipped.ToString(CultureInfo.InvariantCulture)
                             + (skipped == 1 ? " skipped, its command" : " skipped, their commands")
                             + " not in this app"
+                        : string.Empty
+                )
+                + (
+                    named > 0
+                        ? "; " + Count(named, "alias", "aliases") + " left out, the name of a command"
                         : string.Empty
                 )
                 + (unread > 0 ? "; " + Count(unread, "line", "lines") + " not read" : string.Empty)

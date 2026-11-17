@@ -152,20 +152,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Saves a copy of each open drawing that has a file and changes not saved, as AutoCAD's autosave does: beside the file,
-        /// named plan.autosave1.dxf for plan.dxf and plan.dwg.autosave1.dxf for plan.dwg, so that the two in one folder keep
-        /// copies of their own, the newest the first and <see cref="GlobalSettings.BackupsKept"/> kept; the user's file itself
-        /// is never written. A drawing with a command running, or with no file yet, is left for the next time.
+        /// named plan.autosave.dxf for plan.dxf and plan.dwg.autosave.dxf for plan.dwg, so that the two in one folder keep
+        /// copies of their own; there is one copy of a drawing, written over at each autosave, and the user's file itself is
+        /// never written. With <see cref="GlobalSettings.AutosaveFormat"/> DWG the copy is plan.autosave.dwg, written by the DWG
+        /// writer in the version the drawing is saved as (AutoCAD 2018 where it never was saved as a DWG); a drawing the DWG
+        /// writer refuses gets no copy that time, said in the log. The numbered copies older versions wrote
+        /// (plan.autosave1.dxf) are left where they are. A drawing with a command running, or with no file yet, is left for the
+        /// next time.
         /// </summary>
         /// <returns>The copies written.</returns>
         public IReadOnlyList<string> Autosave()
         {
             var written = new List<string>();
-            int keep = _settings.BackupsKept;
 
-            if (keep <= 0 || _settings.AutosaveMinutes <= 0)
+            if (_settings.AutosaveMinutes <= 0)
             {
                 return written;
             }
+
+            bool dwg = _settings.AutosaveFormat == "DWG";
 
             foreach (
                 KnownFile file in _files
@@ -184,31 +189,27 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 string name = path.EndsWith(".dwg", StringComparison.OrdinalIgnoreCase)
                     ? System.IO.Path.GetFileName(path)
                     : System.IO.Path.GetFileNameWithoutExtension(path);
-                string Copy(int k) =>
-                    System.IO.Path.Combine(
-                        folder,
-                        name + ".autosave" + k.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".dxf"
-                    );
+                string copy = System.IO.Path.Combine(folder, name + ".autosave" + (dwg ? ".dwg" : ".dxf"));
 
                 try
                 {
-                    if (File.Exists(Copy(keep)))
+                    // The file is written whole from bytes made first, so that a drawing the writer fails on leaves the last copy.
+                    if (dwg)
                     {
-                        File.Delete(Copy(keep));
+                        string version = CadDrawingFile.IsDwgVersion(file.Document.SaveVersion)
+                            ? file.Document.SaveVersion
+                            : null;
+                        CadDrawingFile.Save(file.Document.Database, copy, version, null, null);
+                    }
+                    else
+                    {
+                        file.Document.Database.Save(copy);
                     }
 
-                    for (int k = keep - 1; k >= 1; k--)
-                    {
-                        if (File.Exists(Copy(k)))
-                        {
-                            File.Move(Copy(k), Copy(k + 1));
-                        }
-                    }
-
-                    file.Document.Database.Save(Copy(1));
-                    written.Add(Copy(1));
+                    written.Add(copy);
                 }
-                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                catch (Exception ex)
+                    when (ex is IOException || ex is UnauthorizedAccessException || ex is NotSupportedException)
                 {
                     GeometryHelperLog.Warn(
                         "MainViewModel: the autosave copy of " + path + " could not be written.",
@@ -225,13 +226,53 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return written;
         }
 
-        /// <summary>Whether a file is a copy autosave keeps: plan.autosave2.dxf, plan.dwg.autosave2.dxf.</summary>
-        private static bool IsAutosaveCopy(string path)
+        /// <summary>
+        /// Whether a file is a copy autosave keeps, and of which drawing: plan.autosave.dxf and plan.autosave.dwg of the DXF
+        /// plan.dxf, plan.dwg.autosave.dxf of the DWG plan.dwg, and the numbered copies older versions wrote
+        /// (plan.autosave2.dxf, plan.dwg.autosave1.dxf).
+        /// </summary>
+        /// <param name="path">The file.</param>
+        /// <param name="original">The name of the drawing it is a copy of, without the extension where it is a DXF: "plan", "plan.dwg".</param>
+        /// <param name="age">0 for the copy autosave writes now, else the number of an older version's copy: 1 is the newest.</param>
+        private static bool TryParseAutosaveCopy(string path, out string original, out int age)
         {
+            original = null;
+            age = 0;
+            string extension = System.IO.Path.GetExtension(path);
+
+            if (
+                !extension.Equals(".dxf", StringComparison.OrdinalIgnoreCase)
+                && !extension.Equals(".dwg", StringComparison.OrdinalIgnoreCase)
+            )
+            {
+                return false;
+            }
+
             string name = System.IO.Path.GetFileNameWithoutExtension(path);
             int at = name.LastIndexOf(".autosave", StringComparison.OrdinalIgnoreCase);
-            return at >= 0 && name.Length > at + 9 && name.Substring(at + 9).All(char.IsDigit);
+
+            if (
+                at <= 0
+                || (
+                    name.Length > at + 9
+                    && !int.TryParse(
+                        name.Substring(at + 9),
+                        System.Globalization.NumberStyles.None,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out age
+                    )
+                )
+            )
+            {
+                return false;
+            }
+
+            original = name.Substring(0, at);
+            return true;
         }
+
+        /// <summary>Whether a file is a copy autosave keeps: plan.autosave.dxf, plan.autosave.dwg, plan.dwg.autosave2.dxf.</summary>
+        private static bool IsAutosaveCopy(string path) => TryParseAutosaveCopy(path, out _, out _);
 
         /// <summary>
         /// Gives a command line, once settings are applied, the text height of Global settings as the default of TEXT and MTEXT

@@ -42,7 +42,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             IEnumerable<BackupFileRow> rows = BackupCopies()
                 .Select(b => new BackupFileRow(
                     b.Path,
-                    Path.HasExtension(b.Original) ? b.Original : b.Original + Path.GetExtension(b.Path)
+                    Path.HasExtension(b.Original) ? b.Original : b.Original + ".dxf"
                 ));
             ShowDrawingRecovery(new DrawingRecoveryViewModel(rows, path => Open(path)));
             return true;
@@ -205,7 +205,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return null;
         }
 
-        /// <summary>A copy autosave kept beside a drawing: its file, the drawing it is a copy of, and how many saves ago.</summary>
+        /// <summary>A copy autosave kept beside a drawing: its file, the drawing it is a copy of, and its age: 0 for the one copy autosave writes now, else the number older versions gave their copies.</summary>
         private sealed class BackupCopy
         {
             public BackupCopy(string path, string original, int age)
@@ -224,8 +224,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// The copies autosave left beside the drawings listed, in the order of the folder, the drawing and the age, the newest
-        /// first: plan.autosave1.dxf of plan.dxf, plan.dwg.autosave2.dxf of plan.dwg, in each folder of the Drawings list and
-        /// of the drawings open.
+        /// first: plan.autosave.dxf or plan.autosave.dwg of plan.dxf, plan.dwg.autosave.dxf of plan.dwg, and the numbered
+        /// copies older versions wrote (plan.autosave1.dxf), in each folder of the Drawings list and of the drawings open.
         /// </summary>
         private IReadOnlyList<BackupCopy> BackupCopies()
         {
@@ -250,7 +250,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 try
                 {
                     names = Directory.Exists(folder)
-                        ? Directory.GetFiles(folder, "*.autosave*.dxf")
+                        ? Directory.GetFiles(folder, "*.autosave*")
                         : Array.Empty<string>();
                 }
                 catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
@@ -260,20 +260,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 foreach (string path in names)
                 {
-                    string name = Path.GetFileNameWithoutExtension(path);
-                    int at = name.LastIndexOf(".autosave", StringComparison.OrdinalIgnoreCase);
-
-                    if (
-                        at > 0
-                        && int.TryParse(
-                            name.Substring(at + 9),
-                            NumberStyles.None,
-                            CultureInfo.InvariantCulture,
-                            out int age
-                        )
-                    )
+                    if (TryParseAutosaveCopy(path, out string original, out int age))
                     {
-                        copies.Add(new BackupCopy(path, name.Substring(0, at), age));
+                        copies.Add(new BackupCopy(path, original, age));
                     }
                 }
             }
@@ -288,7 +277,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 .ToList();
         }
 
-        /// <summary>The lines that list the copies: "  1  plan.autosave1.dxf  12 KB  saved 2026-11-13 08:12", or that there are none.</summary>
+        /// <summary>The lines that list the copies: "  1  plan.autosave.dxf  12 KB  saved 2026-11-13 08:12", or that there are none.</summary>
         private static IEnumerable<string> BackupLines(IReadOnlyList<BackupCopy> copies)
         {
             if (copies.Count == 0)

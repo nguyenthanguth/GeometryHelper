@@ -55,8 +55,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                         "Zoom",
                         "SteeringWheels",
                         string.Empty,
-                        "Action Recorder",
-                        string.Empty,
                         "Convert PS to MS",
                         "Quick Select...",
                         "QuickCalc",
@@ -66,30 +64,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     Headers(items)
                 );
                 Assert.Equal(
-                    new[]
-                    {
-                        '\0',
-                        '\0',
-                        'I',
-                        '\0',
-                        'U',
-                        'd',
-                        'a',
-                        'Z',
-                        '\0',
-                        '\0',
-                        '\0',
-                        '\0',
-                        'v',
-                        'Q',
-                        '\0',
-                        'F',
-                        'O',
-                    },
+                    new[] { '\0', '\0', 'I', '\0', 'U', 'd', 'a', 'Z', '\0', '\0', 'v', 'Q', '\0', 'F', 'O' },
                     items.Select(i => i.AccessKey).ToArray()
                 );
                 Assert.Equal(
-                    new[] { "SteeringWheels", "Action Recorder" },
+                    new[] { "SteeringWheels" },
                     items.Where(i => !i.IsSeparator && !i.IsEnabled).Select(i => i.Header).ToArray()
                 );
                 Assert.All(items.Where(i => !i.IsSeparator && !i.IsEnabled && i.Items.Count == 0), i =>

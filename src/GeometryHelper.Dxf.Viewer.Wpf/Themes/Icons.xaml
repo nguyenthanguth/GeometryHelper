@@ -185,8 +185,6 @@
     </Geometry>
     <Geometry x:Key="GhIconExport">M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4M14 3v5h5v4M15 18h7M19 15l3 3-3 3</Geometry>
     <Geometry x:Key="GhIconImport">M12 3v12M7 10l5 5 5-5M4 21h16</Geometry>
-    <Geometry x:Key="GhIconRecord">M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12z</Geometry>
-    <Geometry x:Key="GhIconPlay">M7 4l13 8-13 8z</Geometry>
     <Geometry x:Key="GhIconToolPalette">M3 4h8v7H3zM13 4h8v7h-8zM3 13h8v7H3zM13 13h8v7h-8z</Geometry>
     <Geometry x:Key="GhIconScript">
         M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h6
