@@ -113,7 +113,23 @@ namespace GeometryHelper.Dxf.Viewer
 
             int level = 0;
 
-            while (levels.Count > 1)
+            // REFEDIT shows the Reference Edit dialog where the window has one: the reference, the objects and the three settings
+            // are answered there. -REFEDIT, and REFEDIT with no window, ask on the command line.
+            var request = new CadRefEditRequest(document, levels);
+            bool dialog = c.Command.Name == "REFEDIT" && c.Session.Request("REFEDIT", document, request);
+
+            if (dialog)
+            {
+                if (!request.IsAccepted)
+                {
+                    yield break;
+                }
+
+                request.Apply();
+                level = Math.Max(0, Math.Min(levels.Count - 1, request.SelectedIndex));
+            }
+
+            while (levels.Count > 1 && !dialog)
             {
                 c.Write("Reference: " + levels[level].Path);
                 yield return CadPrompt.ForKeyword("Select nesting level", new[] { "Ok", "Next" }, "Next");
@@ -132,17 +148,38 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            yield return CadPrompt.ForKeyword("Enter object selection method", new[] { "All", "Nested" }, "All");
+            // An external reference whose file changed on disk since it was read is reloaded first, if the answer is Ok.
+            string reload = document.RefEditXrefToReload(levels[level].Chain);
 
-            if (!(c.Input.Is("All") || c.Input.Is("Nested") || c.Input.IsNone))
+            if (reload != null)
             {
-                yield break;
+                c.Write(CadRefEdit.XrefChanged(reload));
+                yield return CadPrompt.ForKeyword("Reload the Xref", new[] { "Ok", "Cancel" }, "Ok");
+
+                if (!(c.Input.Is("Ok") || c.Input.IsNone))
+                {
+                    yield break;
+                }
+
+                document.Xrefs.Forget(reload);
             }
 
-            bool prompting = c.Input.Is("Nested");
+            bool prompting = dialog && request.PromptForObjects;
 
-            // A block with attribute definitions asks whether they are edited too; Enter is No, as the prompt says.
-            if (document.RefEditBlockHasAttributeDefinitions(levels[level].Chain))
+            if (!dialog)
+            {
+                yield return CadPrompt.ForKeyword("Enter object selection method", new[] { "All", "Nested" }, "All");
+
+                if (!(c.Input.Is("All") || c.Input.Is("Nested") || c.Input.IsNone))
+                {
+                    yield break;
+                }
+
+                prompting = c.Input.Is("Nested");
+            }
+
+            // A block with attribute definitions asks whether they are edited too; Enter is No, as the prompt says. The dialog has it as a setting.
+            if (!dialog && document.RefEditBlockHasAttributeDefinitions(levels[level].Chain))
             {
                 yield return CadPrompt.ForKeyword("Display attribute definitions", new[] { "Yes", "No" }, "No");
                 document.RefEditAttributeDefinitions = c.Input.Is("Yes");
@@ -194,8 +231,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!result.Succeeded)
             {
-                c.Write(result.Message);
+                WriteLines(c, result.Message);
                 yield break;
+            }
+
+            if (document.RefEdit.FormatNotice != null)
+            {
+                WriteLines(c, document.RefEdit.FormatNotice);
             }
 
             c.Write(document.RefEdit.WorkingSet.Count.ToString(CultureInfo.InvariantCulture) + " Added to working set");
@@ -203,6 +245,15 @@ namespace GeometryHelper.Dxf.Viewer
             if (document.RefEdit.Skipped > 0)
             {
                 c.Write(Objects(document.RefEdit.Skipped) + " cannot be edited in place and stay in the block.");
+            }
+        }
+
+        /// <summary>Writes a text of AutoCAD's that has line breaks in it (its messages for an external reference) a line at a time.</summary>
+        private static void WriteLines(CadCommandContext c, string text)
+        {
+            foreach (string line in text.Split('\n'))
+            {
+                c.Write(line);
             }
         }
 
@@ -307,18 +358,24 @@ namespace GeometryHelper.Dxf.Viewer
                 .WithKeywordNote(" reference changes");
             bool save = !c.Input.Is("Discard");
             string name = edit.Name;
+            bool xref = edit.IsExternalReference;
             c.Document.RefEditSaveCounts(out int added, out int removed, out int updated);
             CadEditResult result = c.Document.CloseRefEdit(save);
 
             if (!result.Succeeded)
             {
-                c.Write(result.Message);
+                WriteLines(c, result.Message);
                 yield break;
             }
 
             if (!save)
             {
                 yield break;
+            }
+
+            foreach (string note in c.Document.RefEditNotes)
+            {
+                c.Write(note);
             }
 
             if (added > 0)
@@ -329,6 +386,13 @@ namespace GeometryHelper.Dxf.Viewer
             if (removed > 0)
             {
                 c.Write(Objects(removed) + " removed from " + name);
+            }
+
+            if (xref)
+            {
+                c.Write(CadRefEdit.XrefInstancesUpdated(updated));
+                c.Write(CadRefEdit.XrefRedefined(name));
+                yield break;
             }
 
             c.Write(Counted(updated, "block instance") + " updated");

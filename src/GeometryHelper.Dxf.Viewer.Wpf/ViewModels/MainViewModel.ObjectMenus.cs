@@ -127,7 +127,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "XREF":
                     if (one)
                     {
-                        items.Add(NotBuilt("Edit Xref In-place", 'd'));
+                        items.Add(MenuCommand("Edit Xref In-place", "REFEDIT", 'd'));
                     }
 
                     items.Add(OnSelection("Open Xref", "XOPEN", 'X'));

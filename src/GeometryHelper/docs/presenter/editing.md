@@ -2585,8 +2585,9 @@ box, put where the reference draws it, holds the point), 1 found or 0 found each
 selected to edit a reference ** for none. A block that holds attribute definitions asks Display attribute definitions
 [Yes/No] <No>: after it, the answer kept by
 [CadDocument.RefEditAttributeDefinitions](xref:GeometryHelper.Dxf.Viewer.CadDocument.RefEditAttributeDefinitions); whether
-the objects outside the working set are locked is RefEditLocksObjects (the Reference Edit dialog's box, which has no
-question on the command line). A block BOX of a line from (0, 0) to (100, 0) and a circle of 10 about (50, 30), placed at
+the objects outside the working set are locked is RefEditLocksObjects, and whether an external reference's layers
+take names of their own is RefEditUniqueNames (both boxes of the Reference Edit dialog's Settings, which have no question on
+the command line; see below). A block BOX of a line from (0, 0) to (100, 0) and a circle of 10 about (50, 30), placed at
 (1 000, 0), opens as 2 Added to working set with the line at (1 000, 0)-(1 100, 0) and the circle about (1 050, 30); the
 references of the block draw it without those two objects while the edit lasts. The attribute definitions of the block stay in
 it unless they are displayed, and the attributes of the references are never touched (no ATTSYNC is run). A block placed
@@ -2618,13 +2619,56 @@ again `** Command not allowed, BOX already checked out for editing **`, QSAVE an
 reference editing **`, REFSET and REFCLOSE with no edit open `** Command not allowed unless a reference is checked out with
 REFEDIT command **`, and these commands say `Not allowed in the Block Editor.` inside it. An edit is kept in the drawing, in the XRECORD
 `GH_REFEDIT` of the named object dictionary, so that a drawing saved in the middle of one opens with the edit still open. The
-Reference Edit dialog and the Refedit toolbar are not built; an external reference is refused with `External references cannot
-be edited in place in this version.` (writing its file back is left for later), as is a block array. The
-object menu of a block reference starts REFEDIT as Edit Block In-place. AutoCAD 2021's accoreconsole has no REFEDIT, REFSET or
+Refedit toolbar is not built, and a block array is refused (`A block array cannot be edited in place.`). The
+object menu of a block reference starts REFEDIT as Edit Block In-place, and that of one external reference as Edit Xref
+In-place. AutoCAD 2021's accoreconsole has no REFEDIT, REFSET or
 REFCLOSE, fed by a script or by standard input (`Unknown command`; ARXLOAD of AcRefEd.arx fails there, and a long transaction,
 which REFEDIT is made on, returns no transaction), so the prompts and messages are read from the string table of AcRefEdRes.dll,
 AutoCAD 2021's own resource file for it, and the order they come in is the presenter's guess; XFADECTL and REFEDITNAME were probed
 in the console.
+
+**An external reference edited in place.** REFEDIT on an INSERT of an external reference works as it does on a block, on
+the objects of the model space of the drawing the reference names (the drawing is only read, and its file is not touched while
+the edit lasts): they are copied into the drawing where the reference draws them, the references of that file draw it without
+them, and REFCLOSE Save writes them back into the file itself, DWG or DXF, whole and in the version the file had (a DWG of
+AutoCAD 2013 stays AC1027), the objects that were not in the working set, its layers and its blocks as they were. The
+reference of a file with a reference of its own nested in it is edited through the one that names it: where the point picked
+reaches the nested reference the dialog and the command line list `SITE` and `SITE > INNER`, and the edit of the second
+writes the file of INNER. A block of the file is not edited that way (`Selected Xref Block is NOT editable.`), nor is a
+reference whose file is not found, unloaded or cannot be read (`Selected Xref Block is NOT editable: .\site.dxf`).
+With unique layer and symbol names on, as AutoCAD 2021's Reference Edit dialog has them by default (RefEditUniqueNames), the
+layer WALL of the file is the layer `$0$WALL` in the drawing while the edit lasts, a copy of it with its colour, linetype and
+switches (the number raised past a name the drawing has), and the drawing's own WALL is not touched; off, the objects keep
+WALL and share the drawing's layer of that name. When the edit is saved the file's own names come back: `$0$WALL` and
+`SITE|WALL`, the layers the reference brought into the drawing, are WALL in the file, a layer of the drawing the objects added
+with REFSET stand on (FOO) is added to the file with its look, and AutoCAD's list is said first: `The following symbols will
+be added to Xref file:` and `Layers: FOO`. After it come `1 object added to SITE`, `1 xref instance updated` and `SITE
+redefined and reloaded.`; the layers made for the edit are gone from the drawing, and the layers the reference brought are
+read from the file saved. A circle of 10 about (50, 30) in a file moved 50 up in the drawing and saved is the circle about
+(50, 80) in the file, and AutoCAD 2021 opens the file saved (a DWG of AC1027 and of AC1032, AUDIT 0 errors) and shows the
+circle there and the line added on its layer `SITE|FOO`. Where the file is of an older release than the drawing, REFEDIT says
+`The Xref selected references a previous drawing file format.` and that the edits saved back are in the release of the file.
+A file that changed on disk since it was read is reloaded first, `Xref may have changed and must be reloaded: path` and
+`Reload the Xref [Ok/Cancel] <Ok>:`; one another AutoCAD holds open (a `.dwl` or `.dwl2` beside it) is not checked out
+(`Xref cannot be checked out for editing:`, the path and `A file lock already exists on the drawing.`). A file that is gone
+or read only, or that changed since the edit began, refuses the save, `** Failed to Saveback Xref file **`, the edit still
+open to be saved again or discarded; a DWG the writer cannot write whole (it leaves out an object type it has none for) is
+refused the same way rather than losing those objects. Discard writes nothing: the file is byte for byte as it was. The file is
+written beside itself first and moved over the old one, so that a write that fails leaves the old file. Once a file is
+written the step cannot be taken back, so undo stops where the edit closed. The text styles, dimension styles and blocks of
+the file keep their own names in the drawing while the edit lasts, merged by name with the drawing's own, and go back
+as they are; the names `$0$` and `|` of a text style, linetype, dimension style or block an object stands on are made the
+file's own when saved.
+
+**The Reference Edit dialog.** REFEDIT (not -REFEDIT) shows AutoCAD 2021's Reference Edit dialog where the window has one:
+Identify Reference lists the references the point reaches (the name, `Xref` or `Block`, indented by how deep it is nested) with
+the path of the one chosen (the file of an external reference, `Xref file not found`, or `Block definition`) and Automatically
+select all nested objects or Prompt to select nested objects; Settings has Enable unique layer and symbol names (for an
+external reference), Display attribute definitions for editing (for a block that has some) and Lock objects not in working set.
+OK writes the settings to the document ([CadDocument.RefEditUniqueNames](xref:GeometryHelper.Dxf.Viewer.CadDocument.RefEditUniqueNames),
+RefEditAttributeDefinitions, RefEditLocksObjects) and opens the edit with no question on the command line; Cancel and Esc open
+nothing. With no window, or as -REFEDIT, the command line asks as before. The request is
+[CadRefEditRequest](xref:GeometryHelper.Dxf.Viewer.CadRefEditRequest).
 
 A prompt for a number refuses what it cannot take in the words AutoCAD 2021's console gives that prompt, probed with text,
 2.5, nought, a negative number and one past the most, and asks it again: POLYGON's sides say `Requires an integer between 3

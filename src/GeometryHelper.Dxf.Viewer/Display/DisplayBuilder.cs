@@ -2641,7 +2641,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (clip == null)
                 {
-                    builder.DrawReferenced(inner, list);
+                    builder.DrawReferenced(inner, list, _document.RefEditHiddenInFile(content.FullPath));
                     return;
                 }
 
@@ -2653,7 +2653,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 try
                 {
-                    builder.DrawReferenced(inner, list);
+                    builder.DrawReferenced(inner, list, _document.RefEditHiddenInFile(content.FullPath));
                 }
                 finally
                 {
@@ -2669,13 +2669,19 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The model space of a drawing referenced, drawn into the list of the drawing showing it under a frame.</summary>
-        private void DrawReferenced(Frame frame, DisplayList2 list)
+        private void DrawReferenced(Frame frame, DisplayList2 list, HashSet<string> hidden)
         {
             foreach (
                 DxfEntity entity in (IEnumerable<DxfEntity>)ContentOf(_database.ModelSpace)?.Entities
                     ?? _database.ModelSpace
             )
             {
+                // The objects of the drawing the copies of an edit in place stand for are not drawn while it lasts.
+                if (hidden != null && hidden.Contains(HandleOf(entity) ?? string.Empty))
+                {
+                    continue;
+                }
+
                 try
                 {
                     if (frame.Slabs == null)
