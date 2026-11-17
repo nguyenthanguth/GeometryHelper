@@ -4316,7 +4316,18 @@ by the angle, the view height by the frame's, and the view's centre becomes the 
 target. A viewport 200 by 100 about (110, 60) showing (1 000, 500) at 1:10, turned 45 degrees about the origin, is clipped to
 the corners (0, 14.142), (141.421, 155.564), (70.711, 226.274) and (-70.711, 84.853), 212.132 square about (35.355, 120.208),
 twisted 45 degrees, its view centre at (353.553, 1 060.660), 2 121.32 high; turned 90 degrees about the origin it is 100 by 200
-about (-60, 110), twisted 90 degrees, its view centre at (-500, 1 000). MVIEW's Object option makes a viewport of a closed
+about (-60, 110), twisted 90 degrees, its view centre at (-500, 1 000). A viewport that is not clipped is resized as AutoCAD
+2021 does it (probed in its console on a viewport 200 by 100 about (150, 100) at 1:50 showing (1 000, 500), the view twisted 0
+and 30 degrees alike): the model stands still on the sheet and only the window onto it changes, the scale kept. A corner grip
+dragged, STRETCH of a window about one corner (the frame is the box of its four corners as moved; a window holding all four
+moves it whole, as a MOVE does, the view going with the frame) or about the two corners of one side, and SCALE all give the frame
+a new box and move the view's centre by the step of the frame's centre over the scale, in the view's own coordinates, which
+run with the frame's sides, so a twist leaves the step as it is. The lower right corner dragged to (280, 20) gives 230 by 130
+about (165, 85), the view's centre (1 750, -250), 6 500 high; the right side stretched 20 gives 220 by 100 about (160, 100), the
+view's centre (1 500, 500); SCALE by 2 about the corner (50, 50) gives 400 by 200 about (250, 150), the view's centre (6 000, 3 000),
+10 000 high, and about the frame's own centre it leaves the view's centre where it was; a corner dragged past the opposite one
+gives the frame between the two, the model still where it was. The Width and Height of the Properties keep the centre, so the
+model stays too. A MOVE keeps the view's centre, the frame taking its view along. MVIEW's Object option makes a viewport of a closed
 polyline, circle, ellipse, spline or region picked (`Select object to clip viewport:`): its frame the box of the object, the
 object its border; an open polyline says `Clip object must be closed.` and any other entity `Invalid viewport clip object.`,
 and the command asks again. Its Polygonal option asks `Specify start point:` and `Specify next point or [Arc/Close/Length/Undo]:` as

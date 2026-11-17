@@ -214,7 +214,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Near(P(210, 110), grips[2].Point);
             Assert.Empty(CadGrips.Of(All<DxfViewport>(document.CurrentSpace).First(v => v.Number == 1)));
 
-            // The upper right corner dragged out to (310, 160): the lower left kept, the view at 1:10 about the same point.
+            // The upper right corner dragged out to (310, 160): the lower left kept, the view at 1:10, the model standing still on the
+            // sheet, so its centre moves by the step of the frame's centre, (50, 25), over the scale, 0.1: from (1 000, 500) to
+            // (1 500, 750), as AutoCAD 2021's STRETCH leaves it.
             Assert.True(document.GripDrag(handle, 2, P(310, 160)).Succeeded);
 
             var viewport = Entity<DxfViewport>(document, handle);
@@ -222,7 +224,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(300, viewport.Width, 9);
             Assert.Equal(150, viewport.Height, 9);
             Assert.Equal(0.1, viewport.Height / viewport.ViewHeight, 12);
-            Assert.Equal(1000, viewport.ViewCenter.X, 9);
+            Assert.Equal(1500, viewport.ViewCenter.X, 9);
+            Assert.Equal(750, viewport.ViewCenter.Y, 9);
             Assert.Equal(
                 1.5,
                 Assert.Single(document.GetDisplay(document.CurrentSpace).Items.OfType<DisplayViewport2>()).Width

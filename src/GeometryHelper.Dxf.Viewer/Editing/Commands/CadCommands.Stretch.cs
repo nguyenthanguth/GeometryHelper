@@ -401,7 +401,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Which points of an entity STRETCH moves, each true where it lies in a window: a line's two ends, a polyline's
-        /// vertices, an arc's two ends, a linear dimension's two origins and the point of its line; one point for an entity
+        /// vertices, an arc's two ends, a linear dimension's two origins and the point of its line, a viewport's four corners; one point for an entity
         /// moved whole by it (a circle's or an ellipse's centre, the point a text, a block or a point is placed by); for any
         /// other entity one point, true where all of its box lies inside.
         /// </summary>
@@ -442,6 +442,13 @@ namespace GeometryHelper.Dxf.Viewer
                     };
                 case DxfDBPoint point:
                     return new[] { inside(point.Position) };
+                case DxfViewport frame when frame.NonRectClipEntity == null && !(frame.On && frame.Number == 1):
+                {
+                    // The four corners of its frame, from the lower left round counter-clockwise, as its grips lie.
+                    GeoPoint3[] corners = FrameCorners(frame);
+                    return new[] { inside(corners[0]), inside(corners[1]), inside(corners[2]), inside(corners[3]) };
+                }
+
                 case DxfUnknownEntity mline when CadMlineEdit.IsMline(mline):
                 {
                     IList<GeoPoint3> points = new DxfMlineBuilder(mline).Points;
@@ -486,6 +493,21 @@ namespace GeometryHelper.Dxf.Viewer
                             && inside(new GeoPoint3(box.Max.X, box.Min.Y, 0.0)),
                     };
             }
+        }
+
+        /// <summary>The corners of a viewport's frame, from the lower left round counter-clockwise.</summary>
+        private static GeoPoint3[] FrameCorners(DxfViewport frame)
+        {
+            GeoPoint3 c = frame.CenterPoint;
+            double w = frame.Width / 2.0;
+            double h = frame.Height / 2.0;
+            return new[]
+            {
+                new GeoPoint3(c.X - w, c.Y - h, 0.0),
+                new GeoPoint3(c.X + w, c.Y - h, 0.0),
+                new GeoPoint3(c.X + w, c.Y + h, 0.0),
+                new GeoPoint3(c.X - w, c.Y + h, 0.0),
+            };
         }
 
         /// <summary>The point of a curve of a region's loop that STRETCH holds: the centre of a whole circle or ellipse, else where the curve starts.</summary>
@@ -604,6 +626,35 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfArc arc:
                     StretchArc(arc, held[0] ? by : default, held[1] ? by : default);
                     break;
+                case DxfViewport frame:
+                {
+                    // The frame becomes the box of its corners as moved, the model standing still on the sheet (AutoCAD 2021): a
+                    // window about one corner, or the two on one side, resizes it; one about all four moves it whole, elsewhere.
+                    GeoPoint3[] corners = FrameCorners(frame);
+                    double minX = double.MaxValue,
+                        minY = double.MaxValue,
+                        maxX = double.MinValue,
+                        maxY = double.MinValue;
+
+                    for (int i = 0; i < corners.Length; i++)
+                    {
+                        double x = corners[i].X + (held[i] ? by.X : 0.0);
+                        double y = corners[i].Y + (held[i] ? by.Y : 0.0);
+                        minX = Math.Min(minX, x);
+                        minY = Math.Min(minY, y);
+                        maxX = Math.Max(maxX, x);
+                        maxY = Math.Max(maxY, y);
+                    }
+
+                    double least = Tolerance.Default.EqualPoint;
+
+                    if (maxX - minX > least && maxY - minY > least)
+                    {
+                        frame.FitFrame(minX, minY, maxX, maxY);
+                    }
+
+                    break;
+                }
                 case DxfUnknownEntity mline when CadMlineEdit.IsMline(mline):
                 {
                     // The vertices inside move together, as AutoCAD 2021's MoveVertexAt moves each: cuts kept where a segment keeps its way.
