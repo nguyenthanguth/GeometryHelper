@@ -42,7 +42,7 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>Writes the association.</summary>
         /// <param name="classes">The user's classes.</param>
-        /// <param name="appName">The app's name, shown in the type of a file: "Drawing (GeometryHelper DXF)".</param>
+        /// <param name="appName">The app's name, shown in the type of a file: "Drawing (GeometryHelper CAD)".</param>
         /// <param name="exePath">The full path of the app's exe, which is given the file as its one argument.</param>
         /// <param name="iconPath">The icon of a drawing file: a .ico file, or an exe and the index of its icon.</param>
         internal static void Register(ICadUserClasses classes, string appName, string exePath, string iconPath)

@@ -626,7 +626,7 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets the command of Exit at the foot.</summary>
         public ICommand ExitCommand { get; }
 
-        /// <summary>Gets the words of Exit, with the name of the app: "Exit GeometryHelper DXF".</summary>
+        /// <summary>Gets the words of Exit, with the name of the app: "Exit GeometryHelper CAD".</summary>
         public string ExitText { get; }
 
         /// <summary>Opens a file of Recent Documents; the menu closes.</summary>
@@ -756,7 +756,7 @@ namespace GeometryHelper.Cad.Wpf
         internal Func<DateTime> Now { get; set; } = () => DateTime.Now;
 
         /// <summary>Makes the application menu of the G button, its items as the drawing shown allows.</summary>
-        /// <param name="appName">The name of the app, which Exit names: "GeometryHelper DXF"; null for "GeometryHelper".</param>
+        /// <param name="appName">The name of the app, which Exit names: "GeometryHelper CAD"; null for "GeometryHelper".</param>
         /// <returns>The menu.</returns>
         public AppMenuViewModel CreateAppMenu(string appName = null) => new AppMenuViewModel(this, appName);
 

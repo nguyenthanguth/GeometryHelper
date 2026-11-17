@@ -1011,13 +1011,13 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         [Fact]
         public void TheAppMenu_HasTheDesignsItems_GreysWhatNeedsADrawing_AndShowsAnItemsListOnHover()
         {
-            AppMenuViewModel start = new MainViewModel().CreateAppMenu("GeometryHelper DXF");
+            AppMenuViewModel start = new MainViewModel().CreateAppMenu("GeometryHelper CAD");
 
             Assert.Equal(
                 new[] { "New", "Open", "Save", "Save As", "", "Import", "Export", "Print", "", "Close" },
                 start.Items.Select(i => i.Name)
             );
-            Assert.Equal("Exit GeometryHelper DXF", start.ExitText);
+            Assert.Equal("Exit GeometryHelper CAD", start.ExitText);
             Assert.False(start.Items.Single(i => i.Key == "save").IsEnabled);
             Assert.False(start.Items.Single(i => i.Key == "export").IsEnabled);
             Assert.False(start.Items.Single(i => i.Key == "import").IsEnabled);

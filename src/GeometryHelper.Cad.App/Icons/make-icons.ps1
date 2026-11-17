@@ -1,4 +1,4 @@
-# Writes the icons of GeometryHelper DXF from the vector drawing below: app.ico, the app's (ApplicationIcon and the window's),
+# Writes the icons of GeometryHelper CAD from the vector drawing below: app.ico, the app's (ApplicationIcon and the window's),
 # and drawing-file.ico, the icon of a .dxf or .dwg file associated with the app (--register). Each holds 16, 24, 32, 48 and
 # 256 pixels: 16 and 24 are drawn on their own pixel grid, the others from one drawing 256 units square. The 256 frame is a
 # PNG, the smaller ones 32-bit bitmaps. Run it with Windows PowerShell from any folder after changing a shape:

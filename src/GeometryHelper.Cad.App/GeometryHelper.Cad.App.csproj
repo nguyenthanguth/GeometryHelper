@@ -8,7 +8,7 @@
         <RootNamespace>GeometryHelper.Cad.App</RootNamespace>
         <AssemblyName>GeometryHelper.Cad.App</AssemblyName>
         <StartupObject>GeometryHelper.Cad.App.Program</StartupObject>
-        <Description>GeometryHelper DXF: the standalone app that opens, edits and plots DXF drawings, laid out as AutoCAD 2D.</Description>
+        <Description>GeometryHelper CAD: the standalone app that opens, edits and plots DXF and DWG drawings, laid out as AutoCAD 2D.</Description>
         <IsPackable>false</IsPackable>
         <NoWarn>$(NoWarn);MSB3277</NoWarn>
         <ApplicationIcon>Icons\app.ico</ApplicationIcon>

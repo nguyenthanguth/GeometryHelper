@@ -321,7 +321,7 @@ tab (see [Command plugins](plugins.md)), a Settings tab, and the tabs a host add
 | Ctrl+O | opens a DWG or DXF (see [DWG files](#dwg-files)) |
 | Ctrl+W | switches selection cycling on and off, as AutoCAD 2021 |
 | Ctrl+S, Ctrl+Shift+S | saves, saves as |
-| Ctrl+N | runs the new document an extension offers (`MainViewModel.NewDocumentOffer`); where none does, as in GeometryHelper DXF, makes a new drawing (NEW) |
+| Ctrl+N | runs the new document an extension offers (`MainViewModel.NewDocumentOffer`); where none does, as in GeometryHelper CAD, makes a new drawing (NEW) |
 | Ctrl+Z, Ctrl+Y | undo, redo |
 | Delete | erases the selection |
 | F2 | the text window (TEXTSCR): the command history in a resizable list with Copy; F2 or Esc inside it closes it |
@@ -669,7 +669,7 @@ shown) are shown through functions the workspace sets, as the other dialogs are;
 With no drawing open the canvas shows the start screen: the name of the app, Open DXF… (Ctrl+O), New, and Recent
 Documents with the same files and pins as the application menu, under PINNED and RECENT headings, each row with its
 preview, folder and when it was opened (`today 09:14`, `yesterday 16:40`, `2026-10-30`); the two buttons at its top right
-show the files as a list or as large pictures. GeometryHelper DXF, which has no extension, offers `New ·
+show the files as a list or as large pictures. GeometryHelper CAD, which has no extension, offers `New ·
 Ctrl+N` (NEW) and says "Ctrl+O opens a DXF, Ctrl+N starts a new drawing." on the command line. An extension may offer a new
 document of its own, a `CadNewDocumentOffer` (its menu name, button text, tooltip, start-screen line, welcome line and what
 running it does) returned by `CadWorkspaceExtension.NewDocumentOffer`: the start screen then adds its button and calls NEW
@@ -682,7 +682,7 @@ There are two standalone apps, both net8.0-windows, both the same window over th
 
 | App | What it is | Use it to |
 |---|---|---|
-| GeometryHelper DXF, `GeometryHelper.Cad.App.exe` | the presenter alone: `GeometryHelper.Cad` and its controls, no model drawing | open, edit and plot DXF drawings in place of AutoCAD; the program to associate with `.dxf` files |
+| GeometryHelper CAD, `GeometryHelper.Cad.App.exe` | the presenter alone: `GeometryHelper.Cad` and its controls, no model drawing | open, edit and plot DXF drawings in place of AutoCAD; the program to associate with `.dxf` files |
 | GeometryHelper Drawing, `GeometryHelper.Drawing.App.exe` | the presenter with the model drawing added: the Drawing tab, New drawing, Update from model and the drawing plugins | make drawings from a model (see [Model drawings](../drawing/index.md#the-app)) and edit them |
 
 ```
@@ -690,7 +690,7 @@ GeometryHelper.Cad.App.exe plan.dxf
 ```
 
 opens the window on a drawing, as double-clicking a file associated with the app does. The app reads the global settings from
-the user's file and loads the command plugins of its plugin folder on the startup list: GeometryHelper DXF keeps them in
+the user's file and loads the command plugins of its plugin folder on the startup list: GeometryHelper CAD keeps them in
 `%AppData%\GeometryHelper\Dxf`, GeometryHelper Drawing in `%AppData%\GeometryHelper\Drawing`, so that a drawing plugin is
 never offered to the app that has no model drawing. The title bar and the start screen carry the app's name.
 
@@ -701,7 +701,7 @@ options name. A host of its own does the same.
 
 ### The icon and the file association
 
-GeometryHelper DXF has an icon of its own, a white set square and an orange point on a blue tile, at 16, 24, 32, 48 and 256
+GeometryHelper CAD has an icon of its own, a white set square and an orange point on a blue tile, at 16, 24, 32, 48 and 256
 pixels: the exe carries it, and the window shows it on the taskbar and in Alt+Tab (`CadAppHost.WindowIcon`). A drawing file
 associated with the app shows a page with the same tile on it. Both are written from their vector drawing by
 `src/GeometryHelper.Cad.App/Icons/make-icons.ps1` into `app.ico` and `drawing-file.ico`; the second is copied beside the exe.
@@ -716,14 +716,14 @@ no administrator is asked for:
 
 | Key | Value |
 |---|---|
-| `GeometryHelper.Drawing` | `Drawing (GeometryHelper DXF)`, the type Explorer shows |
+| `GeometryHelper.Drawing` | `Drawing (GeometryHelper CAD)`, the type Explorer shows |
 | `GeometryHelper.Drawing\DefaultIcon` | `drawing-file.ico` beside the exe (the exe's own icon where the file is missing) |
 | `GeometryHelper.Drawing\shell\open\command` | `"…\GeometryHelper.Cad.App.exe" "%1"` |
 | `.dxf\OpenWithProgids`, `.dwg\OpenWithProgids` | `GeometryHelper.Drawing`, so the app is in the Open with list |
 | `.dxf`, `.dwg` | `GeometryHelper.Drawing`, only where no program has the extension |
 
 An extension another program has (AutoCAD's `.dwg`, say) is left to it, and the app is one choice of Open with; Windows keeps
-the choice "Always use this app" itself. It writes one line, `.dxf and .dwg files open with GeometryHelper DXF: …`, and
+the choice "Always use this app" itself. It writes one line, `.dxf and .dwg files open with GeometryHelper CAD: …`, and
 exits with 0, or with 1 and the reason where the registry refuses. `--unregister` takes out the ProgID and its Open with
 entries, and the default of an extension only where it is the app's; what other programs wrote stays. Run it again after
 moving the app, since the command names the exe where it was. A file opened from Explorer starts a new window of the app,
@@ -786,7 +786,7 @@ The dialogs are `save-changes`; `mtext-unsaved` (Multiline Text - Unsaved Change
 `pastespec`; `app-menu` and `app-menu:export` (the application menu on Recent Documents, or on the list of New, Open,
 Save As, Export, Print or Close); the command line's menus `cmdline-menu`, `input-settings-menu` and `recent-commands-menu`;
 and `autocomplete:LA` (the AutoComplete list for LA). A popup of the running window cannot be drawn; these draw its
-content alone. A name neither app knows exits with 2: `--dialog update: no such dialog.` from GeometryHelper DXF.
+content alone. A name neither app knows exits with 2: `--dialog update: no such dialog.` from GeometryHelper CAD.
 
 The dialogs of rounds 5 to 9 are drawn over the drawing open, each in a sample state of its own, the lines of `--run` typed first:
 `mlstyle` (Multiline Style, WALL-240 added with elements 120, 0 and -120 where the drawing has only STANDARD, and chosen),

@@ -10,7 +10,7 @@ using Xunit;
 namespace GeometryHelper.Cad.Wpf.UnitTest
 {
     /// <summary>
-    /// The presenter's own app, GeometryHelper DXF: its window named after it, and its screenshot mode run as a process on a
+    /// The presenter's own app, GeometryHelper CAD: its window named after it, and its screenshot mode run as a process on a
     /// room built in code, drawn with no window shown.
     /// </summary>
     public sealed class AppHostTests
@@ -30,7 +30,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     _ = PackUriHelper.UriSchemePack;
                     var model = new MainViewModel();
                     Assert.True(model.Open(room));
-                    var window = new CadAppWindow(model, "GeometryHelper DXF");
+                    var window = new CadAppWindow(model, "GeometryHelper CAD");
 
                     // The bindings are let run, as they run before a window shown is drawn.
                     Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.Background);
@@ -39,8 +39,8 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     defaultName = new CadWorkspace().AppName;
                 });
 
-                Assert.Equal("GeometryHelper DXF  room.dxf", title);
-                Assert.Equal("GeometryHelper DXF", workspaceName);
+                Assert.Equal("GeometryHelper CAD  room.dxf", title);
+                Assert.Equal("GeometryHelper CAD", workspaceName);
                 Assert.Equal("GeometryHelper Drawing", defaultName);
             }
         }

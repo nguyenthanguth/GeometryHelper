@@ -164,7 +164,7 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>
         /// Gets what an extension offers as a new document of its own, beside NEW: the first offer of the extensions added, in
-        /// the order they were added; null where none offers one, as in GeometryHelper DXF. With an offer the start screen and
+        /// the order they were added; null where none offers one, as in GeometryHelper CAD. With an offer the start screen and
         /// the New entry of the application menu show it and Ctrl+N runs it; without, Ctrl+N is NEW.
         /// </summary>
         public CadNewDocumentOffer NewDocumentOffer =>

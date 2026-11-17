@@ -6,7 +6,7 @@ using Xunit;
 namespace GeometryHelper.Cad.Wpf.UnitTest
 {
     /// <summary>
-    /// The presenter alone (GeometryHelper DXF) lists nothing of the Tekla drawing (Part B): not in its ribbon, its menus, its
+    /// The presenter alone (GeometryHelper CAD) lists nothing of the Tekla drawing (Part B): not in its ribbon, its menus, its
     /// commands, its Global settings, its start screen or its style and layer dialogs. What Part B needs comes in through
     /// <see cref="CadWorkspaceExtension"/>, and a plain <see cref="MainViewModel"/> has none.
     /// </summary>

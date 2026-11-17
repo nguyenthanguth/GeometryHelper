@@ -74,7 +74,7 @@ namespace GeometryHelper.Cad.Wpf
     {
         /// <summary>Makes the host of an app.</summary>
         /// <param name="appName">
-        /// The name of the app, shown before the drawing's title in the title bar and on the start screen: "GeometryHelper DXF".
+        /// The name of the app, shown before the drawing's title in the title bar and on the start screen: "GeometryHelper CAD".
         /// </param>
         /// <param name="pluginFolder">
         /// The folder of the app's command plugins: the plugins themselves in its <c>Plugins</c> folder, the startup list and the
@@ -87,7 +87,7 @@ namespace GeometryHelper.Cad.Wpf
             PluginFolder = pluginFolder ?? throw new ArgumentNullException(nameof(pluginFolder));
         }
 
-        /// <summary>Gets the name of the app, as "GeometryHelper DXF".</summary>
+        /// <summary>Gets the name of the app, as "GeometryHelper CAD".</summary>
         public string AppName { get; }
 
         /// <summary>Gets the folder of the app's command plugins, their startup list and their trusted folders.</summary>

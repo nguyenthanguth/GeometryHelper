@@ -6,7 +6,7 @@ using GeometryHelper.Cad.Wpf;
 namespace GeometryHelper.Cad.App
 {
     /// <summary>
-    /// Starts GeometryHelper DXF, the presenter on its own: the window of <see cref="CadAppHost"/>, with no model drawing.
+    /// Starts GeometryHelper CAD, the presenter on its own: the window of <see cref="CadAppHost"/>, with no model drawing.
     /// <c>GeometryHelper.Cad.App.exe plan.dxf</c> opens the window on a drawing, as a file association does; <c>--screenshot
     /// out.png plan.dxf [--size 1600 960]</c> and the other options of <see cref="CadAppHost"/> draw the window or one of its
     /// dialogs into a PNG, with no window shown, and exit: 0 when written, 2 for arguments or a file it cannot read.
@@ -26,7 +26,7 @@ namespace GeometryHelper.Cad.App
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
             string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var host = new CadAppHost("GeometryHelper DXF", Path.Combine(appData, "GeometryHelper", "Dxf"));
+            var host = new CadAppHost("GeometryHelper CAD", Path.Combine(appData, "GeometryHelper", "Dxf"));
 
             // The window's icon, every size of app.ico, the taskbar taking the one it needs.
             using (Stream icon = typeof(Program).Assembly.GetManifestResourceStream("GeometryHelper.Cad.App.app.ico"))

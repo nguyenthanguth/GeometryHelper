@@ -10,23 +10,23 @@ using Xunit;
 namespace GeometryHelper.Cad.Wpf.UnitTest
 {
     /// <summary>
-    /// The shell of GeometryHelper DXF: its icon, the association of .dxf and .dwg files with it (written to a fake of the
+    /// The shell of GeometryHelper CAD: its icon, the association of .dxf and .dwg files with it (written to a fake of the
     /// user's classes, never to the registry), and the Home tab of its screenshot.
     /// </summary>
     public sealed class AppShellTests
     {
-        private const string Exe = @"C:\Tools\GeometryHelper DXF\GeometryHelper.Cad.App.exe";
-        private const string Icon = @"C:\Tools\GeometryHelper DXF\drawing-file.ico";
+        private const string Exe = @"C:\Tools\GeometryHelper CAD\GeometryHelper.Cad.App.exe";
+        private const string Icon = @"C:\Tools\GeometryHelper CAD\drawing-file.ico";
 
         [Fact]
         public void Register_WritesTheProgIdAndOpenWithForDxfAndDwg_IntoTheUserClasses()
         {
             var classes = new FakeUserClasses();
 
-            CadFileAssociation.Register(classes, "GeometryHelper DXF", Exe, Icon);
+            CadFileAssociation.Register(classes, "GeometryHelper CAD", Exe, Icon);
 
             Assert.Equal("GeometryHelper.Drawing", CadFileAssociation.ProgId);
-            Assert.Equal("Drawing (GeometryHelper DXF)", classes.Get("GeometryHelper.Drawing", ""));
+            Assert.Equal("Drawing (GeometryHelper CAD)", classes.Get("GeometryHelper.Drawing", ""));
             Assert.Equal(Icon, classes.Get(@"GeometryHelper.Drawing\DefaultIcon", ""));
             Assert.Equal("\"" + Exe + "\" \"%1\"", classes.Get(@"GeometryHelper.Drawing\shell\open\command", ""));
             Assert.Equal("", classes.Get(@".dxf\OpenWithProgids", "GeometryHelper.Drawing"));
@@ -45,7 +45,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             classes.SetValue(".dwg", "", "Other.Drawing.24");
             classes.SetValue(@".dwg\OpenWithProgids", "Other.Drawing.24", "");
 
-            CadFileAssociation.Register(classes, "GeometryHelper DXF", Exe, Icon);
+            CadFileAssociation.Register(classes, "GeometryHelper CAD", Exe, Icon);
             Assert.Equal("Other.Drawing.24", classes.Get(".dwg", ""));
             Assert.Equal("", classes.Get(@".dwg\OpenWithProgids", "GeometryHelper.Drawing"));
 
@@ -63,16 +63,16 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         public void TheRegisterSwitch_WritesThroughTheUserClasses_AndSaysWhatItDid()
         {
             var classes = new FakeUserClasses();
-            var host = new CadAppHost("GeometryHelper DXF", Path.GetTempPath());
+            var host = new CadAppHost("GeometryHelper CAD", Path.GetTempPath());
             var output = new StringWriter();
 
             Assert.Equal(0, host.Associate("--register", classes, Exe, output));
             Assert.Equal("\"" + Exe + "\" \"%1\"", classes.Get(@"GeometryHelper.Drawing\shell\open\command", ""));
-            Assert.Contains(".dxf and .dwg files open with GeometryHelper DXF", output.ToString());
+            Assert.Contains(".dxf and .dwg files open with GeometryHelper CAD", output.ToString());
 
             Assert.Equal(0, host.Associate("--unregister", classes, Exe, output));
             Assert.False(classes.HasKey("GeometryHelper.Drawing"));
-            Assert.Contains("no longer open with GeometryHelper DXF", output.ToString());
+            Assert.Contains("no longer open with GeometryHelper CAD", output.ToString());
 
             // The registry refusing is said and given as 1.
             classes.Refuse = true;

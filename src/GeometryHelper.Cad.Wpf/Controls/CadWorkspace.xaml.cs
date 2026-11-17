@@ -222,7 +222,7 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>
         /// Gets or sets the name of the app, shown at the left of the title in the title bar and as the heading of the start
-        /// screen: "GeometryHelper Drawing" unless a host gives its own, as GeometryHelper DXF does.
+        /// screen: "GeometryHelper Drawing" unless a host gives its own, as GeometryHelper CAD does.
         /// </summary>
         public string AppName
         {

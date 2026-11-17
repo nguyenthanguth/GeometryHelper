@@ -6026,7 +6026,7 @@
                     </Canvas>
                     <!--
                     The start screen (design S1StartDxf): the app, Open, New, and Recent Documents as a list or as large pictures.
-                    The button of a new document an extension offers shows only where one does; without, as GeometryHelper DXF, the
+                    The button of a new document an extension offers shows only where one does; without, as GeometryHelper CAD, the
                     third button is NEW with Ctrl+N.
                     -->
                     <StackPanel

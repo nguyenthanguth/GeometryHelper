@@ -16,7 +16,7 @@ own entities answer to their [owner](owners.md).
 |---|---|---|
 | `GeometryHelper.Cad` | the document, display lists, picking, the command line and its commands, snaps, grips, Properties, layers, owners, plugins and global settings; no window | netstandard2.0 |
 | `GeometryHelper.Cad.Wpf` | the controls: the canvas drawn through SkiaSharp 4.155.0, the file list, Properties, the layer box, the command line and the status bar | net48 and net8.0-windows |
-| `GeometryHelper.Cad.App` | GeometryHelper DXF, the presenter's own app, `GeometryHelper.Cad.App.exe plan.dxf` (see [The apps](app.md#the-apps)) | net8.0-windows |
+| `GeometryHelper.Cad.App` | GeometryHelper CAD, the presenter's own app, `GeometryHelper.Cad.App.exe plan.dxf` (see [The apps](app.md#the-apps)) | net8.0-windows |
 | `GeometryHelper.Drawing.App` | GeometryHelper Drawing, the app with the model drawing added, `GeometryHelper.Drawing.App.exe plan.dxf` | net8.0-windows |
 
 The core is the part to build on: it is what a test drives, and what the controls call. The controls and the window are
