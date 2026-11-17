@@ -26,6 +26,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             model.ShowInsertObject = dialog => InsertObjectWindow.Show(Window.GetWindow(this), dialog);
             model.ShowDrawingRecovery = palette => DrawingRecoveryWindow.Show(Window.GetWindow(this), palette);
             model.ShowObjectScale = dialog => ObjectScaleWindow.Show(Window.GetWindow(this), dialog);
+            model.ShowReferenceEdit = dialog => ReferenceEditWindow.Show(Window.GetWindow(this), dialog);
             model.ShowInsertLayout = dialog => InsertLayoutWindow.Show(Window.GetWindow(this), dialog);
             model.ShowTemplateOptions = dialog => TemplateOptionsWindow.Show(Window.GetWindow(this), dialog);
             model.ShowSelectTemplate = dialog => SelectTemplateWindow.Show(Window.GetWindow(this), dialog);

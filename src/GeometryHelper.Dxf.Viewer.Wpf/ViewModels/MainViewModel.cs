@@ -2047,6 +2047,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "OBJECTSCALE":
                     OnObjectScaleRequested(e);
                     break;
+                case "REFEDIT":
+                    OnReferenceEditRequested(e);
+                    break;
                 case "LAYOUT":
                     OnLayoutTemplateRequested(e);
                     break;

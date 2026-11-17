@@ -28,8 +28,15 @@ namespace GeometryHelper.Dxf.Viewer
     /// closed its steps are one, "REFEDIT", which one undo takes back whole, as BEDIT's are.
     /// </para>
     /// <para>
+    /// An external reference is edited the same way: the objects of its drawing's model space are copied into the drawing
+    /// (the drawing the reference names is only read, and stays as it is while the session lasts), and REFCLOSE Save writes
+    /// them back into the file, the names <c>XREF|NAME</c> and <c>$0$NAME</c> (see <see cref="RefEditUniqueNames"/>) becoming
+    /// the names the file gave. The file is written whole, DWG or DXF, in the version it had, and read again, so that every
+    /// reference of it shows the change at once.
+    /// </para>
+    /// <para>
     /// AutoCAD 2021's accoreconsole has none of REFEDIT, REFSET and REFCLOSE (they are of the drawing editor), so their words
-    /// are the presenter's; the variables XFADECTL and REFEDITNAME were probed there.
+    /// are those of the string table of AcRefEdRes.dll, its own resource file; the variables XFADECTL and REFEDITNAME were probed there.
     /// </para>
     /// </remarks>
     public sealed partial class CadDocument
@@ -64,6 +71,22 @@ namespace GeometryHelper.Dxf.Viewer
         public bool RefEditLocksObjects { get; set; } = true;
 
         /// <summary>
+        /// Gets or sets whether REFEDIT of an external reference gives the layers of the working set names of their own, as the
+        /// Reference Edit dialog's "Enable unique layer and symbol names" does; true by default. On, the layer WALL of the
+        /// reference's drawing is the layer <c>$0$WALL</c> in this drawing while the edit lasts (the number raised past a name
+        /// this drawing has), a copy of it no layer of this drawing can clash with, and goes back to WALL in the file when
+        /// saved; off, it stays WALL and shares the layer of this drawing of that name, if there is one. A session keeps the
+        /// setting it opened with; the edit of a block, whose objects stand on this drawing's own layers, is not changed by it.
+        /// </summary>
+        public bool RefEditUniqueNames { get; set; } = true;
+
+        /// <summary>
+        /// Gets the lines AutoCAD 2021 says after REFCLOSE Save of an external reference (the symbols added to the reference's
+        /// file, how many references were updated, that it was reloaded), those of the last one; empty before one.
+        /// </summary>
+        internal IReadOnlyList<string> RefEditNotes { get; private set; } = Array.Empty<string>();
+
+        /// <summary>
         /// The references a point on a reference of the drawing can mean, the outermost first: the reference itself, then each
         /// reference nested in its block whose objects reach the point, and each nested in those, as the Reference Edit dialog
         /// lists them. A reference with nothing nested at the point gives its own level alone.
@@ -81,33 +104,106 @@ namespace GeometryHelper.Dxf.Viewer
                 return levels;
             }
 
-            levels.Add(new CadRefEditLevel(top.Name, new[] { top.Handle }, top.Name));
+            string file = ExternalFileOf(top, DrawingFolder);
+            levels.Add(
+                new CadRefEditLevel(
+                    top.Name,
+                    new[] { top.Handle },
+                    top.Name,
+                    top.BlockTableRecord != null && top.BlockTableRecord.IsFromExternalReference,
+                    file
+                )
+            );
 
             if (at != null && !(top is DxfMInsertBlock))
             {
-                Descend(top, new List<string> { top.Handle }, top.Name, top.BlockTransform, at.Value, aperture, levels);
+                DxfBlockTableRecord topBlock = top.BlockTableRecord;
+                CadXrefContent content =
+                    topBlock != null && topBlock.IsFromExternalReference
+                        ? Xrefs.ContentOf(topBlock, DrawingFolder, out _)
+                        : null;
+                Descend(
+                    top,
+                    new List<string> { top.Handle },
+                    top.Name,
+                    PlacingOf(top, content),
+                    content?.FullPath,
+                    content,
+                    at.Value,
+                    aperture,
+                    levels
+                );
             }
 
             return levels;
         }
 
-        /// <summary>Lists the references nested in a reference's block that reach a point, and those nested in them, depth first.</summary>
-        private static void Descend(
+        /// <summary>
+        /// The full path of the file the INSERT of an external reference names, found as AutoCAD looks for it from a folder; null
+        /// for an INSERT of any other block and for a reference whose file is not found.
+        /// </summary>
+        private string ExternalFileOf(DxfBlockReference insert, string folder)
+        {
+            DxfBlockTableRecord block = insert.BlockTableRecord;
+            return block != null && block.IsFromExternalReference ? Xrefs.Locate(block.PathName, folder) : null;
+        }
+
+        /// <summary>
+        /// The transformation an INSERT puts its block's coordinates through, <see cref="DxfBlockReference.BlockTransform"/>; for
+        /// an external reference the drawing it names as well, which draws with its base point (<c>$INSBASE</c>) at the
+        /// block's origin, so that a point of it moves by the block's origin less that base point first.
+        /// </summary>
+        private static GeoTransform3 PlacingOf(DxfBlockReference insert, CadXrefContent xref)
+        {
+            if (xref == null)
+            {
+                return insert.BlockTransform;
+            }
+
+            GeoPoint3 origin = insert.BlockTableRecord.Origin;
+            GeoPoint3 basePoint = GeoPoint3.Origin;
+
+            try
+            {
+                basePoint = xref.Database.Insbase;
+            }
+            catch (Exception exception)
+                when (exception is ArgumentException
+                    || exception is InvalidOperationException
+                    || exception is FormatException
+                )
+            {
+                basePoint = GeoPoint3.Origin;
+            }
+
+            return insert.BlockTransform.Multiply(GeoTransform3.Translation(origin - basePoint));
+        }
+
+        /// <summary>
+        /// Lists the references nested in a reference's block, or in the drawing an external reference names, that reach a point,
+        /// and those nested in them, depth first. The blocks of a drawing an external reference names are not listed: they are
+        /// not edited in place.
+        /// </summary>
+        private void Descend(
             DxfBlockReference parent,
             List<string> chain,
             string path,
             GeoTransform3 placing,
+            string file,
+            CadXrefContent content,
             GeoPoint2 at,
             double aperture,
             List<CadRefEditLevel> levels
         )
         {
-            DxfBlockTableRecord block = parent.BlockTableRecord;
+            DxfBlockTableRecord block = content != null ? content.Database.ModelSpace : parent.BlockTableRecord;
 
             if (block == null || chain.Count >= 8)
             {
                 return;
             }
+
+            string folder = content != null ? System.IO.Path.GetDirectoryName(content.FullPath) : DrawingFolder;
 
             foreach (DxfEntity entity in block)
             {
@@ -117,16 +213,42 @@ namespace GeometryHelper.Dxf.Viewer
                     || child.IsErased
                     || child.Handle == null
                     || child.BlockTableRecord == null
-                    || !Reaches(child, placing, at, aperture)
                 )
                 {
                     continue;
                 }
 
+                CadXrefContent below = null;
+
+                if (child.BlockTableRecord.IsFromExternalReference)
+                {
+                    below = Xrefs.ContentOf(child.BlockTableRecord, folder, out _);
+                }
+                else if (content != null)
+                {
+                    continue;
+                }
+
+                GeoTransform3 placed = placing.Multiply(PlacingOf(child, below));
+
+                if (!(below != null ? XrefReaches(below, placed, at, aperture) : Reaches(child, placing, at, aperture)))
+                {
+                    continue;
+                }
+
                 var deeper = new List<string>(chain) { child.Handle };
-                string below = path + " > " + child.Name;
-                levels.Add(new CadRefEditLevel(child.Name, deeper.ToArray(), below));
-                Descend(child, deeper, below, placing.Multiply(child.BlockTransform), at, aperture, levels);
+                string under = path + " > " + child.Name;
+                string childFile = ExternalFileOf(child, folder);
+                levels.Add(
+                    new CadRefEditLevel(
+                        child.Name,
+                        deeper.ToArray(),
+                        under,
+                        child.BlockTableRecord.IsFromExternalReference,
+                        childFile
+                    )
+                );
+                Descend(child, deeper, under, placed, childFile, below, at, aperture, levels);
             }
         }
 
@@ -152,6 +274,44 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
+        /// <summary>Whether the box of the objects of a drawing an external reference names, moved by a transformation, reaches a point within an aperture.</summary>
+        private static bool XrefReaches(CadXrefContent xref, GeoTransform3 placing, GeoPoint2 at, double aperture)
+        {
+            foreach (DxfEntity entity in xref.Database.ModelSpace)
+            {
+                if (entity.IsErased)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    GeoAabb3 box = entity.GetTransformedCopy(placing).GeometricExtents;
+
+                    if (
+                        !box.IsEmpty
+                        && at.X >= box.Min.X - aperture
+                        && at.X <= box.Max.X + aperture
+                        && at.Y >= box.Min.Y - aperture
+                        && at.Y <= box.Max.Y + aperture
+                    )
+                    {
+                        return true;
+                    }
+                }
+                catch (Exception exception)
+                    when (exception is ArgumentException
+                        || exception is InvalidOperationException
+                        || exception is NotSupportedException
+                    )
+                {
+                    // An object that cannot be placed does not reach the point.
+                }
+            }
+
+            return false;
+        }
+
         /// <summary>
         /// The object of the block a reference chain edits that a point reaches: the one whose box, put where the reference draws
         /// it, holds the point within the aperture, the smallest where several do, the first of the block on a tie; null for none.
@@ -164,18 +324,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>The handle of the object of the block, or null.</returns>
         public string FindRefEditObject(IReadOnlyList<string> chain, GeoPoint2 at, double aperture)
         {
-            if (!ResolveChain(chain, out List<DxfBlockReference> inserts, out _))
+            if (!ResolveChain(chain, out List<RefLevel> levels, out _) || levels[levels.Count - 1].Content == null)
             {
                 return null;
             }
 
-            GeoTransform3 placing = ChainTransform(inserts);
+            GeoTransform3 placing = ChainTransform(levels);
             string found = null;
             double least = double.MaxValue;
 
-            foreach (
-                DxfEntity entity in Candidates(inserts[inserts.Count - 1].BlockTableRecord, RefEditAttributeDefinitions)
-            )
+            foreach (DxfEntity entity in Candidates(levels[levels.Count - 1].Content, RefEditAttributeDefinitions))
             {
                 try
                 {
@@ -248,31 +406,38 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Refuse("A command is running: end it first.");
             }
 
-            if (!ResolveChain(chain, out List<DxfBlockReference> inserts, out string refusal))
+            if (!ResolveChain(chain, out List<RefLevel> levels, out string refusal))
             {
                 return CadEditResult.Refuse(refusal);
             }
 
-            CadSpace host = FindSpace(inserts[0].Handle);
-            DxfBlockReference last = inserts[inserts.Count - 1];
-            DxfBlockTableRecord block = last.BlockTableRecord;
+            CadSpace host = FindSpace(levels[0].Insert.Handle);
+            RefLevel last = levels[levels.Count - 1];
+            DxfBlockTableRecord block = last.Insert.BlockTableRecord;
 
             if (host == null || host.IsBlockEditor)
             {
                 return CadEditResult.Refuse(CadRefEdit.NotAValidReference);
             }
 
-            if (inserts.Exists(i => i is DxfMInsertBlock))
+            if (levels.Exists(l => l.Insert is DxfMInsertBlock))
             {
                 return CadEditResult.Refuse("A block array cannot be edited in place.");
             }
 
-            if (inserts.Exists(i => i.BlockTableRecord == null || i.BlockTableRecord.IsFromExternalReference))
+            if (levels.Exists(l => l.Insert.BlockTableRecord == null))
             {
-                return CadEditResult.Refuse("External references cannot be edited in place in this version.");
+                return CadEditResult.Refuse(CadRefEdit.NotAValidReference);
             }
 
-            if (inserts.Exists(i => i.BlockTableRecord.IsAnonymous))
+            string notEditable = XrefRefusal(levels);
+
+            if (notEditable != null)
+            {
+                return CadEditResult.Refuse(notEditable);
+            }
+
+            if (levels.Exists(l => l.Insert.BlockTableRecord.IsAnonymous))
             {
                 return CadEditResult.Refuse(
                     block.Name.StartsWith("*D", StringComparison.OrdinalIgnoreCase)
@@ -282,7 +447,7 @@ namespace GeometryHelper.Dxf.Viewer
                 );
             }
 
-            if (inserts.Exists(i => !IsUniform(i.ScaleFactors)))
+            if (levels.Exists(l => !IsUniform(l.Insert.ScaleFactors)))
             {
                 return CadEditResult.Refuse(CadRefEdit.NonUniform);
             }
@@ -292,14 +457,14 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Refuse("This drawing cannot hold an in-place edit.");
             }
 
-            GeoTransform3 placing = ChainTransform(inserts);
+            GeoTransform3 placing = ChainTransform(levels);
 
             if (!placing.TryGetInverse(out _))
             {
                 return CadEditResult.Refuse("The reference's scale cannot be undone.");
             }
 
-            List<DxfEntity> taken = Candidates(block, RefEditAttributeDefinitions).ToList();
+            List<DxfEntity> taken = Candidates(last.Content, RefEditAttributeDefinitions).ToList();
 
             if (objects != null)
             {
@@ -315,12 +480,15 @@ namespace GeometryHelper.Dxf.Viewer
             EnsureStart();
             int start = _position;
             ulong first = HandseedOf(Database);
+            bool unique = last.IsExternal && RefEditUniqueNames;
             var header = new RefEditHeader(
                 block.Name,
                 first,
                 chain.ToArray(),
                 RefEditLocksObjects,
-                RefEditAttributeDefinitions
+                RefEditAttributeDefinitions,
+                unique,
+                last.IsExternal
             );
             var pairs = new List<RefEditPair>();
             int skipped = 0;
@@ -332,26 +500,33 @@ namespace GeometryHelper.Dxf.Viewer
                     pairs.Clear();
                     skipped = 0;
 
-                    foreach (DxfEntity source in taken)
+                    if (last.IsExternal)
                     {
-                        DxfEntity copy;
-
-                        try
+                        CopyFromXref(s, host, last, taken, placing, unique, pairs, out skipped);
+                    }
+                    else
+                    {
+                        foreach (DxfEntity source in taken)
                         {
-                            copy = source.GetTransformedCopy(placing);
-                        }
-                        catch (Exception exception)
-                            when (exception is ArgumentException
-                                || exception is InvalidOperationException
-                                || exception is NotSupportedException
-                            )
-                        {
-                            skipped++;
-                            continue;
-                        }
+                            DxfEntity copy;
 
-                        s.Append(host, copy);
-                        pairs.Add(new RefEditPair(copy.Handle, source.Handle, false));
+                            try
+                            {
+                                copy = source.GetTransformedCopy(placing);
+                            }
+                            catch (Exception exception)
+                                when (exception is ArgumentException
+                                    || exception is InvalidOperationException
+                                    || exception is NotSupportedException
+                                )
+                            {
+                                skipped++;
+                                continue;
+                            }
+
+                            s.Append(host, copy);
+                            pairs.Add(new RefEditPair(copy.Handle, source.Handle, false));
+                        }
                     }
 
                     if (pairs.Count == 0)
@@ -368,7 +543,12 @@ namespace GeometryHelper.Dxf.Viewer
                 return result;
             }
 
-            _refEdit = new CadRefEdit(this, header, start, _position) { Skipped = skipped };
+            _refEdit = new CadRefEdit(this, header, start, _position)
+            {
+                Skipped = skipped,
+                XrefFile = last.Xref?.FullPath,
+                FormatNotice = last.IsExternal ? FormatNoticeOf(last.Xref.Database) : null,
+            };
             Selection.Clear();
 
             // The step announced itself before the edit was open, so the spaces are drawn again now that the references draw the block without the copies.
@@ -528,8 +708,80 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Whether the block of the reference a chain ends in holds attribute definitions, which REFEDIT asks about.</summary>
         internal bool RefEditBlockHasAttributeDefinitions(IReadOnlyList<string> chain) =>
-            ResolveChain(chain, out List<DxfBlockReference> inserts, out _)
-            && inserts[inserts.Count - 1].BlockTableRecord.OfType<DxfAttributeDefinition>().Any(e => !e.IsErased);
+            ResolveChain(chain, out List<RefLevel> levels, out _)
+            && levels[levels.Count - 1].Content != null
+            && levels[levels.Count - 1].Content.OfType<DxfAttributeDefinition>().Any(e => !e.IsErased);
+
+        /// <summary>
+        /// The full path of the file a chain's external reference was read from, when its drawing is not as it was read: changed
+        /// on disk since, which REFEDIT of it says must be reloaded first (AutoCAD's "Xref may have changed and must be
+        /// reloaded"); null for a chain that ends in a block, in a reference whose file is as it was read, or in none.
+        /// </summary>
+        internal string RefEditXrefToReload(IReadOnlyList<string> chain) =>
+            ResolveChain(chain, out List<RefLevel> levels, out _)
+            && levels[levels.Count - 1].Xref != null
+            && levels[levels.Count - 1].Xref.HasChanged
+                ? levels[levels.Count - 1].Xref.FullPath
+                : null;
+
+        /// <summary>
+        /// Why the chain's references cannot be edited in place, in AutoCAD 2021's words, as far as external references go; null
+        /// where they can. A reference whose file is unloaded, not found or cannot be read is not editable, and neither is a block
+        /// of a drawing an external reference names; the one the edit is on must be no more changed on disk since it was read, and
+        /// the file must have no lock of another AutoCAD (a <c>.dwl</c> file beside it).
+        /// </summary>
+        private string XrefRefusal(List<RefLevel> levels)
+        {
+            for (int i = 0; i < levels.Count; i++)
+            {
+                RefLevel level = levels[i];
+
+                if (level.IsExternal && level.Xref == null)
+                {
+                    return CadRefEdit.XrefNotEditable(level.Insert.BlockTableRecord.PathName);
+                }
+
+                if (i > 0 && levels[i - 1].IsExternal && !level.IsExternal)
+                {
+                    return CadRefEdit.XrefBlockNotEditable;
+                }
+            }
+
+            RefLevel last = levels[levels.Count - 1];
+
+            if (!last.IsExternal)
+            {
+                return null;
+            }
+
+            if (last.Xref.HasChanged)
+            {
+                return CadRefEdit.XrefChanged(last.Xref.FullPath);
+            }
+
+            foreach (string extension in new[] { ".dwl", ".dwl2" })
+            {
+                string locked = System.IO.Path.ChangeExtension(last.Xref.FullPath, extension);
+
+                if (System.IO.File.Exists(locked))
+                {
+                    return CadRefEdit.XrefLocked(last.Xref.FullPath);
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// What AutoCAD 2021 says when the drawing an external reference names is of an older release than this one: that its
+        /// file is saved in its own release. Null for a drawing of the same or a later release.
+        /// </summary>
+        private string FormatNoticeOf(DxfDatabase referenced)
+        {
+            int theirs = DxfVersions.Number(referenced.Version);
+            int ours = DxfVersions.Number(Database.Version);
+            return theirs > 0 && ours > 0 && theirs < ours ? CadRefEdit.XrefOlderFormat : null;
+        }
 
         /// <summary>
         /// What REFCLOSE Save will write into the block, for the lines AutoCAD says after it: the objects of the working set that
@@ -542,14 +794,15 @@ namespace GeometryHelper.Dxf.Viewer
             removed = 0;
             updated = 0;
 
-            if (_refEdit == null || !ResolveChain(_refEdit.Header.Chain, out List<DxfBlockReference> inserts, out _))
+            if (_refEdit == null || !ResolveChain(_refEdit.Header.Chain, out List<RefLevel> levels, out _))
             {
                 return;
             }
 
-            DxfBlockTableRecord block = inserts[inserts.Count - 1].BlockTableRecord;
+            RefLevel last = levels[levels.Count - 1];
+            DxfBlockTableRecord block = last.Insert.BlockTableRecord;
             var originals = new HashSet<string>(
-                block.Where(e => !e.IsErased && e.Handle != null).Select(e => e.Handle),
+                (last.Content ?? block).Where(e => !e.IsErased && e.Handle != null).Select(e => e.Handle),
                 StringComparer.OrdinalIgnoreCase
             );
 
@@ -567,7 +820,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            foreach (DxfBlockTableRecord record in Database.BlockTable)
+            foreach (DxfBlockTableRecord record in last.Owner.BlockTable)
             {
                 updated += record
                     .OfType<DxfBlockReference>()
@@ -598,9 +851,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// discarded, the copies erased and the block as it was. The objects drawn in the drawing that were never added stay in it. The
         /// session's steps become one, "REFEDIT", which one undo takes back.
         /// </summary>
+        /// <remarks>
+        /// An external reference saved is written to its file, whole and in the version the file had, DWG or DXF, and read again,
+        /// so that every reference of it draws the change; the objects of the file that are not in the working set are written as
+        /// they were. Once its file is written the session cannot be taken back by undo, as the file cannot, so undo stops where
+        /// it closed. A file that is gone, read only, locked or changed on disk since it was read refuses the save, the session
+        /// still open to be saved again or discarded.
+        /// </remarks>
         /// <param name="save">Whether the changes are saved; false discards them.</param>
-        /// <returns>What came of it: refused where no edit is open or a command's group of edits is; failed, the session still
-        /// open, where an object cannot be put back through the reference's placing.</returns>
+        /// <returns>What came of it: refused where no edit is open or a command's group of edits is, or where the file of an
+        /// external reference cannot be written (<c>** Failed to Saveback Xref file **</c>); failed, the session still
+        /// open, where an object cannot be put back through the reference's placing or the file cannot be written.</returns>
         public CadEditResult CloseRefEdit(bool save)
         {
             if (_refEdit == null)
@@ -616,10 +877,23 @@ namespace GeometryHelper.Dxf.Viewer
             CadRefEdit edit = _refEdit;
             RefEditHeader header = edit.Header;
             string name = header.Name;
+            bool toFile = save && header.External;
+
+            if (toFile)
+            {
+                string unwritable = XrefSaveRefusal(header);
+
+                if (unwritable != null)
+                {
+                    return CadEditResult.Refuse(unwritable);
+                }
+            }
+
+            List<string> notes = null;
             CadEditResult result = ApplyEdit(
                 "REFCLOSE",
                 new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Reference edit", name, null) },
-                s => WriteBack(s.Database, header, save)
+                s => notes = WriteBack(s.Database, header, save)
             );
 
             if (!result.Succeeded)
@@ -629,6 +903,14 @@ namespace GeometryHelper.Dxf.Viewer
 
             var redrawn = new CadEditRecord(CadEditRecordKind.TableChanged, null, "Redefine block", null, name);
             Merge(edit.Start, "REFEDIT", redrawn);
+
+            if (toFile)
+            {
+                // The file written cannot be taken back, so undo does not go back to before it.
+                _undoLimit = Math.Max(_undoLimit, _position);
+            }
+
+            RefEditNotes = (IReadOnlyList<string>)notes ?? Array.Empty<string>();
             _refEdit = null;
             Selection.Clear();
             Announce(CadChangeKind.Edit, "REFCLOSE", new[] { redrawn });
@@ -638,15 +920,26 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Writes the working set back into the block, or erases its copies, and takes the XRECORD out; run inside the closing edit.</summary>
-        private void WriteBack(DxfDatabase database, RefEditHeader header, bool save)
+        private List<string> WriteBack(DxfDatabase database, RefEditHeader header, bool save)
         {
-            if (!ResolveChain(header.Chain, out List<DxfBlockReference> inserts, out string refusal))
+            if (!ResolveChain(header.Chain, out List<RefLevel> levels, out string refusal))
             {
+                // An edit of an external reference is discarded even where the file it came from is gone from the way to it.
+                if (header.External && !save)
+                {
+                    return DiscardXref(database, header);
+                }
+
                 throw new InvalidOperationException(refusal);
             }
 
-            DxfBlockTableRecord block = inserts[inserts.Count - 1].BlockTableRecord;
-            GeoTransform3 inverse = ChainTransform(inserts).Inverse();
+            if (levels[levels.Count - 1].IsExternal)
+            {
+                return WriteBackXref(database, header, levels, save);
+            }
+
+            DxfBlockTableRecord block = levels[levels.Count - 1].Insert.BlockTableRecord;
+            GeoTransform3 inverse = ChainTransform(levels).Inverse();
             var originals = new Dictionary<string, DxfEntity>(StringComparer.OrdinalIgnoreCase);
 
             foreach (DxfEntity entity in block)
@@ -687,12 +980,696 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             database.NamedObjectsDictionary.Remove(RefEditKey);
+            return null;
         }
 
-        /// <summary>Resolves a chain of handles into the references: the first in a space, each next nested in the block of the one before.</summary>
-        private bool ResolveChain(IReadOnlyList<string> chain, out List<DxfBlockReference> inserts, out string refusal)
+        /// <summary>
+        /// Why the file of the external reference being edited cannot be written, in AutoCAD 2021's words
+        /// (<c>** Failed to Saveback Xref file **</c>); null where it can: the file is gone, read only, held by another program,
+        /// or changed on disk since the edit read it (which the words of REFEDIT say must be reloaded).
+        /// </summary>
+        private string XrefSaveRefusal(RefEditHeader header)
         {
-            inserts = new List<DxfBlockReference>();
+            if (!ResolveChain(header.Chain, out List<RefLevel> levels, out _))
+            {
+                return CadRefEdit.NotAValidReference;
+            }
+
+            CadXrefContent xref = levels[levels.Count - 1].Xref;
+
+            if (xref == null)
+            {
+                return CadRefEdit.XrefSaveFailed;
+            }
+
+            if (xref.HasChanged)
+            {
+                return CadRefEdit.XrefChanged(xref.FullPath);
+            }
+
+            try
+            {
+                using (
+                    new System.IO.FileStream(
+                        xref.FullPath,
+                        System.IO.FileMode.Open,
+                        System.IO.FileAccess.ReadWrite,
+                        System.IO.FileShare.Read
+                    )
+                )
+                {
+                    return null;
+                }
+            }
+            catch (Exception exception)
+                when (exception is System.IO.IOException
+                    || exception is UnauthorizedAccessException
+                    || exception is NotSupportedException
+                )
+            {
+                GeometryHelperLog.Warn("CadDocument: REFCLOSE cannot write " + xref.FullPath + ".", exception);
+                return CadRefEdit.XrefSaveFailed;
+            }
+        }
+
+        /// <summary>
+        /// Copies the objects of the drawing an external reference names into this drawing's space where the reference draws
+        /// them (<see cref="DxfDatabase.WblockCloneObjects"/>, with their layers, linetypes, styles and blocks, and the drawing
+        /// they come from left as it is), each put through the placing of the chain; with unique names the layers the copies
+        /// stand on are copies of their own, <c>$0$WALL</c> for WALL. An object the placing cannot hold is not copied, and
+        /// counted.
+        /// </summary>
+        private static void CopyFromXref(
+            CadEditScope s,
+            CadSpace host,
+            RefLevel last,
+            List<DxfEntity> taken,
+            GeoTransform3 placing,
+            bool unique,
+            List<RefEditPair> pairs,
+            out int skipped
+        )
+        {
+            skipped = 0;
+            DxfDatabase hostDatabase = s.Database;
+            DxfDatabase from = last.Xref.Database;
+            var layersBefore = new HashSet<string>(
+                hostDatabase.LayerTable.Select(l => l.Name),
+                StringComparer.OrdinalIgnoreCase
+            );
+            IReadOnlyList<DxfEntity> copies = from.WblockCloneObjects(taken, host.Block);
+            var kept = new List<DxfEntity>(copies.Count);
+
+            for (int i = 0; i < copies.Count && i < taken.Count; i++)
+            {
+                DxfEntity copy = copies[i];
+
+                if (!copy.IsResident)
+                {
+                    skipped++;
+                    continue;
+                }
+
+                try
+                {
+                    copy.TransformBy(placing);
+                }
+                catch (Exception exception)
+                    when (exception is ArgumentException
+                        || exception is InvalidOperationException
+                        || exception is NotSupportedException
+                    )
+                {
+                    copy.Erase();
+                    skipped++;
+                    continue;
+                }
+
+                s.Added(host, copy);
+                kept.Add(copy);
+                pairs.Add(new RefEditPair(copy.Handle, taken[i].Handle, false));
+            }
+
+            if (unique)
+            {
+                GiveUniqueLayers(hostDatabase, from, kept, layersBefore);
+            }
+        }
+
+        /// <summary>
+        /// Puts each layer the copies stand on onto a layer of its own name, <c>$0$WALL</c> for WALL, the number raised past a
+        /// name this drawing's layer table has: a copy of the reference's layer, its colour, linetype (where this drawing has it),
+        /// lineweight, switches and plotting. Layer 0 and Defpoints stay as they are; so does a layer of a reference nested in the
+        /// drawing (it has a | in it). The layer the copies brought under its own name is erased where no object stands on it now
+        /// and this drawing had none before.
+        /// </summary>
+        private static void GiveUniqueLayers(
+            DxfDatabase host,
+            DxfDatabase from,
+            List<DxfEntity> copies,
+            HashSet<string> layersBefore
+        )
+        {
+            var given = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (DxfEntity copy in copies)
+            {
+                string own = copy.Layer;
+
+                if (
+                    own == "0"
+                    || string.Equals(own, "Defpoints", StringComparison.OrdinalIgnoreCase)
+                    || own.IndexOf('|') >= 0
+                )
+                {
+                    continue;
+                }
+
+                if (!given.TryGetValue(own, out string unique))
+                {
+                    unique = UniqueName(host.LayerTable, own);
+                    given[own] = unique;
+                    var layer = new DxfLayerTableRecord { Name = unique };
+                    host.LayerTable.Add(layer);
+
+                    if (from.LayerTable.Has(own))
+                    {
+                        CopyLayerLook(from.LayerTable[own], layer, host);
+                    }
+                }
+
+                copy.Layer = unique;
+            }
+
+            foreach (string own in given.Keys.OrderBy(n => n, StringComparer.Ordinal))
+            {
+                if (!layersBefore.Contains(own) && host.LayerTable.Has(own))
+                {
+                    try
+                    {
+                        DxfLayerTableRecord brought = host.LayerTable[own];
+
+                        if (!brought.IsUsed)
+                        {
+                            brought.Erase();
+                        }
+                    }
+                    catch (Exception exception)
+                        when (exception is ArgumentException || exception is InvalidOperationException)
+                    {
+                        // A layer that cannot be erased stays, as a layer an INSERT of the copies still draws on does.
+                    }
+                }
+            }
+        }
+
+        /// <summary>The first of <c>$0$WALL</c>, <c>$1$WALL</c> and on that the table has no record of.</summary>
+        private static string UniqueName(DxfSymbolTable table, string own)
+        {
+            for (int i = 0; ; i++)
+            {
+                string name = "$" + i.ToString(CultureInfo.InvariantCulture) + "$" + own;
+
+                if (!table.Has(name))
+                {
+                    return name;
+                }
+            }
+        }
+
+        /// <summary>Gives a layer made in the drawing the look of the layer it copies: colour, linetype, lineweight, off, frozen, locked and plotted.</summary>
+        private static void CopyLayerLook(DxfLayerTableRecord from, DxfLayerTableRecord to, DxfDatabase host)
+        {
+            try
+            {
+                to.Color = from.Color;
+                to.LineWeight = from.LineWeight;
+                to.IsFrozen = from.IsFrozen;
+                to.IsLocked = from.IsLocked;
+                to.IsOff = from.IsOff;
+                to.IsPlottable = from.IsPlottable;
+
+                if (host.LinetypeTable.Has(from.LinetypeName))
+                {
+                    to.LinetypeName = from.LinetypeName;
+                }
+            }
+            catch (Exception exception)
+                when (exception is ArgumentException
+                    || exception is InvalidOperationException
+                    || exception is NotSupportedException
+                )
+            {
+                // A look this drawing's version cannot hold (a true colour in an old file) is left as the layer made it.
+                GeometryHelperLog.Debug("CadDocument: a layer's look was not copied: " + exception.Message);
+            }
+        }
+
+        /// <summary>
+        /// Saves the working set of an edit of an external reference into the file it names, or discards it, as the closing edit
+        /// of <see cref="CloseRefEdit"/>. Saved, the file is read afresh, each object of the working set copied into its model
+        /// space put through the chain's placing the other way and the names it stands on (<c>$0$WALL</c>, <c>XREF|WALL</c>)
+        /// turned into the file's own, the objects they came from erased, and the file written whole, as the version it had, over
+        /// the old one; the references of it are read again. Either way the copies are erased from this drawing, the layers made
+        /// for the session that nothing stands on now with them.
+        /// </summary>
+        /// <returns>The lines AutoCAD says after it: the symbols added to the file, how many references were updated, that it was reloaded.</returns>
+        private List<string> WriteBackXref(DxfDatabase database, RefEditHeader header, List<RefLevel> levels, bool save)
+        {
+            RefLevel last = levels[levels.Count - 1];
+            List<RefEditPair> pairs = ReadRefEditPairs(database, out _);
+            var notes = new List<string>();
+            var hostEntities = new List<DxfEntity>();
+
+            foreach (RefEditPair pair in pairs)
+            {
+                DxfEntity host = FindEntity(pair.Host);
+
+                if (save && !pair.Released && host != null)
+                {
+                    hostEntities.Add(host);
+                }
+            }
+
+            if (save)
+            {
+                string path = last.Xref.FullPath;
+                DxfDatabase file = CadDrawingFile.Open(path);
+                var originals = new Dictionary<string, DxfEntity>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (DxfEntity entity in file.ModelSpace)
+                {
+                    if (entity.Handle != null)
+                    {
+                        originals[entity.Handle] = entity;
+                    }
+                }
+
+                var before = SymbolNames(file);
+                GeoTransform3 inverse = ChainTransform(levels).Inverse();
+                IReadOnlyList<DxfEntity> copies =
+                    hostEntities.Count == 0
+                        ? Array.Empty<DxfEntity>()
+                        : database.WblockCloneObjects(hostEntities, file.ModelSpace);
+
+                foreach (DxfEntity copy in copies)
+                {
+                    if (copy.IsResident)
+                    {
+                        copy.TransformBy(inverse);
+                    }
+                }
+
+                GiveOwnNames(file, copies, before);
+                notes.AddRange(AddedSymbolLines(file, before));
+
+                foreach (RefEditPair pair in pairs)
+                {
+                    if (
+                        pair.Original != RefEditPair.None
+                        && originals.TryGetValue(pair.Original, out DxfEntity original)
+                        && !original.IsErased
+                    )
+                    {
+                        original.Erase();
+                    }
+                }
+
+                foreach (DxfEntity host in hostEntities)
+                {
+                    host.Erase();
+                }
+
+                WriteXrefFile(file, path);
+                string name = header.Name;
+                Xrefs.Forget(path);
+                CadXrefContent reread = Xrefs.Read(path);
+
+                // The layers of the reference the drawing holds as it brought them come anew from the file saved.
+                if (levels.Count == 1 && reread.Database != null)
+                {
+                    CadXrefLayers.Bring(database, name, reread.Database, true);
+                }
+            }
+            else
+            {
+                return DiscardXref(database, header);
+            }
+
+            ErasePassingLayers(database, header);
+            database.NamedObjectsDictionary.Remove(RefEditKey);
+            return notes;
+        }
+
+        /// <summary>Discards the edit of an external reference: the copies of its objects erased, the layers made for it with them, the XRECORD out. The file is not read.</summary>
+        private List<string> DiscardXref(DxfDatabase database, RefEditHeader header)
+        {
+            foreach (RefEditPair pair in ReadRefEditPairs(database, out _))
+            {
+                DxfEntity host = FindEntity(pair.Host);
+
+                if (pair.Original != RefEditPair.None && host != null)
+                {
+                    host.Erase();
+                }
+            }
+
+            ErasePassingLayers(database, header);
+            database.NamedObjectsDictionary.Remove(RefEditKey);
+            return new List<string>();
+        }
+
+        /// <summary>
+        /// The layers an edit with unique names made, <c>$0$WALL</c> and the like, that no object stands on once the copies are
+        /// gone, are erased: those the table gave a handle past the first the session gave.
+        /// </summary>
+        private static void ErasePassingLayers(DxfDatabase database, RefEditHeader header)
+        {
+            if (!header.UniqueNames)
+            {
+                return;
+            }
+
+            foreach (DxfLayerTableRecord layer in database.LayerTable.ToList())
+            {
+                if (
+                    layer.Handle != null
+                    && ulong.TryParse(
+                        layer.Handle,
+                        NumberStyles.HexNumber,
+                        CultureInfo.InvariantCulture,
+                        out ulong made
+                    )
+                    && made >= header.FirstNewHandle
+                    && OwnNameOf(layer.Name) != null
+                )
+                {
+                    try
+                    {
+                        if (!layer.IsUsed)
+                        {
+                            layer.Erase();
+                        }
+                    }
+                    catch (Exception exception)
+                        when (exception is ArgumentException || exception is InvalidOperationException)
+                    {
+                        // A layer that cannot be erased stays.
+                    }
+                }
+            }
+        }
+
+        /// <summary>The name a layer, linetype, style or block of the session goes by in the file of the reference: <c>WALL</c> for <c>$0$WALL</c> and for <c>XREF|WALL</c>; null where it is its own.</summary>
+        internal static string OwnNameOf(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return null;
+            }
+
+            if (name.Length > 3 && name[0] == '$')
+            {
+                int close = name.IndexOf('$', 1);
+
+                if (close > 1 && close < name.Length - 1 && name.Substring(1, close - 1).All(char.IsDigit))
+                {
+                    return name.Substring(close + 1);
+                }
+            }
+
+            int bar = name.LastIndexOf('|');
+            return bar >= 0 && bar < name.Length - 1 ? name.Substring(bar + 1) : null;
+        }
+
+        /// <summary>The names in the tables of layers, linetypes, text styles, dimension styles and (named) blocks of a drawing.</summary>
+        private static Dictionary<string, HashSet<string>> SymbolNames(DxfDatabase database)
+        {
+            var names = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal)
+            {
+                { "Layers", NamesOf(database.LayerTable) },
+                { "Linetypes", NamesOf(database.LinetypeTable) },
+                { "Text Styles", NamesOf(database.TextStyleTable) },
+                { "Dim Styles", NamesOf(database.DimStyleTable) },
+                {
+                    "Blocks",
+                    NamesOf(
+                        database
+                            .BlockTable.Cast<DxfBlockTableRecord>()
+                            .Where(b => !b.IsLayout && !b.Name.StartsWith("*", StringComparison.Ordinal))
+                    )
+                },
+            };
+            return names;
+        }
+
+        private static HashSet<string> NamesOf(System.Collections.IEnumerable records) =>
+            new HashSet<string>(
+                records.Cast<DxfSymbolTableRecord>().Select(r => r.Name),
+                StringComparer.OrdinalIgnoreCase
+            );
+
+        /// <summary>
+        /// Turns the names the copies stand on in the file into the file's own: the layer, linetype, text style, dimension style
+        /// or block <c>$0$WALL</c> or <c>XREF|WALL</c> of a copy becomes WALL where the file has one, or the record the copy
+        /// brought is renamed to it where it has none; a record the copies brought under a name of this drawing's, and no
+        /// object stands on now, is erased.
+        /// </summary>
+        private static void GiveOwnNames(
+            DxfDatabase file,
+            IReadOnlyList<DxfEntity> copies,
+            Dictionary<string, HashSet<string>> before
+        )
+        {
+            foreach (DxfEntity copy in copies)
+            {
+                if (!copy.IsResident)
+                {
+                    continue;
+                }
+
+                string layer = OwnNameOf(copy.Layer);
+
+                if (layer != null)
+                {
+                    if (!file.LayerTable.Has(layer) && file.LayerTable.Has(copy.Layer))
+                    {
+                        try
+                        {
+                            file.LayerTable[copy.Layer].Name = layer;
+                        }
+                        catch (Exception exception)
+                            when (exception is ArgumentException || exception is InvalidOperationException)
+                        {
+                            GeometryHelperLog.Debug(
+                                "CadDocument: the layer " + copy.Layer + " is kept: " + exception.Message
+                            );
+                        }
+                    }
+
+                    if (!string.Equals(copy.Layer, layer, StringComparison.Ordinal))
+                    {
+                        copy.Layer = layer;
+                    }
+                }
+
+                string linetype = OwnNameOf(copy.Linetype);
+
+                if (linetype != null && file.LinetypeTable.Has(linetype))
+                {
+                    copy.Linetype = linetype;
+                }
+
+                if (
+                    copy is DxfDBText text
+                    && OwnNameOf(text.TextStyleName) is string style
+                    && file.TextStyleTable.Has(style)
+                )
+                {
+                    text.TextStyleName = style;
+                }
+                else if (
+                    copy is DxfMText mtext
+                    && OwnNameOf(mtext.TextStyleName) is string mstyle
+                    && file.TextStyleTable.Has(mstyle)
+                )
+                {
+                    mtext.TextStyleName = mstyle;
+                }
+                else if (
+                    copy is DxfDimension dimension
+                    && OwnNameOf(dimension.DimensionStyleName) is string dim
+                    && file.DimStyleTable.Has(dim)
+                )
+                {
+                    dimension.DimensionStyleName = dim;
+                }
+                else if (
+                    copy is DxfBlockReference insert
+                    && OwnNameOf(insert.Name) is string block
+                    && file.BlockTable.Has(block)
+                )
+                {
+                    insert.BlockTableRecord = file.BlockTable[block];
+                }
+            }
+
+            // What the copies brought under the names of this drawing's session no longer stands on is taken out.
+            foreach (DxfLayerTableRecord layer in file.LayerTable.ToList())
+            {
+                if (OwnNameOf(layer.Name) != null && !before["Layers"].Contains(layer.Name))
+                {
+                    TryErase(layer);
+                }
+            }
+
+            foreach (DxfLinetypeTableRecord linetype in file.LinetypeTable.ToList())
+            {
+                if (OwnNameOf(linetype.Name) != null && !before["Linetypes"].Contains(linetype.Name))
+                {
+                    TryErase(linetype);
+                }
+            }
+        }
+
+        private static void TryErase(DxfSymbolTableRecord record)
+        {
+            try
+            {
+                record.Erase();
+            }
+            catch (Exception exception) when (exception is ArgumentException || exception is InvalidOperationException)
+            {
+                // A record something still stands on stays.
+            }
+        }
+
+        /// <summary>
+        /// The lines of the symbols a file gained from the copies, as AutoCAD 2021 lists them before it writes them (<c>The
+        /// following symbols will be added to Xref file:</c>, then <c>Layers: A, B</c> and the like), in ordinal order; none where
+        /// it gained none.
+        /// </summary>
+        private static IEnumerable<string> AddedSymbolLines(
+            DxfDatabase file,
+            Dictionary<string, HashSet<string>> before
+        )
+        {
+            var lines = new List<string>();
+            Dictionary<string, HashSet<string>> now = SymbolNames(file);
+
+            foreach (string table in new[] { "Layers", "Linetypes", "Text Styles", "Dim Styles", "Blocks" })
+            {
+                List<string> added = now[table]
+                    .Where(n => !before[table].Contains(n))
+                    .OrderBy(n => n, StringComparer.Ordinal)
+                    .ToList();
+
+                if (added.Count > 0)
+                {
+                    lines.Add(table + ": " + string.Join(", ", added));
+                }
+            }
+
+            if (lines.Count > 0)
+            {
+                lines.Insert(0, CadRefEdit.SymbolsAdded);
+            }
+
+            return lines;
+        }
+
+        /// <summary>
+        /// Writes the drawing of an external reference over its file: to a file beside it first, in the file's own version (a DWG
+        /// as the version its first bytes name, a DXF as its own), then over the old one, so that a write that fails leaves the old
+        /// file as it was. A DWG the writer cannot write whole (it leaves out an object type it has no writer for) is not
+        /// written, rather than losing those objects.
+        /// </summary>
+        private static void WriteXrefFile(DxfDatabase file, string path)
+        {
+            string temporary = System.IO.Path.Combine(
+                System.IO.Path.GetDirectoryName(path),
+                "gh-refedit-" + Guid.NewGuid().ToString("N") + System.IO.Path.GetExtension(path)
+            );
+
+            try
+            {
+                string version = null;
+
+                if (CadDrawingFile.IsDwg(path))
+                {
+                    using (
+                        var stream = new System.IO.FileStream(
+                            path,
+                            System.IO.FileMode.Open,
+                            System.IO.FileAccess.Read,
+                            System.IO.FileShare.ReadWrite
+                        )
+                    )
+                    {
+                        var start = new byte[6];
+                        int read = stream.Read(start, 0, start.Length);
+                        string named = System.Text.Encoding.ASCII.GetString(start, 0, read);
+                        version = CadDrawingFile.IsDwgVersion(named) ? named : null;
+                    }
+                }
+
+                string left = CadDrawingFile.Save(file, temporary, version, null, null);
+
+                if (left.Length > 0)
+                {
+                    throw new NotSupportedException("The DWG writer leaves out " + left + ".");
+                }
+
+                System.IO.File.Copy(temporary, path, true);
+            }
+            catch (Exception exception)
+                when (exception is System.IO.IOException
+                    || exception is UnauthorizedAccessException
+                    || exception is NotSupportedException
+                )
+            {
+                GeometryHelperLog.Warn("CadDocument: REFCLOSE could not write " + path + ".", exception);
+                throw new InvalidOperationException(CadRefEdit.XrefSaveFailed + " " + exception.Message, exception);
+            }
+            finally
+            {
+                try
+                {
+                    System.IO.File.Delete(temporary);
+                }
+                catch (Exception exception)
+                    when (exception is System.IO.IOException || exception is UnauthorizedAccessException)
+                {
+                    GeometryHelperLog.Debug("CadDocument: " + temporary + " was not deleted: " + exception.Message);
+                }
+            }
+        }
+
+        /// <summary>One reference of a chain: the INSERT, what it places (its block, or the drawing an external reference names) and how.</summary>
+        private sealed class RefLevel
+        {
+            internal RefLevel(
+                DxfBlockReference insert,
+                DxfDatabase owner,
+                DxfBlockTableRecord content,
+                CadXrefContent xref,
+                GeoTransform3 placing
+            )
+            {
+                Insert = insert;
+                Owner = owner;
+                Content = content;
+                Xref = xref;
+                Placing = placing;
+            }
+
+            /// <summary>The INSERT.</summary>
+            internal DxfBlockReference Insert { get; }
+
+            /// <summary>The drawing the INSERT stands in: this one, or the drawing of an external reference above it.</summary>
+            internal DxfDatabase Owner { get; }
+
+            /// <summary>The objects it places: its block's, or those of the model space of the drawing its external reference names; null for a reference whose file is not read.</summary>
+            internal DxfBlockTableRecord Content { get; }
+
+            /// <summary>The drawing read where the INSERT places an external reference; null for a block and for a reference not read.</summary>
+            internal CadXrefContent Xref { get; }
+
+            /// <summary>Whether the INSERT places an external reference.</summary>
+            internal bool IsExternal =>
+                Insert.BlockTableRecord != null && Insert.BlockTableRecord.IsFromExternalReference;
+
+            /// <summary>The transformation from the coordinates of what it places to those of the drawing it stands in.</summary>
+            internal GeoTransform3 Placing { get; }
+        }
+
+        /// <summary>
+        /// Resolves a chain of handles into the references: the first in a space, each next nested in the block of the one before,
+        /// or in the drawing of the external reference before it.
+        /// </summary>
+        private bool ResolveChain(IReadOnlyList<string> chain, out List<RefLevel> levels, out string refusal)
+        {
+            levels = new List<RefLevel>();
             refusal = CadRefEdit.NotAValidReference;
 
             if (chain == null || chain.Count == 0 || !(FindEntity(chain[0]) is DxfBlockReference top))
@@ -700,15 +1677,35 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            inserts.Add(top);
+            DxfDatabase owner = Database;
+            string folder = DrawingFolder;
+            DxfBlockReference insert = top;
 
-            for (int i = 1; i < chain.Count; i++)
+            for (int i = 0; ; i++)
             {
-                DxfBlockTableRecord block = inserts[i - 1].BlockTableRecord;
-                DxfBlockReference next = block
+                DxfBlockTableRecord block = insert.BlockTableRecord;
+                CadXrefContent xref = null;
+                DxfBlockTableRecord content = block;
+
+                if (block != null && block.IsFromExternalReference)
+                {
+                    xref = Xrefs.ContentOf(block, folder, out _);
+                    content = xref?.Database.ModelSpace;
+                }
+
+                levels.Add(new RefLevel(insert, owner, content, xref, PlacingOf(insert, xref)));
+
+                if (i + 1 == chain.Count)
+                {
+                    refusal = null;
+                    return true;
+                }
+
+                string handle = chain[i + 1];
+                DxfBlockReference next = content
                     ?.OfType<DxfBlockReference>()
                     .FirstOrDefault(r =>
-                        !r.IsErased && string.Equals(r.Handle, chain[i], StringComparison.OrdinalIgnoreCase)
+                        !r.IsErased && string.Equals(r.Handle, handle, StringComparison.OrdinalIgnoreCase)
                     );
 
                 if (next == null)
@@ -716,21 +1713,24 @@ namespace GeometryHelper.Dxf.Viewer
                     return false;
                 }
 
-                inserts.Add(next);
-            }
+                if (xref != null)
+                {
+                    owner = xref.Database;
+                    folder = System.IO.Path.GetDirectoryName(xref.FullPath);
+                }
 
-            refusal = null;
-            return true;
+                insert = next;
+            }
         }
 
         /// <summary>The transformation from the coordinates of the last block of a chain to the drawing: each reference's placing, the outer one applied last.</summary>
-        private static GeoTransform3 ChainTransform(List<DxfBlockReference> inserts)
+        private static GeoTransform3 ChainTransform(List<RefLevel> levels)
         {
-            GeoTransform3 placing = inserts[0].BlockTransform;
+            GeoTransform3 placing = levels[0].Placing;
 
-            for (int i = 1; i < inserts.Count; i++)
+            for (int i = 1; i < levels.Count; i++)
             {
-                placing = placing.Multiply(inserts[i].BlockTransform);
+                placing = placing.Multiply(levels[i].Placing);
             }
 
             return placing;
@@ -759,6 +1759,10 @@ namespace GeometryHelper.Dxf.Viewer
             RefEditHeader header = ReadRefEditHeader(Database);
             return header == null ? null : new CadRefEdit(this, header, 0, 0);
         }
+
+        /// <summary>The full path of the file the external reference an edit is on names, found now; null where it is not found (or the edit is on a block).</summary>
+        internal string RefEditFileOf(IReadOnlyList<string> chain) =>
+            ResolveChain(chain, out List<RefLevel> levels, out _) ? levels[levels.Count - 1].Xref?.FullPath : null;
 
         /// <summary>
         /// The test of whether the REFEDIT lock holds an object, by its handle: true for an object that is not in the working set and
@@ -853,11 +1857,30 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         internal HashSet<string> RefEditHiddenOriginals()
         {
-            if (_refEdit == null)
+            // The objects of an external reference's drawing are hidden where that drawing is drawn, not among this drawing's own.
+            if (_refEdit == null || _refEdit.Header.External)
             {
                 return null;
             }
 
+            return RefEditOriginals();
+        }
+
+        /// <summary>
+        /// The handles of the objects of the drawing an external reference names that the references draw without while an edit
+        /// of it is open: those the copies in this drawing stand for, by the full path of its file. Null where no edit is open,
+        /// it is of another file or of a block.
+        /// </summary>
+        internal HashSet<string> RefEditHiddenInFile(string fullPath) =>
+            _refEdit != null
+            && _refEdit.Header.External
+            && string.Equals(_refEdit.XrefFile, fullPath, StringComparison.OrdinalIgnoreCase)
+                ? RefEditOriginals()
+                : null;
+
+        /// <summary>The handles of the objects the copies of the working set stand for, in the object's own drawing; null where none.</summary>
+        private HashSet<string> RefEditOriginals()
+        {
             var hidden = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (RefEditPair pair in ReadRefEditPairs(Database, out _))
@@ -904,7 +1927,9 @@ namespace GeometryHelper.Dxf.Viewer
                 first,
                 data[2].Value.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries),
                 flags.IndexOf('L') >= 0,
-                flags.IndexOf('A') >= 0
+                flags.IndexOf('A') >= 0,
+                flags.IndexOf('U') >= 0,
+                flags.IndexOf('X') >= 0
             );
         }
 
@@ -943,6 +1968,8 @@ namespace GeometryHelper.Dxf.Viewer
                     4,
                     (header.LocksObjects ? "L" : string.Empty)
                         + (header.AttributeDefinitions ? "A" : string.Empty)
+                        + (header.UniqueNames ? "U" : string.Empty)
+                        + (header.External ? "X" : string.Empty)
                         + "-"
                 ),
             };
@@ -981,13 +2008,23 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>What an in-place edit is kept as in the drawing: the block, the handle its objects were numbered from, the references, the settings.</summary>
     internal sealed class RefEditHeader
     {
-        internal RefEditHeader(string name, ulong first, string[] chain, bool locks, bool attributeDefinitions)
+        internal RefEditHeader(
+            string name,
+            ulong first,
+            string[] chain,
+            bool locks,
+            bool attributeDefinitions,
+            bool uniqueNames,
+            bool external
+        )
         {
             Name = name;
             FirstNewHandle = first;
             Chain = chain;
             LocksObjects = locks;
             AttributeDefinitions = attributeDefinitions;
+            UniqueNames = uniqueNames;
+            External = external;
         }
 
         internal string Name { get; }
@@ -999,20 +2036,36 @@ namespace GeometryHelper.Dxf.Viewer
         internal bool LocksObjects { get; }
 
         internal bool AttributeDefinitions { get; }
+
+        internal bool UniqueNames { get; }
+
+        internal bool External { get; }
     }
 
     /// <summary>One reference the Reference Edit dialog lists: its block's name and the chain of references that reach it.</summary>
     public sealed class CadRefEditLevel
     {
-        internal CadRefEditLevel(string name, string[] chain, string path)
+        internal CadRefEditLevel(string name, string[] chain, string path, bool isExternalReference, string fileName)
         {
             Name = name;
             Chain = chain;
             Path = path;
+            IsExternalReference = isExternalReference;
+            FileName = fileName;
         }
 
         /// <summary>Gets the name of the reference's block.</summary>
         public string Name { get; }
+
+        /// <summary>Gets whether the reference places an external reference rather than a block.</summary>
+        public bool IsExternalReference { get; }
+
+        /// <summary>
+        /// Gets the full path of the file the reference names, found as AutoCAD looks for it, which the dialog's "Reference
+        /// name" and path columns show for an external reference; null for a block, and for an external reference whose file
+        /// is not found.
+        /// </summary>
+        public string FileName { get; }
 
         /// <summary>Gets the handles of the references, the one in a space first and the reference itself last.</summary>
         public IReadOnlyList<string> Chain { get; }
@@ -1039,8 +2092,32 @@ namespace GeometryHelper.Dxf.Viewer
         internal const string Anonymous = "** Cannot REFEDIT anonymous block **";
         internal const string DimensionOrTable = "** Cannot REFEDIT dimension or table blocks **";
         internal const string NonUniform = "** Cannot REFEDIT a non-uniformly scaled block **";
+        internal const string XrefSaveFailed = "** Failed to Saveback Xref file **";
+        internal const string XrefBlockNotEditable = "Selected Xref Block is NOT editable.";
+        internal const string SymbolsAdded = "The following symbols will be added to Xref file:";
+        internal const string XrefOlderFormat =
+            "The Xref selected references a previous drawing file format.\nEdits saved back to the Xref file will be in the release format\nof the referenced drawing file.";
+
+        /// <summary>What REFEDIT says of an external reference whose drawing it cannot read, in AutoCAD 2021's words.</summary>
+        internal static string XrefNotEditable(string path) => "Selected Xref Block is NOT editable: " + path;
+
+        /// <summary>What REFEDIT says of an external reference whose file changed on disk since it was read.</summary>
+        internal static string XrefChanged(string path) => "Xref may have changed and must be reloaded: " + path;
+
+        /// <summary>What REFEDIT says of an external reference whose file another AutoCAD holds open (a .dwl file beside it).</summary>
+        internal static string XrefLocked(string path) =>
+            "Xref cannot be checked out for editing:\n" + path + "\nA file lock already exists on the drawing.";
+
+        internal static string XrefInstancesUpdated(int count) =>
+            count.ToString(CultureInfo.InvariantCulture)
+            + " xref instance"
+            + (count == 1 ? string.Empty : "s")
+            + " updated";
+
+        internal static string XrefRedefined(string name) => name + " redefined and reloaded.";
 
         private readonly CadDocument _document;
+        private string _xrefFile;
 
         internal CadRefEdit(CadDocument document, RefEditHeader header, int start, int floor)
         {
@@ -1060,6 +2137,33 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets how many objects the reference's placing could not hold, left in the block, when the edit opened.</summary>
         public int Skipped { get; internal set; }
+
+        /// <summary>
+        /// Gets the full path of the file REFCLOSE Save writes, where the reference edited is an external reference; null for a
+        /// block.
+        /// </summary>
+        public string XrefFile
+        {
+            get
+            {
+                if (_xrefFile == null && Header.External)
+                {
+                    _xrefFile = _document.RefEditFileOf(Header.Chain);
+                }
+
+                return _xrefFile;
+            }
+            internal set => _xrefFile = value;
+        }
+
+        /// <summary>Gets whether the reference edited is an external reference, whose file REFCLOSE Save writes.</summary>
+        public bool IsExternalReference => Header.External;
+
+        /// <summary>
+        /// Gets what AutoCAD 2021 says when the edit opened on an external reference whose drawing is of an older release than the
+        /// drawing: that the edits saved back are in the release of the file; null otherwise.
+        /// </summary>
+        public string FormatNotice { get; internal set; }
 
         /// <summary>Gets the name of the block being edited: REFEDITNAME.</summary>
         public string Name => Header.Name;

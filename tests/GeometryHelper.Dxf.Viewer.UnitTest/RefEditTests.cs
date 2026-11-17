@@ -767,7 +767,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void AnExternalReference_IsRefused_ItsFileIsNotWrittenBack()
+        public void AnExternalReferenceWhoseFileIsNotFound_IsRefused_AsNotEditable()
         {
             DxfDatabase database = CadTemplate.CreateMetric();
             DxfBlockTableRecord xref = database.AttachXref("site.dxf", "SITE");
@@ -777,7 +777,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadEditResult result = document.OpenRefEdit(new[] { First(document).Handle }, null);
 
             Assert.True(result.Refused);
-            Assert.Equal("External references cannot be edited in place in this version.", result.Message);
+            Assert.Equal("Selected Xref Block is NOT editable: site.dxf", result.Message);
             Assert.Null(document.RefEdit);
             Assert.False(document.CanUndo);
         }
