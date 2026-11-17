@@ -87,7 +87,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Lays a plot of a space on its sheet, as AutoCAD's plot places it. The sheet lies on its side where the settings are
         /// landscape, its margins turning with it; the area is what the view shows (<paramref name="display"/>), the extents
-        /// of the space's display list, the limits (LIMMIN and LIMMAX of model space, a layout's own), the window, or a layout's
+        /// of the space's display list, the limits (LIMMIN and LIMMAX of model space, a layout's own), the window, the window of a named view, or a layout's
         /// sheet. Fitted, the scale is the larger that keeps the area in the printable area; else the settings' own. The plot
         /// is centred in the printable area where asked, else moved by the offset from its corner; a layout's sheet plotted as
         /// the layout is placed by its origin, the paper's (0, 0) at the printable corner plus the offset. Upside down turns the
@@ -193,6 +193,8 @@ namespace GeometryHelper.Dxf.Viewer
                     return settings.Window.IsEmpty ? extents : settings.Window;
                 case CadPlotArea.Layout:
                     return space.IsModel ? extents : space.PaperBounds;
+                case CadPlotArea.View:
+                    return ViewWindow(document, space, settings.ViewName) ?? extents;
                 case CadPlotArea.Limits:
                     if (space.IsModel)
                     {
@@ -216,6 +218,40 @@ namespace GeometryHelper.Dxf.Viewer
                 default:
                     return extents;
             }
+        }
+
+        /// <summary>
+        /// The window of the named view of a space's kind (model or paper), letters of either case alike: the rectangle of its
+        /// width and height about its centre, a view 12 000 wide and 9 000 high about (18 450, 6 200) giving (12 450, 1 700)
+        /// to (24 450, 10 700). A twist is not applied: the rectangle is the view's before it is turned. Null where the drawing
+        /// has no such view.
+        /// </summary>
+        private static DisplayBox? ViewWindow(CadDocument document, CadSpace space, string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return null;
+            }
+
+            foreach (DxfViewTableRecord view in document.Database.ViewTable)
+            {
+                if (
+                    view.IsPaperspaceView == !space.IsModel
+                    && string.Equals(view.Name, name, StringComparison.OrdinalIgnoreCase)
+                    && view.Width > 0.0
+                    && view.Height > 0.0
+                )
+                {
+                    return new DisplayBox(
+                        view.CenterPoint.X - view.Width / 2.0,
+                        view.CenterPoint.Y - view.Height / 2.0,
+                        view.CenterPoint.X + view.Width / 2.0,
+                        view.CenterPoint.Y + view.Height / 2.0
+                    );
+                }
+            }
+
+            return null;
         }
     }
 

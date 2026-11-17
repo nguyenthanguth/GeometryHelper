@@ -322,7 +322,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "L");
             Assert.Equal("Plot upside down? [Yes/No] <No>:", session.PromptText);
             Run(session, Enter);
-            Assert.StartsWith("Enter plot area [Display/Extents/Limits/Window] <", session.PromptText);
+            Assert.StartsWith("Enter plot area [Display/Extents/Limits/View/Window] <", session.PromptText);
             Run(session, "W");
             Assert.StartsWith("Enter lower left corner of window <", session.PromptText);
             Run(session, "120,60", "7620,5360");

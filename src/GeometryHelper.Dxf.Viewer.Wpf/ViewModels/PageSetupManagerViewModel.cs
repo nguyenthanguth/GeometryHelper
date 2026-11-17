@@ -611,7 +611,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     + ":"
                     + settings.DrawingUnits.ToString("0.####", CultureInfo.InvariantCulture);
             string table = settings.StyleSheet.Length == 0 ? "no plot style table" : settings.StyleSheet;
-            return settings.Paper.Label + " · " + plotter + " · " + settings.Area + " " + scale + " · " + table;
+            string area =
+                settings.Area == CadPlotArea.View && settings.ViewName.Length > 0
+                    ? "View " + settings.ViewName
+                    : settings.Area.ToString();
+            return settings.Paper.Label + " · " + plotter + " · " + area + " " + scale + " · " + table;
         }
 
         /// <summary>

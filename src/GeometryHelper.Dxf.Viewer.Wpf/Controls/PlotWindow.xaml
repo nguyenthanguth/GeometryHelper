@@ -125,6 +125,17 @@
                 </Style.Triggers>
             </Style>
 
+            <!-- What to plot: View is greyed where the drawing has no named view. -->
+            <Style x:Key="AreaRow" TargetType="ComboBoxItem" BasedOn="{StaticResource GreyableRow}">
+                <Setter Property="IsEnabled" Value="{Binding IsEnabled}" />
+                <Setter Property="ToolTip" Value="The drawing has no named view: save one with VIEW first." />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsEnabled}" Value="True">
+                        <Setter Property="ToolTip" Value="{x:Null}" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
             <Style x:Key="MutedText" TargetType="TextBlock">
                 <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
                 <Setter Property="VerticalAlignment" Value="Center" />
@@ -536,7 +547,7 @@
                                         Style="{StaticResource GhComboBox}"
                                         ItemsSource="{Binding Areas}"
                                         SelectedItem="{Binding Area, Mode=TwoWay}"
-                                        ItemContainerStyle="{StaticResource GreyableRow}"
+                                        ItemContainerStyle="{StaticResource AreaRow}"
                                         AutomationProperties.Name="What to plot"
                                     >
                                         <ComboBox.ItemTemplate>
@@ -559,6 +570,17 @@
                                     Style="{StaticResource MutedText}"
                                     Visibility="{Binding IsWindow, Converter={StaticResource Shown}}"
                                 />
+                                <!-- The named view plotted, listed where View is chosen. -->
+                                <StackPanel Visibility="{Binding IsView, Converter={StaticResource Shown}}">
+                                    <TextBlock Text="View:" Style="{StaticResource MutedText}" Margin="0,0,0,6" />
+                                    <ComboBox
+                                        Style="{StaticResource GhComboBox}"
+                                        ItemsSource="{Binding ViewNames}"
+                                        SelectedItem="{Binding ViewName, Mode=TwoWay}"
+                                        ItemContainerStyle="{StaticResource GreyableRow}"
+                                        AutomationProperties.Name="View to plot"
+                                    />
+                                </StackPanel>
                             </StackPanel>
                         </HeaderedContentControl>
                         <HeaderedContentControl

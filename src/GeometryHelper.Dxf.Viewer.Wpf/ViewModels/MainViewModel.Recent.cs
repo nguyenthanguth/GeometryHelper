@@ -592,7 +592,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the recent files the right shows, the pinned ones first: the window's list.</summary>
         public IReadOnlyList<RecentDocumentViewModel> RecentDocuments => _model.RecentDocuments;
 
-        /// <summary>Gets or sets the text of the search box; the right then lists the commands whose name holds it.</summary>
+        /// <summary>Gets or sets the text of the search box; the right then lists the commands whose name or description holds it.</summary>
         public string SearchText
         {
             get => _searchText;
@@ -812,11 +812,81 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <returns>Whether they were closed.</returns>
         public bool CloseAllDocuments() => CloseFiles(_files.Values.ToList());
 
-        /// <summary>The commands and variables whose name holds a text, as the application menu's search lists them.</summary>
-        internal IReadOnlyList<CommandSuggestionViewModel> SearchCommands(string text) =>
-            _current == null
-                ? Array.Empty<CommandSuggestionViewModel>()
-                : Suggest(_current.Session.Registry, text.Trim());
+        /// <summary>
+        /// The commands and variables the application menu's search lists for a text: first those whose name holds it, as the
+        /// command line's AutoComplete orders them; then, below a rule, the commands whose name and description together hold
+        /// every word of it ("draw circle" finds CIRCLE and ARC by their descriptions), the commands whose description holds the
+        /// words as typed first, then by name. The description is the one the Shortcuts page of Global settings shows; a command
+        /// with none is found by its name alone. No more than 100 rows; none where no drawing is open.
+        /// </summary>
+        internal IReadOnlyList<CommandSuggestionViewModel> SearchCommands(string text)
+        {
+            const int MostRows = 100;
+
+            if (_current == null)
+            {
+                return Array.Empty<CommandSuggestionViewModel>();
+            }
+
+            CadCommandRegistry registry = _current.Session.Registry;
+            string typed = text.Trim();
+            List<CommandSuggestionViewModel> rows = Suggest(registry, typed);
+            string[] words = typed.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
+            var named = new HashSet<string>(
+                rows.Where(r => !r.IsHeader && !r.IsVariable).Select(r => r.Command),
+                StringComparer.OrdinalIgnoreCase
+            );
+            var found = new List<KeyValuePair<CadCommand, string>>();
+
+            foreach (CadCommand command in registry.Commands)
+            {
+                string description = GlobalSettingsViewModel.DescriptionOf(command.Name);
+
+                if (
+                    description.Length > 0
+                    && words.Length > 0
+                    && !named.Contains(command.Name)
+                    && words.All(w =>
+                        description.IndexOf(w, StringComparison.OrdinalIgnoreCase) >= 0
+                        || command.Name.IndexOf(w, StringComparison.OrdinalIgnoreCase) >= 0
+                    )
+                )
+                {
+                    found.Add(new KeyValuePair<CadCommand, string>(command, description));
+                }
+            }
+
+            bool first = rows.Count > 0;
+
+            foreach (
+                KeyValuePair<CadCommand, string> each in found
+                    .OrderBy(f => f.Value.IndexOf(typed, StringComparison.OrdinalIgnoreCase) >= 0 ? 0 : 1)
+                    .ThenBy(f => f.Key.Name, StringComparer.Ordinal)
+            )
+            {
+                if (rows.Count >= MostRows)
+                {
+                    break;
+                }
+
+                rows.Add(
+                    new CommandSuggestionViewModel(
+                        each.Key.Name,
+                        each.Key.Name,
+                        false,
+                        0,
+                        0,
+                        each.Value,
+                        null,
+                        first,
+                        IconOf(each.Key.Name)
+                    )
+                );
+                first = false;
+            }
+
+            return rows;
+        }
 
         /// <summary>A file opened: first among the recent files, kept in the settings file.</summary>
         private void NoteRecentFile(string full)

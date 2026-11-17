@@ -168,8 +168,20 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        /// <summary>Gets the name of the view plotted where <see cref="PlotType"/> is a view (group 6), as AutoCAD's <c>PlotViewName</c>; empty where it has none.</summary>
-        public string PlotViewName => Text(Marker, 6);
+        /// <summary>Gets or sets the name of the view plotted where <see cref="PlotType"/> is a view (group 6), as AutoCAD's <c>PlotViewName</c>; empty where it has none.</summary>
+        /// <value>
+        /// Set, as AutoCAD's <c>PlotSettingsValidator.SetPlotViewName</c> sets it, to a name written as group 6, or empty for
+        /// none. What is plotted is set apart, by <see cref="PlotType"/>; the name is not checked against the drawing's views.
+        /// The name it has changes nothing.
+        /// </value>
+        /// <exception cref="ArgumentNullException">Thrown when the name set is null.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the settings are in no drawing, as a layout made in code before
+        /// it is added, or are erased.</exception>
+        public string PlotViewName
+        {
+            get => Text(Marker, 6);
+            set => SetText(6, value, "be given a view to plot");
+        }
 
         /// <summary>Gets or sets the name of the plot style table (group 7), as AutoCAD's <c>CurrentStyleSheet</c>, such as <c>monochrome.ctb</c>; empty where it has none.</summary>
         /// <value>

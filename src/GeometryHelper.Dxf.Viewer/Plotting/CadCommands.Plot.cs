@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Dxf.Viewer
@@ -310,8 +311,8 @@ namespace GeometryHelper.Dxf.Viewer
             settings.UpsideDown = c.Input.IsNone ? settings.UpsideDown : c.Input.Is("Yes");
 
             string[] areas = space.IsModel
-                ? new[] { "Display", "Extents", "Limits", "Window" }
-                : new[] { "Display", "Extents", "Layout", "Window" };
+                ? new[] { "Display", "Extents", "Limits", "View", "Window" }
+                : new[] { "Display", "Extents", "Layout", "View", "Window" };
             CadPlotArea current =
                 space.IsModel && settings.Area == CadPlotArea.Layout ? CadPlotArea.Extents : settings.Area;
             yield return CadPrompt.ForKeyword("Enter plot area", areas, current.ToString());
@@ -319,6 +320,41 @@ namespace GeometryHelper.Dxf.Viewer
             if (!c.Input.IsNone)
             {
                 settings.Area = (CadPlotArea)Enum.Parse(typeof(CadPlotArea), c.Input.Text);
+            }
+
+            if (settings.Area == CadPlotArea.View)
+            {
+                // As AutoCAD asks it, with views or none: a name not among the drawing's, or none, asks again.
+                IReadOnlyList<string> views = CadPlotSettings.ViewNames(c.Document, space);
+
+                while (true)
+                {
+                    yield return CadPrompt.ForString(
+                        "Enter view name",
+                        settings.ViewName.Length > 0 ? settings.ViewName : null
+                    );
+                    string typed =
+                        c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim().Trim('"') : settings.ViewName;
+
+                    if (typed.Length == 0)
+                    {
+                        c.Write("No view specified.  You must enter a view name.");
+                        continue;
+                    }
+
+                    string found = views.FirstOrDefault(v =>
+                        string.Equals(v, typed, StringComparison.OrdinalIgnoreCase)
+                    );
+
+                    if (found == null)
+                    {
+                        c.Write("<" + typed + "> not found.");
+                        continue;
+                    }
+
+                    settings.ViewName = found;
+                    break;
+                }
             }
 
             if (settings.Area == CadPlotArea.Window)

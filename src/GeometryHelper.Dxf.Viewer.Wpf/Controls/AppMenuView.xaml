@@ -71,7 +71,7 @@
         CornerRadius="4"
     >
         <DockPanel>
-            <!-- Search: the commands whose name holds the words typed. -->
+            <!-- Search: the commands whose name or description holds the words typed. -->
             <Border
                 DockPanel.Dock="Top"
                 Padding="12,10"
@@ -367,7 +367,7 @@
                             DockPanel.Dock="Top"
                             Margin="14,6"
                             Foreground="{StaticResource GhTextMuted}"
-                            Text="No command holds these letters, or no drawing is open."
+                            Text="No command has these words in its name or description, or no drawing is open."
                         >
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">

@@ -413,6 +413,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             AddBatchFourBWindowCommands(registry);
             AddMisc2WindowCommands(registry);
             AddPgpR32WindowCommands(registry);
+            AddManageWindowCommands(registry);
             var aliases = new Dictionary<string, string> { ["DS"] = "DSETTINGS", ["OS"] = "DSETTINGS" };
             registry.Shortcuts = new CadShortcuts(registry.Shortcuts.Aliases.Concat(aliases), registry.Shortcuts.Keys);
         }

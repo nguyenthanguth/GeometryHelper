@@ -303,6 +303,7 @@ namespace GeometryHelper.Dxf.Viewer
                     ["SHOWMAT"] = "LIST",
                     ["AUTOCOMPLETE"] = "-INPUTSEARCHOPTIONS",
                     ["AUTOCOMPLETEMODE"] = "-INPUTSEARCHOPTIONS",
+                    ["AUTOCOMPLETEDELAY"] = "INPUTSEARCHDELAY",
                     ["COL"] = "COLOR",
                     ["COLOUR"] = "COLOR",
                     ["DDCOLOR"] = "COLOR",
