@@ -52,6 +52,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public double BandY { get; }
     }
 
+    /// <summary>The objects an event of the canvas is about, as those dragged out of it.</summary>
+    public sealed class CadObjectsEventArgs : EventArgs
+    {
+        /// <summary>Makes the arguments.</summary>
+        /// <param name="handles">The handles of the objects, in ordinal order.</param>
+        public CadObjectsEventArgs(IReadOnlyList<string> handles)
+        {
+            Handles = handles;
+        }
+
+        /// <summary>Gets the handles of the objects.</summary>
+        public IReadOnlyList<string> Handles { get; }
+    }
+
     /// <summary>The object an event of the canvas is about, as the one double-clicked.</summary>
     public sealed class CadObjectEventArgs : EventArgs
     {
@@ -485,6 +499,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Raised by a double click on an object with no command running: the window edits a text in place, as AutoCAD's double click runs TEXTEDIT.</summary>
         public event EventHandler<CadObjectEventArgs> ObjectDoubleClicked;
+
+        /// <summary>Gets or sets whether a press on an object selected, dragged, is a drag of the objects out of the canvas (onto a tool palette): the window sets it while a place that takes them is open; null for never.</summary>
+        public Func<bool> ObjectDragWanted { get; set; }
+
+        /// <summary>Raised when objects selected are dragged out of the canvas with no command running, where <see cref="ObjectDragWanted"/> allows it: the window starts the drag.</summary>
+        public event EventHandler<CadObjectsEventArgs> ObjectsDragged;
 
         /// <summary>Raised by a Ctrl+click on an object that has a hyperlink with no command running: the window follows the link, as AutoCAD's Ctrl+click does.</summary>
         public event EventHandler<CadObjectEventArgs> HyperlinkClicked;
@@ -3022,6 +3042,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return found.Count > 0 ? found[0] : null;
         }
 
+        /// <summary>Starts a drag of the objects selected where the press was on one of them; false, nothing done, where it was not or no place takes them.</summary>
+        private bool TryDragObjects()
+        {
+            CadDocument document = Document;
+
+            if (document == null || IsRunning || ObjectsDragged == null || ObjectDragWanted?.Invoke() != true)
+            {
+                return false;
+            }
+
+            if (!(ObjectAt(_boxFrom.Value) is string pressed) || !document.Selection.Handles.Contains(pressed))
+            {
+                return false;
+            }
+
+            var handles = new List<string>(document.Selection.Handles);
+            handles.Sort(StringComparer.OrdinalIgnoreCase);
+            CancelGesture();
+            ReleaseMouseCapture();
+            ObjectsDragged(this, new CadObjectsEventArgs(handles));
+            return true;
+        }
+
         private bool IsObjectAt(Point p)
         {
             CadDocument document = Document;
@@ -3545,6 +3588,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _boxTo = p;
                 Vector moved = p - BoxCorner();
                 bool far = Math.Abs(moved.X) > DragPixels || Math.Abs(moved.Y) > DragPixels;
+
+                // A selected object pressed and dragged out, with a place open that takes objects (the tool palettes), is a drag
+                // of the objects selected, not a box.
+                if (far && !_boxOpen && _pressOnObject && TryDragObjects())
+                {
+                    return;
+                }
 
                 // Select by dragging off, a press on nothing dragged draws a lasso, as AutoCAD's: its points kept in drawing
                 // units, one every 2 pixels.

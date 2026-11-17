@@ -2052,6 +2052,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "ADCCLOSE":
                     OnLayerToolsRequested(e);
                     break;
+                case "TOOLPALETTES":
+                case "TOOLPALETTESCLOSE":
+                    OnToolPalettesRequested(e);
+                    break;
             }
         }
 

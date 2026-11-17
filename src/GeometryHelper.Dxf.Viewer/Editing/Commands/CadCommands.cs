@@ -111,6 +111,7 @@ namespace GeometryHelper.Dxf.Viewer
             AddLayerWalkTo(registry);
             AddLayerTranslateTo(registry);
             AddDesignCenterTo(registry);
+            AddToolPalettesTo(registry);
             AddLayerCopyTo(registry);
             AddDimStyleTypedTo(registry);
             registry.Add(new CadCommand("VPLAYER", ViewportLayer));

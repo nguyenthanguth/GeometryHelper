@@ -364,6 +364,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return true;
             }
 
+            // A key given TOOLPALETTES shows the tool palettes when they are closed and closes them when they are open, as AutoCAD's Ctrl+3.
+            if (target == "TOOLPALETTES" && ToggleToolPalettes())
+            {
+                return true;
+            }
+
             // A key given RIBBON (Ctrl+3) shows the ribbon when it is hidden and hides it when it is shown; typed, RIBBON still
             // shows it and RIBBONCLOSE hides it.
             if (target == "RIBBON")

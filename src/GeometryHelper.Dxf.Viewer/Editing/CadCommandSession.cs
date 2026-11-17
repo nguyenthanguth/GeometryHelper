@@ -257,7 +257,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>False, with "Unknown command" in the history, where the registry knows no such command; false, with "Not
         /// allowed in the Block Editor.", for a command that leaves the block while the Block Editor is open (BEDIT, XREF,
         /// LAYOUT, PLOT and the others).</returns>
-        public bool Start(string typed)
+        public bool Start(string typed) => Start(typed, null);
+
+        /// <summary>Starts a command, wrapped in the overrides of a tool of a palette where one is given.</summary>
+        private bool Start(string typed, CadTool tool)
         {
             if (IsRunning)
             {
@@ -322,7 +325,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             LastCommandName = command.Name;
-            Run(command, preSelected);
+            Run(tool == null ? command : CadToolRun.Wrap(command, tool), preSelected);
             return true;
         }
 
@@ -1172,6 +1175,14 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             var args = new CadUiRequestEventArgs(name, document, payload);
+
+            // The INSERT a block tool of a palette starts is answered from the tool, not shown the Blocks palette.
+            if (AnswersToolInsert(name, payload))
+            {
+                args.Handled = true;
+                return args;
+            }
+
             UiRequested?.Invoke(this, args);
             return args;
         }
