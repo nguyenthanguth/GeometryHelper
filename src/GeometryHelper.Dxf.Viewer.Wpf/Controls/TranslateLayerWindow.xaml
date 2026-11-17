@@ -1,0 +1,154 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.TranslateLayerWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="{Binding Title}"
+    Width="380"
+    Height="400"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+    </Window.Resources>
+
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
+                    <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button
+                        Style="{StaticResource StylePrimaryButton}"
+                        Content="OK"
+                        Padding="18,5"
+                        Margin="0,0,8,0"
+                        Click="OnOk"
+                        IsDefault="True"
+                    />
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Cancel"
+                        Padding="14,5"
+                        Background="{StaticResource GhClose}"
+                        Foreground="White"
+                        FontWeight="SemiBold"
+                        BorderThickness="0"
+                        Click="OnCancel"
+                        IsCancel="True"
+                    />
+                </StackPanel>
+            </Border>
+
+            <StackPanel Margin="16,12">
+                <TextBlock Text="Name" Style="{StaticResource StyleLabel}" Margin="0,0,0,4" />
+                <TextBox
+                    Style="{StaticResource StyleBox}"
+                    Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    IsReadOnly="{Binding IsNameFixed, Mode=OneWay}"
+                    Margin="0,0,0,10"
+                    AutomationProperties.Name="Layer name"
+                />
+
+                <TextBlock Text="Color" Style="{StaticResource StyleLabel}" Margin="0,0,0,4" />
+                <Button
+                    Style="{StaticResource GhDialogButton}"
+                    HorizontalContentAlignment="Left"
+                    Padding="8,4"
+                    Margin="0,0,0,10"
+                    Click="OnColor"
+                    AutomationProperties.Name="Layer color"
+                >
+                    <StackPanel Orientation="Horizontal">
+                        <Border
+                            Width="14"
+                            Height="14"
+                            BorderBrush="{StaticResource GhBorder}"
+                            BorderThickness="1"
+                            Background="{Binding Rgb, Converter={StaticResource RgbBrush}}"
+                            Margin="0,0,8,0"
+                        />
+                        <TextBlock Text="{Binding ColorText}" />
+                    </StackPanel>
+                </Button>
+
+                <TextBlock Text="Linetype" Style="{StaticResource StyleLabel}" Margin="0,0,0,4" />
+                <Button
+                    Style="{StaticResource GhDialogButton}"
+                    HorizontalContentAlignment="Left"
+                    Padding="8,4"
+                    Margin="0,0,0,10"
+                    Content="{Binding Linetype}"
+                    Click="OnLinetype"
+                    AutomationProperties.Name="Layer linetype"
+                />
+
+                <TextBlock Text="Lineweight" Style="{StaticResource StyleLabel}" Margin="0,0,0,4" />
+                <ComboBox
+                    Style="{StaticResource GhComboBox}"
+                    ItemsSource="{Binding LineWeights}"
+                    SelectedItem="{Binding SelectedWeight, Mode=TwoWay}"
+                    DisplayMemberPath="Text"
+                    Margin="0,0,0,10"
+                    AutomationProperties.Name="Layer lineweight"
+                />
+
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Transparency (0 to 90)" Style="{StaticResource StyleLabel}" Margin="0,0,0,4" />
+                        <TextBox
+                            Style="{StaticResource StyleBox}"
+                            Text="{Binding Transparency, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            AutomationProperties.Name="Layer transparency"
+                        />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Plot style" Style="{StaticResource StyleLabel}" Margin="0,0,0,4" />
+                        <TextBox
+                            Style="{StaticResource StyleBox}"
+                            Text="{Binding PlotStyle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            AutomationProperties.Name="Layer plot style"
+                        />
+                    </StackPanel>
+                </Grid>
+
+                <TextBlock Foreground="{StaticResource GhError}" TextWrapping="Wrap" Text="{Binding Error}" />
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</Window>

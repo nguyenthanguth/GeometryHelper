@@ -233,7 +233,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 310 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 314 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -243,8 +243,8 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | shapes and hatching | SOLID, REGION, HATCH, HATCHSETORIGIN, -HATCH (Properties, Select objects, draW boundary, remove Boundaries, Advanced: Boundary set, Retain boundary, Island detection, Style, Associativity, Gap tolerance, separate Hatches; DRaw order, Origin, ANnotative, hatch COlor, LAyer, Transparency, Undo), GRADIENT, HATCHEDIT, -HATCHEDIT (DIsassociate, Style, Properties, DRaw order, ADd boundaries, Remove boundaries, recreate Boundary, ASsociate, separate Hatches, Origin, ANnotative, hatch COlor, LAyer, Transparency), HATCHGENERATEBOUNDARY, HATCHSETBOUNDARY, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Fit data: Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance; Close, Open, Join, Move vertex, Refine: Add, Delete, Elevate order, Move, Weight; rEverse, convert to Polyline, Undo), CLASSICINSERT |
 | multilines | MLINE (Justification, Scale, STyle; Close, Undo), MLEDIT (CC, OC, MC, CT, OT, MT, CJ, AV, DV, CS, CA, WA; Undo), MLSTYLE (?, Current, New, Modify, Rename, Delete, Load, Save), and the variables CMLJUST, CMLSCALE and CMLSTYLE (see [Multilines](#multilines)) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea, Quick, Mode) |
-| layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, PStyle, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, LAYMRG and -LAYMRG (Name, Undo), LAYDEL and -LAYDEL (Name, Undo), LAYCUR, COPYTOLAYER and -COPYTOLAYER (?, =, Displacement, eXit), VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
-| utilities | SELECTALL, SELECTSIMILAR (SEttings), ADDSELECTED, TEXTSCR, UNITS, -UNITS, SCRIPT, SAVE, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?), QUICKCALC, CAL, QUICKPROPERTIES |
+| layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, PStyle, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, LAYWALK, LAYTRANS, LAYMRG and -LAYMRG (Name, Undo), LAYDEL and -LAYDEL (Name, Undo), LAYCUR, COPYTOLAYER and -COPYTOLAYER (?, =, Displacement, eXit), VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
+| utilities | SELECTALL, SELECTSIMILAR (SEttings), ADDSELECTED, ADCENTER (ADC, DC, DCENTER), ADCCLOSE, TEXTSCR, UNITS, -UNITS, SCRIPT, SAVE, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?), QUICKCALC, CAL, QUICKPROPERTIES |
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too; a spline made a polyline within a precision), REVCLOUDPROPERTIES (Arc length), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPATH, ARRAYPOLAR, ARRAYEDIT, -ARRAY, OVERKILL, -OVERKILL, ALIGN, CHANGE (Properties: Color, Elev, LAyer, LType, ltScale, LWeight, Thickness, TRansparency, Material, Annotative), CHPROP (the same less Elev), SETBYLAYER (Settings), REVERSE, CHSPACE, BURST, TXTEXP, and the variable SETBYLAYERMODE |
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a name typed may be a wildcard and every attributed block it matches is synced; what is picked that is no block, or a block with no attribute definitions, refused and another asked for, in the words of AutoCAD's own table of strings; an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, ATTEXT, -ATTEXT (Cdf, Sdf, Dxf, Objects), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), ATTREDEF, BAUTHORPALETTE, RESETBLOCK, REFEDIT, -REFEDIT (Ok, Next; All, Nested), REFSET (Add, Remove), REFCLOSE (Save, Discard), and the variables REFEDITNAME and XFADECTL |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
@@ -4291,6 +4291,50 @@ want to create it? [Yes/No]:`. The copies are made on the layer at once (`1 obje
 `Specify base point or [Displacement/eXit] <eXit>:` moves them: two points (the second, or Enter, `use first point as
 displacement`), or Displacement and a vector; eXit leaves them where the originals stand. The copy and the move are one undo
 step. A name with a character a layer name cannot hold says `Invalid characters in layer name.` and asks again.
+
+### LAYWALK and LAYTRANS
+
+LAYWALK shows AutoCAD 2021's **LayerWalk** dialog, and the layers selected in its list are the only ones shown in the
+drawing while it is open: every other layer is turned off, and a layer selected that was frozen is thawed. A drawing of the
+layers WALL, DOOR and TRIM, walked on DOOR, shows the objects on DOOR alone; with nothing selected every layer is as it was.
+The filter box takes wild cards as the layer filters do (`W*,T?IM` lists WALL and TRIM), **Select Objects** hides the dialog
+for `Select objects on the layers to walk:` on the canvas and shows it again with the layers of the objects selected,
+and **Purge Layers** (a button and an item of the list's menu) deletes the unused layers among those selected, saying `2
+layers purged.`; a layer in use, the current layer, 0 and Defpoints are kept, and a layer nothing is on is written in italics.
+**Restore on exit**, ticked at first, puts every layer back as it was when the dialog closes; cleared, the walk stays in the
+drawing. The walk is edits of LAYWALK's one undo step, so Undo after a walk that stayed takes it back whole. AutoCAD has no
+command line form of LAYWALK, and with no window the command says so. The same is done from code with
+[`CadLayerWalkRequest`](xref:GeometryHelper.Dxf.Viewer.CadLayerWalkRequest) (`Walk`, `WalkLayersOf`, `Purge`, `Restore`,
+`Filter`).
+
+LAYTRANS shows the **Layer Translator**: Translate From lists the layers of the drawing (a layer of an external reference
+is left out, and a layer something is on says "In use"), Translate To starts with the same layers, and **Load…** adds those
+of a standards file, a `.dws`, `.dwg`, `.dwt` or `.dxf` read by the library's own readers, a layer of a name the list has
+taking the file's colour, linetype, lineweight, transparency and plot style. **Map** maps the layers selected on the left to
+the layer selected on the right, **Map same** maps every layer to the layer of its name, **New…** adds a layer to Translate
+To, and each mapping shows the layer it goes to with its settings in the Layer Translation Mappings list, where **Edit…**
+changes the colour, linetype (Select Linetype), lineweight, transparency (0 to 90) and plot style one mapping gives without
+touching the file's layer, and **Remove** drops a mapping. The selection filter box and **Select** pick the layers of the
+left list that match a pattern. **Save…** writes the Translate To list as a `.dws` (a DWG, the extension AutoCAD gives its
+standards files) with the mappings kept in it, and Load reads them back for the layers of the drawing that are not mapped
+yet; the mappings are kept as an XRECORD `GH_LAYTRANS_MAP` of the file's named objects dictionary, which AutoCAD does not
+read (a `.dws` that AutoCAD writes loads as layers alone). **Settings…** has six switches, all on at first: Force object
+color, linetype and transparency to ByLayer (for the objects of the layers translated), Translate objects in blocks (off,
+the definitions of blocks are left as they are and a layer an object in a block is on is kept), Write transaction log and Show
+layer contents when selected (a layer selected on the left shows its objects alone, the others turned off, until the
+selection changes or the dialog closes). **Translate** makes the layers translated to where the drawing has none (the linetype
+copied from the standards file where the drawing has none, Continuous where the file has none either), gives the one the
+drawing has the settings of the mapping, puts every object of each layer translated, in model space, the layouts and the
+blocks and the attributes of the references, on the layer it is mapped to, and deletes the layers translated from but layer 0,
+Defpoints and any layer another mapping goes to; the current layer translated away is replaced by the layer it went to. A
+drawing with 40 lines on OLD-WALL and 12 on OLD-DOOR, mapped to WALL (colour 3) and DOOR of a standards file, has the 52 lines
+on WALL and DOOR, WALL green, and neither old layer, in one undo step named LAYTRANS. The log, `plan.log` beside `plan.dxf`,
+says `Layer OLD-WALL translated to layer WALL: 40 objects.`, `Layer WALL created.` and `Layer OLD-WALL deleted.`. A drawing of
+R2000 or older has no true colours or transparency, and those of a mapping are left out. The Manage tab's CAD Standards panel
+has Layer Translator (Configure and Check stay parked). Without a window LAYTRANS says it is the window's dialog.
+[`CadLayerTranslatorRequest`](xref:GeometryHelper.Dxf.Viewer.CadLayerTranslatorRequest) (`Load`, `Map`, `MapSame`,
+`NewLayer`, `Edit`, `Remove`, `Save`, `Translate`, `Settings`) and
+[`CadLayerEditor.Translate`](xref:GeometryHelper.Dxf.Viewer.CadLayerEditor.Translate*) do it from code.
 
 ### Layer manager columns and filters
 

@@ -2920,9 +2920,10 @@
                                 Style="{StaticResource SmallButton}"
                                 Tag="{StaticResource GhIconLayers}"
                                 Content="Layer Translator"
-                                IsEnabled="False"
-                                ToolTipService.ShowOnDisabled="True"
-                                ToolTip="Layer Translator (LAYTRANS): CAD standards are not built yet"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Command="{Binding Model.StartCommandCommand}"
+                                CommandParameter="LAYTRANS"
+                                ToolTip="Layer Translator (LAYTRANS): map the layers of the drawing to those of a standards file and translate them"
                             />
                         </WrapPanel>
                     </local:RibbonPanel>

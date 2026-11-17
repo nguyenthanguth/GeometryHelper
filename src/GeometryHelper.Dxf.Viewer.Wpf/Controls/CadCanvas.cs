@@ -964,6 +964,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        /// <summary>Gets the point of the drawing under a point of the canvas, as a block dropped there is placed.</summary>
+        /// <param name="p">The point, in WPF units of the canvas.</param>
+        /// <returns>The drawing point; null where no drawing is shown.</returns>
+        public GeoPoint2? DrawingPointAt(Point p)
+        {
+            CadView view = WorkView;
+
+            if (view == null)
+            {
+                return null;
+            }
+
+            double scale = PixelScale;
+            view.ScreenToDrawing(p.X * scale, p.Y * scale, out double x, out double y);
+            return new GeoPoint2(x, y);
+        }
+
         /// <summary>
         /// Puts the cursor on a point of the drawing, as moving the mouse there does: the snap, the rubber band and the hover
         /// follow it. A screenshot taken with no mouse uses it to show a command in progress.

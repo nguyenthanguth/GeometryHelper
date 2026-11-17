@@ -219,7 +219,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The names of the drawing's layouts.</summary>
-        private static IEnumerable<string> LayoutNames(DxfDatabase database) =>
+        internal static IEnumerable<string> LayoutNames(DxfDatabase database) =>
             database.Layouts.Select(l => l.LayoutName);
 
         /// <summary>
@@ -227,7 +227,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// first number from 1 that no layout's name starts with LayoutN (the next a separator or the end) as AutoCAD 2021 numbers
         /// them: with Layout1, Layout2 and Plan there, a second Plan is Layout3-Plan, and the next Layout1 Layout4-Layout1.
         /// </summary>
-        private static string TemplateLayoutName(IReadOnlyList<string> taken, string wanted)
+        internal static string TemplateLayoutName(IReadOnlyList<string> taken, string wanted)
         {
             if (!taken.Any(n => string.Equals(n, wanted, StringComparison.OrdinalIgnoreCase)))
             {
@@ -251,7 +251,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>A layout of the name made of one of another drawing: its page settings, and a copy of every entity of its block, its viewports among them, with the layers, styles and blocks they name.</summary>
-        private static void ImportLayout(DxfDatabase database, DxfDatabase source, DxfLayout from, string name)
+        internal static void ImportLayout(DxfDatabase database, DxfDatabase source, DxfLayout from, string name)
         {
             var layout = new DxfLayout { LayoutName = name };
             layout.AddToLayoutDictionary(database, null);

@@ -92,6 +92,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case CadBlockDefinitionRequest block when ShowBlockDefinition != null:
                     e.Handled = ShowBlockDefinition(new BlockDefinitionViewModel(block));
                     break;
+                case CadInsertRequest insert when AnswerDesignCenterInsert(insert):
+                    e.Handled = true;
+                    break;
                 case CadInsertRequest insert when _galleryBlock != null:
                     insert.Name = _galleryBlock;
                     insert.Action = CadDialogAction.Ok;

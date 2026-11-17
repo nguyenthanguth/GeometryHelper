@@ -386,6 +386,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "IMAGEATTACH":
                     if (e.Payload is CadAttachRequest request && ShowAttachReference != null)
                     {
+                        // A file DesignCenter's Attach as Xref chose is the dialog's file at once.
+                        if (_designCenterAttach != null && e.Name == "XATTACH")
+                        {
+                            request.FileName = _designCenterAttach;
+                        }
+
                         e.Handled = ShowAttachReference(new AttachReferenceViewModel(request));
                     }
 

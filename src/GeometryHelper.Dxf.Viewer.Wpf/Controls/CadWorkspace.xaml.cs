@@ -553,7 +553,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         protected override void OnDragOver(DragEventArgs e)
         {
             base.OnDragOver(e);
-            e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
+            e.Effects =
+                e.Data.GetDataPresent(DataFormats.FileDrop) || e.Data.GetDataPresent(DesignCenterDrag.Format)
+                    ? DragDropEffects.Copy
+                    : DragDropEffects.None;
             e.Handled = true;
         }
 
@@ -561,6 +564,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         protected override void OnDrop(DragEventArgs e)
         {
             base.OnDrop(e);
+
+            // A block, layer, style or drawing dragged out of DesignCenter is placed or copied in where it is dropped.
+            if (_model != null && e.Data.GetData(DesignCenterDrag.Format) is string dragged)
+            {
+                _model.DropFromDesignCenter(dragged, CanvasView.DrawingPointAt(e.GetPosition(CanvasView)));
+                e.Handled = true;
+                return;
+            }
 
             if (_model != null && e.Data.GetData(DataFormats.FileDrop) is string[] files)
             {
@@ -731,6 +742,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowExternalReferences = palette =>
                     ExternalReferencesWindow.ShowPalette(Window.GetWindow(this), shown, palette);
                 _model.ShowAttachReference = dialog => AttachReferenceWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowLayerWalk = dialog => LayerWalkWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowLayerTranslator = dialog => LayerTranslatorWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowDesignCenter = palette =>
+                    DesignCenterWindow.ShowPalette(Window.GetWindow(this), shown, palette);
+                _model.CloseDesignCenter = DesignCenterWindow.ClosePalette;
                 _model.ShowXrefBind = dialog => XrefBindWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowXrefBindRefused = box => XrefBindRefusedWindow.Show(Window.GetWindow(this), box);
                 _model.WatchReferenceFiles = true;

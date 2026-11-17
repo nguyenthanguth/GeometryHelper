@@ -373,26 +373,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             model.CommandText = "WAL";
             model.ShowSuggestions();
 
-            // Design CmdContentSection: the command REDRAWALL (its middle matches), then Blocks (1) over WALL_TAG, Layers (2) over
+            // Design CmdContentSection: the commands LAYWALK and REDRAWALL (their middles match), then Blocks (1) over WALL_TAG, Layers (2) over
             // WALL-FINISH and WALLS, each expanded.
             IReadOnlyList<CommandSuggestionViewModel> rows = model.Suggestions;
             Assert.Equal(
-                new[] { "REDRAWALL", "Blocks", "WALL_TAG", "Layers", "WALL-FINISH", "WALLS" },
+                new[] { "LAYWALK", "REDRAWALL", "Blocks", "WALL_TAG", "Layers", "WALL-FINISH", "WALLS" },
                 rows.Select(r => r.Name)
             );
-            CommandSuggestionViewModel layers = rows[3];
+            CommandSuggestionViewModel layers = rows[4];
             Assert.True(layers.IsHeader);
             Assert.True(layers.IsExpanded);
             Assert.Equal("2", layers.Note);
             Assert.Null(layers.ContentType);
-            Assert.False(rows[2].IsHeader);
+            Assert.False(rows[3].IsHeader);
             Assert.True(rows[0].IsSelected);
 
             // A click on the header (or Enter on it) collapses it and keeps the list open, the header chosen.
             Assert.True(model.RunSuggestion(layers));
             Assert.True(model.IsSuggestionListOpen);
             Assert.False(layers.IsExpanded);
-            Assert.Equal(new[] { "REDRAWALL", "Blocks", "WALL_TAG", "Layers" }, model.Suggestions.Select(r => r.Name));
+            Assert.Equal(
+                new[] { "LAYWALK", "REDRAWALL", "Blocks", "WALL_TAG", "Layers" },
+                model.Suggestions.Select(r => r.Name)
+            );
             Assert.Same(layers, model.SelectedSuggestion);
             Assert.False(model.IsCommandRunning);
 

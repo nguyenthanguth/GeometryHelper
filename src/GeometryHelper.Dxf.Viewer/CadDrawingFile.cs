@@ -123,6 +123,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Whether a name ends in .dwt, of either case: the drawing template, a DWG with that extension.</summary>
         internal static bool IsTemplateName(string path) => HasExtension(path, ".dwt");
 
+        /// <summary>Whether a name ends in .dws, of either case: the standards file of the Layer Translator, a DWG with that extension.</summary>
+        internal static bool IsStandardsName(string path) => HasExtension(path, ".dws");
+
         /// <summary>Whether the DWG writer writes the version, as AC1024: those <see cref="CadExportJob.DwgSaveTypes"/> lists.</summary>
         internal static bool IsDwgVersion(string version) => CadExportJob.DwgTypeOfVersion(version) != null;
 
@@ -154,7 +157,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Saves a database as <see cref="Save(DxfDatabase, string, string, IList{string}, IProgress{double})"/> does; a name
         /// ending in .dwt is written as a DWG too, the drawing template of AutoCAD, with <paramref name="templateDescription"/>
-        /// in its template section (null or empty for none).
+        /// in its template section (null or empty for none); a name ending in .dws is written as a DWG, the standards file of
+        /// the Layer Translator.
         /// </summary>
         internal static string Save(
             DxfDatabase database,
@@ -167,7 +171,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             progress?.Report(0.0);
 
-            if (!IsDwgName(path) && !IsTemplateName(path))
+            if (!IsDwgName(path) && !IsTemplateName(path) && !IsStandardsName(path))
             {
                 if (version == null)
                 {
