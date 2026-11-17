@@ -686,9 +686,9 @@ namespace GeometryHelper.Cad
         // ---- Fonts
 
         /// <summary>
-        /// Gets or sets the folders the fonts of text styles are looked for in, in order, after the folder of the drawing, as
-        /// AutoCAD's support file search path: none by default (<see cref="CadFonts.DefaultFolders"/>), so that an SHX font is
-        /// read only from the drawing's folder and the folders the user lists, and AutoCAD's Fonts folders are never looked
+        /// Gets or sets the folders the fonts of text styles are looked for in, in order, before the Fonts folder beside
+        /// GeometryHelper.Cad.dll (<see cref="CadSupportFolders"/>), as AutoCAD's support file search path: none by default
+        /// (<see cref="CadFonts.DefaultFolders"/>), so that an SHX font is read only from the folders the user lists and the one beside the dll, and AutoCAD's Fonts folders are never looked
         /// for; a TrueType file is looked for in the Fonts folder of Windows as well. A list saved before keeps the folders it
         /// holds. Blank entries are left out and a folder given twice is kept once.
         /// </summary>
@@ -738,7 +738,7 @@ namespace GeometryHelper.Cad
 
         /// <summary>
         /// Gets or sets the support file search folders: the user's own folders where linetype files (.lin) and hatch pattern
-        /// files (.pat) are looked for, in order, after the folder of the drawing, as AutoCAD's support path; none by default
+        /// files (.pat) are looked for, in order, before the Linetypes and Hatches folders beside the dll, as AutoCAD's support path; none by default
         /// (<see cref="CadSupportFiles.DefaultFolders"/>), the presenter's own linetypes and patterns then the only ones, and
         /// AutoCAD's Support folders never looked for. Blank entries are left out and a folder given twice is kept once.
         /// </summary>

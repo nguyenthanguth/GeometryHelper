@@ -7,22 +7,24 @@ using GeometryHelper.Dxf;
 namespace GeometryHelper.Cad
 {
     /// <summary>
-    /// The user's own support files a drawing's linetypes and hatch patterns may be read from: the folders the user
-    /// gave in <see cref="CadDocument.SupportFolders"/>, the drawing's own folder first where there is one. None is looked for
-    /// by default (<see cref="DefaultFolders"/> is empty), and no file of AutoCAD's is looked for or preferred: the presenter's
-    /// own sets (<see cref="CadLinetypeFile.BuiltIn"/>, <see cref="CadPatternFile.BuiltIn"/>) are the default.
+    /// The support files a drawing's linetypes (.lin) and hatch patterns (.pat) may be read from, looked for in this order:
+    /// the folders the user gave in <see cref="CadDocument.SupportFolders"/>, then the Linetypes or Hatches folder beside
+    /// GeometryHelper.Cad.dll (<see cref="CadSupportFolders"/>), then the presenter's own sets
+    /// (<see cref="CadLinetypeFile.BuiltIn"/>, <see cref="CadPatternFile.BuiltIn"/>). The drawing's own folder is not looked
+    /// in for them, and no file of AutoCAD's is looked for or preferred.
     /// </summary>
     public static class CadSupportFiles
     {
         /// <summary>
         /// Gets the support folders a drawing starts with: none. The user adds a folder of their own in Global settings' Support
-        /// file search folders; AutoCAD's Support folders are not looked for.
+        /// file search folders; the folders beside the dll are looked in after them.
         /// </summary>
         public static IReadOnlyList<string> DefaultFolders { get; } = Array.Empty<string>();
 
         /// <summary>
-        /// Finds a file of support: the path as written where it is a full path that is there, else its name in the drawing's
-        /// folder and then in the document's support folders, in order; null where none has it.
+        /// Finds a file of support: the path as written where it is a full path that is there, else its name in the document's
+        /// support folders in order and then, for a .lin or .pat file, in the Linetypes or Hatches folder beside the dll; null
+        /// where none has it.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="fileName">The file's name or path, as mine.lin.</param>
@@ -49,7 +51,7 @@ namespace GeometryHelper.Cad
                     return File.Exists(name) ? Path.GetFullPath(name) : null;
                 }
 
-                foreach (string folder in FoldersOf(document))
+                foreach (string folder in FoldersOf(document, KindOf(name)))
                 {
                     string path = Path.Combine(folder, name);
 
@@ -74,7 +76,7 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>
-        /// Lists the files of support of an extension in the drawing's folder and the support folders, each name once, the
+        /// Lists the files of support of an extension in the support folders and the folder beside the dll, each name once, the
         /// first folder that has it winning, in the order of their names: hidden.lin, mine.lin, walls.lin.
         /// </summary>
         /// <param name="document">The document.</param>
@@ -95,7 +97,7 @@ namespace GeometryHelper.Cad
 
             var found = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (string folder in FoldersOf(document))
+            foreach (string folder in FoldersOf(document, KindOf("x" + extension)))
             {
                 try
                 {
@@ -149,23 +151,27 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>
-        /// The folders looked in, in order: the drawing's, then the document's support folders, each once; none, not even the
-        /// drawing's, where the user has given no support folder.
+        /// The folders looked in, in order: the document's support folders, then the default folder of the kind beside the dll
+        /// where it exists, each once. Of no kind (a file other than .lin and .pat) the drawing's folder comes first as it
+        /// always did, and only where the user has given a support folder.
         /// </summary>
-        internal static IReadOnlyList<string> FoldersOf(CadDocument document)
+        internal static IReadOnlyList<string> FoldersOf(CadDocument document, CadSupportKind? kind)
         {
             var folders = new List<string>();
 
-            if (document.SupportFolders.Count == 0)
+            if (kind == null)
             {
-                return folders;
-            }
+                if (document.SupportFolders.Count == 0)
+                {
+                    return folders;
+                }
 
-            string own = document.DrawingFolder;
+                string own = document.DrawingFolder;
 
-            if (own != null)
-            {
-                folders.Add(own);
+                if (own != null)
+                {
+                    folders.Add(own);
+                }
             }
 
             foreach (string folder in document.SupportFolders)
@@ -176,7 +182,27 @@ namespace GeometryHelper.Cad
                 }
             }
 
+            if (kind != null)
+            {
+                foreach (string folder in document.SupportRoots.ExistingOf(kind.Value))
+                {
+                    if (!folders.Contains(folder, StringComparer.OrdinalIgnoreCase))
+                    {
+                        folders.Add(folder);
+                    }
+                }
+            }
+
             return folders;
+        }
+
+        /// <summary>The kind of default folder a file name belongs in: Linetypes for .lin, Hatches for .pat; none for any other.</summary>
+        private static CadSupportKind? KindOf(string fileName)
+        {
+            string extension = Path.GetExtension(fileName ?? string.Empty);
+            return string.Equals(extension, ".lin", StringComparison.OrdinalIgnoreCase) ? CadSupportKind.Linetypes
+                : string.Equals(extension, ".pat", StringComparison.OrdinalIgnoreCase) ? CadSupportKind.Hatches
+                : (CadSupportKind?)null;
         }
     }
 
@@ -187,9 +213,9 @@ namespace GeometryHelper.Cad
 
         /// <summary>
         /// Gets or sets the user's own folders the drawing's linetype files (.lin) and hatch pattern files (.pat) are looked
-        /// for in, in order, after the drawing's own folder, which is looked in only where this gives a folder: none
-        /// until set; the window sets Global settings' Support file search folders, empty by default. Blank entries are left
-        /// out and a folder given twice is kept once.
+        /// for in, in order, before the Linetypes and Hatches folders beside the dll: none until set; the window sets Global
+        /// settings' Support file search folders, empty by default. Blank entries are left out and a folder given twice is
+        /// kept once.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the value is null.</exception>
         public IReadOnlyList<string> SupportFolders
@@ -208,7 +234,10 @@ namespace GeometryHelper.Cad
         internal string DrawingFolder =>
             _hasPath && !string.IsNullOrEmpty(FileName) ? Path.GetDirectoryName(Path.GetFullPath(FileName)) : null;
 
-        /// <summary>The folders of <see cref="CadSupportFiles"/>, parted by semicolons, as <see cref="DxfDatabase.PatternSearchPath"/> takes them.</summary>
-        internal string PatternSearchPath => string.Join(";", CadSupportFiles.FoldersOf(this));
+        /// <summary>The default folders a test puts in place of those beside the dll.</summary>
+        internal CadSupportFolders SupportRoots { get; set; } = CadSupportFolders.Default;
+
+        /// <summary>The hatch pattern folders of <see cref="CadSupportFiles"/>, parted by semicolons, as <see cref="DxfDatabase.PatternSearchPath"/> takes them.</summary>
+        internal string PatternSearchPath => string.Join(";", CadSupportFiles.FoldersOf(this, CadSupportKind.Hatches));
     }
 }

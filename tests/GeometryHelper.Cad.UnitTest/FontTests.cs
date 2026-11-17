@@ -427,7 +427,7 @@ namespace GeometryHelper.Cad.UnitTest
         // ---- Fonts found, replaced and substituted
 
         [Fact]
-        public void AFontIsLookedForInTheDrawingsFolderFirstThenInTheFoldersInOrder_OfAnyCase()
+        public void AFontIsLookedForInTheFoldersInOrder_OfAnyCase_AndNotInTheDrawingsFolder()
         {
             using (var second = new FontFolder())
             using (var drawing = new FontFolder())
@@ -447,13 +447,13 @@ namespace GeometryHelper.Cad.UnitTest
                     fonts.Locate("two", null),
                     StringComparer.OrdinalIgnoreCase
                 );
-                drawing.Write("one.shx", ShxFiles.Unifont());
+                drawing.Write("three.shx", ShxFiles.Unifont());
+                Assert.Null(fonts.Locate("three.shx", drawing.FullPath));
                 Assert.Equal(
-                    Path.Combine(drawing.FullPath, "one.shx"),
+                    Path.Combine(_folder.FullPath, "one.shx"),
                     new CadFonts(fonts.Folders, null, null).Locate("one", drawing.FullPath),
                     StringComparer.OrdinalIgnoreCase
                 );
-                Assert.Null(fonts.Locate("three.shx", drawing.FullPath));
             }
         }
 

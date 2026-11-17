@@ -17,6 +17,11 @@
         <EmbeddedResource Include="Text\english-words.txt.gz" LogicalName="GeometryHelper.Cad.english-words.txt.gz" />
     </ItemGroup>
 
+    <!-- The default support folders, beside GeometryHelper.Cad.dll in the output of every project that uses it. -->
+    <ItemGroup>
+        <None Update="Fonts\**;Hatches\**;Linetypes\**" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
     <ItemGroup>
         <InternalsVisibleTo Include="GeometryHelper.Cad.UnitTest" />
         <InternalsVisibleTo Include="GeometryHelper.Cad.Wpf" />
