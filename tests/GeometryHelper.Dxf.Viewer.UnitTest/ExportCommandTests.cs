@@ -137,8 +137,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             var asked = new List<CadExportJob>();
             CadCommandSession session = Stubbed(
                 document,
-                j => Path.Combine(_folder, "plan.wmf"),
-                "Metafile (*.wmf)",
+                j => Path.Combine(_folder, "plan.iges"),
+                "IGES (*.iges;*.igs)",
                 written,
                 asked
             );
@@ -149,7 +149,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Empty(written);
             Assert.Contains(session.History, l =>
                 l.StartsWith(
-                    "Metafile (*.wmf) has no writer in the presenter: nothing was exported.",
+                    "IGES (*.iges;*.igs) has no writer in the presenter: nothing was exported.",
                     StringComparison.Ordinal
                 )
             );
@@ -157,8 +157,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // Bitmap is offered first; the next EXPORT offers the type last chosen.
             Assert.Equal(CadExportJob.Bitmap, asked[0].FileType);
             Run(session, "EXPORT");
-            Assert.Equal("Metafile (*.wmf)", asked[1].FileType);
-            Assert.EndsWith("two-lines.wmf", asked[1].FileName, StringComparison.Ordinal);
+            Assert.Equal("IGES (*.iges;*.igs)", asked[1].FileType);
+            Assert.EndsWith("two-lines.iges", asked[1].FileName, StringComparison.Ordinal);
         }
 
         [Fact]

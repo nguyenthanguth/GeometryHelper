@@ -134,10 +134,29 @@ namespace GeometryHelper.Dxf.Viewer
             return null;
         }
 
+        /// <summary>The type Block (*.dwg) of <see cref="ExportFileTypes"/>: EXPORT goes on as -WBLOCK does after its file.</summary>
+        internal const string Block = "Block (*.dwg)";
+
+        /// <summary>The type DXX Extract (*.dxx) of <see cref="ExportFileTypes"/>: the attributes of the blocks selected, as ATTEXT's DXF extract.</summary>
+        internal const string DxxExtract = "DXX Extract (*.dxx)";
+
+        /// <summary>The type Encapsulated PS (*.eps) of <see cref="ExportFileTypes"/>: EXPORT goes on as PSOUT does after its file.</summary>
+        internal const string PostScript = "Encapsulated PS (*.eps)";
+
+        /// <summary>The type Lithography (*.stl) of <see cref="ExportFileTypes"/>: EXPORT goes on as STLOUT does, which no 2D object satisfies.</summary>
+        internal const string Lithography = "Lithography (*.stl)";
+
+        /// <summary>The type Metafile (*.wmf) of <see cref="ExportFileTypes"/>: EXPORT goes on as WMFOUT does after its file.</summary>
+        internal const string Metafile = "Metafile (*.wmf)";
+
+        /// <summary>The one type of SVGOUT's file, which is no type of EXPORT's list.</summary>
+        internal const string Svg = "SVG (*.svg)";
+
         /// <summary>
         /// Gets the types of AutoCAD 2021's Export Data dialog, as its help lists them for EXPORT: 3D DWF, 3D DWFx, ACIS,
         /// Bitmap, Block, DXX Extract, Encapsulated PS, IGES, Lithography, Metafile, V7 DGN and V8 DGN. Of these the presenter
-        /// writes Bitmap alone; EXPORT refuses the others.
+        /// writes Bitmap, Block (as WBLOCK), DXX Extract (as ATTEXT), Encapsulated PS (as PSOUT) and Metafile (as WMFOUT);
+        /// Lithography asks for solids, which a 2D drawing has none of, as STLOUT does; EXPORT refuses the others.
         /// </summary>
         public static IReadOnlyList<string> ExportFileTypes { get; } =
             Array.AsReadOnly(
@@ -147,12 +166,12 @@ namespace GeometryHelper.Dxf.Viewer
                     "3D DWFx (*.dwfx)",
                     "ACIS (*.sat)",
                     Bitmap,
-                    "Block (*.dwg)",
-                    "DXX Extract (*.dxx)",
-                    "Encapsulated PS (*.eps)",
+                    Block,
+                    DxxExtract,
+                    PostScript,
                     "IGES (*.iges;*.igs)",
-                    "Lithography (*.stl)",
-                    "Metafile (*.wmf)",
+                    Lithography,
+                    Metafile,
                     "V7 DGN (*.dgn)",
                     "V8 DGN (*.dgn)",
                 }
