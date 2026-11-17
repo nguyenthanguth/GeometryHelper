@@ -3158,39 +3158,9 @@
                 </local:RibbonStrip>
             </DataTemplate>
 
-            <!-- Manage: Action Recorder and CAD Standards are parked (greyed with a tooltip saying so); the rest run commands. -->
+            <!-- Manage: CAD Standards is parked (greyed with a tooltip saying so); the rest run commands. -->
             <DataTemplate DataType="{x:Type local:ManageRibbonViewModel}">
                 <local:RibbonStrip>
-                    <local:RibbonPanel Title="Action Recorder" MinFullWidth="230" Icon="{StaticResource GhIconRecord}">
-                        <StackPanel Orientation="Horizontal">
-                            <Button
-                                Style="{StaticResource BigButton}"
-                                Tag="{StaticResource GhIconRecord}"
-                                Content="Record"
-                                IsEnabled="False"
-                                ToolTipService.ShowOnDisabled="True"
-                                ToolTip="Record (ACTRECORD): the Action Recorder is not built yet"
-                            />
-                            <WrapPanel Style="{StaticResource SmallColumn}">
-                                <Button
-                                    Style="{StaticResource SmallButton}"
-                                    Tag="{StaticResource GhIconPlay}"
-                                    Content="Play"
-                                    IsEnabled="False"
-                                    ToolTipService.ShowOnDisabled="True"
-                                    ToolTip="Play (ACTPLAY): the Action Recorder is not built yet"
-                                />
-                                <Button
-                                    Style="{StaticResource SmallButton}"
-                                    Tag="{StaticResource GhIconList}"
-                                    Content="Manage Action Macros"
-                                    IsEnabled="False"
-                                    ToolTipService.ShowOnDisabled="True"
-                                    ToolTip="Manage Action Macros (ACTMANAGER): the Action Recorder is not built yet"
-                                />
-                            </WrapPanel>
-                        </StackPanel>
-                    </local:RibbonPanel>
                     <local:RibbonPanel Title="Customization" MinFullWidth="270" Icon="{StaticResource GhIconGear}">
                         <StackPanel Orientation="Horizontal">
                             <Button

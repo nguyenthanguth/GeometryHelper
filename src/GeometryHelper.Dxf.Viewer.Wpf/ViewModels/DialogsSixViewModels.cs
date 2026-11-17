@@ -143,7 +143,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the full name of the copy.</summary>
         public string Path { get; }
 
-        /// <summary>Gets the name of the copy: "plan.autosave1.dxf".</summary>
+        /// <summary>Gets the name of the copy: "plan.autosave.dxf".</summary>
         public string Name { get; }
 
         /// <summary>Gets the name of the drawing it is a copy of: "plan.dxf".</summary>

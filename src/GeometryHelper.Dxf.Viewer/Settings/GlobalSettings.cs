@@ -84,6 +84,9 @@ namespace GeometryHelper.Dxf.Viewer
             "SheetInModelSpace",
         };
 
+        /// <summary>The formats autosave writes its copy in, as Global settings' Autosave format names them: DXF or DWG.</summary>
+        public static readonly IReadOnlyList<string> AutosaveFormats = new[] { "DXF", "DWG" };
+
         /// <summary>
         /// What a message hidden by its Always perform my current choice does instead of asking: Ask shows it, Yes and No give
         /// that answer at once, as AutoCAD's Hidden Message Settings keep them.
@@ -150,7 +153,7 @@ namespace GeometryHelper.Dxf.Viewer
         private string _templateFolder = string.Empty;
         private string _qnewTemplate = string.Empty;
         private int _autosaveMinutes = 10;
-        private int _backupsKept = 3;
+        private string _autosaveFormat = "DXF";
         private string _exportLayout = "LayoutAndViewports";
         private string _mtextUnsavedChanges = "Ask";
         private List<GlobalLayer> _layers = DefaultLayers();
@@ -856,12 +859,17 @@ namespace GeometryHelper.Dxf.Viewer
             set => _autosaveMinutes = (int)Range(value, 0, 240, nameof(AutosaveMinutes));
         }
 
-        /// <summary>Gets or sets how many backups of a file are kept, 0 to 50: 3 by default.</summary>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
-        public int BackupsKept
+        /// <summary>
+        /// Gets or sets the format of the copy autosave keeps beside a drawing, one of <see cref="AutosaveFormats"/>: DXF, the
+        /// default, writes plan.autosave.dxf; DWG writes plan.autosave.dwg with the presenter's DWG writer, in the version the
+        /// drawing is saved as, or AutoCAD 2018 for a drawing that was never saved as a DWG. The one copy is written over at
+        /// each autosave.
+        /// </summary>
+        /// <exception cref="ArgumentException">Thrown when the value is not one of <see cref="AutosaveFormats"/>.</exception>
+        public string AutosaveFormat
         {
-            get => _backupsKept;
-            set => _backupsKept = (int)Range(value, 0, 50, nameof(BackupsKept));
+            get => _autosaveFormat;
+            set => _autosaveFormat = OneOf(value, AutosaveFormats, nameof(AutosaveFormat));
         }
 
         /// <summary>Gets or sets how a model drawing's DXF is laid out (D10): LayoutAndViewports, the default, or SheetInModelSpace.</summary>
@@ -1202,7 +1210,7 @@ namespace GeometryHelper.Dxf.Viewer
             w.Open("saveAndExport");
             w.Value("saveFolder", _saveFolder);
             w.Value("autosaveMinutes", _autosaveMinutes);
-            w.Value("backupsKept", _backupsKept);
+            w.Value("autosaveFormat", _autosaveFormat);
             w.Value("exportLayout", _exportLayout);
             w.Value("openAfterExport", OpenAfterExport);
             w.Close();
@@ -1385,7 +1393,7 @@ namespace GeometryHelper.Dxf.Viewer
                 Number("dataSources", "checkEverySeconds", v => _s.CheckEverySeconds = Whole(v));
                 Text("saveAndExport", "saveFolder", v => _s.SaveFolder = v);
                 Number("saveAndExport", "autosaveMinutes", v => _s.AutosaveMinutes = Whole(v));
-                Number("saveAndExport", "backupsKept", v => _s.BackupsKept = Whole(v));
+                Text("saveAndExport", "autosaveFormat", v => _s.AutosaveFormat = v);
                 Text("saveAndExport", "exportLayout", v => _s.ExportLayout = v);
                 Flag("saveAndExport", "openAfterExport", v => _s.OpenAfterExport = v);
                 Text("templates", "folder", v => _s.TemplateFolder = v);

@@ -4,8 +4,7 @@ using System.Collections.Generic;
 namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
-    /// The Manage ribbon tab, as AutoCAD 2021's for what the presenter has: Action Recorder (parked, its buttons greyed),
-    /// Customization (User Interface and Edit Aliases open Global settings on Shortcuts, Tool Palettes shows the tool palettes), Applications
+    /// The Manage ribbon tab, as AutoCAD 2021's for what the presenter has: Customization (User Interface and Edit Aliases open Global settings on Shortcuts, Tool Palettes shows the tool palettes), Applications
     /// (Load Application, which opens the Plugin manager, greyed where the window has none; Run Script), CAD Standards
     /// (parked, greyed) and Cleanup (Purge, Overkill, Audit, Recover). A button starts its command through
     /// <see cref="MainViewModel.StartCommandCommand"/>, as the buttons of Home do.
