@@ -83,6 +83,15 @@ namespace GeometryHelper.Dxf.Viewer
         public IReadOnlyList<CadMissingFont> FindMissingFonts() => _fonts.Missing(Database, FontFolder, false);
 
         /// <summary>
+        /// Gets the TrueType families and files the drawing names that <see cref="Fonts"/> does not find: those of its text
+        /// styles and those its MTEXTs switch to with a font code (<c>\fGulim|b0|i0|c129|p50;</c>), which <see cref="FindMissingFonts"/>
+        /// leaves out. Each is drawn in the canvas's drawing font, the letters it lacks in another font the machine has. A
+        /// name is listed once whatever its case, and the list is in the order of the names.
+        /// </summary>
+        /// <returns>The names as the drawing writes them; empty where every one is found or fonts are off.</returns>
+        public IReadOnlyList<string> FindMissingTrueTypeFonts() => _fonts.MissingTrueType(Database, FontFolder);
+
+        /// <summary>
         /// Says a font not found, as the display builder meets it: the first time for the fonts set, the list of every SHX font
         /// the styles name that is not found, then what of the line is not in it.
         /// </summary>

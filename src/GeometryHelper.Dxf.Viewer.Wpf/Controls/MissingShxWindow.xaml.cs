@@ -7,7 +7,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>
     /// AutoCAD's Missing SHX files dialog, shown once as a drawing opens whose text styles name SHX fonts not found: the files,
     /// the styles that use them and what they are drawn in, a replacement for each or the FONTALT replacement kept, and Do not
-    /// show again. Its logic is <see cref="MissingShxViewModel"/>.
+    /// show again; below them, where TrueType fonts the machine has not are named too, a list of those with what each is drawn
+    /// in (the window is then titled Missing Fonts). Its logic is <see cref="MissingShxViewModel"/>.
     /// </summary>
     public partial class MissingShxWindow : Window
     {
@@ -17,6 +18,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             Model = model ?? throw new ArgumentNullException(nameof(model));
             InitializeComponent();
+            Title = model.Title;
             DataContext = model;
             model.BrowseFont = PickFont;
         }

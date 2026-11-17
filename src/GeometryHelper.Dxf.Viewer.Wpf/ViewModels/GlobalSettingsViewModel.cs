@@ -1618,6 +1618,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     {
                         Text("Replacement font (FONTALT)", () => s.ReplacementFont, v => s.ReplacementFont = v),
                         Info("Where it is not found either", null, () => s.DrawingFont),
+                        Toggle(
+                            "Show the missing fonts dialog on opening a drawing",
+                            () => s.ShowMissingShxDialog,
+                            v => s.ShowMissingShxDialog = v
+                        ),
                     }
                 ),
                 new GlobalSettingSection(

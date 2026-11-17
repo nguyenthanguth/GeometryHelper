@@ -217,11 +217,38 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     }
 
     /// <summary>
+    /// A row of the Missing TrueType fonts list of the dialog: a family or font file the drawing names that the machine does
+    /// not have, and what it is drawn in. The list is read only: a TrueType font has no replacement to choose.
+    /// </summary>
+    public sealed class MissingTrueTypeRowViewModel
+    {
+        internal MissingTrueTypeRowViewModel(string family, string drawingFont)
+        {
+            Family = family;
+            DrawnIn =
+                (string.IsNullOrWhiteSpace(drawingFont) ? "the drawing font" : drawingFont.Trim())
+                + ", letters it lacks from another font";
+        }
+
+        /// <summary>Gets the family or file as the drawing writes it: DotumChe, gulim.ttc.</summary>
+        public string Family { get; }
+
+        /// <summary>
+        /// Gets what it is drawn in, as the canvas draws it: "Arial, letters it lacks from another font". The canvas draws a
+        /// TrueType font it has not in its drawing font (Global settings), and a letter that font lacks in the first of Arial,
+        /// Segoe UI, Tahoma and Times New Roman that has it, else in the font Windows links for it.
+        /// </summary>
+        public string DrawnIn { get; }
+    }
+
+    /// <summary>
     /// AutoCAD's Missing SHX files dialog, shown once as a drawing opens whose text styles name SHX fonts or big fonts that
     /// are not found: a row per file with the styles that use it and what it is drawn in, and the choice of a replacement for
     /// each (a font of the font folders, the presenter's own ghsimplex first, or a file chosen by Browse…) or of keeping the
     /// FONTALT replacement. A drawing whose styles Dims and TITLE name romand.shx, not found, is drawn in ghsimplex until
-    /// romans.shx is chosen for it; OK then draws every text of those styles in romans.shx (<see cref="Apply"/>).
+    /// romans.shx is chosen for it; OK then draws every text of those styles in romans.shx (<see cref="Apply"/>). Where
+    /// TrueType fonts the machine has not are named too, by a style or an MTEXT's font code, a read-only list of them
+    /// follows, with what each is drawn in, and the dialog is titled Missing Fonts; with those alone, only that list is shown.
     /// </summary>
     public sealed class MissingShxViewModel : ObservableObject
     {
@@ -230,9 +257,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Makes the dialog over the fonts of a document that are not found.</summary>
         /// <param name="document">The document.</param>
-        /// <param name="missing">The fonts not found, as <see cref="CadDocument.FindMissingFonts"/> gives them.</param>
+        /// <param name="missing">The SHX fonts not found, as <see cref="CadDocument.FindMissingFonts"/> gives them.</param>
+        /// <param name="trueType">The TrueType fonts not found, as <see cref="CadDocument.FindMissingTrueTypeFonts"/> gives them; null for none.</param>
+        /// <param name="drawingFont">The font a TrueType font not found is drawn in, Global settings' drawing font; null or empty for "the drawing font".</param>
         /// <exception cref="ArgumentNullException">Thrown when the document or the fonts are null.</exception>
-        public MissingShxViewModel(CadDocument document, IReadOnlyList<CadMissingFont> missing)
+        public MissingShxViewModel(
+            CadDocument document,
+            IReadOnlyList<CadMissingFont> missing,
+            IReadOnlyList<string> trueType = null,
+            string drawingFont = null
+        )
         {
             Document = document ?? throw new ArgumentNullException(nameof(document));
 
@@ -241,20 +275,49 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 throw new ArgumentNullException(nameof(missing));
             }
 
-            Title = "Missing SHX files · " + document.Title;
             List<MissingShxOption> options = Options(document);
             Rows = missing
                 .Where(f => f != null)
                 .Select(f => new MissingShxRowViewModel(this, f, StylesOf(document.Database, f), options))
                 .ToList()
                 .AsReadOnly();
+            TrueTypeRows = (trueType ?? Array.Empty<string>())
+                .Where(f => !string.IsNullOrWhiteSpace(f))
+                .Select(f => new MissingTrueTypeRowViewModel(f, drawingFont))
+                .ToList()
+                .AsReadOnly();
+            Title = (TrueTypeRows.Count > 0 ? "Missing Fonts · " : "Missing SHX files · ") + document.Title;
         }
 
         /// <summary>Gets the document.</summary>
         public CadDocument Document { get; }
 
-        /// <summary>Gets the title: "Missing SHX files · plan-level2.dxf".</summary>
+        /// <summary>Gets the title: "Missing SHX files · plan-level2.dxf", or "Missing Fonts · plan-level2.dxf" where TrueType fonts are missing too.</summary>
         public string Title { get; }
+
+        /// <summary>Gets the TrueType fonts the machine has not, a row each, in the order of their names; empty for none.</summary>
+        public IReadOnlyList<MissingTrueTypeRowViewModel> TrueTypeRows { get; }
+
+        /// <summary>Gets whether SHX fonts are missing, so that their table and the choice of replacements are shown.</summary>
+        public bool HasShx => Rows.Count > 0;
+
+        /// <summary>Gets whether TrueType fonts are missing, so that their list is shown.</summary>
+        public bool HasTrueType => TrueTypeRows.Count > 0;
+
+        /// <summary>
+        /// Gets the words beside the warning of the TrueType list: "This drawing uses 2 TrueType fonts that are not installed
+        /// on this machine. Their text is drawn in the replacement shown."
+        /// </summary>
+        public string TrueTypeExplanation =>
+            "This drawing uses "
+            + (
+                TrueTypeRows.Count == 1
+                    ? "1 TrueType font that is"
+                    : TrueTypeRows.Count.ToString(CultureInfo.InvariantCulture) + " TrueType fonts that are"
+            )
+            + " not installed on this machine. "
+            + (TrueTypeRows.Count == 1 ? "Its" : "Their")
+            + " text is drawn in the replacement shown.";
 
         /// <summary>Gets the rows, a file each, in the order of their names.</summary>
         public IReadOnlyList<MissingShxRowViewModel> Rows { get; }
