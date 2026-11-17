@@ -132,6 +132,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             InsertBlockCommand = new DelegateCommand(_ => InsertBlock());
             InsertFieldCommand = new DelegateCommand(_ => InsertField());
             InsertFormulaCommand = new DelegateCommand(p => InsertFormula(p as string));
+            LinkCellCommand = new DelegateCommand(_ => LinkCell());
+            DownloadCommand = new DelegateCommand(_ => UpdateLinks(false));
+            UploadCommand = new DelegateCommand(_ => UpdateLinks(true));
+            DetachLinkCommand = new DelegateCommand(_ => DetachLink());
             CellStyleCommand = new DelegateCommand(p => SetCellStyle(p as string));
             CreateCellStyleCommand = new DelegateCommand(_ => CreateCellStyle());
             ManageCellStylesCommand = new DelegateCommand(_ => ManageCellStyles());
@@ -387,6 +391,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets Remove All Property Overrides: what the cells hold of their own over the table style taken away, one undo step.</summary>
         public DelegateCommand RemoveOverridesCommand { get; }
 
+        /// <summary>Gets Link Cell: a data link picked (Select a Data Link) and the cell linked to it, its data put in from the cell.</summary>
+        public DelegateCommand LinkCellCommand { get; }
+
+        /// <summary>Gets Download from Source: the data links of the table updated from their sources, as Update Table Data Links does.</summary>
+        public DelegateCommand DownloadCommand { get; }
+
+        /// <summary>Gets Upload to Source: the table's cells of each data link that allows it written back to its source.</summary>
+        public DelegateCommand UploadCommand { get; }
+
+        /// <summary>Gets Detach Data Link: the link of the cell's range taken away, the cells keeping what they hold.</summary>
+        public DelegateCommand DetachLinkCommand { get; }
+
         /// <summary>
         /// Gets the right-click menu of the cells, as AutoCAD 2021's: Cut, Copy and Paste; Cell Style, Background Fill,
         /// Alignment, Borders, Locking, Data Format; Match Cell, Remove All Property Overrides, Data Link; Insert, Edit Text,
@@ -431,7 +447,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Line(),
                 Item("Match Cell", () => RunOnCell("MATCHCELL"), table != null),
                 Item("Remove All Property Overrides", () => RemoveOverridesCommand.Execute(null)),
-                Grey("Data Link…", "Not built: a cell cannot be linked to an Excel file or another data source."),
+                table != null && table.GetDataLink(_row, _column) != null
+                    ? new CadMenuItemViewModel("Data Links", true, DataLinkItems(table))
+                    : new CadMenuItemViewModel("Data Link…", () => LinkCellCommand.Execute(null), table != null),
                 Line(),
                 new CadMenuItemViewModel(
                     "Insert",
@@ -1213,6 +1231,103 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>One edit of the tab: refused or failed said on the command line, the tab read again.</summary>
+        /// <summary>The items of the cell menu's Data Link: Link Cell, Edit Data Link, Update Table Data Links, Download and Upload, Detach.</summary>
+        private IReadOnlyList<CadMenuItemViewModel> DataLinkItems(DxfTable table)
+        {
+            DxfDataLink here = table?.GetDataLink(_row, _column);
+            bool any = table != null && table.GetDataLink().Count > 0;
+            return new[]
+            {
+                new CadMenuItemViewModel(
+                    "Link Cell…",
+                    () => LinkCellCommand.Execute(null),
+                    table != null && here == null
+                ),
+                new CadMenuItemViewModel(
+                    here == null ? "Edit Data Link…" : "Edit Data Link \"" + here.Name + "\"…",
+                    () => _model.EditDataLink?.Invoke(here.Name),
+                    here != null && _model.EditDataLink != null && here.DataAdapterId == CadDataSource.ExcelAdapter
+                ),
+                CadMenuItemViewModel.Separator(),
+                new CadMenuItemViewModel("Update Table Data Links", () => DownloadCommand.Execute(null), any),
+                new CadMenuItemViewModel("Download Changes from Source File", () => DownloadCommand.Execute(null), any),
+                new CadMenuItemViewModel("Upload User Changes to Source File", () => UploadCommand.Execute(null), any),
+                CadMenuItemViewModel.Separator(),
+                new CadMenuItemViewModel("Detach Data Link", () => DetachLinkCommand.Execute(null), here != null),
+            };
+        }
+
+        /// <summary>Link Cell: the Select a Data Link dialog, then the data of the link put in from the cell as <see cref="CadDataLinks.LinkCells"/> puts it.</summary>
+        private void LinkCell()
+        {
+            CadDocument document = _model.Document;
+
+            if (document == null || _model.PickDataLink == null)
+            {
+                return;
+            }
+
+            if (!CadDataLinks.CanHold(document))
+            {
+                _model.Session?.Write("Data links need a drawing of AutoCAD 2007 or later.");
+                return;
+            }
+
+            if (CadDataLinks.List(document).Count == 0)
+            {
+                _model.Session?.Write("No data links exist in the current drawing.");
+                _model.Session?.Write("To create a data link, use the DATALINK command.");
+                return;
+            }
+
+            string name = _model.PickDataLink();
+
+            if (name != null)
+            {
+                Do(d => CadDataLinks.LinkCells(d, Handle, _range.TopRow, _range.LeftColumn, name));
+            }
+        }
+
+        /// <summary>Download from Source and Upload to Source: the table's data links updated or written, what went wrong said on the command line.</summary>
+        private void UpdateLinks(bool write)
+        {
+            DxfTable table = Table;
+            CadDocument document = _model.Document;
+
+            if (table == null || document == null)
+            {
+                return;
+            }
+
+            IReadOnlyList<DxfDataLink> links = table.GetDataLink();
+
+            if (links.Count == 0)
+            {
+                _model.Session?.Write("The table has no data link.");
+                return;
+            }
+
+            CadDataLinkRun run = write ? CadDataLinks.Write(document, links) : CadDataLinks.Update(document, links);
+
+            foreach (string message in run.Messages)
+            {
+                _model.Session?.Write(message);
+            }
+
+            if (!run.Edit.Succeeded)
+            {
+                _model.Session?.Write(run.Edit.Message);
+            }
+
+            if (IsValid(document))
+            {
+                Refresh();
+            }
+        }
+
+        /// <summary>Detach Data Link: AutoCAD's "Detaching the table from this link will cause all cells to have static data" taken as read.</summary>
+        private void DetachLink() => Do(d => CadDataLinks.Detach(d, Handle, _row, _column));
+
         private void Do(Func<CadDocument, CadEditResult> edit)
         {
             CadDocument document = _model.Document;

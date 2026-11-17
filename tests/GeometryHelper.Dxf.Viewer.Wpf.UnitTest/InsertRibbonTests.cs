@@ -72,7 +72,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 RibbonStrip strip = StripOf(workspace, model.InsertTab.TabContent);
                 Assert.Equal(
-                    new[] { "Block", "Block Definition", "Reference" },
+                    new[] { "Block", "Block Definition", "Reference", "Linking & Extraction" },
                     strip.Children.OfType<RibbonPanel>().Select(p => p.Title)
                 );
 
@@ -96,6 +96,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     "PDFLAYERS",
                     "TRANSPARENCY",
                     "PDFOSNAP",
+                    "DATAEXTRACTION",
+                    "DATALINK",
+                    "DATALINKUPDATE",
                 };
                 Assert.Equal(commands, buttons.Select(b => (string)b.CommandParameter));
 
@@ -110,7 +113,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 }
 
                 // INSERT opened the palette on Current drawing, BLOCK, ATTDEF, BEDIT and XATTACH their dialogs, ER the palette; BATTMAN found no block with attributes in the room and opened nothing.
-                Assert.Equal(new[] { "palette Current drawing", "block", "attdef", "bedit", "attach", "xref" }, shown);
+                Assert.Equal(
+                    new[]
+                    {
+                        "palette Current drawing",
+                        "block",
+                        "attdef",
+                        "bedit",
+                        "attach",
+                        "xref",
+                        "extract",
+                        "datalinks",
+                    },
+                    shown
+                );
 
                 // The buttons of PDF underlays: Adjust, Underlay Layers and Snap to Underlays run PDFADJUST, PDFLAYERS and PDFOSNAP.
                 foreach (string name in new[] { "Adjust", "Underlay Layers", "Snap to Underlays" })
@@ -375,7 +391,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     .Where(b => !(b.TemplatedParent is RibbonPanel))
                     .ToList();
 
-                Assert.Equal(18, buttons.Count);
+                Assert.Equal(21, buttons.Count);
                 Assert.All(buttons, b => Assert.False(b.IsEnabled, b.Content + " is enabled."));
                 Assert.False(Descendants(strip).OfType<ComboBox>().Single().IsEnabled);
             });
@@ -387,20 +403,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Steps(
                 model => model.InsertTab,
                 InsertSteps,
-                new[] { "Block", "Block Definition", "Reference" },
+                new[] { "Block", "Block Definition", "Reference", "Linking & Extraction" },
                 new[]
                 {
                     (2300, 0),
                     (1600, 0),
                     (1280, 0),
-                    (876, 0),
-                    (875, 1),
-                    (720, 1),
-                    (719, 2),
-                    (606, 2),
-                    (605, 3),
-                    (394, 3),
-                    (393, 4),
+                    (1191, 0),
+                    (1190, 1),
+                    (1035, 1),
+                    (1034, 2),
+                    (921, 2),
+                    (920, 3),
+                    (709, 3),
+                    (708, 4),
                 }
             );
         }
@@ -561,6 +577,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                         model.ShowBlockEdit = dialog => Shown(shown, "bedit");
                         model.ShowAttachReference = dialog => Shown(shown, "attach");
                         model.ShowExternalReferences = palette => Shown(shown, "xref");
+                        model.ShowDataExtraction = dialog => shown.Add("extract");
+                        model.ShowDataLinkManager = dialog => shown.Add("datalinks");
 
                         try
                         {

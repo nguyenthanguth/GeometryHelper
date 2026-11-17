@@ -2211,6 +2211,45 @@
                             </StackPanel>
                         </StackPanel>
                     </local:RibbonPanel>
+
+                    <!-- Linking and Extraction: Extract Data (DATAEXTRACTION), Data Link (the Data Link Manager, DATALINK), Download from Source and Upload to Source (DATALINKUPDATE). -->
+                    <local:RibbonPanel
+                        Title="Linking &amp; Extraction"
+                        MinFullWidth="250"
+                        Icon="{StaticResource GhIconExtractData}"
+                    >
+                        <StackPanel Orientation="Horizontal">
+                            <Button
+                                Style="{StaticResource BigButton}"
+                                Tag="{StaticResource GhIconExtractData}"
+                                Content="Extract Data"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Command="{Binding Model.StartCommandCommand}"
+                                CommandParameter="DATAEXTRACTION"
+                                ToolTip="Data Extraction (DATAEXTRACTION): the objects of the drawing as a table or a file"
+                            />
+                            <Button
+                                Style="{StaticResource BigButton}"
+                                Tag="{StaticResource GhIconDataLink}"
+                                Content="Data Link"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Command="{Binding Model.StartCommandCommand}"
+                                CommandParameter="DATALINK"
+                                ToolTip="Data Link Manager (DATALINK): links to Excel workbooks and CSV files"
+                            />
+                            <StackPanel Margin="6,2,0,0" VerticalAlignment="Top">
+                                <Button
+                                    Style="{StaticResource NarrowSmallButton}"
+                                    Tag="{StaticResource GhIconDownloadSource}"
+                                    Content="Download from Source"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="DATALINKUPDATE"
+                                    ToolTip="Update the data links of the drawing from their sources (DATALINKUPDATE)"
+                                />
+                            </StackPanel>
+                        </StackPanel>
+                    </local:RibbonPanel>
                 </local:RibbonStrip>
             </DataTemplate>
 

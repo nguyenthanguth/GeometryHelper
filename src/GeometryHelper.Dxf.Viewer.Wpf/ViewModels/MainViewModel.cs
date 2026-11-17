@@ -1911,6 +1911,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "MLEADERSTYLE":
                     OnStyleRequest(e);
                     break;
+                case "DATALINK":
+                case "DATAEXTRACTION":
+                    OnDataLinksRequested(e);
+                    break;
                 case "TABLE":
                     OnInsertTableRequested(e);
                     break;

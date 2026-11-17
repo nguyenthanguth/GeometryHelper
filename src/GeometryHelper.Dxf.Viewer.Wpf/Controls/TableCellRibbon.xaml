@@ -32,6 +32,7 @@
             M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1
         </Geometry>
         <Geometry x:Key="IconDownload">M12 3v12M7 10l5 5 5-5M4 21h16</Geometry>
+        <Geometry x:Key="IconUpload">M12 15V3M7 8l5-5 5 5M4 21h16</Geometry>
     </UserControl.Resources>
 
     <StackPanel Orientation="Horizontal">
@@ -543,13 +544,22 @@
                         Style="{DynamicResource BigButton}"
                         Tag="{StaticResource IconLink}"
                         Content="Link Cell"
-                        ToolTip="Data links: not offered"
+                        Command="{Binding LinkCellCommand}"
+                        ToolTip="Link the cells to a data link (Excel workbook or CSV file): its data is put in from the cell"
                     />
                     <Button
                         Style="{DynamicResource BigButton}"
                         Tag="{StaticResource IconDownload}"
                         Content="Download from Source"
-                        ToolTip="Data links: not offered"
+                        Command="{Binding DownloadCommand}"
+                        ToolTip="Update the table's data links from their sources (DATALINKUPDATE)"
+                    />
+                    <Button
+                        Style="{DynamicResource BigButton}"
+                        Tag="{StaticResource IconUpload}"
+                        Content="Upload to Source"
+                        Command="{Binding UploadCommand}"
+                        ToolTip="Write the table's cells back to the source files of the data links that allow it"
                         Margin="0"
                     />
                 </StackPanel>

@@ -21,6 +21,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private string _dataRows;
         private string _rowLines;
         private bool _byWindow;
+        private int _startFrom;
+        private string _dataLink = string.Empty;
 
         /// <summary>Makes the dialog over the request of TABLE.</summary>
         /// <param name="request">The request.</param>
@@ -33,6 +35,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _dataRows = request.DataRows.ToString(CultureInfo.InvariantCulture);
             _rowLines = request.RowHeightLines.ToString(CultureInfo.InvariantCulture);
             _byWindow = request.ByWindow;
+
+            foreach (CadDataLinkInfo link in CadDataLinks.List(request.Document))
+            {
+                DataLinks.Add(link.Name);
+            }
+
+            _dataLink = DataLinks.FirstOrDefault() ?? string.Empty;
             ReloadStyles();
             OkCommand = new DelegateCommand(_ => Ok(), _ => IsValid);
             CancelCommand = new DelegateCommand(_ => CloseRequested?.Invoke(this, false));
@@ -66,6 +75,49 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return style == null
                     ? CadTableStyleEditor.Standard(_request.Document.Database)
                     : CadTableStyleSettings.Of(style);
+            }
+        }
+
+        /// <summary>Gets the names of the data links of the drawing, as the box of From a data link lists them.</summary>
+        public ObservableCollection<string> DataLinks { get; } = new ObservableCollection<string>();
+
+        /// <summary>Gets whether the drawing has a data link a table can be made from.</summary>
+        public bool HasDataLinks => DataLinks.Count > 0;
+
+        /// <summary>Gets or sets "Start from empty table".</summary>
+        public bool StartFromEmpty
+        {
+            get => _startFrom == 0;
+            set => StartChosen(value, 0);
+        }
+
+        /// <summary>Gets or sets "From a data link": the table takes the rows and columns of the link's data.</summary>
+        public bool FromDataLink
+        {
+            get => _startFrom == 1;
+            set => StartChosen(value, 1);
+        }
+
+        /// <summary>Gets or sets "From object data in the drawing (Data Extraction)": the Data Extraction wizard follows OK.</summary>
+        public bool FromDataExtraction
+        {
+            get => _startFrom == 2;
+            set => StartChosen(value, 2);
+        }
+
+        /// <summary>Gets whether the columns and rows are set here: only for a table started from nothing.</summary>
+        public bool SetsColumnsAndRows => _startFrom == 0;
+
+        /// <summary>Gets or sets the data link the table is made from.</summary>
+        public string DataLink
+        {
+            get => _dataLink;
+            set
+            {
+                if (Set(ref _dataLink, value ?? string.Empty))
+                {
+                    OkCommand?.RaiseCanExecuteChanged();
+                }
             }
         }
 
@@ -131,7 +183,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets whether every number typed is one a table takes: whole columns and rows of 1 or more, a width above nought.</summary>
         public bool IsValid =>
-            Whole(_columns) >= 1 && Whole(_dataRows) >= 1 && Whole(_rowLines) >= 1 && Real(_columnWidth) > 0.0;
+            _startFrom == 2
+            || (_startFrom == 1 && _dataLink.Length > 0)
+            || (
+                _startFrom == 0
+                && Whole(_columns) >= 1
+                && Whole(_dataRows) >= 1
+                && Whole(_rowLines) >= 1
+                && Real(_columnWidth) > 0.0
+            );
 
         /// <summary>Gets OK.</summary>
         public DelegateCommand OkCommand { get; }
@@ -169,12 +229,32 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             _request.TableStyle = _tableStyle;
             _request.ByWindow = _byWindow;
-            _request.Columns = Whole(_columns);
-            _request.ColumnWidth = Real(_columnWidth);
-            _request.DataRows = Whole(_dataRows);
-            _request.RowHeightLines = Whole(_rowLines);
+            _request.DataLink = _startFrom == 1 ? _dataLink : string.Empty;
+            _request.FromDataExtraction = _startFrom == 2;
+
+            if (_startFrom == 0)
+            {
+                _request.Columns = Whole(_columns);
+                _request.ColumnWidth = Real(_columnWidth);
+                _request.DataRows = Whole(_dataRows);
+                _request.RowHeightLines = Whole(_rowLines);
+            }
             _request.Action = CadDialogAction.Ok;
             CloseRequested?.Invoke(this, true);
+        }
+
+        private void StartChosen(bool on, int from)
+        {
+            if (on && _startFrom != from)
+            {
+                _startFrom = from;
+                Raise(nameof(StartFromEmpty));
+                Raise(nameof(FromDataLink));
+                Raise(nameof(FromDataExtraction));
+                Raise(nameof(SetsColumnsAndRows));
+                Raise(nameof(IsValid));
+                OkCommand?.RaiseCanExecuteChanged();
+            }
         }
 
         private void Typed(ref string field, string value)
