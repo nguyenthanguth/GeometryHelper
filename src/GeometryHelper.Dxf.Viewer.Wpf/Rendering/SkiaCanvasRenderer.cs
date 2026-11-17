@@ -2333,6 +2333,173 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        /// <summary>
+        /// The letters of a text in a font of the canvas as the closed outlines they are filled by, in drawing units, laid out
+        /// as <see cref="DrawLetters"/> lays them out (place, turn, height, width factor, slant, alignment, lines, the faces a
+        /// missing letter falls back to): a command's preview draws its words with them, as the finished text is drawn. The
+        /// curves of a letter are cut into 8 chords each.
+        /// </summary>
+        /// <param name="text">The text, in a font of the canvas.</param>
+        /// <param name="options">The canvas's options, which name the font a style names none of.</param>
+        /// <returns>The outlines, each a run of X and Y.</returns>
+        internal IReadOnlyList<double[]> LetterRings(DisplayText2 text, CanvasOptions options)
+        {
+            var rings = new List<double[]>();
+            double height = text.Height;
+            double cos = Math.Cos(text.Rotation);
+            double sin = Math.Sin(text.Rotation);
+            SKTypeface typeface =
+                text.IsBold || text.IsItalic
+                    ? Styled(Face(text.FontName, options.FontName), text.IsBold, text.IsItalic)
+                    : Face(text.FontName, options.FontName);
+            string[] lines = text.Text.Split('\n');
+            int n = lines.Length;
+            double lineStep = height * 1.25;
+            double bottom = -(n - 1) * lineStep;
+            double shift =
+                text.Vertical == 0 ? 0.0
+                : text.Vertical == 1 ? -bottom
+                : text.Vertical == 2 ? -(height + bottom) / 2.0
+                : -height;
+            var fonts = new Dictionary<SKTypeface, SKFont>();
+
+            try
+            {
+                for (int i = 0; i < n; i++)
+                {
+                    List<KeyValuePair<string, SKTypeface>> runs = CadGlyphFallback.Runs(typeface, lines[i]);
+                    var drawn = new SKFont[runs.Count];
+                    float width = 0f;
+
+                    for (int r = 0; r < runs.Count; r++)
+                    {
+                        if (!fonts.TryGetValue(runs[r].Value, out drawn[r]))
+                        {
+                            drawn[r] = new SKFont(runs[r].Value, (float)(height / 0.72))
+                            {
+                                ScaleX = (float)text.WidthFactor,
+                                SkewX = (float)-Math.Tan(text.Oblique),
+                            };
+                            fonts[runs[r].Value] = drawn[r];
+                        }
+
+                        width += drawn[r].MeasureText(runs[r].Key);
+                    }
+
+                    float x =
+                        text.Horizontal == 0 ? 0f
+                        : text.Horizontal == 1 ? -width / 2f
+                        : -width;
+                    float y = (float)(-shift + i * lineStep);
+
+                    for (int r = 0; r < runs.Count; r++)
+                    {
+                        using (SKPath letters = drawn[r].GetTextPath(runs[r].Key, new SKPoint(x, y)))
+                        using (SKPath.RawIterator walk = letters.CreateRawIterator())
+                        {
+                            var points = new SKPoint[4];
+                            var ring = new List<double>();
+                            SKPoint last = default(SKPoint);
+                            SKPathVerb verb;
+
+                            while ((verb = walk.Next(points)) != SKPathVerb.Done)
+                            {
+                                if (verb == SKPathVerb.Move)
+                                {
+                                    Close(rings, ring);
+                                    last = points[0];
+                                    Add(ring, last, text, cos, sin);
+                                }
+                                else if (verb == SKPathVerb.Line)
+                                {
+                                    last = points[1];
+                                    Add(ring, last, text, cos, sin);
+                                }
+                                else if (verb == SKPathVerb.Quad || verb == SKPathVerb.Conic)
+                                {
+                                    for (int k = 1; k <= 8; k++)
+                                    {
+                                        float t = k / 8f;
+                                        float u = 1f - t;
+                                        Add(
+                                            ring,
+                                            new SKPoint(
+                                                u * u * last.X + 2f * u * t * points[1].X + t * t * points[2].X,
+                                                u * u * last.Y + 2f * u * t * points[1].Y + t * t * points[2].Y
+                                            ),
+                                            text,
+                                            cos,
+                                            sin
+                                        );
+                                    }
+
+                                    last = points[2];
+                                }
+                                else if (verb == SKPathVerb.Cubic)
+                                {
+                                    for (int k = 1; k <= 8; k++)
+                                    {
+                                        float t = k / 8f;
+                                        float u = 1f - t;
+                                        Add(
+                                            ring,
+                                            new SKPoint(
+                                                u * u * u * last.X
+                                                    + 3f * u * u * t * points[1].X
+                                                    + 3f * u * t * t * points[2].X
+                                                    + t * t * t * points[3].X,
+                                                u * u * u * last.Y
+                                                    + 3f * u * u * t * points[1].Y
+                                                    + 3f * u * t * t * points[2].Y
+                                                    + t * t * t * points[3].Y
+                                            ),
+                                            text,
+                                            cos,
+                                            sin
+                                        );
+                                    }
+
+                                    last = points[3];
+                                }
+                            }
+
+                            Close(rings, ring);
+                        }
+
+                        x += drawn[r].MeasureText(runs[r].Key);
+                    }
+                }
+            }
+            finally
+            {
+                foreach (SKFont font in fonts.Values)
+                {
+                    font.Dispose();
+                }
+            }
+
+            return rings;
+        }
+
+        /// <summary>A point of a letter, in the text's own frame (Y down, as the canvas draws it), added to a ring in drawing units.</summary>
+        private static void Add(List<double> ring, SKPoint p, DisplayText2 text, double cos, double sin)
+        {
+            double lx = text.IsBackward ? -p.X : p.X;
+            ring.Add(text.X + lx * cos + p.Y * sin);
+            ring.Add(text.Y + lx * sin - p.Y * cos);
+        }
+
+        /// <summary>Ends the ring being walked: kept where it has three points at least, and emptied.</summary>
+        private static void Close(List<double[]> rings, List<double> ring)
+        {
+            if (ring.Count >= 6)
+            {
+                rings.Add(ring.ToArray());
+            }
+
+            ring.Clear();
+        }
+
         private void DrawViewport(
             SKCanvas canvas,
             CadDocument document,

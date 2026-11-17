@@ -130,7 +130,10 @@ BREAK give them: a line from (-50, 0) to (100, 0) crossed at the origin, hovered
 previews what EXTEND would do to the object, not faded, and EXTEND the piece TRIM would take out. At a prompt for a line
 of text a window sets `Typed` to the text typed so far, and `Items` is that text as the command would make it, wherever
 the cursor is: TEXT at "Enter text" previews its line. A prompt for a keyword can carry a preview too, of what Enter
-makes, as -ARRAY's "Rotate arrayed objects?" does.
+makes, as -ARRAY's "Rotate arrayed objects?" does. The canvas draws the words in a preview (a dimension's measured value, as
+DIMLINEAR's "500") as the
+letters of their font, filled in the colour of their run, as the finished object draws them, and by their box alone only
+where QTEXTMODE is 1.
 
 "Select objects:" takes the options of AutoCAD 2021, each by its capital letters:
 
@@ -3428,6 +3431,11 @@ dimensions, leaders and feature control frames selected, each drawn anew, one un
 dimension selected has its words 6 high, and the overrides it holds are the variables that differ from the style. ? asks `Enter
 dimension style(s) to list <*>:` and lists the styles that match, an annotative one marked. DIMALTMZF, DIMALTMZS, DIMMZF and
 DIMMZS, which AutoCAD lists, are not kept by the library and are not listed.
+
+The sample dimensions of the Dimension Style Manager's preview (and of the New and Modify dialogs and the Purge
+dialog's preview of a style) are drawn as many times bigger as the style's overall scale says, as AutoCAD's are, DIMSCALE 0
+taken for 1: the part is 32 by 20 at DIMSCALE 1 and 800 by 500 at DIMSCALE 25, its words reading `800` and `R300`, so that a
+style of scale 25 with words and arrowheads 2.5 looks as it does at scale 1, not as huge words over a small part.
 
 TEXTALIGN (TA) keeps AutoCAD's settings: "Current settings: Align = Left, Spacing Mode = Current Vertical" and "Select text
 objects to align [alIgnment/Options]:". alIgnment asks "Select alignment direction [Left/Center/Right/TL/TC/TR/ML/MC/MR/BL/BC/BR]

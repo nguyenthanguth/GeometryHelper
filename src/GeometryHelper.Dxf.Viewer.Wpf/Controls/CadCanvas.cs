@@ -3246,7 +3246,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 var contexts = new Dictionary<int, StreamGeometryContext>();
                 var fillContexts = new Dictionary<int, StreamGeometryContext>();
 
-                foreach (DisplayItem2 item in items)
+                foreach (DisplayItem2 item in WithRuns(items))
                 {
                     int rgb = PreviewColor(item.Style?.Rgb ?? 0xFFFFFF, background);
 
@@ -3324,8 +3324,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                             }
 
                             break;
+                        case DisplayText2 text when !text.IsQuick:
+                            // A text in a TrueType font: its letters filled, as the finished text is drawn.
+                            foreach (double[] ring in _renderer.LetterRings(text, Options))
+                            {
+                                Trace(fillContexts[rgb], view, scale, ring, Affine2.Identity, true);
+                            }
+
+                            break;
                         default:
-                            // A text in a TrueType font, an image or a viewport: its box, as the ghost of MOVE draws a text.
+                            // A text of QTEXTMODE 1, an image or a viewport: its box, as the ghost of MOVE draws a text.
                             DisplayBox box = item.Bounds;
 
                             if (!box.IsEmpty)
@@ -3389,6 +3397,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             return preview.ShowsBand;
+        }
+
+        /// <summary>The items of a preview, a text of several runs (an MTEXT, as a dimension's words are) by its runs and their lines, each in its own colour, as the canvas draws it; the box of a text shown by its box alone (QTEXTMODE 1) stays one item.</summary>
+        private static IEnumerable<DisplayItem2> WithRuns(IEnumerable<DisplayItem2> items)
+        {
+            foreach (DisplayItem2 item in items)
+            {
+                if (item is DisplayText2 text && text.Parts != null && !text.IsQuick)
+                {
+                    foreach (DisplayItem2 part in WithRuns(text.Parts))
+                    {
+                        yield return part;
+                    }
+                }
+                else
+                {
+                    yield return item;
+                }
+            }
         }
 
         /// <summary>A run of X and Y in drawing units, under a transformation, added to a figure as one line, or one ring where it is filled.</summary>

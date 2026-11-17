@@ -244,6 +244,36 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.All(samples.ModelSpace.OfType<DxfDimension>(), d => Assert.NotEmpty(d.DimBlock.OfType<DxfMText>()));
         }
 
+        [Theory]
+        [InlineData(1.0, 1.0)]
+        [InlineData(25.0, 25.0)]
+        [InlineData(0.5, 0.5)]
+        [InlineData(0.0, 1.0)]
+        public void TheSamplesOfThePreview_AreDrawnTheOverallScaleBigger_SoThatWordsAndArrowsKeepTheirProportions(
+            double dimscale,
+            double factor
+        )
+        {
+            CadDocument document = Blank();
+            SortedDictionary<string, object> values = CadDimStyleEditor.Read(
+                document.Database.DimStyleTable[CadDimStyleEditor.Current(document.Database)]
+            );
+            values["Dimscale"] = dimscale;
+            values["Dimtxt"] = 2.5;
+            values["Dimasz"] = 2.5;
+            values["Dimdec"] = 0;
+            values["Dimzin"] = 0;
+
+            DxfDatabase samples = CadDimStyleEditor.Samples(document.Database, values);
+
+            // The part is 32 by 20 and the hole 12 in radius at scale 1, and as many times more as the overall scale says.
+            DxfCircle hole = samples.ModelSpace.OfType<DxfCircle>().Single();
+            Assert.Equal(12.0 * factor, hole.Radius, 6);
+            DxfRotatedDimension across = samples.ModelSpace.OfType<DxfRotatedDimension>().Single();
+            string words = across.DimBlock.OfType<DxfMText>().Single().Contents;
+            Assert.Equal(Math.Round(32.0 * factor).ToString(System.Globalization.CultureInfo.InvariantCulture), words);
+        }
+
         [Fact]
         public void StAndDAreTheAliasesOfStyleAndDimstyle_AndWithNoWindowDimstyleSaysSo()
         {

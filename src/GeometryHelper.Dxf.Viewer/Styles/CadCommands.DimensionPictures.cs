@@ -480,43 +480,58 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Draws the sample dimensions of the Dimension Style Manager's preview into model space of a drawing of its own, in a
         /// style of that drawing: a linear one of 32 across a part's top, a radius of 12 and an angle of 60 degrees, each a
-        /// dimension with its block made as the DIM commands make it.
+        /// dimension with its block made as the DIM commands make it. The sample is drawn as many times bigger as the style's
+        /// overall scale (DIMSCALE) says, nought taken for 1, as AutoCAD's preview is, so that words and arrowheads, which
+        /// the scale grows, keep their proportions to it: at DIMSCALE 25 the part is 800 by 500 and its words read "800".
         /// </summary>
         internal static void DrawSamples(DxfDatabase database, DxfDimStyleTableRecord style)
         {
-            var part = new[] { new GeoPoint2(0, 0), new GeoPoint2(32, 0), new GeoPoint2(32, 20), new GeoPoint2(0, 20) };
+            double k = style.Dimscale > 0.0 ? style.Dimscale : 1.0;
+            var part = new[]
+            {
+                new GeoPoint2(0, 0),
+                new GeoPoint2(32 * k, 0),
+                new GeoPoint2(32 * k, 20 * k),
+                new GeoPoint2(0, 20 * k),
+            };
 
             for (int i = 0; i < part.Length; i++)
             {
                 database.ModelSpace.AppendEntity(new DxfLine(P3(part[i]), P3(part[(i + 1) % part.Length])));
             }
 
-            database.ModelSpace.AppendEntity(new DxfCircle(P3(new GeoPoint2(56, 10)), new GeoVector3(0, 0, 1), 12.0));
-            database.ModelSpace.AppendEntity(new DxfLine(P3(new GeoPoint2(0, -40)), P3(new GeoPoint2(36, -40))));
+            var hole = new GeoPoint2(56 * k, 10 * k);
+            database.ModelSpace.AppendEntity(new DxfCircle(P3(hole), new GeoVector3(0, 0, 1), 12.0 * k));
             database.ModelSpace.AppendEntity(
-                new DxfLine(P3(new GeoPoint2(0, -40)), P3(new GeoPoint2(18, -40 + 31.176914536239792)))
+                new DxfLine(P3(new GeoPoint2(0, -40 * k)), P3(new GeoPoint2(36 * k, -40 * k)))
+            );
+            database.ModelSpace.AppendEntity(
+                new DxfLine(P3(new GeoPoint2(0, -40 * k)), P3(new GeoPoint2(18 * k, (-40 + 31.176914536239792) * k)))
             );
 
             Sample(
                 database,
                 style,
-                new DxfRotatedDimension(0.0, P3(part[3]), P3(part[2]), P3(new GeoPoint2(16, 32)), string.Empty, null)
+                new DxfRotatedDimension(
+                    0.0,
+                    P3(part[3]),
+                    P3(part[2]),
+                    P3(new GeoPoint2(16 * k, 32 * k)),
+                    string.Empty,
+                    null
+                )
             );
             GeoVector2 toward = new GeoVector2(1, 1) / Math.Sqrt(2.0);
-            GeoPoint2 chord = new GeoPoint2(56, 10) + toward * 12.0;
-            Sample(
-                database,
-                style,
-                new DxfRadialDimension(P3(new GeoPoint2(56, 10)), P3(chord), 8.0, string.Empty, null)
-            );
+            GeoPoint2 chord = hole + toward * (12.0 * k);
+            Sample(database, style, new DxfRadialDimension(P3(hole), P3(chord), 8.0 * k, string.Empty, null));
             Sample(
                 database,
                 style,
                 new DxfPoint3AngularDimension(
-                    P3(new GeoPoint2(0, -40)),
-                    P3(new GeoPoint2(36, -40)),
-                    P3(new GeoPoint2(18, -40 + 31.176914536239792)),
-                    P3(new GeoPoint2(24, -26)),
+                    P3(new GeoPoint2(0, -40 * k)),
+                    P3(new GeoPoint2(36 * k, -40 * k)),
+                    P3(new GeoPoint2(18 * k, (-40 + 31.176914536239792) * k)),
+                    P3(new GeoPoint2(24 * k, -26 * k)),
                     string.Empty,
                     null
                 )
