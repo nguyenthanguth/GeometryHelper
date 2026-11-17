@@ -188,6 +188,28 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
+        public void KoreanLettersInAFamilyTheMachineHasNot_AreDrawnThroughTheFontLinking_NotAsQuestionMarks()
+        {
+            const string words = "한글 도면";
+            Assert.Null(SKFontManager.Default.MatchFamily("DotumChe"));
+
+            CadDocument Own(string family, string file)
+            {
+                CadDocument document = Drawing(family, file, words);
+                document.Fonts = new CadFonts(null, CadFonts.BuiltInName, null, SkiaCanvasRenderer.HasFamily);
+                return document;
+            }
+
+            byte[] missing = Picture(Own("DotumChe", string.Empty));
+            byte[] arial = Picture(Own("Arial", "arial.ttf"));
+
+            // The drawing font is Arial, which has no Hangul: its letters come out of the font Windows links for them, as in a
+            // text made in Arial. The single-stroke font would have drawn four question marks and a space.
+            Assert.True(Ink(missing) > 200, "The Korean letters are drawn.");
+            Assert.Equal(arial, missing);
+        }
+
+        [Fact]
         public void TheWidthOfALetterTheFontLacks_IsThatOfTheLetterDrawn()
         {
             double korean = SkiaCanvasRenderer.MeasureWidth("Malgun Gothic", false, false, Vietnamese);
