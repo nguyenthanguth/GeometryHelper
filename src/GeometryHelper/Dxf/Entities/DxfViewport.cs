@@ -26,8 +26,9 @@ namespace GeometryHelper.Dxf
     /// </para>
     /// <para>
     /// The view is not drawn anew: a change to it is written, and AutoCAD shows it when the drawing is next opened.
-    /// <see cref="DxfEntity.TransformBy"/> moves and scales the viewport on its sheet, as AutoCAD's MOVE and SCALE do, the view in
-    /// it kept: a viewport scaled by 2 shows the same part of model space twice as large.
+    /// <see cref="DxfEntity.TransformBy"/> moves and scales the viewport on its sheet, as AutoCAD's <c>TransformBy</c> does, the
+    /// view in it kept: a viewport scaled by 2 shows the same part of model space twice as large. (AutoCAD's SCALE command
+    /// does otherwise, keeping the scale of the view; the presenter's SCALE follows the command.)
     /// </para>
     /// </remarks>
     public sealed class DxfViewport : DxfEntity
@@ -418,6 +419,29 @@ namespace GeometryHelper.Dxf
 
             SetGroups(groups);
             return true;
+        }
+
+        /// <summary>
+        /// Gives the frame a new box as AutoCAD's STRETCH, a stretch grip and SCALE of a viewport do, the model standing still on
+        /// the sheet: the view keeps its scale, its height the new frame's over that scale, and its centre moves by the step of
+        /// the frame's centre over the scale. A frame 200 by 100 about (110, 60) at 1:50 showing (1 000, 500) whose right side is
+        /// moved 20 to the right is 220 by 100 about (120, 60), its view's centre (1 500, 500). The view's centre is in the
+        /// viewport's own coordinates, which a twist of the view turns with the sides, so a twist leaves the step as it is.
+        /// </summary>
+        /// <param name="minX">The left side of the new frame.</param>
+        /// <param name="minY">The lower side of the new frame.</param>
+        /// <param name="maxX">The right side of the new frame.</param>
+        /// <param name="maxY">The upper side of the new frame.</param>
+        internal void FitFrame(double minX, double minY, double maxX, double maxY)
+        {
+            KeyValuePair<int, string>[] groups = FitGroups(
+                new GeoAabb3(new GeoPoint3(minX, minY, 0.0), new GeoPoint3(maxX, maxY, 0.0))
+            );
+
+            if (groups.Length > 0)
+            {
+                SetGroups(groups);
+            }
         }
 
         /// <summary>
@@ -2006,8 +2030,8 @@ namespace GeometryHelper.Dxf
         internal int Id => GetInt(69, 0);
 
         /// <summary>
-        /// Moves and scales the viewport on its sheet, as AutoCAD's MOVE and SCALE: its centre moved, its width and height scaled,
-        /// the view in it kept. A transformation that turns, mirrors or stretches unevenly is refused, as AutoCAD refuses it for a
+        /// Moves and scales the viewport on its sheet, as AutoCAD's <c>TransformBy</c>: its centre moved, its width and height
+        /// scaled, the view in it kept. A transformation that turns, mirrors or stretches unevenly is refused, as AutoCAD refuses it for a
         /// viewport: turn the view by <see cref="TwistAngle"/>.
         /// </summary>
         private protected override void TransformEntity(GeoTransform3 transform)

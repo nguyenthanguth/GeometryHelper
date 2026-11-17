@@ -576,7 +576,11 @@ namespace GeometryHelper.Dxf.Viewer
         private const double SameSize = 1E-6;
 
         /// <summary>
-        /// Turns or mirrors a viewport that is not clipped, as AutoCAD 2021's ROTATE and MIRROR do (probes GhVr6, GhVr7, GhVr12): a
+        /// Scales, turns or mirrors a viewport that is not clipped, as AutoCAD 2021's SCALE, ROTATE and MIRROR do (probes GhVps1, GhVr6,
+        /// GhVr7, GhVr12): a scale scales the frame about the base point and its view's height with it, the scale of the view kept
+        /// and the view's centre moved by the step of the frame's centre over that scale, so that the model stands still on the sheet
+        /// (a viewport 200 by 100 about (110, 60) at 1:50 scaled by 2 about (10, 10) is 400 by 200 about (210, 110) at 1:50, its
+        /// view 10 000 high about (6 000, 3 000) where it was (1 000, 500) 5 000 high); a
         /// mirror puts the frame's centre at its mirror image, its size and its view as they were; a rotation by a multiple of a
         /// quarter turn turns the frame about the base point, swapping its width and height for an odd one, and the view by the
         /// angle; any other rotation makes the viewport clipped, to a new closed 2D polyline of the frame's four corners turned
@@ -589,12 +593,25 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         /// <param name="s">The edit.</param>
         /// <param name="viewport">The viewport, which has no clip boundary.</param>
-        /// <param name="transform">The rotation or the mirror.</param>
-        /// <param name="how">The command, as its record names it: Rotate or Mirror.</param>
+        /// <param name="transform">The scale, the rotation or the mirror.</param>
+        /// <param name="how">The command, as its record names it: Scale, Rotate or Mirror.</param>
         internal static void TurnPlain(CadEditScope s, DxfViewport viewport, GeoTransform3 transform, string how)
         {
             GeoPoint3 now = viewport.CenterPoint;
             GeoPoint3 centre = transform.Transform(now);
+
+            if (how == "Scale")
+            {
+                double factor = Math.Sqrt(
+                    transform[0, 0] * transform[0, 0]
+                        + transform[1, 0] * transform[1, 0]
+                        + transform[2, 0] * transform[2, 0]
+                );
+                double w = viewport.Width * factor / 2.0;
+                double h = viewport.Height * factor / 2.0;
+                viewport.FitFrame(centre.X - w, centre.Y - h, centre.X + w, centre.Y + h);
+                return;
+            }
 
             if (how != "Rotate")
             {

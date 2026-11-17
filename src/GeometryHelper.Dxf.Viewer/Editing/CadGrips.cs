@@ -789,7 +789,10 @@ namespace GeometryHelper.Dxf.Viewer
             return CadEditResult.Refuse("The grip cannot be dragged.");
         }
 
-        /// <summary>A viewport's frame from a corner kept to a corner dragged, its scale and the centre of its view kept.</summary>
+        /// <summary>
+        /// A viewport's frame from a corner kept to a corner dragged, its scale kept and the model standing still on the sheet: the
+        /// centre of its view moves by the step of the frame's centre over the scale (<see cref="DxfViewport.FitFrame"/>).
+        /// </summary>
         private static CadEditResult Resize(
             CadDocument document,
             DxfViewport viewport,
@@ -810,15 +813,14 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Refuse("A viewport needs a frame of some width and height.");
             }
 
-            double viewHeight = viewport.ViewHeight * height / viewport.Height;
-            var center = new GeoPoint2((kept.X + to.X) / 2.0, (kept.Y + to.Y) / 2.0);
             return Reshape(document, handle, property, was, went, () =>
             {
-                var v = (DxfViewport)document.FindEntity(handle);
-                v.CenterPoint = new GeoPoint3(center.X, center.Y, v.CenterPoint.Z);
-                v.Width = width;
-                v.Height = height;
-                v.ViewHeight = viewHeight;
+                ((DxfViewport)document.FindEntity(handle)).FitFrame(
+                    Math.Min(kept.X, to.X),
+                    Math.Min(kept.Y, to.Y),
+                    Math.Max(kept.X, to.X),
+                    Math.Max(kept.Y, to.Y)
+                );
                 return true;
             });
         }

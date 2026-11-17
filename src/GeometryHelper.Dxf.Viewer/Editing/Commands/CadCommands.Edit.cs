@@ -1560,11 +1560,12 @@ namespace GeometryHelper.Dxf.Viewer
                     if (
                         entity is DxfViewport plain
                         && plain.NonRectClipEntity == null
-                        && (how == "Rotate" || how == "Mirror")
+                        && (how == "Rotate" || how == "Mirror" || how == "Scale")
                     )
                     {
                         // A viewport that is not clipped cannot be turned or mirrored itself: a mirror moves its centre, a quarter
-                        // turn turns it, any other turn makes it clipped (CadViewportClips.TurnPlain).
+                        // turn turns it, any other turn makes it clipped; a scale scales its frame and keeps its view's scale, the
+                        // model standing still on the sheet (CadViewportClips.TurnPlain).
                         DxfViewport turned = plain;
 
                         if (copy)
