@@ -233,7 +233,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 348 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 379 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -251,6 +251,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | annotation | DIMOVERRIDE (Clear overrides), TEXTALIGN (alIgnment, Options, Point), MLEADEREDIT (Remove leaders, Add leaders), MLEADERALIGN (Options), MLEADERCOLLECT (Vertical, Horizontal, Wrap), ATTIPEDIT, SPELL (All, Dictionary), SCALETEXT (Existing, Left, Center, Middle, Right, TL to BR; Paper height, Match object, Scale factor, Reference), JUSTIFYTEXT (Left, Align, Fit, Center, Middle, Right, TL to BR), TXT2MTXT (Settings), ATTDISP (Normal, ON, OFF), FIELD (Height, Justify), UPDATEFIELD (see [Annotation commands](#annotation-commands)) |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT, WMFOUT, PSOUT (what to plot, preview, units, scale, size), STLOUT, SVGOUT, EXPORT, -EXPORT (Dwf, dwfX, Pdf) ([Plotting](plot.md)) |
 | dimension | DIM (Angular, Baseline, Continue, Ordinate, aliGn, Distribute, Layer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMINSPECT, -DIMINSPECT (Add, Remove; Round, Angular, None), DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE, DIMCENTER, CENTERMARK, CENTERLINE, -DIMSTYLE (ANnotative, Save, Restore, STatus, Variables, Apply, ?), DIMUPDATE |
+| parametric | GCCOINCIDENT (Object, Autoconstrain), GCCOLLINEAR, GCEQUAL (Multiple), GCCONCENTRIC, GCPARALLEL, GCPERPENDICULAR, GCTANGENT, GCFIX (Object), GCHORIZONTAL, GCVERTICAL (2Points), GCSYMMETRIC (2Points), GCSMOOTH, GEOMCONSTRAINT, AUTOCONSTRAIN (Settings), CONSTRAINTBAR (Show, Hide, Reset), DELCONSTRAINT, DCLINEAR, DCHORIZONTAL, DCVERTICAL, DCALIGNED, DCANGULAR, DCRADIUS, DCDIAMETER, DIMCONSTRAINT, DCCONVERT, DCFORM, DCDISPLAY, -PARAMETERS (New, Edit, Rename, Delete, ?), PARAMETERS, PARAMETERSCLOSE, CONSTRAINTSETTINGS; the variables CCONSTRAINTFORM, CONSTRAINTBARDISPLAY, CONSTRAINTBARMODE, CONSTRAINTINFER, CONSTRAINTNAMEFORMAT, DYNCONSTRAINTMODE, CONSTRAINTSOLVEMODE, PARAMETERCOPYMODE, PARAMETERSSTATUS, CONSTRAINTRELAX (see Parametric constraints below) |
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT, TABLEEXPORT |
 | selection | QSELECT, FILTER, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP, GROUPEDIT (Name; Add objects, Remove objects, REName) |
 | OLE objects | INSERTOBJ (a bitmap or a PNG, as a static picture), and the variables OLEFRAME, OLEHIDE and OLEQUALITY (see OLE objects below) |
@@ -2989,6 +2990,80 @@ Written to DWG (`DwgWriter`), an array keeps its picture, the INSERT and its two
 association, as a center mark does: the objects of the network (`ACDBASSOCACTION`, `ACDBASSOCARRAYACTIONBODY`,
 `ACDBASSOCVERTEXACTIONPARAM`, `ACDBASSOCEDGEACTIONPARAM`) have no DWG layout written yet, so AutoCAD opens the file (AUDIT 0
 errors) with a plain block reference where the DXF has an array.
+
+### Parametric constraints
+
+The Parametric tab of AutoCAD 2021, for the objects a small solver can move: lines, circles, arcs and the straight segments of
+light polylines, drawn in the plane of the world's XY. A constraint is applied by moving the objects to meet it, the one picked
+first held and the others moved to it, and is one undo step; where no place meets it with the constraints already there nothing
+changes and the history says `Constraints cannot be satisfied.`, and a constraint the others already imply is refused as over-
+constraining (AutoCAD's console says nothing for these). The prompts were read from AutoCAD's console, and the files written here
+were loaded into it.
+
+**Geometric constraints.** GCCOINCIDENT (`Select first point or [Object/Autoconstrain] <Object>:`, a point and a point, or a point
+and an object), GCCOLLINEAR and GCEQUAL (`Select first object or [Multiple]:`), GCCONCENTRIC, GCPARALLEL, GCPERPENDICULAR,
+GCTANGENT (`Select first object:`, `Select second object:`), GCFIX (`Select point or [Object] <Object>:`; an object is held by
+its ends, a circle by its centre), GCHORIZONTAL and GCVERTICAL (`Select an object or [2Points] <2Points>:`), GCSYMMETRIC
+(`Select first object or [2Points] <2Points>:`, then `Select symmetry line:`, which stays where it is), GCSMOOTH (the presenter
+has no splines to smooth: it asks and says so) and GEOMCONSTRAINT, which asks `Enter constraint type [Horizontal/Vertical/
+Perpendicular/PArallel/Tangent/SMooth/Coincident/CONcentric/COLlinear/Symmetric/Equal/Fix] <Coincident>:`. A point is the end,
+the middle or the centre of the object picked nearest where it was picked. A line of 10 by 1 made horizontal keeps its start and
+becomes 10 along x (AutoCAD turns the line about its start and keeps its length, 10.05); two lines made parallel keep the
+first and turn the second about its start.
+
+**Constraint bars.** A bar of small icons stands by each object whose bar is shown, one icon for each geometric constraint on it
+(CONSTRAINTBARDISPLAY: 1 the objects selected, 2 those a constraint was just made on, 3 both; CONSTRAINTBARMODE the types shown,
+4095 for all twelve). CONSTRAINTBAR (`Enter an option [Show/Hide/Reset] <Show>:`) shows or hides the bars of objects for good, as
+the ribbon's Show All, Hide All and Show/Hide do; a right click on an icon opens Delete, Hide and Hide All. What is hidden is kept
+with the document for the session, as AutoCAD keeps it; no file holds it. DELCONSTRAINT (`All constraints will be removed from
+selected objects`) takes every constraint of the objects selected away and prints `n constraint(s) removed`; a constraint's
+dimension goes with it.
+
+**Dimensional constraints.** DCLINEAR (a horizontal or vertical distance, by where the line is drawn), DCHORIZONTAL, DCVERTICAL,
+DCALIGNED, DCANGULAR (two lines, the angle from the first to the second), DCRADIUS and DCDIAMETER ask `Specify first constraint
+point or [Object] <Object>:` and the rest as AutoCAD does, then the place of the dimension line, then `Enter name or value
+<d1=10>:` (Enter keeps it; `50` makes the value 50, `width=2*d2` names it and gives it an expression). The parameter is named d1,
+d2 ... for a distance, ang1, rad1 and dia1; the dimension that shows it carries `d1=10.0000`, on the hidden layer
+`*ADSK_CONSTRAINTS` in the dynamic form and on the current layer in the annotational form (CCONSTRAINTFORM 0 and 1, DCFORM), and
+is drawn by the style's variables; a value typed moves the objects at once. DIMCONSTRAINT shows `Current settings:  Constraint
+form = Dynamic` and asks which. DCCONVERT turns associative dimensions (linear, aligned, radius, diameter) into constraints
+(`1 associative dimensions converted`). DCDISPLAY shows or hides the dynamic ones of the objects selected. The distance to a
+line (Point & line, 2Lines) and the angle of three points are not solved yet.
+
+**Parameters.** `-PARAMETERS` is AutoCAD's: `Enter a parameter option [New/Edit/Rename/Delete/?]:`, with `?` listing
+`Parameter: d1           Expression: 10                    Value: 10.0000`. An expression may name other parameters
+(`d1*2+3`, `Height/2`) and use + - * / ^ %, brackets, pi and sin, cos, tan, asin, acos, atan (in degrees), sqrt, abs, exp, ln,
+log, floor, ceil, round, min, max and pow; changing one moves everything its constraints hold (d1 from 10 to 20 stretches the
+line from (0, 0) to (10, 0) to (20, 0), as AutoCAD 2021 does), and parameters that name one another in a ring are refused. PARAMETERS
+shows the Parameters Manager palette (name, expression and value of each parameter, edited in the row, New User Parameter and
+Delete; PARAMETERSCLOSE closes it); each edit is one undo step through `CadParameters`.
+
+**Editing.** A constrained object edited by a grip, MOVE, STRETCH or Properties carries the others with it in the same undo step:
+what the edit placed is held, the rest moves the least way that keeps the constraints, so that the end of a line given a distance
+of 10 dragged to x = 15 comes back to x = 10 and stays at the cursor's y. Where the constraints cannot be kept the edit is taken
+back with `Constraints cannot be satisfied.`; an object erased takes its constraints and their dimensions with it.
+
+**AUTOCONSTRAIN** (`Select objects or [Settings]:`) applies the constraints the objects nearly meet: Horizontal, Vertical,
+Perpendicular, Parallel, Tangent, Coincident, Concentric, Collinear, Equal and Fix, in the order of the AutoConstrain tab and as
+the boxes there allow, within a distance of 0.01 and an angle of 1 degree (the tolerances of the tab), the ones that conflict with
+the others left out; `3 constraint(s) applied.` CONSTRAINTSETTINGS shows the dialog (Geometric, Dimensional, AutoConstrain tabs);
+CONSTRAINTINFER, CONSTRAINTNAMEFORMAT, DYNCONSTRAINTMODE, CONSTRAINTSOLVEMODE and PARAMETERCOPYMODE are kept as AutoCAD keeps
+them, PARAMETERSSTATUS and CONSTRAINTRELAX read only; the infer, name format, solve mode and copy mode are not acted on yet.
+
+**What is written.** The constraints of a space live in the associative network of its block record, as AutoCAD 2021 keeps them
+(`ACAD_ASSOCNETWORK` of the block record's extension dictionary): an `ACDBASSOC2DCONSTRAINTGROUP` listing the nodes (the geometry,
+`AcConstrainedBoundedLine`, `AcConstrainedCircle` and `AcConstrainedArc`, each with the `AcConstrainedImplicitPoint` of its ends and
+centre and the `AcPointCurveConstraint` or `AcCenterPointConstraint` that holds the point to it, then each constraint:
+`AcHorizontalConstraint` with its datum line, `AcParallelConstraint`, `AcPointCoincidenceConstraint`, `AcDistanceConstraint` and
+the rest), an `ACDBASSOCGEOMDEPENDENCY` on each object or polyline edge (a persistent reactor of the object; an edge is named by
+the ids of its two vertices, group 91, which the presenter gives a polyline that has none), and for each dimensional constraint an
+`ACDBASSOCVARIABLE`, the `ACDBASSOCVALUEDEPENDENCY` that reads it and the `ASSOCDIMDEPENDENCYBODY` on its DIMENSION. A polyline's
+joints are held by coincident constraints AutoCAD marks as its own. AutoCAD 2021 loaded the files written for lines, circles, arcs,
+a polyline segment and every constraint above in DXF and in DWG (AUDIT 0), each listed with its constraints and a status of
+well defined, and re-solved a parameter set to 20 as the presenter does; it drops a group whose constraints the geometry does not
+meet to the last digits, so the solver brings every number to 1E-13 and puts back exactly what it did not move. A group the
+presenter does not work out (a spline, an ellipse, a smooth or three-point-angle constraint, a layout older than AutoCAD 2018's)
+is read as far as it goes and left untouched: nothing writes the space's constraints again.
 
 ### ARRAYPATH and OVERKILL
 

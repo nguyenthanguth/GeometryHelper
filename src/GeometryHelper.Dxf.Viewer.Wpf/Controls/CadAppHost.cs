@@ -41,7 +41,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <c>--type REC</c> types text and leaves it unsent, the AutoComplete list shown for it, and <c>--type {Down}</c> opens
     /// the options menu of dynamic input; <c>--dialog plot:png</c>, <c>plot:jpg</c> and <c>plot-custom</c> draw PLOT's
     /// dialog on a raster device and its Custom Image Size, and <c>plot-view</c> its PDF form plotting the first named view;
-    /// <c>--toggle</c> switches status toggles, as GRID or DYN; <c>--tab</c> shows a ribbon tab (Home, Insert, Annotate, View, Manage, Output,
+    /// <c>--toggle</c> switches status toggles, as GRID or DYN; <c>--tab</c> shows a ribbon tab (Home, Insert, Annotate, Parametric, View, Manage, Output,
     /// Plugins, Settings or the header of a tab a host adds; another name exits with 2); <c>--plugin</c> loads a command
     /// plugin, every file trusted.
     /// <c>--layers</c> draws the Layer manager instead, and <c>--dialog</c> one of the presenter's dialogs or menus:
@@ -105,7 +105,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         protected virtual string Usage =>
             "Usage: "
             + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app")
-            + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Home|Insert|Annotate|View|Manage|Output|Plugins|Settings] [--dialog save-changes|mtext-unsaved|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|canvas-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|scalelist|qleader|qleader-line|qleader-attach|selectarrow|tolerance|tolerance-filled|tolerance-full|gdtsymbol|gdtmaterial|inputsearch|view|newview|units|units-direction|xref|xref-tree|plot:png|plot:jpg|plot-custom|plot-view|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|mlstyle|mlstyle-new|mlstyle-new-page|mlstyle-modify|mlstyle-load|mledit|plotstamp|plotstamp-advanced|plotstamp-fields|imageadjust|attext|xbind|insertobject|recovery|spell|spell-settings|objectscale|objectscale-add|insertlayout|templateoptions|saveaspdf|pdf-override|pdf-options|rename|lweight|boundary|viewports|viewports-named|filter|layerfilter|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
+            + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Home|Insert|Annotate|Parametric|View|Manage|Output|Plugins|Settings] [--dialog save-changes|mtext-unsaved|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|constraints[:0|1|2]|parameters|osnap-menu|snap-menu|canvas-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|scalelist|qleader|qleader-line|qleader-attach|selectarrow|tolerance|tolerance-filled|tolerance-full|gdtsymbol|gdtmaterial|inputsearch|view|newview|units|units-direction|xref|xref-tree|plot:png|plot:jpg|plot-custom|plot-view|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|mlstyle|mlstyle-new|mlstyle-new-page|mlstyle-modify|mlstyle-load|mledit|plotstamp|plotstamp-advanced|plotstamp-fields|imageadjust|attext|xbind|insertobject|recovery|spell|spell-settings|objectscale|objectscale-add|insertlayout|templateoptions|saveaspdf|pdf-override|pdf-options|rename|lweight|boundary|viewports|viewports-named|filter|layerfilter|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
 
         /// <summary>
         /// Runs the app on the STA thread of its entry point: the window until it is closed, or the screenshot where the first
@@ -592,6 +592,31 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 width = (int)dialog.Width;
                 height = (int)dialog.Height;
             }
+            else if (dialogName != null && dialogName.StartsWith("constraints", StringComparison.OrdinalIgnoreCase))
+            {
+                // Constraint Settings on a tab, as CONSTRAINTSETTINGS shows it: --dialog constraints, or --dialog constraints:2
+                // (0 Geometric, 1 Dimensional, 2 AutoConstrain).
+                int colon = dialogName.IndexOf(':');
+                int which = colon >= 0 && int.TryParse(dialogName.Substring(colon + 1), out int given) ? given : 0;
+                var dialog = new ConstraintSettingsWindow(
+                    new ConstraintSettingsViewModel(
+                        new CadConstraintSettingsRequest(new CadConstraintSettings(), which)
+                    )
+                );
+                root = dialog.Body;
+                window = dialog;
+                width = (int)dialog.Width;
+                height = (int)dialog.Height;
+            }
+            else if (dialogName != null && string.Equals(dialogName, "parameters", StringComparison.OrdinalIgnoreCase))
+            {
+                // The Parameters Manager over the drawing open, as PARAMETERS shows it.
+                var dialog = new ParametersPaletteWindow(new ParametersPaletteViewModel { Document = model.Document });
+                root = dialog.Body;
+                window = dialog;
+                width = (int)dialog.Width;
+                height = (int)dialog.Height;
+            }
             else if (dialogName != null && dialogName.StartsWith("dsettings", StringComparison.OrdinalIgnoreCase))
             {
                 // Drafting Settings on a tab, as DSETTINGS shows it: --dialog dsettings, or --dialog "dsettings:Snap and Grid".
@@ -975,6 +1000,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     : string.Equals(tab, "Settings", StringComparison.OrdinalIgnoreCase) ? model.SettingsTab
                     : string.Equals(tab, "Insert", StringComparison.OrdinalIgnoreCase) ? model.InsertTab
                     : string.Equals(tab, "Annotate", StringComparison.OrdinalIgnoreCase) ? model.AnnotateTab
+                    : string.Equals(tab, "Parametric", StringComparison.OrdinalIgnoreCase) ? model.ParametricTab
                     : string.Equals(tab, "View", StringComparison.OrdinalIgnoreCase) ? model.ViewTab
                     : string.Equals(tab, "Manage", StringComparison.OrdinalIgnoreCase) ? model.ManageTab
                     : string.Equals(tab, "Output", StringComparison.OrdinalIgnoreCase) ? model.OutputTab

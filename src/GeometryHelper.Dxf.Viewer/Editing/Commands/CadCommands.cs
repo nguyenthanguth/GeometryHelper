@@ -210,6 +210,9 @@ namespace GeometryHelper.Dxf.Viewer
             AddPublishTo(registry);
             AddPgpBatch1bTo(registry);
             AddCenterMarksTo(registry);
+            AddGeometricConstraintsTo(registry);
+            AddConstraintToolsTo(registry);
+            AddDimensionalConstraintsTo(registry);
             AddPgpR32To(registry);
             AddHatchOriginTo(registry);
             AddHatchBoundariesTo(registry);

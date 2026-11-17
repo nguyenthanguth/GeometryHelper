@@ -2828,6 +2828,293 @@
             The panels of the Output tab (design OutputTab), AutoCAD 2021's basics: Plot (Plot, Page Setup Manager, Preview, Plot
             Stamp), Export to DWF/PDF (Export PDF, Export) and Import. Some 600 wide, so no panel shrinks: the strip has no steps.
             -->
+            <!--
+            Parametric, AutoCAD 2021's tab for what the presenter has: Geometric (Auto Constrain; the twelve constraints in four
+            columns of three; Show All, Hide All and Show/Hide of the constraint bars; the launcher opens Constraint Settings),
+            Dimensional (Linear, Aligned, Angular, Radius, Diameter, Convert, Constraint Form, Show Dynamic) and Manage (Delete
+            Constraints, Parameters Manager, Constraint Settings).
+            -->
+            <DataTemplate DataType="{x:Type local:ParametricRibbonViewModel}">
+                <local:RibbonStrip>
+                    <local:RibbonPanel
+                        Title="Geometric"
+                        MinFullWidth="740"
+                        Icon="{StaticResource GhIconGcCoincident}"
+                        Launcher="{Binding SettingsCommand}"
+                        LauncherToolTip="Constraint Settings (CONSTRAINTSETTINGS)"
+                    >
+                        <StackPanel Orientation="Horizontal">
+                            <Button
+                                Style="{StaticResource BigButton}"
+                                Tag="{StaticResource GhIconAutoConstrain}"
+                                Content="Auto Constrain"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Command="{Binding Model.StartCommandCommand}"
+                                CommandParameter="AUTOCONSTRAIN"
+                                ToolTip="Auto Constrain (AUTOCONSTRAIN): applies the constraints the selected objects nearly meet, within the tolerances of Constraint Settings"
+                            />
+                            <WrapPanel Style="{StaticResource SmallColumn}">
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconGcCoincident}"
+                                    Content="Coincident"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="GCCOINCIDENT"
+                                    ToolTip="Coincident (GCCOINCIDENT): two points on one place, or a point on an object"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconGcCollinear}"
+                                    Content="Collinear"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="GCCOLLINEAR"
+                                    ToolTip="Collinear (GCCOLLINEAR): lines on one line"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconGcConcentric}"
+                                    Content="Concentric"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="GCCONCENTRIC"
+                                    ToolTip="Concentric (GCCONCENTRIC): circles or arcs about one centre"
+                                />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource SmallColumn}">
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconGcFix}"
+                                    Content="Fix"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="GCFIX"
+                                    ToolTip="Fix (GCFIX): points held where they are"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconGcParallel}"
+                                    Content="Parallel"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="GCPARALLEL"
+                                    ToolTip="Parallel (GCPARALLEL): lines with one direction"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconGcPerpendicular}"
+                                    Content="Perpendicular"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="GCPERPENDICULAR"
+                                    ToolTip="Perpendicular (GCPERPENDICULAR): lines at a right angle"
+                                />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource SmallColumn}">
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconGcHorizontal}"
+                                    Content="Horizontal"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="GCHORIZONTAL"
+                                    ToolTip="Horizontal (GCHORIZONTAL): a line, or two points, level with the x axis"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconGcVertical}"
+                                    Content="Vertical"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="GCVERTICAL"
+                                    ToolTip="Vertical (GCVERTICAL): a line, or two points, level with the y axis"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconGcTangent}"
+                                    Content="Tangent"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="GCTANGENT"
+                                    ToolTip="Tangent (GCTANGENT): a line and a circle, or two circles, touching"
+                                />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource SmallColumn}">
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconGcSmooth}"
+                                    Content="Smooth"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="GCSMOOTH"
+                                    ToolTip="Smooth (GCSMOOTH): a spline joined smoothly to a line; the presenter does not solve splines yet"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconGcSymmetric}"
+                                    Content="Symmetric"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="GCSYMMETRIC"
+                                    ToolTip="Symmetric (GCSYMMETRIC): two points or objects mirror images about a line"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconGcEqual}"
+                                    Content="Equal"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="GCEQUAL"
+                                    ToolTip="Equal (GCEQUAL): lines of one length, circles or arcs of one radius"
+                                />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource SmallColumn}" Margin="8,2,0,0">
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconBarShowAll}"
+                                    Content="Show All"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding ShowAllCommand}"
+                                    ToolTip="Show All: the constraint bars of every constrained object"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconBarHideAll}"
+                                    Content="Hide All"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding HideAllCommand}"
+                                    ToolTip="Hide All: the constraint bars of every constrained object"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconBarToggle}"
+                                    Content="Show/Hide"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="CONSTRAINTBAR"
+                                    ToolTip="Show/Hide (CONSTRAINTBAR): the bars of the objects selected shown, hidden or put back"
+                                />
+                            </WrapPanel>
+                        </StackPanel>
+                    </local:RibbonPanel>
+                    <local:RibbonPanel Title="Dimensional" MinFullWidth="560" Icon="{StaticResource GhIconDcLinear}">
+                        <StackPanel Orientation="Horizontal">
+                            <Button
+                                Style="{StaticResource BigButton}"
+                                Tag="{StaticResource GhIconDcLinear}"
+                                Content="Linear"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Command="{Binding Model.StartCommandCommand}"
+                                CommandParameter="DCLINEAR"
+                                ToolTip="Linear (DCLINEAR): a horizontal or vertical distance between two points, named d1, d2 ..."
+                            />
+                            <WrapPanel Style="{StaticResource SmallColumn}">
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconDcAligned}"
+                                    Content="Aligned"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="DCALIGNED"
+                                    ToolTip="Aligned (DCALIGNED): the distance between two points"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconDcAngular}"
+                                    Content="Angular"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="DCANGULAR"
+                                    ToolTip="Angular (DCANGULAR): the angle from one line to another, named ang1 ..."
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconDcRadius}"
+                                    Content="Radius"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="DCRADIUS"
+                                    ToolTip="Radius (DCRADIUS): the radius of a circle or arc, named rad1 ..."
+                                />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource SmallColumn}">
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconDcDiameter}"
+                                    Content="Diameter"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="DCDIAMETER"
+                                    ToolTip="Diameter (DCDIAMETER): the diameter of a circle or arc, named dia1 ..."
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconDcConvert}"
+                                    Content="Convert"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="DCCONVERT"
+                                    ToolTip="Convert (DCCONVERT): associative dimensions made dimensional constraints"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconDcForm}"
+                                    Content="Constraint Form"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="DCFORM"
+                                    ToolTip="Constraint Form (DCFORM): new dimensional constraints dynamic or annotational"
+                                />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource SmallColumn}" Margin="8,2,0,0">
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconDcShow}"
+                                    Content="Show Dynamic"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="DCDISPLAY"
+                                    ToolTip="Show Dynamic Constraints (DCDISPLAY): the dynamic dimensional constraints of the objects selected shown or hidden"
+                                />
+                            </WrapPanel>
+                        </StackPanel>
+                    </local:RibbonPanel>
+                    <local:RibbonPanel Title="Manage" MinFullWidth="300" Icon="{StaticResource GhIconParameters}">
+                        <StackPanel Orientation="Horizontal">
+                            <Button
+                                Style="{StaticResource BigButton}"
+                                Tag="{StaticResource GhIconDelConstraint}"
+                                Content="Delete Constraints"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Command="{Binding Model.StartCommandCommand}"
+                                CommandParameter="DELCONSTRAINT"
+                                ToolTip="Delete Constraints (DELCONSTRAINT): every constraint of the objects selected"
+                            />
+                            <Button
+                                Style="{StaticResource BigButton}"
+                                Tag="{StaticResource GhIconParameters}"
+                                Content="Parameters Manager"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Command="{Binding Model.StartCommandCommand}"
+                                CommandParameter="PARAMETERS"
+                                ToolTip="Parameters Manager (PARAMETERS): the names, expressions and values of the dimensional constraints, and user parameters"
+                            />
+                            <Button
+                                Style="{StaticResource BigButton}"
+                                Tag="{StaticResource GhIconGear}"
+                                Content="Constraint Settings"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Command="{Binding Model.StartCommandCommand}"
+                                CommandParameter="CONSTRAINTSETTINGS"
+                                Margin="0"
+                                ToolTip="Constraint Settings (CONSTRAINTSETTINGS): the bars, the form and the names, and what Auto Constrain applies"
+                            />
+                        </StackPanel>
+                    </local:RibbonPanel>
+                </local:RibbonStrip>
+            </DataTemplate>
+
             <!-- Manage: Action Recorder and CAD Standards are parked (greyed with a tooltip saying so); the rest run commands. -->
             <DataTemplate DataType="{x:Type local:ManageRibbonViewModel}">
                 <local:RibbonStrip>
@@ -3500,6 +3787,14 @@
                         IsChecked="{Binding AnnotateTab.IsTabSelected, Mode=OneWay}"
                         Command="{Binding SelectTabCommand}"
                         CommandParameter="{Binding AnnotateTab}"
+                        Margin="0,0,4,0"
+                    />
+                    <ToggleButton
+                        Style="{StaticResource GhRibbonTab}"
+                        Content="Parametric"
+                        IsChecked="{Binding ParametricTab.IsTabSelected, Mode=OneWay}"
+                        Command="{Binding SelectTabCommand}"
+                        CommandParameter="{Binding ParametricTab}"
                         Margin="0,0,4,0"
                     />
                     <ToggleButton
