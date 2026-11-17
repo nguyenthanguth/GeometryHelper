@@ -1230,7 +1230,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// name GRID_BUBBLE), <c>insert</c> (the Blocks palette), <c>wblock</c> (Write Block), <c>attdef</c> (Attribute
         /// Definition, the attribute GRID), <c>eattedit[:Tab]</c> (the Enhanced Attribute Editor of the first INSERT with
         /// attributes, on a tab), <c>bedit[:Name]</c> (Edit Block Definition on a block, the first by default),
-        /// <c>bsaveas[:Name]</c> (the same window titled Save Block As) and <c>bclose[:Name]</c> (BCLOSE's question about the
+        /// <c>bsaveas[:Name]</c> (the same window titled Save Block As), <c>bvstate</c> (the Visibility States dialog over the Block Editor
+        /// the lines opened), <c>bauthorpalette</c> (the Block Authoring Palettes) and <c>bclose[:Name]</c> (BCLOSE's question about the
         /// block open, else the name given).
         /// </summary>
         private static bool BlockDialog(
@@ -1255,6 +1256,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 && kind != "bedit"
                 && kind != "bsaveas"
                 && kind != "bclose"
+                && kind != "bvstate"
+                && kind != "bauthorpalette"
             )
             {
                 return false;
@@ -1363,6 +1366,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         )
                     );
                     (window, root) = (edit, edit.Body);
+                    return true;
+                case "bvstate":
+                    // The Visibility States dialog over the Block Editor the --run lines opened (-BEDIT;NAME;BPARAMETER;Visibility;...).
+                    var states = new VisibilityStatesWindow(new VisibilityStatesViewModel(document));
+                    (window, root) = (states, states.Body);
+                    return true;
+                case "bauthorpalette":
+                    // The Block Authoring Palettes, on the Parameters tab.
+                    var authoring = new AuthoringPaletteWindow(new AuthoringPaletteViewModel(model));
+                    (window, root) = (authoring, authoring.Body);
                     return true;
                 case "bclose":
                     var close = new BlockCloseWindow(

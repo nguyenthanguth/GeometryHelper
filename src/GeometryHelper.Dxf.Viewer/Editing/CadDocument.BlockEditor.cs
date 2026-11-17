@@ -281,6 +281,8 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     try
                     {
+                        // The objects erased in the editor are no longer governed by the visibility parameter nor shown by a state.
+                        DxfBlockVisibility.Prune(s.Database.BlockTable[name]);
                         List<string> made = DxfDynamicBlockRepresentation.UpdateAnonymous(s.Database.BlockTable[name]);
 
                         if (made.Count > 0)
@@ -636,7 +638,7 @@ namespace GeometryHelper.Dxf.Viewer
     /// The Block Editor open on a drawing (<see cref="CadDocument.BlockEditor"/>): the block it shows, the space that shows it
     /// and whether it has changes not saved.
     /// </summary>
-    public sealed class CadBlockEditor
+    public sealed partial class CadBlockEditor
     {
         /// <summary>The name the Edit Block Definition dialog lists first, which opens model space itself.</summary>
         public const string CurrentDrawing = "<Current Drawing>";
@@ -787,6 +789,12 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     (state.Name == current ? shown : hidden).Add(entity.Handle);
                 }
+            }
+
+            // An object the visibility parameter governs and the state does not show is hidden, though no other state shows it.
+            foreach (string governed in DxfBlockVisibility.Governed(Space.Block))
+            {
+                hidden.Add(governed);
             }
 
             hidden.ExceptWith(shown);

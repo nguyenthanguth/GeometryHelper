@@ -49,6 +49,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the objects <see cref="SelectObjects"/> gave, in ordinal order, those on locked layers left out.</summary>
         public IReadOnlyList<string> Selected { get; private set; }
 
+        /// <summary>The handles <see cref="SelectObjects"/> was given, before those of no entity and those on a locked layer were left out: the Block Editor's parameters and actions are among them.</summary>
+        internal IReadOnlyList<string> RawSelected { get; private set; } = Array.Empty<string>();
+
         /// <summary>The objects selected before the command started, which BLOCK and WBLOCK put into their dialog's objects.</summary>
         internal IReadOnlyList<string> PreSelected => _preSelected;
 
@@ -82,6 +85,7 @@ namespace GeometryHelper.Dxf.Viewer
                 handles = Input.Handles;
             }
 
+            RawSelected = handles;
             Selected = Unlocked(handles);
             ClearsSelection = true;
         }

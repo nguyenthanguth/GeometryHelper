@@ -214,6 +214,25 @@ namespace GeometryHelper.Dxf.Viewer
                 yield return prompt;
             }
 
+            // In the Block Editor the parameters and actions selected go too, with what hangs on them.
+            CadBlockEditor editor = c.Document.BlockEditor;
+
+            if (editor != null && !editor.IsCurrentDrawing)
+            {
+                List<string> elements = c.RawSelected.Where(h => editor.ElementOf(h) != null).ToList();
+
+                if (elements.Count > 0)
+                {
+                    c.OpenUndoStep();
+                    CadEditResult erased = c.Document.EraseBlockElements(elements);
+
+                    if (!erased.Succeeded)
+                    {
+                        c.Write(erased.Message);
+                    }
+                }
+            }
+
             if (c.Selected.Count > 0)
             {
                 RememberErased(c, c.Selected);

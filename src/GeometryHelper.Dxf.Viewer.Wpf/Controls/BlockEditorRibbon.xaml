@@ -5,8 +5,8 @@
 >
     <!--
     The contextual Block Editor tab, as the design draws it: Open/Save, Geometric, Dimensional, Manage, Action Parameters,
-    Visibility and Close. Its logic is BlockEditorRibbonViewModel. Test Block, the constraints, the parameters, the actions and
-    the authoring of visibility states are greyed, as BigButton and SmallButton grey a button by default.
+    Visibility and Close. Its logic is BlockEditorRibbonViewModel. The constraints and the Parameter Manager are greyed; the
+    rest is live, as BigButton and SmallButton grey a button by default.
     -->
     <UserControl.Resources>
         <Geometry x:Key="IconEditBlock">M4 4h10v10H4zM14 14l6 6M16 4l4 4-9 9H7v-4z</Geometry>
@@ -57,7 +57,9 @@
                             Style="{DynamicResource SmallButton}"
                             Tag="{StaticResource IconTest}"
                             Content="Test Block"
-                            ToolTip="BTESTBLOCK: not in this version"
+                            IsEnabled="True"
+                            Command="{Binding TestBlockCommand}"
+                            ToolTip="BTESTBLOCK: the block as it stands, in a drawing of its own, to try its parameters"
                         />
                     </WrapPanel>
                 </StackPanel>
@@ -132,7 +134,9 @@
                         <Button
                             Style="{DynamicResource SmallButton}"
                             Content="Authoring Palettes"
-                            ToolTip="BAUTHORPALETTE: not in this version"
+                            IsEnabled="True"
+                            Command="{Binding AuthoringPalettesCommand}"
+                            ToolTip="BAUTHORPALETTE: the parameters and actions to add to the block"
                         />
                         <Button
                             Style="{DynamicResource SmallButton}"
@@ -150,24 +154,23 @@
         </Border>
         <Border Style="{DynamicResource GroupBorder}">
             <DockPanel>
-                <TextBlock
-                    DockPanel.Dock="Bottom"
-                    Style="{DynamicResource GroupTitle}"
-                    Text="Action Parameters"
-                    Opacity="0.6"
-                />
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Action Parameters" />
                 <StackPanel Orientation="Horizontal">
                     <Button
                         Style="{DynamicResource BigButton}"
                         Tag="{StaticResource IconPoint}"
-                        Content="Point ▾"
-                        ToolTip="Parameters: not in this version"
+                        Content="{Binding ParameterButton}"
+                        IsEnabled="True"
+                        Click="OnParameterMenu"
+                        ToolTip="BPARAMETER: choose the parameter to add; Point, Linear, Polar, XY, Rotation, Alignment, Flip, Visibility and Base Point"
                     />
                     <Button
                         Style="{DynamicResource BigButton}"
                         Tag="{StaticResource IconMove}"
-                        Content="Move ▾"
-                        ToolTip="Actions: not in this version"
+                        Content="{Binding ActionButton}"
+                        IsEnabled="True"
+                        Click="OnActionMenu"
+                        ToolTip="BACTION: choose the action to tie to a parameter; Move, Scale, Stretch, Polar Stretch, Rotate, Flip and Array"
                         Margin="0"
                     />
                 </StackPanel>
@@ -181,7 +184,9 @@
                         Style="{DynamicResource BigButton}"
                         Tag="{StaticResource IconVisibility}"
                         Content="Visibility States"
-                        ToolTip="Authoring visibility states: not in this version"
+                        IsEnabled="True"
+                        Command="{Binding VisibilityStatesCommand}"
+                        ToolTip="BVSTATE: add, rename, delete and move the visibility states of the block"
                     />
                     <StackPanel Width="150" Margin="0,2,0,0">
                         <ComboBox
@@ -196,12 +201,16 @@
                         <Button
                             Style="{DynamicResource SmallButton}"
                             Content="Make Visible"
-                            ToolTip="Not in this version"
+                            IsEnabled="{Binding HasVisibilityStates}"
+                            Command="{Binding MakeVisibleCommand}"
+                            ToolTip="BVSHOW: show objects in the current visibility state or in all of them"
                         />
                         <Button
                             Style="{DynamicResource SmallButton}"
                             Content="Make Invisible"
-                            ToolTip="Not in this version"
+                            IsEnabled="{Binding HasVisibilityStates}"
+                            Command="{Binding MakeInvisibleCommand}"
+                            ToolTip="BVHIDE: hide objects in the current visibility state or in all of them"
                         />
                     </StackPanel>
                 </StackPanel>

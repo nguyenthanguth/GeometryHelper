@@ -697,6 +697,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.AskRedefineBlock = name => CadQuestionWindow.AskRedefineBlock(Window.GetWindow(this), name);
                 _model.ShowBlockEdit = dialog => BlockEditWindow.Show(Window.GetWindow(this), dialog);
                 _model.AskSaveBlockChanges = name => BlockCloseWindow.Ask(Window.GetWindow(this), name);
+                _model.ShowVisibilityStates = dialog => VisibilityStatesWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowAuthoringPalette = palette => AuthoringPaletteWindow.Toggle(Window.GetWindow(this), palette);
                 _model.ShowPasteSpecial = dialog => PasteSpecialWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowMatchPropSettings = dialog => MatchPropSettingsWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowSelectSimilarSettings = dialog =>

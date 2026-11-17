@@ -5,6 +5,10 @@ The library reads those properties, sets them as AutoCAD 2021 sets them, and mak
 parameters and actions besides the linear one and visibility are on [Parameters and actions](dynamic-actions.md);
 lookups, block properties tables and constraints on [Lookups, tables and constraints](dynamic-tables.md).
 
+The presenter's Block Editor makes the same blocks by hand, through the same calls: BPARAMETER, BACTION, BVSTATE, BVHIDE and BVSHOW
+(see [Editing](../presenter/editing.md)); thirteen such blocks, saved as DXF and DWG, were read and set by AutoCAD 2021 with the
+values and geometry these calls give, and AUDIT found no error in them (probe GhBa1).
+
 ## What can be made
 
 A dynamic block is made in a drawing of R2010 or later (`new DxfDatabase("AC1024")`) by one

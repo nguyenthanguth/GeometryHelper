@@ -233,7 +233,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 311 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 319 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -246,7 +246,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, PStyle, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, LAYMRG and -LAYMRG (Name, Undo), LAYDEL and -LAYDEL (Name, Undo), LAYCUR, COPYTOLAYER and -COPYTOLAYER (?, =, Displacement, eXit), VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, SELECTSIMILAR (SEttings), ADDSELECTED, TEXTSCR, UNITS, -UNITS, SCRIPT, SAVE, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?), QUICKCALC, CAL, QUICKPROPERTIES |
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too; a spline made a polyline within a precision), REVCLOUDPROPERTIES (Arc length), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPATH, ARRAYPOLAR, ARRAYEDIT, -ARRAY, OVERKILL, -OVERKILL, ALIGN, CHANGE (Properties: Color, Elev, LAyer, LType, ltScale, LWeight, Thickness, TRansparency, Material, Annotative), CHPROP (the same less Elev), SETBYLAYER (Settings), REVERSE, CHSPACE, BURST, TXTEXP, and the variable SETBYLAYERMODE |
-| blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a name typed may be a wildcard and every attributed block it matches is synced; what is picked that is no block, or a block with no attribute definitions, refused and another asked for, in the words of AutoCAD's own table of strings; an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, ATTEXT, -ATTEXT (Cdf, Sdf, Dxf, Objects), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), ATTREDEF, BAUTHORPALETTE, RESETBLOCK, REFEDIT, -REFEDIT (Ok, Next; All, Nested), REFSET (Add, Remove), REFCLOSE (Save, Discard), and the variables REFEDITNAME and XFADECTL |
+| blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a name typed may be a wildcard and every attributed block it matches is synced; what is picked that is no block, or a block with no attribute definitions, refused and another asked for, in the words of AutoCAD's own table of strings; an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, ATTEXT, -ATTEXT (Cdf, Sdf, Dxf, Objects), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), ATTREDEF, BAUTHORPALETTE, BAUTHORPALETTECLOSE, BPARAMETER (Alignment, Base, pOint, Linear, Polar, Xy, Rotation, Flip, Visibility; Name, Label, Chain, Description, Palette, Value set), BACTION (Array, Flip, Move, Rotate, Scale, sTretch, Polar stretch; Multiplier, Offset), BVSTATE, -BVSTATE (New, Set, Delete), BVHIDE, BVSHOW (Current, All), BTESTBLOCK, RESETBLOCK, REFEDIT, -REFEDIT (Ok, Next; All, Nested), REFSET (Add, Remove), REFCLOSE (Save, Discard), and the variables REFEDITNAME and XFADECTL |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | annotation | DIMOVERRIDE (Clear overrides), TEXTALIGN (alIgnment, Options, Point), MLEADEREDIT (Remove leaders, Add leaders), MLEADERALIGN (Options), MLEADERCOLLECT (Vertical, Horizontal, Wrap), ATTIPEDIT, SPELL (All, Dictionary), SCALETEXT (Existing, Left, Center, Middle, Right, TL to BR; Paper height, Match object, Scale factor, Reference), JUSTIFYTEXT (Left, Align, Fit, Center, Middle, Right, TL to BR), TXT2MTXT (Settings), ATTDISP (Normal, ON, OFF), FIELD (Height, Justify), UPDATEFIELD (see [Annotation commands](#annotation-commands)) |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT, EXPORT, -EXPORT (Dwf, dwfX, Pdf) ([Plotting](plot.md)) |
@@ -2485,6 +2485,48 @@ when the block opens, and another chosen (`CadDocument.SetBlockEditorVisibilityS
 it does not, which is then neither drawn nor picked; an object drawn in the editor joins every state. Choosing a state is a
 view of the block, no undo step. RESETBLOCK puts the dynamic block references selected back to their blocks' own values,
 one undo step, and says `2 blocks reset.`, counting every block reference selected as AutoCAD 2021 counts them.
+
+The Block Editor authors dynamic blocks as AutoCAD 2021's does, through the library's own writers
+([Dynamic blocks](../dxf/dynamic-blocks.md)), so the blocks it saves are the ones AutoCAD reads and sets. BPARAMETER asks
+`Enter parameter type [Alignment/Base/pOint/Linear/Polar/Xy/Rotation/Flip/Visibility/looKup] <Linear>:` and then the prompts
+of the kind: a Linear parameter asks `Specify start point or [Name/Label/Chain/Description/Palette/Value set]:`, the endpoint
+and the label location; Polar and XY the same; Rotation the base point, the radius of the parameter and the default
+rotation angle; Flip the base point and the endpoint of the reflection line; Point, Visibility and Base the one location;
+Alignment the base point and the direction. Name, Label, Description, Chain and Palette set the element's name, the label
+and description of its property, whether its actions chain and whether the property shows in an INSERT's Properties; Value
+set asks `[None/List/Increment]` and then the list, or the increment, minimum and maximum (angles in degrees). A Linear
+parameter from (0, 0) to (100, 0) with its label at (50, -20) is `Linear`, its property `Distance1` (the labels number as
+AutoCAD's do: Distance1, Angle1, Position1), at 100. A Visibility parameter starts the block with one state,
+`VisibilityState0`, showing every object. Lookup is refused with its reason: its table is not in this version.
+
+BACTION asks `Enter action type [Array/Lookup/Flip/Move/Rotate/Scale/sTretch/Polar stretch] <Move>:`, `Select parameter:`
+(a pick near the parameter's glyph; one the action cannot follow is refused in AutoCAD's words, `Invalid selection.  Action
+requires a Rotation parameter.`), for a move, a stretch and an array `Specify parameter point to associate with action or
+enter [sTart point/Second point] <Second point>:`, then the objects (a stretch asks the frame's two corners first, a polar
+stretch the objects to turn only as well; an array the distance between rows for an XY parameter and between columns) and
+`Specify action location or [Multiplier/Offset]:`. The action is tied to the second point of its parameter, its end, as the
+library ties one; the start point, the corners of an XY parameter and a polygonal frame are not in this version. Each
+BPARAMETER and BACTION is one undo step; the INSERTs of the block work when it is saved with BSAVE.
+
+A parameter is drawn on the canvas in blue (its dimension line with an arrowhead at each end, its grip a small square, its label
+by it, a rotation parameter a circle) and an action in yellow (a lightning bolt with its name), the ones selected in white.
+They are picked by a click on the glyph, in a selection (ERASE takes them out, with the grips of a parameter and the actions
+that follow it) and by Properties: the Misc group (Name, Show properties, Chain actions, Number of grips), the Geometry group
+read only, Property labels (the name and description of each property), Value set (type None, List or Increment, its
+minimum, maximum, increment or list, in degrees for an angle) and for an action its multiplier, angle offset, spacings and
+number of objects. A row set is one undo step and the graph is written in place: AutoCAD 2021 read a Linear parameter's name
+changed to `Length`, a list of 100, 150, 200 and 300, a description and a multiplier of 0.5 as set.
+
+BVSTATE shows the Visibility States dialog (New with its options Hide all, Show all and Leave unchanged, Rename, Delete, Move
+Up, Move Down, Set Current), and with no window asks `Enter an option [New/Set/Delete] <Set>:` as -BVSTATE does. BVHIDE and BVSHOW
+ask `Select objects to hide:` and `Hide for current state or all visibility states [Current/All] <Current>:`; an object the
+parameter did not govern is governed by hiding it and stays shown in the other states, and one hidden in every state is kept
+invisible. A new state is added last and the current state is not changed; the first state is the one an INSERT shows until
+its property is set, and the block is kept in it. The current state cannot be deleted (`Cannot delete the current visibility
+state.`), nor the last one. BAUTHORPALETTE shows the Block Authoring Palettes, a small window with a Parameters and an Actions
+tab, each tool starting BPARAMETER or BACTION with its kind answered (BAUTHORPALETTECLOSE closes it); the Parameter and Action
+buttons of the Block Editor tab list the same kinds. BTESTBLOCK opens the block as it stands, saved or not, alone in a copy of
+the drawing, as the drawing `Test Block Window - DOOR`, to try its grips and properties; the block open is not changed.
 
 REFEDIT edits a block reference in place, as AutoCAD 2021's: the objects of the reference's block are copied into the
 drawing where the reference draws them (the working set), every command works on them, and REFCLOSE writes them back into

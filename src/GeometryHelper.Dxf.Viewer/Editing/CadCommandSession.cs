@@ -309,7 +309,7 @@ namespace GeometryHelper.Dxf.Viewer
                     string handle in new SortedSet<string>(Document.Selection.Handles, StringComparer.OrdinalIgnoreCase)
                 )
                 {
-                    if (Document.FindEntity(handle) != null)
+                    if (Document.FindEntity(handle) != null || Document.BlockEditor?.ElementOf(handle) != null)
                     {
                         preSelected.Add(handle);
                     }
@@ -507,6 +507,21 @@ namespace GeometryHelper.Dxf.Viewer
 
                     // The tracking a temporary track point gave was for this point.
                     _trackPoints.Clear();
+
+                    // In the Block Editor a parameter or an action is picked by its glyph, as an object is.
+                    if (picked.Count == 0 && Prompt.Kind == CadPromptKind.Selection)
+                    {
+                        CadAuthoringElement element = CadBlockAuthoring.ElementAt(
+                            Document.BlockEditor,
+                            point,
+                            PickAperture
+                        );
+
+                        if (element != null)
+                        {
+                            picked = new[] { element.Handle };
+                        }
+                    }
 
                     if (picked.Count == 0)
                     {
@@ -857,7 +872,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (string handle in handles)
             {
-                if (Document.FindEntity(handle) != null)
+                if (Document.FindEntity(handle) != null || Document.BlockEditor?.ElementOf(handle) != null)
                 {
                     found.Add(handle);
                 }
