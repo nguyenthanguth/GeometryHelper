@@ -529,6 +529,39 @@ namespace GeometryHelper.Cad.Wpf
         public override string ToString() => _folder;
     }
 
+    /// <summary>
+    /// A default support folder beside GeometryHelper.Cad.dll, as the Folder preference page shows it, read-only: its kind
+    /// (Fonts, Hatch patterns, Linetypes), its full path, whether it is there, and Open folder.
+    /// </summary>
+    public sealed class DefaultFolderRow : ObservableObject
+    {
+        internal DefaultFolderRow(string kind, string folder, ICommand open)
+        {
+            Kind = kind;
+            Folder = folder ?? string.Empty;
+            Exists = folder != null && Directory.Exists(folder);
+            OpenCommand = open;
+        }
+
+        /// <summary>Gets the kind of file the folder holds: Fonts, Hatch patterns or Linetypes.</summary>
+        public string Kind { get; }
+
+        /// <summary>Gets the full path of the folder.</summary>
+        public string Folder { get; }
+
+        /// <summary>Gets whether the folder exists.</summary>
+        public bool Exists { get; }
+
+        /// <summary>Gets the mark after the path: "(default)", and "not found" after it where the folder is missing.</summary>
+        public string Mark => Exists ? "(default)" : "(default) not found";
+
+        /// <summary>Gets the command of Open folder, given this row; off where the folder is missing.</summary>
+        public ICommand OpenCommand { get; }
+
+        /// <inheritdoc/>
+        public override string ToString() => Folder + " " + Mark;
+    }
+
     /// <summary>A font drawn in another, as the table of the Text and fonts page lists it: romans.shx drawn in isocp.shx.</summary>
     public sealed class FontSubstitutionRow : ObservableObject
     {
@@ -1038,6 +1071,7 @@ namespace GeometryHelper.Cad.Wpf
         >(StringComparer.Ordinal);
         private GlobalSettings _working;
         private GlobalSettingCategory _category;
+        private CadSupportFolders _roots = CadSupportFolders.Default;
         private string _search = string.Empty;
         private string _notice = string.Empty;
         private List<ShortcutRowViewModel> _allShortcuts = new List<ShortcutRowViewModel>();
@@ -1073,7 +1107,7 @@ namespace GeometryHelper.Cad.Wpf
                 ),
                 new GlobalSettingCategory(
                     "Folder preference",
-                    "Where the files a drawing names are looked for, as AutoCAD's support file search path. The folder of the drawing is looked in first, then the folders listed here in order; AutoCAD's own folders are not looked in unless listed."
+                    "Where the files a drawing names are looked for, as AutoCAD's support file search path. The folders listed here are looked in first, in order, then the default folders beside GeometryHelper.Cad.dll, then the built-in fonts, patterns and linetypes; the folder of the drawing and AutoCAD's own folders are not looked in unless listed."
                 ),
                 new GlobalSettingCategory(
                     "Shortcuts",
@@ -1112,6 +1146,17 @@ namespace GeometryHelper.Cad.Wpf
             );
             AddSupportFolderCommand = new DelegateCommand(p => SupportFolders.Add(new FontFolderRow(p as string)));
             RemoveSupportFolderCommand = new DelegateCommand(p => SupportFolders.Remove(p as FontFolderRow));
+            OpenDefaultFolderCommand = new DelegateCommand(
+                p =>
+                {
+                    if (p is DefaultFolderRow row)
+                    {
+                        OpenFolder?.Invoke(row.Folder);
+                    }
+                },
+                p => p is DefaultFolderRow row && row.Exists
+            );
+            LoadDefaultFolders();
             ApplyCommand = new DelegateCommand(_ => Apply(), _ => !HasErrors);
             OkCommand = new DelegateCommand(_ => Ok(), _ => !HasErrors);
             CancelCommand = new DelegateCommand(_ => CloseRequested?.Invoke(this, false));
@@ -1194,6 +1239,62 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>Gets the command that takes a support folder out of the list, given its row.</summary>
         public ICommand RemoveSupportFolderCommand { get; }
+
+        /// <summary>Gets the Fonts folder beside the dll, a read-only row that is not saved into the settings.</summary>
+        public ObservableCollection<DefaultFolderRow> DefaultFontFolders { get; } =
+            new ObservableCollection<DefaultFolderRow>();
+
+        /// <summary>Gets the Hatches and Linetypes folders beside the dll, read-only rows that are not saved into the settings.</summary>
+        public ObservableCollection<DefaultFolderRow> DefaultSupportFolders { get; } =
+            new ObservableCollection<DefaultFolderRow>();
+
+        /// <summary>Gets the command of Open folder on a default folder, given its row; off where the folder is missing.</summary>
+        public ICommand OpenDefaultFolderCommand { get; }
+
+        /// <summary>Gets or sets how the window opens a folder in Explorer; null does nothing, as in a test.</summary>
+        public Action<string> OpenFolder { get; set; }
+
+        /// <summary>Gets the line that says where fonts are looked for, in order.</summary>
+        public string FontOrderText =>
+            "Searched in order: TrueType fonts installed in Windows, the folders above, the default folder, then the built-in font.";
+
+        /// <summary>Gets the line that says where hatch pattern files are looked for, in order.</summary>
+        public string HatchOrderText =>
+            "Hatch patterns searched in order: the folders above, the default Hatches folder, then the built-in patterns.";
+
+        /// <summary>Gets the line that says where linetype files are looked for, in order.</summary>
+        public string LinetypeOrderText =>
+            "Linetypes searched in order: the folders above, the default Linetypes folder, then the built-in linetypes.";
+
+        /// <summary>Gets or sets the default folders shown, which a test points at a folder of its own; the rows are made again.</summary>
+        internal CadSupportFolders SupportRoots
+        {
+            get => _roots;
+            set
+            {
+                _roots = value ?? CadSupportFolders.Default;
+                LoadDefaultFolders();
+            }
+        }
+
+        private void LoadDefaultFolders()
+        {
+            DefaultFontFolders.Clear();
+            DefaultSupportFolders.Clear();
+            DefaultFontFolders.Add(
+                new DefaultFolderRow("Fonts", _roots.FolderOf(CadSupportKind.Fonts), OpenDefaultFolderCommand)
+            );
+            DefaultSupportFolders.Add(
+                new DefaultFolderRow(
+                    "Hatch patterns",
+                    _roots.FolderOf(CadSupportKind.Hatches),
+                    OpenDefaultFolderCommand
+                )
+            );
+            DefaultSupportFolders.Add(
+                new DefaultFolderRow("Linetypes", _roots.FolderOf(CadSupportKind.Linetypes), OpenDefaultFolderCommand)
+            );
+        }
 
         /// <summary>Gets the commands of the Shortcuts page, as the search finds them.</summary>
         public ObservableCollection<ShortcutRowViewModel> Shortcuts { get; } =

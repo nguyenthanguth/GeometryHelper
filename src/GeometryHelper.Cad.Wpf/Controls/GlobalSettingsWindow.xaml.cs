@@ -22,6 +22,7 @@ namespace GeometryHelper.Cad.Wpf
             InitializeComponent();
             DataContext = model;
             model.BrowsePgpFile = PickPgpFile;
+            model.OpenFolder = OpenInExplorer;
             model.CloseRequested += (s, done) =>
             {
                 if (IsVisible)
@@ -54,6 +55,21 @@ namespace GeometryHelper.Cad.Wpf
                 Title = "Import Command Aliases",
             };
             return dialog.ShowDialog(this) == true ? dialog.FileName : null;
+        }
+
+        /// <summary>Open folder: the folder shown in Explorer; a folder that cannot be opened is passed over.</summary>
+        private static void OpenInExplorer(string folder)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(
+                    new System.Diagnostics.ProcessStartInfo(folder) { UseShellExecute = true }
+                );
+            }
+            catch (Exception e) when (e is System.ComponentModel.Win32Exception || e is InvalidOperationException)
+            {
+                GeometryHelperLog.Debug("GlobalSettingsWindow: " + folder + " was not opened (" + e.Message + ").");
+            }
         }
 
         private void OnKeysFocus(object sender, KeyboardFocusChangedEventArgs e) =>

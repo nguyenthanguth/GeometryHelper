@@ -247,7 +247,8 @@ namespace GeometryHelper.Cad
         {
             var database = new DxfDatabase("AC1027");
             CadDocument document = CadDocument.From(database, "preview.dxf");
-            document.SupportFolders = source == null ? Array.Empty<string>() : CadSupportFiles.FoldersOf(source);
+            document.SupportFolders = source == null ? Array.Empty<string>() : source.SupportFolders;
+            document.SupportRoots = source?.SupportRoots ?? CadSupportFolders.Default;
             double side =
                 Type == CadHatchType.Pattern ? 25.0 * Scale
                 : Type == CadHatchType.UserDefined ? 10.0 * Spacing

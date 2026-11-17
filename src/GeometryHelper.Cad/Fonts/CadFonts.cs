@@ -9,8 +9,8 @@ namespace GeometryHelper.Cad
 {
     /// <summary>
     /// The fonts a document's text is drawn in, found as AutoCAD finds them: a text style's SHX font (romans.shx, txt read as
-    /// txt.shx) and big font in the folder of the drawing and then in <see cref="Folders"/> in their order, read once and
-    /// kept; a TrueType typeface or file as the canvas has it, a file also in the Fonts folder of Windows; a font named in
+    /// txt.shx) and big font in <see cref="Folders"/> in their order and then in the Fonts folder beside GeometryHelper.Cad.dll (<see cref="CadSupportFolders"/>), read once and
+    /// kept; a TrueType typeface as the canvas has it, else a font file of that family in those folders, a file also in the Fonts folder of Windows; a font named in
     /// <see cref="Substitutions"/> looked for as the font it is given for, as AutoCAD's font mapping file does; and one not
     /// found replaced by <see cref="Replacement"/>, as AutoCAD's FONTALT replaces it (a TrueType font not found, by the
     /// canvas's drawing font, as AutoCAD maps it through Windows), said once a font through
@@ -62,13 +62,17 @@ namespace GeometryHelper.Cad
         private static long _clock;
 
         private readonly Func<string, bool> _familyExists;
+        private readonly Dictionary<string, string> _families = new Dictionary<string, string>(
+            StringComparer.OrdinalIgnoreCase
+        );
+        private CadSupportFolders _roots = CadSupportFolders.Default;
         private readonly Dictionary<string, string> _paths = new Dictionary<string, string>(
             StringComparer.OrdinalIgnoreCase
         );
         private readonly HashSet<string> _reported = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>Makes the fonts of a document.</summary>
-        /// <param name="folders">The folders fonts are looked for in, in order, after the drawing's own; null or empty for none.</param>
+        /// <param name="folders">The folders fonts are looked for in, in order, before the Fonts folder beside the dll; null or empty for none.</param>
         /// <param name="replacement">The font a font not found is drawn in, as FONTALT: <see cref="BuiltInName"/>, an SHX file (simplex.shx), a TrueType file or a typeface, and after a comma the big font a big font not found is drawn in (simplex.shx,gbcbig.shx); null or empty for the canvas's own.</param>
         /// <param name="substitutions">Fonts drawn in others, each name to the name it is drawn in (romans.shx to isocp.shx); null for none.</param>
         /// <param name="familyExists">Whether the canvas has a TrueType typeface of a name; null to take every typeface as there.</param>
@@ -101,9 +105,9 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>
-        /// Gets the folders a drawing's fonts start with: none. SHX fonts are read from the folder of the drawing and from the
-        /// folders the user adds in Global settings' Fonts page; a TrueType file is looked for in the Fonts folder of Windows as
-        /// well. AutoCAD's Fonts folders are not looked for.
+        /// Gets the folders a drawing's fonts start with: none. SHX fonts are read from the folders
+        /// the user adds in Global settings' Folder preference, then from the Fonts folder beside GeometryHelper.Cad.dll; a TrueType file is looked for in the Fonts folder of Windows as
+        /// well, last. The drawing's own folder is not looked in, and nor are AutoCAD's Fonts folders.
         /// </summary>
         public static IReadOnlyList<string> DefaultFolders { get; } = Array.Empty<string>();
 
@@ -115,7 +119,7 @@ namespace GeometryHelper.Cad
         /// </summary>
         public static ShxFont BuiltIn => Own.Value;
 
-        /// <summary>Gets the folders fonts are looked for in, in order, after the drawing's own folder.</summary>
+        /// <summary>Gets the folders the user set, which fonts are looked for in, in order, before the Fonts folder beside the dll.</summary>
         public IReadOnlyList<string> Folders { get; }
 
         /// <summary>Gets the font a font not found is drawn in, and after a comma the big font a big font not found is drawn in; empty for the canvas's own.</summary>
@@ -168,8 +172,15 @@ namespace GeometryHelper.Cad
             }
 
             table[name.Trim()] = drawnIn.Trim();
-            return new CadFonts(Folders, Replacement, table, _familyExists);
+            return new CadFonts(Folders, Replacement, table, _familyExists) { _roots = _roots };
         }
+
+        /// <summary>These fonts looking in other default folders than those beside GeometryHelper.Cad.dll, as a test puts them.</summary>
+        internal CadFonts WithRoots(CadSupportFolders roots) =>
+            new CadFonts(Folders, Replacement, Substitutions, _familyExists)
+            {
+                _roots = roots ?? throw new ArgumentNullException(nameof(roots)),
+            };
 
         /// <summary>
         /// Reads a font mapping file as AutoCAD's FONTMAP reads acad.fmp: a line <c>oldfont;newfont</c> for each font drawn in
@@ -241,12 +252,12 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>
-        /// Finds a font's file: the path as written where it is a full path that is there, else its file name in the drawing's
-        /// folder and then in <see cref="Folders"/>, <c>.shx</c> added to a name of no extension (txt is txt.shx); a TrueType
+        /// Finds a font's file: the path as written where it is a full path that is there, else its file name in
+        /// <see cref="Folders"/> and then the Fonts folder beside the dll, <c>.shx</c> added to a name of no extension (txt is txt.shx); a TrueType
         /// file (.ttf, .ttc, .otf) last in the Fonts folder of Windows, as the system's fonts.
         /// </summary>
         /// <param name="name">The font's name or file.</param>
-        /// <param name="drawingFolder">The drawing's folder; null for none.</param>
+        /// <param name="drawingFolder">The drawing's folder; not looked in, kept for the callers' sake.</param>
         /// <returns>The full path, or null where no folder has it.</returns>
         public string Locate(string name, string drawingFolder)
         {
@@ -256,7 +267,7 @@ namespace GeometryHelper.Cad
             {
                 if (!_paths.TryGetValue(key, out string path))
                 {
-                    path = Search((name ?? string.Empty).Trim(), drawingFolder);
+                    path = Search((name ?? string.Empty).Trim());
                     _paths.Add(key, path);
                 }
 
@@ -722,6 +733,17 @@ namespace GeometryHelper.Cad
                 }
             }
 
+            // A typeface Windows has not, but a font file in the folders does: drawn from that file.
+            if (!shxOnly && family && extension.Length == 0 && _familyExists != null)
+            {
+                string file = FamilyFile(name);
+
+                if (file != null)
+                {
+                    return new CadFontFace(file, null, null, null);
+                }
+            }
+
             return !shxOnly && family && extension.Length == 0 && HasFamily(name)
                 ? new CadFontFace(name, null, null, null)
                 : null;
@@ -730,9 +752,24 @@ namespace GeometryHelper.Cad
         private static bool IsTrueTypeFile(string extension) =>
             extension == ".ttf" || extension == ".ttc" || extension == ".otf";
 
+        /// <summary>The font file whose family is a name, in <see cref="Folders"/> and then the Fonts folder beside the dll; null where none is.</summary>
+        private string FamilyFile(string family)
+        {
+            lock (_families)
+            {
+                if (!_families.TryGetValue(family, out string path))
+                {
+                    path = CadFontFiles.Find(Folders.Concat(_roots.ExistingOf(CadSupportKind.Fonts)), family);
+                    _families.Add(family, path);
+                }
+
+                return path;
+            }
+        }
+
         private bool HasFamily(string name) => _familyExists == null || _familyExists(name);
 
-        private string Search(string name, string drawingFolder)
+        private string Search(string name)
         {
             if (name.Length == 0)
             {
@@ -752,7 +789,9 @@ namespace GeometryHelper.Cad
                 bool trueType = extension == ".ttf" || extension == ".ttc" || extension == ".otf";
                 string system = trueType ? Environment.GetFolderPath(Environment.SpecialFolder.Fonts) : null;
 
-                foreach (string folder in new[] { drawingFolder }.Concat(Folders).Concat(new[] { system }))
+                foreach (
+                    string folder in Folders.Concat(_roots.ExistingOf(CadSupportKind.Fonts)).Concat(new[] { system })
+                )
                 {
                     string path = string.IsNullOrWhiteSpace(folder) ? null : Path.Combine(folder, file);
 

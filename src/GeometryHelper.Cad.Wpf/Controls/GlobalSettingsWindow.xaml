@@ -80,6 +80,46 @@
                 <Setter Property="Margin" Value="8,6" />
             </Style>
 
+            <!-- A default support folder beside the dll, read-only: its kind and full path, "(default)" (and "not found"), and Open folder. -->
+            <DataTemplate x:Key="DefaultFolderRow" DataType="{x:Type local:DefaultFolderRow}">
+                <Border BorderBrush="{StaticResource GhHeader}" BorderThickness="0,1,0,0">
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="96" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock
+                            Foreground="{StaticResource GhTextMuted}"
+                            VerticalAlignment="Center"
+                            Margin="8,0,0,0"
+                            Text="{Binding Kind}"
+                        />
+                        <TextBlock
+                            Grid.Column="1"
+                            Foreground="{StaticResource GhTextMuted}"
+                            FontFamily="{StaticResource GhMonoFont}"
+                            VerticalAlignment="Center"
+                            TextWrapping="Wrap"
+                            Margin="0,0,8,0"
+                            ToolTip="{Binding Folder}"
+                        >
+                            <Run Text="{Binding Folder, Mode=OneWay}" />
+                            <Run Text="{Binding Mark, Mode=OneWay}" FontStyle="Italic" />
+                        </TextBlock>
+                        <Button
+                            Grid.Column="2"
+                            Style="{StaticResource Secondary}"
+                            Margin="0,0,8,0"
+                            Padding="10,2"
+                            Content="Open folder"
+                            Command="{Binding DataContext.OpenDefaultFolderCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            CommandParameter="{Binding}"
+                        />
+                    </Grid>
+                </Border>
+            </DataTemplate>
+
             <!-- A row of a category: its label, then its value as its kind draws it. -->
             <DataTemplate x:Key="SettingRow" DataType="{x:Type local:GlobalSettingRow}">
                 <StackPanel Margin="18,3,0,3">
@@ -659,6 +699,11 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
+                                    <ItemsControl
+                                        ItemsSource="{Binding DefaultFontFolders}"
+                                        ItemTemplate="{StaticResource DefaultFolderRow}"
+                                        Focusable="False"
+                                    />
                                 </StackPanel>
                             </Border>
                             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
@@ -669,6 +714,13 @@
                                     Command="{Binding AddFontFolderCommand}"
                                 />
                             </StackPanel>
+                            <TextBlock
+                                Foreground="{StaticResource GhTextMuted}"
+                                FontSize="11"
+                                TextWrapping="Wrap"
+                                Margin="0,6,0,0"
+                                Text="{Binding FontOrderText}"
+                            />
                             <!-- The support file search folders: where .lin and .pat files are looked for, after the drawing's folder. -->
                             <Border
                                 BorderBrush="{StaticResource GhBorder}"
@@ -680,7 +732,7 @@
                                     <Grid Background="{StaticResource GhHeader}">
                                         <TextBlock
                                             Style="{StaticResource Head}"
-                                            Text="Support file search folders (linetypes .lin, hatch patterns .pat), in order"
+                                            Text="Hatch pattern (.pat) and linetype (.lin) search folders, in order"
                                         />
                                     </Grid>
                                     <ItemsControl ItemsSource="{Binding SupportFolders}" Focusable="False">
@@ -722,6 +774,11 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
+                                    <ItemsControl
+                                        ItemsSource="{Binding DefaultSupportFolders}"
+                                        ItemTemplate="{StaticResource DefaultFolderRow}"
+                                        Focusable="False"
+                                    />
                                 </StackPanel>
                             </Border>
                             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
@@ -732,6 +789,20 @@
                                     Command="{Binding AddSupportFolderCommand}"
                                 />
                             </StackPanel>
+                            <TextBlock
+                                Foreground="{StaticResource GhTextMuted}"
+                                FontSize="11"
+                                TextWrapping="Wrap"
+                                Margin="0,6,0,0"
+                                Text="{Binding HatchOrderText}"
+                            />
+                            <TextBlock
+                                Foreground="{StaticResource GhTextMuted}"
+                                FontSize="11"
+                                TextWrapping="Wrap"
+                                Margin="0,2,0,0"
+                                Text="{Binding LinetypeOrderText}"
+                            />
                         </StackPanel>
 
                         <!-- Shortcuts: a search, then the commands with their aliases and keys. -->
