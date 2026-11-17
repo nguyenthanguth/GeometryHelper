@@ -358,6 +358,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return true;
             }
 
+            // A key given ADCENTER shows the DesignCenter palette when it is closed and closes it when it is open, as AutoCAD's Ctrl+2.
+            if (target == "ADCENTER" && ToggleDesignCenter())
+            {
+                return true;
+            }
+
             // A key given RIBBON (Ctrl+3) shows the ribbon when it is hidden and hides it when it is shown; typed, RIBBON still
             // shows it and RIBBONCLOSE hides it.
             if (target == "RIBBON")

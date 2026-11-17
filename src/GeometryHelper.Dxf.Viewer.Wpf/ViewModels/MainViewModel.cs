@@ -2044,6 +2044,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "IMAGEATTACH":
                     OnXrefRequested(e);
                     break;
+                case "LAYWALK":
+                case "LAYTRANS":
+                case "ADCENTER":
+                case "ADCCLOSE":
+                    OnLayerToolsRequested(e);
+                    break;
             }
         }
 

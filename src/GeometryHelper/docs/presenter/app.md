@@ -497,14 +497,48 @@ in its console).
 ### The Manage tab
 
 The Manage tab, between View and Output, has AutoCAD 2021's panels for what the presenter has. **Action Recorder**
-(Record, Play, Manage Action Macros) and **CAD Standards** (Configure, Check, Layer Translator) are parked: their buttons
+(Record, Play, Manage Action Macros) and **CAD Standards** (Configure and Check) are parked: their buttons
 are greyed and the tooltip says the feature is not built yet. **Customization** has User Interface (CUI) and Edit Aliases
 (ALIASEDIT), which both open Global settings on Shortcuts, where the aliases and the keys are kept, and Tool Palettes,
 greyed. **Applications** has Load Application (APPLOAD), which shows the Plugin manager and is greyed where the window has
 none (`ManageRibbonViewModel.CanLoadApplication`), and Run Script (SCRIPT). **Cleanup** has Purge (PURGE), Overkill
 (OVERKILL), Audit (AUDIT) and Recover (RECOVER). CUI, ALIASEDIT and APPLOAD are commands of the window, not of
 `CadCommandRegistry.CreateDefault()`: APPLOAD says `No plugin manager is in use: applications cannot be loaded.` where the
-window has no manager.
+window has no manager. CAD Standards' third button, Layer Translator, runs LAYTRANS (see the layers guide).
+
+### DesignCenter
+
+ADCENTER (aliases ADC, DC and DCENTER), or a key given ADCENTER in
+Global settings › Shortcuts shows AutoCAD 2021's DesignCenter as a palette beside the window, left open while the drawings
+change; ADCCLOSE closes it. Ctrl+2 is the DRAWINGS list in the presenter, so no key is given ADCENTER at
+first; give it one (Ctrl+Alt+2, or Ctrl+2 itself) and the key shows the palette when it is closed and closes it when it is open.
+The tabs are **Folders** (the desktop, the documents folder and the drives, each folder opened to its folders and its
+`.dwg`, `.dws`, `.dwt` and `.dxf` files), **Open Drawings** (the drawings open in the presenter, by title) and **History**
+(the drawings DesignCenter showed, latest first, 24 at most, kept for the session). A drawing opens in the tree to the nine
+kinds of content AutoCAD lists, **Blocks, Dimstyles, Layers, Layouts, Linetypes, Multileaderstyles, Tablestyles, Textstyles**
+and **Xrefs**; the list on the right shows what the row selected holds (the folders and drawings of a folder, the kinds of a
+drawing, or the things of a kind), each with a picture where there is one (a block drawn, a drawing's model space) and its
+description, and under it the preview and the description of the first row selected. **Load…** shows a file in the tree,
+**Back**, **Forward** and **Up** walk the places visited, and the Tree, Preview and Description buttons hide the parts; Search
+and Favorites are greyed.
+
+A double click does the first of the right-click menu's items. A block: **Insert Block** starts INSERT with the block (and
+the file it is in, read without opening it) chosen, the insertion point asked on the command line; **Insert Block…** shows the
+Blocks palette on that file for the insertion options; **Add Block Definition** copies the definition into the drawing without
+placing it. A layer, linetype, text, dimension, multileader or table style, or layout: **Add Layer(s)**, **Load Linetype(s)**,
+**Add Textstyle(s)**, **Add Dimstyle(s)**, **Add Multileaderstyle(s)**, **Add Tablestyle(s)** and **Add Layout(s)** copy the
+rows selected into the drawing shown as one undo step named ADCENTER, a thing the drawing has by the name kept as it is (the
+layer WALL of the drawing keeps its colour whatever the library's WALL has) and a layout of a name it has taking `Layout3-Plan`
+as the template command names it; a layer brings its linetype, a dimension style the text style, linetypes and arrowhead
+blocks it draws by, a block the layers, styles and blocks its objects use. An external reference: **Attach Xref…** shows the
+Attach External Reference dialog on its file. A drawing file: **Open in Application Window**, **Insert as Block…**, **Attach as
+Xref…** and **Load into Content Area**. The result is said under the list (`1 layer added, 1 kept as the drawing has them.`).
+A row dragged onto the canvas does the same where it is dropped: a block is placed at the drop point (scale 1, no rotation), a
+drawing file inserted there as a block, and layers, styles, linetypes and layouts copied in. The content is read from the
+files on disk, so a drawing open with unsaved changes is dragged as it was saved; a drawing not saved yet is browsed from its
+open state but cannot be dragged. The same is done from code with
+[`CadDesignCenterDrawing`](xref:GeometryHelper.Dxf.Viewer.CadDesignCenterDrawing) (`Open`, `Of`, `Items`) and
+[`CadDesignCenter.Add`](xref:GeometryHelper.Dxf.Viewer.CadDesignCenter.Add*).
 
 ### The start screen
 
