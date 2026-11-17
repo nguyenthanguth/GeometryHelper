@@ -88,7 +88,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                 foreach (DxfEntity entity in space.Block)
                 {
-                    if (entity is DxfViewport viewport && !viewport.IsErased && CadViewports.CanWorkThrough(viewport))
+                    if (
+                        entity is DxfViewport viewport
+                        && !viewport.IsErased
+                        && CadViewports.CanWorkThrough(viewport)
+                        && IsOnShownLayer(viewport)
+                    )
                     {
                         found.Add(viewport);
                     }
@@ -287,8 +292,26 @@ namespace GeometryHelper.Dxf.Viewer
                 FindEntity(handle) is DxfViewport viewport
                 && ReferenceEquals(FindSpace(handle), space)
                 && CadViewports.CanWorkThrough(viewport)
+                && IsOnShownLayer(viewport)
                 ? viewport
                 : null;
+        }
+
+        /// <summary>
+        /// Whether a viewport's own layer is on and thawed: a viewport on a layer switched off or frozen is not drawn, and AutoCAD
+        /// works through none it does not show. A layer set not to plot changes nothing.
+        /// </summary>
+        private bool IsOnShownLayer(DxfViewport viewport)
+        {
+            string name = viewport.Layer;
+
+            if (string.IsNullOrEmpty(name) || !Database.LayerTable.Has(name))
+            {
+                return true;
+            }
+
+            DxfLayerTableRecord layer = Database.LayerTable[name];
+            return !layer.IsOff && !layer.IsFrozen;
         }
     }
 

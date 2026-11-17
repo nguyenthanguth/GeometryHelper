@@ -4266,7 +4266,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return true;
             }
 
-            if (!twice || IsRunning)
+            // The first click of the double click, on nothing, has started the implied window: that is no command running.
+            if (!twice || (IsRunning && !Session.IsImpliedWindow))
             {
                 return false;
             }
@@ -4276,6 +4277,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (at == null || (ObjectAt(p) is string handle && !(document.FindEntity(handle) is DxfViewport)))
             {
                 return false;
+            }
+
+            if (Session != null && Session.IsImpliedWindow)
+            {
+                CancelGesture();
+                Session.EndWindow();
             }
 
             return document.EnterViewport(at.Handle);

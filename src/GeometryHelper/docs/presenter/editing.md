@@ -4146,6 +4146,24 @@ view's or the view's width over the viewport's shape where that is more (a view 
 high, one 900 by 300 450 high), and is the one worked through afterwards, so a second restore goes into it with no question. It is
 one undo step, which takes the view and the viewport worked through back.
 
+A double click works through a viewport wherever it lands inside the frame, or inside the outline of a clipped one (VPCLIP),
+whether or not the first click of the two had opened the box of `Select objects:` there: that first click, on empty paper,
+starts the implied window, and the second ends it (`CadCommandSession.IsImpliedWindow` says that nothing but the window runs)
+and works through the viewport, nothing selected. A paper object under the cursor still takes the double click first
+(a text opens its editor), and a command that runs takes the clicks as points. A viewport on a layer switched off or frozen is
+not drawn and is not worked through (`EnterableViewports`, `EnterViewport`); a layer set not to plot changes nothing.
+
+Object snaps follow what the viewport shows. On the paper the corners, midpoints and sides of a viewport's frame are snapped
+to (a clipped viewport is bordered by its boundary object, snapped to as any other), and so is the model geometry seen
+through it: a paper LINE or a dimension takes an endpoint, midpoint, centre, quadrant, intersection or nearest point of model
+space where the viewport shows it, the aperture in the viewport's scale and the point taken by its view, twist and scale; a
+viewport whose view shows the room at 1:20 about (2 000, 1 500) gives the end (3 000, 2 500) of a model line at (200, 150) on
+a frame 200 by 150 about (150, 100). Nothing is snapped to model space outside the frame or the clip outline, nor on a layer
+frozen in that viewport, and the nearer of a paper object's snap and a model one is taken. The snap names no object, as the
+object is not of the paper: a dimension placed that way is not associated with it (AutoCAD's trans-spatial association,
+DIMASSOC 2, is not made). Worked through the viewport, the snaps are those of model space in model units, the layers frozen in
+the viewport left out.
+
 The wheel, the middle button and ZOOM and PAN change the viewport's view, not the paper. ZOOM and PAN typed are one undo
 step each, as AutoCAD 2021's console undoes ZOOM 2X, ZOOM 2X and -PAN one U each. The wheel's rolls and the middle
 button's drags made one after another are one step together, however often the view is drawn again between them, as

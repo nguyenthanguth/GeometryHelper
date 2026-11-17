@@ -55,6 +55,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets whether the implied window runs (<see cref="StartWindow"/>), at its opposite corner or as the fence or polygon it was turned into: the canvas snaps none of its points.</summary>
         public bool IsWindowing => _windowInSelection || (Current != null && ReferenceEquals(Current, _windowCommand));
 
+        /// <summary>
+        /// Gets whether the only thing running is the implied window of the Command prompt (<see cref="StartWindow"/>), which
+        /// a click on nothing starts and the next click ends; false while a command runs, even where it asks a window of its
+        /// own inside "Select objects:". A double click on the paper inside a viewport works through it where the first click
+        /// has started this window, and ends it.
+        /// </summary>
+        public bool IsImpliedWindow => Current != null && ReferenceEquals(Current, _windowCommand);
+
         /// <summary>Gets whether the implied window asks its opposite corner, "Specify opposite corner or [Fence/WPolygon/CPolygon]:".</summary>
         public bool IsWindowOpen => IsWindowing && ReferenceEquals(Prompt, _windowFirst);
 
