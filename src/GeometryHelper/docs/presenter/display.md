@@ -469,7 +469,7 @@ How each entity is drawn:
 | POINT | a polyline of one point |
 | 3DFACE | its edges |
 | SOLID, WIPEOUT | a fill; a wipeout is a mask |
-| HATCH | a solid fill, a gradient filled with the colour half way along it, or the lines of its pattern cut by its loops; a hatch that holds no lines of its pattern, or would draw more than 20 000, is drawn by its boundary |
+| HATCH | a solid fill, a gradient filled with the colour half way along it, or the lines of its pattern cut by its loops; a hatch that holds no lines of its pattern, or would draw more than 250 000, is drawn by its boundary |
 | TEXT | a text item; the library has no fonts, so the box of a text is estimated from its height and its characters. In an SHX font, `%%U`, `%%K` and `%%O` draw a line under, through or over the letters after them, as AutoCAD 2021 draws it: 0.2 of the height below the baseline, half the height or 1.2 heights above it, along the letters' pens but 0.15 of the height left of them, slanted as the letters, and a justified text is boxed with its lines ("%%uAB" of simplex 10 high is lined from -1.5 to 18.98); in a TrueType font the codes are left out and no line is drawn yet |
 | MTEXT | a text item whose `Parts` are its picture, laid out as AutoCAD 2021 lays it out: the mask and the frame, then a text for each run of each line and a polyline for each line under, over or through a run and for the bar of a stack; see below |
 | INSERT, MINSERT | the block's entities under the INSERT's matrix, to a depth of 12 blocks; every item is picked as the INSERT; the values of its ATTRIBs are drawn where the file puts them, an invisible one left out |

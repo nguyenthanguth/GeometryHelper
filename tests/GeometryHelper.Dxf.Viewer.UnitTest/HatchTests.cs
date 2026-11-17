@@ -52,16 +52,66 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Theory]
-        [InlineData(0.001)]
+        [InlineData(0.0001)]
         [InlineData(0.00001)]
-        public void AHatchWhoseLinesWouldPassTwentyThousandIsDrawnByItsBoundary(double spacing)
+        public void AHatchWhoseLinesWouldPassTwoHundredFiftyThousandIsDrawnByItsBoundary(double spacing)
         {
-            // 36 000 lines at the first spacing, worked out and refused; 3 600 000 at the second, refused by their count first.
+            // 360 000 lines at the first spacing, worked out and refused; 3 600 000 at the second, refused by their count first.
             DisplayList2 list = UserHatch(spacing);
 
             DisplayPolyline2 boundary = Assert.IsType<DisplayPolyline2>(Assert.Single(list.Items));
             Assert.True(boundary.Closed);
             Assert.Equal(30.0, boundary.Bounds.MaxX, 9);
+        }
+
+        /// <summary>A rectangle 1000 by 500 of a millimetre drawing hatched with a built-in pattern at scale 1, as HATCH makes it.</summary>
+        private static DisplayList2 RectangleWith(string pattern)
+        {
+            var database = new DxfDatabase("AC1018");
+            var hatch = new DxfHatch();
+            database.ModelSpace.AppendEntity(hatch);
+            CadDocument document = CadDocument.From(database);
+            document.HatchSettings.PatternName = pattern;
+            Assert.Null(document.HatchSettings.ApplyTo(hatch, database, document));
+            hatch.AppendLoop(
+                DxfHatchLoopTypes.External,
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(1000, 0), new GeoPoint2(1000, 500), new GeoPoint2(0, 500) },
+                null
+            );
+            return document.GetDisplay(document.ModelSpace);
+        }
+
+        [Fact]
+        public void ARectangle1000By500HatchedWithCrossAtScale1_DrawsItsCrossesAndNotItsBoundary()
+        {
+            // 79 rows of 157 dashes and 157 columns of 79: some 25 000 lines, past the old cap of 20 000, under the 100 000 of
+            // AutoCAD's HPMAXLINES.
+            DisplayList2 list = RectangleWith("CROSS");
+
+            DisplaySegments2 lines = Assert.IsType<DisplaySegments2>(Assert.Single(list.Items));
+            Assert.InRange(lines.Count, 24000, 26000);
+        }
+
+        public static TheoryData<string> BuiltInPatterns()
+        {
+            var names = new TheoryData<string>();
+
+            foreach (CadHatchPattern pattern in CadPatternFile.BuiltIn)
+            {
+                names.Add(pattern.Name);
+            }
+
+            return names;
+        }
+
+        [Theory]
+        [MemberData(nameof(BuiltInPatterns))]
+        public void EveryBuiltInPatternAtScale1OverARectangle1000By500_DrawsItsLines(string name)
+        {
+            DisplayList2 list = RectangleWith(name);
+
+            DisplaySegments2 lines = Assert.IsType<DisplaySegments2>(Assert.Single(list.Items));
+            Assert.True(lines.Count > 0, name + " drew no line");
         }
 
         [Fact]

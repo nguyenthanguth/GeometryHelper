@@ -16,7 +16,7 @@ namespace GeometryHelper.Dxf.Viewer
     internal sealed partial class DisplayBuilder
     {
         private const int MaxDepth = 12;
-        private const int MaxHatchLines = 20000;
+        private const int MaxHatchLines = 250000;
         private const double SplineSegments = 128.0;
 
         /// <summary>The fonts of a builder made with no document: off, every style drawn as the canvas draws it.</summary>
