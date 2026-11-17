@@ -20,6 +20,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             InitializeComponent();
             DataContext = model;
 
+            // Preview… of the footer: the plot preview over this dialog.
+            model.ShowPreview = preview => PlotPreviewWindow.Show(Owner, preview);
+
             // Custom… of a raster device's Paper size list: Custom Image Size over this dialog.
             model.ShowCustomSize = size => new CustomImageSizeWindow(size) { Owner = this }.ShowDialog() == true;
 
@@ -87,10 +90,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void OnPreview(object sender, RoutedEventArgs e)
         {
-            // The dialog steps aside while the preview covers the window, as AutoCAD's does, and comes back when it closes.
-            Visibility = Visibility.Hidden;
-            bool plot = PlotPreviewWindow.Show(Owner, Model.CreatePreview());
-            Visibility = Visibility.Visible;
+            // The preview is modal and covers the window, so it hides this dialog by lying over it. Hiding the dialog itself
+            // (Visibility.Hidden) would end its ShowDialog at once, and OK after it would fail to set DialogResult.
+            bool plot = Model.ShowPreview != null && Model.ShowPreview(Model.CreatePreview());
 
             if (plot && Model.TryAccept())
             {

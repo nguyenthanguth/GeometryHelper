@@ -1304,6 +1304,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public PlotPreviewViewModel CreatePreview() =>
             new PlotPreviewViewModel(Document, Space, _settings, _job.Display);
 
+        /// <summary>
+        /// Gets or sets how the window shows the preview of Preview…, over the dialog and left open on its Plot or Close: true
+        /// where Plot was chosen. Null for none, when Preview… does nothing.
+        /// </summary>
+        public Func<PlotPreviewViewModel, bool> ShowPreview { get; set; }
+
         /// <summary>Hands the settings back to the command where the dialog closed to have a window picked, or with FILEDIA 0 for the command to ask the file.</summary>
         internal void HandBack(bool asksFile = false)
         {

@@ -150,6 +150,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             };
             var window = new CadAppWindow(model, AppName);
 
+            // An exception nobody catches is written to crash.log; one of the window's thread is shown and the app goes on.
+            CadCrashLog.Install(app, AppName, () => model.Session?.LastCommandName);
+
             if (WindowIcon != null)
             {
                 window.Icon = WindowIcon;
