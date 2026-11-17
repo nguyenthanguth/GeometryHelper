@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -150,7 +151,15 @@ namespace GeometryHelper.Dxf.Viewer
                 _builder = new DisplayBuilder(_database, document);
             }
 
-            return _builder.BuildLoose(made);
+            // A viewport shows model space through its frame: the model as the drawing has it, whatever the preview edits.
+            IReadOnlyList<DxfEntity> loose = made as IReadOnlyList<DxfEntity> ?? new List<DxfEntity>(made);
+
+            if (loose.Any(e => e is DxfViewport))
+            {
+                _builder.UseModel(document.GetDisplay(document.ModelSpace));
+            }
+
+            return _builder.BuildLoose(loose);
         }
 
         /// <summary>
@@ -251,10 +260,21 @@ namespace GeometryHelper.Dxf.Viewer
         /// A preview of the objects of another drawing, drawn by its own layers, styles and blocks under the move the answer at
         /// the cursor gives, as PASTECLIP shows the Clipboard's objects before the drawing has them.
         /// </summary>
-        internal static CadPreview Bringing(CadCommandContext c, DxfDatabase from, Func<CadInput, Affine2> move)
+        internal static CadPreview Bringing(
+            CadCommandContext c,
+            DxfDatabase from,
+            Func<CadInput, Affine2> move,
+            IEnumerable<DxfEntity> held = null
+        )
         {
             var builder = new DisplayBuilder(from, c.Document);
-            var entities = new List<DxfEntity>(from.ModelSpace);
+            var entities = new List<DxfEntity>(held ?? from.ModelSpace);
+
+            // The viewports of a layout among them show model space through their frames, the model of the drawing they go into.
+            if (entities.Exists(e => e is DxfViewport))
+            {
+                builder.UseModel(c.Document.GetDisplay(c.Document.ModelSpace));
+            }
 
             // Each object is drawn once where it is, and its items moved to the cursor after: a Clipboard of 24 000 items
             // took 34 ms a move drawn anew. An object with an item that cannot be moved so, as an image, is drawn anew each time.
@@ -320,7 +340,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// A preview of an entity of the drawing as an edit at the cursor would leave it: a copy of it, with its block and
         /// layer, in a drawing of its own, made anew from the drawing at each point, the edit made on the copy and the copy
         /// drawn by that drawing's layers and styles; nothing where the edit says false. A dynamic block's grip dragged so
-        /// shows the block worked out at the cursor, as AutoCAD 2021 redraws it while the grip moves. The last point's
+        /// shows the block worked out at the cursor, as AutoCAD 2021 redraws it while the grip moves; a viewport's corner grip the
+        /// frame resized, with the model it shows standing still on the sheet. The last point's
         /// drawing is kept, so that a canvas drawn again with the cursor still makes no copy.
         /// </summary>
         internal static CadPreview Reshaping(CadCommandContext c, string handle, Func<DxfEntity, GeoPoint2, bool> edit)
@@ -343,6 +364,21 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (entity == null)
                     {
+                        return drawn;
+                    }
+
+                    if (entity is DxfViewport)
+                    {
+                        // A viewport edited in a clone of itself and drawn by the drawing's layers, showing the drawing's model space.
+                        var shown = (DxfEntity)entity.Clone();
+
+                        if (edit(shown, input.Point))
+                        {
+                            var own = new DisplayBuilder(document.Database, document);
+                            own.UseModel(document.GetDisplay(document.ModelSpace));
+                            drawn = own.BuildLoose(new[] { shown });
+                        }
+
                         return drawn;
                     }
 

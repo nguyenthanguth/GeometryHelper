@@ -3115,6 +3115,17 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint3 center = viewport.CenterPoint;
             GeoPoint2 view = CadViewports.FromView(viewport, viewport.ViewCenter);
             double twist = viewport.TwistAngle;
+
+            // A viewport drawn under a move, as a paste previews it, takes its frame with it and the model it shows as it is.
+            Affine2 under = frame.Matrix;
+            DisplayClip2 outline = CadViewportClips.OutlineOf(viewport);
+
+            if (!under.IsIdentity)
+            {
+                center = new GeoPoint3(under.X(center.X, center.Y), under.Y(center.X, center.Y), center.Z);
+                outline = outline?.Transformed(under);
+            }
+
             list.Add(
                 new DisplayViewport2(
                     center.X,
@@ -3132,7 +3143,7 @@ namespace GeometryHelper.Dxf.Viewer
                     layerName
                 )
                 {
-                    Clip = CadViewportClips.OutlineOf(viewport),
+                    Clip = outline,
                 }
             );
         }

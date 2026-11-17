@@ -59,6 +59,33 @@ namespace GeometryHelper.Dxf.Viewer
             _fine = Flatten(Math.Max((most - least) * 1E-5, 1E-9));
         }
 
+        /// <summary>
+        /// Gets the outline carried by a transformation that turns, mirrors and scales alike: each vertex placed, and the bulges
+        /// turned about where it mirrors, since a mirror reverses the way an arc turns.
+        /// </summary>
+        internal DisplayClip2 Transformed(Affine2 m)
+        {
+            var xy = new double[_xy.Length];
+            var bulges = new double[_bulges.Length];
+            bool mirrors = m.Determinant < 0.0;
+
+            for (int i = 0; i < _bulges.Length; i++)
+            {
+                xy[2 * i] = m.X(_xy[2 * i], _xy[2 * i + 1]);
+                xy[2 * i + 1] = m.Y(_xy[2 * i], _xy[2 * i + 1]);
+                bulges[i] = mirrors ? -_bulges[i] : _bulges[i];
+            }
+
+            var others = new DisplayClip2[_others.Length];
+
+            for (int i = 0; i < others.Length; i++)
+            {
+                others[i] = _others[i].Transformed(m);
+            }
+
+            return new DisplayClip2(xy, bulges, others);
+        }
+
         /// <summary>Gets the rings after the first, a hole or another face of the region the outline is of; none for an outline of one ring.</summary>
         public IReadOnlyList<DisplayClip2> Others => _others;
 

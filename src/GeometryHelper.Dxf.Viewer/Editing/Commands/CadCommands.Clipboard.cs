@@ -323,8 +323,11 @@ namespace GeometryHelper.Dxf.Viewer
                 yield return CadPrompt
                     .ForPoint("Specify insertion point")
                     .Previewing(
-                        CadPreview.Bringing(c, fragment, input =>
-                            Affine2.Translation(input.Point.X - basePoint.X, input.Point.Y - basePoint.Y)
+                        CadPreview.Bringing(
+                            c,
+                            fragment,
+                            input => Affine2.Translation(input.Point.X - basePoint.X, input.Point.Y - basePoint.Y),
+                            Held(fragment)
                         )
                     );
 

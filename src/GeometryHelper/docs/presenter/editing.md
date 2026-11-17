@@ -4327,7 +4327,20 @@ about (165, 85), the view's centre (1 750, -250), 6 500 high; the right side str
 view's centre (1 500, 500); SCALE by 2 about the corner (50, 50) gives 400 by 200 about (250, 150), the view's centre (6 000, 3 000),
 10 000 high, and about the frame's own centre it leaves the view's centre where it was; a corner dragged past the opposite one
 gives the frame between the two, the model still where it was. The Width and Height of the Properties keep the centre, so the
-model stays too. A MOVE keeps the view's centre, the frame taking its view along. MVIEW's Object option makes a viewport of a closed
+model stays too. A MOVE keeps the view's centre, the frame taking its view along. While the second point of one of these edits
+waits, the preview draws the viewport as the edit will leave it, the frame and the model shown through it, in the model's own
+colours and cut to the frame (or to the outline of a clipped viewport): MOVE and COPY by the displacement (a viewport moved by
+(30, 20) is drawn 30 right and 20 up, the model with it), ROTATE and MIRROR as the edit turns or mirrors the frame (a mirror
+puts the frame's centre at its mirror image and the model is carried with it, not itself mirrored), SCALE with the frame scaled
+about the base point and the model standing where it stands on the sheet, and STRETCH and the corner grip with the frame between
+the corner kept and the cursor, the model still (the middle grip moves it whole, as a MOVE does). A viewport clipped by an
+entity is drawn only together with its boundary, selected with it or moved by its middle grip; moved alone it stays where it
+is, as the edit leaves it, and the preview draws nothing for it. The outlines of the model are made once for a drag and kept,
+and drawn moved or turned as the cursor goes, so that a drag costs the drawing of the outlines, not their making (1.0 ms of
+recording a cursor move for 20 000 lines in view, 4.2 ms for 100 000); a drawing with more than 50 000 outlines in view shows
+the frame alone. The preview is worked out by the rules the edit itself follows (the turn of a viewport, clipped or not,
+included), and tests compare it with what each edit then leaves. PASTECLIP of a viewport copied from a layout previews it at the cursor
+the same way, the model being that of the drawing it goes into. MVIEW's Object option makes a viewport of a closed
 polyline, circle, ellipse, spline or region picked (`Select object to clip viewport:`): its frame the box of the object, the
 object its border; an open polyline says `Clip object must be closed.` and any other entity `Invalid viewport clip object.`,
 and the command asks again. Its Polygonal option asks `Specify start point:` and `Specify next point or [Arc/Close/Length/Undo]:` as

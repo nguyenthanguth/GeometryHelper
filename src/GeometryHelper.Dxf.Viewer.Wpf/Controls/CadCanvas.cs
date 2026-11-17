@@ -1633,7 +1633,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 DrawCells(drawingContext, work, scale);
                 DrawTableDrag(drawingContext, work, scale);
                 DrawMark(drawingContext, work, scale);
+                _viewportDrawn = false;
                 DrawPrompt(drawingContext, work, scale);
+
+                if (!_viewportDrawn && _viewportFigures.Count > 0)
+                {
+                    _viewportFigures.Clear();
+                }
+
                 DrawBand(drawingContext, work, scale);
                 DrawCrosshair(drawingContext);
                 DrawLinkTip(drawingContext);
@@ -3142,6 +3149,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             DrawCopies(dc, view, scale, paths, new[] { m }, (n, colours) =>
                 drag != null ? _ghost.DragRays(n, grown, colours) : _ghost.Rays(n, grown, colours)
             );
+
+            // The model a viewport shows goes with it, as the edit will leave it.
+            if (drag == null)
+            {
+                foreach (DisplayViewport2 viewport in _ghost.Viewports(m))
+                {
+                    DrawViewportContent(dc, view, scale, viewport, tolerance);
+                }
+            }
         }
 
         /// <summary>
@@ -3208,6 +3224,267 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
+        /// The outlines of the model space a viewport shows, drawn at the screen under one view and one scale of the model, in
+        /// geometries kept while a command drags: built once, then drawn under a transformation of the screen as the viewport is
+        /// moved or turned, so that a drag costs the drawing of the geometry and not its making.
+        /// </summary>
+        private sealed class ViewportFigures
+        {
+            /// <summary>The model's display list the outlines are of.</summary>
+            public DisplayList2 Model { get; set; }
+
+            /// <summary>The layers frozen in the viewport, which the outlines leave out.</summary>
+            public ISet<string> Frozen { get; set; }
+
+            /// <summary>The transformation of model space to the sheet the outlines were made under.</summary>
+            public Affine2 Matrix { get; set; }
+
+            /// <summary>The transformation of the sheet to the screen the outlines were made under.</summary>
+            public Affine2 Screen { get; set; }
+
+            /// <summary>The farthest a chord lies from its arc, in sheet units.</summary>
+            public double Tolerance { get; set; }
+
+            /// <summary>The box of model space the outlines hold the objects of.</summary>
+            public DisplayBox Region { get; set; }
+
+            /// <summary>The outlines of each colour, in the order the colours first came.</summary>
+            public List<KeyValuePair<int, StreamGeometry>> Figures { get; } =
+                new List<KeyValuePair<int, StreamGeometry>>();
+        }
+
+        private const int ViewportFiguresKept = 8;
+
+        // The most outlines of the model a viewport's preview draws: 50 000 took a third of a second a move in WPF's software
+        // renderer, and over that the frame goes alone.
+        private const int ViewportOutlinesLimit = 50000;
+        private readonly List<ViewportFigures> _viewportFigures = new List<ViewportFigures>();
+        private bool _viewportDrawn;
+
+        /// <summary>The transformation of the sheet to the canvas the view gives, as the points it puts the origin and the two unit steps at.</summary>
+        private Affine2 ScreenOf(CadView view, double scale)
+        {
+            Point o = ToScreen(view, new GeoPoint2(0, 0), scale);
+            Point x = ToScreen(view, new GeoPoint2(1, 0), scale);
+            Point y = ToScreen(view, new GeoPoint2(0, 1), scale);
+            return new Affine2(x.X - o.X, x.Y - o.Y, y.X - o.X, y.Y - o.Y, o.X, o.Y);
+        }
+
+        /// <summary>The transformation that undoes another.</summary>
+        private static Affine2 Inverse(Affine2 a)
+        {
+            double det = a.Determinant;
+            double ia = a.D / det;
+            double ib = -a.B / det;
+            double ic = -a.C / det;
+            double id = a.A / det;
+            return new Affine2(ia, ib, ic, id, -(ia * a.E + ic * a.F), -(ib * a.E + id * a.F));
+        }
+
+        private static bool Alike(double a, double b) => Math.Abs(a - b) <= 1E-9 * (1.0 + Math.Abs(a) + Math.Abs(b));
+
+        /// <summary>
+        /// The model space a viewport shows, as AutoCAD 2021 drags it with the viewport: the outlines of the model's objects in
+        /// their own colours under the viewport's transformation, cut to the frame (or the outline it is clipped to) as the
+        /// canvas cuts them; the frame itself is drawn by the caller. Only the objects whose box meets what frame and view hold
+        /// are outlined, once for a drag: the outlines are kept, and drawn moved or turned by the screen's transformation that
+        /// takes the viewport's model from where they were made to where it now stands, which a move, a turn and a mirror
+        /// leave as they are, and a scale or a stretch (the model standing still) as they were.
+        /// </summary>
+        private void DrawViewportContent(
+            DrawingContext dc,
+            CadView view,
+            double scale,
+            DisplayViewport2 viewport,
+            double tolerance
+        )
+        {
+            DisplayBox frame = viewport.Bounds;
+            DisplayBox seen = view.VisibleBox;
+            double minX = Math.Max(frame.MinX, seen.MinX);
+            double minY = Math.Max(frame.MinY, seen.MinY);
+            double maxX = Math.Min(frame.MaxX, seen.MaxX);
+            double maxY = Math.Min(frame.MaxY, seen.MaxY);
+
+            if (minX > maxX || minY > maxY)
+            {
+                return;
+            }
+
+            // The part of model space that frame and view hold: the box of their corners taken back through the viewport.
+            Affine2 toPaper = viewport.ModelToPaper;
+            Affine2 toModel = Inverse(toPaper);
+            DisplayBox wanted = DisplayBox.Empty;
+
+            for (int i = 0; i < 4; i++)
+            {
+                double x = i % 2 == 0 ? minX : maxX;
+                double y = i < 2 ? minY : maxY;
+                wanted = wanted.Add(toModel.X(x, y), toModel.Y(x, y));
+            }
+
+            Affine2 screen = ScreenOf(view, scale);
+            ViewportFigures figures = null;
+
+            foreach (ViewportFigures kept in _viewportFigures)
+            {
+                if (
+                    ReferenceEquals(kept.Model, viewport.Model)
+                    && kept.Frozen.SetEquals(viewport.FrozenLayers)
+                    && Alike(kept.Matrix.Scale, toPaper.Scale)
+                    && tolerance <= kept.Tolerance * 2.0
+                    && tolerance >= kept.Tolerance / 2.0
+                    && Alike(kept.Screen.A, screen.A)
+                    && Alike(kept.Screen.B, screen.B)
+                    && Alike(kept.Screen.C, screen.C)
+                    && Alike(kept.Screen.D, screen.D)
+                    && Alike(kept.Screen.E, screen.E)
+                    && Alike(kept.Screen.F, screen.F)
+                    && kept.Region.MinX <= wanted.MinX
+                    && kept.Region.MinY <= wanted.MinY
+                    && kept.Region.MaxX >= wanted.MaxX
+                    && kept.Region.MaxY >= wanted.MaxY
+                )
+                {
+                    figures = kept;
+                    break;
+                }
+            }
+
+            if (figures == null)
+            {
+                figures = BuildFigures(
+                    view,
+                    scale,
+                    viewport,
+                    tolerance,
+                    wanted.Inflate(0.25 * Math.Max(wanted.Width, wanted.Height)),
+                    screen
+                );
+
+                if (_viewportFigures.Count >= ViewportFiguresKept)
+                {
+                    _viewportFigures.RemoveAt(0);
+                }
+
+                _viewportFigures.Add(figures);
+            }
+
+            _viewportDrawn = true;
+
+            if (figures.Figures.Count == 0)
+            {
+                return;
+            }
+
+            // The sheet carries the model from where the outlines were made to where the viewport has it now; on the screen
+            // that is the same carried through the screen's own transformation.
+            Affine2 carried = Inverse(figures.Screen).Then(Inverse(figures.Matrix).Then(toPaper)).Then(figures.Screen);
+            var clip = new StreamGeometry { FillRule = FillRule.EvenOdd };
+
+            using (StreamGeometryContext context = clip.Open())
+            {
+                foreach (double[] ring in CadGhost.FrameRings(viewport, tolerance))
+                {
+                    Trace(context, view, scale, ring, Affine2.Identity, true);
+                }
+            }
+
+            clip.Freeze();
+            dc.PushClip(clip);
+            dc.PushTransform(new MatrixTransform(carried.A, carried.B, carried.C, carried.D, carried.E, carried.F));
+
+            foreach (KeyValuePair<int, StreamGeometry> figure in figures.Figures)
+            {
+                var pen = new Pen(Solid(figure.Key), 1.0);
+                pen.Freeze();
+                dc.DrawGeometry(null, pen, figure.Value);
+            }
+
+            dc.Pop();
+            dc.Pop();
+        }
+
+        /// <summary>The outlines of the objects of a viewport's model that lie in a box of model space, in their colours, under the viewport's transformation to the sheet and the screen's.</summary>
+        private ViewportFigures BuildFigures(
+            CadView view,
+            double scale,
+            DisplayViewport2 viewport,
+            double tolerance,
+            DisplayBox region,
+            Affine2 screen
+        )
+        {
+            var paths = new List<double[]>();
+            var colours = new List<int>();
+            var rays = new List<DisplayRay2>();
+
+            foreach (DisplayItem2 item in viewport.Model.Items)
+            {
+                DisplayBox box = item.Bounds;
+
+                if (
+                    box.IsEmpty
+                    || box.MaxX < region.MinX
+                    || box.MinX > region.MaxX
+                    || box.MaxY < region.MinY
+                    || box.MinY > region.MaxY
+                    || viewport.FrozenLayers.Contains(item.Layer ?? string.Empty)
+                )
+                {
+                    continue;
+                }
+
+                CadGhost.Outline(item, tolerance / viewport.Scale, paths, colours, rays);
+            }
+
+            var figures = new ViewportFigures
+            {
+                Model = viewport.Model,
+                Frozen = viewport.FrozenLayers,
+                Matrix = viewport.ModelToPaper,
+                Screen = screen,
+                Tolerance = tolerance,
+                Region = region,
+            };
+
+            // A drawing too dense to draw at every move of the cursor leaves the frame alone to follow it.
+            if (paths.Count > ViewportOutlinesLimit)
+            {
+                return figures;
+            }
+
+            int background = Options.BackgroundOf(WorkSpace);
+            var order = new List<int>();
+            var geometries = new Dictionary<int, StreamGeometry>();
+            var contexts = new Dictionary<int, StreamGeometryContext>();
+
+            for (int k = 0; k < paths.Count; k++)
+            {
+                int shown = PreviewColor(k < colours.Count ? colours[k] : 0xFFFFFF, background);
+
+                if (!contexts.TryGetValue(shown, out StreamGeometryContext context))
+                {
+                    order.Add(shown);
+                    geometries[shown] = new StreamGeometry();
+                    context = geometries[shown].Open();
+                    contexts[shown] = context;
+                }
+
+                Trace(context, view, scale, paths[k], figures.Matrix, false);
+            }
+
+            foreach (int rgb in order)
+            {
+                contexts[rgb].Close();
+                geometries[rgb].Freeze();
+                figures.Figures.Add(new KeyValuePair<int, StreamGeometry>(rgb, geometries[rgb]));
+            }
+
+            return figures;
+        }
+
+        /// <summary>
         /// What the prompt waiting previews with the cursor at a point (<see cref="CadPrompt.Preview"/>), as AutoCAD 2021 drags
         /// the object about to be made: the entities the command would make, each in its own colour as it will be drawn, and
         /// the copies of the objects it would move, in their own colours as the ghost of MOVE. False where the prompt has no
@@ -3232,6 +3509,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 IReadOnlyList<double[]> paths = _ghost.Paths(Document, WorkSpace, preview.Handles, tolerance);
                 DrawCopies(dc, view, scale, paths, moves, (m, colours) => _ghost.MovedRays(m, grown, colours));
+
+                foreach (Affine2 m in moves)
+                {
+                    foreach (DisplayViewport2 viewport in _ghost.MovedViewports(m))
+                    {
+                        DrawViewportContent(dc, view, scale, viewport, tolerance);
+                    }
+                }
             }
 
             IReadOnlyList<DisplayItem2> items = preview.Items(target);
@@ -3246,6 +3531,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 var fills = new Dictionary<int, StreamGeometry>();
                 var contexts = new Dictionary<int, StreamGeometryContext>();
                 var fillContexts = new Dictionary<int, StreamGeometryContext>();
+                var viewports = new List<DisplayViewport2>();
 
                 foreach (DisplayItem2 item in WithRuns(items))
                 {
@@ -3333,8 +3619,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                             }
 
                             break;
+                        case DisplayViewport2 viewport:
+                            // A viewport as the edit will leave it: its frame here, and the model it shows once these are drawn.
+                            foreach (double[] ring in CadGhost.FrameRings(viewport, tolerance))
+                            {
+                                Trace(context, view, scale, ring, Affine2.Identity, false);
+                            }
+
+                            viewports.Add(viewport);
+                            break;
                         default:
-                            // A text of QTEXTMODE 1, an image or a viewport: its box, as the ghost of MOVE draws a text.
+                            // A text of QTEXTMODE 1 or an image: its box, as the ghost of MOVE draws a text.
                             DisplayBox box = item.Bounds;
 
                             if (!box.IsEmpty)
@@ -3394,6 +3689,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     var pen = new Pen(brush, 1.0);
                     pen.Freeze();
                     dc.DrawGeometry(null, pen, lines[rgb]);
+                }
+
+                foreach (DisplayViewport2 viewport in viewports)
+                {
+                    DrawViewportContent(dc, view, scale, viewport, tolerance);
                 }
             }
 
