@@ -166,6 +166,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("REVCLOUDPROPERTIES", RevCloudProperties));
             AddBlocksTo(registry);
             AddBlockEditorTo(registry);
+            AddBlockAuthoringTo(registry);
             AddRefEditTo(registry);
             registry.Add(new CadCommand("COPYCLIP", CopyClip, true));
             registry.Add(new CadCommand("CUTCLIP", CutClip, true));
@@ -358,7 +359,11 @@ namespace GeometryHelper.Dxf.Viewer
             CadSpace shown = c.Document.CurrentSpace;
 
             // What the space draws and, in a layout, its sheet, as a double click of the middle button shows them.
-            DisplayBox extents = c.Document.GetDisplay(shown).Bounds.Union(shown.PaperBounds);
+            DisplayBox extents = CadBlockAuthoring.WithGlyphs(
+                c.Document,
+                shown,
+                c.Document.GetDisplay(shown).Bounds.Union(shown.PaperBounds)
+            );
 
             if (c.Input.IsNone)
             {

@@ -1918,6 +1918,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "BEDIT":
                 case "BSAVEAS":
                 case "BCLOSE":
+                case "BVSTATE":
+                case "BAUTHORPALETTE":
+                case "BTESTBLOCK":
                     OnBlockEditorRequested(e);
                     break;
                 case "BLOCK":
@@ -2343,7 +2346,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             handles.Sort(StringComparer.OrdinalIgnoreCase);
             SyncArrayTab(handles);
             SyncHatchTab();
-            CadSelectionInfo info = CadProperties.Describe(_current.Document, Space, handles, View);
+            // In the Block Editor a parameter or an action selected shows its own properties, as AutoCAD's palette does.
+            CadAuthoringElement element = null;
+
+            if (handles.Count == 0 && _current.Document.BlockEditor != null)
+            {
+                var chosen = _current.Document.Selection.Handles.ToList();
+                chosen.Sort(StringComparer.OrdinalIgnoreCase);
+
+                foreach (string handle in chosen)
+                {
+                    element = _current.Document.BlockEditor.ElementOf(handle);
+
+                    if (element != null)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            CadSelectionInfo info =
+                element != null
+                    ? CadBlockAuthoring.Describe(element)
+                    : CadProperties.Describe(_current.Document, Space, handles, View);
             string banner = null;
 
             foreach (CadWorkspaceExtension extension in _extensions)
@@ -2361,6 +2386,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 foreach (CadPropertyRow row in group.Rows)
                 {
+                    if (element != null)
+                    {
+                        string target = element.Handle;
+                        rows.Add(
+                            new PropertyRowViewModel(row, row.Choices, (r, text) =>
+                                CommitElementProperty(target, r.Label, text)
+                            )
+                        );
+                        continue;
+                    }
+
                     // A dynamic block's property is set by its name, whatever it is named, through its own lists.
                     if (group.Title == CadProperties.CustomGroup)
                     {
@@ -2421,6 +2457,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 default:
                     return null;
             }
+        }
+
+        /// <summary>Sets a row of a parameter's or an action's properties in the Block Editor, one undo step; says why where it is refused.</summary>
+        private bool CommitElementProperty(string handle, string label, string text)
+        {
+            if (_current == null)
+            {
+                return false;
+            }
+
+            CadEditResult result = CadBlockAuthoring.SetProperty(_current.Document, handle, label, text);
+
+            if (!result.Succeeded)
+            {
+                Say(result.Message);
+            }
+
+            return result.Succeeded;
         }
 
         private bool CommitProperty(IReadOnlyCollection<string> handles, string label, string text)

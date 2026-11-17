@@ -1587,6 +1587,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (view != null)
             {
                 DrawUcsIcon(drawingContext, work, scale);
+                DrawAuthoring(drawingContext, work, scale);
                 DrawTags(drawingContext, view, scale);
                 DrawActiveFrame(drawingContext);
                 DrawGrips(drawingContext, work, scale);
@@ -3016,7 +3017,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             double scale = PixelScale;
             view.ScreenToDrawing(p.X * scale, p.Y * scale, out double x, out double y);
-            return document.GetPickIndex(WorkSpace).Pick(x, y, PickboxPixels * scale / view.PixelsPerUnit).Count > 0;
+            double aperture = PickboxPixels * scale / view.PixelsPerUnit;
+
+            return document.GetPickIndex(WorkSpace).Pick(x, y, aperture).Count > 0
+                || (
+                    ReferenceEquals(document.BlockEditor?.Space, WorkSpace)
+                    && CadBlockAuthoring.ElementAt(document.BlockEditor, new GeoPoint2(x, y), aperture) != null
+                );
         }
 
         /// <summary>

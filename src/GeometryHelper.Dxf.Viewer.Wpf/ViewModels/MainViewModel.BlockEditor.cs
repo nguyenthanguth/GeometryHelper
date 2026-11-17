@@ -148,8 +148,33 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     e.Answer = AskSaveBlockChanges(name);
                     e.Handled = true;
                     break;
+                case CadVisibilityStatesRequest states when ShowVisibilityStates != null:
+                    ShowVisibilityStates(new VisibilityStatesViewModel(states.Document));
+                    e.Handled = true;
+                    break;
+                case CadAuthoringPaletteRequest palette when ShowAuthoringPalette != null:
+                    ShowAuthoringPalette(palette.Show ? new AuthoringPaletteViewModel(this) : null);
+                    e.Handled = true;
+                    break;
+                case CadTestBlockRequest test:
+                    // The block tried in a drawing of its own, listed among the open drawings under the title it is given.
+                    OpenDocument(CadDocument.From(test.Database, test.Title), test.Title);
+                    e.Handled = true;
+                    break;
             }
         }
+
+        /// <summary>
+        /// Gets or sets how the workspace shows the Visibility States dialog of BVSTATE over the block open; with none set, BVSTATE
+        /// asks on the command line (-BVSTATE).
+        /// </summary>
+        public Action<VisibilityStatesViewModel> ShowVisibilityStates { get; set; }
+
+        /// <summary>
+        /// Gets or sets how the workspace shows the Block Authoring Palettes (BAUTHORPALETTE) as a window of their own, or closes
+        /// them, given null; with none set, the command says the window shows them.
+        /// </summary>
+        public Action<AuthoringPaletteViewModel> ShowAuthoringPalette { get; set; }
 
         /// <summary>Follows the Block Editor of the drawing shown: its tab shown and chosen when a block opens, hidden when it closes; the tabs under the canvas with it.</summary>
         private void SyncBlockEditor()
@@ -211,8 +236,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
     /// <summary>
     /// What the Block Editor tab does, as AutoCAD 2021's: Edit Block, Save Block, Save As; Attribute Definition and Block
-    /// Properties; the visibility states of the block, live only where it has some; Close Block Editor. Test Block, the
-    /// constraints, the parameters and the actions are greyed, not in this version.
+    /// Properties; the Parameter and Action menus (BPARAMETER and BACTION with their kind answered); the visibility states of
+    /// the block, live only where it has some; the Authoring Palettes, Test Block and Close Block Editor. The constraints and the
+    /// Parameter Manager are greyed, not in this version.
     /// </summary>
     public sealed class BlockEditorRibbonViewModel : ObservableObject
     {
@@ -229,7 +255,98 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             AttributeDefinitionCommand = new DelegateCommand(_ => model.StartCommand("ATTDEF"));
             BlockPropertiesCommand = new DelegateCommand(_ => model.ShowBlockProperties());
             CloseCommand = new DelegateCommand(_ => model.StartCommand("BCLOSE"));
+            AuthoringPalettesCommand = new DelegateCommand(_ => model.StartCommand("BAUTHORPALETTE"));
+            VisibilityStatesCommand = new DelegateCommand(_ => model.StartCommand("BVSTATE"));
+            MakeVisibleCommand = new DelegateCommand(_ => model.StartCommand("BVSHOW"));
+            MakeInvisibleCommand = new DelegateCommand(_ => model.StartCommand("BVHIDE"));
+            TestBlockCommand = new DelegateCommand(_ => model.StartCommand("BTESTBLOCK"));
         }
+
+        private string _lastParameter = "Point";
+        private string _lastAction = "Move";
+
+        /// <summary>Gets the text of the Parameter button: the parameter last made, with its arrow.</summary>
+        public string ParameterButton => _lastParameter + " ▾";
+
+        /// <summary>Gets the text of the Action button: the action last made, with its arrow.</summary>
+        public string ActionButton => _lastAction + " ▾";
+
+        /// <summary>Gets the items of the menu the Parameter button opens, one for each kind of parameter; Lookup is greyed, as its table is not in this version.</summary>
+        internal IReadOnlyList<CadMenuItemViewModel> ParameterItems
+        {
+            get
+            {
+                var items = new List<CadMenuItemViewModel>();
+
+                foreach (string[] kind in BlockAuthoringKinds.Parameters)
+                {
+                    string label = kind[0];
+                    string keyword = kind[1];
+                    bool live = label != "Lookup";
+                    items.Add(
+                        new CadMenuItemViewModel(
+                            label,
+                            () =>
+                            {
+                                _lastParameter = label;
+                                Raise(nameof(ParameterButton));
+                                _model.StartCommandWithOption("BPARAMETER " + keyword);
+                            },
+                            live,
+                            live ? "BPARAMETER " + keyword : BlockAuthoringKinds.NeedsTable
+                        )
+                    );
+                }
+
+                return items;
+            }
+        }
+
+        /// <summary>Gets the items of the menu the Action button opens, one for each kind of action; Lookup is greyed, as its table is not in this version.</summary>
+        internal IReadOnlyList<CadMenuItemViewModel> ActionItems
+        {
+            get
+            {
+                var items = new List<CadMenuItemViewModel>();
+
+                foreach (string[] kind in BlockAuthoringKinds.Actions)
+                {
+                    string label = kind[0];
+                    string keyword = kind[1];
+                    bool live = label != "Lookup";
+                    items.Add(
+                        new CadMenuItemViewModel(
+                            label,
+                            () =>
+                            {
+                                _lastAction = label;
+                                Raise(nameof(ActionButton));
+                                _model.StartCommandWithOption("BACTION " + keyword);
+                            },
+                            live,
+                            live ? "BACTION " + keyword : BlockAuthoringKinds.NeedsTable
+                        )
+                    );
+                }
+
+                return items;
+            }
+        }
+
+        /// <summary>Gets the command of the Authoring Palettes button (BAUTHORPALETTE).</summary>
+        public ICommand AuthoringPalettesCommand { get; }
+
+        /// <summary>Gets the command of the Visibility States button (BVSTATE).</summary>
+        public ICommand VisibilityStatesCommand { get; }
+
+        /// <summary>Gets the command of Make Visible (BVSHOW).</summary>
+        public ICommand MakeVisibleCommand { get; }
+
+        /// <summary>Gets the command of Make Invisible (BVHIDE).</summary>
+        public ICommand MakeInvisibleCommand { get; }
+
+        /// <summary>Gets the command of Test Block (BTESTBLOCK).</summary>
+        public ICommand TestBlockCommand { get; }
 
         /// <summary>Gets the name of the block open, or &lt;Current Drawing&gt;.</summary>
         public string Name => _editor.Name;

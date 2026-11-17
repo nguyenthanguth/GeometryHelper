@@ -46,9 +46,6 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("BSAVE", BlockSave));
             registry.Add(new CadCommand("BSAVEAS", BlockSaveAs));
             registry.Add(new CadCommand("BCLOSE", BlockClose));
-            registry.Add(
-                new CadCommand("BAUTHORPALETTE", c => Say(c, "The Block Authoring Palettes are not in this version."))
-            );
         }
 
         /// <summary>Whether the Block Editor refuses a command, "Not allowed in the Block Editor.": BEDIT again, XREF, LAYOUT, PLOT and the others that leave the block.</summary>

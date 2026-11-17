@@ -331,7 +331,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Starts the command of a line as "DRAWORDER F", keeping its option for the first prompt that offers it.</summary>
-        private void StartCommandWithOption(string line)
+        internal void StartCommandWithOption(string line)
         {
             string[] words = (line ?? string.Empty).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 

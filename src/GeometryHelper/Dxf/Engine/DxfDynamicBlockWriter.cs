@@ -1243,6 +1243,64 @@ namespace GeometryHelper.Dxf
             file.AddClass("BLOCKBASEPOINTPARAMETER", "AcDbBlockBasepointParameter", 1153);
         }
 
+        /// <summary>
+        /// Takes a parameter or an action out of the block's evaluation graph, as erasing it in AutoCAD's Block Editor does: a
+        /// parameter goes with its grips, their location components and the actions that follow it, an action alone; the nodes
+        /// are no longer listed in any visibility state, and the objects are erased. A graph left with no node is taken out of
+        /// the block, which is no dynamic block then. A visibility parameter's entities are shown again.
+        /// </summary>
+        /// <exception cref="NotSupportedException">Thrown when the parameter is read by a lookup table or a block properties table.</exception>
+        internal static void Erase(DxfBlockTableRecord block, int node)
+        {
+            Graph graph = Graph.Of(block);
+            Known(graph, block, node, node.ToString(CultureInfo.InvariantCulture));
+            DxfFile file = graph.File;
+            List<int> doomed = graph.Attached(node);
+            var handles = new List<string>();
+            var items = new List<DxfItem>();
+
+            foreach (int id in doomed)
+            {
+                string handle = graph.HandleOf(id);
+                handles.Add(handle);
+                items.Add(file.ObjectItem(handle));
+            }
+
+            if (items[0]?.Type == "BLOCKVISIBILITYPARAMETER")
+            {
+                foreach (DxfEntity entity in block)
+                {
+                    if (!entity.Visible)
+                    {
+                        entity.Visible = true;
+                    }
+                }
+            }
+
+            foreach (int id in doomed)
+            {
+                graph.Remove(id);
+            }
+
+            if (graph.Count == 0)
+            {
+                block.ExtensionDictionary.Remove("ACAD_ENHANCEDBLOCK");
+            }
+            else
+            {
+                graph.Write();
+                DxfBlockVisibility.Unlist(block, handles);
+            }
+
+            foreach (DxfItem item in items)
+            {
+                if (item != null && !item.IsRemoved)
+                {
+                    file.RemoveRecord(item);
+                }
+            }
+        }
+
         /// <summary>Refuses a parameter whose node is no longer in the block's evaluation graph.</summary>
         private static void Known(Graph graph, DxfBlockTableRecord block, int node, string name)
         {
@@ -1862,6 +1920,110 @@ namespace GeometryHelper.Dxf
 
             /// <summary>Whether a node of the id is in the graph.</summary>
             internal bool HasNode(int id) => _nodes.Exists(n => n[1] == id);
+
+            /// <summary>The ids of the nodes that go with a parameter or an action, itself first: for a parameter its grips, their location components and the actions it has; for an action itself alone.</summary>
+            /// <exception cref="NotSupportedException">Thrown when the parameter is read by a lookup action or a block properties table, which take it as an input.</exception>
+            internal List<int> Attached(int id)
+            {
+                int at = _nodes.FindIndex(n => n[1] == id);
+                var found = new List<int> { id };
+                string root = at < 0 ? null : File.ObjectItem(_handles[at])?.Type;
+
+                if (at < 0 || root == null || root.EndsWith("ACTION", StringComparison.Ordinal))
+                {
+                    return found;
+                }
+
+                foreach (int[] edge in _edges)
+                {
+                    int other =
+                        edge[2] == at ? edge[3]
+                        : edge[3] == at ? edge[2]
+                        : -1;
+
+                    if (other < 0 || found.Contains(_nodes[other][1]))
+                    {
+                        continue;
+                    }
+
+                    string type = File.ObjectItem(_handles[other])?.Type ?? string.Empty;
+
+                    if (type.EndsWith("GRIP", StringComparison.Ordinal) || type == "BLOCKGRIPLOCATIONCOMPONENT")
+                    {
+                        found.Add(_nodes[other][1]);
+                    }
+                    else if (type == "BLOCKLOOKUPACTION" && root != "BLOCKLOOKUPPARAMETER")
+                    {
+                        throw new NotSupportedException("The parameter is an input of a lookup table.");
+                    }
+                    else if (type == "BLOCKPROPERTIESTABLE" && root != "BLOCKPROPERTIESTABLE")
+                    {
+                        throw new NotSupportedException("The parameter is a column of a block properties table.");
+                    }
+                    else if (type.EndsWith("ACTION", StringComparison.Ordinal))
+                    {
+                        found.Add(_nodes[other][1]);
+                    }
+                }
+
+                return found;
+            }
+
+            /// <summary>The handle of the object of a node; null where there is none.</summary>
+            internal string HandleOf(int id)
+            {
+                int at = _nodes.FindIndex(n => n[1] == id);
+                return at < 0 ? null : _handles[at];
+            }
+
+            /// <summary>The number of nodes the graph holds.</summary>
+            internal int Count => _nodes.Count;
+
+            /// <summary>Takes a node and every edge that touches it out of the graph; the ids of the others stay, and the next id is not one given before.</summary>
+            internal void Remove(int id)
+            {
+                int at = _nodes.FindIndex(n => n[1] == id);
+
+                if (at < 0)
+                {
+                    return;
+                }
+
+                _nodes.RemoveAt(at);
+                _handles.RemoveAt(at);
+
+                if (at < _read)
+                {
+                    _read--;
+                }
+
+                var kept = new List<int[]>();
+                var moved = new int[_edges.Count];
+
+                for (int k = 0; k < _edges.Count; k++)
+                {
+                    int[] edge = _edges[k];
+
+                    if (edge[2] == at || edge[3] == at)
+                    {
+                        moved[k] = -1;
+                        continue;
+                    }
+
+                    moved[k] = kept.Count;
+                    kept.Add(edge);
+                }
+
+                foreach (int[] edge in kept)
+                {
+                    edge[2] -= edge[2] > at ? 1 : 0;
+                    edge[3] -= edge[3] > at ? 1 : 0;
+                    edge[4] = edge[4] >= 0 ? moved[edge[4]] : -1;
+                }
+
+                _edges.Clear();
+                _edges.AddRange(kept);
+            }
 
             /// <summary>Gives the graph's record the extended data of an application naming a node by its id (1071), as AutoCAD names its block properties table (AcadBPTGraphNodeId).</summary>
             internal void Name(string application, int id) =>

@@ -381,6 +381,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             IReadOnlyList<string> found = document.GetPickIndex(space).Pick(x, y, tolerance);
 
+            // In the Block Editor a parameter or an action is picked by its glyph where no object is under the pick.
+            if (found.Count == 0 && ReferenceEquals(document.BlockEditor?.Space, space))
+            {
+                CadAuthoringElement element = CadBlockAuthoring.ElementAt(
+                    document.BlockEditor,
+                    new GeoPoint2(x, y),
+                    tolerance
+                );
+
+                if (element != null)
+                {
+                    found = new[] { element.Handle };
+                }
+            }
+
             if (found.Count == 0)
             {
                 if (!toggle)
@@ -423,7 +438,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// opens on its whole sheet as AutoCAD opens one.
         /// </summary>
         public static DisplayBox Extents(CadDocument document, CadSpace space) =>
-            document.GetDisplay(space).Bounds.Union(space.PaperBounds);
+            // The parameters and actions of a block in the Block Editor are in view too, their labels with them.
+            CadBlockAuthoring.WithGlyphs(document, space, document.GetDisplay(space).Bounds.Union(space.PaperBounds));
 
         /// <summary>Selects by a box of the drawing with no command running: a window takes the entities wholly inside, a crossing those it touches.</summary>
         /// <returns>The handles the box took.</returns>
