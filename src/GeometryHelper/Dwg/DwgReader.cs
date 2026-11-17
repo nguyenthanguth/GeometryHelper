@@ -22,7 +22,7 @@ namespace GeometryHelper.Dwg
     /// the header variables, the classes, the nine tables, the blocks, the entities and the objects. Read are LINE, POINT,
     /// CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, the 2D and 3D POLYLINE with their vertices, the polygon and
     /// polyface mesh, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs, SOLID, TRACE, 3DFACE, SHAPE,
-    /// DIMENSION, VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT and ACAD_TABLE, and of the objects
+    /// DIMENSION, VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, MLINE, OLE2FRAME, IMAGE, WIPEOUT and ACAD_TABLE, and of the objects
     /// DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, TABLESTYLE, MATERIAL, VISUALSTYLE, the detail and
     /// section view styles, the FIELD and FIELDLIST of fields, the SORTENTSTABLE of the draw order, the CELLSTYLEMAP of a
     /// table style of AutoCAD 2000 to 2007, the data of a dynamic block of a linear parameter and a stretch action, the DATALINK of a table
@@ -31,10 +31,10 @@ namespace GeometryHelper.Dwg
     /// AutoCAD writes of it, and from AutoCAD 2013 from the data store of the file as the section ACDSDATA; each with its
     /// layer, linetype, colour, lineweight, owner, reactors, extension dictionary and extended data. A SHAPE is named
     /// from the file of shapes of its style where <see cref="DxfReadOptions.SupportFolders"/> holds it, and else gives
-    /// its number (group 70), as AutoCAD writes a shape whose file it does not find. The preview image of the file, where
+    /// its number (group 70), as AutoCAD writes a shape whose file it does not find. An OLE2FRAME comes as the DXF of AutoCAD writes it, its binary in the groups 310, so that it is read as a <see cref="DxfOle2Frame"/>. The preview image of the file, where
     /// it holds a picture, comes as the section THUMBNAILIMAGE of the DXF, last. The types not read yet (those AutoCAD
     /// 2021's own sample drawings hold are the other objects of dynamic blocks and of associative dimensions; and there are
-    /// the OLE frames and the proxies) are left out and counted by type in one Debug line of
+    /// the proxies) are left out and counted by type in one Debug line of
     /// <see cref="GeometryHelperLog"/>.
     /// </para>
     /// <para>

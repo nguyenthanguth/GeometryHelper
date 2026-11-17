@@ -267,6 +267,8 @@ namespace GeometryHelper.Dwg
                     return 0x2D;
                 case "TOLERANCE":
                     return 0x2E;
+                case "OLE2FRAME":
+                    return 0x4A;
                 case "MLINE":
                     return 0x2F;
                 case "HATCH":
@@ -1739,6 +1741,9 @@ namespace GeometryHelper.Dwg
                     return;
                 case 0x2F:
                     WriteMLine();
+                    return;
+                case 0x4A:
+                    WriteOle2Frame();
                     return;
                 case 0x4E:
                     WriteHatch();
