@@ -51,6 +51,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private ImageSource _preview;
         private string _previewOf;
 
+        // Above nought while the tab tells its controls their values. What a control answers then is not a choice of the user: a
+        // box whose list was made again chooses its item again, and that answer ran the edit again, which told the values again,
+        // until the stack ended. So a value set while the tab tells is let go.
+        private int _telling;
+
         /// <summary>Makes the tab over the settings of the next hatch, or over hatches selected.</summary>
         /// <param name="model">The window's view model.</param>
         /// <param name="handles">The handles of the hatches the Hatch Editor tab changes, in ordinal order; null for the Hatch Creation tab.</param>
@@ -642,7 +647,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _read = _hatch == null ? new CadHatchSettings() : CadCommands.HatchSettingsOf(_hatch);
             }
 
-            Raise(string.Empty);
+            RaiseAll();
             (RecreateCommand as DelegateCommand)?.RaiseCanExecuteChanged();
             (DisplayBoundaryCommand as DelegateCommand)?.RaiseCanExecuteChanged();
         }
@@ -655,12 +660,32 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void Keep(string key, double value)
         {
+            if (_telling > 0)
+            {
+                return;
+            }
+
             if (Session != null)
             {
                 Session.Remembered[key] = value;
             }
 
-            Raise(string.Empty);
+            RaiseAll();
+        }
+
+        /// <summary>Tells the controls that every value may have changed; what they answer to it is let go (see <see cref="_telling"/>).</summary>
+        private void RaiseAll()
+        {
+            _telling++;
+
+            try
+            {
+                Raise(string.Empty);
+            }
+            finally
+            {
+                _telling--;
+            }
         }
 
         /// <summary>Changes the settings: those of the next hatch in place, or the hatches selected as one undo step.</summary>
@@ -668,7 +693,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             CadDocument document = Document;
 
-            if (document == null)
+            if (document == null || _telling > 0)
             {
                 return;
             }
@@ -692,7 +717,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Changes the hatches selected as one undo step: what is not in the settings, as the layer and the transparency.</summary>
         private void Edit(Action<DxfHatch> change)
         {
-            if (Document == null || IsCreation)
+            if (Document == null || IsCreation || _telling > 0)
             {
                 return;
             }
@@ -729,7 +754,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             )
             {
                 Message = what + (positive ? " is a number above nought." : " is a number.");
-                Raise(string.Empty);
+                RaiseAll();
                 return;
             }
 
