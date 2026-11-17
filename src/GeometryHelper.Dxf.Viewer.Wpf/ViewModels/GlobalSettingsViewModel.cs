@@ -720,6 +720,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["ALIASEDIT"] = "Edit the command aliases",
             ["ADCENTER"] = "Show DesignCenter",
             ["ADCCLOSE"] = "Close DesignCenter",
+            ["TOOLPALETTES"] = "Show the tool palettes",
+            ["TOOLPALETTESCLOSE"] = "Close the tool palettes",
             ["APPLOAD"] = "Load and unload plugins in the Plugin manager",
             ["BACTION"] = "Add an action to a parameter in the Block Editor",
             ["CUI"] = "Customize the keys and aliases",

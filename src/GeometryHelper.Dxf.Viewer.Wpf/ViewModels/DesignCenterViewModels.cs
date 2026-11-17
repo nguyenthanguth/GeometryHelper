@@ -765,6 +765,49 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
+        /// The menu item that makes a tool palette of blocks, which the right-click menu offers after the actions of <see cref="ActionsFor"/>:
+        /// Create Tool Palette of Blocks for a drawing file or the Blocks of a drawing (a block tool for each block it has), and Create Tool
+        /// Palette for blocks chosen (a block tool for each, the drawing as its source). The palette is named for the drawing.
+        /// </summary>
+        /// <param name="items">The rows selected, of one kind.</param>
+        /// <returns>The action; null where the rows are not a drawing file, its Blocks or blocks of a drawing saved.</returns>
+        public DesignCenterAction ToolPaletteActionFor(IReadOnlyList<DesignCenterItemViewModel> items)
+        {
+            if (
+                items == null
+                || items.Count == 0
+                || items[0].Path == null
+                || items.Any(i => i.Kind != items[0].Kind || i.ContentKind != items[0].ContentKind)
+            )
+            {
+                return null;
+            }
+
+            DesignCenterItemViewModel first = items[0];
+            string path = first.Path;
+
+            if (
+                first.Kind == DesignCenterItemKind.Drawing
+                || (first.Kind == DesignCenterItemKind.Section && first.ContentKind == CadDesignCenterKind.Blocks)
+            )
+            {
+                return new DesignCenterAction("Create Tool Palette of Blocks", () =>
+                    _model.CreateToolPaletteOfBlocks(path)
+                );
+            }
+
+            if (first.Kind == DesignCenterItemKind.Item && first.ContentKind == CadDesignCenterKind.Blocks)
+            {
+                string[] names = items.Select(i => i.Name).ToArray();
+                return new DesignCenterAction("Create Tool Palette", () =>
+                    _model.CreateToolPaletteOfBlocks(path, names)
+                );
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Copies items into the drawing shown: layers, linetypes, styles, block definitions and layouts, those it has by the name
         /// kept as they are; one undo step. The result is said in <see cref="Message"/>.
         /// </summary>

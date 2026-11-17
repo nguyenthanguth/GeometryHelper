@@ -506,8 +506,8 @@ in its console).
 The Manage tab, between View and Output, has AutoCAD 2021's panels for what the presenter has. **Action Recorder**
 (Record, Play, Manage Action Macros) and **CAD Standards** (Configure and Check) are parked: their buttons
 are greyed and the tooltip says the feature is not built yet. **Customization** has User Interface (CUI) and Edit Aliases
-(ALIASEDIT), which both open Global settings on Shortcuts, where the aliases and the keys are kept, and Tool Palettes,
-greyed. **Applications** has Load Application (APPLOAD), which shows the Plugin manager and is greyed where the window has
+(ALIASEDIT), which both open Global settings on Shortcuts, where the aliases and the keys are kept, and Tool Palettes
+(TOOLPALETTES, see [Tool Palettes](#tool-palettes)). **Applications** has Load Application (APPLOAD), which shows the Plugin manager and is greyed where the window has
 none (`ManageRibbonViewModel.CanLoadApplication`), and Run Script (SCRIPT). **Cleanup** has Purge (PURGE), Overkill
 (OVERKILL), Audit (AUDIT) and Recover (RECOVER). CUI, ALIASEDIT and APPLOAD are commands of the window, not of
 `CadCommandRegistry.CreateDefault()`: APPLOAD says `No plugin manager is in use: applications cannot be loaded.` where the
@@ -546,6 +546,92 @@ files on disk, so a drawing open with unsaved changes is dragged as it was saved
 open state but cannot be dragged. The same is done from code with
 [`CadDesignCenterDrawing`](xref:GeometryHelper.Dxf.Viewer.CadDesignCenterDrawing) (`Open`, `Of`, `Items`) and
 [`CadDesignCenter.Add`](xref:GeometryHelper.Dxf.Viewer.CadDesignCenter.Add*).
+
+The right-click menu of a drawing file, or of the **Blocks** row of a drawing, adds **Create Tool Palette of Blocks**, and that
+of blocks adds **Create Tool Palette**: a tool palette named for the drawing, with a block tool for each block (every block
+of the drawing, or those selected) and the drawing as their source, as described under [Tool Palettes](#tool-palettes).
+
+### Tool Palettes
+
+TOOLPALETTES (alias TP), the Tool Palettes button of the Manage tab, or a key given TOOLPALETTES in Global settings ›
+Shortcuts shows AutoCAD 2021's tool palettes as a window beside the drawing (340 by 640 at the window's right edge, which
+can be moved and resized), left open while the drawings change; TOOLPALETTESCLOSE closes it. Ctrl+3 is the ribbon's in the
+presenter, so no key is given TOOLPALETTES at first; give it one (Ctrl+Alt+3, or Ctrl+3 itself) and the key shows the palettes
+when they are closed and closes them when they are open. The palettes are a floating window: AutoCAD's docking, anchoring,
+auto-hide and transparency are not offered, and neither is its CUSTOMIZE dialog for palette groups.
+
+The window has a tab for each palette along its right edge, the name of the one shown over the list, and a **⋯** button that
+opens the palette menu. A palette lists **tools**, each a block, a hatch or a command, and the **text** lines and
+**separators** that part them. A click runs a tool (a click with Ctrl or Shift only selects it; Enter runs the one selected):
+
+- A **command tool** runs a command line: a command's name or alias, then the answers to its first prompts, parted by
+  spaces or semicolons (`CIRCLE 0,0 50` draws the circle at once; a leading `^C^C` and an underscore, as a menu macro of
+  AutoCAD writes them, are left off). It is the command typed, so its prompts are the command's own.
+- A **hatch tool** starts HATCH with the tool's type (pattern, lines of the user's, solid or gradient), pattern, angle, scale,
+  spacing and association. HATCH asks the point inside the area as it always does, and the drawing's own hatch settings are put
+  back when the command ends.
+- A **block tool** starts INSERT with the block, the drawing it comes from, and the scale and rotation of the tool, asking
+  the insertion point on the command line (and the scale and rotation where the tool has *Prompt for scale* or *Prompt for
+  rotation*), and explodes it where *Explode* is on. A block the drawing has already is placed as it is, the question of
+  redefining it never asked; otherwise the block is brought in from the tool's drawing, and a drawing that cannot be found is
+  said on the command line.
+
+Each of the three can set the **overrides** of AutoCAD's Tool Properties: a layer, a colour (ByLayer, ByBlock or 1 to 255), a
+linetype and a lineweight, each **(Current)** to use the drawing's own. They are the current layer, colour, linetype and
+lineweight while the tool's command runs, and the drawing's are put back when it ends, however it ends (Esc included). A layer
+the drawing lacks is made, in the undo step of the command; a layer that is frozen, a colour that is not an index or a
+linetype that is not loaded is said on the command line and the current one used. A block or hatch tool **dragged** out of the
+palette onto the canvas places the block at the drop point (scale and rotation as the tool has them) or hatches the area
+there; a command tool is not dropped, as in AutoCAD.
+
+**Making tools.** Select objects of the drawing and drag one of them out of the canvas onto the palette (a press on a selected
+object, dragged, with the palettes open and no command running; it is the box drag it always was otherwise). A block reference
+becomes a block tool (the block, the drawing's file as its source, the reference's scale), a hatch a hatch tool (its pattern
+or fill, angle and scale), and a line, circle, arc, polyline, ellipse, spline, point, text, multiline text, multileader or
+dimension a command tool for the command that draws it (`LINE`, `CIRCLE`, `DIMLINEAR` and the like); each takes the object's
+layer, colour, linetype and lineweight as its overrides, a true colour being left unset. An object no tool draws is left out
+and said on the command line (`2 tools added to Draw. 1 not drawn by any tool.`). Blocks dragged from DesignCenter onto the
+palette become block tools of their drawing; a drawing file dropped is one tool that inserts the whole drawing as a block.
+
+**The menus.** Right-click a tool for **Cut**, **Copy**, **Paste**, **Delete**, **Rename…** and **Properties…**: the Tool
+Properties dialog, with the name and description, the command line, or the block with its drawing, scale and rotation, or the
+hatch's type, pattern, angle and scale, and the overrides (a line of text has only its words). Delete, Ctrl+X, Ctrl+C and
+Ctrl+V work on the tools selected, F2 renames one. Right-click the palette, a tab or the **⋯** button for **New Palette…**,
+**Rename Palette…**, **Delete Palette** (which asks first), **Add Text…**, **Add Separator**, **Paste**, **View Options…**
+(icon only, icon with text or list view; the icon size, 16 to 96 pixels; for the current palette or for all of them),
+**Import Palette…**, **Export Palette…** and **Export All Palettes…**. A tool dragged within the palette is moved before the
+one it is dropped on.
+
+**The starting palettes.** With no file of its own the window starts with six palettes the presenter makes, from its own icons
+and patterns: **Draw** (Line, Polyline, Circle, Arc, Rectangle, Ellipse, Spline, Point), **Modify** (Move, Copy, Rotate,
+Scale, Mirror, Offset, Trim, Extend, Fillet, Chamfer, Stretch, Explode, Erase), **Annotation** (Single-line and Multiline Text,
+Table, the dimensions Linear, Aligned, Angular, Radius, Diameter, Baseline and Continue, and Multileader), **Hatches** (ANSI31
+to ANSI38, a solid fill, a linear gradient and ten materials), **Architectural Hatches** (AR-B816, AR-BRSTD, AR-CONC,
+AR-HBONE, AR-PARQ1, AR-RROOF, AR-RSHKE and AR-SAND, at their size in millimetres) and **ISO Hatches** (ISO02W100 to
+ISO15W100). No file, picture or icon of AutoCAD's is used, and its `.atc` files are not read.
+
+**The file.** The palettes are kept in `ToolPalettes.json` beside the settings (`%AppData%\GeometryHelper\Drawing\`, the folder
+of `MainViewModel.SettingsPath`), written after every change: UTF-8 JSON, two spaces of indent, LF. A file that is missing or does
+not read gives the starter palettes, said once in the log; a value that is not valid falls back to its default with a Warn
+naming it, and a tool of a kind this version does not know is left out. **Export Palette…** writes the same format (a `.ghtp`
+file, one palette or all) and **Import Palette…** reads it, adding the palettes after the last with their names made unique
+(`Draw (2)`, `Draw (3)`).
+
+| Member | Meaning |
+|---|---|
+| `format`, `version`, `active` | `"GeometryHelper.ToolPalettes"`, `1`, the place of the palette shown, from 0 |
+| `palettes[]` | `name`, `view` (`icons`, `iconsAndText` or `list`), `iconSize` (16 to 96), `tools[]` |
+| every tool | `kind` (`command`, `block`, `hatch`, `text` or `separator`), `name` (the words of a text), `description` |
+| command | `command` (the command line), `icon` (a name of the presenter's icons: `Line`, `Circle`, `Dimension` and the others of the ribbon) |
+| block | `file` (the drawing; none for the drawing open), `block`, `scale`, `angle` (degrees), `promptForScale`, `promptForRotation`, `explode` |
+| hatch | `hatchType` (`pattern`, `userDefined`, `solid` or `gradient`), `pattern`, `angle` (degrees), `scale`, `spacing`, `gradient` (`GR_LINEAR` and the others), `associative` |
+| overrides of a command, block or hatch | `layer`, `color` (`ByLayer`, `ByBlock`, `1` to `255`), `linetype`, `lineWeight` (hundredths of a millimetre; -1 ByLayer, -2 ByBlock, -3 default); a member left out is the drawing's current one |
+
+From code, [`CadToolPalettes`](xref:GeometryHelper.Dxf.Viewer.CadToolPalettes) (`CreateStarter`, `Load`, `Save`, `Add`,
+`Rename`, `Remove`, `Move`, `Copy`, `Cut`, `Paste`, `Import`, `Export`, `ToJson`, `TryParse`),
+[`CadToolPalette`](xref:GeometryHelper.Dxf.Viewer.CadToolPalette), [`CadTool`](xref:GeometryHelper.Dxf.Viewer.CadTool)
+(`ForCommand`, `ForBlock`, `ForHatch`, `ForText`, `ForSeparator`, `FromObject`) and
+[`CadCommandSession.StartTool`](xref:GeometryHelper.Dxf.Viewer.CadCommandSession.StartTool*) do the same without the window.
 
 ### The start screen
 

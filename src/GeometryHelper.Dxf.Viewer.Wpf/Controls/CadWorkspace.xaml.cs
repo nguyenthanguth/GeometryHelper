@@ -122,6 +122,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             // Text edited in place: a double click on a text edits it; the editor follows the view; a click outside it ends it.
             CanvasView.ObjectDoubleClicked += (s, e) => _model?.EditTextAt(e.Handle);
             CanvasView.HyperlinkClicked += (s, e) => _model?.FollowHyperlink(e.Handle);
+
+            // Objects selected, dragged out of the canvas while the tool palettes are open, can be dropped on a palette as tools.
+            CanvasView.ObjectDragWanted = () => _model != null && _model.IsToolPalettesShown;
+            CanvasView.ObjectsDragged += (s, e) =>
+            {
+                var data = new DataObject();
+                data.SetData(ObjectDrag.Format, ObjectDrag.Write(e.Handles));
+                DragDrop.DoDragDrop(CanvasView, data, DragDropEffects.Copy);
+            };
             CanvasView.HyperlinkTooltip = handle => _model?.HyperlinkTooltip(handle);
 
             // Table cells: a click in a cell selects it, a double click opens it for typing, and the cells selected are drawn.
@@ -554,7 +563,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             base.OnDragOver(e);
             e.Effects =
-                e.Data.GetDataPresent(DataFormats.FileDrop) || e.Data.GetDataPresent(DesignCenterDrag.Format)
+                e.Data.GetDataPresent(DataFormats.FileDrop)
+                || e.Data.GetDataPresent(DesignCenterDrag.Format)
+                || e.Data.GetDataPresent(ToolPaletteDrag.Format)
                     ? DragDropEffects.Copy
                     : DragDropEffects.None;
             e.Handled = true;
@@ -569,6 +580,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (_model != null && e.Data.GetData(DesignCenterDrag.Format) is string dragged)
             {
                 _model.DropFromDesignCenter(dragged, CanvasView.DrawingPointAt(e.GetPosition(CanvasView)));
+                e.Handled = true;
+                return;
+            }
+
+            // A block or hatch tool dragged out of a tool palette is placed, or fills the area, where it is dropped.
+            if (_model != null && e.Data.GetData(ToolPaletteDrag.Format) is string tool)
+            {
+                _model.DropToolPaletteTool(tool, CanvasView.DrawingPointAt(e.GetPosition(CanvasView)));
                 e.Handled = true;
                 return;
             }
@@ -751,6 +770,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     DesignCenterWindow.ShowPalette(Window.GetWindow(this), shown, palette);
                 _model.CloseDesignCenter = DesignCenterWindow.ClosePalette;
                 _model.ShowPdfLayers = dialog => PdfLayersWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowToolPalettes = palettes =>
+                    ToolPalettesWindow.ShowPalette(Window.GetWindow(this), shown, palettes);
+                _model.CloseToolPalettes = ToolPalettesWindow.ClosePalette;
                 _model.ShowXrefBind = dialog => XrefBindWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowXrefBindRefused = box => XrefBindRefusedWindow.Show(Window.GetWindow(this), box);
                 _model.WatchReferenceFiles = true;

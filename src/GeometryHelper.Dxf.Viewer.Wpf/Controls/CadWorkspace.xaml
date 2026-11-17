@@ -2876,9 +2876,10 @@
                                 Style="{StaticResource BigButton}"
                                 Tag="{StaticResource GhIconToolPalette}"
                                 Content="Tool Palettes"
-                                IsEnabled="False"
-                                ToolTipService.ShowOnDisabled="True"
-                                ToolTip="Tool Palettes (TOOLPALETTES): tool palettes are not built yet"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Command="{Binding Model.StartCommandCommand}"
+                                CommandParameter="TOOLPALETTES"
+                                ToolTip="Tool Palettes (TOOLPALETTES): the palettes of tools to draw, hatch and insert blocks with"
                             />
                             <WrapPanel Style="{StaticResource SmallColumn}">
                                 <Button

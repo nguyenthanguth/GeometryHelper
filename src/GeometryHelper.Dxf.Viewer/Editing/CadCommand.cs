@@ -315,6 +315,7 @@ namespace GeometryHelper.Dxf.Viewer
                     ["ADC"] = "ADCENTER",
                     ["DC"] = "ADCENTER",
                     ["DCENTER"] = "ADCENTER",
+                    ["TP"] = "TOOLPALETTES",
                     ["VIEWPORTS"] = "VPORTS",
                     ["FI"] = "FILTER",
                     ["QC"] = "QUICKCALC",

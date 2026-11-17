@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
@@ -165,7 +166,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The right-click menu: what the rows selected can be given, built as it opens; none offered, it does not open.</summary>
         private void OnItemMenuOpening(object sender, ContextMenuEventArgs e)
         {
-            var actions = Model.ActionsFor(ItemList.SelectedItems.Cast<DesignCenterItemViewModel>().ToList());
+            List<DesignCenterItemViewModel> chosen = ItemList.SelectedItems.Cast<DesignCenterItemViewModel>().ToList();
+            var actions = new List<DesignCenterAction>(Model.ActionsFor(chosen));
+            int own = actions.Count;
+
+            // Create Tool Palette follows the others: a palette of block tools of the drawing.
+            DesignCenterAction palette = Model.ToolPaletteActionFor(chosen);
+
+            if (palette != null)
+            {
+                actions.Add(palette);
+            }
 
             if (actions.Count == 0)
             {
@@ -175,9 +186,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             var menu = new ContextMenu { Style = (Style)FindResource("GhContextMenu") };
 
-            foreach (DesignCenterAction action in actions)
+            for (int i = 0; i < actions.Count; i++)
             {
-                DesignCenterAction run = action;
+                DesignCenterAction run = actions[i];
+
+                if (i == own && own > 0)
+                {
+                    menu.Items.Add(new Separator());
+                }
+
                 var item = new MenuItem { Header = run.Text, Style = (Style)FindResource("GhMenuItem") };
                 item.Click += (s, a) => run.Run();
                 menu.Items.Add(item);
