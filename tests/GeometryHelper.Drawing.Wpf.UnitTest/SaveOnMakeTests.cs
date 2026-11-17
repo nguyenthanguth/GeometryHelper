@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using GeometryHelper.Cad;
 using GeometryHelper.Dxf;
-using GeometryHelper.Dxf.Viewer;
 using GeometryHelper.Geometry;
 using Xunit;
 

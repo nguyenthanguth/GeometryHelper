@@ -3,12 +3,12 @@
 How a drawing is changed in the presenter: every change is one edit and one undo step, a command asks its prompts on a
 command line with AutoCAD's names and aliases, a click can snap to a point of the drawing, a grip drags a point, Properties
 sets a value in place, and a layer is switched, frozen or locked. All of it works on a
-[`CadDocument`](xref:GeometryHelper.Dxf.Viewer.CadDocument) with no window, and every example below was run on the plate of
+[`CadDocument`](xref:GeometryHelper.Cad.CadDocument) with no window, and every example below was run on the plate of
 [Opening, drawing and picking](display.md): four lines, a circle and a TEXT.
 
 ## One edit, one undo step
 
-Nothing changes the drawing but [`CadDocument.ApplyEdit`](xref:GeometryHelper.Dxf.Viewer.CadDocument). It is given a name for
+Nothing changes the drawing but [`CadDocument.ApplyEdit`](xref:GeometryHelper.Cad.CadDocument). It is given a name for
 the step, the changes it plans to existing entities, and the action that writes them:
 
 ```csharp
@@ -21,13 +21,13 @@ CadEditResult result = document.ApplyEdit("ERASE",
 
 | Step | What happens |
 |---|---|
-| the gate | the document's [`ICadEditGate`](xref:GeometryHelper.Dxf.Viewer.ICadEditGate) is asked about each planned change of an existing entity; one refusal refuses the whole edit, with nothing written |
+| the gate | the document's [`ICadEditGate`](xref:GeometryHelper.Cad.ICadEditGate) is asked about each planned change of an existing entity; one refusal refuses the whole edit, with nothing written |
 | the owners | a change to an entity whose owner takes its own edits is handed to the owner first (see [Owners](owners.md)) |
 | the action | it writes the change through the entity's own members (`TransformBy`, its setters, `Erase`) and adds entities with `scope.Append(space, entity)`; if it throws, the drawing is read back as it stood, and the result says `Failed` |
 | the record | the step is kept for undo, the display lists and pick indexes of the spaces it touched are dropped, and `Changed` is raised |
 
-A [`CadEditResult`](xref:GeometryHelper.Dxf.Viewer.CadEditResult) says `Succeeded`, `Refused` (before anything was written) or
-neither (failed), with the `Message` the command line shows and the [`CadEditRecord`](xref:GeometryHelper.Dxf.Viewer.CadEditRecord)s
+A [`CadEditResult`](xref:GeometryHelper.Cad.CadEditResult) says `Succeeded`, `Refused` (before anything was written) or
+neither (failed), with the `Message` the command line shows and the [`CadEditRecord`](xref:GeometryHelper.Cad.CadEditRecord)s
 of what was done. A record has a kind (`Added`, `Erased`, `Transformed`, `PropertyChanged`, `Reshaped`, `TableChanged`,
 `SettingChanged`), a handle, and for a property its label and its old and new values as text.
 
@@ -73,14 +73,14 @@ after them, with finding an entity, takes about 1 ms where it read the drawing t
 After an undo or a redo `Database` is a [`DxfDatabase`](xref:GeometryHelper.Dxf.DxfDatabase) read from those bytes: a new
 one, or the one an undo or a redo left where it goes back to it unchanged. The circle that `FindEntity(handle)` gave before
 the undo is not the object it gives after, so keep handles, not entities, across a step. The
-[`CadSpace`](xref:GeometryHelper.Dxf.Viewer.CadSpace) objects stay and are pointed at the new drawing.
+[`CadSpace`](xref:GeometryHelper.Cad.CadSpace) objects stay and are pointed at the new drawing.
 
 `Save()` writes to the file the drawing was opened from, `SaveAs(path)` to another, which it is then known by. A drawing
 opened from a stream or given in memory has no file: `HasFile` is false and `Save()` throws until `SaveAs` gives it one.
 
 ## The command line
 
-A [`CadCommandSession`](xref:GeometryHelper.Dxf.Viewer.CadCommandSession) is the command line of one document. It knows no
+A [`CadCommandSession`](xref:GeometryHelper.Cad.CadCommandSession) is the command line of one document. It knows no
 window: the canvas and the line the user types on call `Feed(point)`, `Feed(text)`, `FeedSelection(handles)`, `Enter()` and
 `Escape()`, and a test calls them the same way.
 
@@ -154,7 +154,7 @@ where QTEXTMODE is 1.
 The line counts as AutoCAD's: `1 found`, `2 found (1 duplicate), 3 total`, `1 found, 1 removed, 2 total`. Anything else is
 `*Invalid selection*` with `Expects a point or` and the options. Window, Crossing, BOX, Fence, WPolygon and CPolygon draw
 their band on the canvas as their points are given (`CadPrompt.Band`), and
-[`PickIndex`](xref:GeometryHelper.Dxf.Viewer.PickIndex) answers them: `Fence(points)`, `WindowPolygon(ring)` and
+[`PickIndex`](xref:GeometryHelper.Cad.PickIndex) answers them: `Fence(points)`, `WindowPolygon(ring)` and
 `CrossingPolygon(ring)` over 100 000 lines each take under 70 milliseconds.
 
 The commands that ask the corners themselves draw the same band. STRETCH's `Specify opposite corner:` draws the box of
@@ -275,7 +275,7 @@ command is typed; the console does not clear it between lines as long as the lin
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 383 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Cad.CadCommandRegistry) makes the registry of 383 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -616,7 +616,7 @@ every object shown, or Existing set. New closes the dialog, asks `Select objects
 chosen, the areas then found among those objects alone (a point inside a square of 60 within one of 100, the outer square
 alone picked, makes the 100 by 100 polyline). Pick Points keeps the settings, shared with -BOUNDARY, and asks `Pick internal
 point:` until Enter; Cancel ends the command with nothing kept. The request is a public
-[`CadBoundaryRequest`](xref:GeometryHelper.Dxf.Viewer.CadBoundaryRequest); with no window BOUNDARY asks the points at once.
+[`CadBoundaryRequest`](xref:GeometryHelper.Cad.CadBoundaryRequest); with no window BOUNDARY asks the points at once.
 An area with an ellipse or a spline in it, as a side of the area or as an island, makes no polyline either: `Spline or
 ellipse detected. Cannot create boundary.`, as AutoCAD refuses it (HATCH takes such an area). An ellipse or spline elsewhere
 in the drawing does not stop it. With the object type Region, -BOUNDARY and BOUNDARY make a region of each loop instead
@@ -937,12 +937,12 @@ are written as a DWG of AutoCAD 2018, .dxf as a DXF after the questions DXFOUT a
 without asking, as AutoCAD's console does. Model says `May not save Model tab.`, a name that is no layout `Layout "x" does not exist.`.
 With FILEDIA 1 in the window both forms show AutoCAD 2021's dialogs instead of the file questions. Template shows Select
 Template From File (an Open dialog of Drawing Template (*.dwt), Drawing (*.dwg) and DXF (*.dxf)), then Insert Layout(s)
-([`CadInsertLayoutRequest`](xref:GeometryHelper.Dxf.Viewer.CadInsertLayoutRequest)): the file's layouts in the order of its
+([`CadInsertLayoutRequest`](xref:GeometryHelper.Cad.CadInsertLayoutRequest)): the file's layouts in the order of its
 tabs, the first picked, Ctrl or Shift picking several; OK brings in those picked as the typed names do, one undo step, and
 Cancel in either dialog brings nothing in. A template of Layout1, Plan, Sect and Cover with Plan and Cover picked adds Plan
 and Cover after the drawing's last tab. SAveas shows Create Drawing File (a Save dialog offering `Layout1.dwt`, of
 AutoCAD Drawing Template (*.dwt), the AutoCAD 2018 DWG and the DXF versions; a DXF type gives the version, no question asked),
-and for a .dwt Template Options ([`CadTemplateOptionsRequest`](xref:GeometryHelper.Dxf.Viewer.CadTemplateOptionsRequest)):
+and for a .dwt Template Options ([`CadTemplateOptionsRequest`](xref:GeometryHelper.Cad.CadTemplateOptionsRequest)):
 the description, written into the DWG's template section where AutoCAD keeps it, the measurement, English or Metric
 (MEASUREMENT 0 or 1, the drawing's to start), and New Layer Notification greyed, since the presenter keeps no reconciled
 layers. Cancel in Template Options writes nothing. With FILEDIA 0, or no window, the command line asks as the console does.
@@ -996,7 +996,7 @@ two and toggled again leave the two as `*Multiple`); Delete with `*` deletes `*M
 configuration name.`; Join asks `Select dominant viewport <current viewport>:` and `Select viewport to
 join:`, a viewport picked by a click in it, and refuses two that make no rectangle (`The selected viewports do not form a
 rectangle.`). Each change is one undo step. In a layout VPORTS and -VPORTS ask MVIEW's prompts, as AutoCAD's do. The tiles are
-[`CadDocument.TiledViewports`](xref:GeometryHelper.Dxf.Viewer.CadTiledViewports), read from the `*Active` records of the
+[`CadDocument.TiledViewports`](xref:GeometryHelper.Cad.CadTiledViewports), read from the `*Active` records of the
 drawing's VPORT table and written back when it is saved: the current viewport into the first `*Active` record, which keeps
 the snap and grid, the others and each configuration as copies of it with their own corners (10, 20, 11, 21) and views (12,
 22, 40, 41). A drawing never split is saved with its VPORT table as it was. The window lays the canvas over the current
@@ -1038,8 +1038,8 @@ AutoCAD's own file, `filter.nfl`, which FILTER reads each time it starts: in the
 `Filter.nfl  --  Do not edit this file.` then, for each list, `:ai_lisp|NAME` with its tests as the lists of an AutoLISP `ssget`
 filter (`(8 . "WALLS")`, `(-4 . ">=")` and `(40 . 15.0)`, `(-4 . "<NOT")`) and `:ai_str|NAME` with the lines as the dialog
 lists them; a file that does not read says `Syntax error in Named Filter List file.  Delete filter.nfl.`
-([`CadSelectionFilter.ToNfl`](xref:GeometryHelper.Dxf.Viewer.CadSelectionFilter.ToNfl),
-[`LoadNfl`](xref:GeometryHelper.Dxf.Viewer.CadSelectionFilter.LoadNfl*)). Apply writes `Applying filter to selection.`, asks
+([`CadSelectionFilter.ToNfl`](xref:GeometryHelper.Cad.CadSelectionFilter.ToNfl),
+[`LoadNfl`](xref:GeometryHelper.Cad.CadSelectionFilter.LoadNfl*)). Apply writes `Applying filter to selection.`, asks
 `Select objects:`, says how many `were filtered out`, and keeps what passed as the Previous set, so the next command takes it
 with P, then `Exiting filtered selection.`. A test on a property tests the objects that have it: `Arc Radius` an arc, `Text
 Height` a text or an MTEXT; AutoCAD tests any object that has the same group code, so combine a property with its Object
@@ -1080,7 +1080,7 @@ operands of the same type`, `Division by 0`) and asks again. Typed as `'CAL` at 
 angle, CAL runs inside the command: its prompts are written after `>>`, so `>>>> Expression:`, nothing is written for the
 value, and once `Resuming LINE command.` is written the value is typed at the prompt that was waiting, the point as
 `11,21,0` or the distance as `7`; Esc ends both. The calculator is
-[`CadCalculator`](xref:GeometryHelper.Dxf.Viewer.CadCalculator). `getvar(name)` reads a system variable of the drawing, the name as it
+[`CadCalculator`](xref:GeometryHelper.Cad.CadCalculator). `getvar(name)` reads a system variable of the drawing, the name as it
 stands, not worked out: `getvar(textsize)` 3.5, an angle in radians (`getvar(snapang)` 0.523598776 for 30 degrees), a switch 0 or 1,
 a point as `x,y,z` (a point of two coordinates with 0 for the third); `getvar(nosuchvar)` says `Unknown AutoCAD system variable
 NOSUCHVAR`, a text variable `Only real, integer or point AutoCAD system variables accepted`, and anything but a name
@@ -1909,7 +1909,7 @@ what is left, bulging the way they did, the data of the cloud kept. A cloud too 
 with few grips have no grip menu. Left as it is: AutoCAD's own rule for which polyline is a cloud (it ignores the data, and takes
 a polyline whose arcs are 110 degrees) and the ellipse it fits to some clouds, whose axes it finds from the vertices only roughly.
 
-TABLE (TB) shows the Insert Table dialog ([`CadInsertTableRequest`](xref:GeometryHelper.Dxf.Viewer.CadInsertTableRequest)),
+TABLE (TB) shows the Insert Table dialog ([`CadInsertTableRequest`](xref:GeometryHelper.Cad.CadInsertTableRequest)),
 asks `Specify insertion point:` (or two corners for Specify window) and opens the title for typing in the MTEXT editor:
 Tab goes to the next cell, Shift+Tab to the one before, Enter to the one below and Esc ends. Tab in the last cell adds a
 row under it, as AutoCAD's table editor does, of the cell styles and the height of the last row and empty, and goes to its
@@ -1917,7 +1917,7 @@ first cell; the row is an undo step of its own. While a cell is typed in, its ro
 shrinks back as they are taken out, never below the height it stood at, and the rows under it move down with it, as
 AutoCAD's in-place editor shows them: in AutoCAD's Standard style a data cell typed with two lines makes its row 15.07
 high instead of 9, with three lines 22.57, and the editor stands where the cell now is. The table is drawn anew from a
-preview of the words ([`CadTableLive`](xref:GeometryHelper.Dxf.Viewer.CadTableLive)) only while a row differs from what it
+preview of the words ([`CadTableLive`](xref:GeometryHelper.Cad.CadTableLive)) only while a row differs from what it
 stood at, and costs one cell's layout a key (1.4 ms in a table of 50 rows by 20 columns, against 89 ms to lay the whole
 table out); nothing is written to the drawing until the editor closes, which is one undo step with the rows the preview
 showed, and Esc leaves the table as it was. Five columns 63.5 wide and
@@ -1927,8 +1927,8 @@ the Data, each look a cell does not give of its own; where the table or its styl
 the header, and where the header is left out too, every row is data, as AutoCAD 2021 reads such a table.
 -TABLE asks the columns, the rows of data and the point (Style, Width, Height) on the command line, and TABLEDIT a cell
 to type in; a double click or F2 on a cell runs it. TABLESTYLE (TS) shows the Table Style dialog
-([`CadTableStyleEditor`](xref:GeometryHelper.Dxf.Viewer.CadTableStyleEditor)); a style changed draws its tables anew. The Format of a cell style in the Modify Table Style dialog opens the Table Cell Format dialog and keeps the kind of data, its unit and the format string in the style (`DxfTableStyle.DataType`, `SetDataType`, `Format` and `SetFormat`, groups 90, 91 and 1 of each cell style, written by a file of AutoCAD 2007 or later); the starting table and the type of a cell style stay grey. A
-click in a cell selects it with the Table Cell tab ([`CadTableEditor`](xref:GeometryHelper.Dxf.Viewer.CadTableEditor)):
+([`CadTableStyleEditor`](xref:GeometryHelper.Cad.CadTableStyleEditor)); a style changed draws its tables anew. The Format of a cell style in the Modify Table Style dialog opens the Table Cell Format dialog and keeps the kind of data, its unit and the format string in the style (`DxfTableStyle.DataType`, `SetDataType`, `Format` and `SetFormat`, groups 90, 91 and 1 of each cell style, written by a file of AutoCAD 2007 or later); the starting table and the type of a cell style stay grey. A
+click in a cell selects it with the Table Cell tab ([`CadTableEditor`](xref:GeometryHelper.Cad.CadTableEditor)):
 rows and columns put in and taken out, cells merged and unmerged, their alignment, fill and borders, the arrows moving
 the cell and Delete emptying it, each one undo step that draws the table anew in its block. A number typed in a cell is
 kept as a number, as AutoCAD 2021 reads a text it parses: 1 is the whole number 1 and 007 the whole number 7, 1.5 a
@@ -1978,7 +1978,7 @@ whose block is not fitted to the cell asks the box its extents fill at the cell'
 the words of a merged block are; one wider than its column widens the column, 100 wide making a column of 30 103, the columns
 laid out before the rows; turned 45 degrees it asks the 38.36 its turned box and the margins make in both. A block fitted to its
 cell asks nothing and is drawn at the scale that fits its box, turned, in the cell less its margins. The least a column is
-dragged to or set to ([`CadTableEditor.MinimumColumnWidth`](xref:GeometryHelper.Dxf.Viewer.CadTableEditor.MinimumColumnWidth(GeometryHelper.Dxf.DxfTable,System.Int32)))
+dragged to or set to ([`CadTableEditor.MinimumColumnWidth`](xref:GeometryHelper.Cad.CadTableEditor.MinimumColumnWidth(GeometryHelper.Dxf.DxfTable,System.Int32)))
 is the 9 of two margins and the title's text of 6, or where a block cell not fitted to its cell starts in the column, the
 width its block asks and the margins if that is more: a block 30 wide makes 33, 63 at scale 2 and 31.28 turned 45 degrees,
 and a block across two columns asks the one it starts in alone. A block cell in the first column still stands its row at the one line, 4/3 of
@@ -2075,7 +2075,7 @@ touching the title takes every column. The cells carry a grip at the middle of e
 their bottom right corner. An edge grip moves that line of the table: the column left of it (or the row above it)
 changes alone and the table grows or shrinks with it; no column goes narrower than AutoCAD's minimum, its two margins and
 its tallest text (9 in Standard), nor a row lower than its text needs. The autofill diamond dragged down, up, right or
-left fills the cells passed over from the selection ([`CadTableDrag`](xref:GeometryHelper.Dxf.Viewer.CadTableDrag)),
+left fills the cells passed over from the selection ([`CadTableDrag`](xref:GeometryHelper.Cad.CadTableDrag)),
 showing their coming values and the last one in a tip: a 1 dragged three cells down gives 2, 3 and 4, and dragged up
 counts back, as AutoCAD 2021 fills them; a right click while dragging chooses Fill Series, Fill Series Without
 Formatting, Copy Cells, Copy Cells Without Formatting or Fill Formatting Only. A whole table selected has its move grip at
@@ -2097,7 +2097,7 @@ had been clicked: the line follows the cursor, and a click, Enter or a size type
 **Table cells: Cut, Copy, Paste, Match Cell, Locking, Data Format, Cell Styles, Borders, Block, Field and Formula.** The Table
 Cell tab and the right-click menu of cells do the rest of what AutoCAD 2021's do to a cell, each one undo step.
 Ctrl+C and Ctrl+X on cells selected take them as a snapshot
-([`CadTableCellClip`](xref:GeometryHelper.Dxf.Viewer.CadTableCellClip), held by the window for any of its drawings): each cell
+([`CadTableCellClip`](xref:GeometryHelper.Cad.CadTableCellClip), held by the window for any of its drawings): each cell
 with its words as they were typed (or its number with its kind, unit and format, its block with its scale, turn and attribute
 values, its field or formula) and its own look (alignment, text height, style and colour, fill, the four borders), and the
 blocks of merged cells within them. Cut then takes the contents out as Delete does and keeps the look. Ctrl+V gives the
@@ -2138,7 +2138,7 @@ division by nought, shows `#####`. Sum, Average and Count take ranges and cells 
 in a sum and is left out of an average and a count.
 
 MLEADERSTYLE (MLS), and the last item of the multileader style box of the Annotate tab, show the Multileader Style
-Manager ([`CadMLeaderStyleEditor`](xref:GeometryHelper.Dxf.Viewer.CadMLeaderStyleEditor)): Set Current, New…, Modify…
+Manager ([`CadMLeaderStyleEditor`](xref:GeometryHelper.Cad.CadMLeaderStyleEditor)): Set Current, New…, Modify…
 and Delete, which is refused for Standard, the current style and a style a multileader is drawn in. A drawing of no
 multileader style is given Standard first, metric: arrows 2.5, a break of 3.75, a landing of 8, text 2.5 high and a
 landing gap of 2. Modify writes the Leader Format, Leader Structure and Content tabs into the drawing's MLEADERSTYLE and
@@ -2285,7 +2285,7 @@ width of its widest row, and the leader holds that width and the height of all i
 2021 writes them.
 
 QSELECT and FIND show the window's Quick Select and Find and Replace dialogs, whose logic is
-[`CadQuickSelect`](xref:GeometryHelper.Dxf.Viewer.CadQuickSelect) and [`CadFind`](xref:GeometryHelper.Dxf.Viewer.CadFind).
+[`CadQuickSelect`](xref:GeometryHelper.Cad.CadQuickSelect) and [`CadFind`](xref:GeometryHelper.Cad.CadFind).
 Quick Select compares the rows of the Properties panel: of a plan of 312 lines on layer WALLS among others, Line, Layer,
 `= Equals`, WALLS selects the 312 and says `312 item(s) selected.`; numbers are compared within the tolerance of a point,
 so Length `= 200` takes a line 200.0004 long. Its Select objects button, at the right of Apply to, hides the dialog
@@ -2410,7 +2410,7 @@ written. Its own attachments are followed, its overlays not. The file is looked 
 the folder of the drawing that names it, then the file's name there, in the drawing's folder and in the support folders.
 A grid of 1 000 by 1 attached at (100, 200) from `D:\Plans\xref\grid.dxf` into `D:\Plans\plans\host.dxf` is saved as
 `..\xref\grid.dxf` (Relative path; Full path until the drawing is saved), draws its line from (100, 200) to (1 100, 200),
-and picks as the INSERT. [`document.Xrefs`](xref:GeometryHelper.Dxf.Viewer.CadXrefManager) lists each reference and image
+and picks as the INSERT. [`document.Xrefs`](xref:GeometryHelper.Cad.CadXrefManager) lists each reference and image
 with its status: Loaded, Unloaded, Not Found, Unresolved, Unreferenced, or Needs Reloading once its file changed on disk.
 Each reference the drawing places is followed by those its drawing attaches, nested, its overlays left out as AutoCAD
 leaves them: the External References palette lists a nested one once, of the type Nested, and its tree view shows it
@@ -2592,7 +2592,7 @@ BEDIT (BE) opens a block in the Block Editor, as AutoCAD 2021's (the Open in blo
 opens it on the block once BLOCK has made it): the Edit Block Definition dialog lists
 `<Current Drawing>` (model space itself) and the named blocks, no layout, external reference or anonymous block, and a
 name not in it makes a new, empty block; -BEDIT asks `Enter block name or [?]:`. The block is shown alone in a space of
-its own ([`CadDocument.BlockEditor`](xref:GeometryHelper.Dxf.Viewer.CadBlockEditor), `CadSpace.IsBlockEditor`), where
+its own ([`CadDocument.BlockEditor`](xref:GeometryHelper.Cad.CadBlockEditor), `CadSpace.IsBlockEditor`), where
 every command draws into and modifies the block's own entities, each an undo step; undo stops where the block was opened
 or last saved. BSAVE (BS) redefines the block and draws every INSERT anew (their attributes are not synchronised, as
 ATTSYNC is not run), merging the session so far into one undo step, `BEDIT`. A dynamic block saved so has the anonymous
@@ -2619,7 +2619,7 @@ and one undo after BCLOSE takes the session back. Commands that leave the block 
 LAYOUT, PLOT, PREVIEW, PAGESETUP, MSPACE, PSPACE, MVIEW, QSAVE, SAVEAS) say `Not allowed in the Block Editor.`.
 The Geometric and Dimensional panels of the Block Editor tab start the constraint commands on the block's objects: Auto Constrain (AUTOCONSTRAIN), Linear (DCLINEAR), Delete (DELCONSTRAINT) and the Parameter Manager (PARAMETERS); the constraints are kept in the block and saved with it by BSAVE. Block Table (which needs the lookup table) and Construction are greyed, with the reason.
 The Visibility State box of the Block Editor tab is live for a block of visibility states
-([`CadBlockEditor.VisibilityStates`](xref:GeometryHelper.Dxf.Viewer.CadBlockEditor.VisibilityStates)): the first is shown
+([`CadBlockEditor.VisibilityStates`](xref:GeometryHelper.Cad.CadBlockEditor.VisibilityStates)): the first is shown
 when the block opens, and another chosen (`CadDocument.SetBlockEditorVisibilityState`) hides what another state lists and
 it does not, which is then neither drawn nor picked; an object drawn in the editor joins every state. Choosing a state is a
 view of the block, no undo step. RESETBLOCK puts the dynamic block references selected back to their blocks' own values,
@@ -2677,7 +2677,7 @@ every object of the block; Nested asks Select nested objects or [All]: for point
 box, put where the reference draws it, holds the point), 1 found or 0 found each, and ** At least one object must be
 selected to edit a reference ** for none. A block that holds attribute definitions asks Display attribute definitions
 [Yes/No] <No>: after it, the answer kept by
-[CadDocument.RefEditAttributeDefinitions](xref:GeometryHelper.Dxf.Viewer.CadDocument.RefEditAttributeDefinitions); whether
+[CadDocument.RefEditAttributeDefinitions](xref:GeometryHelper.Cad.CadDocument.RefEditAttributeDefinitions); whether
 the objects outside the working set are locked is RefEditLocksObjects, and whether an external reference's layers
 take names of their own is RefEditUniqueNames (both boxes of the Reference Edit dialog's Settings, which have no question on
 the command line; see below). A block BOX of a line from (0, 0) to (100, 0) and a circle of 10 about (50, 30), placed at
@@ -2758,10 +2758,10 @@ Identify Reference lists the references the point reaches (the name, `Xref` or `
 the path of the one chosen (the file of an external reference, `Xref file not found`, or `Block definition`) and Automatically
 select all nested objects or Prompt to select nested objects; Settings has Enable unique layer and symbol names (for an
 external reference), Display attribute definitions for editing (for a block that has some) and Lock objects not in working set.
-OK writes the settings to the document ([CadDocument.RefEditUniqueNames](xref:GeometryHelper.Dxf.Viewer.CadDocument.RefEditUniqueNames),
+OK writes the settings to the document ([CadDocument.RefEditUniqueNames](xref:GeometryHelper.Cad.CadDocument.RefEditUniqueNames),
 RefEditAttributeDefinitions, RefEditLocksObjects) and opens the edit with no question on the command line; Cancel and Esc open
 nothing. With no window, or as -REFEDIT, the command line asks as before. The request is
-[CadRefEditRequest](xref:GeometryHelper.Dxf.Viewer.CadRefEditRequest).
+[CadRefEditRequest](xref:GeometryHelper.Cad.CadRefEditRequest).
 
 A prompt for a number refuses what it cannot take in the words AutoCAD 2021's console gives that prompt, probed with text,
 2.5, nought, a negative number and one past the most, and asks it again: POLYGON's sides say `Requires an integer between 3
@@ -2972,13 +2972,13 @@ A-BEAM and A-COLUMN, and `*A*` to `*B*` renames WALLS to WBLLS; none is renamed 
 pattern that matches nothing says `No item matches X-*.`. OK hands the renames to
 RENAME, which makes them in order as -RENAME would, all in one undo step, and writes any refusal on the command line; Cancel
 renames nothing. With no window RENAME asks -RENAME's questions. The request is a public
-[`CadRenameRequest`](xref:GeometryHelper.Dxf.Viewer.CadRenameRequest) of [`CadRename`](xref:GeometryHelper.Dxf.Viewer.CadRename)s.
+[`CadRenameRequest`](xref:GeometryHelper.Cad.CadRenameRequest) of [`CadRename`](xref:GeometryHelper.Cad.CadRename)s.
 The helpers behind it are public: `CadBlocks.Rename`, `CadLinetypes.Rename`, `CadMLeaderStyleEditor.Rename` and
 `CadTableStyleEditor.Rename` join `CadLayerEditor.Rename`, `CadDimStyleEditor.Rename` and `CadTextStyleEditor.Rename`.
 PROPERTIES, OPTIONS and LAYER ask the window for its panel or dialog (`UiRequested`), and say "is shown by the window"
 where none is listening; QSAVE (of a drawing with no file), SAVEAS and DXFOUT ask it for its file dialog, and with none listening or FILEDIA 0 ask the file on the command line as AutoCAD does (see the application guide). The window adds CLOSE, QUIT, NEW, PROPERTIESCLOSE, RIBBON, RIBBONCLOSE, COMMANDLINE, COMMANDLINEHIDE, HIDEPALETTES, SHOWPALETTES, -OSNAP, GRID, SNAP, ORTHO, POLAR, OSNAP, ISOPLANE, LAYMCUR and LAYMCH, and the plugin commands. The inquiry commands print in AutoCAD's words: DIST from (0, 0) to (100, 100) says `Distance = 141.4214,  Angle in XY Plane = 45,  Angle from XY Plane = 0`; AREA by points or by an object says `Area = 5000.0000, Perimeter = 300.0000`. Each command is a
-[`CadCommand`](xref:GeometryHelper.Dxf.Viewer.CadCommand): a name and an iterator that yields each
-[`CadPrompt`](xref:GeometryHelper.Dxf.Viewer.CadPrompt) and reads the answer from [`CadCommandContext`](xref:GeometryHelper.Dxf.Viewer.CadCommandContext)`.Input`, so it reads top
+[`CadCommand`](xref:GeometryHelper.Cad.CadCommand): a name and an iterator that yields each
+[`CadPrompt`](xref:GeometryHelper.Cad.CadPrompt) and reads the answer from [`CadCommandContext`](xref:GeometryHelper.Cad.CadCommandContext)`.Input`, so it reads top
 to bottom as its prompts do, and a [command plugin](plugins.md) is written the same way.
 
 ### RECTANG, WIPEOUT and OOPS
@@ -3237,7 +3237,7 @@ line: `Current settings: Tolerance=0.000001, Ignore=None, Optimize polylines=Yes
 end-to-end=Yes` and `Enter an option to change [Done/Ignore/tOlerance/optimize Plines/combine parTial overlap/combine
 Endtoend/Associativity] <done>:`, each option asking its question (`Specify tolerance for object comparison precision
 <0.000001>:`, `Optimize segments within plines [segment wiDth/Break polyline/Yes/No] <Yes>:`) and showing the settings again.
-The settings stay with the session ([`CadCommandSession.Overkill`](xref:GeometryHelper.Dxf.Viewer.CadCommandSession.Overkill))
+The settings stay with the session ([`CadCommandSession.Overkill`](xref:GeometryHelper.Cad.CadCommandSession.Overkill))
 from one run to the next. The run writes `1 duplicate(s) deleted` and, where overlaps or ends that meet are combined, `2
 overlapping object(s) or segment(s) deleted`. Two lines, arcs, circles or points of the same place and properties are
 duplicates, and the later in the drawing stays (a line drawn from the other end is the same line); two polylines of the same
@@ -3270,7 +3270,7 @@ of R2004 or later (`$TITLE`, `$SUBJECT`, `$AUTHOR`, `$KEYWORDS`, `$COMMENTS`, `$
 `$CUSTOMPROPERTY` for each pair, `$HYPERLINKBASE`), into the DWGPROPS record of an older one; properties the same as the drawing's are
 no step. A custom property with a value and no name, or a name used twice (letters of either case the same), is refused in the
 dialog's footer and the dialog stays open; a row with no name and no value is left out. The dialog's data is a public
-[`CadDrawingPropertiesRequest`](xref:GeometryHelper.Dxf.Viewer.CadDrawingPropertiesRequest); the custom properties are what a FIELD
+[`CadDrawingPropertiesRequest`](xref:GeometryHelper.Cad.CadDrawingPropertiesRequest); the custom properties are what a FIELD
 of the drawing reads (`DxfDatabase.SummaryInfo.CustomProperties`). A save stamps `$TDUPDATE` and `$TDUUPDATE` with the time and
 `$LASTSAVEDBY` with the login name, each where the header has the variable, as AutoCAD does, so that Statistics shows when and by whom
 it was saved. A DWG of R2004 or later keeps the properties in its `AcDb:SummaryInfo` section, which the writer writes and the reader reads
@@ -3548,12 +3548,12 @@ dictionary, Suggestions with the replacement typed above them, Ignore, Ignore Al
 wherever it comes again), Add to Dictionary, the main dictionary (the built-in English dictionary) and a custom dictionary file.
 Change with nothing typed takes the first suggestion and with none says `No suggestions.`. Undo takes back the last answer
 since Start, its word asked again and its change, Ignore All or Add to Dictionary forgotten. Settings... shows Check
-Spelling Settings ([`CadSpellSettings`](xref:GeometryHelper.Dxf.Viewer.CadSpellSettings), counted from the next Start):
+Spelling Settings ([`CadSpellSettings`](xref:GeometryHelper.Cad.CadSpellSettings), counted from the next Start):
 Include Block Attributes (Dimension Text and External References greyed, the presenter checking neither), and Ignore
 capitalized words, words with mixed cases, words in uppercase and words with numbers (these two on, as before) and words
 containing punctuation. Nothing is written while the
 dialog is open: Close writes the words changed, each text one edit of SPELL's one undo step, and appends the words added to
-the custom dictionary file. The check is a public [`CadSpellCheck`](xref:GeometryHelper.Dxf.Viewer.CadSpellCheck). With no
+the custom dictionary file. The check is a public [`CadSpellCheck`](xref:GeometryHelper.Cad.CadSpellCheck). With no
 window SPELL is the command line form of Check Spelling: "Select objects or [All/Dictionary]:" takes objects, or Enter or
 All every TEXT, MTEXT and attribute of the space, and Dictionary "Enter custom dictionary file <none>:", a text file of words one
 to a line (`Cannot read custom dictionary.` where it cannot be read; in the window it starts as `sample.cus` of the settings folder, made by the first Add, and its prompt then reads that file). Each word not in the built-in dictionary (about 90 000 English words of the SCOWL lists in American and British spelling and the drafting terms, see the MTEXT editor's Spell Check in [display](display.md); the endings -s, -es, -ed, -ing, -ly, -er, -est and 's tried; words in capitals, with a digit or of
@@ -3704,7 +3704,7 @@ scales common to all selected objects only. Three texts at 1:1 and 1:50, at 1:50
 would be left with none (1:50 here, the second text's only scale); Add… shows Add Scales to Object, the drawing's scales the
 list does not show, several picked at once. OK gives every object each scale added and takes each scale deleted, one undo
 step named OBJECTSCALE; Cancel changes nothing. The request is a public
-[`CadObjectScaleRequest`](xref:GeometryHelper.Dxf.Viewer.CadObjectScaleRequest); with no window OBJECTSCALE asks -OBJECTSCALE's
+[`CadObjectScaleRequest`](xref:GeometryHelper.Cad.CadObjectScaleRequest); with no window OBJECTSCALE asks -OBJECTSCALE's
 option once the objects are taken. ANNOALLVISIBLE (0 or 1) is the drawing's variable of that name. TEXT and
 MTEXT drawn in an annotative text style are annotative: the height asked is the sheet's, and the text is that over the
 annotation scale high (2.5 at 1:50 is 125). The Annotative box of the Text Style dialog (`CadTextStyleSettings.Annotative`, the style's extended data AcadAnnotative, live in a drawing of AutoCAD 2007 or later) makes the style so, and the Annotative button of the Style panel of the MTEXT editor makes an MTEXT being made annotative or not, over what its style says, ticked at first for an annotative style; an MTEXT already made keeps its state, its button grey saying that Properties, AIOBJECTSCALEADD and OBJECTSCALE change it. The Edit Drawing Scales list is given the scale an object is first made
@@ -3753,7 +3753,7 @@ the picture of the scale of the space, and a multileader by the context data of 
 
 ### Aliases and keys
 
-[`CadShortcuts`](xref:GeometryHelper.Dxf.Viewer.CadShortcuts) holds the aliases and the keys as data. The defaults are
+[`CadShortcuts`](xref:GeometryHelper.Cad.CadShortcuts) holds the aliases and the keys as data. The defaults are
 AutoCAD's: the 251 aliases of AutoCAD 2021's acad.pgp for the commands the presenter has (DXFOUT is a command of its own) and the four digits of the maintainer's (`1` LAYISO, `2` LAYERP, `22` LAYON, `3` LAYOFF), 255 in all, old names as `DTEXT` TEXT and `DDMODIFY` PROPERTIES among them (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
 DIMLINEAR, `MV` MVIEW, `MS` MSPACE, `PS` PSPACE, `BE` BEDIT, `BS` BSAVE, `BC` BCLOSE, and the rest) and 25 keys (F2 TEXTSCR, F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F11 OTRACK, F12 DYN, Delete ERASE,
 Ctrl+Z U, Ctrl+Y REDO, Ctrl+S QSAVE, Ctrl+1 PROPERTIES (shows or hides Properties), Ctrl+2 DRAWINGS (shows or hides the Drawings list), Ctrl+3 RIBBON (shows or hides the ribbon), Ctrl+A SELECTALL, Ctrl+C COPYCLIP, Ctrl+X CUTCLIP, Ctrl+V PASTECLIP, Ctrl+Shift+C COPYBASE, Ctrl+Shift+V PASTEBLOCK, Ctrl+P PLOT, Ctrl+Shift+A PICKSTYLE, Ctrl+W SELECTIONCYCLING, Ctrl+Shift+P QPMODE (switches the Quick Properties panel)). A registry's `Shortcuts` is replaced, from
@@ -3771,7 +3771,7 @@ command has the name. `?` lists those a pattern of wildcards matches, `CHAMFER?`
 values. Enter keeps a value; a whole number out of range is refused in AutoCAD's words and asked again, `SORTENTS` 200
 saying `Requires an integer between 0 and 127.`, and a real nought where it must be above nought says `Value must be
 positive and nonzero.`; a variable read only says its value, `EXTMIN = 0.0000,0.0000,0.0000 (read only)`. Each one is read
-and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry):
+and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`](xref:GeometryHelper.Cad.CadCommandRegistry):
 
 | Kept in | Variables | A change |
 |---|---|---|
@@ -3874,8 +3874,8 @@ UCS sets the system points are typed in: give an origin, then a point on the X a
 
 ## Object snaps
 
-[`ObjectSnap`](xref:GeometryHelper.Dxf.Viewer.ObjectSnap) turns the cursor into the point a click takes: an object snap, or the
-snap grid, or ortho, or polar. It works from the display items under the aperture, through a space's [`PickIndex`](xref:GeometryHelper.Dxf.Viewer.PickIndex), so the
+[`ObjectSnap`](xref:GeometryHelper.Cad.ObjectSnap) turns the cursor into the point a click takes: an object snap, or the
+snap grid, or ortho, or polar. It works from the display items under the aperture, through a space's [`PickIndex`](xref:GeometryHelper.Cad.PickIndex), so the
 lines and arcs of an INSERT snap where the INSERT places them.
 
 ```csharp
@@ -3886,7 +3886,7 @@ snap.Snap(document.GetPickIndex(document.ModelSpace), new GeoPoint2(50.3, 0.4), 
 
 | Property | Default | |
 |---|---|---|
-| `Modes` | Endpoint, Midpoint, Center, Quadrant, Intersection | a [`CadSnapModes`](xref:GeometryHelper.Dxf.Viewer.CadSnapModes) set with AutoCAD's OSMODE values (Endpoint 1 to Parallel 8192); Node, Insertion, Perpendicular, Tangent, Nearest, GeometricCenter, ApparentIntersection, Extension and Parallel can be added |
+| `Modes` | Endpoint, Midpoint, Center, Quadrant, Intersection | a [`CadSnapModes`](xref:GeometryHelper.Cad.CadSnapModes) set with AutoCAD's OSMODE values (Endpoint 1 to Parallel 8192); Node, Insertion, Perpendicular, Tangent, Nearest, GeometricCenter, ApparentIntersection, Extension and Parallel can be added |
 | `IsOn` | true | F3 |
 | `Tracking` | off | F11, object snap tracking |
 | `Ortho`, `Polar`, `PolarAngle` | off, off, a quarter turn | F8, F10 |
@@ -3904,8 +3904,8 @@ and object snaps take precedence over an angle override", which itself overrides
 SNAP and OSNAP on and a grid of 10, LINE's next point from (1 000, 500) with the cursor at (3 987, 2 988) takes the
 endpoint (4 000, 3 000), 3 905.12 long, not the grid point (3 990, 2 990). The entities of a file with no handles, as
 one of R12 written by hand, snap as those of any other: the document gives each a handle on opening it (see [The document](display.md#the-document)). The result is a
-[`CadSnapResult`](xref:GeometryHelper.Dxf.Viewer.CadSnapResult): the point, which
-[`CadSnapKind`](xref:GeometryHelper.Dxf.Viewer.CadSnapKind) gave it, the handle of the object, and the dotted `Tracks` drawn
+[`CadSnapResult`](xref:GeometryHelper.Cad.CadSnapResult): the point, which
+[`CadSnapKind`](xref:GeometryHelper.Cad.CadSnapKind) gave it, the handle of the object, and the dotted `Tracks` drawn
 to it.
 
 Extension, Parallel and tracking work from points acquired by resting the cursor, as AutoCAD's do: `Acquire` is called
@@ -3931,7 +3931,7 @@ a ray along +X from (100, -500) gives the perpendicular from (500, 80) at (500, 
 
 Any prompt for a point, and "Select objects:" and a prompt for one object, takes AutoCAD's point modifiers, typed or chosen from the top of the Shift+right-click menu
 (Temporary track point, From, Mid Between 2 Points, Point Filters), through
-[`CadCommandSession`](xref:GeometryHelper.Dxf.Viewer.CadCommandSession)`.StartPointModifier`:
+[`CadCommandSession`](xref:GeometryHelper.Cad.CadCommandSession)`.StartPointModifier`:
 
 | Typed | Asks | Gives |
 |---|---|---|
@@ -4024,8 +4024,8 @@ be nonzero.` and asked again.
 
 ## Grips
 
-[`CadGrips.Of(entity)`](xref:GeometryHelper.Dxf.Viewer.CadGrips) lists the grips of an entity, each a
-[`CadGrip`](xref:GeometryHelper.Dxf.Viewer.CadGrip) with its index, its [`CadGripKind`](xref:GeometryHelper.Dxf.Viewer.CadGripKind)
+[`CadGrips.Of(entity)`](xref:GeometryHelper.Cad.CadGrips) lists the grips of an entity, each a
+[`CadGrip`](xref:GeometryHelper.Cad.CadGrip) with its index, its [`CadGripKind`](xref:GeometryHelper.Cad.CadGripKind)
 and its place; `document.GripDrag(handle, index, point)` drags one, as one undo step.
 
 | Entity | Grips | Dragging |
@@ -4112,7 +4112,7 @@ set later (Width 150 typed after a base grip drag by 30 keeps the left edge at x
 a distance to nought or below is refused, the drawing as it was. The end grip of a polar parameter drags the end point
 (`MoveEndPoint`), the distance and the angle from the base point taken to their value sets, and the INSERT's history keeps
 the GRIPLOC AutoCAD wrote; so do the end grip of a linear parameter, the end corner of an XY parameter, the other two corners of an XY parameter (`MoveCornerPoint`: one `GRIPLOC` of the corner, the base point along the other axis moved in the same drag), the grip of a point parameter and the end grip of a rotation parameter (`MoveEndPoint`, which the presenter uses for each), and a base grip dragged after an end grip is worked out from the edits one after the other (the end grip to (0, 50), the base grip by 30 and the end grip to (35, 0) leave the first line at (45.43, 25.72), probe GhDb4a); the Origin of each parameter is a hidden property and is not listed in the Custom group. A flip grip clicked
-flips the block ([`CadDynamicBlocks.Click`](xref:GeometryHelper.Dxf.Viewer.CadDynamicBlocks)); a visibility, lookup or
+flips the block ([`CadDynamicBlocks.Click`](xref:GeometryHelper.Cad.CadDynamicBlocks)); a visibility, lookup or
 block table grip lists its values, the one shown ticked (`ValuesOf`), and one chosen is set (`Choose`): a block table
 lists its rows, each its cells parted by commas, "100.0000" and "200.0000" for a table of Width, and the row chosen sets
 Block Table1 to its index and Width with it. The right-click menu of a
@@ -4124,7 +4124,7 @@ error.
 
 In a layout, model space is worked in through a viewport as in AutoCAD: MSPACE (`MS`), a double click inside a viewport's
 frame or the status bar's PAPER button enters it, and PSPACE (`PS`), a double click off every frame or the MODEL button
-goes back to the paper. [`CadDocument`](xref:GeometryHelper.Dxf.Viewer.CadDocument)`.EnterViewport(handle)` and
+goes back to the paper. [`CadDocument`](xref:GeometryHelper.Cad.CadDocument)`.EnterViewport(handle)` and
 `LeaveViewport()` do the same in code, and `ActiveViewport` is the viewport worked through, null on the paper. While one
 is, `WorkingSpace` is model space: the commands draw there, picks and snaps work in model units as the viewport shows them,
 and the canvas draws the viewport's frame thick, the crosshair inside it alone. A line drawn through a viewport of
@@ -4238,7 +4238,7 @@ selected layer cannot be renamed.` and the layers that cannot be: `Layer 0`, `Xr
 file asks `C:\blocks\gb.dwg already exists.  Do you want to replace it?`, and the Text Style dialog, with a change not
 applied, `The current style has been modified.` and `Do you want to save your changes?`. The question of the plugin outside
 the trusted folders, and the one over a file that cannot be read, are the presenter's own.
-[`CadViewports`](xref:GeometryHelper.Dxf.Viewer.CadViewports) has the arithmetic: the canvas's view in model units
+[`CadViewports`](xref:GeometryHelper.Cad.CadViewports) has the arithmetic: the canvas's view in model units
 (`ModelView`) and the view a viewport takes back from it (`ViewOf`), a box fitted to the frame (`Fit`), and the scales'
 names. A viewport whose view is not a plan is not entered. One whose view is twisted, as DVIEW TWist leaves it (group 51),
 is shown and worked through turned, as AutoCAD 2021 shows it: the view's centre is kept about its target and turned by
@@ -4356,7 +4356,7 @@ and a paste into model space is refused. A click on the boundary of a clipped vi
 boundary and the viewport under it (SELECTIONCYCLING 2). An image of the layout (IMAGEOUT, PNGOUT) and its plot to a PNG show the model only
 inside the outline of the boundary, as the canvas does (no pixel of the model lies outside a circle clip, where an unclipped
 viewport shows walls beyond it); a plot to a PDF is drawn by the same renderer. Through the viewport (MSPACE) the cursor, the picks and the snaps work inside the outline alone, the thick frame follows it,
-and the viewport's grid is drawn inside it. [`CadViewportClips`](xref:GeometryHelper.Dxf.Viewer.CadViewportClips) gives
+and the viewport's grid is drawn inside it. [`CadViewportClips`](xref:GeometryHelper.Cad.CadViewportClips) gives
 `WithPartners`, `WithoutPartners`, `WhyNotClip` and `WhyNotMakeViewport`.
 
 ### Clipping a block or an external reference
@@ -4417,13 +4417,13 @@ it goes with the reference when that is moved, turned, scaled or copied, as Auto
 XCLIP. The context menu of an external reference offers Clip Xref.
 
 A clipped reference is drawn inside its boundary alone, on screen, in a plot and in the images the presenter writes:
-every item the reference draws carries the region it is shown in ([`DisplayItem2.BlockClip`](xref:GeometryHelper.Dxf.Viewer.DisplayItem2),
-a [`DisplayClipRegion`](xref:GeometryHelper.Dxf.Viewer.DisplayClipRegion)), within the region of a clipped block it stands
+every item the reference draws carries the region it is shown in ([`DisplayItem2.BlockClip`](xref:GeometryHelper.Cad.DisplayItem2),
+a [`DisplayClipRegion`](xref:GeometryHelper.Cad.DisplayClipRegion)), within the region of a clipped block it stands
 in, and the canvas clips to it. Of a clipped reference a pick, a window and a crossing meet only what is shown: a click on a
 line of the block outside the boundary picks nothing, and a window round the boundary alone takes the reference. Each cell of
 a MINSERT is clipped by its own place, and the attributes of the reference are clipped too. The frame of the boundary is drawn
 over the reference in its colour while XCLIPFRAME (kept in the drawing, 0 to 2: AutoCAD's drawings write 2, a header that gives none reads 1) is not 0; at 2 it
-is not plotted. It is picked as the reference. [`CadXClips`](xref:GeometryHelper.Dxf.Viewer.CadXClips) gives `WorldToClip`, `AsRectangle`, `Inverted` and `TryUninvert`. The
+is not plotted. It is picked as the reference. [`CadXClips`](xref:GeometryHelper.Cad.CadXClips) gives `WorldToClip`, `AsRectangle`, `Inverted` and `TryUninvert`. The
 boundary of a clip made in a system tilted out of the plan (the presenter makes none, AutoCAD does) is drawn as its projection
 on the plan, where it stands in AutoCAD's own plan view, while the block is shown where the boundary's prism, its lines along
 the boundary's normal, cuts the plane of the block: a block at height 0 clipped to the rectangle (10, 10) to (90, 60) of a
@@ -4453,8 +4453,8 @@ turned inside out is dragged the same way, its keyhole made anew about the box t
 undo step, GRIP, and any of the grip modes works on a corner. The arrow, a blue triangle across the first side, points to
 what the clip hides (down on the bottom side of a rectangle in Outside mode, up in Inside mode); a click on it turns the clip
 inside out, or back, at once, one undo step, with no grip edit started: a rectangle of two corners becomes the eleven points
-of its keyhole and returns to two corners. [`CadGrips.ClickClipFlip`](xref:GeometryHelper.Dxf.Viewer.CadGrips) does it, and
-the grips are the kinds `ClipVertex` and `ClipFlip` of [`CadGripKind`](xref:GeometryHelper.Dxf.Viewer.CadGripKind). What
+of its keyhole and returns to two corners. [`CadGrips.ClickClipFlip`](xref:GeometryHelper.Cad.CadGrips) does it, and
+the grips are the kinds `ClipVertex` and `ClipFlip` of [`CadGripKind`](xref:GeometryHelper.Cad.CadGripKind). What
 the console shows of AutoCAD's own arrow (a plugin on `GetGripPoints`): the one grip of a clip with its gizmos off, no trigger
 grip, no tooltip, and `MoveGripPointsAt` on it, by 0 or by 15 across the side, changes nothing, so that the flip is made by the
 click and by nothing the console can send; how the click and the arrow look on screen is the one thing not checked in AutoCAD's
@@ -4463,7 +4463,7 @@ window.
 ### Grip modes
 
 A click on a grip makes it hot and starts AutoCAD 2021's grip modes
-([`session.StartGripEdit(hotGrips)`](xref:GeometryHelper.Dxf.Viewer.CadCommandSession)): the command line says
+([`session.StartGripEdit(hotGrips)`](xref:GeometryHelper.Cad.CadCommandSession)): the command line says
 `** STRETCH **` and asks `Specify stretch point or [Base point/Copy/Undo/eXit]:`, the hot grip the base point. Enter or Space
 goes on to `** MOVE **` (`Specify move point`), `** ROTATE **` (`Specify rotation angle`, with Reference), `** SCALE **`
 (`Specify scale factor`, with Reference) and `** MIRROR **` (`Specify second point`), and back to STRETCH; STRETCH, MOVE,
@@ -4514,8 +4514,8 @@ circle have no menu.
 
 The menu closes when the cursor leaves both the grip and the menu, on Esc, on a click elsewhere, and when the selection
 or the command changes. A click on the grip itself is the grip edit as before, `** STRETCH **`. Choosing a row calls
-[`session.StartGripAction(handle, gripIndex, action)`](xref:GeometryHelper.Dxf.Viewer.CadCommandSession); the items of a
-grip are [`CadGripMenus.Of(document, handle, gripIndex)`](xref:GeometryHelper.Dxf.Viewer.CadGripMenus). Each item is one
+[`session.StartGripAction(handle, gripIndex, action)`](xref:GeometryHelper.Cad.CadCommandSession); the items of a
+grip are [`CadGripMenus.Of(document, handle, gripIndex)`](xref:GeometryHelper.Cad.CadGripMenus). Each item is one
 undo step named GRIP, and Esc at its prompt changes nothing:
 
 - Stretch Vertex is the grip edit, the command line saying `** STRETCH **` as a click does: AutoCAD 2021's table of the
@@ -4609,9 +4609,9 @@ Ctrl cycling through a grip's options is not built: Ctrl held as the first point
 
 ## Properties
 
-[`CadProperties.Describe(document, space, handles)`](xref:GeometryHelper.Dxf.Viewer.CadProperties) gives what the Properties panel shows for a selection, a
-[`CadSelectionInfo`](xref:GeometryHelper.Dxf.Viewer.CadSelectionInfo) with the text of the selection box ("Circle (1)") and
-[`CadPropertyGroup`](xref:GeometryHelper.Dxf.Viewer.CadPropertyGroup)s of [`CadPropertyRow`](xref:GeometryHelper.Dxf.Viewer.CadPropertyRow)s.
+[`CadProperties.Describe(document, space, handles)`](xref:GeometryHelper.Cad.CadProperties) gives what the Properties panel shows for a selection, a
+[`CadSelectionInfo`](xref:GeometryHelper.Cad.CadSelectionInfo) with the text of the selection box ("Circle (1)") and
+[`CadPropertyGroup`](xref:GeometryHelper.Cad.CadPropertyGroup)s of [`CadPropertyRow`](xref:GeometryHelper.Cad.CadPropertyRow)s.
 For the circle: General (Color ByLayer, Layer Steel, Linetype ByLayer, Linetype scale 1.0000, Lineweight ByLayer) and Geometry
 (Center X 50.0000, Center Y 30.0000, Radius 10.0000, Diameter 20.0000, Circumference 62.8319). Entities that differ in a row
 show `*Varies*`; with nothing selected the panel shows the drawing's current colour, layer, linetype, linetype scale,
@@ -4620,8 +4620,8 @@ lineweight and transparency, the plot style and the view.
 **The selection box.** With objects of several kinds selected the box reads `All (7)` and shows only the General rows, the
 values that differ as `*Varies*`. It is a list, as AutoCAD 2021's is: `All (7)` first, then one row for each kind with its
 count, in the order of the kinds' names, so that five MTEXTs and two OLE frames give `All (7)`, `MText (5)` and `OLE Object (2)`
-([`CadProperties.Kinds(document, handles)`](xref:GeometryHelper.Dxf.Viewer.CadProperties) gives the rows, each a
-[`CadSelectionKind`](xref:GeometryHelper.Dxf.Viewer.CadSelectionKind) with the handles of its objects). Choosing `MText (5)`
+([`CadProperties.Kinds(document, handles)`](xref:GeometryHelper.Cad.CadProperties) gives the rows, each a
+[`CadSelectionKind`](xref:GeometryHelper.Cad.CadSelectionKind) with the handles of its objects). Choosing `MText (5)`
 shows what five MTEXTs alone would show, the Text and Geometry groups with the General one, and every value typed there
 reaches those five and no other of the seven, as one undo step; the drawing's selection stays all seven, grips and highlight
 unchanged. `All (7)` returns to the common rows. Another selection (an object added or taken away, a new pick) returns the box
@@ -4632,7 +4632,7 @@ shown pressed while it is 1), Select Objects (the new SELECT command, which asks
 the selection, with no undo step) and Quick Select (QSELECT). AutoCAD 2021's order of the kinds in the list is taken to be
 alphabetical; it could not be seen in the console.
 
-[`CadPropertyEditor.Set(document, handles, label, value)`](xref:GeometryHelper.Dxf.Viewer.CadPropertyEditor) types a value back into a row, as AutoCAD's palette does, one undo
+[`CadPropertyEditor.Set(document, handles, label, value)`](xref:GeometryHelper.Cad.CadPropertyEditor) types a value back into a row, as AutoCAD's palette does, one undo
 step:
 
 ```csharp
@@ -4665,7 +4665,7 @@ The other kinds have AutoCAD 2021's rows too, each set the same way:
 | Multileader | Multileader style, Leader type, Arrowhead, Horizontal landing, Landing distance, Contents, Text style, Text height | |
 
 Current vertex steps through a polyline's vertices and is no step of undo
-([`CadSelection.CurrentVertex`](xref:GeometryHelper.Dxf.Viewer.CadSelection.CurrentVertex)): on the rectangle (0, 0)
+([`CadSelection.CurrentVertex`](xref:GeometryHelper.Cad.CadSelection.CurrentVertex)): on the rectangle (0, 0)
 (30, 0) (30, 20) (0, 20), vertex 3 shows Vertex X 30.0000 and Vertex Y 20.0000, and Vertex Y typed as 25 moves that corner
 alone. A row of a dimension is written as an override of its variable, the style left as it is, and the dimension drawn
 again: Precision 0.000 with Suppress trailing zeros No and Dim suffix " TYP" turns a dimension of 300 under ISO-25 into
@@ -4677,15 +4677,15 @@ moves to run through the point, as AutoCAD 2021 moves it, so words of DIMTAD 1 a
 or Pattern name of a hatch keeps its origin, as AutoCAD keeps it: ANSI31 at (2, 0) turned
 to 30 degrees still starts at (2, 0). A Major radius of 40
 scales an ellipse of radii 20 and 10 whole, to 40 and 20; a Minor radius above the major is refused. A Height or Width of a
-viewport keeps its scale, the view growing with it. A row of a list ([`CadPropertyRow.Choices`](xref:GeometryHelper.Dxf.Viewer.CadPropertyRow.Choices))
+viewport keeps its scale, the view growing with it. A row of a list ([`CadPropertyRow.Choices`](xref:GeometryHelper.Cad.CadPropertyRow.Choices))
 is a drop-down in the window, and the Contents row of one MTEXT offers its MTEXT editor.
 
 A dynamic block reference has the Custom group between Geometry and Misc
-([`CadProperties.CustomGroup`](xref:GeometryHelper.Dxf.Viewer.CadProperties.CustomGroup)), as AutoCAD's palette: each
+([`CadProperties.CustomGroup`](xref:GeometryHelper.Cad.CadProperties.CustomGroup)), as AutoCAD's palette: each
 property it shows and the visibility state shown holds, by its name. A visibility state, a lookup's row and a flip's state
 (by the names its parameter gives them, Not flipped and Flipped) are drop-downs; a distance is typed to 4 places, an angle in
 degrees. Its rows are set by the property's name through
-[`CadDynamicBlocks.SetProperty`](xref:GeometryHelper.Dxf.Viewer.CadDynamicBlocks),
+[`CadDynamicBlocks.SetProperty`](xref:GeometryHelper.Cad.CadDynamicBlocks),
 one undo step `Properties`, a value taken to the value set: the panel's Width typed 170 is 150. Misc's Name reads
 the dynamic block's name, not that of the anonymous block the INSERT places.
 
@@ -4694,7 +4694,7 @@ the dynamic block's name, not that of the anonymous block the INSERT places.
 MATCHPROP (MA) asks for the source object, says the settings it copies ("Current active settings: Color Layer Ltype
 Ltscale Lineweight Transparency Thickness PlotStyle Dim Text Hatch Polyline Viewport Table Multileader") and asks "Select
 destination object(s) or [Settings]:". Settings shows the Property Settings dialog, whose check boxes are
-[`CadCommandSession.MatchProperties`](xref:GeometryHelper.Dxf.Viewer.CadCommandSession.MatchProperties), every one until
+[`CadCommandSession.MatchProperties`](xref:GeometryHelper.Cad.CadCommandSession.MatchProperties), every one until
 changed: with Layer alone checked, a red line matched to a line on Steel goes to Steel and stays red. The special
 properties are copied between objects of one kind: a dimension's style and its overrides (drawn again), a text's or an
 MTEXT's text style and height (and a text's oblique angle and width factor onto a text), a hatch's pattern, angle and scale
@@ -4709,7 +4709,7 @@ CECOLOR, or the colour box of the Properties panel, sets the colour new objects 
 
 Click a layer's colour in the Layer manager to choose it in Select Color: a colour of the index (1 to 255) or a true colour. A true colour is kept in the file as red, green and blue (group 420), with the nearest colour of the index beside it (group 62) for programs that read only the index. AREA after Add area keeps a total: a rectangle 100 by 50 added and a circle of radius 10 taken away leave `Total area = 4685.8407`. SCRIPT feeds each line of a .scr file to the command line as typed, a blank line being Enter, and stops at the first line refused.
 
-[`CadLayerEditor`](xref:GeometryHelper.Dxf.Viewer.CadLayerEditor) makes the edits of the layer table that the layer box, the
+[`CadLayerEditor`](xref:GeometryHelper.Cad.CadLayerEditor) makes the edits of the layer table that the layer box, the
 Layer manager and the LAYER command make, each one undo step, refused where AutoCAD refuses:
 
 | Call | Does | Refused when |
@@ -4761,9 +4761,9 @@ block's definition and the attributes of block references), LAYDEL erases every 
 (`Deleting layer "DOOR".`, `1 layer deleted.`), one undo step. A layer a viewport of a layout freezes is thawed there first. The
 dialogs the plain names open in AutoCAD are not built: LAYMRG and LAYDEL ask on the command line. A drawing with a line on
 WALL, a line and a circle on DOOR and a block holding a line on DOOR has all four on WALL after DOOR is merged into it.
-[`CadLayerEditor.Merge(document, names, target)`](xref:GeometryHelper.Dxf.Viewer.CadLayerEditor.Merge*)
+[`CadLayerEditor.Merge(document, names, target)`](xref:GeometryHelper.Cad.CadLayerEditor.Merge*)
 and
-[`DeleteWithObjects(document, names)`](xref:GeometryHelper.Dxf.Viewer.CadLayerEditor.DeleteWithObjects*)
+[`DeleteWithObjects(document, names)`](xref:GeometryHelper.Cad.CadLayerEditor.DeleteWithObjects*)
 do the same without the questions; they refuse layer 0, Defpoints, the current layer and a layer of an xref.
 
 LAYCUR asks `Select objects to be changed to the current layer:` and puts them on the current layer, saying `2 objects changed
@@ -4788,7 +4788,7 @@ layers purged.`; a layer in use, the current layer, 0 and Defpoints are kept, an
 **Restore on exit**, ticked at first, puts every layer back as it was when the dialog closes; cleared, the walk stays in the
 drawing. The walk is edits of LAYWALK's one undo step, so Undo after a walk that stayed takes it back whole. AutoCAD has no
 command line form of LAYWALK, and with no window the command says so. The same is done from code with
-[`CadLayerWalkRequest`](xref:GeometryHelper.Dxf.Viewer.CadLayerWalkRequest) (`Walk`, `WalkLayersOf`, `Purge`, `Restore`,
+[`CadLayerWalkRequest`](xref:GeometryHelper.Cad.CadLayerWalkRequest) (`Walk`, `WalkLayersOf`, `Purge`, `Restore`,
 `Filter`).
 
 LAYTRANS shows the **Layer Translator**: Translate From lists the layers of the drawing (a layer of an external reference
@@ -4816,9 +4816,9 @@ on WALL and DOOR, WALL green, and neither old layer, in one undo step named LAYT
 says `Layer OLD-WALL translated to layer WALL: 40 objects.`, `Layer WALL created.` and `Layer OLD-WALL deleted.`. A drawing of
 R2000 or older has no true colours or transparency, and those of a mapping are left out. The Manage tab's CAD Standards panel
 has Layer Translator (Configure and Check stay parked). Without a window LAYTRANS says it is the window's dialog.
-[`CadLayerTranslatorRequest`](xref:GeometryHelper.Dxf.Viewer.CadLayerTranslatorRequest) (`Load`, `Map`, `MapSame`,
+[`CadLayerTranslatorRequest`](xref:GeometryHelper.Cad.CadLayerTranslatorRequest) (`Load`, `Map`, `MapSame`,
 `NewLayer`, `Edit`, `Remove`, `Save`, `Translate`, `Settings`) and
-[`CadLayerEditor.Translate`](xref:GeometryHelper.Dxf.Viewer.CadLayerEditor.Translate*) do it from code.
+[`CadLayerEditor.Translate`](xref:GeometryHelper.Cad.CadLayerEditor.Translate*) do it from code.
 
 ### Layer manager columns and filters
 
@@ -4867,7 +4867,7 @@ the top. Rename (F2), Properties (a double click on a property filter), Convert 
 group of the layers it shows) and Delete (Del; the filters nested in it go with it) are in its right-click menu; the filters AutoCAD
 makes are not renamed or deleted.
 
-[`CadLayerFilters`](xref:GeometryHelper.Dxf.Viewer.CadLayerFilters) reads and edits the filters (`Read`, `AddProperty`,
+[`CadLayerFilters`](xref:GeometryHelper.Cad.CadLayerFilters) reads and edits the filters (`Read`, `AddProperty`,
 `AddGroup`, `SetExpression`, `Rename`, `Delete`, `SetLayers`, `ConvertToGroup`, `SetCurrent`, `Visible`); each edit is one
 undo step. A filter is an XRECORD of ACLYDICTIONARY in the layer table's extension dictionary, written as AutoCAD 2021 writes
 it (`1 AcLyLayerFilter, 90 1, 300 name, 301 expression`; a group `1 AcLyLayerGroup, 90 1, 300 name` and a 330 for each layer;
@@ -4875,7 +4875,7 @@ it (`1 AcLyLayerFilter, 90 1, 300 name, 301 expression`; a group `1 AcLyLayerGro
 AutoCAD 2021 read a drawing of ours back with the same tree, in DXF and in DWG of R2010, R2013 and R2018, and read the filters of
 a drawing it wrote and ours changed. A filter only ACAD_LAYERFILTERS keeps (AutoCAD 2004 and earlier) is listed and, when changed,
 moves to ACLYDICTIONARY with its old record taken out; a drawing older than AutoCAD 2000 keeps no filters.
-[`CadLayerExpression`](xref:GeometryHelper.Dxf.Viewer.CadLayerExpression) reads and tests the expressions: it passes the layers
+[`CadLayerExpression`](xref:GeometryHelper.Cad.CadLayerExpression) reads and tests the expressions: it passes the layers
 AutoCAD 2021's `LayerFilter.Filter` passed in its probe (`NAME=="A*"`, `COLOR=="30"`, `LINEWEIGHT=="0.50"`, `TRANSPARENCY=="50"`,
 `PLOTTABLE=="False"`, `OFF=="True"` and the rest).
 ### Layers in the viewports of a layout
@@ -4887,7 +4887,7 @@ layer's own in that viewport alone is marked blue. VP Plot Style reads `Color_7`
 (a CTB table), as AutoCAD's. Its right-click menu has "VP Freeze Layer in All Viewports", "VP Thaw Layer in All Viewports",
 "New Layer VP Frozen in All Viewports" and "Remove Viewport Overrides for", on the layers chosen or all, in the current
 viewport or all; and "Isolate Selected Layers", which turns off every layer but those chosen, the current one too where it
-is not chosen, one undo step, as AutoCAD's help describes the item. [`CadViewportLayerEditor`](xref:GeometryHelper.Dxf.Viewer.CadViewportLayerEditor) makes these edits, each
+is not chosen, one undo step, as AutoCAD's help describes the item. [`CadViewportLayerEditor`](xref:GeometryHelper.Cad.CadViewportLayerEditor) makes these edits, each
 one undo step:
 
 | Call | Does |

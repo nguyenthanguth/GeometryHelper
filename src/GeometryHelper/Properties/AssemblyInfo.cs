@@ -28,4 +28,4 @@ using System.Runtime.InteropServices;
 
 // The presenter lays the words of an MTEXT out with the fonts the library measures them by (DxfTrueTypeFont, the rule a
 // line breaks by), so that what it draws and what the library measures are one reading of AutoCAD.
-[assembly: InternalsVisibleTo("GeometryHelper.Dxf.Viewer")]
+[assembly: InternalsVisibleTo("GeometryHelper.Cad")]

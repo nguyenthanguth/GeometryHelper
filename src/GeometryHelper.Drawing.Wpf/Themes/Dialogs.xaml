@@ -1,12 +1,12 @@
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:gh="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf;assembly=GeometryHelper.Dxf.Viewer.Wpf"
+    xmlns:gh="clr-namespace:GeometryHelper.Cad.Wpf;assembly=GeometryHelper.Cad.Wpf"
 >
     <!-- The pieces the model drawing's dialogs share, on the design tokens of Dark.xaml. -->
     <ResourceDictionary.MergedDictionaries>
-        <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
-        <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Icons.xaml" />
+        <ResourceDictionary Source="/GeometryHelper.Cad.Wpf;component/Themes/Dark.xaml" />
+        <ResourceDictionary Source="/GeometryHelper.Cad.Wpf;component/Themes/Icons.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
     <gh:BoolToVisibilityConverter x:Key="Shown" />

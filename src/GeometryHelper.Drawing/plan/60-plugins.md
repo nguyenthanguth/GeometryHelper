@@ -10,7 +10,7 @@ they differ in what they work on:
 | Runs when | the user types its command | the user starts it, and again by itself when the drawing is updated from the model (if switched on) |
 | Knows the model | no | yes: the object behind a view or a bolt group, its properties, its points |
 | Sample | "Number the selected circles" | "Bolt dimensions" |
-| Is in | `GeometryHelper.Dxf.Viewer` | `GeometryHelper.Drawing` |
+| Is in | `GeometryHelper.Cad` | `GeometryHelper.Drawing` |
 
 Both are .NET assemblies (.dll) that target netstandard2.0 (D16), so one .dll runs inside Tekla (.NET Framework 4.8) and
 in the standalone app (.NET 8). Neither touches WPF.
@@ -49,7 +49,7 @@ in the standalone app (.NET 8). Neither touches WPF.
 A class with methods marked as commands, as AutoCAD's .NET API has them (D26):
 
 ```csharp
-using GeometryHelper.Dxf.Viewer.Plugins;
+using GeometryHelper.Cad.Plugins;
 
 public sealed class CircleTools
 {
@@ -166,8 +166,8 @@ A command plugin is the AutoCAD half: `[CadCommand]` methods as AutoCAD's `[Comm
 
 ## For plugin authors (D20)
 
-- The cores' NuGet packages are the SDK: a command plugin references `GeometryHelper.Dxf.Viewer`, a drawing plugin
-  `GeometryHelper.Drawing` (which brings `GeometryHelper.Dxf.Viewer` along).
+- The cores' NuGet packages are the SDK: a command plugin references `GeometryHelper.Cad`, a drawing plugin
+  `GeometryHelper.Drawing` (which brings `GeometryHelper.Cad` along).
 - Project templates (`dotnet new ghcad-command`, `dotnet new ghdrawing-plugin`) make a plugin with one command, one
   setting and a `plugin.json`.
 - `PLUGINRELOAD` with the shadow copy gives a build-and-try loop without restarting the app.

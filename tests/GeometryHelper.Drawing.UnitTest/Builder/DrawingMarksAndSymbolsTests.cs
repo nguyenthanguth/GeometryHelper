@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using GeometryHelper.Cad;
 using GeometryHelper.Drawing.Annotation;
 using GeometryHelper.Dxf;
-using GeometryHelper.Dxf.Viewer;
 using GeometryHelper.Geometry;
 using GeometryHelper.Packing;
 using Xunit;
@@ -708,14 +708,14 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
 
             using (var bitmap = new SkiaSharp.SKBitmap(2400, 200))
             using (var canvas = new SkiaSharp.SKCanvas(bitmap))
-            using (var renderer = new GeometryHelper.Dxf.Viewer.Wpf.SkiaCanvasRenderer())
+            using (var renderer = new GeometryHelper.Cad.Wpf.SkiaCanvasRenderer())
             {
                 renderer.Render(
                     canvas,
                     document,
                     document.ModelSpace,
                     cad,
-                    new GeometryHelper.Dxf.Viewer.Wpf.CanvasOptions { Background = 0xFFFFFF }
+                    new GeometryHelper.Cad.Wpf.CanvasOptions { Background = 0xFFFFFF }
                 );
                 canvas.Flush();
                 int left = int.MaxValue,

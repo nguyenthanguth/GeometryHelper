@@ -71,8 +71,8 @@ Shown in the presenter, a beam drawing of 96 entities (model space and the layou
 
 An edit made in the presenter to something the drawing owns is a hand edit: a [`DrawingEdit`](xref:GeometryHelper.Drawing.DrawingEdit)
 of the id of the element, the kind of edit, and its values, kept in the document and in the DXF at once, in the same undo
-step. The kinds and the form of their values are those of the presenter's [`CadEdit`](xref:GeometryHelper.Dxf.Viewer.CadEdit).
-A mark `V-FRONT/M-P1` dragged 40 up is `new DrawingEdit("V-FRONT/M-P1", CadEditKind.Move, newValue: "0,40")`, with a [`CadEditKind`](xref:GeometryHelper.Dxf.Viewer.CadEditKind) as the presenter names it.
+step. The kinds and the form of their values are those of the presenter's [`CadEdit`](xref:GeometryHelper.Cad.CadEdit).
+A mark `V-FRONT/M-P1` dragged 40 up is `new DrawingEdit("V-FRONT/M-P1", CadEditKind.Move, newValue: "0,40")`, with a [`CadEditKind`](xref:GeometryHelper.Cad.CadEditKind) as the presenter names it.
 
 | Element | Keeps | Refuses, with why |
 |---|---|---|

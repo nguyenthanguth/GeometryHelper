@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <UseWPF>true</UseWPF>
+        <PlatformTarget>x64</PlatformTarget>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <RootNamespace>GeometryHelper.Cad.App</RootNamespace>
+        <AssemblyName>GeometryHelper.Cad.App</AssemblyName>
+        <StartupObject>GeometryHelper.Cad.App.Program</StartupObject>
+        <Description>GeometryHelper DXF: the standalone app that opens, edits and plots DXF drawings, laid out as AutoCAD 2D.</Description>
+        <IsPackable>false</IsPackable>
+        <NoWarn>$(NoWarn);MSB3277</NoWarn>
+        <ApplicationIcon>Icons\app.ico</ApplicationIcon>
+    </PropertyGroup>
+
+    <!-- The icons Icons\make-icons.ps1 writes: the window's, and a drawing file's, which the register switch names beside the exe. -->
+    <ItemGroup>
+        <EmbeddedResource Include="Icons\app.ico" LogicalName="GeometryHelper.Cad.App.app.ico" />
+        <None Include="Icons\drawing-file.ico" Link="drawing-file.ico" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\GeometryHelper.Cad.Wpf\GeometryHelper.Cad.Wpf.csproj" />
+        <ProjectReference Include="..\GeometryHelper.Cad\GeometryHelper.Cad.csproj" />
+        <ProjectReference Include="..\GeometryHelper\GeometryHelper.csproj" />
+    </ItemGroup>
+</Project>

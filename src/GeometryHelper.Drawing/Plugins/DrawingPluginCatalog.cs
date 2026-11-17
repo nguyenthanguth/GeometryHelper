@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using GeometryHelper.Dxf.Viewer.Plugins;
+using GeometryHelper.Cad.Plugins;
 
 namespace GeometryHelper.Drawing.Plugins
 {

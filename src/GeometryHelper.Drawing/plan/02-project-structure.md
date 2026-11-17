@@ -7,10 +7,10 @@ Part B.
 
 | Project | Part | Holds | Target | References |
 |---|---|---|---|---|
-| `src/GeometryHelper.Dxf.Viewer` | A | the document (K1), display lists (K2), commands, snaps and grips (K3), the command plugin API (K4), the owner contract; no WPF | netstandard2.0 | `GeometryHelper` |
-| `src/GeometryHelper.Dxf.Viewer.Wpf` | A | the canvas, Properties, the drawing-files panel, ribbon, command line, status bar, Global settings, Layer manager, Plugin manager; their view models | net48 and net8.0-windows (D12) | `GeometryHelper.Dxf.Viewer` |
-| `src/GeometryHelper.Drawing` | B | L0 to L7 and the drawing plugin API; no WPF | netstandard2.0 | `GeometryHelper`, `GeometryHelper.Dxf.Viewer` |
-| `src/GeometryHelper.Drawing.Wpf` | B | the drawing list, model properties, the Drawing ribbon tab, the New drawing, Drawing settings, Update and Export dialogs | net48 and net8.0-windows (D12) | `GeometryHelper.Drawing`, `GeometryHelper.Dxf.Viewer.Wpf` |
+| `src/GeometryHelper.Cad` | A | the document (K1), display lists (K2), commands, snaps and grips (K3), the command plugin API (K4), the owner contract; no WPF | netstandard2.0 | `GeometryHelper` |
+| `src/GeometryHelper.Cad.Wpf` | A | the canvas, Properties, the drawing-files panel, ribbon, command line, status bar, Global settings, Layer manager, Plugin manager; their view models | net48 and net8.0-windows (D12) | `GeometryHelper.Cad` |
+| `src/GeometryHelper.Drawing` | B | L0 to L7 and the drawing plugin API; no WPF | netstandard2.0 | `GeometryHelper`, `GeometryHelper.Cad` |
+| `src/GeometryHelper.Drawing.Wpf` | B | the drawing list, model properties, the Drawing ribbon tab, the New drawing, Drawing settings, Update and Export dialogs | net48 and net8.0-windows (D12) | `GeometryHelper.Drawing`, `GeometryHelper.Cad.Wpf` |
 | `src/GeometryHelper.Drawing.App` | both | the standalone app: one window built from the controls of both parts, plugin loading, opening files and sources | net8.0-windows | the four above, the bridges |
 | `src/GeometryHelper.TeklaConvert` (exists) | B | gains `DrawingSourceConvert`: Tekla model to `DrawingSource` | as now | `GeometryHelper.Drawing` |
 
@@ -21,7 +21,7 @@ Every new project:
 
 - carries XML documentation on every public member (CS1591 fails the `-warnaserror` build without it);
 - is added to `GeometryHelper.slnx`;
-- is made when its first code is written: `Dxf.Viewer` and `Dxf.Viewer.Wpf` in C1, `Drawing` in G1, `Drawing.Wpf` in U1.
+- is made when its first code is written: `Cad` and `Cad.Wpf` in C1, `Drawing` in G1, `Drawing.Wpf` in U1.
 
 ## Folders
 
@@ -30,7 +30,7 @@ src/GeometryHelper.Drawing/
   README.md                       what the module is, and the plan's index (the plan covers both parts)
   plan/                           this plan (*.md)
 
-src/GeometryHelper.Dxf.Viewer/                         Part A core
+src/GeometryHelper.Cad/                         Part A core
   CadDocument.cs                  one DxfDatabase open for editing: file, undo, selection, owners
   Owners/
     ICadEntityOwner.cs            the owner contract (01-architecture.md)
@@ -51,7 +51,7 @@ src/GeometryHelper.Dxf.Viewer/                         Part A core
   Settings/
     GlobalSettings.cs             saved as JSON, with defaults, applied with Apply (D13)
 
-src/GeometryHelper.Dxf.Viewer.Wpf/                     Part A controls
+src/GeometryHelper.Cad.Wpf/                     Part A controls
   Controls/                       Canvas, PropertiesPanel, FilesPanel, LayoutsPanel, LayersPanel, Ribbon, CommandLine,
                                   StatusBar, SettingsDialog, LayerManager, PluginManager
   ViewModels/                     the logic of each control, testable without a window
@@ -88,7 +88,7 @@ src/GeometryHelper.Drawing.App/
   MainWindow.xaml                 the controls laid out as in the UI design
   App.xaml                        loads Global settings and plugins
 
-tests/GeometryHelper.Dxf.Viewer.UnitTest/         net48 xUnit: document, display, commands, snaps, owners
+tests/GeometryHelper.Cad.UnitTest/         net48 xUnit: document, display, commands, snaps, owners
 tests/GeometryHelper.Drawing.UnitTest/       net48 xUnit, as the other suites
   TestBodies.cs                   the bodies of 20-test-cases.md, built in code
   Projection/ Views/ Annotation/ Sheets/ Document/ Output/ Settings/ Plugins/
@@ -110,7 +110,7 @@ maintainer.
 Once the projects exist, CLAUDE.md's verify gains:
 
 ```bash
-dotnet test tests/GeometryHelper.Dxf.Viewer.UnitTest/GeometryHelper.Dxf.Viewer.UnitTest.csproj -c Release --no-build
+dotnet test tests/GeometryHelper.Cad.UnitTest/GeometryHelper.Cad.UnitTest.csproj -c Release --no-build
 dotnet test tests/GeometryHelper.Drawing.UnitTest/GeometryHelper.Drawing.UnitTest.csproj -c Release --no-build
 dotnet test tests/GeometryHelper.Drawing.Wpf.UnitTest/GeometryHelper.Drawing.Wpf.UnitTest.csproj -c Release --no-build
 ```

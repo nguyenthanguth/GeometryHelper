@@ -1,0 +1,1023 @@
+<Window
+    x:Class="GeometryHelper.Cad.Wpf.LayerManagerWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Cad.Wpf"
+    Title="{Binding Title}"
+    Width="1380"
+    Height="600"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Cad.Wpf;component/Themes/Dark.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Cad.Wpf;component/Themes/Icons.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <local:RgbBrushConverter x:Key="RgbBrush" />
+            <local:BoolToVisibilityConverter x:Key="Shown" />
+            <local:BoolToVisibilityConverter x:Key="Hidden" Invert="True" />
+            <SolidColorBrush x:Key="VpHead" Color="#1B3A55" />
+
+            <Style x:Key="Cell" TargetType="TextBlock">
+                <Setter Property="Margin" Value="8,5" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            </Style>
+            <Style x:Key="HeadCell" TargetType="TextBlock" BasedOn="{StaticResource Cell}">
+                <Setter Property="Margin" Value="8,6" />
+                <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="FontWeight" Value="Medium" />
+            </Style>
+            <!-- The head of a VP column: on the blue of an override, as the design marks the columns of the viewport. -->
+            <Style x:Key="VpHeadCell" TargetType="TextBlock" BasedOn="{StaticResource HeadCell}">
+                <Setter Property="Margin" Value="0" />
+                <Setter Property="Padding" Value="6,6" />
+                <Setter Property="Background" Value="{StaticResource VpHead}" />
+                <Setter Property="Foreground" Value="{StaticResource GhIcon}" />
+            </Style>
+            <!-- The grip on the right edge of the Name head: a thin line, the cursor a left-right arrow, dragged to resize the column. -->
+            <Style x:Key="NameGrip" TargetType="Thumb">
+                <Setter Property="Width" Value="7" />
+                <Setter Property="HorizontalAlignment" Value="Right" />
+                <Setter Property="Cursor" Value="SizeWE" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Thumb">
+                            <Border Background="Transparent">
+                                <Border
+                                    Width="1"
+                                    Margin="0,4"
+                                    HorizontalAlignment="Right"
+                                    Background="{StaticResource GhBorder}"
+                                />
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="Check" TargetType="CheckBox" BasedOn="{StaticResource GhCheckBox}">
+                <Setter Property="Margin" Value="8,0" />
+            </Style>
+            <!-- The arrow of a node of the filter tree. -->
+            <Style x:Key="FilterToggle" TargetType="ToggleButton">
+                <Setter Property="Focusable" Value="False" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <TextBlock
+                                x:Name="Arrow"
+                                Text="▸"
+                                FontSize="10"
+                                Foreground="{StaticResource GhTextMuted}"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Background="Transparent"
+                            />
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Arrow" Property="Text" Value="▾" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <!-- A node of the filter tree: the arrow, then its header; the node chosen on the selection colour; a drop target for layers. -->
+            <Style x:Key="FilterTreeItem" TargetType="TreeViewItem">
+                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                <Setter Property="AllowDrop" Value="True" />
+                <Setter Property="Foreground" Value="{StaticResource GhText}" />
+                <EventSetter Event="DragOver" Handler="OnFilterDragOver" />
+                <EventSetter Event="Drop" Handler="OnFilterDrop" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TreeViewItem">
+                            <StackPanel>
+                                <Border x:Name="Node" Background="Transparent" Padding="2,3">
+                                    <DockPanel>
+                                        <ToggleButton
+                                            x:Name="Arrow"
+                                            DockPanel.Dock="Left"
+                                            Width="14"
+                                            Height="14"
+                                            Margin="0,0,2,0"
+                                            Style="{StaticResource FilterToggle}"
+                                            IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                            ClickMode="Press"
+                                        />
+                                        <ContentPresenter ContentSource="Header" />
+                                    </DockPanel>
+                                </Border>
+                                <ItemsPresenter x:Name="Items" Margin="16,0,0,0" />
+                            </StackPanel>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="HasItems" Value="False">
+                                    <Setter TargetName="Arrow" Property="Visibility" Value="Hidden" />
+                                </Trigger>
+                                <Trigger Property="IsExpanded" Value="False">
+                                    <Setter TargetName="Items" Property="Visibility" Value="Collapsed" />
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter
+                                        TargetName="Node"
+                                        Property="Background"
+                                        Value="{StaticResource GhSelected}"
+                                    />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <!-- A VP cell: marked as an override (blue, an accent line round it) where its Tag is true. -->
+            <Style x:Key="VpCell" TargetType="Border">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderBrush" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="True">
+                        <Setter Property="Background" Value="{StaticResource VpHead}" />
+                        <Setter Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <!-- Header: the title, dragged to move the dialog, and the close button. -->
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnClose"
+                        ToolTip="Close"
+                    />
+                    <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <!-- Footer: the summary and Close. -->
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhCloseButton}"
+                        Content="Close"
+                        Padding="14,5"
+                        Click="OnClose"
+                        IsCancel="True"
+                    />
+                    <TextBlock
+                        Text="{Binding Summary}"
+                        Foreground="{StaticResource GhTextMuted}"
+                        VerticalAlignment="Center"
+                    />
+                </DockPanel>
+            </Border>
+
+            <!-- Toolbar: New layer, New layer VP frozen in all viewports, Delete, Set current, and the search. -->
+            <Border
+                DockPanel.Dock="Top"
+                Padding="16,10"
+                BorderBrush="{StaticResource GhBorder}"
+                BorderThickness="0,0,0,1"
+            >
+                <DockPanel>
+                    <Border
+                        DockPanel.Dock="Right"
+                        Width="220"
+                        Background="{StaticResource GhInput}"
+                        CornerRadius="4"
+                        Padding="8,5"
+                    >
+                        <DockPanel>
+                            <local:IconView
+                                Size="14"
+                                StrokeThickness="2"
+                                Stroke="{StaticResource GhTextMuted}"
+                                Data="{StaticResource GhIconSearch}"
+                                Margin="0,0,6,0"
+                                VerticalAlignment="Center"
+                            />
+                            <TextBox
+                                Style="{StaticResource GhTextBox}"
+                                Tag="Search layers"
+                                Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                            />
+                        </DockPanel>
+                    </Border>
+                    <StackPanel Orientation="Horizontal">
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="New layer"
+                            Command="{Binding NewLayerCommand}"
+                            Margin="0,0,6,0"
+                        />
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="New layer VP frozen in all viewports"
+                            Command="{Binding NewLayerVpFrozenCommand}"
+                            Margin="0,0,6,0"
+                            ToolTip="Adds a layer frozen in every viewport of every layout"
+                        />
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Delete"
+                            Command="{Binding DeleteCommand}"
+                            Margin="0,0,6,0"
+                            ToolTip="Deletes the chosen layer; one in use, the current one, 0 and Defpoints are kept"
+                        />
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Set current"
+                            Command="{Binding SetCurrentCommand}"
+                        />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- The table of layers, then the notes. -->
+            <DockPanel Margin="16,12">
+                <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Visibility="{Binding HasViewportColumns, Converter={StaticResource Shown}}"
+                    >
+                        <Border
+                            Width="12"
+                            Height="12"
+                            Background="{StaticResource VpHead}"
+                            BorderBrush="{StaticResource GhAccent}"
+                            BorderThickness="1"
+                            Margin="0,0,8,0"
+                        />
+                        <TextBlock
+                            Foreground="{StaticResource GhTextMuted}"
+                            Text="A viewport override: the value differs from the layer's own in this viewport only. VP Plot Style is grey in a colour-dependent drawing (ByColor plot styles)."
+                        />
+                    </StackPanel>
+                    <TextBlock
+                        Foreground="{StaticResource GhTextMuted}"
+                        Margin="0,4,0,0"
+                        Visibility="{Binding HasViewportColumns, Converter={StaticResource Shown}}"
+                        Text="The VP columns show only while a layout is current; on the Model tab they are hidden. They act on the current viewport, or on the viewport selected in paper space."
+                    />
+                </StackPanel>
+                <!-- The filters: the tree (All, the filters of the drawing, the three AutoCAD makes), Invert filter, Apply to layers toolbar. -->
+                <Border
+                    DockPanel.Dock="Left"
+                    Width="230"
+                    Margin="0,0,12,0"
+                    BorderBrush="{StaticResource GhBorder}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                >
+                    <DockPanel>
+                        <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="8,5">
+                            <DockPanel>
+                                <Button
+                                    DockPanel.Dock="Right"
+                                    Style="{StaticResource GhFlatButton}"
+                                    Padding="6,2"
+                                    Content="Group"
+                                    Command="{Binding NewGroupFilterCommand}"
+                                    ToolTip="New Group Filter: an empty group, layers are dragged onto it"
+                                />
+                                <Button
+                                    DockPanel.Dock="Right"
+                                    Style="{StaticResource GhFlatButton}"
+                                    Padding="6,2"
+                                    Content="Property"
+                                    Command="{Binding NewPropertyFilterCommand}"
+                                    ToolTip="New Property Filter: opens Layer Filter Properties"
+                                />
+                                <TextBlock
+                                    Style="{StaticResource HeadCell}"
+                                    Margin="0"
+                                    VerticalAlignment="Center"
+                                    Text="Filters"
+                                />
+                            </DockPanel>
+                        </Border>
+                        <StackPanel DockPanel.Dock="Bottom" Margin="8,6">
+                            <CheckBox
+                                Style="{StaticResource Check}"
+                                Margin="0,0,0,4"
+                                Content="Invert filter"
+                                IsChecked="{Binding InvertFilter, Mode=TwoWay}"
+                                ToolTip="List the layers the filter does not let through"
+                            />
+                            <CheckBox
+                                Style="{StaticResource Check}"
+                                Margin="0,0,0,6"
+                                Content="Apply to layers toolbar"
+                                IsChecked="{Binding ApplyFilterToToolbar, Mode=TwoWay}"
+                                ToolTip="The layer box of the ribbon lists only the layers the filter lets through"
+                            />
+                            <TextBlock
+                                Foreground="{StaticResource GhTextMuted}"
+                                TextWrapping="Wrap"
+                                Text="{Binding FilterStatus}"
+                            />
+                        </StackPanel>
+                        <TreeView
+                            x:Name="Filters"
+                            ItemsSource="{Binding FilterTree}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="4,4"
+                            Foreground="{StaticResource GhText}"
+                            ItemContainerStyle="{StaticResource FilterTreeItem}"
+                            SelectedItemChanged="OnFilterSelected"
+                            PreviewKeyDown="OnFilterKey"
+                            AutomationProperties.Name="Layer filters"
+                        >
+                            <TreeView.ContextMenu>
+                                <ContextMenu Style="{StaticResource GhContextMenu}">
+                                    <MenuItem
+                                        Style="{StaticResource GhMenuItem}"
+                                        Header="New Property Filter..."
+                                        Command="{Binding NewPropertyFilterCommand}"
+                                    />
+                                    <MenuItem
+                                        Style="{StaticResource GhMenuItem}"
+                                        Header="New Group Filter"
+                                        Command="{Binding NewGroupFilterCommand}"
+                                    />
+                                    <Separator Style="{StaticResource GhMenuSeparator}" />
+                                    <MenuItem
+                                        Style="{StaticResource GhMenuItem}"
+                                        Header="Properties..."
+                                        Command="{Binding EditFilterCommand}"
+                                    />
+                                    <MenuItem
+                                        Style="{StaticResource GhMenuItem}"
+                                        Header="Convert to Group Filter"
+                                        Command="{Binding ConvertToGroupCommand}"
+                                    />
+                                    <MenuItem Style="{StaticResource GhSubmenuItem}" Header="Select Layers">
+                                        <MenuItem
+                                            Style="{StaticResource GhMenuItem}"
+                                            Header="Add"
+                                            Command="{Binding AddSelectedToGroupCommand}"
+                                            ToolTip="Adds the layers of the objects selected in the drawing"
+                                        />
+                                        <MenuItem
+                                            Style="{StaticResource GhMenuItem}"
+                                            Header="Replace"
+                                            Command="{Binding ReplaceGroupWithSelectedCommand}"
+                                            ToolTip="Replaces the layers of the group with those of the objects selected in the drawing"
+                                        />
+                                    </MenuItem>
+                                    <Separator Style="{StaticResource GhMenuSeparator}" />
+                                    <MenuItem
+                                        Style="{StaticResource GhMenuItem}"
+                                        Header="Rename"
+                                        InputGestureText="F2"
+                                        Command="{Binding RenameFilterCommand}"
+                                    />
+                                    <MenuItem
+                                        Style="{StaticResource GhMenuItem}"
+                                        Header="Delete"
+                                        InputGestureText="Del"
+                                        Command="{Binding DeleteFilterCommand}"
+                                    />
+                                </ContextMenu>
+                            </TreeView.ContextMenu>
+                            <TreeView.ItemTemplate>
+                                <HierarchicalDataTemplate
+                                    DataType="{x:Type local:LayerFilterNodeViewModel}"
+                                    ItemsSource="{Binding Children}"
+                                    ItemContainerStyle="{StaticResource FilterTreeItem}"
+                                >
+                                    <Grid>
+                                        <TextBlock
+                                            Text="{Binding Name}"
+                                            Margin="2,0"
+                                            VerticalAlignment="Center"
+                                            Visibility="{Binding IsRenaming, Converter={StaticResource Hidden}}"
+                                            ToolTip="{Binding Name}"
+                                            MouseLeftButtonDown="OnFilterNameDown"
+                                        >
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsGroup}" Value="True">
+                                                            <Setter Property="FontStyle" Value="Italic" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsOwn}" Value="False">
+                                                            <Setter
+                                                                Property="Foreground"
+                                                                Value="{StaticResource GhTextMuted}"
+                                                            />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBox
+                                            Margin="0"
+                                            Padding="2,1"
+                                            MinWidth="120"
+                                            Style="{StaticResource GhTextBox}"
+                                            Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
+                                            Visibility="{Binding IsRenaming, Converter={StaticResource Shown}}"
+                                            IsVisibleChanged="OnNameBoxShown"
+                                            PreviewKeyDown="OnFilterNameBoxKey"
+                                            LostKeyboardFocus="OnFilterNameBoxLeft"
+                                            AutomationProperties.Name="New name of the filter"
+                                        />
+                                    </Grid>
+                                </HierarchicalDataTemplate>
+                            </TreeView.ItemTemplate>
+                        </TreeView>
+                    </DockPanel>
+                </Border>
+                <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                        <DockPanel
+                            MinWidth="{Binding TableMinWidth}"
+                            Width="{Binding ViewportWidth, RelativeSource={RelativeSource AncestorType=ScrollViewer}}"
+                        >
+                            <!-- The table is given the width of the viewport (or its minimum): inside the sideways ScrollViewer it was measured at infinite width, and the list, scrolled, sized itself to the longest name it had realized. Every column is a fixed width, Name included (NameWidth, dragged by the grip), so the header's columns and a row's are the same wherever the list is scrolled; the header starts a pixel in, as the list's border does. -->
+                            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}">
+                                <Grid HorizontalAlignment="Left" Margin="1,0,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="28" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="40" />
+                                        <ColumnDefinition Width="40" />
+                                        <ColumnDefinition Width="40" />
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="104" />
+                                        <ColumnDefinition Width="92" />
+                                        <ColumnDefinition Width="112" />
+                                        <ColumnDefinition Width="48" />
+                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="1" Width="{Binding NameWidth}">
+                                        <Grid>
+                                            <TextBlock Style="{StaticResource HeadCell}" Text="Name" />
+                                            <Thumb
+                                                Style="{StaticResource NameGrip}"
+                                                DragDelta="OnNameResize"
+                                                ToolTip="Drag to resize the Name column"
+                                            />
+                                        </Grid>
+                                    </Border>
+                                    <TextBlock Grid.Column="2" Style="{StaticResource HeadCell}" Text="On" />
+                                    <TextBlock Grid.Column="3" Style="{StaticResource HeadCell}" Text="Frz" />
+                                    <TextBlock Grid.Column="4" Style="{StaticResource HeadCell}" Text="Lock" />
+                                    <TextBlock Grid.Column="5" Style="{StaticResource HeadCell}" Text="Colour" />
+                                    <TextBlock Grid.Column="6" Style="{StaticResource HeadCell}" Text="Linetype" />
+                                    <TextBlock Grid.Column="7" Style="{StaticResource HeadCell}" Text="Weight" />
+                                    <TextBlock Grid.Column="8" Style="{StaticResource HeadCell}" Text="Transparency" />
+                                    <TextBlock Grid.Column="9" Style="{StaticResource HeadCell}" Text="Plot Style" />
+                                    <TextBlock
+                                        Grid.Column="10"
+                                        Style="{StaticResource HeadCell}"
+                                        Text="Plot"
+                                        ToolTip="Plot: the layer is printed (the printer icon)"
+                                    />
+                                    <TextBlock Grid.Column="11" Style="{StaticResource HeadCell}" Text="Description" />
+                                    <StackPanel
+                                        Grid.Column="12"
+                                        Orientation="Horizontal"
+                                        Visibility="{Binding HasViewportColumns, Converter={StaticResource Shown}}"
+                                    >
+                                        <TextBlock Width="74" Style="{StaticResource VpHeadCell}" Text="VP Freeze" />
+                                        <TextBlock
+                                            Width="104"
+                                            Style="{StaticResource VpHeadCell}"
+                                            Text="New VP Freeze"
+                                        />
+                                        <TextBlock Width="110" Style="{StaticResource VpHeadCell}" Text="VP Color" />
+                                        <TextBlock Width="110" Style="{StaticResource VpHeadCell}" Text="VP Linetype" />
+                                        <TextBlock
+                                            Width="104"
+                                            Style="{StaticResource VpHeadCell}"
+                                            Text="VP Lineweight"
+                                        />
+                                        <TextBlock
+                                            Width="116"
+                                            Style="{StaticResource VpHeadCell}"
+                                            Text="VP Transparency"
+                                        />
+                                        <TextBlock
+                                            Width="110"
+                                            Style="{StaticResource VpHeadCell}"
+                                            Text="VP Plot Style"
+                                        />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                            <ListBox
+                                x:Name="Table"
+                                PreviewKeyDown="OnTableKey"
+                                ItemsSource="{Binding Rows}"
+                                SelectedItem="{Binding SelectedRow}"
+                                SelectionMode="Extended"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                HorizontalContentAlignment="Stretch"
+                                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                Foreground="{StaticResource GhText}"
+                            >
+                                <!-- The right-click menu, as AutoCAD 2021's Layer manager gives it in a layout. -->
+                                <ListBox.ContextMenu>
+                                    <ContextMenu Style="{StaticResource GhContextMenu}">
+                                        <MenuItem
+                                            Style="{StaticResource GhMenuItem}"
+                                            Header="Set current"
+                                            Command="{Binding SetCurrentCommand}"
+                                        />
+                                        <MenuItem
+                                            Style="{StaticResource GhMenuItem}"
+                                            Header="New Layer"
+                                            Command="{Binding NewLayerCommand}"
+                                        />
+                                        <MenuItem
+                                            Style="{StaticResource GhMenuItem}"
+                                            Header="New Layer VP Frozen in All Viewports"
+                                            Command="{Binding NewLayerVpFrozenCommand}"
+                                        />
+                                        <Separator Style="{StaticResource GhMenuSeparator}" />
+                                        <MenuItem
+                                            Style="{StaticResource GhMenuItem}"
+                                            Header="VP Freeze Layer in All Viewports"
+                                            Command="{Binding VpFreezeAllCommand}"
+                                        />
+                                        <MenuItem
+                                            Style="{StaticResource GhMenuItem}"
+                                            Header="VP Thaw Layer in All Viewports"
+                                            Command="{Binding VpThawAllCommand}"
+                                        />
+                                        <Separator Style="{StaticResource GhMenuSeparator}" />
+                                        <MenuItem
+                                            Style="{StaticResource GhMenuItem}"
+                                            Header="Isolate Selected Layers"
+                                            Command="{Binding IsolateCommand}"
+                                        />
+                                        <MenuItem
+                                            Style="{StaticResource GhSubmenuItem}"
+                                            Header="Remove Viewport Overrides for"
+                                        >
+                                            <MenuItem Style="{StaticResource GhSubmenuItem}" Header="Selected Layers">
+                                                <MenuItem
+                                                    Style="{StaticResource GhMenuItem}"
+                                                    Header="Current Viewport Only"
+                                                    Command="{Binding RemoveOverridesCommand}"
+                                                    CommandParameter="Selected,Current"
+                                                />
+                                                <MenuItem
+                                                    Style="{StaticResource GhMenuItem}"
+                                                    Header="All Viewports"
+                                                    Command="{Binding RemoveOverridesCommand}"
+                                                    CommandParameter="Selected,All"
+                                                />
+                                            </MenuItem>
+                                            <MenuItem Style="{StaticResource GhSubmenuItem}" Header="All Layers">
+                                                <MenuItem
+                                                    Style="{StaticResource GhMenuItem}"
+                                                    Header="Current Viewport Only"
+                                                    Command="{Binding RemoveOverridesCommand}"
+                                                    CommandParameter="All,Current"
+                                                />
+                                                <MenuItem
+                                                    Style="{StaticResource GhMenuItem}"
+                                                    Header="All Viewports"
+                                                    Command="{Binding RemoveOverridesCommand}"
+                                                    CommandParameter="All,All"
+                                                />
+                                            </MenuItem>
+                                        </MenuItem>
+                                        <Separator Style="{StaticResource GhMenuSeparator}" />
+                                        <!-- The layers chosen added to a group filter (dragging them onto it in the tree does the same). -->
+                                        <MenuItem
+                                            Style="{StaticResource GhSubmenuItem}"
+                                            Header="Add to Group Filter"
+                                            ItemsSource="{Binding GroupFilters}"
+                                        >
+                                            <MenuItem.ItemContainerStyle>
+                                                <Style TargetType="MenuItem" BasedOn="{StaticResource GhMenuItem}">
+                                                    <Setter Property="Header" Value="{Binding Name}" />
+                                                    <EventSetter Event="Click" Handler="OnAddToGroupFilter" />
+                                                </Style>
+                                            </MenuItem.ItemContainerStyle>
+                                        </MenuItem>
+                                        <Separator Style="{StaticResource GhMenuSeparator}" />
+                                        <MenuItem
+                                            Style="{StaticResource GhMenuItem}"
+                                            Header="Delete Layer"
+                                            Command="{Binding DeleteCommand}"
+                                        />
+                                        <MenuItem
+                                            Style="{StaticResource GhMenuItem}"
+                                            Header="Rename Layer"
+                                            InputGestureText="F2"
+                                            Command="{Binding RenameCommand}"
+                                        />
+                                        <Separator Style="{StaticResource GhMenuSeparator}" />
+                                        <MenuItem
+                                            Style="{StaticResource GhMenuItem}"
+                                            Header="Select All"
+                                            Command="{Binding SelectAllCommand}"
+                                        />
+                                        <MenuItem
+                                            Style="{StaticResource GhMenuItem}"
+                                            Header="Clear All"
+                                            Command="{Binding ClearAllCommand}"
+                                        />
+                                        <MenuItem
+                                            Style="{StaticResource GhMenuItem}"
+                                            Header="Select All but Current"
+                                            Command="{Binding SelectAllButCurrentCommand}"
+                                        />
+                                        <MenuItem
+                                            Style="{StaticResource GhMenuItem}"
+                                            Header="Invert Selection"
+                                            Command="{Binding InvertSelectionCommand}"
+                                        />
+                                    </ContextMenu>
+                                </ListBox.ContextMenu>
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="IsSelected" Value="{Binding IsChosen, Mode=TwoWay}" />
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="ListBoxItem">
+                                                    <Border
+                                                        x:Name="Row"
+                                                        Background="Transparent"
+                                                        BorderBrush="{StaticResource GhHeader}"
+                                                        BorderThickness="0,1,0,0"
+                                                    >
+                                                        <ContentPresenter />
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsSelected" Value="True">
+                                                            <Setter
+                                                                TargetName="Row"
+                                                                Property="Background"
+                                                                Value="{StaticResource GhSelected}"
+                                                            />
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type local:LayerRowViewModel}">
+                                        <Grid HorizontalAlignment="Left">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="40" />
+                                                <ColumnDefinition Width="40" />
+                                                <ColumnDefinition Width="40" />
+                                                <ColumnDefinition Width="120" />
+                                                <ColumnDefinition Width="120" />
+                                                <ColumnDefinition Width="104" />
+                                                <ColumnDefinition Width="92" />
+                                                <ColumnDefinition Width="112" />
+                                                <ColumnDefinition Width="48" />
+                                                <ColumnDefinition Width="190" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock
+                                                Style="{StaticResource Cell}"
+                                                Text="{Binding CurrentMark}"
+                                                Foreground="{StaticResource GhOk}"
+                                            />
+                                            <!-- The name, edited in place by F2, a slow second click, a double click or Rename Layer; one width for every row, a longer name cut with an ellipsis and shown in full as a tooltip. -->
+                                            <Border
+                                                Grid.Column="1"
+                                                Width="{Binding DataContext.NameWidth, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                            >
+                                                <Grid>
+                                                    <TextBlock
+                                                        Style="{StaticResource Cell}"
+                                                        Text="{Binding Name}"
+                                                        ToolTip="{Binding Name}"
+                                                        FontWeight="SemiBold"
+                                                        Visibility="{Binding IsRenaming, Converter={StaticResource Hidden}}"
+                                                        MouseLeftButtonDown="OnNameDown"
+                                                        MouseMove="OnNameMove"
+                                                    />
+                                                    <TextBox
+                                                        Margin="4,2"
+                                                        Padding="2,1"
+                                                        Style="{StaticResource GhTextBox}"
+                                                        FontWeight="SemiBold"
+                                                        Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
+                                                        Visibility="{Binding IsRenaming, Converter={StaticResource Shown}}"
+                                                        IsVisibleChanged="OnNameBoxShown"
+                                                        PreviewKeyDown="OnNameBoxKey"
+                                                        LostKeyboardFocus="OnNameBoxLeft"
+                                                        AutomationProperties.Name="New name of the layer"
+                                                    />
+                                                </Grid>
+                                            </Border>
+                                            <CheckBox
+                                                Grid.Column="2"
+                                                Style="{StaticResource Check}"
+                                                IsChecked="{Binding IsOn}"
+                                                ToolTip="On"
+                                            />
+                                            <CheckBox
+                                                Grid.Column="3"
+                                                Style="{StaticResource Check}"
+                                                IsChecked="{Binding IsFrozen}"
+                                                ToolTip="Frozen"
+                                            />
+                                            <CheckBox
+                                                Grid.Column="4"
+                                                Style="{StaticResource Check}"
+                                                IsChecked="{Binding IsLocked}"
+                                                ToolTip="Locked"
+                                            />
+                                            <!-- The colour cell, clicked: AutoCAD's Select Color dialog. -->
+                                            <Button
+                                                Grid.Column="5"
+                                                Margin="8,2"
+                                                Style="{StaticResource GhFlatButton}"
+                                                HorizontalContentAlignment="Left"
+                                                Padding="4,3"
+                                                Command="{Binding ChooseColorCommand}"
+                                                ToolTip="Colour: click to choose one of the index or a true colour"
+                                            >
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border
+                                                        Width="12"
+                                                        Height="12"
+                                                        BorderBrush="{StaticResource GhBorder}"
+                                                        BorderThickness="1"
+                                                        Margin="0,0,6,0"
+                                                        Background="{Binding Rgb, Converter={StaticResource RgbBrush}}"
+                                                        VerticalAlignment="Center"
+                                                    />
+                                                    <TextBlock
+                                                        Text="{Binding ColorName}"
+                                                        VerticalAlignment="Center"
+                                                        TextTrimming="CharacterEllipsis"
+                                                    />
+                                                </StackPanel>
+                                            </Button>
+                                            <!-- The linetype cell, clicked: AutoCAD's Select Linetype dialog. -->
+                                            <Button
+                                                Grid.Column="6"
+                                                Margin="8,2"
+                                                Style="{StaticResource GhFlatButton}"
+                                                HorizontalContentAlignment="Left"
+                                                Padding="4,3"
+                                                Command="{Binding ChooseLinetypeCommand}"
+                                                ToolTip="Linetype: click to choose one loaded, or load one"
+                                            >
+                                                <TextBlock
+                                                    Text="{Binding Linetype}"
+                                                    FontFamily="{StaticResource GhMonoFont}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                />
+                                            </Button>
+                                            <ComboBox
+                                                Grid.Column="7"
+                                                Style="{StaticResource GhComboBox}"
+                                                Margin="8,2"
+                                                FontFamily="{StaticResource GhMonoFont}"
+                                                ItemsSource="{Binding WeightOptions}"
+                                                SelectedItem="{Binding Weight, Mode=TwoWay}"
+                                                ToolTip="Lineweight"
+                                            />
+                                            <!-- Transparency in per cent, 0 to 90, typed or chosen; set when the cell is left or Enter is pressed. -->
+                                            <ComboBox
+                                                Grid.Column="8"
+                                                Style="{StaticResource GhComboBox}"
+                                                Margin="8,2"
+                                                IsEditable="True"
+                                                FontFamily="{StaticResource GhMonoFont}"
+                                                ItemsSource="{Binding TransparencyChoices}"
+                                                Text="{Binding Transparency, UpdateSourceTrigger=LostFocus}"
+                                                DropDownClosed="OnCellDropDownClosed"
+                                                PreviewKeyDown="OnCellKey"
+                                                ToolTip="Transparency of the layer in per cent, 0 to 90"
+                                                AutomationProperties.Name="Transparency"
+                                            />
+                                            <!-- The plot style: grey Color_N while the drawing plots by colour, else one of its plot style names. -->
+                                            <Grid Grid.Column="9">
+                                                <TextBlock
+                                                    Style="{StaticResource Cell}"
+                                                    Text="{Binding PlotStyle, Mode=OneWay}"
+                                                    FontFamily="{StaticResource GhMonoFont}"
+                                                    Foreground="{StaticResource GhTextMuted}"
+                                                    ToolTip="A drawing plotted by colour (CTB) has no plot style of a layer"
+                                                    Visibility="{Binding CanEditPlotStyle, Converter={StaticResource Hidden}}"
+                                                />
+                                                <ComboBox
+                                                    Style="{StaticResource GhComboBox}"
+                                                    Margin="8,2"
+                                                    FontFamily="{StaticResource GhMonoFont}"
+                                                    ItemsSource="{Binding PlotStyleChoices}"
+                                                    SelectedItem="{Binding PlotStyle, Mode=TwoWay}"
+                                                    ToolTip="Plot style of the layer"
+                                                    Visibility="{Binding CanEditPlotStyle, Converter={StaticResource Shown}}"
+                                                />
+                                            </Grid>
+                                            <CheckBox
+                                                Grid.Column="10"
+                                                Style="{StaticResource Check}"
+                                                IsChecked="{Binding IsPlotted}"
+                                                ToolTip="Plot: the layer is printed"
+                                                AutomationProperties.Name="Plot"
+                                            >
+                                                <local:IconView
+                                                    Size="14"
+                                                    StrokeThickness="1.6"
+                                                    Stroke="{StaticResource GhTextMuted}"
+                                                    Data="{StaticResource GhIconPlot}"
+                                                />
+                                            </CheckBox>
+                                            <TextBox
+                                                Grid.Column="11"
+                                                Margin="8,2"
+                                                Padding="2,1"
+                                                Style="{StaticResource GhTextBox}"
+                                                Text="{Binding Description, UpdateSourceTrigger=LostFocus}"
+                                                PreviewKeyDown="OnCellKey"
+                                                ToolTip="Description of the layer"
+                                                AutomationProperties.Name="Description"
+                                            />
+                                            <!-- The VP cells, acting on the viewport worked through or selected; an override marked. -->
+                                            <StackPanel
+                                                Grid.Column="12"
+                                                Orientation="Horizontal"
+                                                Visibility="{Binding DataContext.HasViewportColumns, RelativeSource={RelativeSource AncestorType=ListBox}, Converter={StaticResource Shown}}"
+                                                IsEnabled="{Binding DataContext.HasTargetViewport, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                            >
+                                                <Border
+                                                    Width="74"
+                                                    Style="{StaticResource VpCell}"
+                                                    Tag="{Binding IsVpFrozen}"
+                                                >
+                                                    <CheckBox
+                                                        Style="{StaticResource Check}"
+                                                        Margin="6,0"
+                                                        IsChecked="{Binding IsVpFrozen}"
+                                                        ToolTip="Frozen in this viewport"
+                                                    />
+                                                </Border>
+                                                <Border Width="104" Style="{StaticResource VpCell}">
+                                                    <CheckBox
+                                                        Style="{StaticResource Check}"
+                                                        Margin="6,0"
+                                                        IsChecked="{Binding IsNewVpFrozen}"
+                                                        ToolTip="Frozen in new viewports"
+                                                    />
+                                                </Border>
+                                                <Border
+                                                    Width="110"
+                                                    Style="{StaticResource VpCell}"
+                                                    Tag="{Binding IsVpColorOverridden}"
+                                                >
+                                                    <Button
+                                                        Style="{StaticResource GhFlatButton}"
+                                                        HorizontalContentAlignment="Left"
+                                                        Padding="4,3"
+                                                        Margin="2,1"
+                                                        Command="{Binding ChooseVpColorCommand}"
+                                                        ToolTip="Colour in this viewport: click to override it"
+                                                    >
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Border
+                                                                Width="12"
+                                                                Height="12"
+                                                                BorderBrush="{StaticResource GhBorder}"
+                                                                BorderThickness="1"
+                                                                Margin="0,0,6,0"
+                                                                Background="{Binding VpRgb, Converter={StaticResource RgbBrush}}"
+                                                                VerticalAlignment="Center"
+                                                            />
+                                                            <TextBlock
+                                                                Text="{Binding VpColorName}"
+                                                                FontFamily="{StaticResource GhMonoFont}"
+                                                                VerticalAlignment="Center"
+                                                                TextTrimming="CharacterEllipsis"
+                                                            />
+                                                        </StackPanel>
+                                                    </Button>
+                                                </Border>
+                                                <Border
+                                                    Width="110"
+                                                    Style="{StaticResource VpCell}"
+                                                    Tag="{Binding IsVpLinetypeOverridden}"
+                                                >
+                                                    <Button
+                                                        Style="{StaticResource GhFlatButton}"
+                                                        HorizontalContentAlignment="Left"
+                                                        Padding="4,3"
+                                                        Margin="2,1"
+                                                        Command="{Binding ChooseVpLinetypeCommand}"
+                                                        ToolTip="Linetype in this viewport: click to override it"
+                                                    >
+                                                        <TextBlock
+                                                            Text="{Binding VpLinetype}"
+                                                            FontFamily="{StaticResource GhMonoFont}"
+                                                            TextTrimming="CharacterEllipsis"
+                                                        />
+                                                    </Button>
+                                                </Border>
+                                                <Border
+                                                    Width="104"
+                                                    Style="{StaticResource VpCell}"
+                                                    Tag="{Binding IsVpWeightOverridden}"
+                                                >
+                                                    <ComboBox
+                                                        Style="{StaticResource GhComboBox}"
+                                                        Margin="2,1"
+                                                        FontFamily="{StaticResource GhMonoFont}"
+                                                        ItemsSource="{Binding WeightOptions}"
+                                                        SelectedItem="{Binding VpWeight, Mode=TwoWay}"
+                                                        ToolTip="Lineweight in this viewport"
+                                                    />
+                                                </Border>
+                                                <Border
+                                                    Width="116"
+                                                    Style="{StaticResource VpCell}"
+                                                    Tag="{Binding IsVpTransparencyOverridden}"
+                                                >
+                                                    <ComboBox
+                                                        Style="{StaticResource GhComboBox}"
+                                                        Margin="2,1"
+                                                        FontFamily="{StaticResource GhMonoFont}"
+                                                        ItemsSource="{Binding TransparencyOptions}"
+                                                        SelectedItem="{Binding VpTransparency, Mode=TwoWay}"
+                                                        ToolTip="Transparency in this viewport, per cent"
+                                                    />
+                                                </Border>
+                                                <Border
+                                                    Width="110"
+                                                    Style="{StaticResource VpCell}"
+                                                    Tag="{Binding IsVpPlotStyleOverridden}"
+                                                >
+                                                    <Grid>
+                                                        <TextBlock
+                                                            Style="{StaticResource Cell}"
+                                                            Margin="6,5"
+                                                            Text="{Binding VpPlotStyle, Mode=OneWay}"
+                                                            FontFamily="{StaticResource GhMonoFont}"
+                                                            Foreground="{StaticResource GhTextMuted}"
+                                                            ToolTip="A drawing plotted by colour (CTB) has no plot style of a layer"
+                                                            Visibility="{Binding DataContext.HasNamedPlotStyles, RelativeSource={RelativeSource AncestorType=ListBox}, Converter={StaticResource Hidden}}"
+                                                        />
+                                                        <ComboBox
+                                                            Style="{StaticResource GhComboBox}"
+                                                            Margin="2,1"
+                                                            FontFamily="{StaticResource GhMonoFont}"
+                                                            ItemsSource="{Binding PlotStyleOptions}"
+                                                            SelectedItem="{Binding VpPlotStyle, Mode=TwoWay}"
+                                                            ToolTip="Plot style in this viewport"
+                                                            Visibility="{Binding DataContext.HasNamedPlotStyles, RelativeSource={RelativeSource AncestorType=ListBox}, Converter={StaticResource Shown}}"
+                                                        />
+                                                    </Grid>
+                                                </Border>
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                    </ScrollViewer>
+                </Border>
+            </DockPanel>
+        </DockPanel>
+    </Border>
+</Window>

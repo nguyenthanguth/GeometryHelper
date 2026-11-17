@@ -4,12 +4,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
+using GeometryHelper.Cad;
+using GeometryHelper.Cad.Plugins;
+using GeometryHelper.Cad.Wpf;
 using GeometryHelper.Drawing.Plugins;
 using GeometryHelper.Drawing.Wpf;
 using GeometryHelper.Dxf;
-using GeometryHelper.Dxf.Viewer;
-using GeometryHelper.Dxf.Viewer.Plugins;
-using GeometryHelper.Dxf.Viewer.Wpf;
 
 namespace GeometryHelper.Drawing.App
 {

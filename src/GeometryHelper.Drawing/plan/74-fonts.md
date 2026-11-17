@@ -44,7 +44,7 @@ Research note of 2026-11-09, and what was built from it. Repair of damaged files
   else replaced by FONTALT (simplex.shx by default), else AutoCAD asks for one. The installation folder is in the registry
   under `HKLM\SOFTWARE\Autodesk\AutoCAD\R24.0\ACAD-4101:409\AcadLocation` (D:\Autodesk\AutoCAD\AutoCAD 2021 here).
 
-## What was built (src/GeometryHelper.Dxf.Viewer/Fonts)
+## What was built (src/GeometryHelper.Cad/Fonts)
 
 - `ShxFont` reads the three forms and draws each letter into strokes (polylines in font units, arcs in chords of at most
   11.25 degrees) and its advance, kept per letter; it follows the library's measuring reader in every choice it made

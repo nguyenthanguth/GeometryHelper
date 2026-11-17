@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Threading;
-using GeometryHelper.Dxf.Viewer.Wpf;
+using GeometryHelper.Cad.Wpf;
 
 namespace GeometryHelper.Drawing.Wpf
 {

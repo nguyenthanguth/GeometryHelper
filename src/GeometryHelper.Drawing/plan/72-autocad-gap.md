@@ -4,7 +4,7 @@ Superseded on 2026-11-10 by [73-autocad-parity.md](73-autocad-parity.md); kept f
 
 A list, made on 2026-11-08 after the user found the Annotate and View tabs dead, of what AutoCAD 2021's ribbon (its six
 tabs Home, Insert, Annotate, View, Manage, Output), quick access toolbar, status bar and command set have, against what
-Part A (the 2D presenter: `GeometryHelper.Dxf.Viewer`, `.Dxf.Viewer.Wpf`, `Drawing.App`) has. Each item is marked:
+Part A (the 2D presenter: `GeometryHelper.Cad`, `.Cad.Wpf`, `Drawing.App`) has. Each item is marked:
 
 - **built**: there, and reached from where AutoCAD puts it; **(r1)** marks what the round "ribbon1" added, **(g1)** what
   the round "cmdgaps" added (commands typed only: no ribbon button yet), **(c56)** what phases C5 and C6 added.

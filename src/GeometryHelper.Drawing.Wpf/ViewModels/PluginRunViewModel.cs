@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Input;
+using GeometryHelper.Cad.Wpf;
 using GeometryHelper.Drawing.Plugins;
-using GeometryHelper.Dxf.Viewer.Wpf;
 
 namespace GeometryHelper.Drawing.Wpf
 {

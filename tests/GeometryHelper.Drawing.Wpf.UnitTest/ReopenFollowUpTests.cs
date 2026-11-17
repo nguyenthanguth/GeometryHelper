@@ -4,9 +4,9 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using GeometryHelper.Cad;
+using GeometryHelper.Cad.Wpf;
 using GeometryHelper.Dxf;
-using GeometryHelper.Dxf.Viewer;
-using GeometryHelper.Dxf.Viewer.Wpf;
 using GeometryHelper.Geometry;
 using Xunit;
 

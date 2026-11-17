@@ -3,16 +3,16 @@
 How a space of the presenter is plotted, as AutoCAD 2021 plots it: the page setup a layout keeps, the named page setups
 of a drawing, the sheet the plot is laid on, the plot style tables, the PDF the presenter writes, printing on a printer of
 Windows, and the commands PLOT (Ctrl+P), -PLOT, PREVIEW and PAGESETUP. The page setup and the sheet are worked out by
-[`CadPlotSettings`](xref:GeometryHelper.Dxf.Viewer.CadPlotSettings) and
-[`CadPlotPage`](xref:GeometryHelper.Dxf.Viewer.CadPlotPage) with no window; the PDF is written by the controls'
+[`CadPlotSettings`](xref:GeometryHelper.Cad.CadPlotSettings) and
+[`CadPlotPage`](xref:GeometryHelper.Cad.CadPlotPage) with no window; the PDF is written by the controls'
 `CadPdfWriter`, through SkiaSharp. Every example below was run on a plan of model space: a frame from (120, 60) to
 (7 620, 5 360), 7 500 by 5 300, with ROOM 1 inside it in Arial.
 
 ## The page setup
 
 A drawing keeps how each space is plotted in the plot settings of its LAYOUT, model space's in the layout Model: the part
-AcDbPlotSettings that AutoCAD writes. [`CadPlotSettings.Read`](xref:GeometryHelper.Dxf.Viewer.CadPlotSettings) takes them
-from there, and [`ApplyTo`](xref:GeometryHelper.Dxf.Viewer.CadPlotSettings) writes them back as one undo step named PLOT,
+AcDbPlotSettings that AutoCAD writes. [`CadPlotSettings.Read`](xref:GeometryHelper.Cad.CadPlotSettings) takes them
+from there, and [`ApplyTo`](xref:GeometryHelper.Cad.CadPlotSettings) writes them back as one undo step named PLOT,
 as Apply to Layout does:
 
 ```csharp
@@ -46,14 +46,14 @@ the same with it on or off.
 A sheet the layout names is the standard one of its name and margins, else one made of the layout's size and margins,
 so a layout of `LAYOUT New`, A3 with margins of 7.5 at the sides and 20 above and below, plots on the sheet its tab shows.
 The page setups of the drawing's ACAD_PLOTSETTINGS are listed by
-[`PageSetupNames`](xref:GeometryHelper.Dxf.Viewer.CadPlotSettings) and read by
-[`ReadPageSetup`](xref:GeometryHelper.Dxf.Viewer.CadPlotSettings); keeping them is under
+[`PageSetupNames`](xref:GeometryHelper.Cad.CadPlotSettings) and read by
+[`ReadPageSetup`](xref:GeometryHelper.Cad.CadPlotSettings); keeping them is under
 [Named page setups](#named-page-setups).
 
 ## The sheet
 
-[`CadPaper.Standard`](xref:GeometryHelper.Dxf.Viewer.CadPaper) lists the sheets of GeometryHelper PDF: ISO A0 to A4 and
-ANSI A to E, each on its side, with margins of 5 all round. [`CadPlotPage.Compute`](xref:GeometryHelper.Dxf.Viewer.CadPlotPage)
+[`CadPaper.Standard`](xref:GeometryHelper.Cad.CadPaper) lists the sheets of GeometryHelper PDF: ISO A0 to A4 and
+ANSI A to E, each on its side, with margins of 5 all round. [`CadPlotPage.Compute`](xref:GeometryHelper.Cad.CadPlotPage)
 lays a plot on its sheet:
 
 ```csharp
@@ -75,14 +75,14 @@ CadPlotPage page = CadPlotPage.Compute(document, document.ModelSpace, settings, 
 | Display | what the view shows, the extents where no view is given |
 | View | the window of a named view of the space's kind (`CadPlotSettings.ViewName`): a view 2 000 wide and 1 000 high about (3 000, 2 000) plots (2 000, 1 500) to (4 000, 2 500), at 0.205 on A3 fitted; a view the drawing lacks plots the extents; a twist is not applied |
 
-[`CadPlotScale.ListFor`](xref:GeometryHelper.Dxf.Viewer.CadPlotScale) gives the Scale list: 1:1, 1:2, 1:5, 1:10, 1:20,
+[`CadPlotScale.ListFor`](xref:GeometryHelper.Cad.CadPlotScale) gives the Scale list: 1:1, 1:2, 1:5, 1:10, 1:20,
 1:50, 1:100, 1:200, 1:500 and 1:1000, then the scales of the drawing's own list that are none of those.
 
 ## Plot style tables
 
 A plot style table is a `.ctb` file (colour-dependent: 255 styles, one for each colour of AutoCAD's index) or a `.stb`
 file (named: Normal and the styles a drawing's objects and layers are given by name), as AutoCAD keeps them.
-[`CadPlotStyleSheet`](xref:GeometryHelper.Dxf.Viewer.CadPlotStyleSheet) reads and writes both:
+[`CadPlotStyleSheet`](xref:GeometryHelper.Cad.CadPlotStyleSheet) reads and writes both:
 
 ```csharp
 CadPlotStyleSheet sheet = CadPlotStyleSheet.Load(@"D:\Plot Styles\site.ctb");
@@ -121,7 +121,7 @@ A colour-dependent table gives an object the style of its colour: a true colour 
 index nearest it (white is 7), and plots in its own colour where the style's colour is the object's. A named table gives it
 the style its entity names (group 380 of 3 and 390, the entry of the drawing's ACAD_PLOTSTYLENAME), else its layer's (group
 390 of the layer), else Normal; ByBlock is taken as Normal, and a block reference given a style gives it to everything it
-draws. [`CadPlotStyleResolver`](xref:GeometryHelper.Dxf.Viewer.CadPlotStyleResolver) does it for the items of a plot and
+draws. [`CadPlotStyleResolver`](xref:GeometryHelper.Cad.CadPlotStyleResolver) does it for the items of a plot and
 is open to a caller that plots by itself:
 
 ```csharp
@@ -135,11 +135,11 @@ that is empty, the folder `PlotStyles` beside the settings file (`%AppData%\Geom
 presenter makes it as it starts and writes the tables it makes itself there where they are missing, never replacing one
 the user edited: `acad.ctb` (changes nothing), `monochrome.ctb` (every colour black), `grayscale.ctb`, `Screening 25%.ctb`,
 50 and 75, and `acad.stb`, `monochrome.stb`, `grayscale.stb`. None is a file of AutoCAD's.
-[`CadDocument.PlotStyleFolder`](xref:GeometryHelper.Dxf.Viewer.CadDocument) is the folder a document plots from; left empty
+[`CadDocument.PlotStyleFolder`](xref:GeometryHelper.Cad.CadDocument) is the folder a document plots from; left empty
 no disk is read and the built-in tables stand in, as does a built-in table missing from the folder.
 A table a drawing names that is not found, and is none of those, plots as None.
 
-**The plot style table settings.** [`CadPlotSettings.StyleSheet`](xref:GeometryHelper.Dxf.Viewer.CadPlotSettings) is the
+**The plot style table settings.** [`CadPlotSettings.StyleSheet`](xref:GeometryHelper.Cad.CadPlotSettings) is the
 table's file name (group 7 of the plot settings), kept as the drawing spells it; `StyleTable` is the way in for the three
 tables first made in code (`monochrome.ctb`, `grayscale.ctb`, none).
 
@@ -160,7 +160,7 @@ was written, Edit… (or a double-click), New…, Delete and Open folder. With n
 Not done: Edit Lineweights, the Add-A-Plot-Style-Table wizard's other sources (PCP and PC2 files), CONVERTCTB and
 CONVERTPSTYLES, and the fill style of a filled area.
 
-**The colours of the three first tables.** [`CadPlotStyles.Map`](xref:GeometryHelper.Dxf.Viewer.CadPlotStyles) gives the
+**The colours of the three first tables.** [`CadPlotStyles.Map`](xref:GeometryHelper.Cad.CadPlotStyles) gives the
 colour an object plots in with each of the three tables first made in code, which a table not found falls back to, and
 which `monochrome.ctb`, `grayscale.ctb` and `acad.ctb` of the folder give in the same colours:
 
@@ -260,7 +260,7 @@ Where says what the printer prints to: the port of a local printer (`USB001`), t
 unticked, as AutoCAD leaves it; ticked, OK writes "Plot to file is not supported for this printer" in the footer and prints
 nothing, a plot not being written through a printer's driver to a file. Number of copies takes 1 to 999.
 
-OK on a printer draws the plot as the PDF writer does, through the same page [`CadPlotPage`](xref:GeometryHelper.Dxf.Viewer.CadPlotPage)
+OK on a printer draws the plot as the PDF writer does, through the same page [`CadPlotPage`](xref:GeometryHelper.Cad.CadPlotPage)
 lays out, with the same scale, offset, centring, turn, plot style table and lineweights, then hands it to the printer; no
 file is asked. "Plot sent to Office printer." is written on the command line, or "The plot was not printed:" and the
 printer's reason where it does not take the job. Save changes to layout writes the printer's name as the layout's plotter (group 2),
@@ -280,7 +280,7 @@ under, 160 dots to the inch for A0. A printer is reached through
 
 A drawing keeps named page setups as PLOTSETTINGS in its dictionary ACAD_PLOTSETTINGS, in a DXF and in a DWG, as AutoCAD does.
 A name is any of up to 255 letters but `< > / \ " : ; ? * | , = ` and a back quote
-([`CheckPageSetupName`](xref:GeometryHelper.Dxf.Viewer.CadPlotSettings)). Each of these is one undo step named PAGESETUP:
+([`CheckPageSetupName`](xref:GeometryHelper.Cad.CadPlotSettings)). Each of these is one undo step named PAGESETUP:
 
 | Member | What it does |
 |---|---|
@@ -385,7 +385,7 @@ the cursor, the grips, the UCS icon or the highlight of a selection. Objects sel
 without the grid. A PNG is 8-bit red, green and blue; a JPEG is written at a quality of 90; a bitmap is 24 bits a pixel,
 as BMPOUT's. The same view gives the same bytes. Nothing is printed when the file is written, and the drawing is not
 changed, so there is no undo step. With no window, `CadRasterWriter` of the window's library
-writes the [`CadImageJob`](xref:GeometryHelper.Dxf.Viewer.CadImageJob) the command hands over, at the session's view, or
+writes the [`CadImageJob`](xref:GeometryHelper.Cad.CadImageJob) the command hands over, at the session's view, or
 at 1 920 by 1 080 showing the extents where there is none. A view of 1 920 by 1 080 of a drawing of 100 000 entities is
 written as a PNG of 1.2 MB in 0.25 s (.NET Framework 4.8; 0.20 s on .NET 10).
 
@@ -393,7 +393,7 @@ written as a PNG of 1.2 MB in 0.25 s (.NET Framework 4.8; 0.20 s on .NET 10).
 
 EXPORT asks for the file in the window's Export Data dialog, which lists the types AutoCAD 2021's help gives for it: 3D
 DWF, 3D DWFx, ACIS, Bitmap, Block, DXX Extract, Encapsulated PS, IGES, Lithography, Metafile, V7 DGN and V8 DGN
-([`CadExportJob.ExportFileTypes`](xref:GeometryHelper.Dxf.Viewer.CadExportJob)). Bitmap goes on as BMPOUT does, with
+([`CadExportJob.ExportFileTypes`](xref:GeometryHelper.Cad.CadExportJob)). Bitmap goes on as BMPOUT does, with
 `Select objects or <all objects and viewports>:`. Metafile, Encapsulated PS, Block, DXX Extract and Lithography go on as
 the commands that write them, after the file the dialog chose ([below](#wmfout-psout-stlout-and-svgout)); the types
 the presenter has no writer for (3D DWF, 3D DWFx, ACIS, IGES, V7 DGN and V8 DGN) are refused and nothing is written:
@@ -422,7 +422,7 @@ sheet and plotted by its own page setup, or by the detailed configuration where 
 the drawing's name, `C:\Plans\plan-level2.pdf`. A drawing of Layout1 on ISO A3 and Layout2 on ISO A1 is a PDF of two pages,
 1 190.5512 by 841.8898 and 2 383.937 by 1 683.7795 points, by
 `CadPdfWriter.WritePages` from the request -PLOT whose payload is a
-[`CadPlotBook`](xref:GeometryHelper.Dxf.Viewer.CadPlotBook).
+[`CadPlotBook`](xref:GeometryHelper.Cad.CadPlotBook).
 
 ## WMFOUT, PSOUT, STLOUT and SVGOUT
 
@@ -516,7 +516,7 @@ EXPORTPDF (`EPDF`) shows the window's Save As PDF dialog, as AutoCAD 2021's: the
 Save writes the PDF by the writer of -PLOT; Cancel writes nothing. A window that shows no Save As PDF (a host that has not
 set `MainViewModel.ShowSaveAsPdf`) shows the Save dialog alone and writes the current layout, or the display of model
 space, by its page setup, as before. The command hangs the dialog's choices on its file request as
-[`CadExportJob.PdfOptions`](xref:GeometryHelper.Dxf.Viewer.CadExportJob), and asks the window to open the PDF by the request
+[`CadExportJob.PdfOptions`](xref:GeometryHelper.Cad.CadExportJob), and asks the window to open the PDF by the request
 OPENINVIEWER, the file its payload. With FILEDIA 0, or with no window, EXPORTPDF asks -EXPORT's questions on the command
 line, which are the way to choose the area (`Enter plot area [Display/Extents/Window] <Display>:`, or `[Current layout/All
 layouts]` on a layout) and to override the page setup (`Detailed plot configuration? [Yes/No] <No>:`), then `Enter file
@@ -605,14 +605,14 @@ file (it has no `[DWF6Version]`) is told `Error reading list file.`
 file and publishes it at once, with no dialog: `Could not locate sheet list file.` where it is not there, `Error reading list
 file.`, and `There were no plottable sheets in the current operation.` where no sheet of it can be published, the words of
 AutoCAD 2021's own string table. With no window, or CMDDIA 0, PUBLISH asks the same question. The classes are
-[`CadPublishList`](xref:GeometryHelper.Dxf.Viewer.CadPublishList) (the sheets, the options, `Load`, `Save`, `Plan`),
-[`CadPublishOptions`](xref:GeometryHelper.Dxf.Viewer.CadPublishOptions) and
-[`CadDsdFile`](xref:GeometryHelper.Dxf.Viewer.CadDsdFile); the window's `CadPublisher` carries the plan out.
+[`CadPublishList`](xref:GeometryHelper.Cad.CadPublishList) (the sheets, the options, `Load`, `Save`, `Plan`),
+[`CadPublishOptions`](xref:GeometryHelper.Cad.CadPublishOptions) and
+[`CadDsdFile`](xref:GeometryHelper.Cad.CadDsdFile); the window's `CadPublisher` carries the plan out.
 
 ## PLOTSTAMP and -PLOTSTAMP
 
 A plot stamp is a few lines of text in a corner of the sheet, and the same words added to a log file.
-[`CadPlotStamp`](xref:GeometryHelper.Dxf.Viewer.CadPlotStamp) holds its settings, kept for the window (every drawing open
+[`CadPlotStamp`](xref:GeometryHelper.Cad.CadPlotStamp) holds its settings, kept for the window (every drawing open
 shares one, as AutoCAD stamps every plot of a session) and off until it is switched on. PLOTSTAMP (`DDPLOTSTAMP`) and
 -PLOTSTAMP ask AutoCAD 2021's question, in its words as its console writes them, and come back to it after each option
 until Enter:
@@ -637,7 +637,7 @@ font (`Segoe UI`), the height (`0.2000`) and `Place plot stamp on single line? [
 units [Inches/Millimeters/Pixels] <Inches>:`; the offset and the height are in those units, a pixel being 1/96 inch.
 
 While the stamp is on, PLOT, -PLOT, EXPORTPDF and -EXPORT give the PDF they write a copy of it
-([`CadPlotSettings.PlotStamp`](xref:GeometryHelper.Dxf.Viewer.CadPlotSettings)), and GeometryHelper PDF draws it as text, so
+([`CadPlotSettings.PlotStamp`](xref:GeometryHelper.Cad.CadPlotSettings)), and GeometryHelper PDF draws it as text, so
 that a reader finds it. The fields come in AutoCAD's order: the drawing (with its folder), the layout, the date and time
 (`2026-06-09 14:05:09`), the login name, the plotter, the sheet, the scale (`1:20`), then the two user fields that are not
 empty; each is a line, or all in one line set apart by two spaces with Single line. With AutoCAD's start-up values a plot of
@@ -677,7 +677,7 @@ in the canvas's own font and a letter opaque by 1 part in 255, which a PDF reade
 sheet (a plot of ROOM 1 in ghsimplex differs from one without by no more than one level in a pixel). AutoCAD writes the
 text as comments of the PDF; the presenter writes it as the page's text. AutoCAD's initial value is 0, as here; its console
 here had 1, a profile that had set it. Only the PDF writer reads PDFSHX, and a drawing keeps it nowhere.
-[`CadPlotSettings.PdfShx`](xref:GeometryHelper.Dxf.Viewer.CadPlotSettings) carries it.
+[`CadPlotSettings.PdfShx`](xref:GeometryHelper.Cad.CadPlotSettings) carries it.
 
 ## IMPORT
 

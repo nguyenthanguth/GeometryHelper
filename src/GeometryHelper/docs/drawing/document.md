@@ -25,7 +25,7 @@ DrawingDocumentStore.Write(database, records);                                  
 One XRECORD holds all the records because a dictionary takes its entries one at a time: a document of 10 000 records is written
 twice, saved, opened and read back in 0.14 s, where an XRECORD of its own for each record took 108 s. Each record holds its
 fields one after the other with no names: a view or an annotation its id, kind and view id, its links and its values; an edit its
-object id, its kind (the name of a [`CadEditKind`](xref:GeometryHelper.Dxf.Viewer.CadEditKind)), its property and its old and new values; a plugin run its id, plugin, version
+object id, its kind (the name of a [`CadEditKind`](xref:GeometryHelper.Cad.CadEditKind)), its property and its old and new values; a plugin run its id, plugin, version
 and view id, its inputs (links) and its settings. A text is a group 1 and a group 3 for each 250 characters past the first, with a
 per cent sign, a backslash and control characters written as `%` and two hexadecimal digits, so a line feed is `%0A` and a null
 text a lone `%`. Coordinates are written in the fewest digits that read back to the same bits.
@@ -61,7 +61,7 @@ changes the values and places are worked out again, and a link whose object has 
 
 ## The tag on each entity
 
-Each entity the drawing writes carries a [`CadOwnerTag`](xref:GeometryHelper.Dxf.Viewer.CadOwnerTag) of the owner
+Each entity the drawing writes carries a [`CadOwnerTag`](xref:GeometryHelper.Cad.CadOwnerTag) of the owner
 `GeometryHelper.Drawing`, the id of the element it draws and the id of the view it is in. [`DrawingEntityTags`](xref:GeometryHelper.Drawing.DrawingEntityTags)
 makes and reads it:
 

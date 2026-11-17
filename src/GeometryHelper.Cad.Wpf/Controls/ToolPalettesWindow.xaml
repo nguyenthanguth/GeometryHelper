@@ -1,0 +1,361 @@
+<Window
+    x:Class="GeometryHelper.Cad.Wpf.ToolPalettesWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Cad.Wpf"
+    Title="Tool Palettes"
+    Width="340"
+    Height="640"
+    MinWidth="220"
+    MinHeight="240"
+    WindowStyle="None"
+    ResizeMode="CanResizeWithGrip"
+    ShowInTaskbar="False"
+    WindowStartupLocation="Manual"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Cad.Wpf;component/Themes/BlockDialogs.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Cad.Wpf;component/Themes/Icons.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <local:ToolIconConverter x:Key="ToolIcon" />
+            <local:ToolRowWidthConverter x:Key="RowWidth" />
+
+            <!-- A button of the title row: dark, outlined. -->
+            <Style x:Key="TpTool" TargetType="Button" BasedOn="{StaticResource GhDialogButton}">
+                <Setter Property="Padding" Value="8,2" />
+                <Setter Property="FontSize" Value="13" />
+            </Style>
+
+            <!-- A tool, a line of text or a separator of the palette: the chosen ones are on the selected colour. -->
+            <Style x:Key="TpItem" TargetType="ListBoxItem">
+                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="Margin" Value="2" />
+                <Setter Property="ToolTip" Value="{Binding Tooltip}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                            <Border
+                                x:Name="Cell"
+                                Background="Transparent"
+                                BorderBrush="Transparent"
+                                BorderThickness="1"
+                                CornerRadius="3"
+                            >
+                                <ContentPresenter />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Cell" Property="Background" Value="{StaticResource GhHover}" />
+                                    <Setter
+                                        TargetName="Cell"
+                                        Property="BorderBrush"
+                                        Value="{StaticResource GhBorder}"
+                                    />
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter
+                                        TargetName="Cell"
+                                        Property="Background"
+                                        Value="{StaticResource GhSelected}"
+                                    />
+                                    <Setter
+                                        TargetName="Cell"
+                                        Property="BorderBrush"
+                                        Value="{StaticResource GhAccent}"
+                                    />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- The tab of a palette, along the right edge: its name turned a quarter, the one shown on the header's colour. -->
+            <Style x:Key="TpTab" TargetType="ListBoxItem">
+                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="IsSelected" Value="{Binding IsActive, Mode=OneWay}" />
+                <Setter Property="ToolTip" Value="{Binding Name}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                            <Border
+                                x:Name="Tab"
+                                Background="Transparent"
+                                BorderBrush="{StaticResource GhBorder}"
+                                BorderThickness="1,1,0,1"
+                                CornerRadius="4,0,0,4"
+                                Margin="0,0,0,3"
+                                Padding="3,8"
+                            >
+                                <TextBlock
+                                    Text="{Binding Name}"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    FontWeight="Medium"
+                                    MaxWidth="150"
+                                    TextTrimming="CharacterEllipsis"
+                                    HorizontalAlignment="Center"
+                                >
+                                    <TextBlock.LayoutTransform>
+                                        <RotateTransform Angle="90" />
+                                    </TextBlock.LayoutTransform>
+                                </TextBlock>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Tab" Property="Background" Value="{StaticResource GhHover}" />
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter
+                                        TargetName="Tab"
+                                        Property="Background"
+                                        Value="{StaticResource GhSelected}"
+                                    />
+                                    <Setter TargetName="Tab" Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- A tool as icon (the picture of a block or hatch over the line icon of a command), with its name under it. -->
+            <DataTemplate x:Key="ToolIcons" DataType="{x:Type local:ToolItemViewModel}">
+                <StackPanel
+                    Width="{Binding DataContext.CellWidth, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                    Height="{Binding DataContext.CellHeight, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                    Margin="2"
+                >
+                    <Grid
+                        Width="{Binding DataContext.IconSize, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                        Height="{Binding DataContext.IconSize, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                        HorizontalAlignment="Center"
+                    >
+                        <local:IconView
+                            Size="{Binding DataContext.IconSize, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                            StrokeThickness="1.4"
+                            Data="{Binding IconKey, Converter={StaticResource ToolIcon}}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                        />
+                        <Image Source="{Binding Picture}" Stretch="Uniform" />
+                    </Grid>
+                    <TextBlock
+                        Text="{Binding Name}"
+                        TextAlignment="Center"
+                        TextWrapping="Wrap"
+                        TextTrimming="CharacterEllipsis"
+                        MaxHeight="30"
+                        FontSize="11"
+                        Margin="0,2,0,0"
+                        Visibility="{Binding DataContext.ShowsNames, RelativeSource={RelativeSource AncestorType=ListBox}, Converter={StaticResource Shown}}"
+                    />
+                </StackPanel>
+            </DataTemplate>
+
+            <!-- A tool as a row: its icon at the left, its name beside it. -->
+            <DataTemplate x:Key="ToolRow" DataType="{x:Type local:ToolItemViewModel}">
+                <DockPanel Margin="4,2" LastChildFill="True">
+                    <Grid
+                        DockPanel.Dock="Left"
+                        Width="{Binding DataContext.IconSize, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                        Height="{Binding DataContext.IconSize, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                        Margin="0,0,8,0"
+                    >
+                        <local:IconView
+                            Size="{Binding DataContext.IconSize, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                            StrokeThickness="1.4"
+                            Data="{Binding IconKey, Converter={StaticResource ToolIcon}}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                        />
+                        <Image Source="{Binding Picture}" Stretch="Uniform" />
+                    </Grid>
+                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                </DockPanel>
+            </DataTemplate>
+
+            <!-- A line of text between tools: a heading over the whole row. -->
+            <DataTemplate x:Key="ToolText" DataType="{x:Type local:ToolItemViewModel}">
+                <Border
+                    Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ListBox}, Converter={StaticResource RowWidth}}"
+                    Background="{StaticResource GhHeader}"
+                    CornerRadius="3"
+                    Padding="8,3"
+                    Margin="0,4,0,2"
+                >
+                    <TextBlock
+                        Text="{Binding Name}"
+                        FontWeight="SemiBold"
+                        Foreground="{StaticResource GhTextMuted}"
+                        TextTrimming="CharacterEllipsis"
+                    />
+                </Border>
+            </DataTemplate>
+
+            <!-- A separator: a rule over the whole row. -->
+            <DataTemplate x:Key="ToolSeparator" DataType="{x:Type local:ToolItemViewModel}">
+                <Border
+                    Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ListBox}, Converter={StaticResource RowWidth}}"
+                    Height="9"
+                    Background="Transparent"
+                >
+                    <Rectangle Height="1" Fill="{StaticResource GhBorder}" VerticalAlignment="Center" />
+                </Border>
+            </DataTemplate>
+
+            <local:ToolItemTemplateSelector
+                x:Key="Templates"
+                Icons="{StaticResource ToolIcons}"
+                Row="{StaticResource ToolRow}"
+                Text="{StaticResource ToolText}"
+                Separator="{StaticResource ToolSeparator}"
+            />
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="12,8"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnClose"
+                        ToolTip="Close (TOOLPALETTESCLOSE)"
+                    />
+                    <TextBlock
+                        Text="TOOL PALETTES"
+                        FontSize="11"
+                        FontWeight="Medium"
+                        Foreground="{StaticResource GhTextMuted}"
+                        VerticalAlignment="Center"
+                    />
+                </DockPanel>
+            </Border>
+
+            <!-- The name of the palette shown, and the button of the palette menu. -->
+            <Border
+                DockPanel.Dock="Top"
+                BorderBrush="{StaticResource GhBorder}"
+                BorderThickness="0,0,0,1"
+                Padding="12,8"
+            >
+                <DockPanel>
+                    <Button
+                        x:Name="MenuButton"
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource TpTool}"
+                        Content="⋯"
+                        Click="OnMenuButton"
+                        ToolTip="Palette menu: New Palette, Rename, Delete, Add Text, Add Separator, View Options, Import, Export"
+                        AutomationProperties.Name="Palette menu"
+                    />
+                    <TextBlock
+                        Text="{Binding Active.Name, FallbackValue=No palette}"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center"
+                        TextTrimming="CharacterEllipsis"
+                    />
+                </DockPanel>
+            </Border>
+
+            <Border
+                DockPanel.Dock="Bottom"
+                Background="{StaticResource GhHeader}"
+                BorderBrush="{StaticResource GhBorder}"
+                BorderThickness="0,1,0,0"
+                Padding="12,6"
+            >
+                <TextBlock
+                    TextTrimming="CharacterEllipsis"
+                    Foreground="{StaticResource GhTextMuted}"
+                    Text="{Binding Message}"
+                    ToolTip="{Binding Message}"
+                />
+            </Border>
+
+            <!-- The tabs of the palettes, along the right edge. -->
+            <ListBox
+                x:Name="TabList"
+                DockPanel.Dock="Right"
+                ItemsSource="{Binding Tabs}"
+                Background="Transparent"
+                BorderThickness="0"
+                Margin="0,8,0,0"
+                ItemContainerStyle="{StaticResource TpTab}"
+                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                PreviewMouseLeftButtonDown="OnTabDown"
+                PreviewMouseRightButtonDown="OnTabDown"
+                ContextMenuOpening="OnPaletteMenuOpening"
+                AutomationProperties.Name="Tool palette tabs"
+            />
+
+            <!-- The tools of the palette shown. -->
+            <Border
+                Margin="8,8,4,8"
+                BorderBrush="{StaticResource GhBorder}"
+                BorderThickness="1"
+                CornerRadius="4"
+                AllowDrop="True"
+                DragOver="OnToolsDragOver"
+                Drop="OnToolsDrop"
+            >
+                <Grid>
+                    <ListBox
+                        x:Name="ItemList"
+                        ItemsSource="{Binding Items}"
+                        ItemTemplateSelector="{StaticResource Templates}"
+                        ItemContainerStyle="{StaticResource TpItem}"
+                        SelectionMode="Extended"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="2"
+                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                        PreviewMouseLeftButtonDown="OnItemDown"
+                        PreviewMouseLeftButtonUp="OnItemUp"
+                        PreviewMouseMove="OnItemMove"
+                        PreviewKeyDown="OnItemKey"
+                        ContextMenuOpening="OnItemMenuOpening"
+                        AutomationProperties.Name="Tool palette"
+                    >
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel IsItemsHost="True" />
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                    </ListBox>
+                    <TextBlock
+                        Text="{Binding EmptyText}"
+                        TextWrapping="Wrap"
+                        TextAlignment="Center"
+                        Foreground="{StaticResource GhTextMuted}"
+                        VerticalAlignment="Center"
+                        Margin="16"
+                        IsHitTestVisible="False"
+                        Visibility="{Binding IsEmpty, Converter={StaticResource Shown}}"
+                    />
+                </Grid>
+            </Border>
+        </DockPanel>
+    </Border>
+</Window>

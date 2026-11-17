@@ -1,0 +1,300 @@
+using System;
+using GeometryHelper.Dxf;
+using GeometryHelper.Geometry;
+
+namespace GeometryHelper.Cad
+{
+    /// <summary>
+    /// The snap functions of CAL (<c>end</c>, <c>mid</c>, <c>cen</c>, <c>qua</c>, <c>nea</c>, <c>ins</c>, <c>nod</c>, <c>int</c>,
+    /// <c>per</c>, <c>tan</c>) and <c>rad</c>: what the object picked gives, as AutoCAD's "Select entity for END snap:" takes
+    /// it. The snap is made on the object picked alone, wherever the pick lay on it: the end nearest the pick, the quadrant
+    /// nearest the pick; <c>per</c> and <c>tan</c> from the last point.
+    /// </summary>
+    internal static class CadCalcSnap
+    {
+        /// <summary>What AutoCAD says of an object that has no point or radius of the kind asked.</summary>
+        internal const string ImproperType = "Improper type of object picked.";
+
+        /// <summary>What AutoCAD says of a straight segment of a polyline where the radius of an arc segment is asked.</summary>
+        internal const string StraightSegment = "Polyline arc segment must be picked.";
+
+        /// <summary>The snap an object snap function of CAL makes, as the snaps of the cursor name it.</summary>
+        private static CadSnapKind KindOf(string mode)
+        {
+            switch (mode)
+            {
+                case "END":
+                    return CadSnapKind.Endpoint;
+                case "INS":
+                    return CadSnapKind.Insertion;
+                case "INT":
+                    return CadSnapKind.Intersection;
+                case "MID":
+                    return CadSnapKind.Midpoint;
+                case "CEN":
+                    return CadSnapKind.Center;
+                case "NEA":
+                    return CadSnapKind.Nearest;
+                case "NOD":
+                    return CadSnapKind.Node;
+                case "QUA":
+                    return CadSnapKind.Quadrant;
+                case "PER":
+                    return CadSnapKind.Perpendicular;
+                default:
+                    return CadSnapKind.Tangent;
+            }
+        }
+
+        private static CadSnapModes ModeOf(CadSnapKind kind)
+        {
+            switch (kind)
+            {
+                case CadSnapKind.Endpoint:
+                    return CadSnapModes.Endpoint;
+                case CadSnapKind.Insertion:
+                    return CadSnapModes.Insertion;
+                case CadSnapKind.Intersection:
+                    return CadSnapModes.Intersection;
+                case CadSnapKind.ApparentIntersection:
+                    return CadSnapModes.ApparentIntersection;
+                case CadSnapKind.GeometricCenter:
+                    return CadSnapModes.GeometricCenter;
+                case CadSnapKind.Midpoint:
+                    return CadSnapModes.Midpoint;
+                case CadSnapKind.Center:
+                    return CadSnapModes.Center;
+                case CadSnapKind.Nearest:
+                    return CadSnapModes.Nearest;
+                case CadSnapKind.Node:
+                    return CadSnapModes.Node;
+                case CadSnapKind.Quadrant:
+                    return CadSnapModes.Quadrant;
+                case CadSnapKind.Perpendicular:
+                    return CadSnapModes.Perpendicular;
+                default:
+                    return CadSnapModes.Tangent;
+            }
+        }
+
+        /// <summary>
+        /// The point an object snap of an object gives, near a pick: null where the object has no such point (a circle has no
+        /// end, a line no centre), which AutoCAD answers "Improper type of object picked.".
+        /// </summary>
+        /// <param name="session">The session, whose drawing and last point (for per and tan) are used.</param>
+        /// <param name="mode">END, INS, INT, MID, CEN, NEA, NOD, QUA, PER or TAN.</param>
+        /// <param name="handle">The object picked.</param>
+        /// <param name="pick">Where it was picked.</param>
+        /// <returns>The point, or null.</returns>
+        internal static GeoPoint2? Snap(CadCommandSession session, string mode, string handle, GeoPoint2 pick)
+        {
+            CadSnapKind kind = KindOf(mode);
+            bool fromLast = kind == CadSnapKind.Perpendicular || kind == CadSnapKind.Tangent;
+            return Snap(session, kind, handle, pick, fromLast ? session.LastPoint : (GeoPoint2?)null);
+        }
+
+        /// <summary>
+        /// The point a kind of snap gives on an object near a pick, as <see cref="Snap(CadCommandSession, string, string, GeoPoint2)"/>
+        /// does, with the point <c>per</c> and <c>tan</c> run from given: a typed point after an object snap override takes the
+        /// object under it so.
+        /// </summary>
+        /// <param name="session">The session, whose drawing is used.</param>
+        /// <param name="kind">The snap.</param>
+        /// <param name="handle">The object.</param>
+        /// <param name="pick">Where it was picked.</param>
+        /// <param name="from">The point perpendicular and tangent are from; null for the others.</param>
+        /// <returns>The point, or null.</returns>
+        internal static GeoPoint2? Snap(
+            CadCommandSession session,
+            CadSnapKind kind,
+            string handle,
+            GeoPoint2 pick,
+            GeoPoint2? from
+        )
+        {
+            CadDocument document = session.Document;
+            PickIndex whole = document.GetPickIndex(document.WorkingSpace);
+            PickIndex index;
+            double aperture;
+
+            if (kind == CadSnapKind.Intersection)
+            {
+                // Two objects meet at an intersection: the ones under the pick.
+                index = whole;
+                aperture = Math.Max(session.PickAperture, 1E-9);
+            }
+            else
+            {
+                // The object alone, however far from the pick its points lie.
+                index = Only(whole, new[] { handle }, pick, out aperture);
+
+                if (index == null)
+                {
+                    return null;
+                }
+            }
+
+            var snap = new ObjectSnap(session.Tolerance) { IsOn = true, Override = ModeOf(kind) };
+            CadSnapResult found = snap.Snap(index, pick, aperture, from);
+
+            if (found == null || found.Kind != kind)
+            {
+                return null;
+            }
+
+            return found.Point;
+        }
+
+        /// <summary>
+        /// The point where two objects meet, or would meet run on, as a typed INT or APP takes it with the second object given
+        /// after " and": the crossing of the two nearest the pick where they cross at more than one (a line over a circle
+        /// 180 to 220 gives the point nearest the pick). Null where they do not meet.
+        /// </summary>
+        /// <param name="session">The session, whose drawing is used.</param>
+        /// <param name="kind">Intersection, or ApparentIntersection for the run-on crossing.</param>
+        /// <param name="first">The first object.</param>
+        /// <param name="second">The second object.</param>
+        /// <param name="pick">The point the crossing nearest to is taken.</param>
+        /// <returns>The point, or null.</returns>
+        internal static GeoPoint2? Between(
+            CadCommandSession session,
+            CadSnapKind kind,
+            string first,
+            string second,
+            GeoPoint2 pick
+        )
+        {
+            CadDocument document = session.Document;
+            PickIndex index = Only(
+                document.GetPickIndex(document.WorkingSpace),
+                new[] { first, second },
+                pick,
+                out double aperture
+            );
+
+            if (index == null)
+            {
+                return null;
+            }
+
+            var snap = new ObjectSnap(session.Tolerance) { IsOn = true, Override = ModeOf(kind) };
+            CadSnapResult found = snap.Snap(index, pick, aperture, null);
+
+            // A crossing of two objects that do meet is an intersection whichever of the two snaps was asked for.
+            bool meets =
+                found != null
+                && (
+                    found.Kind == kind
+                    || (kind == CadSnapKind.ApparentIntersection && found.Kind == CadSnapKind.Intersection)
+                );
+            return meets ? found.Point : (GeoPoint2?)null;
+        }
+
+        /// <summary>
+        /// An index of the items of the objects alone, and an aperture wide enough to reach every point of them from the pick;
+        /// null where the objects have no items.
+        /// </summary>
+        private static PickIndex Only(PickIndex whole, string[] handles, GeoPoint2 pick, out double aperture)
+        {
+            var list = new DisplayList2();
+            bool any = false;
+
+            foreach (DisplayItem2 item in whole.List.Items)
+            {
+                if (Array.IndexOf(handles, item.Handle) >= 0)
+                {
+                    list.Add(item);
+                }
+            }
+
+            foreach (string handle in handles)
+            {
+                foreach (GeoPoint2 point in whole.List.InsertionPointsOf(handle))
+                {
+                    list.AddInsertionPoint(handle, point.X, point.Y);
+                    any = true;
+                }
+            }
+
+            aperture = 0.0;
+
+            if (list.Count == 0 && !any)
+            {
+                return null;
+            }
+
+            DisplayBox bounds = list.Bounds;
+            double reach = bounds.IsEmpty
+                ? 1.0
+                : Math.Max(bounds.Width, bounds.Height)
+                    + Math.Max(Math.Abs(pick.X - bounds.MinX), Math.Abs(pick.Y - bounds.MinY))
+                    + Math.Max(Math.Abs(pick.X - bounds.MaxX), Math.Abs(pick.Y - bounds.MaxY));
+            aperture = reach + 1.0;
+            return new PickIndex(list);
+        }
+
+        /// <summary>
+        /// The radius of a circle or an arc, for CAL's <c>rad</c>, or of the segment of a polyline nearest the pick where that is
+        /// an arc (a half circle from (100, 0) to (100, 100) gives 50); null for any other object, which AutoCAD answers "Improper type
+        /// of object picked.", and for a straight segment, "Polyline arc segment must be picked."; the words are given in
+        /// <paramref name="refusal"/>.
+        /// </summary>
+        internal static double? Radius(CadCommandSession session, string handle, GeoPoint2 pick, out string refusal)
+        {
+            refusal = ImproperType;
+            DxfEntity entity = session.Document.FindEntity(handle);
+
+            if (entity is DxfCircle circle)
+            {
+                return circle.Radius;
+            }
+
+            if (entity is DxfArc arc)
+            {
+                return arc.Radius;
+            }
+
+            GeoPolylineArc2 chain;
+
+            try
+            {
+                chain =
+                    entity is DxfPolyline light ? light.ToGeoPolylineArc2(session.Tolerance)
+                    : entity is DxfPolyline2d heavy ? heavy.ToGeoPolylineArc2(session.Tolerance)
+                    : null;
+            }
+            catch (InvalidOperationException)
+            {
+                return null;
+            }
+
+            if (chain == null)
+            {
+                return null;
+            }
+
+            // The segment nearest the pick, the first where two lie as near.
+            GeoEdge2? nearest = null;
+            double least = double.MaxValue;
+
+            foreach (GeoEdge2 edge in chain.GetEdges())
+            {
+                double gap = edge.DistanceTo(pick, session.Tolerance);
+
+                if (gap < least)
+                {
+                    least = gap;
+                    nearest = edge;
+                }
+            }
+
+            if (nearest.HasValue && nearest.Value.IsArc)
+            {
+                return nearest.Value.ToArc().Radius;
+            }
+
+            refusal = StraightSegment;
+            return null;
+        }
+    }
+}

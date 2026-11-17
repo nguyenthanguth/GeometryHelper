@@ -50,7 +50,7 @@ version. Everything is read in the current work plane, in millimetres; the model
   left out and counted in one Debug line per call, by reason with their ids; an object Tekla cannot describe is one Warn
   with the exception; each call ends with one Info line of the objects by kind.
 - Each `GeometryHelper.TeklaConvert.{year}` package now depends on `GeometryHelper.Drawing` (and through it on
-  `GeometryHelper.Dxf.Viewer`). Neither is packable yet, so the packages cannot be installed from NuGet until they are
+  `GeometryHelper.Cad`). Neither is packable yet, so the packages cannot be installed from NuGet until they are
   (D4) or the reference is otherwise settled.
 
 ## Live check, with the maintainer's go-ahead

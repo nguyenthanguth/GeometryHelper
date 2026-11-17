@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using GeometryHelper.Cad;
 using GeometryHelper.Drawing.Plugins;
 using GeometryHelper.Dxf;
-using GeometryHelper.Dxf.Viewer;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Drawing

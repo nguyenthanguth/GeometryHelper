@@ -51,7 +51,7 @@ whose origin is (10, 20) clipped to the rectangle that covers its lower left cor
 `IsEnabled`, `FrontClip` and `BackClip`, which are set (the clip off, the planes at a distance from the boundary or none).
 `insert.RemoveClip()` takes the filter off, and the dictionary ACAD_FILTER with it where that holds nothing else, leaving the
 extension dictionary as AutoCAD leaves it. A clip turned inside out is kept as a polygon with a slit round the block's
-extents, as AutoCAD keeps it: [`CadXClips.Inverted`](xref:GeometryHelper.Dxf.Viewer.CadXClips) of the presenter makes it. A
+extents, as AutoCAD keeps it: [`CadXClips.Inverted`](xref:GeometryHelper.Cad.CadXClips) of the presenter makes it. A
 filter is read from and written to a DWG of R2000 and later with the rest of the objects, and AutoCAD 2021 reads both, its AUDIT
 finding nothing. A boundary in a plane tilted to the drawing's is kept whole; the presenter draws its frame as its projection on the plan and
 the block where the boundary's prism cuts the block's plane, as AutoCAD 2021 does (a line or a curve that does not lie flat where its path
