@@ -149,7 +149,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             snap.Ucs = document.Ucs.WorkingOf(space);
-            return snap.Snap(document.GetPickIndex(space), cursor, aperture, basePoint, drawnFrom);
+
+            // Through a viewport worked in, the layers frozen in it are not shown, and not snapped to.
+            snap.HiddenLayers = space.IsModel ? CadViewportSnap.FrozenIn(document.ActiveViewport) : null;
+
+            try
+            {
+                CadSnapResult own = snap.Snap(document.GetPickIndex(space), cursor, aperture, basePoint, drawnFrom);
+
+                // On the paper, the model space a viewport shows is snapped to as well, where it lies nearer the cursor.
+                return CadViewportSnap.Through(document, space, snap, own, cursor, aperture, basePoint, drawnFrom);
+            }
+            finally
+            {
+                snap.HiddenLayers = null;
+            }
         }
 
         /// <summary>The cursor has rested at a point prompt: a point is acquired or let go for Extension, Parallel and tracking (<see cref="ObjectSnap.Acquire"/>).</summary>

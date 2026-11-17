@@ -743,6 +743,46 @@ namespace GeometryHelper.Dxf.Viewer
             return rays;
         }
 
+        /// <summary>
+        /// The layers whose objects the snaps leave out: those frozen in the viewport model space is worked in through, whose
+        /// objects it does not show; null for none. Set by the window around a snap and cleared after it.
+        /// </summary>
+        internal ISet<string> HiddenLayers { get; set; }
+
+        // Set while the snaps of a model space seen through a viewport are worked out: the points acquired are the paper's.
+        private bool _withoutTracking;
+
+        /// <summary>
+        /// The object snap alone the cursor gives, no grid, ortho, polar or tracking: the snap of model space seen through a
+        /// viewport of a layout, worked out in model units.
+        /// </summary>
+        internal CadSnapResult SnapToObjects(
+            PickIndex index,
+            GeoPoint2 cursor,
+            double aperture,
+            GeoPoint2? basePoint,
+            GeoPoint2? drawnFrom
+        )
+        {
+            _active = Override ?? (IsOn ? Modes : CadSnapModes.None);
+
+            if (_active == CadSnapModes.None || !(aperture > 0.0))
+            {
+                return null;
+            }
+
+            _withoutTracking = true;
+
+            try
+            {
+                return ObjectSnapAt(index, cursor, aperture, basePoint, drawnFrom);
+            }
+            finally
+            {
+                _withoutTracking = false;
+            }
+        }
+
         private CadSnapResult ObjectSnapAt(
             PickIndex index,
             GeoPoint2 cursor,
@@ -762,7 +802,11 @@ namespace GeometryHelper.Dxf.Viewer
                 AddApparent(found.Curves, cursor, aperture, near, found.OnObject, offered);
             }
 
-            AddTracking(cursor, aperture, basePoint, near, tracked);
+            if (!_withoutTracking)
+            {
+                AddTracking(cursor, aperture, basePoint, near, tracked);
+            }
+
             Candidate best = Best(near)
                 ?? Best(found.OnObject)
                 ?? Best(tracked)
@@ -790,8 +834,42 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DisplayItem2 item in items)
             {
+                if (HiddenLayers != null && item.Layer != null && HiddenLayers.Contains(item.Layer))
+                {
+                    continue;
+                }
+
                 switch (item)
                 {
+                    case DisplayViewport2 viewport when viewport.Clip == null:
+                        // A viewport that is its frame gives the corners and sides of its rectangle; one clipped is bordered by
+                        // the entity that clips it, which is snapped to as any other.
+                        AddChain(
+                            new[]
+                            {
+                                viewport.Bounds.MinX,
+                                viewport.Bounds.MinY,
+                                viewport.Bounds.MaxX,
+                                viewport.Bounds.MinY,
+                                viewport.Bounds.MaxX,
+                                viewport.Bounds.MaxY,
+                                viewport.Bounds.MinX,
+                                viewport.Bounds.MaxY,
+                            },
+                            4,
+                            true,
+                            false,
+                            item,
+                            cursor,
+                            aperture,
+                            basePoint,
+                            near,
+                            onObject,
+                            nearest,
+                            curves,
+                            found.Ends
+                        );
+                        break;
                     case DisplayPolyline2 chain:
                         AddChain(
                             chain.Xy,

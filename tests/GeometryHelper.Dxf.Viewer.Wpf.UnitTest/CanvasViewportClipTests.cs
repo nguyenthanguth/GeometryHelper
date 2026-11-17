@@ -255,6 +255,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
+        public void TwoQuickClicksOfTheMouseInsideTheOutline_WorkThroughTheViewport_AndInTheCornerLeftOutDoNot()
+        {
+            OnClippedLayout(LShape, false, (model, canvas, viewport) =>
+            {
+                CanvasViewportDoubleClickTests.DoubleClick(canvas, At(canvas, 8.5, 5.5));
+                Assert.Null(canvas.ThroughHandle);
+                model.Session.Escape();
+
+                CanvasViewportDoubleClickTests.DoubleClick(canvas, At(canvas, 4, 3));
+                Assert.Equal(viewport.Handle, canvas.ThroughHandle);
+                Assert.False(model.Session.IsRunning);
+            });
+        }
+
+        [Fact]
         public void AClickInTheCornerLeftOut_IsTakenByNothing_WhileTheViewportIsWorkedThrough()
         {
             OnClippedLayout(LShape, false, (model, canvas, viewport) =>
