@@ -156,6 +156,60 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void ALetterTheFontLacks_IsExplodedFromAFontThatHasIt_AsArialsOwnIs()
+        {
+            // The Vietnamese o with a circumflex and a tilde is not in Malgun Gothic (a Korean font, like Gulim); Arial has it.
+            DxfDBText korean = Text("ỗ", 5, 5, 10);
+            DxfDBText arial = Text("ỗ", 5, 5, 10);
+            CadDocument one = Drawing("malgun.ttf", korean);
+            CadDocument two = Drawing("arial.ttf", arial);
+            CadCommandSession session = Session(one);
+
+            Run(session, "TXTEXP", new[] { korean.Handle }, Enter);
+            Run(Session(two), "TXTEXP", new[] { arial.Handle }, Enter);
+
+            Assert.Empty(All<DxfDBText>(one.ModelSpace));
+            List<DxfPolyline> drawn = All<DxfPolyline>(one.ModelSpace);
+            List<DxfPolyline> wanted = All<DxfPolyline>(two.ModelSpace);
+            Assert.True(wanted.Count >= 3);
+            Assert.Equal(wanted.Count, drawn.Count);
+            Box(drawn, out double left, out double bottom, out double right, out double top);
+            Box(wanted, out double wantedLeft, out double wantedBottom, out double wantedRight, out double wantedTop);
+            Assert.Equal(wantedLeft, left, 6);
+            Assert.Equal(wantedBottom, bottom, 6);
+            Assert.Equal(wantedRight, right, 6);
+            Assert.Equal(wantedTop, top, 6);
+            Assert.Contains("1 text object(s) have been exploded to lines.", session.History);
+        }
+
+        [Fact]
+        public void ALineOfLettersTheFontHasAndLacks_IsExplodedWithBoth_TheLettersAfterOneBeyondItsAdvance()
+        {
+            // "L" and "i" of Malgun Gothic with the letter it lacks between them: the outlines of the three.
+            DxfDBText line = Text("Lỗi", 0, 0, 10);
+            DxfDBText ends = Text("Li", 0, 0, 10);
+            DxfDBText middle = Text("ỗ", 0, 0, 10);
+            CadDocument whole = Drawing("malgun.ttf", line);
+            CadDocument withoutMiddle = Drawing("malgun.ttf", ends);
+            CadDocument alone = Drawing("malgun.ttf", middle);
+
+            Run(Session(whole), "TXTEXP", new[] { line.Handle }, Enter);
+            Run(Session(withoutMiddle), "TXTEXP", new[] { ends.Handle }, Enter);
+            Run(Session(alone), "TXTEXP", new[] { middle.Handle }, Enter);
+
+            List<DxfPolyline> all = All<DxfPolyline>(whole.ModelSpace);
+            List<DxfPolyline> two = All<DxfPolyline>(withoutMiddle.ModelSpace);
+            List<DxfPolyline> one = All<DxfPolyline>(alone.ModelSpace);
+            Assert.NotEmpty(one);
+            Assert.Equal(two.Count + one.Count, all.Count);
+            Box(all, out _, out _, out double right, out _);
+            Box(two, out _, out _, out double rightOfTwo, out _);
+
+            // The i is set after the middle letter, further right than it stands in "Li".
+            Assert.True(right > rightOfTwo + 1.0, "The line is wider than Li by the middle letter.");
+        }
+
+        [Fact]
         public void AnMTextIsBrokenIntoItsTextsFirst_AndEveryLineBecomesPolylines()
         {
             var mtext = new DxfMText
