@@ -13,8 +13,12 @@
     Background="#262B33"
 >
     <Window.Resources>
-        <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
-        <BooleanToVisibilityConverter x:Key="Show" />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="Show" />
+        </ResourceDictionary>
     </Window.Resources>
 
     <Border
