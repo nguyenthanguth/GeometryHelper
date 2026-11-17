@@ -87,6 +87,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         // FILLMODE: whether solids, wide polylines and solid or gradient hatches are filled (1) or drawn by their outlines (0).
         private readonly bool _fill = true;
+
+        // QTEXTMODE: whether texts are shown as their boxes alone (1) or as their letters (0).
+        private readonly bool _quick;
         private double _pointViewHeight = 1.0;
         private readonly DisplayStyle _defaultStyle = new DisplayStyle(0xFFFFFF, 0.0, null);
 
@@ -204,6 +207,7 @@ namespace GeometryHelper.Dxf.Viewer
                 _pdmode = database.Pdmode;
                 _pdsize = database.Pdsize;
                 _fill = database.Fillmode;
+                _quick = database.Qtextmode;
             }
             catch (Exception)
             {
@@ -3213,25 +3217,25 @@ namespace GeometryHelper.Dxf.Viewer
 
             Affine2 m = frame.Matrix;
             double turn = Orient(m, read.Rotation, read.IsMirroredInX, read.IsMirroredInY, out bool backward);
-            list.Add(
-                Text(
-                    FaceOf(read.TextStyleName),
-                    value,
-                    m.X(at.X, at.Y),
-                    m.Y(at.X, at.Y),
-                    read.Height * heightFactor * m.Scale,
-                    turn,
-                    read.WidthFactor,
-                    horizontal,
-                    vertical,
-                    style,
-                    handle,
-                    layerName,
-                    read.Oblique,
-                    backward,
-                    marks
-                )
+            DisplayText2 shown = Text(
+                FaceOf(read.TextStyleName),
+                value,
+                m.X(at.X, at.Y),
+                m.Y(at.X, at.Y),
+                read.Height * heightFactor * m.Scale,
+                turn,
+                read.WidthFactor,
+                horizontal,
+                vertical,
+                style,
+                handle,
+                layerName,
+                read.Oblique,
+                backward,
+                marks
             );
+            shown.IsQuick = _quick;
+            list.Add(shown);
         }
 
         /// <summary>
@@ -3714,6 +3718,7 @@ namespace GeometryHelper.Dxf.Viewer
             CadMTextLayout layout = LayoutOf(text);
             whole.SetMeasure(layout.ActualWidth * m.Scale, 0.0);
             whole.SetParts(MTextParts(text, layout, frame, style, handle, layerName));
+            whole.IsQuick = _quick;
             list.Add(whole);
         }
 

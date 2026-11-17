@@ -22,6 +22,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets how the workspace shows Insert Hyperlink and Edit Hyperlink; the action it closed with is in its request.</summary>
         public Func<HyperlinkViewModel, bool> ShowHyperlink { get; set; }
 
+        /// <summary>Gets or sets how the workspace shows the Inspection Dimension dialog of DIMINSPECT; the action it closed with is in its request.</summary>
+        public Func<DimInspectViewModel, bool> ShowDimInspect { get; set; }
+
         /// <summary>
         /// Gets or sets how the workspace opens a web address, a mail address or a file with the program of the system for it; true
         /// where it was opened. Null for none, where following such a hyperlink says so.
@@ -38,6 +41,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 case CadDrawingPropertiesRequest properties when ShowDrawingProperties != null:
                     e.Handled = ShowDrawingProperties(new DrawingPropertiesViewModel(properties));
+                    break;
+                case CadDimInspectRequest inspection when ShowDimInspect != null:
+                    e.Handled = ShowDimInspect(new DimInspectViewModel(inspection));
                     break;
                 case CadHyperlinkRequest link when ShowHyperlink != null:
                     e.Handled = ShowHyperlink(new HyperlinkViewModel(link));

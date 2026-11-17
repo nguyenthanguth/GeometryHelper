@@ -233,24 +233,24 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 310 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 322 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
 | view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, -PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, VPCLIP (Polygonal, Delete), VPMAX, VPMIN, SCALELISTEDIT, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window), REDRAW, REDRAWALL, REGENALL, ISOLATEOBJECTS, HIDEOBJECTS, UNISOLATEOBJECTS, VPORTS, -VPORTS (Save, Restore, Delete, Join, SIngle, ?, 2, 3, 4, Toggle) |
 | edit | MOVE, COPY (Array, Fit, mOde Single and Multiple; COPYMODE), ERASE, OOPS, ROTATE, SCALE, MIRROR, MIRROR3D (Object, Last, Zaxis, View, XY, YZ, ZX, 3points), EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
-| draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG (Chamfer, Elevation, Fillet, Thickness, Width; Area, Dimensions, Rotation), WIPEOUT (points, Polyline, Frames), SPLINE (Method: Fit, CV; Knots, Degree, Object; start and end Tangency, toLerance, Undo, Close), BLEND (CONtinuity: Tangent, Smooth), ELLIPSE (Arc), POINT, XLINE (Hor, Ver, Ang with Reference, Bisect, Offset with Through), RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT and -MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT and -LAYOUT (Copy, Delete, New, Template, Rename, SAveas, Set, ?), DIVIDE (Block), MEASURE (Block) |
+| draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG (Chamfer, Elevation, Fillet, Thickness, Width; Area, Dimensions, Rotation), WIPEOUT (points, Polyline, Frames), SPLINE (Method: Fit, CV; Knots, Degree, Object; start and end Tangency, toLerance, Undo, Close), BLEND (CONtinuity: Tangent, Smooth), ELLIPSE (Arc), POINT, XLINE (Hor, Ver, Ang with Reference, Bisect, Offset with Through), RAY, POLYGON, DONUT, TRACE, SKETCH (Type, Increment, toLerance), TEXT (Justify, Style; Enter goes on below the last text), MTEXT and -MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT and -LAYOUT (Copy, Delete, New, Template, Rename, SAveas, Set, ?), DIVIDE (Block), MEASURE (Block) |
 | shapes and hatching | SOLID, REGION, HATCH, HATCHSETORIGIN, -HATCH (Properties, Select objects, draW boundary, remove Boundaries, Advanced: Boundary set, Retain boundary, Island detection, Style, Associativity, Gap tolerance, separate Hatches; DRaw order, Origin, ANnotative, hatch COlor, LAyer, Transparency, Undo), GRADIENT, HATCHEDIT, -HATCHEDIT (DIsassociate, Style, Properties, DRaw order, ADd boundaries, Remove boundaries, recreate Boundary, ASsociate, separate Hatches, Origin, ANnotative, hatch COlor, LAyer, Transparency), HATCHGENERATEBOUNDARY, HATCHSETBOUNDARY, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Fit data: Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance; Close, Open, Join, Move vertex, Refine: Add, Delete, Elevate order, Move, Weight; rEverse, convert to Polyline, Undo), CLASSICINSERT |
 | multilines | MLINE (Justification, Scale, STyle; Close, Undo), MLEDIT (CC, OC, MC, CT, OT, MT, CJ, AV, DV, CS, CA, WA; Undo), MLSTYLE (?, Current, New, Modify, Rename, Delete, Load, Save), and the variables CMLJUST, CMLSCALE and CMLSTYLE (see [Multilines](#multilines)) |
-| inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea, Quick, Mode) |
+| inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea, Quick, Mode), MASSPROP (regions), STATUS, TIME (Display, ON, OFF, Reset), LIMITS (ON, OFF) |
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, PStyle, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, LAYMRG and -LAYMRG (Name, Undo), LAYDEL and -LAYDEL (Name, Undo), LAYCUR, COPYTOLAYER and -COPYTOLAYER (?, =, Displacement, eXit), VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, SELECTSIMILAR (SEttings), ADDSELECTED, TEXTSCR, UNITS, -UNITS, SCRIPT, SAVE, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?), QUICKCALC, CAL, QUICKPROPERTIES |
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too; a spline made a polyline within a precision), REVCLOUDPROPERTIES (Arc length), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPATH, ARRAYPOLAR, ARRAYEDIT, -ARRAY, OVERKILL, -OVERKILL, ALIGN, CHANGE (Properties: Color, Elev, LAyer, LType, ltScale, LWeight, Thickness, TRansparency, Material, Annotative), CHPROP (the same less Elev), SETBYLAYER (Settings), REVERSE, CHSPACE, BURST, TXTEXP, and the variable SETBYLAYERMODE |
-| blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a name typed may be a wildcard and every attributed block it matches is synced; what is picked that is no block, or a block with no attribute definitions, refused and another asked for, in the words of AutoCAD's own table of strings; an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, ATTEXT, -ATTEXT (Cdf, Sdf, Dxf, Objects), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), ATTREDEF, BAUTHORPALETTE, RESETBLOCK, REFEDIT, -REFEDIT (Ok, Next; All, Nested), REFSET (Add, Remove), REFCLOSE (Save, Discard), and the variables REFEDITNAME and XFADECTL |
+| blocks | BLOCK, -BLOCK, INSERT, -INSERT, MINSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a name typed may be a wildcard and every attributed block it matches is synced; what is picked that is no block, or a block with no attribute definitions, refused and another asked for, in the words of AutoCAD's own table of strings; an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, ATTEXT, -ATTEXT (Cdf, Sdf, Dxf, Objects), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), ATTREDEF, BAUTHORPALETTE, RESETBLOCK, REFEDIT, -REFEDIT (Ok, Next; All, Nested), REFSET (Add, Remove), REFCLOSE (Save, Discard), and the variables REFEDITNAME and XFADECTL |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | annotation | DIMOVERRIDE (Clear overrides), TEXTALIGN (alIgnment, Options, Point), MLEADEREDIT (Remove leaders, Add leaders), MLEADERALIGN (Options), MLEADERCOLLECT (Vertical, Horizontal, Wrap), ATTIPEDIT, SPELL (All, Dictionary), SCALETEXT (Existing, Left, Center, Middle, Right, TL to BR; Paper height, Match object, Scale factor, Reference), JUSTIFYTEXT (Left, Align, Fit, Center, Middle, Right, TL to BR), TXT2MTXT (Settings), ATTDISP (Normal, ON, OFF), FIELD (Height, Justify), UPDATEFIELD (see [Annotation commands](#annotation-commands)) |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT, EXPORT, -EXPORT (Dwf, dwfX, Pdf) ([Plotting](plot.md)) |
-| dimension | DIM (Angular, Baseline, Continue, Ordinate, aliGn, Distribute, Layer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE, DIMCENTER, CENTERMARK, CENTERLINE, -DIMSTYLE (ANnotative, Save, Restore, STatus, Variables, Apply, ?), DIMUPDATE |
+| dimension | DIM (Angular, Baseline, Continue, Ordinate, aliGn, Distribute, Layer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMINSPECT, -DIMINSPECT (Add, Remove; Round, Angular, None), DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE, DIMCENTER, CENTERMARK, CENTERLINE, -DIMSTYLE (ANnotative, Save, Restore, STatus, Variables, Apply, ?), DIMUPDATE |
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT, TABLEEXPORT |
 | selection | QSELECT, FILTER, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP, GROUPEDIT (Name; Add objects, Remove objects, REName) |
 | OLE objects | INSERTOBJ (a bitmap or a PNG, as a static picture), and the variables OLEFRAME, OLEHIDE and OLEQUALITY (see OLE objects below) |
@@ -2987,6 +2987,89 @@ in a block or a viewport, and AutoCAD's Volume option is not offered.
 each remembered as it was, and show them again; the command line and the status bar stay. A second CLEANSCREENON keeps what the first
 remembered.
 
+### LIMITS, TIME, STATUS, FILL, QTEXT, MULTIPLE, TRACE, SKETCH, MASSPROP, MINSERT and DIMINSPECT
+
+Each of these asks in the words AutoCAD 2021's console used for the same input (probed), and each change is one undo step.
+
+**LIMITS** writes `Reset Model space limits:` and asks `Specify lower left corner or [ON/OFF] <0.0000,0.0000>:`, then `Specify upper
+right corner <12.0000,9.0000>:`; an upper right corner not above and to the right of the lower left says `Invalid limits.` and asks
+again, and Enter at either keeps the limits as they are. ON and OFF switch LIMCHECK. With LIMCHECK on, a point given to a command that
+draws, inserts, moves or copies (LINE, PLINE, RECTANG, CIRCLE, ARC, ELLIPSE, POINT, POLYGON, DONUT, SPLINE, XLINE, RAY, TEXT, MTEXT,
+TRACE, MLINE, REVCLOUD, INSERT, MINSERT, MOVE, COPY) outside the limits is refused with `**Outside limits` and the prompt is asked again,
+whether it was clicked or typed; a point on the limit is inside, and a point that only measures or views (DIST, ZOOM, a window of a
+selection) is never refused. In a layout the limits are those of its sheet, which PAGESETUP sets, so only ON and OFF work there.
+
+**TIME** shows `Current time:`, the times of the drawing (Created and Last updated from `$TDCREATE` and `$TDUPDATE`, Total editing time
+from `$TDINDWG` and the time since the drawing was opened, the user's Elapsed timer, and Next automatic save in, which is
+`<no modifications yet>` until the drawing has a change not saved and then counts SAVETIME minutes down from it) in AutoCAD's columns,
+a time as `Tuesday, November 17, 2026  8:34:00:000 AM` and a span as `0 days 00:09:59:999`, then asks `Enter option
+[Display/ON/OFF/Reset]:` until Enter or Esc: Display shows it again, OFF and ON stop and start the elapsed timer (`Timer off.`,
+`Timer on.`), Reset sets it to nought (`Timer reset to zero.`). The variables TDCREATE, TDUCREATE, TDUPDATE, TDUUPDATE, TDINDWG and
+TDUSRTIMER read the same times as Julian dates or days to eight places (`TDCREATE = 2461362.36004630 (read only)`); USRTIMER is the
+timer's switch. The timer's time is kept for the session, not written back into `$TDUSRTIMER`.
+
+**STATUS** writes the report: `115 objects in <file>`, the limits of the space worked in with `  (Off)` where LIMCHECK is off, what the
+space uses with `**Over` on the corner outside the limits (`*Nothing*` for an empty space), what the display shows, the insertion base,
+the snap resolution and the grid spacing (those of the window's SNAPUNIT and GRIDUNIT where it has them), the current space, layout,
+layer, colour (`BYLAYER -- 7 (white)`), linetype, material, lineweight, elevation and thickness, `Fill on  Grid off  Ortho off  Qtext off
+Snap off  Tablet off`, the object snap modes in alphabetical order, and the free space of the disk of the drawing. The undo file size and
+the memory lines of AutoCAD's report are not written: the presenter keeps no undo file and a report of the machine's memory is not part of
+a drawing.
+
+**FILL** and **QTEXT** ask `Enter mode [ON/OFF] <ON>:` and set FILLMODE and QTEXTMODE; each draws every space again. FILL off draws a
+SOLID, a trace, a wide polyline and a solid or gradient hatch by its outline. QTEXT on draws each text, MTEXT and attribute as the box that
+holds its lines, in the colour of its line, turned with it, the words and the grips kept.
+
+**MULTIPLE** asks `Enter command name to repeat:` and starts that command again each time it ends, with the command's own prompts, until
+Esc. A name that is no command says `Unknown command "FOO".  Press F1 for help.`; a command that ends having asked nothing (REGEN), or by an
+error, ends the repetition.
+
+**TRACE** asks `Specify trace width <0.0500>:` (nought is a line; below nought is `Value must be positive.`; the width is kept as
+`$TRACEWID` and offered next time), `Specify start point:` and `Specify next point:` until Enter. Each segment is a filled
+four-cornered area of the width given and two segments meet in a mitre, as AutoCAD's: a trace of width 3 from (0, 0) to (100, 0) to
+(100, 50) is two solids, the first with corners (0, 1.5), (0, -1.5), (98.5, 1.5) and (101.5, -1.5), the second with (98.5, 1.5), (101.5, -1.5),
+(98.5, 50) and (101.5, 50); the ends of the path are cut square, and two segments that double back are cut square too, there being no
+mitre. AutoCAD writes TRACE entities; the presenter writes SOLIDs with the same four corners, which the library reads, draws and
+keeps as that shape.
+
+**SKETCH** writes `Type = Lines  Increment = 0.1000  Tolerance = 0.5000` and asks `Specify sketch or [Type/Increment/toLerance]:`. Type
+asks `Enter sketch type [Lines/Polyline/Spline] <Lines>:` (SKPOLY 0, 1 or 2), Increment `Specify sketch increment <0.1000>:` (the least length
+of a piece, SKETCHINC; nought or less is `Value must be positive.`), toLerance `Specify spline fit tolerance <0.5000>:` (SKTOLERANCE, 0 to 1;
+others `Requires a value between 0 and 1.`). A point given puts the pen down: the cursor then records a point each time it has moved the
+increment from the last one, and Enter lifts the pen, making the stroke as a LINE for each piece, as one polyline or as one spline through
+the points; Enter with the pen up ends. AutoCAD lifts the pen with a click; here a click feeds a point like a move, so Enter lifts it. The
+tolerance is kept for the session and the spline is fitted through the points with no tolerance. The command's strokes are one undo step.
+
+**MASSPROP** asks `Select objects:` and writes AutoCAD's report for the regions selected together, flat on the XY plane: the area and
+perimeter (holes taken away from the area, added to the perimeter), the bounding box, the centroid, the moments of inertia and the
+product of inertia about the origin (AutoCAD's product is the integral of x times y with its sign changed: -6 250 000.0000 for a rectangle
+100 by 50 from the origin), the radii of gyration, and the principal moments I and J about the centroid with the directions of their axes
+(I along the axis between -45 and 45 degrees, J a quarter turn after it). A rectangle 100 by 50 gives area 5 000, perimeter 300, moments
+4 166 666.6667 and 16 666 666.6667, I 1 041 666.6667 along [1.0000 0.0000] and J 4 166 666.6667 along [0.0000 1.0000]. The integrals
+are taken round the boundary by Gauss-Legendre quadrature in pieces of 30 degrees, so a disc is exact to about 1E-12. `Nothing selected.`
+and `No solids or regions selected.` are AutoCAD's words. Then `Write analysis to a file? [Yes/No] <N>:`; Yes asks `Enter file name
+<plan.mpr>:` (the drawing's folder and name) and writes the .mpr text as AutoCAD writes it, with its trailing spaces and line ends. The 3D
+solids MASSPROP also takes are not part of the presenter.
+
+**MINSERT** asks `Enter block name or [?]:`, the insertion point, scale factors and rotation as INSERT asks them, then `Enter number of
+rows (---) <1>:`, `Enter number of columns (|||) <1>:`, `Enter distance between rows or specify unit cell (---):` and `Specify distance between
+columns (|||):`. A unit cell given by two corners gives both distances at once, with one row or one column its distance is not asked, and
+a negative distance lays the array the other way. It makes one MINSERT entity (`DxfMInsertBlock`) that draws, picks and plots as the block at
+each cell, saved and read in DXF and DWG. A block with attributes is not placed. EXPLODE refuses a MINSERT as AutoCAD 2021's does:
+`1 was minserted.`
+
+**DIMINSPECT** picks the dimensions (`Select dimensions:`; those selected before are taken) and shows the Inspection Dimension dialog (the
+window's `DimInspectWindow`; with none listening it says to use -DIMINSPECT): Shape (Round, Angular, None), Label and Inspection rate, OK
+and, where a dimension has an inspection, Remove Inspection. **-DIMINSPECT** asks `Add inspection data or [Remove] <Add>:`, `Select
+dimensions:`, `Enter shape option [Round/Angular/None] <Round>:`, `Enter label data or <None>:` and `Enter inspection rate <100%>:`; Remove
+takes the inspection out and says `1 of inspection removed`. The data is kept as AutoCAD keeps it, in the extended data of the application
+`ACAD_DSTYLE_DIMINSPECT` (1070 396 and the rate as typed, 1070 395 and the label, 1070 394 and the flags, 1070 393 and 1; the flags are 1, 2
+or 4 for round, angular or none, plus 32, and 16 where a label was typed; Enter at the label keeps the label a dimension had and shows none,
+as AutoCAD does), and the dimension is drawn again with it: the label, the words and the rate side by side with a gap (DIMGAP) either side,
+in a frame the height of the words and two gaps whose ends are semicircles or points, with a dividing line after the label and before the
+rate, the whole centred where the words stood and the dimension line cut where the frame ends. The rate is any words (`50`, `100%`); AutoCAD
+takes any.
+
 ### Annotation commands
 
 DIMOVERRIDE (DOV, DIMOVER) asks as AutoCAD 2021's does (probed in its console): "Enter dimension variable name to override
@@ -3353,9 +3436,9 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 | the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, POLARDIST, SNAPTYPE, GRIDSTYLE, SNAPGRIDLEGACY, AUTOSNAP, DYNMODE, PICKBOX, GRIPSIZE, GRIPMULTIFUNCTIONAL, APERTURE, ZOOMWHEEL, TABLEINDICATOR, GRIPDYNCOLOR | at once, no undo step; kept in the settings file |
 | the window's toggles and snap of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, SNAPUNIT, GRIDUNIT, GRIDDISPLAY, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR | written into the drawing, as AutoCAD saves them there, and one undo step that keeps no copy of the drawing (see below) |
 | the window's lineweight toggle | LWDISPLAY | at once, no undo step; written into the drawing |
-| read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |
-| the header of the drawing, too | LUNITS, LUPREC, AUNITS, AUPREC, ANGBASE, ANGDIR, INSUNITS, MEASUREMENT, UNITMODE, PLINEWID, PLINEGEN, FILLMODE, ELEVATION, THICKNESS, LIMCHECK, SPLFRAME, QTEXTMODE, ATTMODE, SPLINETYPE, SPLINESEGS, USERI1 to USERI5, USERR1 to USERR5 | one undo step |
-| the document or the session, too | HPNAME, HPSCALE, HPANG, HPLAYER, HPASSOC, HPDOUBLE, HPGAPTOL, HPORIGINMODE, HPDLGMODE, HPBOUNDRETAIN (the hatch settings), DIMLAYER, CIRCLERAD, POLYSIDES, TRIMEXTENDMODE, CMDECHO, EXPERT, HIGHLIGHT, PICKAUTO, PICKDRAG, OSNAPZ, ARRAYASSOCIATIVITY, LASTPOINT | at once, no undo step |
+| read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE, TDCREATE, TDUCREATE, TDUPDATE, TDUUPDATE, TDINDWG, TDUSRTIMER | |
+| the header of the drawing, too | LUNITS, LUPREC, AUNITS, AUPREC, ANGBASE, ANGDIR, INSUNITS, MEASUREMENT, UNITMODE, PLINEWID, PLINEGEN, FILLMODE, ELEVATION, THICKNESS, LIMCHECK, SPLFRAME, QTEXTMODE, ATTMODE, SPLINETYPE, SPLINESEGS, USERI1 to USERI5, USERR1 to USERR5, SKETCHINC | one undo step |
+| the document or the session, too | HPNAME, HPSCALE, HPANG, HPLAYER, HPASSOC, HPDOUBLE, HPGAPTOL, HPORIGINMODE, HPDLGMODE, HPBOUNDRETAIN (the hatch settings), DIMLAYER, CIRCLERAD, POLYSIDES, TRIMEXTENDMODE, CMDECHO, EXPERT, HIGHLIGHT, PICKAUTO, PICKDRAG, OSNAPZ, ARRAYASSOCIATIVITY, LASTPOINT, SKPOLY, SKTOLERANCE, USRTIMER | at once, no undo step |
 | the window's Global settings, too | SAVETIME, ZOOMFACTOR | at once, no undo step; kept in the settings file |
 | read only, too | DISTANCE, AREA, PERIMETER | |
 

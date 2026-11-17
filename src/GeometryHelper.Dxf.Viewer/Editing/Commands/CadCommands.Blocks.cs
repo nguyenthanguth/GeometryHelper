@@ -746,6 +746,21 @@ namespace GeometryHelper.Dxf.Viewer
 
             /// <summary>Whether the insertion is asked again once made, as WMFIN's REpeat option sets it.</summary>
             public bool Repeat { get; set; }
+
+            /// <summary>Whether the block is placed as an array of rows and columns, as MINSERT places it: asked after the rotation, made a MINSERT.</summary>
+            public bool Array { get; set; }
+
+            /// <summary>The rows of the array, 0 until asked.</summary>
+            public short Rows { get; set; }
+
+            /// <summary>The columns of the array.</summary>
+            public short Columns { get; set; }
+
+            /// <summary>The distance between the rows.</summary>
+            public double RowSpacing { get; set; }
+
+            /// <summary>The distance between the columns.</summary>
+            public double ColumnSpacing { get; set; }
         }
 
         /// <summary>
@@ -1175,6 +1190,20 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
+            // MINSERT asks the rows, columns and their distances once the block's place, scale and turn are known.
+            if (placing.Array)
+            {
+                foreach (CadPrompt prompt in ArrayCells(c, placing))
+                {
+                    yield return prompt;
+                }
+
+                if (placing.Rows == 0)
+                {
+                    yield break;
+                }
+            }
+
             var values = new List<string>();
 
             // ATTREQ 0 gives each attribute its default without asking, as AutoCAD's.
@@ -1215,7 +1244,16 @@ namespace GeometryHelper.Dxf.Viewer
             CadEditResult result = c.Apply(null, s =>
             {
                 DxfBlockTableRecord block = s.Database.BlockTable[name];
-                var insert = new DxfBlockReference(point, block);
+                DxfBlockReference insert = placing.Array
+                    ? new DxfMInsertBlock(
+                        point,
+                        block,
+                        placing.Columns,
+                        placing.Rows,
+                        placing.ColumnSpacing,
+                        placing.RowSpacing
+                    )
+                    : new DxfBlockReference(point, block);
                 s.Append(space, Current(c, insert));
                 double factor = UnitFactor(s.Database, block);
                 insert.ScaleFactors = new GeoVector3(scale.X * factor, scale.Y * factor, scale.Z * factor);

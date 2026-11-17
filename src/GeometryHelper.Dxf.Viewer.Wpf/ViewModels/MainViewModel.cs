@@ -1623,6 +1623,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             registry.Add(new CadCommand("LAYMCUR", MakeCurrent, true));
             registry.Add(new CadCommand("LAYMCH", MatchLayer, true));
             registry.Add(new CadCommand("CLOSE", CloseCommandBody));
+            AddCloseAllWindowCommands(registry);
             AddWindowCommands(registry);
             AddWindowVariables(registry);
             AttachPlugins(registry);
@@ -1946,6 +1947,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
                 case "DWGPROPS":
                 case "HYPERLINK":
+                case "DIMINSPECT":
                     OnMisc2Requested(e);
                     break;
                 case "PASTESPEC":

@@ -1266,6 +1266,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case DisplayFill2 area:
                     DrawFill(canvas, area, m, fill, options, background, item.Style.Rgb, isSelected || isHover, color);
                     break;
+                case DisplayText2 text when text.IsQuick:
+                    // QTEXTMODE 1: the box of the text in the colour of its line, not its letters.
+                    DrawQuickText(canvas, text, m, stroke);
+                    break;
                 case DisplayText2 text when text.Parts != null:
                     DrawFieldGround(canvas, text, m);
 
@@ -2068,6 +2072,53 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     }
                 )
                     canvas.DrawPath(path, ground);
+            }
+        }
+
+        /// <summary>
+        /// A text shown as its box (QTEXTMODE 1): the rectangle that holds its lines, turned with the text; for an MTEXT, the box
+        /// of its parts.
+        /// </summary>
+        private static void DrawQuickText(SKCanvas canvas, DisplayText2 text, Affine2 m, SKPaint stroke)
+        {
+            double[] corners;
+
+            if (text.Parts != null)
+            {
+                DisplayBox box = text.Bounds;
+                corners = new[] { box.MinX, box.MinY, box.MaxX, box.MinY, box.MaxX, box.MaxY, box.MinX, box.MaxY };
+            }
+            else
+            {
+                text.GetFrame(out double x0, out double y0, out double x1, out double y1);
+                double cos = Math.Cos(text.Rotation);
+                double sin = Math.Sin(text.Rotation);
+                double[] local = { x0, y0, x1, y0, x1, y1, x0, y1 };
+                corners = new double[8];
+
+                for (int i = 0; i < 8; i += 2)
+                {
+                    corners[i] = text.X + local[i] * cos - local[i + 1] * sin;
+                    corners[i + 1] = text.Y + local[i] * sin + local[i + 1] * cos;
+                }
+            }
+
+            stroke.PathEffect?.Dispose();
+            stroke.PathEffect = null;
+
+            using (var builder = new SKPathBuilder())
+            {
+                builder.MoveTo((float)m.X(corners[0], corners[1]), (float)m.Y(corners[0], corners[1]));
+
+                for (int i = 2; i < 8; i += 2)
+                {
+                    builder.LineTo((float)m.X(corners[i], corners[i + 1]), (float)m.Y(corners[i], corners[i + 1]));
+                }
+
+                builder.LineTo((float)m.X(corners[0], corners[1]), (float)m.Y(corners[0], corners[1]));
+
+                using (SKPath path = builder.Detach())
+                    canvas.DrawPath(path, stroke);
             }
         }
 

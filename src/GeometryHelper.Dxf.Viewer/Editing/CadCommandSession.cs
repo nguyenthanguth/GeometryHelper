@@ -120,6 +120,11 @@ namespace GeometryHelper.Dxf.Viewer
         private bool _grouped;
         private List<string> _script;
 
+        // MULTIPLE: the command it repeats until Esc, and whether the run of it now going has asked anything (a command that
+        // ends without one is not started again).
+        private string _repeat;
+        private bool _repeatAsked;
+
         /// <summary>Makes the command line of a document.</summary>
         /// <param name="document">The document.</param>
         /// <param name="registry">The commands it knows; those of <see cref="CadCommandRegistry.CreateDefault"/> where null.</param>
@@ -1336,6 +1341,19 @@ namespace GeometryHelper.Dxf.Viewer
                 return TakeSecondPoint(input, echo);
             }
 
+            // LIMCHECK 1 refuses a point outside the limits, as AutoCAD does at a prompt of a command that draws.
+            if (
+                input.IsPoint
+                && point.HasValue
+                && Prompt.Kind == CadPromptKind.Point
+                && !Prompt.Tracks
+                && _modifiers.Count == 0
+                && CadLimits.Refuses(this, point.Value)
+            )
+            {
+                return Invalid(CadLimits.Outside, echo);
+            }
+
             // The points a prompt that follows the cursor takes are not written, as AutoCAD writes none of the path.
             if (echo != null && !(Prompt.Tracks && input.IsPoint))
             {
@@ -1399,6 +1417,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             Prompt = _body.Current
                 ?? throw new InvalidOperationException("The command " + Current.Name + " asked a null prompt.");
+            _repeatAsked = true;
 
             // A transparent command's prompts are written after ">>", as AutoCAD's.
             if (_suspended.Count > 0)
@@ -1481,6 +1500,37 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 RunScript(script);
             }
+
+            // MULTIPLE starts its command again each time it ends but by Esc, or by an error, or with nothing asked.
+            string repeat = _repeat;
+
+            if (repeat != null)
+            {
+                if (outcome == CadCommandOutcome.Completed && _repeatAsked && Current == null)
+                {
+                    _repeatAsked = false;
+
+                    if (!Start(repeat))
+                    {
+                        _repeat = null;
+                    }
+                }
+                else
+                {
+                    _repeat = null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Makes the command running, MULTIPLE, start the command named again each time that one ends, until it is ended by Esc
+        /// or by an error; called by MULTIPLE once it has the name, so that it ends and the repeating begins.
+        /// </summary>
+        /// <param name="name">The name of the command to repeat.</param>
+        internal void Repeat(string name)
+        {
+            _repeat = name;
+            _repeatAsked = true;
         }
 
         /// <summary>Keeps the lines of a script for the end of the SCRIPT that read them, which feeds them then.</summary>

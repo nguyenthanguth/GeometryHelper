@@ -591,11 +591,19 @@ namespace GeometryHelper.Dxf.Viewer
             var parts = new List<KeyValuePair<string, IReadOnlyList<DxfEntity>>>();
             var styles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             int refused = 0;
+            int minserted = 0;
 
             foreach (string handle in c.Selected)
             {
                 DxfEntity entity = c.Document.FindEntity(handle);
                 IReadOnlyList<DxfEntity> pieces = null;
+
+                // A MINSERT is not exploded, as AutoCAD 2021's EXPLODE says: "1 was minserted."
+                if (entity is DxfMInsertBlock)
+                {
+                    minserted++;
+                    continue;
+                }
 
                 // An entity of an owner is not exploded: its owner would take the erase as its own and the pieces be lost.
                 if (entity != null && c.Document.Owners.GetEditRule(entity) != CadEditRule.Free)
@@ -650,6 +658,15 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 parts.Add(new KeyValuePair<string, IReadOnlyList<DxfEntity>>(handle, pieces));
+            }
+
+            if (minserted > 0)
+            {
+                c.Write(
+                    minserted.ToString(CultureInfo.InvariantCulture)
+                        + (minserted == 1 ? " was" : " were")
+                        + " minserted."
+                );
             }
 
             if (refused > 0)
