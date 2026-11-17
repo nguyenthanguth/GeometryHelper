@@ -268,7 +268,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForPoint("Specify next fence point", points[points.Count - 1], new[] { "Undo" });
+                yield return CadPrompt
+                    .ForPoint("Specify next fence point", points[points.Count - 1], new[] { "Undo" })
+                    .Banding(CadSelectionBandKind.Fence, points);
 
                 if (c.Input.IsPoint)
                 {
@@ -344,7 +346,9 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoPoint2 first = c.Input.Point;
-            yield return CadPrompt.ForPoint("Specify opposite corner", first);
+            yield return CadPrompt
+                .ForPoint("Specify opposite corner", first)
+                .Banding(CadSelectionBandKind.Crossing, new[] { first });
 
             if (!c.Input.IsPoint)
             {

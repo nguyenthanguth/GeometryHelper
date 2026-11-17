@@ -138,6 +138,27 @@ namespace GeometryHelper.Dxf.Viewer
         public CadSelectionBand Band { get; internal set; }
 
         /// <summary>
+        /// Gets whether the prompt asks the opposite corner of a box from its base point ("Specify opposite corner"), drawing
+        /// nothing of its own: the canvas then shows the rectangle the corners make, as AutoCAD does for ZOOM Window and the
+        /// windows of PLOT, and not a rubber band from the first corner. A prompt with a band, a preview or a dragged block draws
+        /// its own.
+        /// </summary>
+        internal bool AsksCorner =>
+            Kind == CadPromptKind.Point
+            && BasePoint.HasValue
+            && Band == null
+            && Preview == null
+            && Drag == null
+            && Message.IndexOf("corner", StringComparison.OrdinalIgnoreCase) >= 0;
+
+        /// <summary>Gives the prompt the band of a selection drawn through the points given so far (<see cref="Band"/>).</summary>
+        internal CadPrompt Banding(CadSelectionBandKind kind, IEnumerable<GeoPoint2> points)
+        {
+            Band = new CadSelectionBand(kind, new List<GeoPoint2>(points));
+            return this;
+        }
+
+        /// <summary>
         /// Gets whether the prompt follows the cursor, as REVCLOUD's Freehand follows the crosshairs: the canvas answers it with
         /// each point the cursor moves to, and the history keeps none of those answers. False for every other prompt.
         /// </summary>

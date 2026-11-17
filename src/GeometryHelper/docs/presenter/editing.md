@@ -154,6 +154,14 @@ their band on the canvas as their points are given (`CadPrompt.Band`), and
 [`PickIndex`](xref:GeometryHelper.Dxf.Viewer.PickIndex) answers them: `Fence(points)`, `WindowPolygon(ring)` and
 `CrossingPolygon(ring)` over 100 000 lines each take under 70 milliseconds.
 
+The commands that ask the corners themselves draw the same band. STRETCH's `Specify opposite corner:` draws the box of
+`Select objects:` (solid blue, filled, dragged left to right; dashed green, filled, right to left; the crossing or
+window the typed C or W makes), and its CP the polygon through the points given. The crossing and the fence of TRIM and
+EXTEND draw their box and their line through all the points so far. Every other prompt that asks the opposite corner of
+a box from a first corner (ZOOM Window, the windows of PLOT, EXPORT and PDF output, the rectangle of XCLIP and
+IMAGECLIP, MVIEW, a unit cell) draws the rectangle of the two corners, in the rubber band's pen, and no line from the first
+corner to the cursor. A prompt that draws a preview of its own (RECTANG, MTEXT, TABLE) draws that alone.
+
 MIRROR follows the drawing's MIRRTEXT, as AutoCAD 2021 does. At 0, AutoCAD's default, a TEXT, an MTEXT and the attributes
 of an INSERT stay readable: the box of their words is mirrored, and they read within the half of the circle they read in
 before. "ABC" 2.5 high turned 30 degrees at the origin, mirrored across the line y = 10, reads at 330 degrees from
