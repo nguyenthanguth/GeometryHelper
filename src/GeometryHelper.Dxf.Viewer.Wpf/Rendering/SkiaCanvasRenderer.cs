@@ -1983,10 +1983,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             // The size the canvas sets letters one unit high at (see DrawText): their capitals as high as the unit.
-            using (var font = new SKFont(face, (float)(1.0 / 0.72 * 100.0)))
+            float width = 0f;
+
+            // A letter the face lacks is as wide as the letter drawn from the face that has it (CadGlyphFallback).
+            foreach (KeyValuePair<string, SKTypeface> run in CadGlyphFallback.Runs(face, text))
             {
-                return font.MeasureText(text) / 100.0;
+                using (var font = new SKFont(run.Value, (float)(1.0 / 0.72 * 100.0)))
+                {
+                    width += font.MeasureText(run.Key);
+                }
             }
+
+            return width / 100.0;
         }
 
         /// <summary>The bold or italic face of a typeface's family, the typeface itself where the family has none.</summary>
@@ -2270,15 +2278,55 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     canvas.Scale(-1f, 1f);
                 }
 
-                for (int i = 0; i < n; i++)
+                // The fonts a letter the face lacks is drawn in, each at the size, width and slant of the face's own.
+                var others = new Dictionary<SKTypeface, SKFont>();
+
+                try
                 {
-                    float width = font.MeasureText(lines[i]);
-                    float x =
-                        text.Horizontal == 0 ? 0f
-                        : text.Horizontal == 1 ? -width / 2f
-                        : -width;
-                    float y = (float)(-shift + i * lineStep);
-                    canvas.DrawText(lines[i], x, y, SKTextAlign.Left, font, fill);
+                    for (int i = 0; i < n; i++)
+                    {
+                        List<KeyValuePair<string, SKTypeface>> runs = CadGlyphFallback.Runs(typeface, lines[i]);
+                        var drawn = new SKFont[runs.Count];
+                        float width = 0f;
+
+                        for (int r = 0; r < runs.Count; r++)
+                        {
+                            if (ReferenceEquals(runs[r].Value, typeface))
+                            {
+                                drawn[r] = font;
+                            }
+                            else if (!others.TryGetValue(runs[r].Value, out drawn[r]))
+                            {
+                                drawn[r] = new SKFont(runs[r].Value, font.Size)
+                                {
+                                    ScaleX = font.ScaleX,
+                                    SkewX = font.SkewX,
+                                };
+                                others[runs[r].Value] = drawn[r];
+                            }
+
+                            width += drawn[r].MeasureText(runs[r].Key);
+                        }
+
+                        float x =
+                            text.Horizontal == 0 ? 0f
+                            : text.Horizontal == 1 ? -width / 2f
+                            : -width;
+                        float y = (float)(-shift + i * lineStep);
+
+                        for (int r = 0; r < runs.Count; r++)
+                        {
+                            canvas.DrawText(runs[r].Key, x, y, SKTextAlign.Left, drawn[r], fill);
+                            x += r + 1 < runs.Count ? drawn[r].MeasureText(runs[r].Key) : 0f;
+                        }
+                    }
+                }
+                finally
+                {
+                    foreach (SKFont other in others.Values)
+                    {
+                        other.Dispose();
+                    }
                 }
 
                 canvas.Restore();

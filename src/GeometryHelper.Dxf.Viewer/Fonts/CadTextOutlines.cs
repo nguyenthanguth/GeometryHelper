@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace GeometryHelper.Dxf.Viewer
 {
@@ -13,6 +14,38 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     internal static class CadTextOutlines
     {
+        // The faces a letter the font lacks is looked for in, in this order, as the canvas does (CadGlyphFallback).
+        private static readonly CadFontFace[] Fallbacks = new[] { "Arial", "Segoe UI", "Tahoma", "Times New Roman" }
+            .Select(name => new CadFontFace(name, null, null, null))
+            .ToArray();
+
+        /// <summary>The first of the fallback fonts, in the weight and slant asked, that has a letter; null where none has it.</summary>
+        private static DxfTrueTypeFont Fallback(int number, bool bold, bool italic)
+        {
+            foreach (CadFontFace face in Fallbacks)
+            {
+                DxfTrueTypeFont file = CadTextInk.Of(face, bold, italic).TrueType;
+
+                if (file != null && file.Above > 0.0 && file.GlyphOf(number) != null)
+                {
+                    return file;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>The contours of a letter taken from a font of another size, as high as the font's own capitals; the contours themselves where the factor is 1.</summary>
+        private static IReadOnlyList<double[]> Scaled(IReadOnlyList<double[]> outline, double factor)
+        {
+            if (factor == 1.0)
+            {
+                return outline;
+            }
+
+            return outline.Select(contour => contour.Select(v => v * factor).ToArray()).ToList();
+        }
+
         /// <summary>
         /// The closed contours a text of a TrueType font is made of, each as x, y, x, y in the drawing; null where the font's file
         /// is not found or has no outlines to read (an OpenType file of CFF outlines), an empty list for words of no ink.
@@ -49,15 +82,25 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
+                DxfTrueTypeFont from = file;
                 DxfFont.Glyph glyph = file.GlyphOf(number);
-                IReadOnlyList<double[]> outline = file.OutlineOf(number);
+
+                // A letter the font lacks is taken from the font that has it, its capitals as high as the font's own.
+                if (glyph == null && number >= 0x80 && !(number <= 0xFFFF && char.IsWhiteSpace((char)number)))
+                {
+                    from = Fallback(number, text.IsBold, text.IsItalic) ?? file;
+                    glyph = from.GlyphOf(number);
+                }
+
+                double unit = ReferenceEquals(from, file) ? 1.0 : file.Above / from.Above;
+                IReadOnlyList<double[]> outline = from.OutlineOf(number);
 
                 if (outline != null && outline.Count > 0)
                 {
-                    letters.Add(new KeyValuePair<double, IReadOnlyList<double[]>>(pen, outline));
+                    letters.Add(new KeyValuePair<double, IReadOnlyList<double[]>>(pen, Scaled(outline, unit)));
                 }
 
-                pen += glyph != null ? glyph.Advance : file.Above / 2.0;
+                pen += glyph != null ? glyph.Advance * unit : file.Above / 2.0;
             }
 
             double start =
