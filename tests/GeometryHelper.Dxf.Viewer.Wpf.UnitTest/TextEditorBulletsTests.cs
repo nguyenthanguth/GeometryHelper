@@ -9,7 +9,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
     /// <summary>
     /// The Text Editor tab's Bullets and Numbering menu and the Bullets and Lists menu of the editor's right-click, to the design
     /// TextEditorBullets: AutoCAD 2021's items in its order, each list wired to <see cref="CadMTextEditor.SetNumbering"/>, the
-    /// ribbon's ticks on the labels every selected paragraph has, and Start, Continue and the two Allow items grey.
+    /// ribbon's ticks on the labels every selected paragraph has, Start and Continue (<see cref="CadMTextEditor.RenumberList"/>)
+    /// live where the paragraph is in a numbered or lettered list, and the two Allow items grey with their reasons.
     /// </summary>
     public sealed class TextEditorBulletsTests
     {
@@ -53,7 +54,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             menu.Where(i => i.IsChecked).Select(i => i.Header).ToArray();
 
         [Fact]
-        public void TheBulletsMenu_IsAutoCadsItems_OffTickedForPlainWords_StartContinueAndAllowGrey()
+        public void TheBulletsMenu_IsAutoCadsItems_OffTickedForPlainWords_StartContinueGreyForNoList_AndAllowGrey()
         {
             TextEditorViewModel editor = Edited("Plate\\PBeam", out _);
             IReadOnlyList<CadMenuItemViewModel> menu = editor.Menu("Bullets");
@@ -67,8 +68,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             foreach (string grey in Items.Skip(5).Where(h => h.Length > 0))
             {
                 Assert.False(Item(menu, grey).IsEnabled);
-                Assert.Equal("Not built yet.", Item(menu, grey).ToolTip);
+                Assert.False(string.IsNullOrEmpty(Item(menu, grey).ToolTip));
             }
+
+            Assert.Equal("Lists are always allowed in this editor.", Item(menu, "Allow Bullets and Lists").ToolTip);
+            Assert.StartsWith("Not built:", Item(menu, "Allow Auto Bullets and Numbering").ToolTip);
 
             Assert.True(Item(menu, "Allow Auto Bullets and Numbering").IsCheckable);
             Assert.False(Item(menu, "Allow Auto Bullets and Numbering").IsChecked);
@@ -122,6 +126,48 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             IReadOnlyList<CadMenuItemViewModel> menu = editor.Menu("Bullets");
             Assert.Equal(new[] { "Allow Bullets and Lists" }, Ticked(menu));
             Assert.Empty(Ticked(Item(menu, "Lettered").Items));
+        }
+
+        [Fact]
+        public void StartOnTheSecondOfThreeNumberedParagraphs_NumbersItAndTheRestFromOne_AndContinueNumbersThemOnAgain()
+        {
+            TextEditorViewModel editor = Edited("Plate\\PBeam\\PColumn", out _);
+            editor.Editor.SelectAll();
+            Item(editor.Menu("Bullets"), "Numbered").Command.Execute(null);
+            Assert.Equal("\\pxi-3,l3,t3;1.\tPlate\\P2.\tBeam\\P3.\tColumn", editor.Editor.Contents);
+
+            // The caret in "Beam": Start is live, Continue too, the paragraph before being numbered.
+            editor.Editor.MoveTo(12);
+            IReadOnlyList<CadMenuItemViewModel> menu = editor.Menu("Bullets");
+            Assert.True(Item(menu, "Start").IsEnabled);
+            Assert.True(Item(menu, "Continue").IsEnabled);
+
+            Item(menu, "Start").Command.Execute(null);
+            Assert.Equal("\\pxi-3,l3,t3;1.\tPlate\\P1.\tBeam\\P2.\tColumn", editor.Editor.Contents);
+
+            Item(editor.Menu("Bullets"), "Continue").Command.Execute(null);
+            Assert.Equal("\\pxi-3,l3,t3;1.\tPlate\\P2.\tBeam\\P3.\tColumn", editor.Editor.Contents);
+
+            // Each is one undo step.
+            Assert.True(editor.Editor.Undo());
+            Assert.Equal("\\pxi-3,l3,t3;1.\tPlate\\P1.\tBeam\\P2.\tColumn", editor.Editor.Contents);
+        }
+
+        [Fact]
+        public void StartAndContinue_AreGrey_ForAParagraphOfNoList_AndContinueForTheFirstOfAList()
+        {
+            TextEditorViewModel editor = Edited("Plate\\PBeam", out _);
+            IReadOnlyList<CadMenuItemViewModel> menu = editor.Menu("Bullets");
+            Assert.False(Item(menu, "Start").IsEnabled);
+            Assert.False(Item(menu, "Continue").IsEnabled);
+
+            editor.Editor.SelectAll();
+            Item(Item(editor.Menu("Bullets"), "Lettered").Items, "Lowercase").Command.Execute(null);
+            editor.Editor.MoveTo(1);
+            menu = editor.Menu("Bullets");
+            Assert.True(Item(menu, "Start").IsEnabled);
+            Assert.False(Item(menu, "Continue").IsEnabled);
+            Assert.False(editor.Editor.RenumberList(true));
         }
 
         [Fact]

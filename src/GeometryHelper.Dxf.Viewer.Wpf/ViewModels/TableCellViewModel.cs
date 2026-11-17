@@ -397,8 +397,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public IReadOnlyList<CadMenuItemViewModel> Menu()
         {
             DxfTable table = Table;
-            CadMenuItemViewModel Grey(string name, string keys = null) =>
-                new CadMenuItemViewModel(name, () => { }, false, MainViewModel.NotBuiltYet, shortcut: keys);
+            CadMenuItemViewModel Grey(string name, string reason) =>
+                new CadMenuItemViewModel(name, () => { }, false, reason);
             CadMenuItemViewModel Item(string name, Action run, bool on = true, string keys = null) =>
                 new CadMenuItemViewModel(name, run, on, shortcut: keys);
             CadMenuItemViewModel Line() => CadMenuItemViewModel.Separator();
@@ -431,7 +431,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Line(),
                 Item("Match Cell", () => RunOnCell("MATCHCELL"), table != null),
                 Item("Remove All Property Overrides", () => RemoveOverridesCommand.Execute(null)),
-                Grey("Data Link…"),
+                Grey("Data Link…", "Not built: a cell cannot be linked to an Excel file or another data source."),
                 Line(),
                 new CadMenuItemViewModel(
                     "Insert",
@@ -455,7 +455,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     }
                 ),
                 Item("Edit Text", () => EditCell()),
-                Grey("Manage Content…"),
+                Grey("Manage Content…", "Not built: a cell holds one content here, so there is none to manage."),
                 Item("Delete All Contents", () => ClearContentsCommand.Execute(null), keys: "Del"),
                 Line(),
                 new CadMenuItemViewModel(
@@ -497,7 +497,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Item("Unmerge", () => UnmergeCommand.Execute(null), MeetsMerged(table)),
                 Line(),
                 Item("Properties", () => _model.IsPropertiesPanelShown = true, keys: "Ctrl+1"),
-                Grey("Quick Properties"),
+                Grey(
+                    "Quick Properties",
+                    "Not built: Quick Properties shows the properties of objects, not those of cells; the Table Cell tab sets them."
+                ),
             };
         }
 

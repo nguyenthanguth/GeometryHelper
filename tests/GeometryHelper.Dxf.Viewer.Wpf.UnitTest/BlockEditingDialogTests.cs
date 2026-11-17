@@ -93,6 +93,68 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             }
         }
 
+        [Fact]
+        public void OpenInBlockEditorOfTheBlockDialog_OpensTheEditorOnTheBlockOnceItIsMade()
+        {
+            using (var folder = new TestFolder())
+            {
+                MainViewModel model = Open(folder);
+                model.ShowBlockDefinition = dialog =>
+                {
+                    dialog.Name = "GB";
+                    dialog.BaseX = "100";
+                    dialog.BaseY = "70";
+                    dialog.OpenInBlockEditor = true;
+                    dialog.Close(CadDialogAction.Ok);
+                    return true;
+                };
+
+                model.Execute("SELECTALL");
+                model.Execute("B");
+
+                Assert.True(model.Document.Database.BlockTable.Has("GB"));
+                Assert.NotNull(model.Document.BlockEditor);
+                Assert.Equal("GB", model.Document.BlockEditor.Name);
+            }
+        }
+
+        [Fact]
+        public void InsertFieldOfTheEnhancedAttributeEditor_PutsTheFieldInTheValue_AndTheAttributeHoldsIt()
+        {
+            using (var folder = new TestFolder())
+            {
+                MainViewModel model = Open(folder);
+                MakeBubble(model);
+                string handle = model.Document.ModelSpace.Block.OfType<DxfBlockReference>().Single().Handle;
+                model.ShowField = dialog =>
+                {
+                    dialog.Close(CadFieldAction.Ok);
+                    return true;
+                };
+                string code = null;
+                model.ShowAttributeEditor = editor =>
+                {
+                    Assert.True(editor.CanInsertField);
+                    code = editor.AskField();
+                    editor.Rows[0].Value = code;
+                    editor.Close(CadDialogAction.Ok);
+                    return true;
+                };
+
+                model.Execute("EATTEDIT");
+                model.Session.FeedSelection(new[] { handle });
+
+                DxfAttributeReference attribute = model
+                    .Document.ModelSpace.Block.OfType<DxfBlockReference>()
+                    .Single()
+                    .AttributeCollection.Single();
+                Assert.StartsWith("%<\\AcVar Date", code, StringComparison.Ordinal);
+                Assert.True(CadFields.Has(attribute));
+                Assert.Equal(code, CadFields.CodesOf(attribute));
+                Assert.DoesNotContain("%<", attribute.TextString, StringComparison.Ordinal);
+            }
+        }
+
         /// <summary>The number of pixels of a picture that are not black.</summary>
         private static int Lit(ImageSource picture)
         {

@@ -472,8 +472,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// The Modify Table Style dialog (and New Table Style), as AutoCAD 2021's: the table direction, and the three cell styles,
     /// Data, Header and Title, each in its General tab (fill, alignment, margins), Text tab (text style, height, colour) and
     /// Borders tab (lineweight, colour and the border buttons). OK writes the style, one undo step, and draws its tables anew.
-    /// What the file of R2000 to R2018 has no place for is greyed: the starting table, the format and type of a cell, the
-    /// merging on creation, the angle of the text, the linetype and the double lines, and new cell styles.
+    /// The Format of a cell style opens the Table Cell Format dialog and is kept in the style (a file of AutoCAD 2007 or later has
+    /// the place for it). What the file has no place for is greyed: the starting table, the type of a cell style, the merging on
+    /// creation, the angle of the text, the linetype and the double lines, and new cell styles.
     /// </summary>
     public sealed class TableStyleModifyViewModel : ObservableObject
     {
@@ -548,6 +549,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             TextStyles = CadTextStyleEditor.Styles(document.Database).Select(s => s.Name).ToList();
             BorderCommand = new DelegateCommand(p => Border(p as string));
             OkCommand = new DelegateCommand(_ => Ok());
+            FormatCommand = new DelegateCommand(_ => ChooseFormat(), _ => ShowDataFormat != null);
             CancelCommand = new DelegateCommand(_ => CloseRequested?.Invoke(this, false));
         }
 
@@ -593,6 +595,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         {
                             nameof(Fill),
                             nameof(Alignment),
+                            nameof(FormatText),
                             nameof(TextStyle),
                             nameof(TextHeight),
                             nameof(TextColor),
@@ -665,6 +668,43 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     Changed(nameof(Alignment));
                 }
             }
+        }
+
+        /// <summary>
+        /// Gets or sets how the window shows the Table Cell Format dialog over the format of the cell style shown (the … button
+        /// of Format); true where it was closed with OK. With none set the button is grey.
+        /// </summary>
+        public Func<DataFormatViewModel, bool> ShowDataFormat { get; set; }
+
+        /// <summary>Gets what the Format box shows: the kind of data of the cell style shown, General for none, with the format string after it where it has one.</summary>
+        public string FormatText
+        {
+            get
+            {
+                DataFormatKind kind = DataFormatViewModel.Kinds.FirstOrDefault(k =>
+                    k.Kind == Cell.DataType && k.Unit == Cell.UnitType
+                );
+                string name = kind?.Name ?? "General";
+                return string.IsNullOrEmpty(Cell.Format) ? name : name + " (" + Cell.Format + ")";
+            }
+        }
+
+        /// <summary>Gets the … button of Format: the Table Cell Format dialog, its answer given to the cell style shown.</summary>
+        public DelegateCommand FormatCommand { get; }
+
+        private void ChooseFormat()
+        {
+            var dialog = new DataFormatViewModel(_cellStyle, Cell.DataType, Cell.UnitType, Cell.Format);
+
+            if (ShowDataFormat == null || !ShowDataFormat(dialog) || !dialog.IsConfirmed)
+            {
+                return;
+            }
+
+            Cell.DataType = dialog.DataType.Kind;
+            Cell.UnitType = dialog.DataType.Unit;
+            Cell.Format = dialog.Format ?? string.Empty;
+            Changed(nameof(FormatText));
         }
 
         /// <summary>Gets or sets the horizontal margin, as typed: the style's own, alike for every cell style.</summary>

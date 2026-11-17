@@ -13,16 +13,30 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     internal static partial class CadCommands
     {
-        /// <summary>The words of a dimensional constraint: its parameter's name, an equals sign and the value in the precision the dimension reads.</summary>
-        internal static string ConstraintWords(DxfDimension dimension, CadDimKind kind, string name, double value)
+        /// <summary>
+        /// The words of a dimensional constraint in the format its name format asks: its parameter's name (0), the value in the
+        /// precision the dimension reads (1), or the name, an equals sign and the value (2).
+        /// </summary>
+        internal static string ConstraintWords(
+            DxfDimension dimension,
+            CadDimKind kind,
+            string name,
+            double value,
+            int format
+        )
         {
+            if (format == 0)
+            {
+                return name;
+            }
+
             bool angle = kind == CadDimKind.Angular;
             int places = angle ? Math.Max(0, dimension.Dimadec) : Math.Max(0, dimension.Dimdec);
             string number = value.ToString(
                 "F" + places.ToString(CultureInfo.InvariantCulture),
                 CultureInfo.InvariantCulture
             );
-            return name + "=" + number;
+            return format == 1 ? number : name + "=" + number;
         }
 
         /// <summary>
@@ -179,7 +193,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            made.DimensionText = ConstraintWords(made, constraint.Kind, constraint.Name, value);
+            made.DimensionText = ConstraintWords(made, constraint.Kind, constraint.Name, value, constraint.NameFormat);
             string layer = constraint.Dynamic ? CadConstraintStore.DynamicLayer : null;
             CadSpace space = c.Space;
             CadEditResult result = c.Apply(null, s =>
@@ -291,7 +305,13 @@ namespace GeometryHelper.Dxf.Viewer
                     break;
             }
 
-            dimension.DimensionText = ConstraintWords(dimension, constraint.Kind, constraint.Name, value);
+            dimension.DimensionText = ConstraintWords(
+                dimension,
+                constraint.Kind,
+                constraint.Name,
+                value,
+                constraint.NameFormat
+            );
             Redraw(dimension);
         }
     }

@@ -61,13 +61,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         )
                     );
                     items.Add(OnSelection("Remove Style Overrides", "DIMOVERRIDE Clear", 'O'));
-                    items.Add(NotBuilt("Edit Constraint"));
-                    items.Add(
-                        Submenu(
-                            "Dimension Name Format",
-                            new[] { NotBuilt("Value"), NotBuilt("Name"), NotBuilt("Name and Expression") }
-                        )
-                    );
+                    items.AddRange(ConstraintItems(handles));
                     items.Add(AnnotativeScaleMenu());
                     break;
                 case "TEXT" when one:
@@ -93,8 +87,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                     if (one)
                     {
-                        items.Add(NotBuilt("Set Boundary"));
-                        items.Add(NotBuilt("Generate Boundary"));
+                        items.Add(OnSelection("Set Boundary", "HATCHSETBOUNDARY"));
+                        items.Add(OnSelection("Generate Boundary", "HATCHGENERATEBOUNDARY"));
                         items.Add(AnnotativeScaleMenu());
                     }
 
@@ -147,7 +141,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                             new[]
                             {
                                 OnSelection("Adjust", "IMAGEADJUST"),
-                                one ? OnSelection("Clip", "IMAGECLIP") : NotBuilt("Clip"),
+                                one
+                                    ? OnSelection("Clip", "IMAGECLIP")
+                                    : Grey("Clip", "IMAGECLIP clips one image at a time: select one image."),
                                 OnSelection("Transparency", "TRANSPARENCY"),
                                 MenuCommand("External References", "EXTERNALREFERENCES"),
                             }
@@ -216,17 +212,30 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// Dimension Style of the dimension menu: Save as New Style and Other grey, and between them the drawing's first six
-        /// dimension styles, each setting the dimensions selected to it, as AutoCAD lists the six it used last.
+        /// Dimension Style of the dimension menu: Save as New Style, the drawing's first six dimension styles, each setting the
+        /// dimensions selected to it, as AutoCAD lists the six it used last, and Other, which opens a menu of the styles beyond
+        /// the six. Save as New Style takes the style and overrides of the dimension selected as the current ones, as -DIMSTYLE
+        /// Restore does with a dimension picked, then asks the name of the new style on the command line (-DIMSTYLE Save); it is
+        /// grey for more than one dimension.
         /// </summary>
         private CadMenuItemViewModel DimensionStyleMenu(IReadOnlyList<string> handles)
         {
-            var styles = new List<CadMenuItemViewModel> { NotBuilt("Save as New Style...", 'S') };
-            List<string> names = CadDimStyleEditor
-                .Styles(_current.Document.Database)
-                .Select(s => s.Name)
-                .Take(6)
-                .ToList();
+            var styles = new List<CadMenuItemViewModel>
+            {
+                handles.Count == 1 && HasCommand("-DIMSTYLE")
+                    ? new CadMenuItemViewModel(
+                        "Save as New Style...",
+                        () => SaveDimensionStyleOf(handles[0]),
+                        accessKey: 'S'
+                    )
+                    : Grey(
+                        "Save as New Style...",
+                        "Select one dimension to save its style and overrides as a new style.",
+                        'S'
+                    ),
+            };
+            List<string> all = CadDimStyleEditor.Styles(_current.Document.Database).Select(s => s.Name).ToList();
+            List<string> names = all.Take(6).ToList();
 
             if (names.Count > 0)
             {
@@ -234,8 +243,108 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 styles.AddRange(names.Select(n => PropertyItem(n, handles, "Dim style", n)));
             }
 
-            styles.Add(NotBuilt("Other...", 'O'));
+            styles.Add(
+                Submenu("Other...", all.Skip(6).Select(n => PropertyItem(n, handles, "Dim style", n)).ToList(), 'O')
+            );
             return Submenu("Dimension Style", styles, 'D');
+        }
+
+        /// <summary>
+        /// Save as New Style: -DIMSTYLE Restore with the dimension picked makes its style and overrides the current ones, and
+        /// -DIMSTYLE Save then asks the name of the style on the command line.
+        /// </summary>
+        private void SaveDimensionStyleOf(string handle)
+        {
+            if (_current == null || _current.Session.IsRunning)
+            {
+                return;
+            }
+
+            CadCommandSession session = _current.Session;
+            StartCommand("-DIMSTYLE");
+            session.Feed("Restore");
+            session.Feed(string.Empty);
+            session.FeedSelection(new[] { handle });
+
+            if (!session.IsRunning)
+            {
+                StartCommand("-DIMSTYLE");
+                session.Feed("Save");
+            }
+
+            SyncHistory();
+            RunAfterCommand();
+        }
+
+        /// <summary>
+        /// The items of a dimension menu that belong to dimensional constraints: Edit Constraint starts -PARAMETERS on the
+        /// parameter the dimension shows, with Edit answered and its name, and leaves "Enter expression" for the answer, as
+        /// the Parameters Manager's edit does; Dimension Name Format gives the dimensions selected the words of Value, Name or
+        /// Name and Expression (their name format, kept in the words the dimension shows). Both are grey where the dimensions
+        /// selected are no dimensional constraints (a DIMLINEAR is not one; DCCONVERT makes it one), or where the drawing has
+        /// none.
+        /// </summary>
+        private List<CadMenuItemViewModel> ConstraintItems(IReadOnlyList<string> handles)
+        {
+            CadDocument document = _current.Document;
+            const string NotOne = "Select a dimensional constraint; DCCONVERT turns a dimension into one.";
+            string name = handles.Count == 1 ? CadParameters.ConstraintNameOf(document, handles[0]) : null;
+            bool any = handles.Any(h => CadParameters.ConstraintNameOf(document, h) != null);
+            CadMenuItemViewModel edit =
+                name != null && HasCommand("-PARAMETERS")
+                    ? new CadMenuItemViewModel("Edit Constraint", () => EditConstraint(name))
+                    : Grey("Edit Constraint", handles.Count == 1 ? NotOne : "Select one dimensional constraint.");
+            string[] formats = { "Name", "Value", "Name and Expression" };
+            int[] numbers = { 0, 1, 2 };
+            var format = new List<CadMenuItemViewModel>();
+
+            for (int i = 0; i < 3; i++)
+            {
+                int number = numbers[i];
+                format.Add(
+                    any
+                        ? new CadMenuItemViewModel(formats[i], () =>
+                            ConstraintsEdit(() => CadParameters.SetNameFormat(_current.Document, handles, number))
+                        )
+                        : Grey(formats[i], NotOne)
+                );
+            }
+
+            // AutoCAD lists Value, Name, Name and Expression.
+            format = new List<CadMenuItemViewModel> { format[1], format[0], format[2] };
+            return new List<CadMenuItemViewModel> { edit, Submenu("Dimension Name Format", format) };
+        }
+
+        /// <summary>Edit Constraint: -PARAMETERS Edit on the parameter, the new expression left to be typed.</summary>
+        private void EditConstraint(string name)
+        {
+            if (_current == null || _current.Session.IsRunning)
+            {
+                return;
+            }
+
+            CadCommandSession session = _current.Session;
+            StartCommand("-PARAMETERS");
+            session.Feed("Edit");
+            session.Feed(name);
+            SyncHistory();
+            RunAfterCommand();
+        }
+
+        /// <summary>An edit of dimensional constraints from the menu, refused or failed said on the command line.</summary>
+        private void ConstraintsEdit(Func<CadEditResult> edit)
+        {
+            if (_current == null || _current.Session.IsRunning)
+            {
+                return;
+            }
+
+            CadEditResult result = edit();
+
+            if (!result.Succeeded)
+            {
+                Say(result.Message);
+            }
         }
 
         /// <summary>
@@ -252,7 +361,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     OnSelection("Delete Current Scale", "AIOBJECTSCALEREMOVE", 'D'),
                     OnSelection("Add/Delete Scales...", "OBJECTSCALE", 'c'),
                     CadMenuItemViewModel.Separator(),
-                    NotBuilt("Synchronize Multiple-scale Positions", 'S'),
+                    Grey(
+                        "Synchronize Multiple-scale Positions",
+                        "Not built: the presenter does not read or move the position an annotative object keeps for each of its scales.",
+                        'S'
+                    ),
                 }
             );
 
@@ -370,12 +483,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Rows Equally give every column or row the mean, one undo step; Remove All Property Overrides takes what every cell
         /// holds over the table style away; Export runs TABLEEXPORT on the table; Table Indicator Color as TABLEINDICATOR's colour.
         /// </summary>
+        /// <summary>Why the starting table of a table style cannot be saved or set: the presenter keeps no starting table in a style.</summary>
+        private const string StartingTable =
+            "Not built: a table style keeps no starting table here, so a table cannot be saved as one or set as one.";
+
         private List<CadMenuItemViewModel> TableMenu(string handle) =>
             new List<CadMenuItemViewModel>
             {
                 Submenu(
                     "Table Style",
-                    new[] { NotBuilt("Save as New Table Style..."), NotBuilt("Set As Table in Current Table Style") }
+                    new[]
+                    {
+                        Grey("Save as New Table Style...", StartingTable),
+                        Grey("Set As Table in Current Table Style", StartingTable),
+                    }
                 ),
                 new CadMenuItemViewModel("Size Columns Equally", () => SizeTableEqually(handle, true)),
                 new CadMenuItemViewModel("Size Rows Equally", () => SizeTableEqually(handle, false)),

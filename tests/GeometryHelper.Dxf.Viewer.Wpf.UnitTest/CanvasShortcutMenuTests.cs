@@ -89,7 +89,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     items.Select(i => i.AccessKey).ToArray()
                 );
                 Assert.Equal(
-                    new[] { "SteeringWheels", "Action Recorder", "Convert PS to MS" },
+                    new[] { "SteeringWheels", "Action Recorder" },
                     items.Where(i => !i.IsSeparator && !i.IsEnabled).Select(i => i.Header).ToArray()
                 );
                 Assert.All(items.Where(i => !i.IsSeparator && !i.IsEnabled && i.Items.Count == 0), i =>

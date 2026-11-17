@@ -67,9 +67,9 @@
                     </StackPanel>
                     <CheckBox
                         Style="{StaticResource StyleCheck}"
-                        IsEnabled="False"
-                        Foreground="{StaticResource GhTextMuted}"
-                        Content="Open in block editor (the light block editor is not built yet)"
+                        Content="Open in block editor"
+                        IsChecked="{Binding OpenInBlockEditor, Mode=TwoWay}"
+                        ToolTip="BEDIT on the block once it is made"
                     />
                 </DockPanel>
             </Border>

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Dxf.Viewer
@@ -234,6 +235,79 @@ namespace GeometryHelper.Dxf.Viewer
                 ),
             };
             return document.ApplyEdit("PARAMETERS", planned, s => CadConstraints.Write(work));
+        }
+
+        /// <summary>
+        /// The name of the parameter a dimension shows as a dimensional constraint (d1, rad1), as the Edit Constraint item of a
+        /// dimension's menu needs it; null where the dimension is no constraint of the working space.
+        /// </summary>
+        internal static string ConstraintNameOf(CadDocument document, string dimensionHandle)
+        {
+            if (document == null || dimensionHandle == null || !CadConstraints.HoldsAny(document.Database))
+            {
+                return null;
+            }
+
+            CadConstraints.Work work = CadConstraints.Open(document, document.WorkingSpace);
+            return work
+                .Set.Dimensional.Find(d =>
+                    string.Equals(d.DimensionHandle, dimensionHandle, StringComparison.OrdinalIgnoreCase)
+                )
+                ?.Name;
+        }
+
+        /// <summary>
+        /// Gives the dimensions that show dimensional constraints the words of a name format (0 the name, 1 the value, 2 the
+        /// name and the value, as CONSTRAINTNAMEFORMAT counts), one undo step; a dimension that is no constraint is left as it
+        /// is. Refused where none of them is a constraint.
+        /// </summary>
+        internal static CadEditResult SetNameFormat(
+            CadDocument document,
+            IReadOnlyList<string> dimensionHandles,
+            int format
+        )
+        {
+            CadConstraints.Work work = Begin(document, out CadEditResult refusal);
+
+            if (work == null)
+            {
+                return refusal;
+            }
+
+            var chosen = work
+                .Set.Dimensional.Where(d =>
+                    d.DimensionHandle != null
+                    && d.NameFormat != format
+                    && dimensionHandles.Contains(d.DimensionHandle, StringComparer.OrdinalIgnoreCase)
+                )
+                .ToList();
+
+            if (chosen.Count == 0)
+            {
+                return CadEditResult.Refuse("No dimensional constraint to change.");
+            }
+
+            var planned = chosen
+                .Select(d => new CadEditRecord(
+                    CadEditRecordKind.PropertyChanged,
+                    d.DimensionHandle,
+                    CadConstraints.OwnProperty
+                ))
+                .ToList();
+            return document.ApplyEdit("DIMCONSTRAINT", planned, s =>
+            {
+                foreach (CadDimConstraint constraint in chosen)
+                {
+                    constraint.NameFormat = format;
+
+                    if (work.Entity(constraint.DimensionHandle) is DxfDimension dimension)
+                    {
+                        CadCommands.RefreshConstraintDimension(work, constraint, dimension);
+                    }
+                }
+
+                CadConstraints.Write(work);
+            });
         }
 
         /// <summary>The expression with each use of a name written as another.</summary>

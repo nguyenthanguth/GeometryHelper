@@ -37,6 +37,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             PropertiesTab.IsChecked = Model.Tab == "Properties";
         }
 
+        private void OnInsertField(object sender, RoutedEventArgs e) => FieldInsertion.Into(FieldBox, Model.AskField);
+
         private void OnHeaderDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ButtonState == MouseButtonState.Pressed && IsLoaded)

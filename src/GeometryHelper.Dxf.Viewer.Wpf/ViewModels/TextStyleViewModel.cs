@@ -96,6 +96,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private string _obliqueAngle;
         private bool _upsideDown;
         private bool _backwards;
+        private bool _annotative;
         private bool _vertical;
         private bool _isDirty;
         private bool _loading;
@@ -330,6 +331,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
             }
         }
+
+        /// <summary>Gets or sets Annotative: texts made in the style are annotative, drawn at the height their paper gives them.</summary>
+        public bool Annotative
+        {
+            get => _annotative;
+            set
+            {
+                if (Set(ref _annotative, value))
+                {
+                    Changed();
+                }
+            }
+        }
+
+        /// <summary>Gets whether Annotative can be changed: the drawing is of AutoCAD 2007 or later.</summary>
+        public bool IsAnnotativeEnabled => CadTextStyleEditor.CanBeAnnotative(_document.Database);
 
         /// <summary>Gets or sets Backwards.</summary>
         public bool Backwards
@@ -651,6 +668,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ObliqueAngle = Number(settings.ObliqueAngle * 180.0 / Math.PI);
             UpsideDown = settings.UpsideDown;
             Backwards = settings.Backwards;
+            Annotative = settings.Annotative;
+            Raise(nameof(IsAnnotativeEnabled));
             Vertical = settings.Vertical;
             _loading = false;
             IsDirty = false;
@@ -699,6 +718,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             settings.ObliqueAngle = oblique * Math.PI / 180.0;
             settings.UpsideDown = _upsideDown;
             settings.Backwards = _backwards;
+            settings.Annotative = _annotative;
 
             if (IsTrueType)
             {

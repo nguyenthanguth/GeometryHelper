@@ -84,6 +84,31 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        /// <summary>
+        /// Opens the Block Editor on a block once the command that makes it has ended, as the Block Definition dialog's "Open in
+        /// block editor" box asks: BLOCK may still ask the base point or the objects on the canvas first.
+        /// </summary>
+        private void OpenBlockEditorAfterCommand(string name)
+        {
+            _afterCommand = () =>
+            {
+                if (_current == null)
+                {
+                    return;
+                }
+
+                if (_current.Session.IsRunning)
+                {
+                    OpenBlockEditorAfterCommand(name);
+                    return;
+                }
+
+                StartCommand("-BEDIT");
+                _current.Session.Feed(name);
+                SyncHistory();
+            };
+        }
+
         /// <summary>A request of a block command: its dialog shown where the workspace shows it, the request answered.</summary>
         private void OnBlockRequested(CadUiRequestEventArgs e)
         {
@@ -91,6 +116,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 case CadBlockDefinitionRequest block when ShowBlockDefinition != null:
                     e.Handled = ShowBlockDefinition(new BlockDefinitionViewModel(block));
+
+                    if (block.Action == CadDialogAction.Ok && block.OpenInBlockEditor)
+                    {
+                        OpenBlockEditorAfterCommand(block.Name);
+                    }
+
                     break;
                 case CadInsertRequest insert when AnswerDesignCenterInsert(insert):
                     e.Handled = true;
@@ -121,10 +152,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     e.Handled = ShowWriteBlock(new WriteBlockViewModel(write));
                     break;
                 case CadAttributeDefinitionRequest definition when ShowAttributeDefinition != null:
-                    e.Handled = ShowAttributeDefinition(new AttributeDefinitionViewModel(definition));
+                    e.Handled = ShowAttributeDefinition(
+                        new AttributeDefinitionViewModel(definition) { AskField = AskFieldInDialog }
+                    );
                     break;
                 case CadAttributeEditRequest edit when ShowAttributeEditor != null:
-                    e.Handled = ShowAttributeEditor(new AttributeEditorViewModel(edit));
+                    e.Handled = ShowAttributeEditor(new AttributeEditorViewModel(edit) { AskField = AskFieldInDialog });
                     break;
                 case string block when e.Name == "REDEFINE" && AskRedefineBlock != null:
                     e.Answer = AskRedefineBlock(block) ? "Yes" : "No";

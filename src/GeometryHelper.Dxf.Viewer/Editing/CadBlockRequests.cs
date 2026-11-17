@@ -202,6 +202,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets whether a block of the name already defined is to be defined again, as the dialog's question answered Yes.</summary>
         public bool Redefine { get; set; }
 
+        /// <summary>Gets or sets whether the Block Editor is to open on the block once it is made, as the dialog's "Open in block editor" box says; the window does it.</summary>
+        public bool OpenInBlockEditor { get; set; }
+
         /// <summary>Gets or sets what the window's dialog was closed with; Cancel until set.</summary>
         public CadDialogAction Action { get; set; }
     }

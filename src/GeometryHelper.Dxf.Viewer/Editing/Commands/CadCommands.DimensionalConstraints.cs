@@ -169,6 +169,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 Direction = direction,
                 Dynamic = settings.Form == 0,
+                NameFormat = settings.NameFormat,
             };
             var parameter = new CadParameter(name, PlainNumber(measured), measured, false);
             work.Set.Parameters.Add(parameter);
@@ -837,6 +838,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 Direction = direction,
                 Dynamic = settings.Form == 0,
+                NameFormat = settings.NameFormat,
                 DimensionHandle = dimension.Handle,
             };
             var parameter = new CadParameter(name, PlainNumber(measured), measured, false);
@@ -871,7 +873,13 @@ namespace GeometryHelper.Dxf.Viewer
                         PutOnConstraintLayer(dimension);
                     }
 
-                    dimension.DimensionText = ConstraintWords(dimension, kind, name, parameter.Value);
+                    dimension.DimensionText = ConstraintWords(
+                        dimension,
+                        kind,
+                        name,
+                        parameter.Value,
+                        constraint.NameFormat
+                    );
                     Redraw(dimension);
                     CadConstraints.Write(work);
                 }
