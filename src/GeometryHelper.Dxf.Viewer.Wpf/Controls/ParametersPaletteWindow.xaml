@@ -1,0 +1,167 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.ParametersPaletteWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="Parameters Manager"
+    Width="520"
+    Height="380"
+    MinWidth="360"
+    MinHeight="200"
+    WindowStyle="None"
+    ResizeMode="CanResizeWithGrip"
+    ShowInTaskbar="False"
+    WindowStartupLocation="Manual"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style x:Key="Cell" TargetType="TextBox" BasedOn="{StaticResource GhTextBox}">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="6,3" />
+                <Setter Property="FontFamily" Value="{StaticResource GhMonoFont}" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
+            <Style x:Key="Head" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Padding" Value="6,0,0,0" />
+            </Style>
+
+            <!-- A parameter: its name and expression typed in the row, the value it comes to, the kind. -->
+            <DataTemplate x:Key="Row" DataType="{x:Type local:ParameterRowViewModel}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="110" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="90" />
+                        <ColumnDefinition Width="80" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox
+                        Grid.Column="0"
+                        Style="{StaticResource Cell}"
+                        Text="{Binding Name, UpdateSourceTrigger=LostFocus}"
+                        AutomationProperties.Name="Name"
+                    />
+                    <TextBox
+                        Grid.Column="1"
+                        Style="{StaticResource Cell}"
+                        Text="{Binding Expression, UpdateSourceTrigger=LostFocus}"
+                        AutomationProperties.Name="Expression"
+                    />
+                    <TextBlock
+                        Grid.Column="2"
+                        Text="{Binding Value}"
+                        Foreground="{StaticResource GhText}"
+                        FontFamily="{StaticResource GhMonoFont}"
+                        VerticalAlignment="Center"
+                        Padding="6,0,0,0"
+                    />
+                    <TextBlock
+                        Grid.Column="3"
+                        Text="{Binding Kind}"
+                        Foreground="{StaticResource GhTextMuted}"
+                        VerticalAlignment="Center"
+                        Padding="6,0,0,0"
+                    />
+                </Grid>
+            </DataTemplate>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <!-- The Parameters Manager: the title, dragged to move it, with New User Parameter, Delete and the close button; the list
+         under a header row; the reason a refused edit gives at the foot. -->
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="12,8"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnClose"
+                        ToolTip="Close (PARAMETERSCLOSE)"
+                    />
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Delete"
+                        Padding="10,3"
+                        Margin="0,0,8,0"
+                        Command="{Binding DeleteCommand}"
+                        ToolTip="Delete the user parameter selected"
+                    />
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhDialogButton}"
+                        Content="New User Parameter"
+                        Padding="10,3"
+                        Margin="0,0,8,0"
+                        Command="{Binding NewCommand}"
+                        ToolTip="Make a user parameter, valued 1"
+                    />
+                    <TextBlock
+                        Text="Parameters Manager"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center"
+                    />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="12,6">
+                <TextBlock
+                    Text="{Binding Status}"
+                    Foreground="{StaticResource GhWarn}"
+                    TextWrapping="Wrap"
+                    MinHeight="16"
+                />
+            </Border>
+
+            <Grid DockPanel.Dock="Top" Margin="8,8,8,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="110" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="90" />
+                    <ColumnDefinition Width="80" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Name" Style="{StaticResource Head}" />
+                <TextBlock Grid.Column="1" Text="Expression" Style="{StaticResource Head}" />
+                <TextBlock Grid.Column="2" Text="Value" Style="{StaticResource Head}" />
+                <TextBlock Grid.Column="3" Text="Type" Style="{StaticResource Head}" />
+            </Grid>
+
+            <ListBox
+                Margin="8,4,8,8"
+                ItemsSource="{Binding Rows}"
+                SelectedItem="{Binding Selected, Mode=TwoWay}"
+                ItemTemplate="{StaticResource Row}"
+                Background="{StaticResource GhInput}"
+                BorderBrush="{StaticResource GhBorder}"
+                HorizontalContentAlignment="Stretch"
+                AutomationProperties.Name="Parameters"
+            />
+        </DockPanel>
+    </Border>
+</Window>

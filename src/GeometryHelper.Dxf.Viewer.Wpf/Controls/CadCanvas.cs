@@ -1591,6 +1591,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 DrawTags(drawingContext, view, scale);
                 DrawActiveFrame(drawingContext);
                 DrawGrips(drawingContext, work, scale);
+                DrawConstraintBars(drawingContext, work, scale);
                 DrawCells(drawingContext, work, scale);
                 DrawTableDrag(drawingContext, work, scale);
                 DrawMark(drawingContext, work, scale);
@@ -1888,6 +1889,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (e.ChangedButton == MouseButton.Left && TableMouseUp(at))
             {
+                e.Handled = true;
+            }
+            else if (e.ChangedButton == MouseButton.Right && !IsRunning && ConstraintBarMenu(at))
+            {
+                // A right click on an icon of a constraint bar: its menu, whatever the shortcut menu is.
                 e.Handled = true;
             }
             else if (e.ChangedButton == MouseButton.Middle && _panFrom.HasValue)

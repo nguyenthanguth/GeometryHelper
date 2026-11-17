@@ -234,6 +234,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     "AUPREC",
                     "BINDTYPE",
                     "CANNOSCALE",
+                    "CCONSTRAINTFORM",
                     "CDATE",
                     "CECOLOR",
                     "CELTSCALE",
@@ -256,6 +257,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     "CMLJUST",
                     "CMLSCALE",
                     "CMLSTYLE",
+                    "CONSTRAINTBARDISPLAY",
+                    "CONSTRAINTBARMODE",
+                    "CONSTRAINTINFER",
+                    "CONSTRAINTNAMEFORMAT",
+                    "CONSTRAINTRELAX",
+                    "CONSTRAINTSOLVEMODE",
                     "COPYMODE",
                     "CTAB",
                     "CTABLESTYLE",
@@ -268,6 +275,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     "DISTANCE",
                     "DWGNAME",
                     "DWGPREFIX",
+                    "DYNCONSTRAINTMODE",
                     "ELEVATION",
                     "EXPERT",
                     "EXTMAX",
@@ -313,6 +321,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     "OLEQUALITY",
                     "ORTHOMODE",
                     "OSNAPZ",
+                    "PARAMETERCOPYMODE",
+                    "PARAMETERSSTATUS",
                     "PDFSHX",
                     "PDMODE",
                     "PDSIZE",
@@ -380,7 +390,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // -OBJECTSCALE, AIOBJECTSCALEADD and AIOBJECTSCALEREMOVE, OBJECTSCALE, REFEDIT, -REFEDIT, REFSET and REFCLOSE, and
             // HATCHSETORIGIN, TABLEEXPORT, VPMAX, VPMIN and REVCLOUDPROPERTIES, CENTERMARK and CENTERLINE, WMFIN, MIRROR3D, SPLINE and BLEND, OOPS and WIPEOUT, SELECTSIMILAR, ADDSELECTED and TEXTSCR,
             // and LAYMRG, -LAYMRG, LAYDEL, -LAYDEL, LAYCUR, COPYTOLAYER, -COPYTOLAYER, -DIMSTYLE and DIMUPDATE, SCALETEXT, JUSTIFYTEXT, TXT2MTXT and ATTDISP, ARRAYPATH, OVERKILL and -OVERKILL, PUBLISH and -PUBLISH, STYLESMANAGER, REVERSE, SETBYLAYER, CHPROP, BURST, TXTEXP and CHSPACE, ARRAYEDIT, FIELD and UPDATEFIELD, DWGPROPS, HYPERLINK, -HYPERLINK, GROUPEDIT, ATTREDEF, HATCHGENERATEBOUNDARY, HATCHSETBOUNDARY, -HATCHEDIT, MATCHCELL, EDITTABLECELL, IMAGEQUALITY, and the block authoring BPARAMETER, BACTION, BVSTATE, -BVSTATE, BVHIDE, BVSHOW, BTESTBLOCK and BAUTHORPALETTECLOSE.
-            Assert.Equal(319, registry.Commands.Count);
+            Assert.Equal(350, registry.Commands.Count);
             Assert.NotNull(registry.Find("SETVAR"));
             Assert.Null(registry.Find("PDMODE"));
             Assert.True(registry.FindVariable("PDMODE").IsInDrawing);

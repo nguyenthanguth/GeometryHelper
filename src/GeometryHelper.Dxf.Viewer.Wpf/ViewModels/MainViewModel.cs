@@ -1727,6 +1727,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             document.PlotStyleFolder = PlotStyleFolder;
             document.FontMissing += (s, e) => Say(e.Message);
             document.Changed += OnDocumentChanged;
+            document.ConstraintBars.Changed += OnConstraintBarsChanged;
             document.ActiveViewportChanged += OnActiveViewportChanged;
             document.LayerFilterChanged += OnLayerFilterChanged;
             WatchReferences(document);
@@ -1962,6 +1963,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
                 case "TEXTSCR":
                     OnTextWindowRequested(e);
+                    break;
+                case "CONSTRAINTSETTINGS":
+                    OnConstraintSettingsRequested(e);
+                    break;
+                case "PARAMETERS":
+                    OnParametersRequested(e);
                     break;
                 case "OVERKILL":
                     OnOverkillRequested(e);
@@ -2278,6 +2285,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(HasDocument));
             Raise(nameof(Document));
             Raise(nameof(Session));
+            FollowParametersDocument();
             Raise(nameof(CurrentLayer));
             RaiseCurrentColor();
             RaiseCurrentLinetype();

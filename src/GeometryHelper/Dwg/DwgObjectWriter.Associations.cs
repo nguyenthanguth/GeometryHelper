@@ -458,7 +458,7 @@ namespace GeometryHelper.Dwg
                     _data.Bit(Whole(groups, ref at, 290) != 0);
                     _data.Bit(Whole(groups, ref at, 290) != 0);
 
-                    if (kind == "AcHorizontalConstraint")
+                    if (kind == "AcHorizontalConstraint" || kind == "AcVerticalConstraint")
                     {
                         _data.BitLong(Whole(groups, ref at, 90));
                     }

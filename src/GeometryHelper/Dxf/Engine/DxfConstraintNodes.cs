@@ -33,6 +33,8 @@ namespace GeometryHelper.Dxf
             "AcEqualRadiusConstraint",
             "AcFixedConstraint",
             "AcHorizontalConstraint",
+            "AcVerticalConstraint",
+            "AcSymmetricConstraint",
             "AcDistanceConstraint",
             "AcAngleConstraint",
             "Ac3PointAngleConstraint",
@@ -113,7 +115,7 @@ namespace GeometryHelper.Dxf
                 default:
                     codes.AddRange(new[] { 90, 290, 290 });
 
-                    if (kind == "AcHorizontalConstraint")
+                    if (kind == "AcHorizontalConstraint" || kind == "AcVerticalConstraint")
                     {
                         codes.Add(90);
                     }

@@ -194,4 +194,38 @@
     <Geometry x:Key="GhIconStandards">M5 4h14v16H5zM8 9l2 2 3-3M8 15h8</Geometry>
     <Geometry x:Key="GhIconOverkill">M4 8h16M4 16h16M7 4l10 16</Geometry>
     <Geometry x:Key="GhIconAudit">M12 3 4 6v6c0 4.5 3.4 7.7 8 9 4.6-1.3 8-4.5 8-9V6zM9 12l2 2 4-4</Geometry>
+
+    <!-- The Parametric tab: the twelve geometric constraints (the glyphs of the constraint bars), Auto Constrain, the bars, the dimensional constraints, Delete Constraints and the Parameters Manager. -->
+    <Geometry x:Key="GhIconGcCoincident">M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0M3 12h6M15 12h6</Geometry>
+    <Geometry x:Key="GhIconGcCollinear">M3 8h8M13 16h8M3 8l18 8</Geometry>
+    <Geometry x:Key="GhIconGcConcentric">
+        M12 12m-8 0a8 8 0 1 0 16 0a8 8 0 1 0-16 0M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0
+    </Geometry>
+    <Geometry x:Key="GhIconGcFix">M6 11h12v9H6zM8 11V8a4 4 0 0 1 8 0v3</Geometry>
+    <Geometry x:Key="GhIconGcParallel">M6 20 14 4M12 20 20 4</Geometry>
+    <Geometry x:Key="GhIconGcPerpendicular">M4 20h16M12 20V5M12 15h5V20</Geometry>
+    <Geometry x:Key="GhIconGcHorizontal">M3 12h18M7 8v8M17 8v8</Geometry>
+    <Geometry x:Key="GhIconGcVertical">M12 3v18M8 7h8M8 17h8</Geometry>
+    <Geometry x:Key="GhIconGcTangent">M12 15m-6 0a6 6 0 1 0 12 0a6 6 0 1 0-12 0M3 9h18</Geometry>
+    <Geometry x:Key="GhIconGcSmooth">M3 18C9 18 9 6 15 6S21 6 21 6</Geometry>
+    <Geometry x:Key="GhIconGcSymmetric">M12 3v18M8 7 4 12l4 5M16 7l4 5-4 5</Geometry>
+    <Geometry x:Key="GhIconGcEqual">M5 9h14M5 15h14</Geometry>
+    <Geometry x:Key="GhIconAutoConstrain">M4 20 14 10M14 10l3-3M16 3v4M14 5h4M20 11v4M18 13h4</Geometry>
+    <Geometry x:Key="GhIconBarShowAll">
+        M3 12c3-5 15-5 18 0-3 5-15 5-18 0zM12 12m-2.5 0a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0
+    </Geometry>
+    <Geometry x:Key="GhIconBarHideAll">M3 12c3-5 15-5 18 0-3 5-15 5-18 0zM4 20 20 4</Geometry>
+    <Geometry x:Key="GhIconBarToggle">M4 7h16v10H4zM8 12h8</Geometry>
+    <Geometry x:Key="GhIconDcLinear">M4 6v12M20 6v12M4 12h16M7 10l-3 2 3 2M17 10l3 2-3 2</Geometry>
+    <Geometry x:Key="GhIconDcAligned">M5 18 17 6M3 14l4 4M15 4l4 4M7 13l-2 5 5-2M14 8l5-2-2 5</Geometry>
+    <Geometry x:Key="GhIconDcAngular">M4 20 20 20M4 20 16 6M10 20a6 6 0 0 0-1.5-4</Geometry>
+    <Geometry x:Key="GhIconDcRadius">M12 12m-8 0a8 8 0 1 0 16 0a8 8 0 1 0-16 0M12 12 18 6M15 6h3v3</Geometry>
+    <Geometry x:Key="GhIconDcDiameter">M12 12m-8 0a8 8 0 1 0 16 0a8 8 0 1 0-16 0M6 18 18 6</Geometry>
+    <Geometry x:Key="GhIconDcConvert">M4 8h12M12 4l4 4-4 4M20 16H8M12 12l-4 4 4 4</Geometry>
+    <Geometry x:Key="GhIconDcForm">M4 6h16v12H4zM8 12h8M12 9v6</Geometry>
+    <Geometry x:Key="GhIconDcShow">
+        M3 12c3-5 15-5 18 0-3 5-15 5-18 0zM12 12m-2.5 0a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0M2 4l3 3
+    </Geometry>
+    <Geometry x:Key="GhIconDelConstraint">M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13M10 11v6M14 11v6</Geometry>
+    <Geometry x:Key="GhIconParameters">M4 5h16v14H4zM4 10h16M10 10v9M13 13l5 5M18 13l-5 5</Geometry>
 </ResourceDictionary>

@@ -506,6 +506,21 @@ none (`ManageRibbonViewModel.CanLoadApplication`), and Run Script (SCRIPT). **Cl
 `CadCommandRegistry.CreateDefault()`: APPLOAD says `No plugin manager is in use: applications cannot be loaded.` where the
 window has no manager.
 
+### The Parametric tab
+
+The Parametric tab, between Annotate and View, has three panels. **Geometric** has Auto Constrain (AUTOCONSTRAIN), the twelve
+constraints in four columns of three (Coincident, Collinear, Concentric, Fix, Parallel, Perpendicular, Horizontal, Vertical,
+Tangent, Smooth, Symmetric, Equal), Show All, Hide All and Show/Hide (CONSTRAINTBAR) of the constraint bars, and a launcher that
+opens Constraint Settings. **Dimensional** has Linear (DCLINEAR), Aligned, Angular, Radius, Diameter, Convert (DCCONVERT),
+Constraint Form (DCFORM) and Show Dynamic (DCDISPLAY). **Manage** has Delete Constraints (DELCONSTRAINT), Parameters Manager
+(PARAMETERS) and Constraint Settings (CONSTRAINTSETTINGS). A button runs its command as a button of Home does; Show All and Hide All
+work on the bars of the working space directly. The constraint bars are drawn by the canvas beside each constrained object shown
+(`CadCanvas`), a right click on an icon opening Delete, Hide and Hide All. The Constraint Settings dialog
+(`ConstraintSettingsViewModel`) and the Parameters Manager palette (`ParametersPaletteViewModel`, which follows the document
+shown) are shown through functions the workspace sets, as the other dialogs are; the screenshot mode shows them with
+`--dialog constraints[:0|1|2]` and `--dialog parameters`, and the tab with `--tab Parametric`. The commands behind it are in
+[Parametric constraints](editing.md#parametric-constraints).
+
 ### The start screen
 
 With no drawing open the canvas shows the start screen: the name of the app, Open DXF… (Ctrl+O), New, and Recent

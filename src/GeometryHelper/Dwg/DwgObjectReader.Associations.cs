@@ -418,6 +418,8 @@ namespace GeometryHelper.Dwg
                 case "AcEqualRadiusConstraint":
                 case "AcFixedConstraint":
                 case "AcHorizontalConstraint":
+                case "AcVerticalConstraint":
+                case "AcSymmetricConstraint":
                 case "AcDistanceConstraint":
                 case "AcAngleConstraint":
                 case "Ac3PointAngleConstraint":
@@ -426,7 +428,7 @@ namespace GeometryHelper.Dwg
                     _object.Add(290, _data.Bit() ? 1 : 0);
                     _object.Add(290, _data.Bit() ? 1 : 0);
 
-                    if (kind == "AcHorizontalConstraint")
+                    if (kind == "AcHorizontalConstraint" || kind == "AcVerticalConstraint")
                     {
                         _object.Add(90, _data.BitLong());
                     }

@@ -284,20 +284,33 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 apply(scope);
 
+                // The objects constraints tie to what the edit changed move to keep them (or the edit is taken back); what they
+                // move is what the other associations then follow, as if the edit had moved it.
+                List<CadEditRecord> solved = CadConstraints.Follow(this, planned, scope.Records);
+                IReadOnlyList<CadEditRecord> seen = scope.Records;
+
+                if (solved.Count > 0)
+                {
+                    var both = new List<CadEditRecord>(scope.Records);
+                    both.AddRange(solved);
+                    seen = both;
+                }
+
                 // The associative dimensions tied to what the edit changed follow it, in the same step.
-                followed = CadDimAssociation.Follow(this, planned, scope.Records);
+                followed = CadDimAssociation.Follow(this, planned, seen);
+                followed.AddRange(solved);
 
                 // A center mark or center line follows the circle or the lines it is drawn from.
-                followed.AddRange(CadCenterMarks.Follow(this, planned, scope.Records));
+                followed.AddRange(CadCenterMarks.Follow(this, planned, seen));
 
                 // An associative array follows what the edit did to its INSERT or its path curve.
-                followed.AddRange(CadArrays.Follow(this, planned, scope.Records));
+                followed.AddRange(CadArrays.Follow(this, planned, seen));
 
                 // A viewport clipped by an entity follows the entity: its frame is the box of the entity again.
-                followed.AddRange(CadViewportClips.Follow(this, planned, scope.Records));
+                followed.AddRange(CadViewportClips.Follow(this, planned, seen));
 
                 // A dimension or multileader broken at objects follows them: the breaks are made again where they cross it now.
-                followed.AddRange(CadBreakFollow.Follow(this, planned, scope.Records));
+                followed.AddRange(CadBreakFollow.Follow(this, planned, seen));
             }
             catch (Exception exception)
             {

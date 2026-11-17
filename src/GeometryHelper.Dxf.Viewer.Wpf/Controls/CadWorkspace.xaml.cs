@@ -705,6 +705,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     SelectSimilarSettingsWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowTextWindow = dialog => TextWindow.ShowText(Window.GetWindow(this), dialog);
                 _model.ShowOverkill = dialog => OverkillWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowConstraintSettings = dialog => ConstraintSettingsWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowParameters = (palette, show) =>
+                {
+                    if (show)
+                    {
+                        ParametersPaletteWindow.ShowPalette(Window.GetWindow(this), palette);
+                    }
+                    else
+                    {
+                        ParametersPaletteWindow.ClosePalette();
+                    }
+                };
                 AttachPlotStyles();
                 _model.AskKeepMTextChanges = question =>
                     MTextUnsavedChangesWindow.Ask(Window.GetWindow(this), question);
