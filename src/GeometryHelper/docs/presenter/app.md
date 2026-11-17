@@ -716,6 +716,26 @@ moving the app, since the command names the exe where it was. A file opened from
 one per file, even while the app runs. GeometryHelper Drawing takes the same two switches and writes the same ProgID, so
 the app registered last is the one that opens the files.
 
+### Crashes and the crash log
+
+An exception nobody caught does not close the app without a word. Every exception that reaches the top is written to
+`%AppData%\GeometryHelper\Drawing\crash.log` (appended, UTF-8): the time, the app's name and version, the runtime and the
+system, which handler caught it, the command run last (`PLOT`, say), and the exception in full, its type, message, stack and
+each inner exception. The file is moved to `crash.old.log` once it passes 256 KB, so the two hold 512 KB at most. The
+same text goes to `GeometryHelperLog` as a Warn. Writing the log never throws; where the file cannot be written (a read-only
+folder) the message box says so.
+
+| Where it was thrown | What happens |
+|---|---|
+| The window's thread (a click, a key, a command) | The entry is written and a message box says `An error occurred: <message>. Details were written to <path>. The drawing is kept; save your work.`; the app goes on and the drawings stay open |
+| Another thread | The entry is written; the process ends, as .NET ends it |
+| A task nobody awaited | The entry is written and the exception is marked observed, so the app goes on |
+| Out of memory, an access violation or another fault of native code, on the window's thread | The entry is written, the box says the app cannot go on, and it closes: after these the process can no longer be trusted to hold the drawings |
+
+A stack overflow cannot be caught by any handler: .NET ends the process at once and nothing is written, so a crash with no
+entry in the log and no message is one of those. `GeometryHelper.Dxf.App` and `GeometryHelper.Drawing` both install the
+handlers, as part of `CadAppHost.Run`.
+
 ### Screenshots
 
 For a picture of the window in a test or a document:
