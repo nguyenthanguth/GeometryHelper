@@ -38,6 +38,9 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly Dictionary<string, bool> _imageLoaded = new Dictionary<string, bool>(
             StringComparer.OrdinalIgnoreCase
         );
+        private readonly Dictionary<string, bool> _pdfLoaded = new Dictionary<string, bool>(
+            StringComparer.OrdinalIgnoreCase
+        );
 
         // The files being drawn, the outermost first, so that a reference to a drawing being drawn is passed over.
         private readonly List<string> _drawing = new List<string>();
@@ -178,7 +181,76 @@ namespace GeometryHelper.Dxf.Viewer
                 );
             }
 
+            // The PDF underlays, each page a definition of its own, after the images.
+            DxfDBDictionary pdfs = Pdfs(database);
+
+            if (pdfs != null)
+            {
+                var underlays = new List<KeyValuePair<string, DxfPdfDefinition>>();
+
+                foreach (DxfDBDictionaryEntry entry in pdfs)
+                {
+                    if (entry.Value is DxfPdfDefinition definition)
+                    {
+                        underlays.Add(new KeyValuePair<string, DxfPdfDefinition>(entry.Key, definition));
+                    }
+                }
+
+                underlays.Sort((a, b) => ByName(a.Key, b.Key));
+
+                foreach (KeyValuePair<string, DxfPdfDefinition> pdf in underlays)
+                {
+                    string found = Locate(pdf.Value.SourceFileName, _document.DrawingFolder);
+                    CadReferenceStatus status =
+                        pdf.Value.GetEntityCount() == 0 ? CadReferenceStatus.Unreferenced
+                        : !IsPdfLoaded(pdf.Key) ? CadReferenceStatus.Unloaded
+                        : found == null ? CadReferenceStatus.NotFound
+                        : CadPdfCache.Get(found, out _) == null ? CadReferenceStatus.Unresolved
+                        : CadReferenceStatus.Loaded;
+                    references.Add(
+                        new CadExternalReference(
+                            pdf.Key,
+                            false,
+                            false,
+                            pdf.Value.SourceFileName,
+                            found,
+                            status,
+                            isPdf: true
+                        )
+                    );
+                }
+            }
+
             return references;
+        }
+
+        /// <summary>Unloads a PDF underlay's definition of a name, or loads it again.</summary>
+        internal void SetPdfLoaded(string name, bool loaded) => _pdfLoaded[name] = loaded;
+
+        /// <summary>Whether the underlays of a definition are drawn: as the presenter last set it, else drawn.</summary>
+        internal bool IsPdfLoaded(string name) =>
+            name == null || !_pdfLoaded.TryGetValue(name, out bool loaded) || loaded;
+
+        /// <summary>The name a PDF definition has in the drawing's dictionary of PDF underlays; null for one not in it.</summary>
+        internal static string PdfName(DxfDatabase database, DxfPdfDefinition definition)
+        {
+            DxfDBDictionary dictionary = Pdfs(database);
+            return dictionary == null || definition == null || !dictionary.Contains(definition)
+                ? null
+                : dictionary.NameAt(definition);
+        }
+
+        /// <summary>The dictionary of PDF underlays of a drawing; null where it has none.</summary>
+        internal static DxfDBDictionary Pdfs(DxfDatabase database)
+        {
+            try
+            {
+                return DxfPdfDefinition.GetPdfDictionary(database);
+            }
+            catch (InvalidOperationException)
+            {
+                return null;
+            }
         }
 
         /// <summary>Finds the file a saved path names, as AutoCAD looks for it from the document's drawing (see the remarks of the class).</summary>

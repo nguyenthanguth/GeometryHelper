@@ -17,6 +17,16 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- What only a PDF has (its pages, the Unit box): collapsed until the dialog is over a PDF. -->
+            <Style x:Key="PdfOnly" TargetType="FrameworkElement">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsPdf}" Value="True">
+                        <Setter Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -187,6 +197,52 @@
                         >
                             <Image Source="{Binding Preview}" Stretch="Uniform" Margin="4" />
                         </Border>
+                        <!-- Design AttachPdf: the pages of the PDF, a thumbnail and a size each, one or more chosen. -->
+                        <StackPanel Style="{StaticResource PdfOnly}">
+                            <TextBlock
+                                Text="Select one or more pages from the PDF file:"
+                                Foreground="{StaticResource GhTextMuted}"
+                                TextWrapping="Wrap"
+                                Margin="0,8,0,4"
+                            />
+                            <ListBox
+                                x:Name="PageList"
+                                Height="190"
+                                ItemsSource="{Binding Pages}"
+                                SelectionMode="Extended"
+                                Background="{StaticResource GhPanel}"
+                                BorderBrush="{StaticResource GhBorder}"
+                                BorderThickness="1"
+                                AutomationProperties.Name="Pages"
+                                SelectionChanged="OnPagesChanged"
+                            >
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <DockPanel Margin="2,3">
+                                            <Border
+                                                DockPanel.Dock="Left"
+                                                Width="92"
+                                                Height="72"
+                                                Background="White"
+                                                BorderBrush="{StaticResource GhBorder}"
+                                                BorderThickness="1"
+                                                Margin="0,0,8,0"
+                                            >
+                                                <Image Source="{Binding Thumbnail}" Stretch="Uniform" />
+                                            </Border>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                                <TextBlock
+                                                    Text="{Binding Size}"
+                                                    Foreground="{StaticResource GhTextMuted}"
+                                                    FontSize="11"
+                                                />
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </StackPanel>
                     </StackPanel>
                 </Grid>
 
@@ -261,6 +317,24 @@
                                     Style="{StaticResource BlockNumber}"
                                     Text="{Binding ScaleX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                     AutomationProperties.Name="Scale X"
+                                />
+                            </DockPanel>
+                            <DockPanel
+                                Margin="0,0,0,4"
+                                IsEnabled="{Binding IsScaleTyped}"
+                                Style="{StaticResource PdfOnly}"
+                            >
+                                <TextBlock
+                                    Text="Unit:"
+                                    Width="44"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    VerticalAlignment="Center"
+                                />
+                                <ComboBox
+                                    Style="{StaticResource GhComboBox}"
+                                    ItemsSource="{Binding Units}"
+                                    SelectedItem="{Binding SelectedUnit, Mode=TwoWay}"
+                                    AutomationProperties.Name="Unit"
                                 />
                             </DockPanel>
                             <StackPanel Visibility="{Binding IsXref, Converter={StaticResource Shown}}">

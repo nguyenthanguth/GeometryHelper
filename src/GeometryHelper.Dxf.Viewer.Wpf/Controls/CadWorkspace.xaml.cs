@@ -750,6 +750,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowDesignCenter = palette =>
                     DesignCenterWindow.ShowPalette(Window.GetWindow(this), shown, palette);
                 _model.CloseDesignCenter = DesignCenterWindow.ClosePalette;
+                _model.ShowPdfLayers = dialog => PdfLayersWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowXrefBind = dialog => XrefBindWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowXrefBindRefused = box => XrefBindRefusedWindow.Show(Window.GetWindow(this), box);
                 _model.WatchReferenceFiles = true;

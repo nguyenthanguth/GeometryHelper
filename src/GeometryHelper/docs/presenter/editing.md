@@ -233,7 +233,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 335 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 342 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -255,7 +255,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | selection | QSELECT, FILTER, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP, GROUPEDIT (Name; Add objects, Remove objects, REName) |
 | OLE objects | INSERTOBJ (a bitmap or a PNG, as a static picture), and the variables OLEFRAME, OLEHIDE and OLEQUALITY (see OLE objects below) |
 | metafiles | WMFIN (Basepoint, Scale, X, Y, Z, Rotate, Explode, REpeat), and the variables WMFBKGND and WMFFOREGND (see WMFIN below) |
-| references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), XOPEN, XBIND, -XBIND (Block, Dimstyle, LAyer, LType, Style), -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), IMAGEQUALITY (High, Draft), IMAGEADJUST, -IMAGEADJUST (Contrast, Fade, Brightness), XCLIP (ON, OFF, Clipdepth, Delete, generate Polyline, New boundary), TRANSPARENCY |
+| references and images | XATTACH, IMAGEATTACH, PDFATTACH, -PDFATTACH (Unit), PDFADJUST, -PDFADJUST (Fade, Contrast, Monochrome), PDFCLIP (ON, OFF, Delete, New boundary), PDFLAYERS, -PDFUNDERLAY (?, Detach, Path, Reload, Unload), XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), XOPEN, XBIND, -XBIND (Block, Dimstyle, LAyer, LType, Style), -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), IMAGEQUALITY (High, Draft), IMAGEADJUST, -IMAGEADJUST (Contrast, Fade, Brightness), XCLIP (ON, OFF, Clipdepth, Delete, generate Polyline, New boundary), TRANSPARENCY |
 | housekeeping | PURGE, -PURGE (Blocks, Dimstyles, Groups, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All), RENAME, -RENAME (Block, Dimstyle, LAyer, LType, multileadeRstyle, Style, Tablestyle, Ucs, VIew, VPort) |
 | properties and links | DWGPROPS (the Drawing Properties dialog), HYPERLINK, -HYPERLINK (Remove, Insert: Area, Object) (see [Drawing properties, hyperlinks, GROUPEDIT, ATTREDEF and MEASUREGEOM Quick](#drawing-properties-hyperlinks-groupedit-attredef-and-measuregeom-quick)) |
 
@@ -2437,6 +2437,51 @@ Clipping Boundary, which runs IMAGECLIP, New boundary, on the one image, and Rem
 pictures), Options (Show Image, Transparency and the Frame box with Hide Frames, Display and Plot Frames, Display but Not Plot
 Frames: the drawing's IMAGEFRAME) and Close Image, which lets go of the selection. A value written in it is one undo step named
 IMAGEADJUST, TRANSPARENCY, IMAGECLIP or Show image; an image on a locked layer is left as it is. The tab follows an undo.
+
+PDF underlays (a page of a PDF placed in the drawing, `DxfPdfUnderlay`, R2010 and later) are attached, drawn and adjusted as AutoCAD
+2021 does them, from the reader of the presenter itself: a PDF is read with no library (its cross-reference tables and streams, its object streams,
+and the Flate, LZW, ASCII85, ASCIIHex and run-length filters), and the content of a page is run for its paths, rectangles, curves, strokes and fills, its
+colours in DeviceGray, DeviceRGB, DeviceCMYK, CalGray, CalRGB, Lab, ICCBased, Indexed, Separation and DeviceN (tint functions of types 0, 2, 3 and 4), its
+clips, its forms and their matrices, its pictures (a JPEG as it is, other samples of 1 to 16 bits with their soft or stencil masks as PNGs), its optional
+content (the layers) and its text, drawn as the outlines of an embedded TrueType font (the fonts Skia, Word's PDF printer and most CAD plots embed) or, for
+a font of other kind, as the words in the font of that name on the machine. What it leaves out is said once in the log at Debug and not drawn: shadings
+(`sh`), tiling patterns, Type 3 fonts, the outlines of fonts of CFF or Type 1 programs, a JPEG in CMYK, fax (CCITT), JBIG2 and JPEG 2000 pictures, and PDFs
+with a password. A page is read once and kept (the last six PDFs are), and read again when its file changes.
+
+PDFATTACH shows the Attach PDF Underlay dialog, after the file dialog (with FILEDIA 0, `Path to PDF file to attach:` on the command line): the file chosen, its pages
+in a list of thumbnails with their sizes in inches (one or more chosen, the first as it opens), the path type, the insertion point, the scale (with the Unit
+box) and the rotation, each given in the dialog or asked on the command line after OK, as for an image. -PDFATTACH asks `Path to PDF file to attach:`,
+`Enter page number or [?] <1>:` (`?` lists the pages as `Page 1 - 2.777778 x 1.388889 inches`, `Enter page(s) to list <*>:` taking wildcards and commas,
+`No matching pages found.`), `Specify insertion point <0,0>:`, `Base image size: Width: 2.777778, Height: 1.388889, Millimeters`, `Specify scale factor or [Unit] <1>:`
+and `Specify rotation angle <0>:`. A page is 1/72 of an inch to the point, so the scale is what makes it a size of the drawing: the scale 1 puts a page of 8.27 inches at
+8.27 units, and the Unit option (`Enter unit [MM/Centimeter/Meter/Kilometer/Inch/Foot/Yard/MILe/Unitless]`) reads those inches as that unit, the scale 25.4 in a
+drawing of millimetres for Inch. Each page chosen is an underlay of its own at the one point, scale and rotation, under the definition of a file and a page the drawing has
+already. A drawing of R2007 or older says it cannot hold one. The External References palette lists each page as a row of Type PDF (Loaded, Unloaded, Not Found,
+Unresolved, Unreferenced), shows the page as its preview, and its Attach PDF… item runs PDFATTACH; Unload, Reload, Detach and Change Path run -PDFUNDERLAY
+(`?`, Detach, Path, Reload, Unload, each asking the names of the definitions with wildcards and commas, as -IMAGE does), which is the library's own form for the
+palette and not an AutoCAD command; an undo brings a detached underlay back.
+
+An underlay is drawn at its place with the colours the PDF has: its fade (0 to 100) and contrast (0 to 100, 100 as it is) take the colours towards the background, Monochrome makes
+them grey, and "Adjust colors for background" (on for a new underlay) turns the lightness of every colour over on a dark background, black to white and white to
+black, its hue kept, so that a page of black on white shows white on black. PDFADJUST and -PDFADJUST ask `Select PDF underlay:`, `Enter PDF underlay option
+[Fade/Contrast/Monochrome] <Fade>:`, `Enter fade value (0-100) <0>:`, `Enter contrast value (0-100) <100>:` or `Monochrome? [Yes/No] <No>:`; a value outside 0 to 100
+is refused. PDFCLIP asks `Select PDF to clip:`, `Enter PDF clipping option [ON/OFF/Delete/New boundary] <New>:`, then `Specify clipping boundary or select invert
+option: [Select polyline/Polygonal/Rectangular/Invert clip] <Rectangular>:` with `Outside mode - Objects outside boundary will be hidden.` or `Inside mode ...` and `Delete
+old boundary? [Yes/No] <Yes>:`, as IMAGECLIP; the boundary is kept in the page's inches (a rectangle along the page by two corners, the others as polygons), the
+frame follows it, and a polygon that crosses itself is refused (`Self-intersecting clip boundaries are not acceptable.`). PDFLAYERS asks `Select PDF underlay:` and
+shows the PDF Layers dialog, the layers of the PDF (the optional content groups, in the PDF's own order) each On or Off, with All on and All off; with no window the
+layers are listed and asked by name. A layer switched off leaves its lines out of the drawing. PDFFRAME (0 none, 1 shown and plotted, 2 shown and not plotted; 1 for a new document) draws the
+frame, the boundary or the page's rectangle, in the layer's colour; an underlay not found, unloaded or off is drawn as its frame alone, with the file's name in the corner of one
+not found. FRAME sets PDFFRAME and IMAGEFRAME together and reads 3 where they differ. PDFOSNAP (1 for a new document) lets the object snaps find the lines of a PDF, End, Mid
+and Int of its strokes; its filled shapes and its letters give none, and with PDFOSNAP 0 nothing does. PDFFRAME and PDFOSNAP last as long as the document is open: a DXF has
+no place for them.
+
+Selecting PDF underlays (and nothing else) shows the contextual PDF Underlay tab, green as the Image tab is: Adjust (Fade and Contrast, each a slider and a box from 0 to 100,
+Monochrome and Adjust colors for background), Clipping (Create Clipping Boundary, which runs PDFCLIP, New boundary, on the one underlay, and Remove Clipping), Options (Show
+Underlay, the Frame box of PDFFRAME, and Underlay Layers, which runs PDFLAYERS) and Close PDF Underlay. A value written in it is one undo step named PDFADJUST, PDFCLIP or
+Show underlay. The Reference panel of the Insert tab has Attach PDF…, Adjust (PDFADJUST), Underlay Layers (PDFLAYERS) and Snap to Underlays (PDFOSNAP).
+Not built: PDFIMPORT (a PDF converted to polylines, hatches and text), the underlays of DWF and DGN files, and the layers of an underlay in AutoCAD's own form (the managed
+API has no way to write them, so they are kept in the underlay's extended data and AutoCAD does not see them).
 
 BATTMAN shows the Block Attribute Manager of the block of an INSERT selected, else of the first block with attributes:
 its attribute definitions in the block's order, the modes as AutoCAD's letters (I invisible, C constant, V verify, P

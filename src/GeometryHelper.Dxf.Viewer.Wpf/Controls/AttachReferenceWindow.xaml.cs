@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 
@@ -20,6 +21,40 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Model = model ?? throw new ArgumentNullException(nameof(model));
             InitializeComponent();
             DataContext = model;
+
+            // The pages of a PDF make the dialog taller than the dialogs of a drawing and a picture.
+            if (model.IsPdf)
+            {
+                Height = 800;
+            }
+
+            // A PDF chosen has its first page chosen, as AutoCAD 2021 chooses it; the list shows it so.
+            Loaded += (sender, e) => SelectFirstPage();
+            model.PropertyChanged += (sender, e) =>
+            {
+                if (e.PropertyName == nameof(AttachReferenceViewModel.Pages))
+                {
+                    Dispatcher.BeginInvoke(new Action(SelectFirstPage));
+                }
+            };
+        }
+
+        private void SelectFirstPage()
+        {
+            if (Model.IsPdf && PageList.Items.Count > 0 && PageList.SelectedItems.Count == 0)
+            {
+                PageList.SelectedIndex = 0;
+            }
+        }
+
+        private void OnPagesChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (!Model.IsPdf || PageList.Items.Count == 0)
+            {
+                return;
+            }
+
+            Model.SelectPages(PageList.SelectedItems.OfType<PdfPageRowViewModel>().Select(row => row.Number));
         }
 
         /// <summary>Gets the view model.</summary>

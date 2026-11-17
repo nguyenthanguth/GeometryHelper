@@ -317,10 +317,63 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         internal static BitmapSource Drawing(DxfDatabase database, CadFonts fonts, int width, int height) =>
             Draw(database, fonts, width, height, DisplayBox.Empty);
 
+        /// <summary>
+        /// The thumbnail of a page of a PDF, as the Attach PDF Underlay dialog lists it: the page drawn by the presenter's own display
+        /// of PDF underlays, at scale 1 on white, filling the picture; null where the file cannot be read or has not the page.
+        /// </summary>
+        internal static BitmapSource PdfPage(string path, int page, int width, int height)
+        {
+            try
+            {
+                PdfDocument pdf = CadPdfCache.Get(path, out _);
+
+                if (pdf == null || page < 1 || page > pdf.Pages.Count)
+                {
+                    return null;
+                }
+
+                var database = new DxfDatabase("AC1032");
+                DxfDBDictionary underlays = DxfPdfDefinition.CreatePdfDictionary(database);
+                var definition = new DxfPdfDefinition(
+                    path,
+                    page.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                );
+                underlays.SetAt("page", definition);
+                database.ModelSpace.AppendEntity(new DxfPdfUnderlay(definition));
+                PdfPage size = pdf.Pages[page - 1];
+                return Draw(
+                    database,
+                    null,
+                    width,
+                    height,
+                    new DisplayBox(0.0, 0.0, size.WidthInches, size.HeightInches),
+                    0xFFFFFF,
+                    0
+                );
+            }
+            catch (Exception exception)
+                when (exception is System.IO.IOException
+                    || exception is InvalidOperationException
+                    || exception is ArgumentException
+                )
+            {
+                return null;
+            }
+        }
+
         /// <summary>Draws model space of a drawing, zoomed to what it draws and a box given, white on the black ground of the canvas.</summary>
-        private static BitmapSource Draw(DxfDatabase database, CadFonts fonts, int width, int height, DisplayBox fit)
+        private static BitmapSource Draw(
+            DxfDatabase database,
+            CadFonts fonts,
+            int width,
+            int height,
+            DisplayBox fit,
+            int background = 0x000000,
+            int pdfFrame = 1
+        )
         {
             CadDocument document = CadDocument.From(database, "preview.dxf");
+            document.PdfFrame = pdfFrame;
 
             if (fonts != null)
             {
@@ -350,7 +403,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         document,
                         document.ModelSpace,
                         view,
-                        new CanvasOptions { Background = 0x000000 }
+                        new CanvasOptions { Background = background }
                     );
                     surface.Canvas.Flush();
                 }

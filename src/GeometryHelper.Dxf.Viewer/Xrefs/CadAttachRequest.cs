@@ -1,11 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Dxf.Viewer
 {
-    /// <summary>What an attach dialog attaches: a DXF as an external reference (XATTACH), or a picture as an image (IMAGEATTACH).</summary>
+    /// <summary>What an attach dialog attaches: a DXF as an external reference (XATTACH), a picture as an image (IMAGEATTACH), or a PDF as underlays (PDFATTACH).</summary>
     public enum CadAttachKind
     {
         /// <summary>A DXF drawing, attached or overlaid as an external reference.</summary>
@@ -13,6 +14,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>A picture file, PNG, JPEG or BMP, attached as an image.</summary>
         Image,
+
+        /// <summary>A PDF file, one or more of its pages, attached as underlays (PDFATTACH).</summary>
+        Pdf,
     }
 
     /// <summary>
@@ -58,6 +62,9 @@ namespace GeometryHelper.Dxf.Viewer
                 BaseWidth = 0.0;
                 BaseHeight = 0.0;
                 HasResolution = false;
+                Pdf = null;
+                PageCount = 0;
+                SelectedPages.Clear();
                 UnitFactor = 1.0;
                 Units = Document.Database.Insunits;
 
@@ -86,6 +93,10 @@ namespace GeometryHelper.Dxf.Viewer
                 if (Kind == CadAttachKind.Image)
                 {
                     ReadPicture();
+                }
+                else if (Kind == CadAttachKind.Pdf)
+                {
+                    ReadPdf();
                 }
                 else
                 {
@@ -165,6 +176,26 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets why the file chosen cannot be attached, in AutoCAD's words; null where it can.</summary>
         public string Error { get; private set; }
 
+        /// <summary>Gets the PDF read for a PDFATTACH, to draw the thumbnails of its pages; null for any other attach or a file that cannot be read.</summary>
+        internal PdfDocument Pdf { get; private set; }
+
+        /// <summary>Gets how many pages the PDF chosen has; nought before one is chosen.</summary>
+        public int PageCount { get; private set; }
+
+        /// <summary>
+        /// Gets the pages chosen, by number from 1, in the order they are attached: page 1 once a PDF is chosen, as AutoCAD 2021
+        /// selects the first page; the dialog changes the list, a typed -PDFATTACH sets the one page it asks for.
+        /// </summary>
+        public List<int> SelectedPages { get; } = new List<int>();
+
+        /// <summary>Gets the width of a page of the PDF chosen in inches, as AutoCAD 2021 measures it (a point is 1/72 of an inch); nought for a page it has not.</summary>
+        public double PageWidth(int page) =>
+            Pdf != null && page >= 1 && page <= PageCount ? Pdf.Pages[page - 1].WidthInches : 0.0;
+
+        /// <summary>Gets the height of a page of the PDF chosen in inches.</summary>
+        public double PageHeight(int page) =>
+            Pdf != null && page >= 1 && page <= PageCount ? Pdf.Pages[page - 1].HeightInches : 0.0;
+
         /// <summary>Gets or sets what the window's dialog was closed with; Cancel until set.</summary>
         public CadDialogAction Action { get; set; }
 
@@ -189,6 +220,37 @@ namespace GeometryHelper.Dxf.Viewer
             double from = CadCommands.UnitMillimetres(Units);
             double to = CadCommands.UnitMillimetres(Document.Database.Insunits);
             UnitFactor = from > 0.0 && to > 0.0 ? from / to : 1.0;
+        }
+
+        private void ReadPdf()
+        {
+            if (!string.Equals(Path.GetExtension(_fileName), ".pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                Error = "You have selected an invalid or unsupported PDF file.";
+                return;
+            }
+
+            if (!File.Exists(_fileName))
+            {
+                Error = "PDF not found.";
+                return;
+            }
+
+            Pdf = CadPdfCache.Get(_fileName, out string why);
+
+            if (Pdf == null)
+            {
+                Error =
+                    why != null && why.Contains("password")
+                        ? "The PDF is protected by a password."
+                        : "You have selected an invalid or unsupported PDF file.";
+                return;
+            }
+
+            PageCount = Pdf.Pages.Count;
+            SelectedPages.Add(1);
+            BaseWidth = Pdf.Pages[0].WidthInches;
+            BaseHeight = Pdf.Pages[0].HeightInches;
         }
 
         private void ReadPicture()

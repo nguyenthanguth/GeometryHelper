@@ -274,6 +274,33 @@ namespace GeometryHelper.Dxf
                         }));
                     file.ImageDefWritten();
                     break;
+                case DxfPdfDefinition pdfDefinition:
+                    DxfFile pdfFile = Resident();
+                    pdfFile.Requires(1024, "PDF underlays", "R2010 (AC1024)");
+
+                    if (Find(searchKey) != null)
+                    {
+                        throw new ArgumentException(
+                            "The dictionary has an entry "
+                                + searchKey.Trim()
+                                + " already, a PDFDEFINITION its underlays show: add the new one under the name DxfPdfDefinition.SuggestName gives.",
+                            nameof(searchKey)
+                        );
+                    }
+
+                    IReadOnlyList<KeyValuePair<int, string>> pdfMade = pdfDefinition.MadeGroups;
+                    newValue.Bind(Add(searchKey, "PDFDEFINITION", b =>
+                        {
+                            b.Group(100, "AcDbUnderlayDefinition");
+
+                            foreach (KeyValuePair<int, string> pair in pdfMade)
+                            {
+                                b.Group(pair.Key, pair.Value);
+                            }
+                        }));
+                    pdfFile.AddClass("PDFDEFINITION", "AcDbPdfDefinition", 1153, "ObjectDBX Classes", 1);
+                    pdfFile.CountClass("PDFDEFINITION");
+                    break;
                 case DxfPlotSettings plotSettings when !(plotSettings is DxfLayout):
                     DxfFile planned = Resident();
                     bool shaded = planned.Supports(1018);

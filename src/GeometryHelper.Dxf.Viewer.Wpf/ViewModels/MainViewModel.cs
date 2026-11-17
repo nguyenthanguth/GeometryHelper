@@ -2044,6 +2044,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "XOPEN":
                 case "XATTACH":
                 case "IMAGEATTACH":
+                case "PDFATTACH":
+                case "PDFLAYERS":
                     OnXrefRequested(e);
                     break;
                 case "LAYWALK":
@@ -2342,6 +2344,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 HideArrayTab();
                 HideHatchTab();
                 HideImageTab();
+                HidePdfTab();
                 SelectionLabel = string.Empty;
                 PropertyGroups = Array.Empty<PropertyGroupViewModel>();
                 PropertiesBanner = null;
@@ -2356,6 +2359,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             SyncArrayTab(handles);
             SyncHatchTab();
             SyncImageTab(handles);
+            SyncPdfTab(handles);
             // In the Block Editor a parameter or an action selected shows its own properties, as AutoCAD's palette does.
             CadAuthoringElement element = null;
 

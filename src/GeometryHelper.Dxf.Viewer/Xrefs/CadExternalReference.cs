@@ -54,10 +54,12 @@ namespace GeometryHelper.Dxf.Viewer
             string foundAt,
             CadReferenceStatus status,
             string parentName = null,
-            int depth = 0
+            int depth = 0,
+            bool isPdf = false
         )
         {
             Name = name;
+            IsPdf = isPdf;
             ParentName = parentName;
             Depth = depth;
             IsImage = isImage;
@@ -95,6 +97,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets whether it is an image rather than an external reference.</summary>
         public bool IsImage { get; }
+
+        /// <summary>Gets whether it is the definition of a PDF underlay (one page of a PDF file) rather than an external reference or an image.</summary>
+        public bool IsPdf { get; }
 
         /// <summary>
         /// Gets the name of the external reference whose drawing places it, for a nested reference; null for one the drawing
@@ -134,6 +139,11 @@ namespace GeometryHelper.Dxf.Viewer
         {
             get
             {
+                if (IsPdf)
+                {
+                    return "PDF";
+                }
+
                 if (!IsImage)
                 {
                     return IsOverlay ? "Overlay" : "Attach";
