@@ -5,7 +5,7 @@
 >
     <!--
     The contextual Block Editor tab, as the design draws it: Open/Save, Geometric, Dimensional, Manage, Action Parameters,
-    Visibility and Close. Its logic is BlockEditorRibbonViewModel. The constraints and the Parameter Manager are greyed; the
+    Visibility and Close. Its logic is BlockEditorRibbonViewModel. Auto Constrain, Linear, Delete and the Parameter Manager start the constraint commands; Block Table and Construction are greyed; the
     rest is live, as BigButton and SmallButton grey a button by default.
     -->
     <UserControl.Resources>
@@ -78,7 +78,9 @@
                         Style="{DynamicResource BigButton}"
                         Tag="{StaticResource IconAutoConstrain}"
                         Content="Auto Constrain"
-                        ToolTip="Geometric constraints: not in this version"
+                        IsEnabled="True"
+                        Command="{Binding AutoConstrainCommand}"
+                        ToolTip="AUTOCONSTRAIN: constrain the objects selected by what they nearly are; the other geometric constraints are on the Parametric tab"
                         Margin="0"
                     />
                 </StackPanel>
@@ -96,16 +98,25 @@
                     <Button
                         Style="{DynamicResource BigButton}"
                         Tag="{StaticResource IconLinear}"
-                        Content="Linear ▾"
-                        ToolTip="Dimensional constraints: not in this version"
+                        Content="Linear"
+                        IsEnabled="True"
+                        Command="{Binding LinearConstraintCommand}"
+                        ToolTip="DCLINEAR: a distance between two points; the other dimensional constraints are on the Parametric tab"
                     />
                     <WrapPanel Style="{DynamicResource SmallColumn}">
                         <Button
                             Style="{DynamicResource SmallButton}"
                             Content="Block Table"
-                            ToolTip="Not in this version"
+                            ToolTip="Not built: a block table needs the lookup table, which is not in this version"
+                            ToolTipService.ShowOnDisabled="True"
                         />
-                        <Button Style="{DynamicResource SmallButton}" Content="Delete" ToolTip="Not in this version" />
+                        <Button
+                            Style="{DynamicResource SmallButton}"
+                            Content="Delete"
+                            IsEnabled="True"
+                            Command="{Binding DeleteConstraintsCommand}"
+                            ToolTip="DELCONSTRAINT: take the constraints off the objects selected"
+                        />
                     </WrapPanel>
                 </StackPanel>
             </DockPanel>
@@ -141,12 +152,15 @@
                         <Button
                             Style="{DynamicResource SmallButton}"
                             Content="Parameter Manager"
-                            ToolTip="Not in this version"
+                            IsEnabled="True"
+                            Command="{Binding ParameterManagerCommand}"
+                            ToolTip="PARAMETERS: the names, expressions and values of the constraint parameters of the block"
                         />
                         <Button
                             Style="{DynamicResource SmallButton}"
                             Content="Construction"
-                            ToolTip="Not in this version"
+                            ToolTip="Not built: construction geometry, which a block shows only in the editor, is not kept apart from the block's objects"
+                            ToolTipService.ShowOnDisabled="True"
                         />
                     </WrapPanel>
                 </StackPanel>

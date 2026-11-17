@@ -63,6 +63,43 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             new System.Windows.Threading.DispatcherTimer();
         private AppMenuViewModel _appMenu;
         private MainViewModel _model;
+
+        /// <summary>The title bar's search box: Enter starts the first command found, Escape empties the box.</summary>
+        private void OnTitleSearchKey(object sender, KeyEventArgs e)
+        {
+            if (_model == null)
+            {
+                return;
+            }
+
+            if (e.Key == Key.Enter && _model.RunTitleSearchResult())
+            {
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Escape)
+            {
+                _model.TitleSearchText = string.Empty;
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>The box lost the keyboard: the list closes, as AutoCAD's search does when a click lands elsewhere.</summary>
+        private void OnTitleSearchLostFocus(object sender, KeyboardFocusChangedEventArgs e)
+        {
+            if (_model != null)
+            {
+                _model.TitleSearchText = string.Empty;
+            }
+        }
+
+        private void OnTitleResultClick(object sender, RoutedEventArgs e)
+        {
+            if (_model != null && ((FrameworkElement)sender).DataContext is CommandSuggestionViewModel row)
+            {
+                _model.RunTitleSearchResult(row);
+            }
+        }
+
         private Point _dynamicAt;
         private GeoPoint2 _bandAt;
         private bool _fieldsPlaced;

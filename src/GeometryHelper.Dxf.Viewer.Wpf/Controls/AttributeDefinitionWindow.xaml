@@ -270,6 +270,7 @@
                             <TextBox
                                 Grid.Row="4"
                                 Grid.Column="1"
+                                x:Name="FieldBox"
                                 Style="{StaticResource BlockNumber}"
                                 Text="{Binding Default, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                 AutomationProperties.Name="Default"
@@ -282,8 +283,10 @@
                                 Width="30"
                                 Padding="0"
                                 Margin="6,0,0,0"
-                                IsEnabled="False"
-                                ToolTip="Insert field (not built)"
+                                IsEnabled="{Binding CanInsertField}"
+                                ToolTip="Insert field"
+                                ToolTipService.ShowOnDisabled="True"
+                                Click="OnInsertField"
                             />
                         </Grid>
                     </HeaderedContentControl>

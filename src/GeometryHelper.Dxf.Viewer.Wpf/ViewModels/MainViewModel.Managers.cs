@@ -84,6 +84,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return null;
         }
 
+        /// <summary>
+        /// What the % button (Insert field) of the attribute dialogs calls: the Field dialog over the drawing shown, its field in
+        /// the markers the text takes; null where the window shows no Field dialog, which leaves the button grey.
+        /// </summary>
+        private Func<string> AskFieldInDialog =>
+            ShowField == null ? (Func<string>)null : () => AskField(NewFieldRequest());
+
         /// <summary>Gets or sets how the workspace shows Geometric Tolerance (TOLERANCE, and the Tolerance of LEADER and QLEADER); the action it closed with is in its request.</summary>
         public Func<GeometricToleranceViewModel, bool> ShowGeometricTolerance { get; set; }
 
@@ -93,7 +100,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             switch (e.Payload)
             {
                 case CadAttributeManagerRequest manager when ShowBlockAttributeManager != null:
-                    e.Handled = ShowBlockAttributeManager(new BlockAttributeManagerViewModel(manager));
+                    e.Handled = ShowBlockAttributeManager(
+                        new BlockAttributeManagerViewModel(manager) { AskField = AskFieldInDialog }
+                    );
                     break;
                 case CadAttributeValuesRequest values when ShowEditAttributes != null:
                     e.Handled = ShowEditAttributes(new EditAttributesViewModel(values));

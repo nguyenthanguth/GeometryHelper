@@ -331,6 +331,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        /// <summary>Gets or sets whether the Block Editor opens on the block once it is made (the "Open in block editor" box).</summary>
+        public bool OpenInBlockEditor
+        {
+            get => Request.OpenInBlockEditor;
+            set
+            {
+                Request.OpenInBlockEditor = value;
+                Raise(nameof(OpenInBlockEditor));
+            }
+        }
+
         /// <summary>Gets the units the Block unit box offers: Unitless, Inches, Feet, Millimetres and the rest.</summary>
         public IReadOnlyList<string> Units { get; } = BlockNumbers.Units.Select(BlockNumbers.UnitName).ToList();
 
@@ -1026,6 +1037,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 .ToList();
         }
 
+        /// <summary>
+        /// Gets or sets how the dialog asks for a field: the Field dialog, then the field in its markers, or null where it was
+        /// cancelled. The % button puts it in the box; with none set the button is grey.
+        /// </summary>
+        public Func<string> AskField { get; set; }
+
+        /// <summary>Gets whether the % button (Insert field) can be used: the window shows a Field dialog.</summary>
+        public bool CanInsertField => AskField != null;
+
         /// <summary>Gets the request.</summary>
         public CadAttributeDefinitionRequest Request { get; }
 
@@ -1546,6 +1566,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 .ThenBy(n => n, StringComparer.Ordinal)
                 .ToList();
         }
+
+        /// <summary>
+        /// Gets or sets how the dialog asks for a field: the Field dialog, then the field in its markers, or null where it was
+        /// cancelled. The % button puts it in the box; with none set the button is grey.
+        /// </summary>
+        public Func<string> AskField { get; set; }
+
+        /// <summary>Gets whether the % button (Insert field) can be used: the window shows a Field dialog.</summary>
+        public bool CanInsertField => AskField != null;
 
         /// <summary>Gets the request.</summary>
         public CadAttributeEditRequest Request { get; }

@@ -901,9 +901,24 @@ namespace GeometryHelper.Dxf.Viewer
                     DimensionHandle = shown?.Handle,
                     Dynamic =
                         shown == null || string.Equals(shown.Layer, DynamicLayer, StringComparison.OrdinalIgnoreCase),
+                    NameFormat = NameFormatOf((shown as DxfDimension)?.DimensionText, parameter.Name),
                     Source = node.Id.ToString(CultureInfo.InvariantCulture),
                 }
             );
+        }
+
+        /// <summary>
+        /// The name format a dimension's words show: 2 where they hold an equals sign or are none (d1=10.0000), 0 where they are
+        /// the name alone, 1 where they are anything else, the value.
+        /// </summary>
+        internal static int NameFormatOf(string text, string name)
+        {
+            if (string.IsNullOrEmpty(text) || text.IndexOf('=') >= 0)
+            {
+                return 2;
+            }
+
+            return string.Equals(text.Trim(), name, StringComparison.OrdinalIgnoreCase) ? 0 : 1;
         }
 
         /// <summary>The layer AutoCAD 2021 draws dynamic dimensional constraints on.</summary>

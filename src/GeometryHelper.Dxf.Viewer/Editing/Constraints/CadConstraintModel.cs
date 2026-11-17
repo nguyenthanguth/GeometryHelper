@@ -217,6 +217,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Whether the dimension is drawn in the dynamic form (on AutoCAD's hidden layer, not plotted) rather than the annotational.</summary>
         internal bool Dynamic { get; set; } = true;
 
+        /// <summary>
+        /// The words its dimension shows, as CONSTRAINTNAMEFORMAT counts them: 0 the name (d1), 1 the value (10.0000), 2 the name
+        /// and the value (d1=10.0000). A new constraint takes the session's setting; one read takes it from its dimension's text.
+        /// </summary>
+        internal int NameFormat { get; set; } = 2;
+
         /// <summary>The handle of the DIMENSION that shows it; null where it has none.</summary>
         internal string DimensionHandle { get; set; }
 

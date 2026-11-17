@@ -856,7 +856,7 @@ namespace GeometryHelper.Dxf.Viewer
             // The words of an annotative style are the height of the sheet's paper over the annotation scale, as AutoCAD 2021
             // draws them; the box is as it was picked.
             DxfAnnotationScale scale =
-                record != null && record.Annotative == DxfAnnotativeStates.True
+                edit.NewAnnotative ?? (record != null && record.Annotative == DxfAnnotativeStates.True)
                     ? CurrentScale(c.Database, c.Space.IsModel)
                     : null;
             c.Apply(null, s =>

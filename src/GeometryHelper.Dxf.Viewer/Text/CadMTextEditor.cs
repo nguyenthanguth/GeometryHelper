@@ -389,6 +389,132 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
+        /// Starts or continues the numbering of the list the first selected paragraph is in, as the Start and Continue items of
+        /// Bullets and Numbering do, one undo step: Start numbers that paragraph 1 (or a, A) and the paragraphs of the same list
+        /// after it from there, so that with the caret in Beam, <c>1.\tPlate\P2.\tBeam\P3.\tColumn</c> becomes
+        /// <c>1.\tPlate\P1.\tBeam\P2.\tColumn</c>; Continue numbers it on from the paragraph before, which puts the second
+        /// back. A list is the run of paragraphs with the same kind of label. Nothing is done, and false answered, for a
+        /// paragraph with no number or letter label (none, or a bullet), or for Continue where the paragraph before has not the
+        /// same kind of label.
+        /// </summary>
+        /// <param name="continuePrevious">True for Continue, false for Start.</param>
+        /// <returns>Whether any label changed.</returns>
+        public bool RenumberList(bool continuePrevious)
+        {
+            var starts = new List<int>();
+            int at = 0;
+
+            for (int p = 0; p < _paragraphCodes.Count; p++)
+            {
+                starts.Add(at);
+
+                while (at < _cells.Count && !_cells[at].Break)
+                {
+                    at++;
+                }
+
+                at++;
+            }
+
+            int first = SelectedParagraphs.First;
+            LabelLength(starts[first], out CadMTextNumbering numbering);
+
+            if (numbering == CadMTextNumbering.Off || numbering == CadMTextNumbering.Bullet)
+            {
+                return false;
+            }
+
+            int from = 0;
+
+            if (continuePrevious)
+            {
+                if (
+                    first == 0
+                    || LabelLength(starts[first - 1], out CadMTextNumbering before) == 0
+                    || before != numbering
+                )
+                {
+                    return false;
+                }
+
+                from = LabelIndex(starts[first - 1], numbering) + 1;
+            }
+
+            int last = first;
+
+            while (
+                last + 1 < starts.Count
+                && LabelLength(starts[last + 1], out CadMTextNumbering next) > 0
+                && next == numbering
+            )
+            {
+                last++;
+            }
+
+            var changes = new List<int>();
+
+            for (int p = first; p <= last; p++)
+            {
+                if (LabelIndex(starts[p], numbering) != from + (p - first))
+                {
+                    changes.Add(p);
+                }
+            }
+
+            if (changes.Count == 0)
+            {
+                return false;
+            }
+
+            Save();
+
+            for (int k = changes.Count - 1; k >= 0; k--)
+            {
+                int p = changes[k];
+                int start = starts[p];
+                int removed = LabelLength(start);
+                _cells.RemoveRange(start, removed);
+                List<Cell> label = Label(numbering, from + (p - first), start);
+                _cells.InsertRange(start, label);
+                Caret = Shifted(Caret, start, removed, label.Count);
+                Anchor = Shifted(Anchor, start, removed, label.Count);
+            }
+
+            _pending = null;
+            Raise();
+            return true;
+        }
+
+        /// <summary>The place in its list, from nought, of the label a paragraph opens with: 3. is 2, c. is 2, ab. is 27.</summary>
+        private int LabelIndex(int start, CadMTextNumbering numbering)
+        {
+            int length = LabelLength(start) - 2;
+            var text = new StringBuilder();
+
+            for (int k = 0; k < length; k++)
+            {
+                text.Append(_cells[start + k].Text);
+            }
+
+            string mark = text.ToString();
+
+            if (numbering == CadMTextNumbering.Number)
+            {
+                return int.Parse(mark, CultureInfo.InvariantCulture) - 1;
+            }
+
+            int n = 0;
+            char baseLetter = numbering == CadMTextNumbering.LetterUpper ? 'A' : 'a';
+
+            foreach (char letter in mark)
+            {
+                n = (n * 26) + (letter - baseLetter + 1);
+            }
+
+            return n - 1;
+        }
+
+        /// <summary>
         /// Gets the label a paragraph opens with, as <see cref="SetNumbering"/> writes them: in <c>1.\tPlate\Pb.\tBeam\PColumn</c>
         /// the first is <see cref="CadMTextNumbering.Number"/>, the second <see cref="CadMTextNumbering.LetterLower"/> and the
         /// third <see cref="CadMTextNumbering.Off"/>.

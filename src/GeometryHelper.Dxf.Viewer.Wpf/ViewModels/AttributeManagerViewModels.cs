@@ -98,6 +98,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets how the window shows Edit Attribute; true where it was closed with OK.</summary>
         public Func<EditAttributeViewModel, bool> ShowEditor { get; set; }
 
+        /// <summary>Gets or sets how the Edit Attribute dialog asks for a field, as <see cref="EditAttributeViewModel.AskField"/>.</summary>
+        public Func<string> AskField { get; set; }
+
         /// <summary>Gets or sets how the window shows Block Attribute Settings; true where it was closed with OK.</summary>
         public Func<AttributeManagerSettingsViewModel, bool> ShowSettings { get; set; }
 
@@ -188,7 +191,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return false;
             }
 
-            var editor = new EditAttributeViewModel(Request.Document, Request.Block, Request.Rows[at]);
+            var editor = new EditAttributeViewModel(Request.Document, Request.Block, Request.Rows[at])
+            {
+                AskField = AskField,
+            };
 
             if (!ShowEditor(editor) || editor.Edited == null)
             {
@@ -466,6 +472,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 .ThenBy(n => n, StringComparer.Ordinal)
                 .ToList();
         }
+
+        /// <summary>
+        /// Gets or sets how the dialog asks for a field: the Field dialog, then the field in its markers, or null where it was
+        /// cancelled. The % button puts it in the box; with none set the button is grey.
+        /// </summary>
+        public Func<string> AskField { get; set; }
+
+        /// <summary>Gets whether the % button (Insert field) can be used: the window shows a Field dialog.</summary>
+        public bool CanInsertField => AskField != null;
 
         /// <summary>Gets the name of the block, which the dialog shows as Active Block.</summary>
         public string Block { get; }

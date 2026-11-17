@@ -34,7 +34,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 );
                 return name == null ? null : Tuple.Create(name, start);
             };
-            model.ShowModify = modify => new TableStyleModifyWindow(modify) { Owner = this }.ShowDialog() == true;
+            model.ShowModify = modify =>
+            {
+                var window = new TableStyleModifyWindow(modify) { Owner = this };
+                modify.ShowDataFormat = format => DataFormatWindow.Show(window, format);
+                return window.ShowDialog() == true;
+            };
         }
 
         /// <summary>Gets the view model.</summary>

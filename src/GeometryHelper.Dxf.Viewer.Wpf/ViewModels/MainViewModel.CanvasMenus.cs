@@ -7,8 +7,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>
     /// The canvas's right-click menus, as AutoCAD 2021's with its default SHORTCUTMENU 11: the Default, Edit, Command and
     /// Grips menus of its menu file, their items in its order with its access keys, each mapped to the presenter's own command;
-    /// an item the presenter does not build is grey, with "Not built yet." (SteeringWheels, Action Recorder and Convert PS to MS), and the 3D ones (Subobject Selection Filter, 3D
-    /// Osnap) are left out.
+    /// an item the presenter does not build is grey, with "Not built yet." (SteeringWheels and Action Recorder), and the 3D ones (Subobject Selection Filter, 3D Osnap) are left
+    /// out.
     /// </summary>
     public sealed partial class MainViewModel
     {
@@ -94,7 +94,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 )
             );
             items.Add(CadMenuItemViewModel.Separator());
-            items.Add(NotBuilt(paper ? "Convert MS to PS" : "Convert PS to MS", 'v'));
+            items.Add(MenuCommand(paper ? "Convert MS to PS" : "Convert PS to MS", "CHSPACE", 'v'));
             items.Add(MenuCommand("Quick Select...", "QSELECT", 'Q'));
             items.Add(MenuCommand("QuickCalc", "QUICKCALC"));
             items.Add(MenuCommand("Find...", "FIND", 'F'));
@@ -324,6 +324,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>A grey item AutoCAD has and the presenter does not, "Not built yet." its tooltip.</summary>
         private static CadMenuItemViewModel NotBuilt(string header, char key = '\0') =>
             new CadMenuItemViewModel(header, () => { }, false, NotBuiltYet, accessKey: key);
+
+        /// <summary>A grey item whose tooltip says why it cannot be chosen: a command the presenter lacks, or a selection it does not fit.</summary>
+        private static CadMenuItemViewModel Grey(string header, string reason, char key = '\0') =>
+            new CadMenuItemViewModel(header, () => { }, false, reason, accessKey: key);
 
         /// <summary>Whether the drawing shown has a command of the name.</summary>
         private bool HasCommand(string name) => _current?.Session.Registry.Find(name) != null;

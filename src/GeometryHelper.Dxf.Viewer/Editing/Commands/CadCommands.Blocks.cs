@@ -2007,6 +2007,7 @@ namespace GeometryHelper.Dxf.Viewer
                     definition.AlignmentPoint = request.Point;
                 }
 
+                SetValue(definition, value, s.Document);
                 definition.Invisible = request.Invisible;
                 definition.Constant = request.Constant;
                 definition.Verifiable = request.Verify;
@@ -2289,7 +2290,7 @@ namespace GeometryHelper.Dxf.Viewer
                         DxfAttributeReference attribute = insert.AttributeCollection.First(a =>
                             string.Equals(a.Handle, pair.Value.Handle, StringComparison.OrdinalIgnoreCase)
                         );
-                        Write(attribute, pair.Key, pair.Value, s.Database);
+                        Write(attribute, pair.Key, pair.Value, s.Database, s.Document);
                     }
                 }
             );
@@ -2312,12 +2313,37 @@ namespace GeometryHelper.Dxf.Viewer
             && a.ColorIndex == b.ColorIndex
             && a.LineWeight == b.LineWeight;
 
+        /// <summary>
+        /// Gives an attribute, or an attribute definition, the words typed: a field in them, as the Insert Field button of the
+        /// attribute dialogs puts it (<c>%&lt;\AcVar Date \f "dd/MM/yyyy"&gt;%</c>), becomes a field of the text, and the words of a
+        /// text that held a field, with none now, take it away. Plain words are written as they are, in one line.
+        /// </summary>
+        private static void SetValue(DxfDBText attribute, string value, CadDocument document)
+        {
+            string words = (value ?? string.Empty).Replace("\r", string.Empty).Replace("\n", " ");
+
+            if (document != null && (words.IndexOf("%<", StringComparison.Ordinal) >= 0 || CadFields.Has(attribute)))
+            {
+                CadFields.Set(attribute, words, new CadFieldContext(document));
+            }
+            else
+            {
+                attribute.TextString = words;
+            }
+        }
+
         /// <summary>Sets on an attribute, or an attribute definition, each value of a row that differs from what it was.</summary>
-        private static void Write(DxfDBText attribute, CadAttributeRow old, CadAttributeRow row, DxfDatabase database)
+        private static void Write(
+            DxfDBText attribute,
+            CadAttributeRow old,
+            CadAttributeRow row,
+            DxfDatabase database,
+            CadDocument document = null
+        )
         {
             if (row.Value != old.Value)
             {
-                attribute.TextString = (row.Value ?? string.Empty).Replace("\r", string.Empty).Replace("\n", " ");
+                SetValue(attribute, row.Value, document);
             }
 
             if (row.TextStyle != old.TextStyle && row.TextStyle != null)

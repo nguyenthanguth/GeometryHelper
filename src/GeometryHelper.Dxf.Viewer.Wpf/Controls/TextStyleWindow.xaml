@@ -244,6 +244,15 @@
 
                         <StackPanel Grid.Column="2">
                             <TextBlock Style="{StaticResource StyleGroup}" Text="Size" />
+                            <CheckBox
+                                Style="{StaticResource StyleCheck}"
+                                IsChecked="{Binding Annotative, Mode=TwoWay}"
+                                IsEnabled="{Binding IsAnnotativeEnabled}"
+                                Content="Annotative"
+                                Margin="0,0,0,6"
+                                ToolTip="Texts made in the style are annotative: drawn at the height their paper gives them, at the annotation scale (a drawing older than AutoCAD 2007 cannot hold it)"
+                                ToolTipService.ShowOnDisabled="True"
+                            />
                             <DockPanel Margin="0,0,0,6">
                                 <TextBox
                                     DockPanel.Dock="Right"

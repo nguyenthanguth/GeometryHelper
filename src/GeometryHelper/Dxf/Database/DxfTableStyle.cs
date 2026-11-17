@@ -373,6 +373,62 @@ namespace GeometryHelper.Dxf
         public void SetGridColor(DxfColor color, DxfGridLineType borders, DxfRowType rowTypes) =>
             SetLines(borders, rowTypes, 64, IndexOf(color, nameof(color)));
 
+        /// <summary>
+        /// Gets what kind of value, and in which unit, the cells of a kind of row hold (groups 90 and 91), as AutoCAD's
+        /// <c>GetDataType(rowType)</c>: <see cref="DxfDataType.General"/> and <see cref="DxfUnitType.Unitless"/> where the
+        /// record gives none, as a style of a file before R2007, which has no place for them, answers. A currency has the kind
+        /// <see cref="DxfDataType.Double"/> and the unit <see cref="DxfUnitType.Currency"/>.
+        /// </summary>
+        /// <param name="rowType">The kind: one of the three.</param>
+        /// <returns>The kind of value and its unit.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the kind is not one of the three.</exception>
+        public DxfDataTypeParameter DataType(DxfRowType rowType)
+        {
+            Model model = Peek();
+            int kind = Kind(rowType, nameof(rowType));
+            return new DxfDataTypeParameter(
+                (DxfDataType)Whole(model.Cell(kind, 90), (int)DxfDataType.General),
+                (DxfUnitType)Whole(model.Cell(kind, 91), 0)
+            );
+        }
+
+        /// <summary>Sets the kind of value and its unit the cells of kinds of row hold, as AutoCAD's <c>SetDataType(dataType, unitType, rowTypes)</c>.</summary>
+        /// <param name="dataType">The kind of value.</param>
+        /// <param name="unitType">The unit.</param>
+        /// <param name="rowTypes">The kinds, one or more of the three.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the kinds are none or hold a flag none of the three has.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the style is erased.</exception>
+        public void SetDataType(DxfDataType dataType, DxfUnitType unitType, DxfRowType rowTypes)
+        {
+            SetCells(rowTypes, 90, ((int)dataType).ToString(CultureInfo.InvariantCulture));
+            SetCells(rowTypes, 91, ((int)unitType).ToString(CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// Gets the format string of the cells of a kind of row (group 1), as AutoCAD's <c>GetFormat(rowType)</c>: <c>%lu2%pr2</c>
+        /// for a number of two places; empty where the record gives none.
+        /// </summary>
+        /// <param name="rowType">The kind: one of the three.</param>
+        /// <returns>The format.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the kind is not one of the three.</exception>
+        public string Format(DxfRowType rowType) => Peek().Cell(Kind(rowType, nameof(rowType)), 1) ?? string.Empty;
+
+        /// <summary>Sets the format string of the cells of kinds of row, as AutoCAD's <c>SetFormat(format, rowTypes)</c>.</summary>
+        /// <param name="format">The format; empty for none.</param>
+        /// <param name="rowTypes">The kinds, one or more of the three.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the format is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the kinds are none or hold a flag none of the three has.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the style is erased.</exception>
+        public void SetFormat(string format, DxfRowType rowTypes)
+        {
+            if (format == null)
+            {
+                throw new ArgumentNullException(nameof(format));
+            }
+
+            SetCells(rowTypes, 1, format);
+        }
+
         /// <summary>Gives the style as a line for debugging: its type and its handle.</summary>
         /// <returns>The line, such as <c>TABLESTYLE 7E</c>.</returns>
         public override string ToString() => "TABLESTYLE " + (Handle ?? string.Empty);

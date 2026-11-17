@@ -1154,7 +1154,7 @@
                         </Style>
                     </local:RibbonStrip.Resources>
 
-                    <!-- Style: the style, Annotative (off), the height, Mask (Background Mask). -->
+                    <!-- Style: the style, Annotative (live for an MTEXT being made), the height, Mask (Background Mask). -->
                     <local:RibbonPanel Title="Style" MinFullWidth="200" Icon="{StaticResource IconStyle}">
                         <StackPanel Orientation="Horizontal">
                             <Button
@@ -1166,11 +1166,15 @@
                                 ToolTip="The text style of the MTEXT: STYLE changes it"
                             />
                             <StackPanel>
-                                <Button
-                                    Style="{StaticResource SmallButton}"
+                                <ToggleButton
+                                    Style="{StaticResource SmallToggle}"
                                     Tag="{StaticResource IconStyle}"
                                     Content="Annotative"
-                                    ToolTip="Annotative text is not built yet"
+                                    Focusable="False"
+                                    IsChecked="{Binding IsAnnotative, Mode=OneWay}"
+                                    Command="{Binding AnnotativeCommand}"
+                                    ToolTip="{Binding AnnotativeToolTip}"
+                                    ToolTipService.ShowOnDisabled="True"
                                 />
                                 <StackPanel Orientation="Horizontal" Margin="4,0,0,4">
                                     <local:IconView
@@ -3712,10 +3716,88 @@
                         VerticalAlignment="Center"
                     />
                     <TextBox
+                        x:Name="TitleSearchBox"
                         Style="{StaticResource GhTextBox}"
                         Tag="Type a keyword or phrase"
-                        ToolTip="Searching commands is not built yet: type a command in the command line"
+                        AutomationProperties.Name="Search commands"
+                        ToolTip="Search the commands by name or description; Enter starts the first one"
+                        Text="{Binding TitleSearchText, UpdateSourceTrigger=PropertyChanged}"
+                        KeyDown="OnTitleSearchKey"
+                        LostKeyboardFocus="OnTitleSearchLostFocus"
                     />
+                    <!-- The commands the search found, under the box; a row runs its command and empties the box. -->
+                    <Popup
+                        IsOpen="{Binding IsTitleSearching, Mode=OneWay}"
+                        PlacementTarget="{Binding ElementName=TitleSearchBox}"
+                        Placement="Bottom"
+                        StaysOpen="True"
+                        Focusable="False"
+                        AllowsTransparency="True"
+                    >
+                        <Border
+                            Width="360"
+                            Background="{StaticResource GhHeader}"
+                            BorderBrush="{StaticResource GhBorder}"
+                            BorderThickness="1"
+                            Padding="0,4"
+                        >
+                            <StackPanel>
+                                <TextBlock
+                                    Margin="12,4"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    Text="No command has these words in its name or description, or no drawing is open."
+                                    TextWrapping="Wrap"
+                                >
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding TitleSearchResults.Count}" Value="0">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False" MaxHeight="420">
+                                    <ItemsControl ItemsSource="{Binding TitleSearchResults}" Focusable="False">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type local:CommandSuggestionViewModel}">
+                                                <Button
+                                                    Style="{StaticResource GhFlatButton}"
+                                                    Focusable="False"
+                                                    Padding="12,4"
+                                                    HorizontalContentAlignment="Stretch"
+                                                    Click="OnTitleResultClick"
+                                                    AutomationProperties.Name="{Binding Name}"
+                                                >
+                                                    <DockPanel>
+                                                        <TextBlock
+                                                            DockPanel.Dock="Right"
+                                                            Text="{Binding Note}"
+                                                            Foreground="{StaticResource GhTextMuted}"
+                                                            FontSize="11"
+                                                            FontWeight="Medium"
+                                                        />
+                                                        <TextBlock FontFamily="{StaticResource GhMonoFont}">
+                                                            <Run Text="{Binding Before, Mode=OneWay}" /><Run
+                                                                Text="{Binding Hit, Mode=OneWay}"
+                                                                Foreground="#6CB6FF"
+                                                                FontWeight="Bold"
+                                                            /><Run Text="{Binding After, Mode=OneWay}" /><Run
+                                                                Text="{Binding Synonym, Mode=OneWay}"
+                                                                Foreground="{StaticResource GhTextMuted}"
+                                                            />
+                                                        </TextBlock>
+                                                    </DockPanel>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
                 </DockPanel>
             </Border>
             <ContentPresenter

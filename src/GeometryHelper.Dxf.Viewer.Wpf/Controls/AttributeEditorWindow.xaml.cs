@@ -48,6 +48,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return true;
         }
 
+        private void OnInsertField(object sender, RoutedEventArgs e) => FieldInsertion.Into(FieldBox, Model.AskField);
+
         private void OnHeaderDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ButtonState == MouseButtonState.Pressed && IsLoaded)

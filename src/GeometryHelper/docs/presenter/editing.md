@@ -1886,7 +1886,7 @@ the Data, each look a cell does not give of its own; where the table or its styl
 the header, and where the header is left out too, every row is data, as AutoCAD 2021 reads such a table.
 -TABLE asks the columns, the rows of data and the point (Style, Width, Height) on the command line, and TABLEDIT a cell
 to type in; a double click or F2 on a cell runs it. TABLESTYLE (TS) shows the Table Style dialog
-([`CadTableStyleEditor`](xref:GeometryHelper.Dxf.Viewer.CadTableStyleEditor)); a style changed draws its tables anew. A
+([`CadTableStyleEditor`](xref:GeometryHelper.Dxf.Viewer.CadTableStyleEditor)); a style changed draws its tables anew. The Format of a cell style in the Modify Table Style dialog opens the Table Cell Format dialog and keeps the kind of data, its unit and the format string in the style (`DxfTableStyle.DataType`, `SetDataType`, `Format` and `SetFormat`, groups 90, 91 and 1 of each cell style, written by a file of AutoCAD 2007 or later); the starting table and the type of a cell style stay grey. A
 click in a cell selects it with the Table Cell tab ([`CadTableEditor`](xref:GeometryHelper.Dxf.Viewer.CadTableEditor)):
 rows and columns put in and taken out, cells merged and unmerged, their alignment, fill and borders, the arrows moving
 the cell and Delete emptying it, each one undo step that draws the table anew in its block. A number typed in a cell is
@@ -2496,8 +2496,10 @@ block chosen in the list, or Select block, with changes not yet written asks fir
 Attribute Manager Alert), Yes writing them and No dropping them. AutoCAD has no command-line form of BATTMAN, and with no window it says so. ATTDIA 1
 makes INSERT and -INSERT ask the values of the attributes in the Edit Attributes dialog, eight a page in the block's
 order, the constant ones left out and a value to be verified asked once; Cancel places the defaults.
+The % button beside the Default of the Attribute Definition dialog (ATTDEF), the Value of the Enhanced Attribute Editor (EATTEDIT) and the Default of the Edit Attribute dialog of the Block Attribute Manager shows the Field dialog and puts the field it ends with, in its markers (`%<\AcVar Date \f "dd/MM/yyyy">%`), at the caret of the box; the attribute or definition written holds it as a field of its text (`CadFields`), showing what the field comes to, and where the window shows no Field dialog the button is grey. Typing over the words of a text that holds a field takes the field away.
 
-BEDIT (BE) opens a block in the Block Editor, as AutoCAD 2021's: the Edit Block Definition dialog lists
+BEDIT (BE) opens a block in the Block Editor, as AutoCAD 2021's (the Open in block editor box of the Block Definition dialog
+opens it on the block once BLOCK has made it): the Edit Block Definition dialog lists
 `<Current Drawing>` (model space itself) and the named blocks, no layout, external reference or anonymous block, and a
 name not in it makes a new, empty block; -BEDIT asks `Enter block name or [?]:`. The block is shown alone in a space of
 its own ([`CadDocument.BlockEditor`](xref:GeometryHelper.Dxf.Viewer.CadBlockEditor), `CadSpace.IsBlockEditor`), where
@@ -2525,6 +2527,7 @@ and goes on with it, the one opened left as it was. BCLOSE (BC) asks `Save chang
 saved, so a new block never saved is not made. A door of one line given a second and saved shows both in every INSERT,
 and one undo after BCLOSE takes the session back. Commands that leave the block or work on another space (BEDIT, XREF,
 LAYOUT, PLOT, PREVIEW, PAGESETUP, MSPACE, PSPACE, MVIEW, QSAVE, SAVEAS) say `Not allowed in the Block Editor.`.
+The Geometric and Dimensional panels of the Block Editor tab start the constraint commands on the block's objects: Auto Constrain (AUTOCONSTRAIN), Linear (DCLINEAR), Delete (DELCONSTRAINT) and the Parameter Manager (PARAMETERS); the constraints are kept in the block and saved with it by BSAVE. Block Table (which needs the lookup table) and Construction are greyed, with the reason.
 The Visibility State box of the Block Editor tab is live for a block of visibility states
 ([`CadBlockEditor.VisibilityStates`](xref:GeometryHelper.Dxf.Viewer.CadBlockEditor.VisibilityStates)): the first is shown
 when the block opens, and another chosen (`CadDocument.SetBlockEditorVisibilityState`) hides what another state lists and
@@ -3048,7 +3051,7 @@ Perpendicular, Parallel, Tangent, Coincident, Concentric, Collinear, Equal and F
 the boxes there allow, within a distance of 0.01 and an angle of 1 degree (the tolerances of the tab), the ones that conflict with
 the others left out; `3 constraint(s) applied.` CONSTRAINTSETTINGS shows the dialog (Geometric, Dimensional, AutoConstrain tabs);
 CONSTRAINTINFER, CONSTRAINTNAMEFORMAT, DYNCONSTRAINTMODE, CONSTRAINTSOLVEMODE and PARAMETERCOPYMODE are kept as AutoCAD keeps
-them, PARAMETERSSTATUS and CONSTRAINTRELAX read only; the infer, name format, solve mode and copy mode are not acted on yet.
+them, PARAMETERSSTATUS and CONSTRAINTRELAX read only; the infer, solve mode and copy mode are not acted on yet. The name format is: a new dimensional constraint shows the words CONSTRAINTNAMEFORMAT asks, 0 the name (`d1`), 1 the value, 2 the name and the value (`d1=10.0000`), and the Dimension Name Format item of the dimension menu (Value, Name, Name and Expression) gives the ones selected another, one undo step; a drawing opened takes each constraint's format from the words its dimension shows, and a value or a name changed keeps it.
 
 **What is written.** The constraints of a space live in the associative network of its block record, as AutoCAD 2021 keeps them
 (`ACAD_ASSOCNETWORK` of the block record's extension dictionary): an `ACDBASSOC2DCONSTRAINTGROUP` listing the nodes (the geometry,
@@ -3565,7 +3568,7 @@ step named OBJECTSCALE; Cancel changes nothing. The request is a public
 [`CadObjectScaleRequest`](xref:GeometryHelper.Dxf.Viewer.CadObjectScaleRequest); with no window OBJECTSCALE asks -OBJECTSCALE's
 option once the objects are taken. ANNOALLVISIBLE (0 or 1) is the drawing's variable of that name. TEXT and
 MTEXT drawn in an annotative text style are annotative: the height asked is the sheet's, and the text is that over the
-annotation scale high (2.5 at 1:50 is 125). The Edit Drawing Scales list is given the scale an object is first made
+annotation scale high (2.5 at 1:50 is 125). The Annotative box of the Text Style dialog (`CadTextStyleSettings.Annotative`, the style's extended data AcadAnnotative, live in a drawing of AutoCAD 2007 or later) makes the style so, and the Annotative button of the Style panel of the MTEXT editor makes an MTEXT being made annotative or not, over what its style says, ticked at first for an annotative style; an MTEXT already made keeps its state, its button grey saying that Properties, AIOBJECTSCALEADD and OBJECTSCALE change it. The Edit Drawing Scales list is given the scale an object is first made
 annotative at where it has none.
 
 A dimension drawn by an annotative dimension style (the Annotative box of the Fit tab in the Dimension Style Manager, which is the

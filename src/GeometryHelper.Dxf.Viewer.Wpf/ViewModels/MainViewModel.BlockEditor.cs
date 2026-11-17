@@ -237,8 +237,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>
     /// What the Block Editor tab does, as AutoCAD 2021's: Edit Block, Save Block, Save As; Attribute Definition and Block
     /// Properties; the Parameter and Action menus (BPARAMETER and BACTION with their kind answered); the visibility states of
-    /// the block, live only where it has some; the Authoring Palettes, Test Block and Close Block Editor. The constraints and the
-    /// Parameter Manager are greyed, not in this version.
+    /// the block, live only where it has some; the Authoring Palettes, Test Block and Close Block Editor; Auto Constrain, Linear,
+    /// Delete and the Parameter Manager, which start the constraint commands on the block's objects. Block Table and Construction
+    /// are greyed, not in this version.
     /// </summary>
     public sealed class BlockEditorRibbonViewModel : ObservableObject
     {
@@ -260,6 +261,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             MakeVisibleCommand = new DelegateCommand(_ => model.StartCommand("BVSHOW"));
             MakeInvisibleCommand = new DelegateCommand(_ => model.StartCommand("BVHIDE"));
             TestBlockCommand = new DelegateCommand(_ => model.StartCommand("BTESTBLOCK"));
+            AutoConstrainCommand = new DelegateCommand(_ => model.StartCommand("AUTOCONSTRAIN"));
+            LinearConstraintCommand = new DelegateCommand(_ => model.StartCommand("DCLINEAR"));
+            DeleteConstraintsCommand = new DelegateCommand(_ => model.StartCommand("DELCONSTRAINT"));
+            ParameterManagerCommand = new DelegateCommand(_ => model.StartCommand("PARAMETERS"));
         }
 
         private string _lastParameter = "Point";
@@ -347,6 +352,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets the command of Test Block (BTESTBLOCK).</summary>
         public ICommand TestBlockCommand { get; }
+
+        /// <summary>Gets the command of Auto Constrain (AUTOCONSTRAIN) on the objects of the block.</summary>
+        public ICommand AutoConstrainCommand { get; }
+
+        /// <summary>Gets the command of Linear (DCLINEAR), the dimensional constraint of a distance in the block.</summary>
+        public ICommand LinearConstraintCommand { get; }
+
+        /// <summary>Gets the command of Delete (DELCONSTRAINT), which takes the constraints off the objects selected.</summary>
+        public ICommand DeleteConstraintsCommand { get; }
+
+        /// <summary>Gets the command of Parameter Manager (PARAMETERS), the palette of the block's constraint parameters.</summary>
+        public ICommand ParameterManagerCommand { get; }
 
         /// <summary>Gets the name of the block open, or &lt;Current Drawing&gt;.</summary>
         public string Name => _editor.Name;

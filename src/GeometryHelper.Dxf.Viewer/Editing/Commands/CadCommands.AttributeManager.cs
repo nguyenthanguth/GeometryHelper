@@ -240,7 +240,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                         foreach (KeyValuePair<CadAttributeDefinitionRow, CadAttributeDefinitionRow> pair in changed)
                         {
-                            WriteDefinition(Find(pair.Value.Handle), pair.Key, pair.Value, s.Database);
+                            WriteDefinition(Find(pair.Value.Handle), pair.Key, pair.Value, s.Database, s.Document);
                         }
 
                         foreach (
@@ -342,7 +342,8 @@ namespace GeometryHelper.Dxf.Viewer
             DxfAttributeDefinition definition,
             CadAttributeDefinitionRow old,
             CadAttributeDefinitionRow row,
-            DxfDatabase database
+            DxfDatabase database,
+            CadDocument document
         )
         {
             if (row.Tag != old.Tag)
@@ -375,7 +376,7 @@ namespace GeometryHelper.Dxf.Viewer
                 definition.LockPositionInBlock = row.LockPosition;
             }
 
-            Write(definition, TextOf(old), TextOf(row), database);
+            Write(definition, TextOf(old), TextOf(row), database, document);
         }
     }
 }

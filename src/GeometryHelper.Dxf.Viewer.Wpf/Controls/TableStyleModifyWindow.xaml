@@ -279,11 +279,15 @@
                                     Content="…"
                                     Width="30"
                                     Margin="6,0,0,0"
-                                    IsEnabled="False"
-                                    ToolTip="Table Cell Format: not built yet"
+                                    Command="{Binding FormatCommand}"
+                                    ToolTip="Table Cell Format: the kind of data and the format the cells of the cell style hold"
                                     ToolTipService.ShowOnDisabled="True"
                                 />
-                                <TextBox Style="{StaticResource StyleBox}" Text="General" IsEnabled="False" />
+                                <TextBox
+                                    Style="{StaticResource StyleBox}"
+                                    Text="{Binding FormatText, Mode=OneWay}"
+                                    IsReadOnly="True"
+                                />
                             </DockPanel>
                             <TextBlock Grid.Row="3" Style="{StaticResource StyleLabel}" Text="Type:" />
                             <ComboBox

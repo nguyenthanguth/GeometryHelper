@@ -42,6 +42,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets whether the texts run down (flag 4 of group 70), which only an SHX font of two orientations draws.</summary>
         public bool Vertical { get; set; }
 
+        /// <summary>
+        /// Gets or sets whether the style is annotative (the style's extended data AcadAnnotative): TEXT and MTEXT made in it are
+        /// annotative at the annotation scale and drawn at the height their paper gives them. Only a drawing of AutoCAD 2007 or later
+        /// can hold it; in an older one the style stays as it is.
+        /// </summary>
+        public bool Annotative { get; set; }
+
         /// <summary>Reads the settings of a style.</summary>
         /// <param name="style">The style.</param>
         /// <returns>Its settings.</returns>
@@ -64,6 +71,7 @@ namespace GeometryHelper.Dxf.Viewer
                 Backwards = (style.FlagBits & 2) != 0,
                 UpsideDown = (style.FlagBits & 4) != 0,
                 Vertical = style.IsVertical,
+                Annotative = style.Annotative == DxfAnnotativeStates.True,
             };
         }
 
@@ -84,7 +92,8 @@ namespace GeometryHelper.Dxf.Viewer
             && ObliqueAngle.Equals(other.ObliqueAngle)
             && Backwards == other.Backwards
             && UpsideDown == other.UpsideDown
-            && Vertical == other.Vertical;
+            && Vertical == other.Vertical
+            && Annotative == other.Annotative;
     }
 
     /// <summary>
@@ -386,6 +395,9 @@ namespace GeometryHelper.Dxf.Viewer
             return styles;
         }
 
+        /// <summary>Whether the drawing of a style can hold an annotative style: AutoCAD 2007 (AC1021) brought it.</summary>
+        internal static bool CanBeAnnotative(DxfDatabase database) => database.File.Supports(1021);
+
         /// <summary>Writes settings into a style of a drawing, the font's extended data last, as AutoCAD writes it after the record.</summary>
         private static void Write(DxfTextStyleTableRecord style, CadTextStyleSettings settings)
         {
@@ -397,6 +409,15 @@ namespace GeometryHelper.Dxf.Viewer
             style.FlagBits = (byte)((settings.Backwards ? 2 : 0) | (settings.UpsideDown ? 4 : 0));
             style.IsVertical = settings.Vertical;
             style.Font = settings.Font;
+
+            if (
+                style.Item != null
+                && style.Item.File.Supports(1021)
+                && settings.Annotative != (style.Annotative == DxfAnnotativeStates.True)
+            )
+            {
+                style.Annotative = settings.Annotative ? DxfAnnotativeStates.True : DxfAnnotativeStates.False;
+            }
         }
 
         private static DxfTextStyleTableRecord Find(CadDocument document, string name, out CadEditResult refused)

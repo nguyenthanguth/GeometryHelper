@@ -103,6 +103,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets the background mask an MTEXT was given in the editor (Background Mask); null where it was not changed.</summary>
         public CadMTextMask NewMask { get; set; }
 
+        /// <summary>
+        /// Gets or sets whether an MTEXT being made was made annotative (true) or not (false) with the Annotative button of the
+        /// editor, over what its text style says; null where it was not changed. An MTEXT already made keeps its own state.
+        /// </summary>
+        public bool? NewAnnotative { get; set; }
+
         /// <summary>Gets whether the editor changed the box: its width, attachment, line spacing, background mask, defined height or columns.</summary>
         public bool ChangesBox =>
             (NewWidth.HasValue && NewWidth.Value >= 0.0 && NewWidth.Value != Width)

@@ -68,6 +68,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private bool _boxChanged;
         private CadMTextMask _mask;
         private readonly CadMTextMask _originalMask;
+        private bool _annotative;
+        private readonly bool _originalAnnotative;
 
         internal TextEditorViewModel(
             MainViewModel model,
@@ -90,6 +92,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     ? CadMTextMask.Of(masked)
                     : new CadMTextMask(false, CadMTextMask.DefaultOffsetFactor, false, null);
             _mask = _originalMask;
+
+            // Annotative as the MTEXT edited is; of an MTEXT being made, as its text style is.
+            DxfEntity edited =
+                edit.Handle != null && !edit.IsTableCell ? model?.Document?.FindEntity(edit.Handle) : null;
+            _originalAnnotative =
+                edited != null
+                    ? edited.Annotative == DxfAnnotativeStates.True
+                    : edit.Handle == null
+                        && !edit.IsTableCell
+                        && model?.Document != null
+                        && model.Document.Database.TextStyleTable.Has(edit.StyleName ?? "Standard")
+                        && model.Document.Database.TextStyleTable[edit.StyleName ?? "Standard"].Annotative
+                            == DxfAnnotativeStates.True;
+            _annotative = _originalAnnotative;
             int column = (edit.Attachment - 1) % 3;
 
             // The box of the MTEXT edited, its columns kept; of an MTEXT being made, the columns MTEXT's Columns option gave or
@@ -591,6 +607,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Editor.IsModified
             || _boxChanged
             || !_mask.Equals(_originalMask)
+            || _annotative != _originalAnnotative
             || !Editor.Frame.Equals(Editor.OriginalFrame);
 
         /// <summary>Gets the Paragraph panel's launcher, Line Spacing › More… and the editor's right-click › Paragraph…: the Paragraph dialog.</summary>
@@ -612,6 +629,38 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             var dialog = new ParagraphViewModel(Editor, ColumnRoom(), Decimals, lineSpacing);
             return _model.ShowParagraph(dialog) && dialog.Applied;
         }
+
+        /// <summary>Gets whether the MTEXT is annotative: as its text style says for one being made until the Annotative button changes it; as the MTEXT is for one being edited.</summary>
+        public bool IsAnnotative => _annotative;
+
+        /// <summary>
+        /// Gets the command of the Style panel's Annotative button: an MTEXT being made turned annotative, drawn at the height its
+        /// paper gives it at the annotation scale, or not. An MTEXT already made keeps its state (Properties, AIOBJECTSCALEADD and
+        /// OBJECTSCALE change it), as does a table cell; a drawing older than AutoCAD 2007 cannot hold it.
+        /// </summary>
+        public ICommand AnnotativeCommand =>
+            new DelegateCommand(
+                _ =>
+                {
+                    _annotative = !_annotative;
+                    Raise(nameof(IsAnnotative));
+                },
+                _ => CanSetAnnotative
+            );
+
+        /// <summary>Gets whether the Annotative button can be used: for an MTEXT being made, in a drawing of AutoCAD 2007 or later.</summary>
+        public bool CanSetAnnotative =>
+            Edit.Handle == null
+            && !Edit.IsTableCell
+            && _model?.Document != null
+            && CadTextStyleEditor.CanBeAnnotative(_model.Document.Database);
+
+        /// <summary>Gets what the Annotative button says: why it is grey where it is.</summary>
+        public string AnnotativeToolTip =>
+            CanSetAnnotative ? "Annotative: the text is drawn at the height its paper gives it, at the annotation scale"
+            : Edit.Handle != null
+                ? "An MTEXT already made keeps its state: Properties, AIOBJECTSCALEADD and OBJECTSCALE change it"
+            : "A drawing older than AutoCAD 2007 cannot hold annotative text";
 
         /// <summary>Gets the background mask the words are shown on: the MTEXT's own until Background Mask sets another.</summary>
         public CadMTextMask Mask => _mask;
@@ -1009,7 +1058,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>
         /// The items of Bullets and Numbering, as AutoCAD 2021's ribbon menu and the editor's Bullets and Lists have them: Off,
         /// Numbered, Lettered (Lowercase, Uppercase) and Bulleted, each labelling the selected paragraphs, or the caret's;
-        /// Start and Continue grey, not built; Allow Auto Bullets and Numbering grey and unticked, as the editor does not turn
+        /// Start (the list from the first paragraph selected numbered again from 1 or a) and Continue (numbered on from the paragraph before), grey where the paragraph is in no such list; Allow Auto Bullets and Numbering grey and unticked, as the editor does not turn
         /// "1." typed into a list; Allow Bullets and Lists grey and ticked, as lists are always allowed. On the ribbon
         /// (<paramref name="ticks"/>) the labels every selected paragraph has are ticked, Lettered for either case, its menu
         /// ticking which, with the icons of the design; the right-click menu ticks no list, as AutoCAD's.
@@ -1033,11 +1082,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     Icon = ticks ? icon : null,
                 };
 
-            CadMenuItemViewModel Grey(string header, bool? isChecked) =>
-                new CadMenuItemViewModel(header, () => { }, false, MainViewModel.NotBuiltYet, isChecked)
-                {
-                    Icon = blank,
-                };
+            CadMenuItemViewModel Grey(string header, string reason, bool? isChecked) =>
+                new CadMenuItemViewModel(header, () => { }, false, reason, isChecked) { Icon = blank };
+
+            // Start and Continue work on the list the first selected paragraph is in: Continue where the one before has the same labels.
+            (int first, _) = Editor.SelectedParagraphs;
+            CadMTextNumbering at = Editor.NumberingOf(first);
+            bool listed =
+                at == CadMTextNumbering.Number
+                || at == CadMTextNumbering.LetterLower
+                || at == CadMTextNumbering.LetterUpper;
+            bool joins = listed && first > 0 && Editor.NumberingOf(first - 1) == at;
+
+            CadMenuItemViewModel Renumber(string header, bool continuePrevious, bool on, string reason) =>
+                on
+                    ? new CadMenuItemViewModel(header, () => Editor.RenumberList(continuePrevious)) { Icon = blank }
+                    : Grey(header, reason, null);
 
             return new[]
             {
@@ -1058,11 +1118,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 },
                 List("Bulleted", CadMTextNumbering.Bullet, blank),
                 CadMenuItemViewModel.Separator(),
-                Grey("Start", null),
-                Grey("Continue", null),
+                Renumber(
+                    "Start",
+                    false,
+                    listed,
+                    "Select a numbered or lettered paragraph to start its list at 1 or a."
+                ),
+                Renumber(
+                    "Continue",
+                    true,
+                    joins,
+                    "Select a numbered or lettered paragraph that comes after a list of the same kind."
+                ),
                 CadMenuItemViewModel.Separator(),
-                Grey("Allow Auto Bullets and Numbering", false),
-                Grey("Allow Bullets and Lists", true),
+                Grey(
+                    "Allow Auto Bullets and Numbering",
+                    "Not built: the editor does not turn 1. or a bullet typed at the start of a line into a list; use Numbered or Bulleted.",
+                    false
+                ),
+                Grey("Allow Bullets and Lists", "Lists are always allowed in this editor.", true),
             };
         }
 
@@ -1105,6 +1179,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (!_mask.Equals(_originalMask))
             {
                 Edit.NewMask = _mask;
+            }
+
+            if (_annotative != _originalAnnotative && CanSetAnnotative)
+            {
+                Edit.NewAnnotative = _annotative;
             }
 
             if (!_boxChanged)

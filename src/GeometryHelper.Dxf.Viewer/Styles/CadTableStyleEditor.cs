@@ -28,6 +28,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets where the content of a cell stands.</summary>
         public DxfCellAlignment Alignment { get; set; } = DxfCellAlignment.TopCenter;
 
+        /// <summary>Gets or sets the kind of value the cells hold (group 90): general unless a Table Cell Format was chosen.</summary>
+        public DxfDataType DataType { get; set; } = DxfDataType.General;
+
+        /// <summary>Gets or sets the unit of the value the cells hold (group 91).</summary>
+        public DxfUnitType UnitType { get; set; }
+
+        /// <summary>Gets or sets the format string of the cells (group 1), as the Table Cell Format dialog writes it; empty for none.</summary>
+        public string Format { get; set; } = string.Empty;
+
         /// <summary>Gets the lineweight of each of the six lines, in the order of <see cref="DxfGridLineType"/>'s flags.</summary>
         public DxfLineWeight[] LineWeights { get; } = Enumerable.Repeat(DxfLineWeight.ByBlock, 6).ToArray();
 
@@ -49,6 +58,9 @@ namespace GeometryHelper.Dxf.Viewer
                 || !Same(TextColor, other.TextColor)
                 || !Same(FillColor, other.FillColor)
                 || Alignment != other.Alignment
+                || DataType != other.DataType
+                || UnitType != other.UnitType
+                || !string.Equals(Format ?? string.Empty, other.Format ?? string.Empty, StringComparison.Ordinal)
             )
             {
                 return false;
@@ -156,6 +168,10 @@ namespace GeometryHelper.Dxf.Viewer
                 cell.TextColor = style.Color(kind);
                 cell.FillColor = style.IsBackgroundColorNone(kind) ? null : style.BackgroundColor(kind);
                 cell.Alignment = style.Alignment(kind);
+                DxfDataTypeParameter kindOfValue = style.DataType(kind);
+                cell.DataType = kindOfValue.DataType;
+                cell.UnitType = kindOfValue.UnitType;
+                cell.Format = style.Format(kind);
 
                 for (int line = 0; line < 6; line++)
                 {
@@ -722,6 +738,17 @@ namespace GeometryHelper.Dxf.Viewer
                 style.SetTextHeight(cell.TextHeight, kind);
                 style.SetColor(cell.TextColor ?? DxfColor.ByBlock, kind);
                 style.SetAlignment(cell.Alignment, kind);
+                DxfDataTypeParameter held = style.DataType(kind);
+
+                if (held.DataType != cell.DataType || held.UnitType != cell.UnitType)
+                {
+                    style.SetDataType(cell.DataType, cell.UnitType, kind);
+                }
+
+                if (!string.Equals(style.Format(kind), cell.Format ?? string.Empty, StringComparison.Ordinal))
+                {
+                    style.SetFormat(cell.Format ?? string.Empty, kind);
+                }
 
                 if (cell.FillColor == null)
                 {
