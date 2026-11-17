@@ -14,8 +14,8 @@ objects:"), asks for the number to start at, and writes a TEXT of each number at
 using System.Collections.Generic;
 using System.Globalization;
 using GeometryHelper.Dxf;
-using GeometryHelper.Dxf.Viewer;
-using GeometryHelper.Dxf.Viewer.Plugins;
+using GeometryHelper.Cad;
+using GeometryHelper.Cad.Plugins;
 
 [assembly: CadPluginApi("1.0")]
 
@@ -72,7 +72,7 @@ public sealed class CircleTools
 }
 ```
 
-The method is an iterator, like the presenter's own commands: it yields each [`CadPrompt`](xref:GeometryHelper.Dxf.Viewer.CadPrompt)
+The method is an iterator, like the presenter's own commands: it yields each [`CadPrompt`](xref:GeometryHelper.Cad.CadPrompt)
 and reads the answer from `c.Input` when it is resumed, so it runs inside the command line with no thread of its own. That
 is the one difference from AutoCAD's `[CommandMethod]`, which blocks on its prompts: a method that returns `void` and blocks
 is refused, because it would have to run on a thread while the window waits and then reach the canvas from that thread,
@@ -80,19 +80,19 @@ which WPF does not allow.
 
 | The attribute | Says |
 |---|---|
-| [`[CadCommand("NAME")]`](xref:GeometryHelper.Dxf.Viewer.Plugins.CadCommandAttribute) | the method is a command; `Alias`, `Description`, and `UsesSelection` for a command that takes the objects selected before it, as MOVE does |
-| [`[CadSetting("Label")]`](xref:GeometryHelper.Dxf.Viewer.Plugins.CadSettingAttribute) | a public property is a setting the presenter shows; `Description`, `Minimum`, `Maximum` |
-| [`[assembly: CadPluginApi("1.0")]`](xref:GeometryHelper.Dxf.Viewer.Plugins.CadPluginApiAttribute) | the least version of the plugin API the assembly needs; none is taken as 1.0 |
+| [`[CadCommand("NAME")]`](xref:GeometryHelper.Cad.Plugins.CadCommandAttribute) | the method is a command; `Alias`, `Description`, and `UsesSelection` for a command that takes the objects selected before it, as MOVE does |
+| [`[CadSetting("Label")]`](xref:GeometryHelper.Cad.Plugins.CadSettingAttribute) | a public property is a setting the presenter shows; `Description`, `Minimum`, `Maximum` |
+| [`[assembly: CadPluginApi("1.0")]`](xref:GeometryHelper.Cad.Plugins.CadPluginApiAttribute) | the least version of the plugin API the assembly needs; none is taken as 1.0 |
 
 A command method may be static, or an instance method of a public class that is not generic and has a public constructor
 that takes nothing, of which the plugin makes one when it is loaded. A setting is a property with a public get and set of
 type `double`, `int`, `bool`, `string` or an enumeration, which the presenter draws a box for itself, so a plugin never
-touches the window. A method or a class that cannot be one is left out, and each is a line in [`CadPlugin`](xref:GeometryHelper.Dxf.Viewer.Plugins.CadPlugin)`.Problems`.
+touches the window. A method or a class that cannot be one is left out, and each is a line in [`CadPlugin`](xref:GeometryHelper.Cad.Plugins.CadPlugin)`.Problems`.
 
-What the plugin can use is the public API of [`CadCommandContext`](xref:GeometryHelper.Dxf.Viewer.CadCommandContext) and
-[`CadDocument`](xref:GeometryHelper.Dxf.Viewer.CadDocument): `SelectObjects()`, `Selected`, `Input`, `Write`, `Apply`,
+What the plugin can use is the public API of [`CadCommandContext`](xref:GeometryHelper.Cad.CadCommandContext) and
+[`CadDocument`](xref:GeometryHelper.Cad.CadDocument): `SelectObjects()`, `Selected`, `Input`, `Write`, `Apply`,
 `OpenUndoStep()`, `Remembered`, the document's entities, layers and selection, the `CadPrompt.For...` methods for a point, a
-distance, an angle, an object, a keyword, a string or an integer, and the [`CadLayerEditor`](xref:GeometryHelper.Dxf.Viewer.CadLayerEditor), [`CadGrips`](xref:GeometryHelper.Dxf.Viewer.CadGrips) and [`CadPropertyEditor`](xref:GeometryHelper.Dxf.Viewer.CadPropertyEditor)
+distance, an angle, an object, a keyword, a string or an integer, and the [`CadLayerEditor`](xref:GeometryHelper.Cad.CadLayerEditor), [`CadGrips`](xref:GeometryHelper.Cad.CadGrips) and [`CadPropertyEditor`](xref:GeometryHelper.Cad.CadPropertyEditor)
 calls. It reaches no internals.
 
 ## Running it
@@ -110,13 +110,13 @@ session.Feed("7");       // three circles: TEXTs 7, 8 and 9, "Numbered 3 circles
 ```
 
 The three circles are numbered 7, 8 and 9 in one undo step, `NUMCIRCLES (3)`. This is also how a plugin's own tests run it:
-`FromAssemblies` makes the plugin from assemblies already loaded, and a [`CadCommandSession`](xref:GeometryHelper.Dxf.Viewer.CadCommandSession) runs its commands with no window.
+`FromAssemblies` makes the plugin from assemblies already loaded, and a [`CadCommandSession`](xref:GeometryHelper.Cad.CadCommandSession) runs its commands with no window.
 
 Every run is one undo step whatever it edits through the document. A run that throws has every change of it taken back, the
 error is written on the command line with the plugin's name and logged as a Warn, and the document is as it was.
 Entities that have an [owner](owners.md) are refused by the owner's rule, not by the plugin: the gate is the document's.
 
-A setting is read from and written to the plugin's property through [`CadPluginSetting`](xref:GeometryHelper.Dxf.Viewer.Plugins.CadPluginSetting)`.Value`, and a value out of its range
+A setting is read from and written to the plugin's property through [`CadPluginSetting`](xref:GeometryHelper.Cad.Plugins.CadPluginSetting)`.Value`, and a value out of its range
 is refused, the plugin keeping the one it had: setting the text height to 0.05 throws `The setting Text height lies from 0.1
 to 1000.`
 
@@ -130,19 +130,19 @@ A plugin says what it is in a `plugin.json`, read without loading any code:
 ```
 
 Only the name is needed: the id is the name where none is given, the kind "command", the API version 1.0.
-[`CadPluginManifest.Parse(json)`](xref:GeometryHelper.Dxf.Viewer.Plugins.CadPluginManifest) reads it, and `Refusal()` says
+[`CadPluginManifest.Parse(json)`](xref:GeometryHelper.Cad.Plugins.CadPluginManifest) reads it, and `Refusal()` says
 why the presenter will not load it: a kind other than "command", or a newer plugin API than this build's, which is 1.0
 (`CadPlugin.ApiVersion`): `The plugin Future needs version 2.0 of the plugin API, and this presenter has 1.0: it needs a
 newer presenter.`
 
 A plugin ships as one `.ghplugin` file, a zip of its .dll files and its `plugin.json` at the top. A bare .dll is accepted as
 well, with the `plugin.json` beside it where there is one; the plugin's name is then its assembly's. A plugin targets
-netstandard2.0 and references `GeometryHelper.Dxf.Viewer` only, without copying it: the presenter gives a plugin its own,
+netstandard2.0 and references `GeometryHelper.Cad` only, without copying it: the presenter gives a plugin its own,
 so that the `CadCommandContext` it is handed is of the type it was built against.
 
 ## Loading and unloading
 
-[`CadPluginManager`](xref:GeometryHelper.Dxf.Viewer.Plugins.CadPluginManager) keeps the plugins of a presenter. Its commands
+[`CadPluginManager`](xref:GeometryHelper.Cad.Plugins.CadPluginManager) keeps the plugins of a presenter. Its commands
 are the ones AutoCAD users know:
 
 | Command | Alias | Does |
@@ -170,14 +170,14 @@ folder, one for each process, those of processes that have ended deleted at the 
 .dll its author builds is never locked: build again, and PLUGINRELOAD picks it up.
 
 **What unloading can do** depends on the runtime, and the loader given to the manager is what differs. The window gives
-[`CadPluginLoader`](xref:GeometryHelper.Dxf.Viewer.Plugins.CadPluginLoader)s of its own (`CadPluginAssemblyLoader`):
+[`CadPluginLoader`](xref:GeometryHelper.Cad.Plugins.CadPluginLoader)s of its own (`CadPluginAssemblyLoader`):
 
 | Runtime | Loading | `PLUGINUNLOAD` |
 |---|---|---|
 | .NET 8, the standalone app | each plugin into a collectible load context of its own, so two plugins' dependencies do not clash | frees the code; a new build is taken without a restart |
 | .NET Framework, hosted in Tekla | every plugin into the one AppDomain | only switches it off: `Switched Circle tools off: its commands are gone, and its code stays loaded until the presenter restarts.` A reload says the build loaded first runs |
 
-The presenter's own assemblies (`GeometryHelper`, `GeometryHelper.Dxf.Viewer` and the controls) are never loaded from a
+The presenter's own assemblies (`GeometryHelper`, `GeometryHelper.Cad` and the controls) are never loaded from a
 plugin's folder, on either runtime. The manager's files are `plugins.json`, the startup list and the trusted folders; the
 apps keep them with the plugin folder, GeometryHelper DXF in `%AppData%\GeometryHelper\Dxf` and GeometryHelper Drawing in
 `%AppData%\GeometryHelper\Drawing`, and the plugin folder, `Plugins`, is loaded at every start.

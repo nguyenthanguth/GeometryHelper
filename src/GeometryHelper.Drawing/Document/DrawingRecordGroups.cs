@@ -14,7 +14,7 @@ namespace GeometryHelper.Drawing
     /// <remarks>
     /// A text is a group 1 holding its first 250 characters as written, then a group 3 for each further 250; null is a
     /// lone <c>%</c>. As written, a per cent sign, a backslash and control characters are <c>%</c> and two hexadecimal
-    /// digits, a lone surrogate <c>%u</c> and four, as <see cref="GeometryHelper.Dxf.Viewer.CadOwnerTag"/> writes its
+    /// digits, a lone surrogate <c>%u</c> and four, as <see cref="GeometryHelper.Cad.CadOwnerTag"/> writes its
     /// texts; so a line feed is <c>%0A</c> and nothing else is changed. A whole number is a group 90; a point the groups
     /// 10, 20 and 30, each coordinate in the invariant culture with the fewest digits that bring it back to the bit.
     /// </remarks>

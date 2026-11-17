@@ -11,6 +11,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\GeometryHelper\GeometryHelper.csproj" />
-        <ProjectReference Include="..\GeometryHelper.Dxf.Viewer\GeometryHelper.Dxf.Viewer.csproj" />
+        <ProjectReference Include="..\GeometryHelper.Cad\GeometryHelper.Cad.csproj" />
     </ItemGroup>
 </Project>

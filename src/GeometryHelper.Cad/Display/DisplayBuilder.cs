@@ -1,0 +1,4273 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
+using GeometryHelper.Dxf;
+using GeometryHelper.Geometry;
+
+namespace GeometryHelper.Cad
+{
+    /// <summary>
+    /// Turns the entities of one space into a <see cref="DisplayList2"/>: each entity into the lines, arcs, fills and text
+    /// the canvas draws, with its colour, line weight and dashes resolved from the entity, its layer and the blocks it sits
+    /// in. Blocks are followed through their INSERTs under one matrix, a dimension through its block, a viewport through
+    /// model space.
+    /// </summary>
+    internal sealed partial class DisplayBuilder
+    {
+        private const int MaxDepth = 12;
+        private const int MaxHatchLines = 250000;
+        private const double SplineSegments = 128.0;
+
+        /// <summary>The fonts of a builder made with no document: off, every style drawn as the canvas draws it.</summary>
+        private static readonly CadFonts FontsOff = new CadFonts(null, null, null);
+
+        private readonly DxfDatabase _database;
+        private readonly CadDocument _document;
+        private readonly Dictionary<string, LayerState> _layers = new Dictionary<string, LayerState>(
+            StringComparer.OrdinalIgnoreCase
+        );
+
+        // The layer name <see cref="LayerNamed"/> answered last, with the answer, found again by the very string: the entities
+        // that follow one another on a layer share one, and each is asked for in turn. Cleared with a build.
+        private string _lastNamed;
+        private LayerState _lastState;
+
+        /// <summary>
+        /// What <see cref="Draw"/> learned of the layers of the last entities it drew, found again by the string their records
+        /// gave for the layer, which the entities of one look share: the entities of a drawing that alternate between three
+        /// layers find each in these few, where the name was looked up in three dictionaries (the shared spelling, the layer,
+        /// its bit in the list), some 20 ns an entity. The slots are filled one after the other and then written over in
+        /// turn; cleared with a build.
+        /// </summary>
+        private readonly LayerSlot[] _layerSlots = new LayerSlot[LayerSlotCount];
+
+        private int _layerSlotNext;
+
+        private const int LayerSlotCount = 8;
+
+        /// <summary>A layer as the entities of one record string of it are drawn: where they stand and what they read there.</summary>
+        private sealed class LayerSlot
+        {
+            /// <summary>The string the record gave for the layer, null where it gave none.</summary>
+            public string Raw;
+
+            /// <summary>Whether the layer is 0, which an entity of a block takes from the INSERT (<see cref="Block"/>).</summary>
+            public bool UsesBlock;
+
+            /// <summary>The layer the block's entities of layer 0 were drawn on when the slot was made.</summary>
+            public string Block;
+
+            /// <summary>The name as <see cref="LayerOf"/> gives it, one string for each spelling.</summary>
+            public string Shared;
+
+            /// <summary>The layer as it is drawn, null where the drawing has none by that name.</summary>
+            public LayerState State;
+
+            /// <summary>The bit of the layer in the list being built, where <see cref="HasBit"/>.</summary>
+            public ulong Bit;
+
+            public bool HasBit;
+        }
+
+        // A layer of a drawing referenced as drawn: what the drawing showing it changed, the rest its own; made once, looked up only.
+        private readonly Dictionary<string, LayerState> _merged = new Dictionary<string, LayerState>(
+            StringComparer.OrdinalIgnoreCase
+        );
+        private readonly Dictionary<string, double[]> _dashes = new Dictionary<string, double[]>(
+            StringComparer.OrdinalIgnoreCase
+        );
+        private readonly Dictionary<string, TextFont> _fonts = new Dictionary<string, TextFont>(
+            StringComparer.OrdinalIgnoreCase
+        );
+        private readonly double _ltScale;
+        private readonly int _pdmode;
+        private readonly int _attmode;
+        private readonly double _pdsize;
+
+        // FILLMODE: whether solids, wide polylines and solid or gradient hatches are filled (1) or drawn by their outlines (0).
+        private readonly bool _fill = true;
+
+        // QTEXTMODE: whether texts are shown as their boxes alone (1) or as their letters (0).
+        private readonly bool _quick;
+        private double _pointViewHeight = 1.0;
+        private readonly DisplayStyle _defaultStyle = new DisplayStyle(0xFFFFFF, 0.0, null);
+
+        /// <summary>The patterns of the hatches met in the <see cref="Build"/> running, null for one drawn by its boundary; looked up only, never listed.</summary>
+        private readonly Dictionary<DxfHatch, HatchPattern> _patterns = new Dictionary<DxfHatch, HatchPattern>();
+        private DisplayList2 _modelCache;
+
+        /// <summary>The block <see cref="ContentOf"/> answered last, kept with its content (null for a block that cannot be listed whole) for the INSERT after one of the same block, which a drawing of 100 000 of them asks for in turn; cleared with <see cref="_orders"/>.</summary>
+        private DxfBlockTableRecord _lastBlock;
+        private BlockContent _lastContent;
+
+        /// <summary>The entities of each block met in the <see cref="Build"/> running in the order they are drawn, by handle; looked up only, never listed.</summary>
+        private readonly Dictionary<string, BlockContent> _orders = new Dictionary<string, BlockContent>(
+            StringComparer.OrdinalIgnoreCase
+        );
+
+        /// <summary>The styles of no dashes made, one for each colour and weight; looked up only, never listed.</summary>
+        private readonly Dictionary<PlainStyle, DisplayStyle> _plainStyles = new Dictionary<PlainStyle, DisplayStyle>();
+
+        /// <summary>The list the <see cref="Patch"/> running fills, and the bits of the layers the entity being drawn has read.</summary>
+        private DisplayList2 _building;
+        private ulong _runLayers;
+
+        /// <summary>The handles of the anonymous blocks and other entities the entity being drawn has read; null for none yet.</summary>
+        private List<string> _runReads;
+
+        /// <summary>The handles of the objects of blocks no INSERT draws while a reference is edited in place, the ones the copies in the drawing stand for; null for none.</summary>
+        private HashSet<string> _refHidden;
+
+        /// <summary>One less than how many entities of a space are drawn between two reports of <see cref="Progress"/>, a power of two.</summary>
+        private const int ReportEvery = 4095;
+
+        /// <summary>How many entities of a space made whole are drawn before the room its list needs is judged from them, see <see cref="DisplayList2.Reserve"/>.</summary>
+        private const int ReserveAfter = 4096;
+
+        /// <summary>Gets or sets what is told the share of a space's entities drawn, every 4 096; null for nothing.</summary>
+        internal IProgress<double> Progress { get; set; }
+
+        /// <summary>Gets or sets what stops a space being drawn, looked at every 4 096 entities.</summary>
+        internal System.Threading.CancellationToken Cancellation { get; set; }
+
+        /// <summary>The builders of the drawings external references show, by block name and file: looked up only, never listed.</summary>
+        private readonly Dictionary<string, DisplayBuilder> _referenced = new Dictionary<string, DisplayBuilder>(
+            StringComparer.OrdinalIgnoreCase
+        );
+
+        /// <summary>The builder of the drawing that references this one; null for the document's own drawing.</summary>
+        private readonly DisplayBuilder _host;
+
+        /// <summary>What the layers of a drawing referenced are named after in the drawing that shows it, GRID| for GRID's; null for the document's own.</summary>
+        private readonly string _prefix;
+
+        /// <summary>The folder of the drawing a referenced one is in, which its own references are found from; null for the document's own, whose folder is read as it stands (<see cref="Folder"/>).</summary>
+        private readonly string _folder;
+
+        /// <summary>The folder references are found from: of the drawing referenced, or of the document's own as it stands now (saved since this builder was made, or not).</summary>
+        private string Folder => _host == null ? _document?.DrawingFolder : _folder;
+
+        /// <summary>Whether the frames of images are drawn (IMAGEFRAME 1 or 2), as AutoCAD 2021 draws them until set off.</summary>
+        private readonly bool _imageFrames = true;
+
+        /// <summary>Whether the frames of images are shown but not plotted (IMAGEFRAME 2).</summary>
+        private readonly bool _imageFramesNotPlotted;
+
+        /// <summary>Whether images are drawn in draft quality (IMAGEQUALITY Draft), each pixel a square.</summary>
+        private readonly bool _imageDraft;
+
+        /// <summary>Whether the frames of wipeouts are drawn (WIPEOUTFRAME 1 or 2), as AutoCAD 2021 draws them until set off.</summary>
+        private readonly bool _wipeoutFrames = true;
+
+        /// <summary>The document's VISRETAIN: whether the records of the layers of its references give every property (1), or only those changed since they were last read (0).</summary>
+        private readonly bool _visretain;
+
+        /// <summary>The width, in millimetres, a lineweight of Default is drawn with: the document's LWDEFAULT, 0.25 with none.</summary>
+        private readonly double _defaultWeight;
+
+        public DisplayBuilder(DxfDatabase database, CadDocument document = null)
+            : this(database, document, null, null, null) { }
+
+        /// <summary>Makes the builder of a drawing an external reference shows, its layers named after the reference.</summary>
+        private DisplayBuilder(
+            DxfDatabase database,
+            CadDocument document,
+            DisplayBuilder host,
+            string prefix,
+            string folder
+        )
+        {
+            _database = database;
+            _document = document;
+            _host = host;
+            _prefix = prefix;
+            _folder = folder;
+            _defaultWeight = document?.DefaultLineWeight ?? 0.25;
+            double scale = 1.0;
+
+            // VISRETAIN of the document's drawing, which every drawing it references is shown under.
+            try
+            {
+                _visretain = host == null ? database.Visretain : host._visretain;
+            }
+            catch (Exception)
+            {
+                _visretain = true;
+            }
+
+            try
+            {
+                scale = database.Ltscale;
+            }
+            catch (Exception)
+            {
+                scale = 1.0;
+            }
+
+            _ltScale = scale > 0.0 ? scale : 1.0;
+
+            // How points are drawn and whether fills are, read once as LTSCALE is: a change of PDMODE, PDSIZE or FILLMODE makes a new builder.
+            try
+            {
+                _pdmode = database.Pdmode;
+                _pdsize = database.Pdsize;
+                _fill = database.Fillmode;
+                _quick = database.Qtextmode;
+            }
+            catch (Exception)
+            {
+                _pdmode = 0;
+                _pdsize = 0.0;
+            }
+
+            // How attributes are shown, read once the same way: ATTDISP makes a new builder.
+            try
+            {
+                _attmode = host == null ? database.Attmode : host._attmode;
+            }
+            catch (Exception)
+            {
+                _attmode = 1;
+            }
+
+            foreach (DxfLayerTableRecord layer in database.LayerTable)
+            {
+                _layers[Prefixed(layer.Name)] = new LayerState(layer, _defaultWeight);
+            }
+
+            try
+            {
+                if (
+                    database.NamedObjectsDictionary?.Contains("ACAD_IMAGE_VARS") == true
+                    && database.NamedObjectsDictionary.GetAt("ACAD_IMAGE_VARS") is DxfRasterVariables variables
+                )
+                {
+                    _imageFrames = variables.ImageFrame != DxfFrameSetting.ImageFrameOff;
+                    _imageFramesNotPlotted = variables.ImageFrame == DxfFrameSetting.ImageFrameOnNoPlot;
+                    _imageDraft = variables.ImageQuality == DxfImageQuality.Draft;
+                }
+            }
+            catch (Exception)
+            {
+                _imageFrames = true;
+                _imageFramesNotPlotted = false;
+                _imageDraft = false;
+            }
+
+            try
+            {
+                if (
+                    database.NamedObjectsDictionary?.Contains("ACAD_WIPEOUT_VARS") == true
+                    && database.NamedObjectsDictionary.GetAt("ACAD_WIPEOUT_VARS") is DxfWipeoutVariables wipeouts
+                )
+                {
+                    _wipeoutFrames = wipeouts.ShowFrames;
+                }
+            }
+            catch (Exception)
+            {
+                _wipeoutFrames = true;
+            }
+        }
+
+        /// <summary>Gives the builder the display list of model space its viewports draw, made before it or kept from another builder.</summary>
+        internal void UseModel(DisplayList2 model)
+        {
+            _modelCache = model;
+            _scaledModels = null;
+        }
+
+        internal bool IsLayerVisible(string name)
+        {
+            LayerState state = LayerNamed(name ?? "0");
+            return state == null || state.Visible;
+        }
+
+        /// <summary>
+        /// The layer of a name as it is drawn: the drawing's own; in a drawing referenced, a record of the drawing that shows
+        /// it first (GRID|WALLS as AutoCAD keeps it there, or the layer of the INSERT a layer 0 takes), then its own. Under
+        /// VISRETAIN 1 the record gives every property, as AutoCAD 2021 keeps it with VISRETAINMODE 0, its default, which syncs
+        /// none on reload: GRID|WALLS green in the record stays green when the file makes WALLS blue. Under VISRETAIN 0 it gives
+        /// only those the drawing changed since the file was last read, marked in its <see cref="CadXrefLayers"/> bits, the
+        /// rest read from the file: GRID|WALLS made red in the drawing is drawn red, and left as it was, as the file has it.
+        /// </summary>
+        private LayerState LayerNamed(string name)
+        {
+            if (ReferenceEquals(name, _lastNamed))
+            {
+                return _lastState;
+            }
+
+            LayerState found = FindLayer(name);
+            _lastNamed = name;
+            _lastState = found;
+            return found;
+        }
+
+        private LayerState FindLayer(string name)
+        {
+            if (_host != null)
+            {
+                LayerState shown = _host.LayerNamed(name);
+
+                if (shown != null)
+                {
+                    if (_visretain || !shown.Record.IsDependent || !_layers.TryGetValue(name, out LayerState own))
+                    {
+                        return shown;
+                    }
+
+                    if (!_merged.TryGetValue(name, out LayerState merged))
+                    {
+                        merged = new LayerState(shown, own, shown.Overrides ?? 0);
+                        _merged[name] = merged;
+                    }
+
+                    return merged;
+                }
+            }
+
+            return _layers.TryGetValue(name, out LayerState state) ? state : null;
+        }
+
+        /// <summary>A layer's name as the drawing showing it names it: GRID|WALLS for WALLS of the reference GRID; 0 and every layer of the document's own drawing as they are.</summary>
+        private string Prefixed(string layer) => _prefix == null || layer == "0" ? layer : _prefix + layer;
+
+        /// <summary>
+        /// The layers an entity is drawn differently on by this builder than by an older one of the same drawing: switched on
+        /// or off, frozen or thawed, given another colour, lineweight or linetype, added or taken away; in ordinal order.
+        /// </summary>
+        internal List<string> LayersChangedSince(DisplayBuilder older)
+        {
+            var changed = new List<string>();
+
+            foreach (KeyValuePair<string, LayerState> pair in _layers)
+            {
+                if (!older._layers.TryGetValue(pair.Key, out LayerState was) || !pair.Value.DrawsAs(was))
+                {
+                    changed.Add(pair.Key);
+                }
+            }
+
+            foreach (KeyValuePair<string, LayerState> pair in older._layers)
+            {
+                if (!_layers.ContainsKey(pair.Key))
+                {
+                    changed.Add(pair.Key);
+                }
+            }
+
+            changed.Sort(StringComparer.Ordinal);
+            return changed;
+        }
+
+        public DisplayList2 Build(DxfBlockTableRecord space, bool isModel) => Patch(space, isModel, null, null, 0);
+
+        // The scale annotative objects are drawn at: the annotation scale of model space (CANNOSCALE) in model space, 1:1 in a
+        // layout, or a viewport's own where model space is drawn through it; and whether the objects that are not shown at it
+        // are drawn anyway (ANNOALLVISIBLE).
+        private DxfAnnotationScale _annotationScale;
+        private bool _allVisible = true;
+        private string _scaleOverride;
+        private Dictionary<string, DisplayList2> _scaledModels;
+
+        /// <summary>
+        /// Takes the scale annotative objects are drawn at for a space about to be built, and gives its key, the scale's name and
+        /// ANNOALLVISIBLE, which a list made at another scale does not share its runs across; null where the drawing has no list
+        /// of scales or the scale.
+        /// </summary>
+        private string AnnotationScaleOf(DxfBlockTableRecord space)
+        {
+            _annotationScale = null;
+
+            try
+            {
+                string name = string.Equals(space?.Name, "*Model_Space", StringComparison.OrdinalIgnoreCase)
+                    ? _scaleOverride ?? _database.Cannoscale
+                    : "1:1";
+                _annotationScale = DxfObjectContextCollection.Find(_database, name);
+                _allVisible = _database.AnnoAllVisible;
+            }
+            catch (Exception)
+            {
+                _annotationScale = null;
+                _allVisible = true;
+            }
+
+            return _annotationScale == null ? null : _annotationScale.Name + (_allVisible ? "|all" : "|only");
+        }
+
+        /// <summary>
+        /// Whether an annotative object of a space is drawn, and the number its sizes are multiplied by to be those at the scale
+        /// of the space (<see cref="DxfDBObject.TryFactorAt"/>); an object of a block, which AutoCAD draws at its INSERT's scale,
+        /// is drawn as it is read.
+        /// </summary>
+        private bool Annotated(DxfEntity entity, Frame frame, out double factor)
+        {
+            factor = 1.0;
+
+            if (_annotationScale == null || frame.Depth != 0 || frame.RootHandle != null)
+            {
+                return true;
+            }
+
+            _sawAnnotative |= entity.Item.File.ExtensionDictionaryOf(entity.Item) != null;
+            return entity.TryFactorAt(_annotationScale, _allVisible, out factor);
+        }
+
+        private bool _sawAnnotative;
+
+        /// <summary>
+        /// The name of the scale a viewport shows model space at, where annotative objects were met and it is another than the
+        /// one model space is drawn at: the scale of the drawing's list the viewport's custom scale is (1:50 for 0.02), null
+        /// for none.
+        /// </summary>
+        private string ViewportScale(DxfViewport viewport)
+        {
+            if (_modelCache == null || !_modelCache.AnnotativeSeen)
+            {
+                return null;
+            }
+
+            try
+            {
+                double custom = viewport.CustomScale;
+
+                foreach (DxfAnnotationScale scale in DxfObjectContextCollection.Scales(_database))
+                {
+                    if (Math.Abs(scale.Scale - custom) <= 1E-9 * custom)
+                    {
+                        return string.Equals(scale.Name, _database.Cannoscale, StringComparison.Ordinal)
+                            ? null
+                            : scale.Name;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // A viewport of no scale shows model space as it is drawn.
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Draws entities that are in no space, as a command's preview makes them before it adds one: each as it would be drawn
+        /// once appended to the space, in the order given; one that cannot be drawn gives nothing.
+        /// </summary>
+        internal IReadOnlyList<DisplayItem2> BuildLoose(IEnumerable<DxfEntity> entities) =>
+            BuildLoose(entities, Affine2.Identity);
+
+        /// <summary>
+        /// Draws a table with other entities than its block holds, as the block is drawn at the table's point: the layer, colour
+        /// and lineweight of the table for what the entities leave by block, and the table's handle on every item. A table
+        /// previewed at other row heights is drawn so.
+        /// </summary>
+        internal IReadOnlyList<DisplayItem2> BuildTable(DxfTable table, IEnumerable<DxfEntity> picture)
+        {
+            var list = new DisplayList2 { PointViewHeight = _pointViewHeight, FontFolder = _document?.FontFolder };
+            var root = new Frame(Affine2.Identity);
+            string layerName = LayerOf(table, root);
+            DisplayStyle style = StyleOf(table, root, LayerNamed(layerName));
+            GeoPoint3 at = table.Position;
+            Frame inner = root.Child(Affine2.Translation(at.X, at.Y).Then(root.Matrix));
+            inner.RootHandle = table.Handle;
+            inner.BlockLayer = layerName;
+            inner.BlockRgb = style.Rgb;
+            inner.BlockLineWeight = style.LineWeight;
+
+            foreach (DxfEntity entity in picture)
+            {
+                try
+                {
+                    Draw(entity, inner, list, null);
+                }
+                catch (Exception)
+                {
+                    // One entity that cannot be drawn never stops the others.
+                }
+            }
+
+            return list.Items;
+        }
+
+        /// <summary>Draws entities as <see cref="BuildLoose(IEnumerable{DxfEntity})"/> does, each moved by a transformation, as the objects of a paste are drawn where the cursor would put them.</summary>
+        internal IReadOnlyList<DisplayItem2> BuildLoose(IEnumerable<DxfEntity> entities, Affine2 under)
+        {
+            var list = new DisplayList2 { PointViewHeight = _pointViewHeight, FontFolder = _document?.FontFolder };
+            var root = new Frame(under);
+
+            foreach (DxfEntity entity in entities)
+            {
+                try
+                {
+                    Draw(entity, root, list, null);
+                }
+                catch (Exception)
+                {
+                    // One entity that cannot be drawn never stops the others.
+                }
+            }
+
+            return list.Items;
+        }
+
+        /// <summary>
+        /// Draws a space again from the list made of it before an edit: the entities whose handles are in
+        /// <paramref name="handles"/>, those that read a layer of <paramref name="layers"/> (bits of the older list's
+        /// <see cref="DisplayList2.LayerBit"/>), those of no handle and those the older list did not draw are drawn anew, and
+        /// every other entity's items are taken from the older list as they stand, so that a MOVE of one line in a drawing of
+        /// a million entities draws one line. The list is the one <see cref="Build"/> would make, item for item, as long as the
+        /// handles and layers name everything the edits changed; where the older list is null, drawn at another height of the
+        /// view for points of a relative size or another font folder, or holds two entities of one handle out of their order,
+        /// every entity is drawn anew.
+        /// </summary>
+        public DisplayList2 Patch(
+            DxfBlockTableRecord space,
+            bool isModel,
+            DisplayList2 older,
+            ISet<string> handles,
+            ulong layers
+        )
+        {
+            // A point of a relative size takes the view as it stands when its space is drawn, as AutoCAD's at a regeneration.
+            if (_pdmode != 0 && _pdsize <= 0.0)
+            {
+                _pointViewHeight = ViewHeightOf(_database, _document);
+            }
+
+            string fontFolder = _document?.FontFolder;
+            string annotation = AnnotationScaleOf(space);
+
+            if (
+                older != null
+                && (
+                    older.PointViewHeight != _pointViewHeight
+                    || !string.Equals(older.FontFolder, fontFolder, StringComparison.Ordinal)
+                    || !string.Equals(older.AnnotationKey, annotation, StringComparison.Ordinal)
+                )
+            )
+            {
+                older = null;
+            }
+
+            var list = new DisplayList2(older)
+            {
+                PointViewHeight = _pointViewHeight,
+                FontFolder = fontFolder,
+                AnnotationKey = annotation,
+            };
+            var root = new Frame(Affine2.Identity);
+
+            // The patterns are kept for this build only: an edit between two builds may have changed a hatch.
+            _patterns.Clear();
+            _orders.Clear();
+            _sampled.Clear();
+            _lastBlock = null;
+            _lastContent = null;
+            _lastNamed = null;
+            _lastState = null;
+            Array.Clear(_layerSlots, 0, _layerSlots.Length);
+            _layerSlotNext = 0;
+            _building = list;
+
+            // The entities the Block Editor's visibility state hides are not drawn, nor picked; those it shows are, though the
+            // block keeps them invisible as its first state hides them.
+            HashSet<string> shown = null,
+                hidden = null;
+            _document?.StateSetsOf(space, out shown, out hidden);
+            _refHidden = _document?.RefEditHiddenOriginals();
+
+            try
+            {
+                // The entities in the order they are drawn: the draw order's where the block has one or the Block Editor hides
+                // some, else the records of the block as they stand, an entity made of a record only where it is drawn.
+                IReadOnlyList<DxfEntity> content = null;
+                IReadOnlyList<DxfItem> items = null;
+                DxfSpace source = null;
+                int version = 0;
+                bool hasColumns = false;
+
+                if (hidden == null && shown == null)
+                {
+                    try
+                    {
+                        content = space.DrawOrderTable?.GetFullDrawOrder();
+                    }
+                    catch (Exception)
+                    {
+                        // A draw order that cannot be read leaves the block in its own order.
+                    }
+                }
+                else
+                {
+                    content = ContentOf(space)?.Entities;
+                }
+
+                if (content == null && hidden == null && shown == null)
+                {
+                    if (older != null && TryPatchInPlace(space, older, list, handles, layers, root))
+                    {
+                        list.EndPatch(older);
+                        list.AnnotativeSeen = _sawAnnotative || older.AnnotativeSeen;
+
+                        if (isModel)
+                        {
+                            _modelCache = list;
+                            _scaledModels = null;
+                        }
+
+                        return list;
+                    }
+
+                    items = space.WalkedItems(out source, out version, out hasColumns);
+                }
+                else if (content == null)
+                {
+                    content = new List<DxfEntity>(space);
+                }
+
+                Dictionary<string, int> byHandle = null;
+
+                // The runs of the older list the entities met: the insertion points of a run not met, of an entity erased or hidden
+                // since, are not carried on.
+                int runCount = older == null ? 0 : older.RunCount;
+                bool[] met = older == null ? null : new bool[runCount];
+                int metCount = 0;
+                int next = 0;
+                HashSet<string> keys = older == null ? null : KeysOf(older, handles);
+                bool[] readsKey = older == null ? null : RunsReading(older, keys);
+                HandleFilter filter = handles == null || handles.Count == 0 ? null : new HandleFilter(handles);
+                List<int> skipped = null;
+
+                // The runs of the older list taken whole, in a stretch of runs that follow one another there: a stretch is taken
+                // by one copy when the next entity is drawn again or the walk is done.
+                int stretchFirst = 0,
+                    stretchCount = 0;
+                int total = items != null ? items.Count : content.Count;
+
+                for (int index = 0; index < total; index++)
+                {
+                    if (((index + 1) & ReportEvery) == 0)
+                    {
+                        Cancellation.ThrowIfCancellationRequested();
+                        Progress?.Report((double)(index + 1) / total);
+                    }
+
+                    // A list made whole is given the room its first entities show it will need, once, in place of growing.
+                    if (index == ReserveAfter && older == null && total > 2 * ReserveAfter)
+                    {
+                        list.Reserve(total);
+                    }
+
+                    DxfItem item = items == null ? null : items[index];
+                    DxfEntity entity = items == null ? content[index] : null;
+                    string handle = items == null ? HandleOf(entity) : HandleOf(item);
+
+                    if (hidden != null && handle != null && hidden.Contains(handle))
+                    {
+                        continue;
+                    }
+
+                    if (older != null && !string.IsNullOrEmpty(handle))
+                    {
+                        // The entities stand in the older list's order but where an edit added or erased one, so its runs
+                        // are walked along with them, and looked up by handle only once the two part.
+                        int found = Locate(older, handle, next, ref skipped, ref byHandle, out bool twice);
+
+                        if (twice)
+                        {
+                            // Two entities of one handle out of their order: the runs cannot be told apart.
+                            return Patch(space, isModel, null, null, 0);
+                        }
+
+                        if (found >= 0)
+                        {
+                            next = found + 1;
+
+                            if (!met[found])
+                            {
+                                met[found] = true;
+                                metCount++;
+                            }
+
+                            if (
+                                (older.RunLayers(found) & layers) == 0
+                                && (filter == null || !filter.MayContain(handle) || !handles.Contains(handle))
+                                && (readsKey == null || !readsKey[found])
+                            )
+                            {
+                                if (stretchCount > 0 && found == stretchFirst + stretchCount)
+                                {
+                                    stretchCount++;
+                                }
+                                else
+                                {
+                                    list.CopyRuns(older, stretchFirst, stretchCount);
+                                    stretchFirst = found;
+                                    stretchCount = 1;
+                                }
+
+                                continue;
+                            }
+
+                            // Drawn again: its points are those it keeps now.
+                            list.DropInsertions(older.RunAt(found));
+                            list.NoteDropped(older, found);
+                        }
+                    }
+
+                    list.CopyRuns(older, stretchFirst, stretchCount);
+                    stretchCount = 0;
+                    DrawRun(
+                        entity,
+                        item,
+                        handle,
+                        root,
+                        list,
+                        shown != null && handle != null && shown.Contains(handle)
+                    );
+                }
+
+                list.CopyRuns(older, stretchFirst, stretchCount);
+
+                // An entity erased or hidden since the older list was made leaves its points behind in the copy of the older list's.
+                if (met != null && metCount < runCount)
+                {
+                    for (int i = 0; i < runCount; i++)
+                    {
+                        if (!met[i])
+                        {
+                            list.DropInsertions(older.RunAt(i));
+                            list.NoteDropped(older, i);
+                        }
+                    }
+                }
+
+                if (older != null)
+                {
+                    list.EndPatch(older);
+                }
+
+                // Every entity of the block was walked, in the order its records stand: the next patch can find the entity of a
+                // run by its place, while the block's entities are the same ones.
+                if (
+                    items != null
+                    && !hasColumns
+                    && source != null
+                    && source.Version == version
+                    && list.IsTiled
+                    && list.RunCount == items.Count
+                )
+                {
+                    list.SourceSpace = source;
+                    list.SourceVersion = version;
+                }
+            }
+            finally
+            {
+                _building = null;
+                _refHidden = null;
+                _patterns.Clear();
+
+                // The groups of the last text, read ahead of its drawing, are not held by the thread.
+                DxfFile.ReleaseTextStash();
+            }
+
+            list.AnnotativeSeen = _sawAnnotative || (older != null && older.AnnotativeSeen);
+
+            // A list made whole grew by doubling: up to half of its arrays empty. A patch is sized as the list it patches.
+            if (older == null)
+            {
+                list.TrimExcess();
+            }
+
+            if (isModel)
+            {
+                _modelCache = list;
+                _scaledModels = null;
+            }
+
+            return list;
+        }
+
+        /// <summary>
+        /// What an edit of the entities of some handles can change beyond them: the handles themselves, and the anonymous blocks
+        /// and other entities those entities read when they were drawn, so that a copy of a dimension, which shares its
+        /// original's picture, is drawn again when the original moves the picture. Null where no handle is named.
+        /// </summary>
+        private static HashSet<string> KeysOf(DisplayList2 older, ISet<string> handles)
+        {
+            if (handles == null || handles.Count == 0)
+            {
+                return null;
+            }
+
+            var keys = new HashSet<string>(handles, StringComparer.OrdinalIgnoreCase);
+
+            for (int entry = 0; entry < older.ReadingRuns; entry++)
+            {
+                string handle = older.RunHandle(older.ReadRun(entry));
+
+                if (!string.IsNullOrEmpty(handle) && handles.Contains(handle))
+                {
+                    keys.UnionWith(older.ReadOf(entry));
+                }
+            }
+
+            return keys;
+        }
+
+        /// <summary>The runs of the older list that read one of the keys an edit can have changed, marked; null where none did.</summary>
+        private static bool[] RunsReading(DisplayList2 older, HashSet<string> keys)
+        {
+            if (keys == null)
+            {
+                return null;
+            }
+
+            bool[] reading = null;
+
+            for (int entry = 0; entry < older.ReadingRuns; entry++)
+            {
+                foreach (string read in older.ReadOf(entry))
+                {
+                    if (keys.Contains(read))
+                    {
+                        reading = reading ?? new bool[older.RunCount];
+                        reading[older.ReadRun(entry)] = true;
+                        break;
+                    }
+                }
+            }
+
+            return reading;
+        }
+
+        /// <summary>Notes that the entity being drawn read an anonymous block or another entity, by its handle.</summary>
+        private void Read(string handle)
+        {
+            if (_building == null || string.IsNullOrEmpty(handle))
+            {
+                return;
+            }
+
+            _runReads = _runReads ?? new List<string>();
+
+            if (!_runReads.Contains(handle))
+            {
+                _runReads.Add(handle);
+            }
+        }
+
+        /// <summary>The handle of an entity of the space; null for none, or for one whose record cannot be read, which is drawn anew.</summary>
+        private static string HandleOf(DxfEntity entity)
+        {
+            try
+            {
+                return entity?.Handle;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>The handle of an entity given by its record; null for none, or for one whose record cannot be read, which is drawn anew.</summary>
+        private static string HandleOf(DxfItem item)
+        {
+            try
+            {
+                return item.HandleForDisplay;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        private static bool SameHandle(string run, string handle) =>
+            ReferenceEquals(run, handle) || string.Equals(run, handle, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>How many runs ahead of the next one are looked at for an entity whose handle is not the next run's: an entity erased leaves its run just ahead of the entity that followed it.</summary>
+        private const int Lookahead = 16;
+
+        /// <summary>How many runs passed over are kept to be looked at again, before the runs are looked up by handle instead.</summary>
+        private const int MostSkipped = 64;
+
+        /// <summary>
+        /// The run of the older list that an entity of a handle is, -1 where it has none: the next run where the handle is its,
+        /// else the first of the few runs ahead of it, else one passed over, else by the handle of every run, which is only made
+        /// where the runs ahead are too many to look at. <paramref name="twice"/> is set where two runs share a handle, which
+        /// cannot be told apart by it.
+        /// </summary>
+        private static int Locate(
+            DisplayList2 older,
+            string handle,
+            int next,
+            ref List<int> skipped,
+            ref Dictionary<string, int> byHandle,
+            out bool twice
+        )
+        {
+            twice = false;
+            int count = older.RunCount;
+
+            if (next < count && SameHandle(older.RunHandle(next), handle))
+            {
+                return next;
+            }
+
+            if (byHandle == null)
+            {
+                int end = Math.Min(count, next + 1 + Lookahead);
+
+                for (int i = next + 1; i < end; i++)
+                {
+                    if (SameHandle(older.RunHandle(i), handle))
+                    {
+                        skipped = skipped ?? new List<int>();
+
+                        for (int passed = next; passed < i; passed++)
+                        {
+                            skipped.Add(passed);
+                        }
+
+                        return i;
+                    }
+                }
+
+                if (end >= count && (skipped == null || skipped.Count <= MostSkipped))
+                {
+                    // Every run still ahead has been looked at: the entity is one of those passed over, or new.
+                    if (skipped != null)
+                    {
+                        foreach (int passed in skipped)
+                        {
+                            if (SameHandle(older.RunHandle(passed), handle))
+                            {
+                                return passed;
+                            }
+                        }
+                    }
+
+                    return -1;
+                }
+
+                byHandle = RunsByHandle(older);
+
+                if (byHandle == null)
+                {
+                    twice = true;
+                    return -1;
+                }
+            }
+
+            return byHandle.TryGetValue(handle, out int found) ? found : -1;
+        }
+
+        // The objects of the records of the space as they are drawn, one of each of the few classes aimed at each record in turn, where no
+        // object is made for the record to keep: a display of a million entities kept 28 MB of objects it never read again.
+        private readonly DxfEntity.Glance _glance = new DxfEntity.Glance();
+
+        /// <summary>Draws an entity and closes its run: its record, where the entity is not made yet; the run is kept whether it draws or not.</summary>
+        private void DrawRun(DxfEntity entity, DxfItem item, string handle, Frame root, DisplayList2 list, bool shown)
+        {
+            int start = list.Count;
+            _runLayers = 0;
+            _runReads = null;
+
+            try
+            {
+                Draw(entity ?? _glance.At(item), root, list, null, shown);
+            }
+            catch (Exception)
+            {
+                // One entity that cannot be drawn never stops the others.
+            }
+
+            list.AddRun(handle, start, _runLayers, _runReads?.ToArray());
+        }
+
+        /// <summary>The most entities an edit may name for a patch to find their places among the runs, each by a walk of the block's records.</summary>
+        private const int MostNamed = 12;
+
+        /// <summary>
+        /// Draws a space again from the list made of it, without walking its entities, where the entities are the ones the
+        /// list was made from but for those erased and those added: the list kept the block's records and their version, which
+        /// counts each entity added and each erased, and an entity added stands last. Then the run of an entity is the run at
+        /// its place, allowing for the runs of those erased, so that the entities an edit names, those that read a layer it
+        /// changed and those that read what the named ones drew are found by their places, drawn again and the runs between
+        /// them taken by stretches, the entities added drawn last. False, with nothing done, where that cannot be known: no
+        /// handle index to find the named entities by, many of them, an entity added or erased that no handle names, one with no
+        /// handle, or an MTEXT that lists linked columns, which the walk of the block leaves out.
+        /// </summary>
+        private bool TryPatchInPlace(
+            DxfBlockTableRecord space,
+            DisplayList2 older,
+            DisplayList2 list,
+            ISet<string> handles,
+            ulong layers,
+            Frame root
+        )
+        {
+            DxfSpace entities = space.EntitySpace;
+
+            if (
+                entities == null
+                || _document == null
+                || !ReferenceEquals(older.SourceSpace, entities)
+                || !older.IsTiled
+                || older.UnnamedRuns != 0
+            )
+            {
+                return false;
+            }
+
+            // Each entity added to the space or erased from it since the list was made moved the version by one, and an entity
+            // added stands last: so how many were added and how many erased follow from the two counts, the entities added are
+            // the last of the space, and the runs of those erased are the ones no entity stands at.
+            int steps = entities.Version - older.SourceVersion;
+            int gain = entities.Count - older.RunCount;
+
+            if (steps < 0 || ((steps + gain) & 1) != 0)
+            {
+                return false;
+            }
+
+            int added = (steps + gain) / 2;
+            int erased = (steps - gain) / 2;
+            int head = entities.Count - added;
+
+            if (added < 0 || erased < 0 || erased > MostNamed || head < 0 || head != older.RunCount - erased)
+            {
+                return false;
+            }
+
+            HashSet<DxfItem> last = null;
+
+            if (added > MostNamed)
+            {
+                last = new HashSet<DxfItem>();
+
+                for (int i = head; i < entities.Count; i++)
+                {
+                    last.Add(entities[i]);
+                }
+            }
+
+            var existing = new List<KeyValuePair<int, DxfItem>>();
+            var gone = new List<DxfItem>();
+
+            if (handles != null)
+            {
+                foreach (string handle in handles)
+                {
+                    if (!_document.TryPeekKept(handle, out DxfItem item))
+                    {
+                        return false;
+                    }
+
+                    if (item == null)
+                    {
+                        continue;
+                    }
+
+                    if (DxfBlockTableRecord.ListsLinkedColumns(item))
+                    {
+                        return false;
+                    }
+
+                    if (item.IsRemoved)
+                    {
+                        gone.Add(item);
+                        continue;
+                    }
+
+                    // An entity added is drawn anew whatever is said of it; any other is found among the entities before them.
+                    if (
+                        added > 0
+                        && (last != null ? last.Contains(item) : entities.IndexOf(item, head, entities.Count) >= 0)
+                    )
+                    {
+                        continue;
+                    }
+
+                    int place = entities.IndexOf(item, 0, head);
+
+                    if (place >= 0)
+                    {
+                        if (existing.Count >= MostNamed)
+                        {
+                            return false;
+                        }
+
+                        existing.Add(new KeyValuePair<int, DxfItem>(place, item));
+                    }
+                }
+            }
+
+            // The runs of the entities erased, by their handles: one walk of the runs finds them all.
+            List<int> goneRuns = gone.Count == 0 ? new List<int>() : RunsOf(older, gone);
+
+            if (goneRuns == null || goneRuns.Count != erased)
+            {
+                return false;
+            }
+
+            // The run of an entity before the erased: its place plus the erased runs that stood at or before it.
+            var dirty = new List<int>(goneRuns);
+
+            foreach (KeyValuePair<int, DxfItem> pair in existing)
+            {
+                int run = pair.Key;
+
+                foreach (int away in goneRuns)
+                {
+                    if (away <= run)
+                    {
+                        run++;
+                    }
+                }
+
+                if (!SameHandle(older.RunHandle(run), HandleOf(pair.Value)))
+                {
+                    return false;
+                }
+
+                dirty.Add(run);
+            }
+
+            bool[] readsKey = RunsReading(older, KeysOf(older, handles));
+
+            if (readsKey != null)
+            {
+                for (int run = 0; run < readsKey.Length; run++)
+                {
+                    if (readsKey[run])
+                    {
+                        dirty.Add(run);
+                    }
+                }
+            }
+
+            // An entity of a layer that is switched off or frozen draws nothing: a run that read that layer alone, and no other,
+            // is made again as an empty run, as Draw would make it, by the copy of the runs between the runs drawn again, and
+            // is not among them (unless an edit names it).
+            ulong hidden = 0;
+
+            if (layers != 0)
+            {
+                hidden = older.LayerMaskWhere(name => !IsLayerVisible(name), layers);
+                older.AddRunsReading(layers, dirty, hidden);
+            }
+
+            // The runs that read a layer come in order, and are most of them where a layer is switched.
+            for (int i = 1; i < dirty.Count; i++)
+            {
+                if (dirty[i - 1] > dirty[i])
+                {
+                    dirty.Sort();
+                    break;
+                }
+            }
+
+            int taken = 0;
+            int before = -1;
+
+            foreach (int run in dirty)
+            {
+                if (run == before)
+                {
+                    continue;
+                }
+
+                before = run;
+                list.CopyRunsHiding(older, taken, run - taken, hidden);
+
+                // Drawn again, or gone: its points are those it keeps now, none for an entity erased.
+                list.DropInsertions(older, run);
+                list.NoteDropped(older, run);
+
+                if (!goneRuns.Contains(run))
+                {
+                    int current = run;
+
+                    foreach (int away in goneRuns)
+                    {
+                        if (away < run)
+                        {
+                            current--;
+                        }
+                    }
+
+                    DxfItem again = entities[current];
+                    DrawRun(null, again, HandleOf(again), root, list, false);
+                }
+
+                taken = run + 1;
+            }
+
+            list.CopyRunsHiding(older, taken, older.RunCount - taken, hidden);
+
+            // The entities added stand last, in the order they were added.
+            for (int i = head; i < entities.Count; i++)
+            {
+                DxfItem fresh = entities[i];
+                DrawRun(null, fresh, HandleOf(fresh), root, list, false);
+            }
+
+            if (list.IsTiled && list.RunCount == entities.Count)
+            {
+                list.SourceSpace = entities;
+                list.SourceVersion = entities.Version;
+            }
+
+            list.PatchedInPlace = true;
+            return true;
+        }
+
+        /// <summary>
+        /// A quick look at whether an entity's handle can be one of those an edit named, by its last two letters: false is
+        /// sure, true is to be asked of the set. Handles are told apart by their letters whatever the case, as the set tells
+        /// them, so a handle with a letter beyond ASCII is always asked.
+        /// </summary>
+        private sealed class HandleFilter
+        {
+            private readonly bool[] _ends = new bool[1024];
+            private readonly bool _always;
+
+            public HandleFilter(IEnumerable<string> handles)
+            {
+                foreach (string handle in handles)
+                {
+                    if (
+                        handle == null
+                        || handle.Length < 2
+                        || handle[handle.Length - 1] >= 0x80
+                        || handle[handle.Length - 2] >= 0x80
+                    )
+                    {
+                        _always = true;
+                        return;
+                    }
+
+                    _ends[Key(handle)] = true;
+                }
+            }
+
+            public bool MayContain(string handle)
+            {
+                if (
+                    _always
+                    || handle.Length < 2
+                    || handle[handle.Length - 1] >= 0x80
+                    || handle[handle.Length - 2] >= 0x80
+                )
+                {
+                    return true;
+                }
+
+                return _ends[Key(handle)];
+            }
+
+            private static int Key(string handle) =>
+                ((handle[handle.Length - 1] & 0x1F) << 5) | (handle[handle.Length - 2] & 0x1F);
+        }
+
+        /// <summary>
+        /// The runs of the older list that stand for some entities, in order, found in one walk of the runs by the handles the
+        /// entities have; null where one has none. An entity that has no run is simply not among them.
+        /// </summary>
+        private static List<int> RunsOf(DisplayList2 older, List<DxfItem> items)
+        {
+            var handles = new List<string>(items.Count);
+
+            foreach (DxfItem item in items)
+            {
+                string handle = HandleOf(item);
+
+                if (string.IsNullOrEmpty(handle))
+                {
+                    return null;
+                }
+
+                handles.Add(handle);
+            }
+
+            var filter = new HandleFilter(handles);
+            var runs = new List<int>(handles.Count);
+
+            for (int run = 0; run < older.RunCount && runs.Count < handles.Count; run++)
+            {
+                string handle = older.RunHandle(run);
+
+                if (!filter.MayContain(handle))
+                {
+                    continue;
+                }
+
+                foreach (string wanted in handles)
+                {
+                    if (SameHandle(handle, wanted))
+                    {
+                        runs.Add(run);
+                        break;
+                    }
+                }
+            }
+
+            return runs;
+        }
+
+        /// <summary>The place of each run by its handle; null where two runs share a handle.</summary>
+        private static Dictionary<string, int> RunsByHandle(DisplayList2 older)
+        {
+            var byHandle = new Dictionary<string, int>(older.RunCount, StringComparer.OrdinalIgnoreCase);
+
+            for (int i = 0; i < older.RunCount; i++)
+            {
+                string handle = older.RunHandle(i);
+
+                if (string.IsNullOrEmpty(handle))
+                {
+                    continue;
+                }
+
+                if (byHandle.ContainsKey(handle))
+                {
+                    return null;
+                }
+
+                byHandle[handle] = i;
+            }
+
+            return byHandle;
+        }
+
+        /// <summary>
+        /// The entities of a block in the order they are drawn: that of its draw order (SORTENTSTABLE, as DRAWORDER writes it),
+        /// the back first, or the order of the block where it has none. Read once a build for each block, so that a block
+        /// inserted 8 000 times is listed once, not 8 000 times; null where the block cannot be listed whole, to be walked as
+        /// it stands each time.
+        /// </summary>
+        private BlockContent ContentOf(DxfBlockTableRecord block)
+        {
+            if (ReferenceEquals(block, _lastBlock))
+            {
+                return _lastContent;
+            }
+
+            // A block of a file with no table of block records, one of R12 or written by hand, has no handle: it is kept by its
+            // name, which no other block of a drawing has, and not listed again for each INSERT of it.
+            string handle = block.Handle ?? NameKeyOf(block);
+
+            if (handle != null && _orders.TryGetValue(handle, out BlockContent known))
+            {
+                _lastBlock = block;
+                _lastContent = known;
+                return known;
+            }
+
+            IReadOnlyList<DxfEntity> ordered = null;
+
+            try
+            {
+                ordered = block.DrawOrderTable?.GetFullDrawOrder();
+            }
+            catch (Exception)
+            {
+                // A draw order that cannot be read leaves the block in its own order.
+            }
+
+            if (ordered == null)
+            {
+                try
+                {
+                    // Listed one by one, the stop looked at every 4 096: making the million entity objects of a large space is
+                    // 0.6 s of the opening before its first entity is drawn.
+                    var listed = new List<DxfEntity>();
+
+                    foreach (DxfEntity entity in block)
+                    {
+                        if ((listed.Count & ReportEvery) == 0)
+                        {
+                            Cancellation.ThrowIfCancellationRequested();
+                        }
+
+                        listed.Add(entity);
+                    }
+
+                    ordered = listed;
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception)
+                {
+                    ordered = null;
+                }
+            }
+
+            BlockContent content = ordered == null ? null : new BlockContent(ordered, IsAnonymous(block));
+
+            if (handle != null)
+            {
+                _orders[handle] = content;
+                _lastBlock = block;
+                _lastContent = content;
+            }
+
+            return content;
+        }
+
+        /// <summary>The key a block with no handle is kept by in <see cref="_orders"/>: its name after a character no handle has; null where the block has none.</summary>
+        private static string NameKeyOf(DxfBlockTableRecord block)
+        {
+            try
+            {
+                string name = block.Name;
+                return name == null ? null : "\u0001" + name;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>Whether a block is anonymous (*D1, *T2, *U3): flagged so, or named with a star.</summary>
+        private static bool IsAnonymous(DxfBlockTableRecord block)
+        {
+            try
+            {
+                return block.IsAnonymous
+                    || (block.Name != null && block.Name.StartsWith("*", StringComparison.Ordinal));
+            }
+            catch (Exception)
+            {
+                return true;
+            }
+        }
+
+        /// <summary>The entities of a block in the order they are drawn, and whether each is shown, worked out the first time an INSERT meets it.</summary>
+        private sealed class BlockContent
+        {
+            public BlockContent(IReadOnlyList<DxfEntity> entities, bool isAnonymous)
+            {
+                Entities = entities;
+                Shown = new sbyte[entities.Count];
+                IsAnonymous = isAnonymous;
+            }
+
+            public IReadOnlyList<DxfEntity> Entities { get; }
+
+            public bool IsAnonymous { get; }
+
+            /// <summary>For each entity 1 where it is shown, -1 where it is hidden (group 60), 0 until known.</summary>
+            public sbyte[] Shown { get; }
+        }
+
+        private sealed class LayerState
+        {
+            public LayerState(DxfLayerTableRecord record, double defaultWeight)
+            {
+                Visible = !record.IsOff && !record.IsFrozen;
+                Rgb = SafeRgb(record.Color);
+                int weight = (int)record.LineWeight;
+                LineWeight = weight >= 0 ? weight / 100.0 : defaultWeight;
+                Linetype = record.LinetypeName ?? "Continuous";
+                Record = record;
+                Overrides = record.IsDependent ? CadXrefLayers.Overrides(record) : null;
+            }
+
+            /// <summary>
+            /// A layer of a drawing referenced as the drawing showing it keeps it: what that drawing changed (the bits of
+            /// <see cref="CadXrefLayers"/>) from its record, the rest from the drawing referenced.
+            /// </summary>
+            public LayerState(LayerState shown, LayerState own, int overrides)
+            {
+                bool off = (overrides & CadXrefLayers.Off) != 0 ? shown.Record.IsOff : own.Record.IsOff;
+                bool frozen = (overrides & CadXrefLayers.Frozen) != 0 ? shown.Record.IsFrozen : own.Record.IsFrozen;
+                Visible = !off && !frozen;
+                Rgb = (overrides & CadXrefLayers.Color) != 0 ? shown.Rgb : own.Rgb;
+                LineWeight = (overrides & CadXrefLayers.LineWeight) != 0 ? shown.LineWeight : own.LineWeight;
+                Linetype = (overrides & CadXrefLayers.Linetype) != 0 ? shown.Linetype : own.Linetype;
+                Record = shown.Record;
+            }
+
+            /// <summary>A layer as one viewport shows it: its colour, lineweight and linetype there.</summary>
+            public LayerState(DxfLayerTableRecord record, DxfLayerViewportProperties look, double defaultWeight)
+                : this(record, defaultWeight)
+            {
+                Rgb = SafeRgb(look.Color);
+                int weight = (int)look.LineWeight;
+                LineWeight = weight >= 0 ? weight / 100.0 : defaultWeight;
+                Linetype = look.Linetype ?? "Continuous";
+            }
+
+            public bool Visible { get; }
+
+            public int Rgb { get; }
+
+            public double LineWeight { get; }
+
+            public string Linetype { get; }
+
+            public DxfLayerTableRecord Record { get; }
+
+            /// <summary>For a layer of an external reference, the properties the drawing changed of it; null where it keeps none, or is the drawing's own.</summary>
+            public int? Overrides { get; }
+
+            /// <summary>Whether an entity on this layer is drawn as on another: both shown or both hidden, of one colour, lineweight and linetype.</summary>
+            public bool DrawsAs(LayerState other) =>
+                Visible == other.Visible
+                && Rgb == other.Rgb
+                && LineWeight.Equals(other.LineWeight)
+                && string.Equals(Linetype, other.Linetype, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private sealed class Frame
+        {
+            public Frame(Affine2 matrix)
+            {
+                Matrix = matrix;
+                BlockRgb = 0xFFFFFF;
+                BlockLineWeight = 0.25;
+                BlockLinetype = "Continuous";
+            }
+
+            public Affine2 Matrix { get; set; }
+
+            public string RootHandle { get; set; }
+
+            public string BlockLayer { get; set; }
+
+            public int BlockRgb { get; set; }
+
+            public double BlockLineWeight { get; set; }
+
+            public string BlockLinetype { get; set; }
+
+            public int Depth { get; set; }
+
+            /// <summary>
+            /// The clipping planes (XCLIP Clipdepth) of the references this block stands in, in the coordinates of its own
+            /// entities; null where none has any.
+            /// </summary>
+            public IReadOnlyList<DxfSpatialFilter.Slab> Slabs { get; set; }
+
+            public Frame Child(Affine2 matrix) =>
+                new Frame(matrix)
+                {
+                    RootHandle = RootHandle,
+                    BlockLayer = BlockLayer,
+                    BlockRgb = BlockRgb,
+                    BlockLineWeight = BlockLineWeight,
+                    BlockLinetype = BlockLinetype,
+                    Depth = Depth + 1,
+                };
+        }
+
+        private static int SafeRgb(DxfColor color)
+        {
+            if (color == null)
+            {
+                return 0xFFFFFF;
+            }
+
+            return color.ColorValue & 0xFFFFFF;
+        }
+
+        private string LayerOf(DxfEntity entity, Frame frame)
+        {
+            string layer = entity.Layer ?? "0";
+            string name = layer == "0" && frame.BlockLayer != null ? frame.BlockLayer : Prefixed(layer);
+
+            // Read from the entity's groups, the name is a new string each time: kept once for each name, the items of a
+            // drawing of 100 000 entities share four strings and not 100 000 (3.2 MB).
+            if (!_layerNames.TryGetValue(name, out string shared))
+            {
+                shared = name;
+                _layerNames.Add(name, name);
+            }
+
+            return shared;
+        }
+
+        /// <summary>
+        /// The layer of an entity as <see cref="LayerOf"/> names it and <see cref="LayerNamed"/> finds it, with its bit in the
+        /// list being built, from the slots of the layers drawn last where the string its record gave for the layer is one of them.
+        /// </summary>
+        private LayerSlot LayerSlotOf(DxfEntity entity, Frame frame)
+        {
+            string raw = entity.Item.Layer;
+            string block = frame.BlockLayer;
+            LayerSlot[] slots = _layerSlots;
+
+            for (int i = 0; i < slots.Length; i++)
+            {
+                LayerSlot found = slots[i];
+
+                if (found == null)
+                {
+                    break;
+                }
+
+                if (ReferenceEquals(found.Raw, raw) && (!found.UsesBlock || ReferenceEquals(found.Block, block)))
+                {
+                    return found;
+                }
+            }
+
+            // Not among them: found the long way, into an empty slot or over the one longest kept.
+            LayerSlot slot = slots[_layerSlotNext] ?? (slots[_layerSlotNext] = new LayerSlot());
+            _layerSlotNext = (_layerSlotNext + 1) % slots.Length;
+            slot.Raw = raw;
+            slot.UsesBlock = (entity.Layer ?? "0") == "0";
+            slot.Block = block;
+            slot.Shared = LayerOf(entity, frame);
+            slot.State = LayerNamed(slot.Shared);
+            slot.Bit = 0;
+            slot.HasBit = false;
+            return slot;
+        }
+
+        /// <summary>The layer names met by <see cref="LayerOf"/>, each once, by their letters as they are: layers of another case are other names.</summary>
+        private readonly Dictionary<string, string> _layerNames = new Dictionary<string, string>(
+            StringComparer.Ordinal
+        );
+
+        private DisplayStyle StyleOf(DxfEntity entity, Frame frame, LayerState layer)
+        {
+            DxfColor color = entity.Color;
+            int rgb;
+
+            if (color == null || color.IsByLayer)
+            {
+                rgb = layer != null ? layer.Rgb : 0xFFFFFF;
+            }
+            else if (color.IsByBlock)
+            {
+                rgb = frame.BlockRgb;
+            }
+            else
+            {
+                rgb = SafeRgb(color);
+            }
+
+            double weight;
+            int raw = (int)entity.LineWeight;
+
+            if (raw >= 0)
+            {
+                weight = raw / 100.0;
+            }
+            else if (raw == (int)DxfLineWeight.ByBlock)
+            {
+                weight = frame.BlockLineWeight;
+            }
+            else if (raw == (int)DxfLineWeight.ByLineWeightDefault)
+            {
+                weight = _defaultWeight;
+            }
+            else
+            {
+                weight = layer != null ? layer.LineWeight : _defaultWeight;
+            }
+
+            string linetype = entity.Linetype;
+
+            if (
+                string.IsNullOrEmpty(linetype) || string.Equals(linetype, "ByLayer", StringComparison.OrdinalIgnoreCase)
+            )
+            {
+                linetype = layer != null ? layer.Linetype : "Continuous";
+            }
+            else if (string.Equals(linetype, "ByBlock", StringComparison.OrdinalIgnoreCase))
+            {
+                linetype = frame.BlockLinetype;
+            }
+
+            // The entity's own linetype scale is read only for a linetype that has dashes to scale.
+            double[] dashes = IsContinuous(linetype)
+                ? null
+                : DashesOf(linetype, entity.LinetypeScale * frame.Matrix.Scale);
+
+            if (dashes != null)
+            {
+                return new DisplayStyle(rgb, weight, dashes);
+            }
+
+            return PlainStyleOf(rgb, weight);
+        }
+
+        /// <summary>
+        /// A style of no dashes is one object for each colour and weight, not one for each item: a drawing of a million
+        /// entities holds a few hundred, not four million. The styles the hatches and MTEXTs make of their own, a gradient's
+        /// middle colour, the lines of a pattern and the runs of an MTEXT in a colour, are the same objects.
+        /// </summary>
+        private DisplayStyle PlainStyleOf(int rgb, double weight)
+        {
+            var key = new PlainStyle(rgb, weight);
+
+            // The entities that follow one another mostly share a colour and a weight: the style asked for last is answered as it was.
+            if (_lastPlainStyle != null && _lastPlainKey.Equals(key))
+            {
+                return _lastPlainStyle;
+            }
+
+            if (!_plainStyles.TryGetValue(key, out DisplayStyle style))
+            {
+                style = new DisplayStyle(rgb, weight, null);
+                _plainStyles[key] = style;
+            }
+
+            _lastPlainKey = key;
+            _lastPlainStyle = style;
+            return style;
+        }
+
+        private PlainStyle _lastPlainKey;
+        private DisplayStyle _lastPlainStyle;
+
+        /// <summary>The colour and the bits of the weight of a style of no dashes.</summary>
+        private readonly struct PlainStyle : IEquatable<PlainStyle>
+        {
+            private readonly int _rgb;
+            private readonly long _weight;
+
+            public PlainStyle(int rgb, double weight)
+            {
+                _rgb = rgb;
+                _weight = BitConverter.DoubleToInt64Bits(weight);
+            }
+
+            public bool Equals(PlainStyle other) => _rgb == other._rgb && _weight == other._weight;
+
+            public override bool Equals(object obj) => obj is PlainStyle other && Equals(other);
+
+            public override int GetHashCode() => (_rgb * 397) ^ _weight.GetHashCode();
+        }
+
+        private static bool IsContinuous(string linetype) =>
+            string.IsNullOrEmpty(linetype) || string.Equals(linetype, "Continuous", StringComparison.OrdinalIgnoreCase);
+
+        private double[] DashesOf(string linetype, double scale)
+        {
+            if (IsContinuous(linetype))
+            {
+                return null;
+            }
+
+            if (!_dashes.TryGetValue(linetype, out double[] pattern))
+            {
+                pattern = null;
+
+                try
+                {
+                    DxfLinetypeTableRecord record = _database.LinetypeTable[linetype];
+                    int n = record.NumDashes;
+
+                    if (n > 0)
+                    {
+                        pattern = new double[n];
+
+                        for (int i = 0; i < n; i++)
+                        {
+                            pattern[i] = record.DashLengthAt(i);
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    pattern = null;
+                }
+
+                _dashes[linetype] = pattern;
+            }
+
+            if (pattern == null)
+            {
+                return null;
+            }
+
+            double factor = _ltScale * (scale > 0.0 ? scale : 1.0);
+            var result = new double[pattern.Length];
+
+            for (int i = 0; i < pattern.Length; i++)
+            {
+                result[i] = Math.Abs(pattern[i]) * factor;
+            }
+
+            return result;
+        }
+
+        /// <summary>What a text style is drawn in: its SHX font found, else the name of its typeface or file the canvas takes; with the document's fonts off, the typeface it names, else the file of its font, the name null where it has neither.</summary>
+        private CadFontFace FaceOf(string styleName) => Style(styleName).Face;
+
+        /// <summary>The slant of a text style's letters in radians.</summary>
+        private double ObliqueOf(string styleName) => Style(styleName).Oblique;
+
+        /// <summary>How wide a text style's letters are for their height: 1 where the style gives none or is not found.</summary>
+        private double WidthFactorOf(string styleName) => Style(styleName).WidthFactor;
+
+        private TextFont Style(string styleName)
+        {
+            string key = styleName ?? string.Empty;
+
+            if (!_fonts.TryGetValue(key, out TextFont font))
+            {
+                font = new TextFont(null, 0.0, 1.0);
+
+                try
+                {
+                    DxfTextStyleTableRecord record = _database.TextStyleTable[
+                        string.IsNullOrEmpty(styleName) ? "Standard" : styleName
+                    ];
+
+                    if (record != null)
+                    {
+                        font = new TextFont(
+                            Resolve(record.FileName, record.BigFontFileName, record.Font.TypeFace),
+                            record.ObliquingAngle,
+                            record.XScale
+                        );
+                    }
+                }
+                catch (Exception)
+                {
+                    font = new TextFont(null, 0.0, 1.0);
+                }
+
+                _fonts[key] = font;
+            }
+
+            return font;
+        }
+
+        /// <summary>
+        /// The face of an MTEXT's font code before its words (<see cref="FontCodeOf"/>), found as a style's font is; null where it
+        /// has none or the document's fonts are off, its style's face then drawn.
+        /// </summary>
+        private CadFontFace FaceOfCode(string contents)
+        {
+            if (_document == null || _document.Fonts.IsOff)
+            {
+                return null;
+            }
+
+            string name = FontCodeOf(contents, out bool shx);
+
+            if (name == null)
+            {
+                return null;
+            }
+
+            string key = "\\" + (shx ? "F" : "f") + name;
+
+            if (!_fonts.TryGetValue(key, out TextFont font))
+            {
+                font = new TextFont(shx ? Resolve(name, null, null) : Resolve(null, null, name), 0.0, 1.0);
+                _fonts[key] = font;
+            }
+
+            return font.Face;
+        }
+
+        /// <summary>The face of a font as the document's fonts find it, a font not found said once on its <see cref="CadDocument.FontMissing"/>.</summary>
+        private CadFontFace Resolve(string fileName, string bigFontFileName, string typeface)
+        {
+            CadFontFace face = (_document?.Fonts ?? FontsOff).Resolve(
+                fileName,
+                bigFontFileName,
+                typeface,
+                _document?.FontFolder,
+                out string report
+            );
+
+            if (report != null)
+            {
+                _document?.SayFontMissing(report);
+            }
+
+            return face;
+        }
+
+        private sealed class TextFont
+        {
+            public TextFont(CadFontFace face, double oblique, double widthFactor)
+            {
+                Face = face ?? new CadFontFace(null, null, null, null);
+                Oblique = oblique;
+                WidthFactor = widthFactor > 0.0 && !double.IsInfinity(widthFactor) ? widthFactor : 1.0;
+            }
+
+            public CadFontFace Face { get; }
+
+            public double Oblique { get; }
+
+            public double WidthFactor { get; }
+        }
+
+        /// <summary>Draws an entity under a frame; <paramref name="shown"/> where its block has found it shown already, so that it is not read again.</summary>
+        private void Draw(DxfEntity entity, Frame frame, DisplayList2 list, string forcedHandle, bool shown = false)
+        {
+            if (entity == null || frame.Depth > MaxDepth)
+            {
+                return;
+            }
+
+            LayerSlot slot = LayerSlotOf(entity, frame);
+            string layerName = slot.Shared;
+
+            if (_building != null)
+            {
+                if (!slot.HasBit)
+                {
+                    slot.Bit = _building.LayerBit(layerName);
+                    slot.HasBit = true;
+                }
+
+                _runLayers |= slot.Bit;
+            }
+            else if (_host != null)
+            {
+                // What an external reference draws counts in the run of its INSERT, so that a change of grid|GRID in the
+                // drawing showing it draws the INSERT anew.
+                DisplayBuilder root = _host;
+
+                while (root._host != null)
+                {
+                    root = root._host;
+                }
+
+                if (root._building != null)
+                {
+                    root._runLayers |= root._building.LayerBit(layerName);
+                }
+            }
+
+            // The layer first: an entity's own visibility is read from its groups, near a microsecond each, which an entity on a layer
+            // switched off or frozen never needs.
+            LayerState layerState = slot.State;
+
+            if ((layerState != null && !layerState.Visible) || (!shown && !entity.Visible))
+            {
+                return;
+            }
+
+            string handle = forcedHandle ?? frame.RootHandle ?? entity.Handle ?? string.Empty;
+            DisplayStyle style = StyleOf(entity, frame, layerState);
+
+            if (style.Dashes != null)
+            {
+                style = Continued(style, entity, frame);
+            }
+
+            // The curves nearly every drawing is made of, which no case below is about, go to their shapes at once: the cases
+            // would test each against some seventeen classes, four of them unsealed, whose casts walk the bases of the entity.
+            if (entity is DxfLine || entity is DxfArc || entity is DxfCircle)
+            {
+                goto Shapes;
+            }
+
+            if (entity is DxfPolyline polyline)
+            {
+                // Only a polyline that has a width is drawn by its own code, as the last case below does.
+                if (polyline.HasWidth && AddWide(polyline, frame.Matrix, list, style, handle, layerName))
+                {
+                    return;
+                }
+
+                goto Shapes;
+            }
+
+            switch (entity)
+            {
+                case DxfViewport viewport:
+                    DrawViewport(viewport, frame, list, style, handle, layerName);
+                    return;
+                case DxfDimension dimension:
+                {
+                    // An annotative dimension of the space is drawn by the picture of the scale of the space, as AutoCAD draws it.
+                    DxfBlockTableRecord picture = dimension.DimBlock;
+
+                    if (_annotationScale != null && frame.Depth == 0 && frame.RootHandle == null)
+                    {
+                        _sawAnnotative |= dimension.Item.File.ExtensionDictionaryOf(dimension.Item) != null;
+
+                        if (!dimension.TryPictureAt(_annotationScale, _allVisible, out picture))
+                        {
+                            return;
+                        }
+                    }
+
+                    DrawBlock(picture, Affine2.Identity, dimension, frame, list, handle, layerName, style, frame.Slabs);
+                    return;
+                }
+                case DxfBlockReference reference:
+                    // An INSERT with no contexts and no clip is read from its record in one pass.
+                    bool read = reference.TryReadForDisplay(out DxfBlockReference.DisplayRead placing);
+
+                    // The snap Insertion takes the point of an INSERT of the space itself, not of one nested in a block.
+                    if (frame.RootHandle == null && forcedHandle == null)
+                    {
+                        GeoPoint3 at = read ? placing.Position : reference.Position;
+                        list.AddInsertionPoint(handle, frame.Matrix.X(at.X, at.Y), frame.Matrix.Y(at.X, at.Y));
+                    }
+
+                    DrawInsert(reference, read, placing, frame, list, handle, layerName, style);
+                    return;
+                case DxfAttributeDefinition definition when frame.RootHandle != null && !definition.Constant:
+                    // An INSERT shows the values of its ATTRIBs, not the definitions of its block, as AutoCAD shows it; a constant
+                    // definition, which has no ATTRIB, shows its value.
+                    return;
+                case DxfDBText text:
+                {
+                    int before = list.Count;
+
+                    if (!Annotated(text, frame, out double textFactor))
+                    {
+                        return;
+                    }
+
+                    DrawText(text, frame, list, style, handle, layerName, textFactor);
+                    MarkField(text, before, list);
+
+                    // A TEXT of the space and an ATTRIB shown give the snap Insertion the point they are placed by.
+                    if (
+                        (text is DxfAttributeReference || (frame.RootHandle == null && forcedHandle == null))
+                        && list.Count > before
+                        && list.Items[list.Count - 1] is DisplayText2 drawn
+                    )
+                    {
+                        list.AddInsertionPoint(handle, drawn.X, drawn.Y);
+                    }
+
+                    return;
+                }
+
+                case DxfMText mtext:
+                {
+                    int before = list.Count;
+
+                    if (!Annotated(mtext, frame, out double wordsFactor))
+                    {
+                        return;
+                    }
+
+                    DxfMText words = mtext;
+
+                    if (wordsFactor != 1.0)
+                    {
+                        // Drawn at the scale of the space on a copy whose height and width are those at that scale.
+                        words = (DxfMText)mtext.Clone();
+                        words.TextHeight = mtext.TextHeight * wordsFactor;
+
+                        if (mtext.Width > 0.0)
+                        {
+                            words.Width = mtext.Width * wordsFactor;
+                        }
+                    }
+
+                    DrawMText(words, frame, list, style, handle, layerName);
+                    MarkField(mtext, before, list);
+
+                    if (
+                        frame.RootHandle == null
+                        && forcedHandle == null
+                        && list.Count > before
+                        && list.Items[list.Count - 1] is DisplayText2 drawn
+                    )
+                    {
+                        list.AddInsertionPoint(handle, drawn.X, drawn.Y);
+                    }
+
+                    return;
+                }
+                case DxfHatch hatch:
+                {
+                    if (!Annotated(hatch, frame, out double lineFactor))
+                    {
+                        return;
+                    }
+
+                    DxfHatch lines = hatch;
+
+                    if (lineFactor != 1.0)
+                    {
+                        // Drawn at the scale of the space on a copy whose pattern lines are those at that scale.
+                        lines = (DxfHatch)hatch.Clone();
+                        DxfDBObject.ScaleHatchLines(lines.Item, lineFactor);
+                    }
+
+                    DrawHatch(lines, frame, list, style, handle, layerName);
+                    return;
+                }
+                case DxfMLeader mleader:
+                {
+                    // An annotative multileader of the space is drawn by the context data of the scale of the space, as AutoCAD draws it.
+                    DxfMLeader drawn = mleader;
+
+                    if (_annotationScale != null && frame.Depth == 0 && frame.RootHandle == null)
+                    {
+                        _sawAnnotative |= mleader.Item.File.ExtensionDictionaryOf(mleader.Item) != null;
+
+                        if (
+                            !mleader.TryContextDataAt(
+                                _annotationScale,
+                                _allVisible,
+                                out List<KeyValuePair<int, string>> data
+                            )
+                        )
+                        {
+                            return;
+                        }
+
+                        if (data != null)
+                        {
+                            drawn = (DxfMLeader)mleader.Clone();
+                            drawn.SetContextData(data);
+                        }
+                    }
+
+                    // Its leader lines are drawn cut at their breaks (DIMBREAK), as AutoCAD draws them.
+                    foreach (DxfEntity part in drawn.ExplodeBroken())
+                    {
+                        Draw(part, frame, list, handle);
+                    }
+
+                    return;
+                }
+                case DxfUnknownEntity region when region.DxfName == "REGION":
+                    // A region is drawn by the curves of its loops, as AutoCAD's 2D wireframe draws it.
+                    if (TryExplode(region, out IReadOnlyList<DxfEntity> loops))
+                    {
+                        foreach (DxfEntity part in loops)
+                        {
+                            Draw(part, frame, list, handle);
+                        }
+                    }
+
+                    return;
+                case DxfTolerance tolerance:
+                {
+                    // A feature control frame is drawn by its lines, symbols and words, laid out in the drawing's fonts; the snaps
+                    // End and Mid take the rectangles of its rows alone, and Insertion its point, as AutoCAD 2021 gives them.
+                    CadToleranceFrame laid = CadToleranceFrame.Of(tolerance, LayoutOf);
+
+                    for (int i = 0; i < laid.Parts.Count; i++)
+                    {
+                        int before = list.Count;
+                        Draw(laid.Parts[i], frame, list, handle);
+
+                        for (int k = before; i >= laid.OutlineCount && k < list.Count; k++)
+                        {
+                            list.Items[k].IsFrameInside = true;
+                        }
+                    }
+
+                    if (frame.RootHandle == null && forcedHandle == null)
+                    {
+                        GeoPoint3 at = tolerance.Location;
+                        list.AddInsertionPoint(handle, frame.Matrix.X(at.X, at.Y), frame.Matrix.Y(at.X, at.Y));
+                    }
+
+                    return;
+                }
+                case DxfTable table:
+                {
+                    // A table is drawn by the block AutoCAD drew it with, placed at its point: the block's entities stand turned
+                    // along the table's direction already, as AutoCAD draws them and TransformBy carries them.
+                    GeoPoint3 at = table.Position;
+                    DrawBlock(
+                        table.BlockTableRecord,
+                        Affine2.Translation(at.X, at.Y),
+                        table,
+                        frame,
+                        list,
+                        handle,
+                        layerName,
+                        style,
+                        ShiftedSlabs(frame.Slabs, at.X, at.Y, at.Z)
+                    );
+                    return;
+                }
+
+                case DxfLeader leader
+                    when ReadAnnotation(leader) && TryExplode(leader, out IReadOnlyList<DxfEntity> parts):
+                    // A leader is drawn as AutoCAD breaks it: its arrowhead, then its line or spline.
+                    foreach (DxfEntity part in parts)
+                    {
+                        Draw(part, frame, list, handle);
+                    }
+
+                    return;
+                case DxfUnknownEntity mline
+                    when mline.DxfName == "MLINE" && TryExplode(mline, out IReadOnlyList<DxfEntity> mlineParts):
+                    // A multiline is drawn as AutoCAD breaks it: a line for each element along each segment, its caps and joints.
+                    foreach (DxfEntity part in mlineParts)
+                    {
+                        Draw(part, frame, list, handle);
+                    }
+
+                    return;
+                case DxfDBPoint point when _pdmode != 0:
+                    AddPoint(point, frame.Matrix, list, style, handle, layerName);
+                    return;
+                case DxfRasterImage picture when !(picture is DxfWipeout):
+                    DrawImage(picture, frame, list, style, handle, layerName);
+                    return;
+                case DxfOle2Frame ole:
+                    DrawOle(ole, frame, list, style, handle, layerName);
+                    return;
+                case DxfPdfUnderlay pdf:
+                    DrawPdf(pdf, frame, list, style, handle, layerName);
+                    return;
+            }
+
+            Shapes:
+            IReadOnlyList<object> shapes = entity.GeometryOrOne(out object one);
+            bool mask = entity is DxfWipeout;
+            bool fill = entity is DxfSolid && _fill;
+
+            _inBlock = frame.Depth > 0;
+
+            // The one shape most entities have is taken bare, and a list is walked by place: neither makes an enumerator.
+            if (shapes == null)
+            {
+                AddShape(one, frame.Matrix, list, style, handle, layerName, fill, mask);
+            }
+            else
+            {
+                for (int i = 0; i < shapes.Count; i++)
+                {
+                    AddShape(shapes[i], frame.Matrix, list, style, handle, layerName, fill, mask);
+                }
+            }
+
+            _inBlock = false;
+        }
+
+        /// <summary>Notes the words a leader points to, whose place and width its hook runs on by; always true.</summary>
+        private bool ReadAnnotation(DxfLeader leader)
+        {
+            if (_building != null)
+            {
+                try
+                {
+                    Read(leader.Annotation?.Handle);
+                }
+                catch (Exception)
+                {
+                    // A leader whose annotation cannot be read points to none.
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TryExplode(DxfEntity entity, out IReadOnlyList<DxfEntity> parts)
+        {
+            try
+            {
+                parts = entity.Explode();
+                return parts.Count > 0;
+            }
+            catch (Exception)
+            {
+                parts = null;
+                return false;
+            }
+        }
+
+        private void DrawInsert(
+            DxfBlockReference reference,
+            bool read,
+            DxfBlockReference.DisplayRead placing,
+            Frame frame,
+            DisplayList2 list,
+            string handle,
+            string layerName,
+            DisplayStyle style
+        )
+        {
+            DxfBlockTableRecord block = read ? placing.Block : reference.BlockTableRecord;
+
+            if (block == null)
+            {
+                return;
+            }
+
+            Affine2 own;
+
+            if (read)
+            {
+                own = new Affine2(placing.A, placing.B, placing.C, placing.D, placing.Tx, placing.Ty);
+            }
+            else
+            {
+                GeoTransform3 transform = reference.BlockTransform;
+                own = new Affine2(
+                    transform[0, 0],
+                    transform[1, 0],
+                    transform[0, 1],
+                    transform[1, 1],
+                    transform[0, 3],
+                    transform[1, 3]
+                );
+            }
+
+            if (block.IsFromExternalReference)
+            {
+                DrawXref(reference, block, own, frame, list, handle, layerName, style);
+                return;
+            }
+
+            // An INSERT of an annotative block that stands in the space is drawn at the scale of the space: its block, and its
+            // attributes out from its point, multiplied by the default's scale over that one.
+            double scaled = 1.0;
+
+            if (!read && _annotationScale != null && frame.Depth == 0 && frame.RootHandle == null)
+            {
+                _sawAnnotative |= reference.Item.File.ExtensionDictionaryOf(reference.Item) != null;
+
+                if (!reference.TryInsertFactorAt(_annotationScale, _allVisible, out scaled))
+                {
+                    return;
+                }
+
+                if (scaled != 1.0)
+                {
+                    own = Affine2.ScaleRotate(scaled, scaled, 0.0).Then(own);
+                }
+            }
+
+            int columns = 1;
+            int rows = 1;
+            double columnSpacing = 0.0;
+            double rowSpacing = 0.0;
+
+            if (reference is DxfMInsertBlock array)
+            {
+                columns = Math.Max(1, (int)array.Columns);
+                rows = Math.Max(1, (int)array.Rows);
+                columnSpacing = array.ColumnSpacing;
+                rowSpacing = array.RowSpacing;
+            }
+
+            double rotation = own.Rotation;
+            double cos = Math.Cos(rotation);
+            double sin = Math.Sin(rotation);
+            IReadOnlyList<GeoPoint2> clip = read ? null : ClipOf(reference);
+            IReadOnlyList<GeoPoint2> section = clip;
+            DxfSpatialFilter.Slab slab = null;
+
+            if (clip != null)
+            {
+                reference.GetClipView(reference.DrawnFilter, clip, out section, out slab);
+            }
+
+            // The planes of the blocks this INSERT stands in, carried into its block; none outside a clipped block with planes.
+            IReadOnlyList<DxfSpatialFilter.Slab> held = frame.Slabs;
+            GeoTransform3 carried = held == null ? null : reference.BlockTransform;
+
+            // The steps from a cell to the next along the columns and the rows lie in the plan, turned by the angle of the array,
+            // unless its plane is tilted out of the plan: they then lean out of it, and a cell stands off by their length in it, at
+            // a height (AutoCAD 2021, PNGOUT: the rows of an array of a plane tilted 45 degrees, 40 apart, stand 28.28 apart).
+            GeoVector3 column = default;
+            GeoVector3 row = default;
+            bool leaning = (columns > 1 || rows > 1) && TryTiltedSteps(reference, out column, out row);
+
+            for (int r = 0; r < rows; r++)
+            {
+                for (int c = 0; c < columns; c++)
+                {
+                    double dx = c * columnSpacing;
+                    double dy = r * rowSpacing;
+                    double shiftX = dx * cos - dy * sin;
+                    double shiftY = dx * sin + dy * cos;
+                    double shiftZ = 0.0;
+
+                    if (leaning)
+                    {
+                        shiftX = dx * column.X + dy * row.X;
+                        shiftY = dx * column.Y + dy * row.Y;
+                        shiftZ = dx * column.Z + dy * row.Z;
+                    }
+
+                    Affine2 placed = own.Then(Affine2.Translation(shiftX, shiftY));
+
+                    // The block clipped (XCLIP) shows inside its boundary alone, the frame of the boundary drawn over it. A clip
+                    // tilted out of the block's plane shows the block where its prism cuts the plane, and the frame stands over
+                    // the boundary itself.
+                    DisplayClipRegion before = null;
+                    DisplayClip2 frameRing = clip == null ? null : WorldRing(clip, placed.Then(frame.Matrix));
+                    bool tilted = !ReferenceEquals(section, clip);
+                    DisplayClip2 ring = tilted ? null : frameRing;
+                    SectionLevels levels = tilted
+                        ? new SectionLevels(reference, reference.DrawnFilter, placed.Then(frame.Matrix), frameRing)
+                        : null;
+
+                    if (ring != null)
+                    {
+                        before = list.PushClip(ring);
+                    }
+
+                    try
+                    {
+                        DrawBlock(
+                            block,
+                            placed,
+                            reference,
+                            frame,
+                            list,
+                            handle,
+                            layerName,
+                            style,
+                            PlacedSlabs(held, carried, slab, shiftX, shiftY, shiftZ),
+                            levels
+                        );
+                    }
+                    finally
+                    {
+                        levels?.Leave(list);
+
+                        if (ring != null)
+                        {
+                            list.PopClip(before);
+                        }
+
+                        if (frameRing != null)
+                        {
+                            DrawClipFrame(frameRing, list, handle, layerName, style);
+                        }
+                    }
+                }
+            }
+
+            if (clip != null)
+            {
+                DisplayClipRegion before = list.PushClip(WorldRing(section, own.Then(frame.Matrix)));
+
+                try
+                {
+                    DrawAttributes(reference, frame, list, handle, layerName, style, scaled);
+                }
+                finally
+                {
+                    list.PopClip(before);
+                }
+
+                return;
+            }
+
+            if (read && !reference.HasFollowers)
+            {
+                return;
+            }
+
+            DrawAttributes(reference, frame, list, handle, layerName, style, scaled);
+        }
+
+        /// <summary>
+        /// The boundary a block reference is clipped to (XCLIP) as a ring in the coordinates of its block, null where it has none or
+        /// its clip is off.
+        /// </summary>
+        private static IReadOnlyList<GeoPoint2> ClipOf(DxfBlockReference reference)
+        {
+            DxfSpatialFilter filter = reference.DrawnFilter;
+            return filter != null && filter.IsEnabled ? reference.ClipOutline : null;
+        }
+
+        /// <summary>A ring of a block carried by a placing into drawing units, its edges straight.</summary>
+        private static DisplayClip2 WorldRing(IReadOnlyList<GeoPoint2> ring, Affine2 placing)
+        {
+            int n = ring.Count;
+            var xy = new double[2 * n];
+
+            for (int i = 0; i < n; i++)
+            {
+                xy[2 * i] = placing.X(ring[i].X, ring[i].Y);
+                xy[2 * i + 1] = placing.Y(ring[i].X, ring[i].Y);
+            }
+
+            return new DisplayClip2(xy, new double[n]);
+        }
+
+        /// <summary>
+        /// The frame of a clip boundary, drawn over what the reference shows in the reference's own look while XCLIPFRAME is not
+        /// 0: a closed chain along the ring, picked as the reference, and left out of a plot where XCLIPFRAME is 2.
+        /// </summary>
+        private void DrawClipFrame(
+            DisplayClip2 ring,
+            DisplayList2 list,
+            string handle,
+            string layerName,
+            DisplayStyle style
+        )
+        {
+            int shown;
+
+            try
+            {
+                shown = _database.XclipFrame;
+            }
+            catch (Exception)
+            {
+                shown = 0;
+            }
+
+            if (shown == 0)
+            {
+                return;
+            }
+
+            double[] xy = ring.Flatten(1.0);
+            list.Add(
+                new DisplayPolyline2(xy, true, style, handle, layerName)
+                {
+                    IsClipFrame = true,
+                    IsNotPlotted = shown == 2,
+                }
+            );
+        }
+
+        /// <summary>
+        /// An INSERT of an external reference: the model space of the drawing it names, found and read by the document's
+        /// <see cref="CadXrefManager"/>, drawn under the INSERT with its base point ($INSBASE) at the insertion point, picked as
+        /// the INSERT, its layers named after the reference (GRID|WALLS) and its layer 0 taking the INSERT's, as AutoCAD shows
+        /// one. Its own references are followed, but not its overlays, nor a drawing being drawn already. One unloaded shows
+        /// nothing; one not found or not read shows its path at the insertion point, as AutoCAD shows it.
+        /// </summary>
+        private void DrawXref(
+            DxfBlockReference reference,
+            DxfBlockTableRecord block,
+            Affine2 own,
+            Frame frame,
+            DisplayList2 list,
+            string handle,
+            string layerName,
+            DisplayStyle style
+        )
+        {
+            if (_document == null || (_host != null && block.IsFromOverlayReference))
+            {
+                return;
+            }
+
+            CadXrefManager xrefs = _document.Xrefs;
+            CadXrefContent content = xrefs.ContentOf(block, Folder, out string missing);
+
+            if (content == null)
+            {
+                if (missing != null)
+                {
+                    DrawMissing(missing, reference, own, frame, list, handle, layerName, style);
+                }
+
+                return;
+            }
+
+            if (!xrefs.Enter(content))
+            {
+                return;
+            }
+
+            try
+            {
+                string key = block.Name + "|" + content.FullPath;
+
+                if (!_referenced.TryGetValue(key, out DisplayBuilder builder))
+                {
+                    builder = new DisplayBuilder(
+                        content.Database,
+                        _document,
+                        this,
+                        block.Name + "|",
+                        System.IO.Path.GetDirectoryName(content.FullPath)
+                    );
+                    _referenced[key] = builder;
+                }
+
+                // The drawing's base point comes to the insertion point, in place of the origin of the block that names it.
+                GeoPoint3 origin = block.Origin;
+                GeoPoint3 basePoint = GeoPoint3.Origin;
+
+                try
+                {
+                    basePoint = content.Database.Insbase;
+                }
+                catch (Exception)
+                {
+                    basePoint = GeoPoint3.Origin;
+                }
+
+                Affine2 placed = Affine2.Translation(origin.X - basePoint.X, origin.Y - basePoint.Y).Then(own);
+                Frame inner = frame.Child(placed.Then(frame.Matrix));
+                inner.RootHandle = handle;
+                inner.BlockLayer = layerName;
+                inner.BlockRgb = style.Rgb;
+                inner.BlockLineWeight = style.LineWeight;
+                IReadOnlyList<GeoPoint2> clip = ClipOf(reference);
+                DxfSpatialFilter.Slab planes = null;
+
+                if (clip != null)
+                {
+                    reference.GetClipView(reference.DrawnFilter, clip, out _, out planes);
+                }
+
+                // The planes (Clipdepth) of the blocks this reference stands in, in the coordinates of the drawing's own entities:
+                // its base point, not the origin of the block that names it, is what stands at the insertion point. Its own are
+                // kept in the drawing's coordinates already, as its boundary is.
+                IReadOnlyList<DxfSpatialFilter.Slab> held = frame.Slabs;
+                inner.Slabs = PlacedSlabs(
+                    held == null
+                        ? null
+                        : ShiftedSlabs(
+                            PlacedSlabs(held, reference.BlockTransform, null, 0.0, 0.0, 0.0),
+                            origin.X - basePoint.X,
+                            origin.Y - basePoint.Y,
+                            origin.Z - basePoint.Z
+                        ),
+                    GeoTransform3.Identity,
+                    planes,
+                    0.0,
+                    0.0,
+                    0.0
+                );
+
+                if (clip == null)
+                {
+                    builder.DrawReferenced(inner, list, _document.RefEditHiddenInFile(content.FullPath));
+                    return;
+                }
+
+                // Clipped (XCLIP), the drawing shows inside the boundary alone, and the frame of the boundary is drawn over it. The
+                // boundary is in the drawing's own coordinates, so it is placed as its content is: with the drawing's base point
+                // at the insertion point, and goes with the content when that base point changes.
+                DisplayClip2 ring = WorldRing(clip, placed.Then(frame.Matrix));
+                DisplayClipRegion before = list.PushClip(ring);
+
+                try
+                {
+                    builder.DrawReferenced(inner, list, _document.RefEditHiddenInFile(content.FullPath));
+                }
+                finally
+                {
+                    list.PopClip(before);
+                }
+
+                DrawClipFrame(ring, list, handle, layerName, style);
+            }
+            finally
+            {
+                xrefs.Leave();
+            }
+        }
+
+        /// <summary>The model space of a drawing referenced, drawn into the list of the drawing showing it under a frame.</summary>
+        private void DrawReferenced(Frame frame, DisplayList2 list, HashSet<string> hidden)
+        {
+            foreach (
+                DxfEntity entity in (IEnumerable<DxfEntity>)ContentOf(_database.ModelSpace)?.Entities
+                    ?? _database.ModelSpace
+            )
+            {
+                // The objects of the drawing the copies of an edit in place stand for are not drawn while it lasts.
+                if (hidden != null && hidden.Contains(HandleOf(entity) ?? string.Empty))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    if (frame.Slabs == null)
+                    {
+                        Draw(entity, frame, list, null);
+                    }
+                    else
+                    {
+                        DrawSliced(frame.Slabs, entity, frame, list, false);
+                    }
+                }
+                catch (Exception)
+                {
+                    // One entity of a drawing referenced that cannot be drawn never stops the others.
+                }
+            }
+        }
+
+        /// <summary>The path of an external reference not found, written at its insertion point in the drawing's text height.</summary>
+        private void DrawMissing(
+            string path,
+            DxfBlockReference reference,
+            Affine2 own,
+            Frame frame,
+            DisplayList2 list,
+            string handle,
+            string layerName,
+            DisplayStyle style
+        )
+        {
+            double height = 2.5;
+
+            try
+            {
+                height = _database.Textsize > 0.0 ? _database.Textsize : 2.5;
+            }
+            catch (Exception)
+            {
+                height = 2.5;
+            }
+
+            GeoPoint3 at = reference.Position;
+            Affine2 m = frame.Matrix;
+            list.Add(
+                Text(
+                    FaceOf(null),
+                    path,
+                    m.X(at.X, at.Y),
+                    m.Y(at.X, at.Y),
+                    height * own.Scale * m.Scale,
+                    own.Rotation + m.Rotation,
+                    1.0,
+                    0,
+                    0,
+                    style,
+                    handle,
+                    layerName,
+                    0.0,
+                    false
+                )
+            );
+        }
+
+        /// <summary>
+        /// An IMAGE: its picture (<see cref="DisplayImage2"/>), the file its definition names found as an external reference is,
+        /// then its frame where IMAGEFRAME shows frames. A picture unloaded, not found or not shown (its Show image off) is drawn
+        /// as its frame alone, whatever IMAGEFRAME says; one not found has its file's name written in its corner, as AutoCAD
+        /// shows it.
+        /// </summary>
+        private void DrawImage(
+            DxfRasterImage image,
+            Frame frame,
+            DisplayList2 list,
+            DisplayStyle style,
+            string handle,
+            string layerName
+        )
+        {
+            image.GetOrientation(out GeoPoint3 origin, out GeoVector3 u, out GeoVector3 v);
+            Affine2 m = frame.Matrix;
+            double x = m.X(origin.X, origin.Y);
+            double y = m.Y(origin.X, origin.Y);
+            double ux = m.X(origin.X + u.X, origin.Y + u.Y) - x;
+            double uy = m.Y(origin.X + u.X, origin.Y + u.Y) - y;
+            double vx = m.X(origin.X + v.X, origin.Y + v.Y) - x;
+            double vy = m.Y(origin.X + v.X, origin.Y + v.Y) - y;
+            double[] ring = null;
+            IReadOnlyList<GeoPoint3> corners = image.GetVertices();
+
+            if (image.IsClipped && corners.Count >= 4)
+            {
+                ring = new double[2 * (corners.Count - 1)];
+
+                for (int i = 0; i + 1 < corners.Count; i++)
+                {
+                    ring[2 * i] = m.X(corners[i].X, corners[i].Y);
+                    ring[2 * i + 1] = m.Y(corners[i].X, corners[i].Y);
+                }
+            }
+
+            DxfRasterImageDef definition = image.ImageDef;
+            string saved = definition?.SourceFileName ?? string.Empty;
+            string found = null;
+            bool loaded = definition != null && image.ShowImage;
+
+            if (loaded && _document != null)
+            {
+                string name = CadXrefManager.ImageName(_database, definition);
+                loaded = _host != null || name == null || _document.Xrefs.IsImageLoaded(name, definition);
+                found = loaded ? _document.Xrefs.Locate(saved, Folder) : null;
+            }
+
+            var picture = new DisplayImage2(
+                x,
+                y,
+                ux,
+                uy,
+                vx,
+                vy,
+                ring == null ? null : new[] { ring },
+                ring != null && image.IsClipInverted,
+                found,
+                saved,
+                style,
+                handle,
+                layerName
+            )
+            {
+                IsTransparent = image.ImageTransparency,
+                IsBitonal = found != null && CadImageFile.IsBitonal(found),
+                IsDraft = _imageDraft,
+                Brightness = image.Brightness,
+                Contrast = image.Contrast,
+                Fade = image.Fade,
+                FileStamp = Stamp(found),
+            };
+            list.Add(picture);
+
+            if (!_imageFrames && found != null)
+            {
+                return;
+            }
+
+            int framesFrom = list.Items.Count;
+
+            foreach (object shape in image.GetGeometry())
+            {
+                AddShape(shape, m, list, style, handle, layerName, false, false);
+            }
+
+            // IMAGEFRAME 2 shows the frame and leaves it out of a plot.
+            if (_imageFramesNotPlotted)
+            {
+                for (int k = framesFrom; k < list.Items.Count; k++)
+                {
+                    list.Items[k].IsNotPlotted = true;
+                }
+            }
+
+            if (found == null && loaded && saved.Length > 0)
+            {
+                // The file's name in the corner of the frame, a tenth of its shorter side high.
+                double width = Math.Sqrt(ux * ux + uy * uy);
+                double height = Math.Sqrt(vx * vx + vy * vy);
+                double size = Math.Min(width, height) / 10.0;
+
+                if (size > 0.0)
+                {
+                    double ax = ux / width;
+                    double ay = uy / width;
+                    double bx = vx / height;
+                    double by = vy / height;
+                    list.Add(
+                        Text(
+                            FaceOf(null),
+                            saved,
+                            x + (ax + bx) * size / 2.0,
+                            y + (ay + by) * size / 2.0,
+                            size,
+                            Math.Atan2(uy, ux),
+                            1.0,
+                            0,
+                            0,
+                            style,
+                            handle,
+                            layerName,
+                            0.0,
+                            false
+                        )
+                    );
+                }
+            }
+        }
+
+        /// <summary>The last write time of a file in ticks, so that a picture changed on disk is read again; nought for none.</summary>
+        private static long Stamp(string path)
+        {
+            if (path == null)
+            {
+                return 0L;
+            }
+
+            try
+            {
+                return System.IO.File.GetLastWriteTimeUtc(path).Ticks;
+            }
+            catch (Exception)
+            {
+                return 0L;
+            }
+        }
+
+        /// <summary>
+        /// The ATTRIBs of an INSERT, its values, as a title block shows them: each a text where the file places it, in the
+        /// space of the INSERT (its own place, turn and scale are in the ATTRIB already), under the frame the INSERT is in,
+        /// picked as the INSERT, ByBlock taking the INSERT's look; an invisible one left out, as ATTMODE 1 has it (every one is shown under 2,
+        /// none under 0). A MINSERT shows them once.
+        /// </summary>
+        private void DrawAttributes(
+            DxfBlockReference reference,
+            Frame frame,
+            DisplayList2 list,
+            string handle,
+            string layerName,
+            DisplayStyle style,
+            double scaled = 1.0
+        )
+        {
+            Frame inner = frame.Child(frame.Matrix);
+            inner.RootHandle = handle;
+            inner.BlockLayer = layerName;
+            inner.BlockRgb = style.Rgb;
+            inner.BlockLineWeight = style.LineWeight;
+
+            foreach (DxfAttributeReference attribute in reference.AttributeCollection)
+            {
+                try
+                {
+                    if (!attribute.IsErased && (_attmode == 2 || (_attmode == 1 && !attribute.Invisible)))
+                    {
+                        Draw(
+                            scaled == 1.0 ? attribute : AttributeAt(attribute, reference.Position, scaled),
+                            inner,
+                            list,
+                            null
+                        );
+                    }
+                }
+                catch (Exception)
+                {
+                    // One attribute that cannot be drawn never stops the others.
+                }
+            }
+        }
+
+        /// <summary>
+        /// An attribute of an INSERT of an annotative block as it stands at another scale: a copy whose point is moved out from the
+        /// INSERT's by the factor and whose height is multiplied by it, as AutoCAD 2021 moves an attribute: (300, 1003) of an INSERT at
+        /// (300, 1000) is at (300, 1150) at 1:50 for one that stands at 1:1.
+        /// </summary>
+        private static DxfAttributeReference AttributeAt(
+            DxfAttributeReference attribute,
+            GeoPoint3 insert,
+            double factor
+        )
+        {
+            var copy = (DxfAttributeReference)attribute.Clone();
+            GeoPoint3 at = attribute.Position;
+            copy.Position = new GeoPoint3(
+                insert.X + (at.X - insert.X) * factor,
+                insert.Y + (at.Y - insert.Y) * factor,
+                at.Z
+            );
+            copy.Height = attribute.Height * factor;
+            return copy;
+        }
+
+        private void DrawBlock(
+            DxfBlockTableRecord block,
+            Affine2 placement,
+            DxfEntity owner,
+            Frame frame,
+            DisplayList2 list,
+            string handle,
+            string layerName,
+            DisplayStyle style,
+            IReadOnlyList<DxfSpatialFilter.Slab> slabs = null,
+            SectionLevels levels = null
+        )
+        {
+            if (block == null)
+            {
+                return;
+            }
+
+            Frame inner = frame.Child(placement.Then(frame.Matrix));
+            inner.Slabs = slabs;
+            inner.RootHandle = handle;
+            inner.BlockLayer = layerName;
+            inner.BlockRgb = style.Rgb;
+            inner.BlockLineWeight = style.LineWeight;
+
+            BlockContent content = ContentOf(block);
+
+            if (_building != null && (content?.IsAnonymous ?? IsAnonymous(block)))
+            {
+                // A dimension's or a table's picture may be shared with a copy, and moved by an edit of the other.
+                Read(block.Handle);
+            }
+
+            HashSet<string> hide = _refHidden;
+
+            if (content == null)
+            {
+                foreach (DxfEntity entity in block)
+                {
+                    if (hide != null && hide.Contains(HandleOf(entity) ?? string.Empty))
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        List<DxfEntity> prism = levels?.Cut(entity);
+
+                        if (prism != null)
+                        {
+                            levels.Leave(list);
+                            DrawParts(prism, slabs, inner, list, false);
+                            continue;
+                        }
+
+                        levels?.Enter(entity, list);
+
+                        if (slabs == null)
+                        {
+                            Draw(entity, inner, list, null);
+                        }
+                        else
+                        {
+                            DrawSliced(slabs, entity, inner, list, false);
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // One entity of a block that cannot be drawn never stops the others.
+                    }
+                }
+
+                return;
+            }
+
+            IReadOnlyList<DxfEntity> entities = content.Entities;
+            sbyte[] shown = content.Shown;
+
+            for (int i = 0; i < entities.Count; i++)
+            {
+                try
+                {
+                    // Whether an entity of the block is shown is read once a build, not once an INSERT.
+                    DxfEntity entity = entities[i];
+
+                    if (hide != null && hide.Contains(HandleOf(entity) ?? string.Empty))
+                    {
+                        continue;
+                    }
+
+                    if (shown[i] == 0 && entity != null)
+                    {
+                        shown[i] = entity.Visible ? (sbyte)1 : (sbyte)-1;
+                    }
+
+                    if (shown[i] >= 0)
+                    {
+                        List<DxfEntity> prism = levels?.Cut(entity);
+
+                        if (prism != null)
+                        {
+                            levels.Leave(list);
+                            DrawParts(prism, slabs, inner, list, shown[i] > 0);
+                            continue;
+                        }
+
+                        levels?.Enter(entity, list);
+
+                        if (slabs == null)
+                        {
+                            Draw(entity, inner, list, null, shown[i] > 0);
+                        }
+                        else
+                        {
+                            DrawSliced(slabs, entity, inner, list, shown[i] > 0);
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    // One entity of a block that cannot be drawn never stops the others.
+                }
+            }
+        }
+
+        private void DrawViewport(
+            DxfViewport viewport,
+            Frame frame,
+            DisplayList2 list,
+            DisplayStyle style,
+            string handle,
+            string layerName
+        )
+        {
+            if (
+                viewport.Number <= 1
+                || !viewport.On
+                || _modelCache == null
+                || viewport.Height <= 0.0
+                || viewport.ViewHeight <= 0.0
+            )
+            {
+                return;
+            }
+
+            var frozen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (DxfLayerTableRecord layer in viewport.GetFrozenLayers())
+            {
+                frozen.Add(layer.Name);
+            }
+
+            double scale = viewport.Height / viewport.ViewHeight;
+            GeoPoint3 center = viewport.CenterPoint;
+            GeoPoint2 view = CadViewports.FromView(viewport, viewport.ViewCenter);
+            double twist = viewport.TwistAngle;
+
+            // A viewport drawn under a move, as a paste previews it, takes its frame with it and the model it shows as it is.
+            Affine2 under = frame.Matrix;
+            DisplayClip2 outline = CadViewportClips.OutlineOf(viewport);
+
+            if (!under.IsIdentity)
+            {
+                center = new GeoPoint3(under.X(center.X, center.Y), under.Y(center.X, center.Y), center.Z);
+                outline = outline?.Transformed(under);
+            }
+
+            list.Add(
+                new DisplayViewport2(
+                    center.X,
+                    center.Y,
+                    viewport.Width,
+                    viewport.Height,
+                    view.X,
+                    view.Y,
+                    scale,
+                    twist,
+                    ModelSeenThrough(viewport),
+                    frozen,
+                    style,
+                    handle,
+                    layerName
+                )
+                {
+                    Clip = outline,
+                }
+            );
+        }
+
+        /// <summary>
+        /// The display list of model space a viewport shows: that of model space as it stands, or, where a layer looks otherwise
+        /// in the viewport (its colour, linetype or lineweight overridden there, as the Layer manager's VP columns set them),
+        /// model space drawn again with those layers as the viewport has them, as AutoCAD regenerates each viewport.
+        /// </summary>
+        private DisplayList2 ModelSeenThrough(DxfViewport viewport)
+        {
+            List<DxfLayerViewportProperties> looks = null;
+
+            foreach (DxfLayerTableRecord layer in _database.LayerTable)
+            {
+                if (layer.HasViewportOverrides(viewport))
+                {
+                    looks = looks ?? new List<DxfLayerViewportProperties>();
+                    looks.Add(layer.GetViewportOverrides(viewport));
+                }
+            }
+
+            string scaleName = ViewportScale(viewport);
+
+            if ((looks == null && scaleName == null) || _database.ModelSpace == null)
+            {
+                return _modelCache;
+            }
+
+            if (looks == null)
+            {
+                // Model space at another annotation scale, drawn once for each scale the viewports have.
+                _scaledModels = _scaledModels ?? new Dictionary<string, DisplayList2>(StringComparer.Ordinal);
+
+                if (!_scaledModels.TryGetValue(scaleName, out DisplayList2 scaled))
+                {
+                    scaled = new DisplayBuilder(_database, _document) { _scaleOverride = scaleName }.Build(
+                        _database.ModelSpace,
+                        false
+                    );
+                    _scaledModels[scaleName] = scaled;
+                }
+
+                return scaled;
+            }
+
+            var inner = new DisplayBuilder(_database, _document) { _scaleOverride = scaleName };
+
+            foreach (DxfLayerViewportProperties look in looks)
+            {
+                inner._layers[look.Layer.Name] = new LayerState(look.Layer, look, _defaultWeight);
+            }
+
+            return inner.Build(_database.ModelSpace, false);
+        }
+
+        private void DrawText(
+            DxfDBText text,
+            Frame frame,
+            DisplayList2 list,
+            DisplayStyle style,
+            string handle,
+            string layerName,
+            double heightFactor = 1.0
+        )
+        {
+            // The spaces before and after the words kept: AutoCAD justifies the words by them (mirror-insert GHMI1), "ABC " on the
+            // right of its baseline a space further left than "ABC".
+            // Its properties read in one pass of its groups, where each read alone looks for its own through them.
+            DxfDBText.DisplayRead read = text.ReadForDisplay();
+            string value = TextMarks(Trimmed(CleanText(read.TextString, false), '\n', '\n'), out byte[] marks);
+
+            if (string.IsNullOrWhiteSpace(value) || read.Height <= 0.0)
+            {
+                return;
+            }
+
+            GeoPoint3 at = read.At;
+            int horizontal;
+
+            switch (read.HorizontalMode)
+            {
+                case DxfTextHorizontalMode.TextCenter:
+                case DxfTextHorizontalMode.TextMid:
+                    horizontal = 1;
+                    break;
+                case DxfTextHorizontalMode.TextRight:
+                    horizontal = 2;
+                    break;
+                default:
+                    horizontal = 0;
+                    break;
+            }
+
+            int vertical;
+
+            switch (read.VerticalMode)
+            {
+                case DxfTextVerticalMode.TextBottom:
+                    vertical = 1;
+                    break;
+                case DxfTextVerticalMode.TextVerticalMid:
+                    vertical = 2;
+                    break;
+                case DxfTextVerticalMode.TextTop:
+                    vertical = 3;
+                    break;
+                default:
+                    // Middle (72 of 4) holds the text by the middle of its words up and down as well as across, as AutoCAD
+                    // 2021's JUSTIFYTEXT writes it: "HELLO" 5 high and 23.33 wide from (10, 10) is held by (21.67, 12.5).
+                    vertical = read.HorizontalMode == DxfTextHorizontalMode.TextMid ? 2 : 0;
+                    break;
+            }
+
+            Affine2 m = frame.Matrix;
+            double turn = Orient(m, read.Rotation, read.IsMirroredInX, read.IsMirroredInY, out bool backward);
+            DisplayText2 shown = Text(
+                FaceOf(read.TextStyleName),
+                value,
+                m.X(at.X, at.Y),
+                m.Y(at.X, at.Y),
+                read.Height * heightFactor * m.Scale,
+                turn,
+                read.WidthFactor,
+                horizontal,
+                vertical,
+                style,
+                handle,
+                layerName,
+                read.Oblique,
+                backward,
+                marks
+            );
+            shown.IsQuick = _quick;
+            list.Add(shown);
+        }
+
+        /// <summary>
+        /// The words of a TEXT without its codes that line letters, <c>%%U</c> under, <c>%%K</c> through and <c>%%O</c> over
+        /// them, each turning its line on or off for the letters after it, of any case; <paramref name="marks"/> says of each
+        /// letter left which lines it has (1 under, 2 through, 4 over), null where the words have no such code. "%%uAB%%uC" is
+        /// "ABC", A and B lined under.
+        /// </summary>
+        private static string TextMarks(string value, out byte[] marks)
+        {
+            marks = null;
+
+            if (value.IndexOf("%%", StringComparison.Ordinal) < 0)
+            {
+                return value;
+            }
+
+            var words = new StringBuilder(value.Length);
+            var lined = new List<byte>(value.Length);
+            byte now = 0;
+            bool any = false;
+
+            for (int i = 0; i < value.Length; i++)
+            {
+                if (value[i] == '%' && i + 2 < value.Length && value[i + 1] == '%')
+                {
+                    char code = char.ToLowerInvariant(value[i + 2]);
+                    byte mark = (byte)(
+                        code == 'u' ? 1
+                        : code == 'k' ? 2
+                        : code == 'o' ? 4
+                        : 0
+                    );
+
+                    if (mark != 0)
+                    {
+                        now ^= mark;
+                        any = true;
+                        i += 2;
+                        continue;
+                    }
+                }
+
+                words.Append(value[i]);
+                lined.Add(now);
+            }
+
+            if (!any)
+            {
+                return value;
+            }
+
+            marks = lined.ToArray();
+            return words.ToString();
+        }
+
+        /// <summary>Marks the text just drawn as that of a field, where the document draws fields on a grey ground and the text holds one.</summary>
+        private void MarkField(DxfEntity text, int before, DisplayList2 list)
+        {
+            if (
+                _document == null
+                || !_document.FieldDisplay
+                || list.Count <= before
+                || !(list.Items[list.Count - 1] is DisplayText2 drawn)
+                || !CadFields.Has(text)
+            )
+            {
+                return;
+            }
+
+            drawn.IsField = true;
+        }
+
+        /// <summary>
+        /// The width the display gives the words of a text (<see cref="DisplayText2.EstimatedWidth"/>), in the text's own units:
+        /// by the advances of its SHX font's letters, else 0.6 of its height a letter; nought for a text of no words.
+        /// </summary>
+        internal double WidthOf(DxfDBText text)
+        {
+            string value = CleanText(text.TextString);
+
+            if (value.Length == 0 || !(text.Height > 0.0))
+            {
+                return 0.0;
+            }
+
+            return Text(
+                FaceOf(text.TextStyleName),
+                value,
+                0.0,
+                0.0,
+                text.Height,
+                0.0,
+                text.WidthFactor,
+                0,
+                0,
+                null,
+                null,
+                null,
+                text.Oblique,
+                false
+            ).EstimatedWidth;
+        }
+
+        /// <summary>
+        /// Where the words of a text start and where their ink runs, along its baseline from the point it is placed by, in the
+        /// text's own units, as AutoCAD 2021's MIRROR measures them with MIRRTEXT 0 (probed in its console): in an SHX font by the
+        /// strokes the display draws, the words justified by the box of their ink; in a TrueType font by the outlines of its
+        /// file, the ink read as though the words started after any spaces before them, as AutoCAD reads it, and the words
+        /// justified by their advances, centred from the ink's left where it is left of their start. "ABC" of arial.ttf 2.5 high
+        /// on the left is inked from -0.0051 to 7.0430; centred, it starts at -3.5880. False where the font's letters are not read.
+        /// </summary>
+        internal bool InkOf(DxfDBText text, out double start, out double left, out double right)
+        {
+            start = 0.0;
+            left = 0.0;
+            right = 0.0;
+
+            // The spaces before and after the words kept, which AutoCAD justifies by and the display leaves out.
+            string value = CleanText(text.TextString, false);
+
+            if (value.Trim().Length == 0 || !(text.Height > 0.0))
+            {
+                return false;
+            }
+
+            CadFontFace face = FaceOf(text.TextStyleName);
+            double factor = text.WidthFactor <= 0.0 ? 1.0 : text.WidthFactor;
+            int horizontal =
+                text.HorizontalMode == DxfTextHorizontalMode.TextCenter
+                || text.HorizontalMode == DxfTextHorizontalMode.TextMid
+                    ? 1
+                : text.HorizontalMode == DxfTextHorizontalMode.TextRight ? 2
+                : 0;
+
+            if (face.Shx != null)
+            {
+                // The ink from where the words start, then from the point they are justified at: the difference is their start.
+                if (
+                    !ShxInk(face, value, text.Height, factor, 0, out double from, out _)
+                    || !ShxInk(face, value, text.Height, factor, horizontal, out left, out right)
+                )
+                {
+                    return false;
+                }
+
+                start = left - from;
+                return true;
+            }
+
+            CadTextInk ink = CadTextInk.Of(face, false, false);
+
+            if (!ink.IsRead)
+            {
+                return false;
+            }
+
+            double size = text.Height * factor;
+            double pen = 0.0;
+            double skipped = 0.0;
+            double first = double.MaxValue;
+            double inkLeft = double.MaxValue;
+            double inkRight = double.MinValue;
+            bool begun = false;
+            int i = 0;
+
+            while (i < value.Length)
+            {
+                CadTextInk.Letter letter = ink.Next(value, ref i);
+
+                if (letter.HasInk)
+                {
+                    begun = true;
+                    first = Math.Min(first, pen + letter.Left);
+                    inkLeft = Math.Min(inkLeft, pen - skipped + letter.Left);
+                    inkRight = Math.Max(inkRight, pen - skipped + letter.Right);
+                }
+                else if (!begun)
+                {
+                    skipped += letter.Advance;
+                }
+
+                pen += letter.Advance;
+            }
+
+            if (inkLeft > inkRight)
+            {
+                return false;
+            }
+
+            double advance = pen * size;
+            start =
+                horizontal == 0 ? 0.0
+                : horizontal == 1 ? -(advance + Math.Min(0.0, first * size)) / 2.0
+                : -advance;
+            left = start + (inkLeft * size);
+            right = start + (inkRight * size);
+            return true;
+        }
+
+        /// <summary>
+        /// How far below and above its baseline the ink of a text runs, as AutoCAD 2021's MIRROR measures it with MIRRTEXT 0
+        /// (probed in its console, mirror-insert GHMI1): in an SHX font by the strokes the display draws, in a TrueType font by
+        /// the outlines of its file. "Q1" of arial.ttf 1.5 high reaches below its baseline by the tail of its Q, so that it is
+        /// turned over about a line 0.705 above its baseline, not 0.75. False where the font's letters are not read, and where
+        /// the words have no ink.
+        /// </summary>
+        internal bool InkHeightOf(DxfDBText text, out double bottom, out double top)
+        {
+            bottom = double.MaxValue;
+            top = double.MinValue;
+            string value = CleanText(text.TextString, false);
+
+            if (value.Trim().Length == 0 || !(text.Height > 0.0))
+            {
+                return false;
+            }
+
+            CadFontFace face = FaceOf(text.TextStyleName);
+
+            if (face.Shx == null)
+            {
+                // A TrueType font only where the style names one: an SHX font the display has not, drawn in another, is not
+                // measured by that other, whose letters stand unlike the missing font's.
+                CadTextInk ink = CadTextInk.Of(face, false, false);
+
+                if (!ink.IsRead || !NamesTrueType(text.TextStyleName))
+                {
+                    return false;
+                }
+
+                int i = 0;
+
+                while (i < value.Length)
+                {
+                    CadTextInk.Letter letter = ink.Next(value, ref i);
+
+                    if (letter.HasInk)
+                    {
+                        bottom = Math.Min(bottom, letter.Bottom * text.Height);
+                        top = Math.Max(top, letter.Top * text.Height);
+                    }
+                }
+
+                return bottom <= top;
+            }
+
+            double factor = text.WidthFactor <= 0.0 ? 1.0 : text.WidthFactor;
+
+            foreach (
+                double[] stroke in ShxText.Strokes(
+                    face,
+                    value,
+                    0.0,
+                    0.0,
+                    text.Height,
+                    0.0,
+                    factor,
+                    0,
+                    0,
+                    0.0,
+                    false,
+                    0.0,
+                    out _
+                )
+            )
+            {
+                for (int p = 1; p < stroke.Length; p += 2)
+                {
+                    bottom = Math.Min(bottom, stroke[p]);
+                    top = Math.Max(top, stroke[p]);
+                }
+            }
+
+            return bottom <= top;
+        }
+
+        /// <summary>Whether a text style names a TrueType font: a file of .ttf, .ttc or .otf, or a typeface; false for one not found.</summary>
+        private bool NamesTrueType(string styleName)
+        {
+            try
+            {
+                DxfTextStyleTableRecord record = _database.TextStyleTable[
+                    string.IsNullOrEmpty(styleName) ? "Standard" : styleName
+                ];
+
+                if (record == null)
+                {
+                    return false;
+                }
+
+                string file = record.FileName ?? string.Empty;
+                return file.EndsWith(".ttf", StringComparison.OrdinalIgnoreCase)
+                    || file.EndsWith(".ttc", StringComparison.OrdinalIgnoreCase)
+                    || file.EndsWith(".otf", StringComparison.OrdinalIgnoreCase)
+                    || !string.IsNullOrEmpty(record.Font.TypeFace);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>The left and right of the strokes of some words in an SHX font, upright, from the point they are justified at; false where they have none.</summary>
+        private static bool ShxInk(
+            CadFontFace face,
+            string value,
+            double height,
+            double factor,
+            int horizontal,
+            out double left,
+            out double right
+        )
+        {
+            left = double.MaxValue;
+            right = double.MinValue;
+
+            foreach (
+                double[] stroke in ShxText.Strokes(
+                    face,
+                    value,
+                    0.0,
+                    0.0,
+                    height,
+                    0.0,
+                    factor,
+                    horizontal,
+                    0,
+                    0.0,
+                    false,
+                    0.0,
+                    out _
+                )
+            )
+            {
+                for (int p = 0; p + 1 < stroke.Length; p += 2)
+                {
+                    left = Math.Min(left, stroke[p]);
+                    right = Math.Max(right, stroke[p]);
+                }
+            }
+
+            return left <= right;
+        }
+
+        /// <summary>
+        /// A text drawn in a face: by the canvas in the face's name where it is no SHX font; else as the strokes of its letters
+        /// (<see cref="ShxText"/>), its width that of their advances and its frame reaching down to the font's depth below the
+        /// baseline, by which a text aligned at its bottom stands, as AutoCAD stands one.
+        /// </summary>
+        private static DisplayText2 Text(
+            CadFontFace face,
+            string value,
+            double x,
+            double y,
+            double height,
+            double rotation,
+            double widthFactor,
+            int horizontal,
+            int vertical,
+            DisplayStyle style,
+            string handle,
+            string layerName,
+            double oblique,
+            bool backward,
+            byte[] marks = null
+        )
+        {
+            if (face.Shx == null)
+            {
+                return new DisplayText2(
+                    value,
+                    x,
+                    y,
+                    height,
+                    rotation,
+                    widthFactor,
+                    horizontal,
+                    vertical,
+                    style,
+                    handle,
+                    layerName,
+                    face.Name,
+                    oblique,
+                    backward
+                );
+            }
+
+            double factor = widthFactor <= 0.0 ? 1.0 : widthFactor;
+            double descent = height * face.Shx.Below / face.Shx.Above;
+            List<double[]> strokes = ShxText.Strokes(
+                face,
+                value,
+                x,
+                y,
+                height,
+                rotation,
+                factor,
+                horizontal,
+                vertical,
+                oblique,
+                backward,
+                descent,
+                out double width,
+                marks
+            );
+            return new DisplayText2(
+                value,
+                x,
+                y,
+                height,
+                rotation,
+                factor,
+                horizontal,
+                vertical,
+                style,
+                handle,
+                layerName,
+                face.Name,
+                oblique,
+                backward,
+                strokes,
+                width,
+                descent
+            );
+        }
+
+        private void DrawMText(
+            DxfMText text,
+            Frame frame,
+            DisplayList2 list,
+            DisplayStyle style,
+            string handle,
+            string layerName
+        )
+        {
+            string value = CleanText(text.Text);
+
+            if (value.Length == 0 || text.TextHeight <= 0.0)
+            {
+                return;
+            }
+
+            GeoPoint3 at = text.Location;
+            int attach = (int)text.Attachment;
+            int horizontal =
+                attach == 2 || attach == 5 || attach == 8 ? 1
+                : attach == 3 || attach == 6 || attach == 9 ? 2
+                : 0;
+            int vertical =
+                attach <= 3 ? 3
+                : attach <= 6 ? 2
+                : 1;
+            GeoVector3 direction = text.Direction;
+            double rotation = Math.Atan2(direction.Y, direction.X);
+            Affine2 m = frame.Matrix;
+            double turn = Orient(m, rotation, false, false, out bool backward);
+            string contents = text.Contents;
+            string styleName = text.TextStyleName;
+            CadFontFace face = FaceOfCode(contents) ?? FaceOf(styleName);
+
+            // The text keeps its words, height and attachment as one text has them, for what reads it; it is drawn by its parts,
+            // the words laid out as AutoCAD lays them.
+            var whole = new DisplayText2(
+                value,
+                m.X(at.X, at.Y),
+                m.Y(at.X, at.Y),
+                text.TextHeight * m.Scale,
+                turn,
+                WidthOf(contents, WidthFactorOf(styleName)),
+                horizontal,
+                vertical,
+                style,
+                handle,
+                layerName,
+                face.Name,
+                ObliqueOf(styleName),
+                backward
+            );
+            CadMTextLayout layout = LayoutOf(text);
+            whole.SetMeasure(layout.ActualWidth * m.Scale, 0.0);
+            whole.SetParts(MTextParts(text, layout, frame, style, handle, layerName));
+            whole.IsQuick = _quick;
+            list.Add(whole);
+        }
+
+        /// <summary>
+        /// The font an MTEXT's codes switch to before the first of its words, as AutoCAD writes them: <c>\fArial|b0|i0|c0|p34;</c>
+        /// a typeface, <c>\Fromans|c0;</c> or <c>\Fromans.shx;</c> an SHX file; the last of them where there are several; null
+        /// where they switch to none. A switch later in the words is not read, as the words are drawn in one font.
+        /// </summary>
+        private static string FontCodeOf(string contents, out bool shx)
+        {
+            string name = null;
+            shx = false;
+            int i = 0;
+
+            while (i < contents.Length)
+            {
+                if (contents[i] == '{')
+                {
+                    i++;
+                    continue;
+                }
+
+                if (contents[i] != '\\' || i + 1 >= contents.Length)
+                {
+                    break;
+                }
+
+                char code = contents[i + 1];
+
+                if ("LlOoKk".IndexOf(code) >= 0)
+                {
+                    i += 2;
+                    continue;
+                }
+
+                int end = contents.IndexOf(';', i + 2);
+
+                if ("ACcFfHQTWp".IndexOf(code) < 0 || end < 0)
+                {
+                    break;
+                }
+
+                if (code == 'f' || code == 'F')
+                {
+                    string font = contents.Substring(i + 2, end - i - 2).Split('|')[0].Trim();
+                    name = font.Length > 0 ? font : name;
+                    shx = font.Length > 0 ? code == 'F' : shx;
+                }
+
+                i = end + 1;
+            }
+
+            return name;
+        }
+
+        /// <summary>
+        /// The width factor of an MTEXT's letters: that its codes set before the first of its words, <c>\W0.8000;</c> for 0.8 as
+        /// AutoCAD writes it, a factor ending in x taken of the one before; the width of its text style where they set none, as
+        /// its style's slant is taken. A width set later in the words is not read, as the words are drawn at one width.
+        /// </summary>
+        private static double WidthOf(string contents, double styleFactor)
+        {
+            double factor = styleFactor;
+            int i = 0;
+
+            while (i < contents.Length)
+            {
+                if (contents[i] == '{')
+                {
+                    i++;
+                    continue;
+                }
+
+                if (contents[i] != '\\' || i + 1 >= contents.Length)
+                {
+                    break;
+                }
+
+                char code = contents[i + 1];
+
+                if ("LlOoKk".IndexOf(code) >= 0)
+                {
+                    i += 2;
+                    continue;
+                }
+
+                int end = contents.IndexOf(';', i + 2);
+
+                if ("ACcFfHQTWp".IndexOf(code) < 0 || end < 0)
+                {
+                    break;
+                }
+
+                string number = contents.Substring(i + 2, end - i - 2);
+                bool times = number.EndsWith("x", StringComparison.OrdinalIgnoreCase);
+
+                if (
+                    code == 'W'
+                    && double.TryParse(
+                        times ? number.Substring(0, number.Length - 1) : number,
+                        NumberStyles.Float,
+                        CultureInfo.InvariantCulture,
+                        out double read
+                    )
+                    && read > 0.0
+                )
+                {
+                    factor = times ? factor * read : read;
+                }
+
+                i = end + 1;
+            }
+
+            return factor;
+        }
+
+        /// <summary>
+        /// The angle a text's baseline is drawn at under a frame, and whether it is drawn backwards: written backwards (its flag
+        /// 2), upside down (its flag 4), or in a block inserted mirrored, as AutoCAD draws text in a mirrored block, MIRRTEXT
+        /// applying to MIRROR alone. Upside down is backwards turned half round. A text none of these turn over is drawn at its
+        /// own angle and the frame's, as before.
+        /// </summary>
+        private static double Orient(Affine2 m, double rotation, bool backward, bool upsideDown, out bool drawnBackward)
+        {
+            if (!backward && !upsideDown && m.Determinant >= 0.0)
+            {
+                drawnBackward = false;
+                return rotation + m.Rotation;
+            }
+
+            // The way the letters run and the way up, each turned over as the text says, carried by the frame.
+            double cos = Math.Cos(rotation);
+            double sin = Math.Sin(rotation);
+            double ax = backward ? -cos : cos;
+            double ay = backward ? -sin : sin;
+            double bx = upsideDown ? sin : -sin;
+            double by = upsideDown ? -cos : cos;
+            double runX = m.A * ax + m.C * ay;
+            double runY = m.B * ax + m.D * ay;
+            double upX = m.A * bx + m.C * by;
+            double upY = m.B * bx + m.D * by;
+            double turn = Math.Atan2(runY, runX);
+            drawnBackward = runX * upY - runY * upX < 0.0;
+
+            if (!drawnBackward)
+            {
+                return turn;
+            }
+
+            // Drawn backwards, the letters run against the angle: the angle half a turn round, kept within a turn of nought.
+            turn += Math.PI;
+            return turn > Math.PI ? turn - 2.0 * Math.PI : turn;
+        }
+
+        private void DrawHatch(
+            DxfHatch hatch,
+            Frame frame,
+            DisplayList2 list,
+            DisplayStyle style,
+            string handle,
+            string layerName
+        )
+        {
+            var rings = new List<double[]>();
+            int loops = hatch.NumberOfLoops;
+
+            for (int i = 0; i < loops; i++)
+            {
+                DxfHatchLoop loop = hatch.GetLoopAt(i);
+                var chain = new List<double>();
+
+                if (loop.IsPolyline)
+                {
+                    FlattenInto(loop.Polyline, frame.Matrix, chain);
+                }
+                else
+                {
+                    foreach (object curve in loop.Curves)
+                    {
+                        FlattenInto(curve, frame.Matrix, chain);
+                    }
+                }
+
+                if (chain.Count >= 6)
+                {
+                    rings.Add(chain.ToArray());
+                }
+            }
+
+            if (rings.Count == 0)
+            {
+                return;
+            }
+
+            if (hatch.IsGradient)
+            {
+                // A gradient is filled with the colour halfway along it.
+                int mid = style.Rgb;
+
+                try
+                {
+                    DxfColor color = hatch.EvaluateGradientColorAt(0.5f);
+                    mid = color == null ? mid : color.ColorValue & 0xFFFFFF;
+                }
+                catch (Exception)
+                {
+                    mid = style.Rgb;
+                }
+
+                AddFilled(list, rings, PlainStyleOf(mid, style.LineWeight), handle, layerName);
+                return;
+            }
+
+            if (hatch.IsSolidFill)
+            {
+                AddFilled(list, rings, style, handle, layerName);
+                return;
+            }
+
+            double[] lines = PatternLines(hatch, frame.Matrix);
+
+            if (lines != null)
+            {
+                // The pattern's own dashes are in its lines; the hatch's linetype is not laid over them, as AutoCAD lays none.
+                list.Add(
+                    new DisplaySegments2(lines, PlainStyleOf(style.Rgb, style.LineWeight), handle, layerName)
+                    {
+                        Rings = rings,
+                    }
+                );
+                return;
+            }
+
+            // A pattern whose lines the hatch does not hold, or too many of them, is drawn by its boundary.
+            foreach (double[] ring in rings)
+            {
+                list.Add(new DisplayPolyline2(ring, true, style, handle, layerName));
+            }
+        }
+
+        /// <summary>
+        /// The lines of a hatch's pattern cut by its loops, placed in the drawing; null where the hatch holds no lines of its
+        /// pattern or would draw more than <see cref="MaxHatchLines"/>. A hatch of a block is read once per
+        /// <see cref="Build"/> however many INSERTs show it, and placed by each: a wall block of 3 hatches inserted 1 500 times
+        /// reads 3.
+        /// </summary>
+        private double[] PatternLines(DxfHatch hatch, Affine2 m)
+        {
+            if (!_patterns.TryGetValue(hatch, out HatchPattern pattern))
+            {
+                pattern = ReadPattern(hatch);
+                _patterns[hatch] = pattern;
+            }
+
+            if (pattern == null)
+            {
+                return null;
+            }
+
+            IReadOnlyList<GeoLine2> lines = pattern.Lines;
+            var xy = new double[lines.Count * 4];
+
+            for (int i = 0; i < lines.Count; i++)
+            {
+                GeoLine2 line = lines[i];
+                Place(
+                    pattern.Ecs,
+                    m,
+                    line.StartPoint.X,
+                    line.StartPoint.Y,
+                    pattern.Elevation,
+                    out xy[4 * i],
+                    out xy[4 * i + 1]
+                );
+                Place(
+                    pattern.Ecs,
+                    m,
+                    line.EndPoint.X,
+                    line.EndPoint.Y,
+                    pattern.Elevation,
+                    out xy[4 * i + 2],
+                    out xy[4 * i + 3]
+                );
+            }
+
+            return xy;
+        }
+
+        /// <summary>
+        /// The lines of a hatch's pattern cut by its loops, as <see cref="DxfHatch.GetHatchLinesData"/> gives them in the
+        /// hatch's own system, with that system; null where the hatch holds none or would draw more than
+        /// <see cref="MaxHatchLines"/>, which a rough count from the spacing and the dashes refuses before the lines are
+        /// worked out.
+        /// </summary>
+        private static HatchPattern ReadPattern(DxfHatch hatch)
+        {
+            try
+            {
+                int definitions = hatch.NumberOfPatternDefinitions;
+
+                if (definitions == 0)
+                {
+                    return null;
+                }
+
+                GeoAabb3 extents = hatch.GeometricExtents;
+                double dx = extents.Max.X - extents.Min.X;
+                double dy = extents.Max.Y - extents.Min.Y;
+                double diagonal = Math.Sqrt(dx * dx + dy * dy);
+                double estimate = 0.0;
+
+                for (int i = 0; i < definitions; i++)
+                {
+                    DxfPatternDefinition definition = hatch.GetPatternDefinitionAt(i);
+                    double spacing = Math.Abs(
+                        Math.Cos(definition.Angle) * definition.OffsetY
+                            - Math.Sin(definition.Angle) * definition.OffsetX
+                    );
+
+                    if (spacing <= diagonal * 1E-9)
+                    {
+                        return null;
+                    }
+
+                    double perLine = 1.0;
+                    IReadOnlyList<double> dashes = definition.GetDashes();
+
+                    if (dashes.Count > 0)
+                    {
+                        double period = 0.0;
+
+                        foreach (double dash in dashes)
+                        {
+                            period += Math.Abs(dash);
+                        }
+
+                        perLine =
+                            period <= diagonal * 1E-9
+                                ? double.PositiveInfinity
+                                : (diagonal / period + 1.0) * dashes.Count;
+                    }
+
+                    estimate += (diagonal / spacing + 1.0) * perLine;
+                }
+
+                if (estimate > 4.0 * MaxHatchLines)
+                {
+                    return null;
+                }
+
+                IReadOnlyList<GeoLine2> lines = hatch.GetHatchLinesData();
+
+                if (lines.Count == 0 || lines.Count > MaxHatchLines)
+                {
+                    return null;
+                }
+
+                return new HatchPattern(lines, hatch.Ecs, hatch.Elevation);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>The lines of a hatch's pattern in its own system, the system and its elevation, as read once.</summary>
+        private sealed class HatchPattern
+        {
+            public HatchPattern(IReadOnlyList<GeoLine2> lines, GeoTransform3 ecs, double elevation)
+            {
+                Lines = lines;
+                Ecs = ecs;
+                Elevation = elevation;
+            }
+
+            public IReadOnlyList<GeoLine2> Lines { get; }
+
+            public GeoTransform3 Ecs { get; }
+
+            public double Elevation { get; }
+        }
+
+        /// <summary>A point of an entity's own system taken to the world and then into the drawing.</summary>
+        private static void Place(
+            GeoTransform3 ecs,
+            Affine2 m,
+            double x,
+            double y,
+            double z,
+            out double px,
+            out double py
+        )
+        {
+            double wx = ecs[0, 0] * x + ecs[0, 1] * y + ecs[0, 2] * z + ecs[0, 3];
+            double wy = ecs[1, 0] * x + ecs[1, 1] * y + ecs[1, 2] * z + ecs[1, 3];
+            px = m.X(wx, wy);
+            py = m.Y(wx, wy);
+        }
+
+        private static string CleanText(string value, bool trim = true)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return string.Empty;
+            }
+
+            // Words with no code and no carriage return in them are the words as they stand: no builder, no second string.
+            string cleaned = NeedsCleaning(value) ? Cleaned(value) : value;
+            return trim ? Trimmed(cleaned, '\n', ' ') : cleaned;
+        }
+
+        /// <summary>Whether <see cref="Cleaned"/> would change the words: they have a carriage return, or a code for a degree, a plus-minus or a diameter sign.</summary>
+        private static bool NeedsCleaning(string value)
+        {
+            for (int i = 0; i < value.Length; i++)
+            {
+                char c = value[i];
+
+                if (c == '\r')
+                {
+                    return true;
+                }
+
+                if (c == '%' && i + 2 < value.Length && value[i + 1] == '%')
+                {
+                    char code = char.ToLowerInvariant(value[i + 2]);
+
+                    if (code == 'd' || code == 'p' || code == 'c')
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>The words without the characters <paramref name="first"/> and <paramref name="second"/> at either end, as <c>Trim</c> of the two cuts them, but the characters are not put in an array of their own for each call.</summary>
+        private static string Trimmed(string value, char first, char second)
+        {
+            int start = 0;
+            int end = value.Length;
+
+            while (start < end && (value[start] == first || value[start] == second))
+            {
+                start++;
+            }
+
+            while (end > start && (value[end - 1] == first || value[end - 1] == second))
+            {
+                end--;
+            }
+
+            if (start == 0 && end == value.Length)
+            {
+                return value;
+            }
+
+            return start == end ? string.Empty : value.Substring(start, end - start);
+        }
+
+        private static string Cleaned(string value)
+        {
+            var builder = new StringBuilder(value.Length);
+
+            for (int i = 0; i < value.Length; i++)
+            {
+                char c = value[i];
+
+                if (c == '%' && i + 2 < value.Length && value[i + 1] == '%')
+                {
+                    char code = char.ToLowerInvariant(value[i + 2]);
+
+                    if (code == 'd')
+                    {
+                        builder.Append('°');
+                        i += 2;
+                        continue;
+                    }
+
+                    if (code == 'p')
+                    {
+                        builder.Append('±');
+                        i += 2;
+                        continue;
+                    }
+
+                    if (code == 'c')
+                    {
+                        builder.Append('Ø');
+                        i += 2;
+                        continue;
+                    }
+                }
+
+                if (c == '\r')
+                {
+                    continue;
+                }
+
+                builder.Append(c);
+            }
+
+            return builder.ToString();
+        }
+
+        private static string Format(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+    }
+}

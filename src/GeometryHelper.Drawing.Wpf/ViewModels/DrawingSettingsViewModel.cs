@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using GeometryHelper.Dxf.Viewer.Wpf;
+using GeometryHelper.Cad.Wpf;
 using GeometryHelper.Packing;
 
 namespace GeometryHelper.Drawing.Wpf

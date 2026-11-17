@@ -23,9 +23,9 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" />
-        <ProjectReference Include="..\..\src\GeometryHelper.Dxf.Viewer\GeometryHelper.Dxf.Viewer.csproj" />
+        <ProjectReference Include="..\..\src\GeometryHelper.Cad\GeometryHelper.Cad.csproj" />
         <ProjectReference Include="..\..\src\GeometryHelper.Drawing\GeometryHelper.Drawing.csproj" />
-        <ProjectReference Include="..\..\src\GeometryHelper.Dxf.Viewer.Wpf\GeometryHelper.Dxf.Viewer.Wpf.csproj" />
+        <ProjectReference Include="..\..\src\GeometryHelper.Cad.Wpf\GeometryHelper.Cad.Wpf.csproj" />
         <!-- Built first, never referenced: the plugin tests load its .dll as a drawing plugin, from SamplePlugin\ beside them. -->
         <ProjectReference
             Include="..\GeometryHelper.Drawing.SamplePlugin\GeometryHelper.Drawing.SamplePlugin.csproj"

@@ -234,7 +234,7 @@ namespace GeometryHelper.Drawing
         {
             switch (edit.Kind)
             {
-                case Dxf.Viewer.CadEditKind.Erase:
+                case Cad.CadEditKind.Erase:
                     if (!dimension.IsErased)
                     {
                         // Its picture goes with it, where it is its own.
@@ -254,7 +254,7 @@ namespace GeometryHelper.Drawing
 
                     return;
 
-                case Dxf.Viewer.CadEditKind.Move:
+                case Cad.CadEditKind.Move:
                     if (TryReadMove(edit.NewValue, out GeoVector2 move))
                     {
                         dimension.TransformBy(GeoTransform3.Translation(new GeoVector3(move.X, move.Y, 0.0)));
@@ -262,7 +262,7 @@ namespace GeometryHelper.Drawing
 
                     return;
 
-                case Dxf.Viewer.CadEditKind.Property:
+                case Cad.CadEditKind.Property:
                     string text = edit.NewValue ?? string.Empty;
                     dimension.DimensionText = text;
                     DxfBlockTableRecord block = dimension.DimBlock;
@@ -348,7 +348,7 @@ namespace GeometryHelper.Drawing
             {
                 foreach (DrawingEdit edit in edits)
                 {
-                    if (edit.Kind == Dxf.Viewer.CadEditKind.Move && TryReadMove(edit.NewValue, out GeoVector2 move))
+                    if (edit.Kind == Cad.CadEditKind.Move && TryReadMove(edit.NewValue, out GeoVector2 move))
                     {
                         x += move.X;
                         y += move.Y;

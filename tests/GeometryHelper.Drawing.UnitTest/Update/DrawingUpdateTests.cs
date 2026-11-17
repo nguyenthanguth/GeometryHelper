@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using GeometryHelper.Cad;
 using GeometryHelper.Drawing.Annotation;
 using GeometryHelper.Dxf;
-using GeometryHelper.Dxf.Viewer;
 using GeometryHelper.Geometry;
 using Xunit;
 using Xunit.Abstractions;

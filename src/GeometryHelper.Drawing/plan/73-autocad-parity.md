@@ -1,7 +1,7 @@
 # AutoCAD 2021 parity of the presenter (Part A)
 
-A read-only check, made on 2026-11-10 at `main` bd614aac, of `GeometryHelper.Dxf.Viewer`, `.Dxf.Viewer.Wpf` and
-`GeometryHelper.Dxf.App` against AutoCAD 2021's 2D drafting and annotation set. It replaces the list of
+A read-only check, made on 2026-11-10 at `main` bd614aac, of `GeometryHelper.Cad`, `.Cad.Wpf` and
+`GeometryHelper.Cad.App` against AutoCAD 2021's 2D drafting and annotation set. It replaces the list of
 [72-autocad-gap.md](72-autocad-gap.md), most of whose big items are built since. The work it leads to is kept in
 `PROGRESS.md` at the root of the repository; this page is the full list it is taken from.
 

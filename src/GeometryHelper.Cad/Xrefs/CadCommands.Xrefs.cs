@@ -1,0 +1,2147 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using GeometryHelper.Dxf;
+using GeometryHelper.Geometry;
+
+namespace GeometryHelper.Cad
+{
+    /// <summary>
+    /// The commands of external references and images, in AutoCAD 2021's words: XATTACH and IMAGEATTACH (the attach dialogs,
+    /// their typed forms with no window), XREF, EXTERNALREFERENCES and IMAGE (the palette), -XREF and -IMAGE, XOPEN, IMAGECLIP,
+    /// IMAGEFRAME and TRANSPARENCY. Each change of the drawing is one undo step; unloading and reloading change what is shown,
+    /// and the drawing only by the flags and records of the layers and linetypes of the reference
+    /// (<see cref="CadXrefLayers.Bring"/>), a step where they change.
+    /// </summary>
+    internal static partial class CadCommands
+    {
+        private static readonly string[] XrefOptions =
+        {
+            "?",
+            "Bind",
+            "Detach",
+            "Path",
+            "pathType",
+            "Unload",
+            "Reload",
+            "Overlay",
+            "Attach",
+        };
+        private static readonly string[] ImageOptions = { "?", "Detach", "Path", "Reload", "Unload", "Attach" };
+        private static readonly string[] XrefPointKeywords =
+        {
+            "Scale",
+            "X",
+            "Y",
+            "Z",
+            "Rotate",
+            "PScale",
+            "PX",
+            "PY",
+            "PZ",
+            "PRotate",
+        };
+
+        internal static void AddXrefsTo(CadCommandRegistry registry)
+        {
+            registry.Add(new CadCommand("XATTACH", c => Attach(c, CadAttachKind.Xref)));
+            registry.Add(new CadCommand("IMAGEATTACH", c => Attach(c, CadAttachKind.Image)));
+            registry.Add(new CadCommand("XREF", XrefPalette));
+            registry.Add(new CadCommand("EXTERNALREFERENCES", XrefPalette));
+            registry.Add(new CadCommand("IMAGE", XrefPalette));
+            registry.Add(new CadCommand("-XREF", XrefTyped));
+            registry.Add(new CadCommand("-IMAGE", ImageTyped));
+            registry.Add(new CadCommand("XOPEN", XrefOpen));
+            registry.Add(new CadCommand("IMAGECLIP", ImageClip));
+            registry.Add(new CadCommand("TRANSPARENCY", Transparency, true));
+            registry.Add(new CadCommand("IMAGEQUALITY", ImageQuality));
+        }
+
+        /// <summary>
+        /// IMAGEQUALITY: "Enter image quality setting [High/Draft] &lt;High&gt;:" (the drawing's own setting offered), the quality
+        /// every image of the drawing is drawn in: High blends its pixels where it is scaled, Draft draws each pixel as a
+        /// square, faster. It is kept in the drawing's variables of images (RASTERVARIABLES, group 71), made where there are
+        /// none as IMAGEFRAME makes them, and is no system variable: AutoCAD 2021's <c>getvar</c> of it is nil. One undo step.
+        /// </summary>
+        private static IEnumerable<CadPrompt> ImageQuality(CadCommandContext c)
+        {
+            if (c.Database.NamedObjectsDictionary == null)
+            {
+                c.Write("IMAGEQUALITY is kept in the drawing's objects, which a drawing of R12 has none of.");
+                yield break;
+            }
+
+            DxfRasterVariables variables = ImageVariables(c.Database);
+            bool draft = variables != null && variables.ImageQuality == DxfImageQuality.Draft;
+            yield return CadPrompt.ForKeyword(
+                "Enter image quality setting",
+                new[] { "High", "Draft" },
+                draft ? "Draft" : "High"
+            );
+
+            if (c.Input.Kind != CadInputKind.Keyword)
+            {
+                yield break;
+            }
+
+            bool wanted = c.Input.Is("Draft");
+
+            if (wanted == draft)
+            {
+                yield break;
+            }
+
+            c.Apply(
+                new[]
+                {
+                    new CadEditRecord(
+                        CadEditRecordKind.TableChanged,
+                        null,
+                        "IMAGEQUALITY",
+                        draft ? "Draft" : "High",
+                        wanted ? "Draft" : "High"
+                    ),
+                },
+                s =>
+                    (ImageVariables(s.Database) ?? DxfRasterVariables.GetRasterVariables(s.Database)).ImageQuality =
+                        wanted ? DxfImageQuality.Draft : DxfImageQuality.High
+            );
+        }
+
+        /// <summary>XREF (XR), EXTERNALREFERENCES (ER) and IMAGE (IM): the window's External References palette.</summary>
+        private static IEnumerable<CadPrompt> XrefPalette(CadCommandContext c)
+        {
+            if (!c.Session.Request("XREF", c.Document))
+            {
+                c.Write("The External References palette is shown by the window.");
+            }
+
+            yield break;
+        }
+
+        /// <summary>
+        /// XOPEN: the drawing of an external reference picked opened in a tab of its own, as AutoCAD 2021 opens it in a window
+        /// of its own. "Select Xref:" is asked until an external reference is picked, anything else answered "Object is not an
+        /// Xref", or until Enter, which ends it saying nothing. A pick on what a nested reference draws takes the INSERT the
+        /// drawing places, and opens its reference. One whose file is not found is refused as -XREF Reload refuses it. The
+        /// window opens the file; with none, the command says so.
+        /// </summary>
+        private static IEnumerable<CadPrompt> XrefOpen(CadCommandContext c)
+        {
+            while (true)
+            {
+                yield return CadPrompt.ForEntity("Select Xref");
+
+                if (c.Input.Kind != CadInputKind.Selection)
+                {
+                    yield break;
+                }
+
+                DxfBlockTableRecord block =
+                    c.Document.FindEntity(c.Input.Handles[0]) is DxfBlockReference reference
+                    && c.Database.BlockTable.Has(reference.Name)
+                        ? c.Database.BlockTable[reference.Name]
+                        : null;
+
+                if (block == null || !block.IsFromExternalReference)
+                {
+                    c.Write("Object is not an Xref");
+                    continue;
+                }
+
+                string found = c.Document.Xrefs.Locate(block.PathName);
+
+                if (found == null)
+                {
+                    c.Write("\"" + block.PathName + "\" cannot be found.");
+                }
+                else if (!c.Session.Request("XOPEN", c.Document, found))
+                {
+                    c.Write("The drawing " + found + " is opened in a tab of its own by the window.");
+                }
+
+                yield break;
+            }
+        }
+
+        /// <summary>
+        /// XATTACH (XA) and IMAGEATTACH (IAT): the window's attach dialog; OK attaches the file chosen, asking on the command
+        /// line what is to be specified on screen. With no window, the file's name typed and every placing asked. With FILEDIA
+        /// 0, the file's name is asked on the command line instead of the window's file dialog, "Enter name of file to
+        /// attach:" or "Enter image file name to attach:", and the dialog shown with it; a file not found is said and no dialog
+        /// shown.
+        /// </summary>
+        private static IEnumerable<CadPrompt> Attach(CadCommandContext c, CadAttachKind kind)
+        {
+            var request = new CadAttachRequest(c.Document, kind);
+
+            if (!c.Session.FileDialogs)
+            {
+                bool xref = kind == CadAttachKind.Xref;
+                yield return CadPrompt.ForString(
+                    xref ? "Enter name of file to attach" : "Enter image file name to attach"
+                );
+                string typed = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim().Trim('"') : string.Empty;
+
+                if (typed.Length == 0)
+                {
+                    yield break;
+                }
+
+                string name = NameBefore(ref typed);
+                request.FileName = FileOf(c, typed, xref ? ".dxf" : ".png");
+
+                if (name != null)
+                {
+                    request.Name = name;
+                }
+
+                if (request.Error != null)
+                {
+                    c.Write(request.Error);
+                    yield break;
+                }
+            }
+
+            if (!c.Session.Request(kind == CadAttachKind.Xref ? "XATTACH" : "IMAGEATTACH", c.Document, request))
+            {
+                // With no window, the file typed already for FILEDIA 0 is placed as the typed commands place it.
+                if (request.FileName != null)
+                {
+                    request.SpecifyScaleOnScreen = true;
+                    request.SpecifyRotationOnScreen = true;
+                    request.UniformScale = kind != CadAttachKind.Xref;
+
+                    foreach (
+                        CadPrompt prompt in kind == CadAttachKind.Xref
+                            ? PlaceXref(c, request)
+                            : PlaceImage(c, request, true)
+                    )
+                    {
+                        yield return prompt;
+                    }
+
+                    yield break;
+                }
+
+                foreach (CadPrompt prompt in kind == CadAttachKind.Xref ? AttachTyped(c, false) : ImageAttachTyped(c))
+                {
+                    yield return prompt;
+                }
+
+                yield break;
+            }
+
+            if (request.Action != CadDialogAction.Ok)
+            {
+                yield break;
+            }
+
+            foreach (
+                CadPrompt prompt in kind == CadAttachKind.Xref ? PlaceXref(c, request) : PlaceImage(c, request, false)
+            )
+            {
+                yield return prompt;
+            }
+        }
+
+        /// <summary>
+        /// -XREF (-XR): "Enter an option [?/Bind/Detach/Path/pathType/Unload/Reload/Overlay/Attach] &lt;Attach&gt;:", each option
+        /// asking for the names of the external references it acts on, with wildcards and commas, as AutoCAD's does.
+        /// </summary>
+        private static IEnumerable<CadPrompt> XrefTyped(CadCommandContext c)
+        {
+            yield return CadPrompt.ForKeyword("Enter an option", XrefOptions, "Attach");
+
+            if (c.Input.Kind != CadInputKind.Keyword)
+            {
+                yield break;
+            }
+
+            string option = c.Input.Text;
+
+            if (option == "Attach" || option == "Overlay")
+            {
+                foreach (CadPrompt prompt in AttachTyped(c, option == "Overlay"))
+                {
+                    yield return prompt;
+                }
+
+                yield break;
+            }
+
+            string ask =
+                option == "?" ? "Enter xref name(s) to list"
+                : option == "Path" ? "Edit xref name(s) to edit path"
+                : option == "pathType" ? "Enter xref name(s) to edit path type"
+                : "Enter xref name(s) to " + option.ToLowerInvariant();
+            yield return CadPrompt.ForString(ask, option == "?" ? "*" : null);
+            string names =
+                c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim()
+                : option == "?" ? "*"
+                : null;
+
+            if (names == null)
+            {
+                yield break;
+            }
+
+            List<DxfBlockTableRecord> blocks = XrefsNamed(c.Database, names);
+
+            // Path and pathType say so before they ask anything more, as AutoCAD 2021 does.
+            if (blocks.Count == 0 && (option == "Path" || option == "pathType"))
+            {
+                c.Write("No matching xref names found.");
+                yield break;
+            }
+
+            switch (option)
+            {
+                case "?":
+                    ListXrefs(c, blocks);
+                    break;
+                case "Detach":
+                    DetachXrefs(c, blocks, names);
+                    break;
+                case "Bind":
+                    BindXrefs(c, blocks, names);
+                    break;
+                case "Unload":
+                    UnloadXrefs(c, blocks);
+                    break;
+                case "Reload":
+                    ReloadXrefs(c, blocks);
+                    break;
+                case "Path":
+                    foreach (DxfBlockTableRecord block in blocks)
+                    {
+                        foreach (CadPrompt prompt in EditXrefPath(c, block.Name))
+                        {
+                            yield return prompt;
+                        }
+                    }
+
+                    break;
+                case "pathType":
+                    yield return CadPrompt.ForKeyword("Enter new path type", new[] { "Full", "Relative", "None" });
+
+                    if (c.Input.Kind == CadInputKind.Keyword)
+                    {
+                        SetXrefPathType(c, blocks, (CadPathType)Enum.Parse(typeof(CadPathType), c.Input.Text));
+                    }
+
+                    break;
+            }
+        }
+
+        /// <summary>The external references of a drawing whose names match a list of names with wildcards, parted by commas, in ordinal order.</summary>
+        private static List<DxfBlockTableRecord> XrefsNamed(DxfDatabase database, string names)
+        {
+            string[] patterns = names.Split(',').Select(p => p.Trim().Trim('"')).Where(p => p.Length > 0).ToArray();
+            var found = new List<DxfBlockTableRecord>();
+
+            foreach (DxfBlockTableRecord block in database.BlockTable)
+            {
+                if (
+                    block.IsFromExternalReference
+                    && !block.IsLayout
+                    && patterns.Any(p => CadWildcard.IsMatch(block.Name, p, true))
+                )
+                {
+                    found.Add(block);
+                }
+            }
+
+            found.Sort(
+                (a, b) =>
+                {
+                    int byName = string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+                    return byName != 0 ? byName : string.CompareOrdinal(a.Name, b.Name);
+                }
+            );
+            return found;
+        }
+
+        /// <summary>-XREF ?: the table AutoCAD 2021 prints, the name quoted, its type and its path as saved, and the count.</summary>
+        private static void ListXrefs(CadCommandContext c, List<DxfBlockTableRecord> blocks)
+        {
+            c.Write("Xref name".PadRight(34) + "Xref Type".PadRight(13) + "Path");
+            c.Write(new string('-', 22).PadRight(34) + new string('-', 9).PadRight(13) + new string('-', 10));
+
+            foreach (DxfBlockTableRecord block in blocks)
+            {
+                c.Write(
+                    ("\"" + block.Name + "\"").PadRight(34)
+                        + (block.IsFromOverlayReference ? "Overlay" : "Attach").PadRight(13)
+                        + block.PathName
+                );
+            }
+
+            c.Write("Total Xref(s): " + blocks.Count.ToString(CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// -XREF Detach: each external reference detached as AutoCAD's DetachXref detaches it, in one undo step; its INSERTs in
+        /// the spaces asked through the owner gate. A nested reference, which the drawing of another places, is not detached:
+        /// "Xref column has multiple references. Not detached." and the reference that places it, quoted, as AutoCAD 2021 says.
+        /// </summary>
+        private static void DetachXrefs(CadCommandContext c, List<DxfBlockTableRecord> blocks, string patterns)
+        {
+            string[] wanted = patterns.Split(',').Select(p => p.Trim().Trim('"')).Where(p => p.Length > 0).ToArray();
+            IReadOnlyList<CadExternalReference> references = c.Document.Xrefs.GetReferences();
+            var nested = new List<string>();
+
+            foreach (CadExternalReference reference in references)
+            {
+                if (
+                    reference.IsNested
+                    && !reference.IsImage
+                    && !nested.Contains(reference.Name, StringComparer.OrdinalIgnoreCase)
+                    && !references.Any(r =>
+                        !r.IsNested
+                        && !r.IsImage
+                        && string.Equals(r.Name, reference.Name, StringComparison.OrdinalIgnoreCase)
+                    )
+                    && wanted.Any(p => CadWildcard.IsMatch(reference.Name, p, true))
+                )
+                {
+                    nested.Add(reference.Name);
+                }
+            }
+
+            foreach (string name in nested)
+            {
+                c.Write("Xref " + name + " has multiple references. Not detached.");
+
+                foreach (
+                    string parent in references
+                        .Where(r => r.IsNested && string.Equals(r.Name, name, StringComparison.OrdinalIgnoreCase))
+                        .Select(r => r.ParentName)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                )
+                {
+                    c.Write("\"" + parent + "\"");
+                }
+            }
+
+            blocks = blocks.FindAll(b => !nested.Contains(b.Name, StringComparer.OrdinalIgnoreCase));
+
+            if (blocks.Count == 0)
+            {
+                if (nested.Count == 0)
+                {
+                    c.Write("No matching xref names found.");
+                }
+
+                return;
+            }
+
+            var planned = new List<CadEditRecord>();
+            var names = new List<string>();
+
+            foreach (DxfBlockTableRecord block in blocks)
+            {
+                names.Add(block.Name);
+
+                foreach (DxfBlockReference insert in block.GetBlockReferences(true))
+                {
+                    if (c.Document.FindEntity(insert.Handle) != null)
+                    {
+                        planned.Add(new CadEditRecord(CadEditRecordKind.Erased, insert.Handle));
+                    }
+                }
+            }
+
+            planned.Add(
+                new CadEditRecord(CadEditRecordKind.TableChanged, null, "Detach xref", string.Join(",", names), null)
+            );
+            CadEditResult result = c.Apply(planned, s =>
+            {
+                foreach (string name in names)
+                {
+                    s.Database.DetachXref(s.Database.BlockTable[name]);
+                }
+            });
+
+            if (result.Succeeded)
+            {
+                foreach (string name in names)
+                {
+                    c.Document.Xrefs.SetUnloaded(name, false);
+                }
+            }
+        }
+
+        /// <summary>
+        /// -XREF Bind: each external reference bound as AutoCAD 2021 binds it, by BINDTYPE: 0 Bind, its records renamed after it
+        /// (<c>grid$0$WALL</c>), 1 Insert, merged by name, each block the drawing has already said "Duplicate Block "BLK"
+        /// ignored."; the references its drawing places bound with it, each under its own name; all in one undo step (see
+        /// <see cref="DxfDatabase.BindXref"/>). Nothing is bound where one is unloaded ("Cannot bind unloaded xref(s).  Reload
+        /// them first:"), or its file or that of a reference it places is not found ("xref "N" is currently not found. Reload or
+        /// detach before binding."); a reference of a reference "is nested and cannot be bound".
+        /// </summary>
+        private static void BindXrefs(CadCommandContext c, List<DxfBlockTableRecord> blocks, string names)
+        {
+            CadXrefManager xrefs = c.Document.Xrefs;
+
+            if (blocks.Count == 0)
+            {
+                string[] patterns = names.Split(',').Select(p => p.Trim().Trim('"')).Where(p => p.Length > 0).ToArray();
+                var nested = new List<string>();
+
+                foreach (CadExternalReference reference in xrefs.GetReferences())
+                {
+                    if (
+                        !reference.IsImage
+                        && reference.Depth > 0
+                        && !nested.Contains(reference.Name, StringComparer.OrdinalIgnoreCase)
+                        && patterns.Any(p => CadWildcard.IsMatch(reference.Name, p, true))
+                    )
+                    {
+                        nested.Add(reference.Name);
+                    }
+                }
+
+                if (nested.Count == 0)
+                {
+                    c.Write("No matching xref names found.");
+                }
+
+                foreach (string name in nested)
+                {
+                    c.Write("Xref \"" + name + "\" is nested and cannot be bound.");
+                }
+
+                return;
+            }
+
+            // A reference no INSERT of the drawing places and no reference placed bound with it is refused as nested, as AutoCAD 2021
+            // refuses an unreferenced one: "Xref "c" is nested and cannot be bound."
+            IReadOnlyList<CadExternalReference> tree = xrefs.GetReferences();
+            var covered = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (DxfBlockTableRecord block in blocks.Where(b => b.GetBlockReferences(true).Count > 0))
+            {
+                covered.UnionWith(NestedUnder(tree, block.Name).Select(r => r.Name));
+            }
+
+            List<DxfBlockTableRecord> refused = blocks.FindAll(b =>
+                b.GetBlockReferences(true).Count == 0 && !covered.Contains(b.Name)
+            );
+
+            foreach (DxfBlockTableRecord block in refused)
+            {
+                c.Write("Xref \"" + block.Name + "\" is nested and cannot be bound.");
+            }
+
+            blocks = blocks.FindAll(b => !refused.Contains(b));
+
+            if (blocks.Count == 0)
+            {
+                return;
+            }
+
+            List<DxfBlockTableRecord> unloaded = blocks.FindAll(b => xrefs.IsUnloaded(b.Name));
+
+            if (unloaded.Count > 0)
+            {
+                c.Write("Cannot bind unloaded xref(s).  Reload them first:");
+
+                foreach (DxfBlockTableRecord block in unloaded)
+                {
+                    c.Write("Xref \"" + block.Name + "\" is unloaded.");
+                }
+
+                return;
+            }
+
+            // Each reference with its drawing, those its drawing places after it, depth first.
+            var plan = new List<KeyValuePair<string, DxfDatabase>>();
+
+            foreach (DxfBlockTableRecord block in blocks)
+            {
+                if (!PlanBind(c, block.Name, block.PathName, c.Document.DrawingFolder, plan, new List<string>()))
+                {
+                    return;
+                }
+            }
+
+            bool insert = BindType(c.Session) == 1;
+
+            if (insert)
+            {
+                var said = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (KeyValuePair<string, DxfDatabase> step in plan)
+                {
+                    foreach (DxfBlockTableRecord block in step.Value.BlockTable)
+                    {
+                        if (
+                            !block.IsLayout
+                            && !block.IsAnonymous
+                            && !block.Name.StartsWith("*", StringComparison.Ordinal)
+                            && !block.IsFromExternalReference
+                            && !block.IsDependent
+                            && c.Database.BlockTable.Has(block.Name)
+                            && said.Add(block.Name)
+                        )
+                        {
+                            c.Write("Duplicate Block \"" + block.Name + "\" ignored.");
+                        }
+                    }
+                }
+            }
+
+            var bound = plan.ConvertAll(p => p.Key);
+            CadEditResult result = c.Apply(
+                new[]
+                {
+                    new CadEditRecord(CadEditRecordKind.TableChanged, null, "Bind xref", string.Join(",", bound), null),
+                },
+                s =>
+                {
+                    foreach (KeyValuePair<string, DxfDatabase> step in plan)
+                    {
+                        DxfBlockTable table = s.Database.BlockTable;
+
+                        // A reference two of them place is bound once.
+                        if (table.Has(step.Key) && table[step.Key].IsFromExternalReference)
+                        {
+                            s.Database.BindXref(table[step.Key], step.Value, insert);
+                        }
+                    }
+                }
+            );
+
+            if (result.Succeeded)
+            {
+                foreach (string name in bound)
+                {
+                    xrefs.SetUnloaded(name, false);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Adds an external reference and its drawing to the references to bind, then each its drawing places, not overlaid,
+        /// found from the folder of that drawing; false, said as AutoCAD 2021 says it, where a file is not found or cannot be read.
+        /// </summary>
+        private static bool PlanBind(
+            CadCommandContext c,
+            string name,
+            string path,
+            string folder,
+            List<KeyValuePair<string, DxfDatabase>> plan,
+            List<string> chain
+        )
+        {
+            CadXrefManager xrefs = c.Document.Xrefs;
+            string found = xrefs.Locate(path, folder);
+
+            if (found == null)
+            {
+                c.Write("xref \"" + name + "\" is currently not found. Reload or detach before binding.");
+                return false;
+            }
+
+            DxfDatabase database = xrefs.Read(found).Database;
+
+            if (database == null)
+            {
+                c.Write("Error: At least one of the specified xrefs failed to bind for an unknown reason.");
+                return false;
+            }
+
+            if (chain.Contains(found, StringComparer.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            plan.Add(new KeyValuePair<string, DxfDatabase>(name, database));
+            chain.Add(found);
+            var nested = new List<DxfBlockTableRecord>();
+
+            foreach (DxfBlockTableRecord block in database.BlockTable)
+            {
+                if (
+                    block.IsFromExternalReference
+                    && !block.IsLayout
+                    && !block.IsFromOverlayReference
+                    && block.GetBlockReferences(true).Count > 0
+                )
+                {
+                    nested.Add(block);
+                }
+            }
+
+            nested.Sort(
+                (a, b) =>
+                {
+                    int byName = string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+                    return byName != 0 ? byName : string.CompareOrdinal(a.Name, b.Name);
+                }
+            );
+
+            foreach (DxfBlockTableRecord block in nested)
+            {
+                if (!PlanBind(c, block.Name, block.PathName, Path.GetDirectoryName(found), plan, chain))
+                {
+                    return false;
+                }
+            }
+
+            chain.RemoveAt(chain.Count - 1);
+            return true;
+        }
+
+        /// <summary>BINDTYPE: how -XREF Bind binds, 0 Bind (the default) or 1 Insert, kept by the session as AutoCAD keeps it unsaved.</summary>
+        internal static int BindType(CadCommandSession session) => (int)Kept(session, "bindtype", 0.0);
+
+        /// <summary>
+        /// -XREF Unload, in AutoCAD 2021's words: each reference named that is loaded (one orphaned counts as loaded) is
+        /// unloaded, "Xref "b": path" and ""b" is unloaded.", and each reference it places that the names do not name is said
+        /// after it, "Xref "c": path" and ""c" is orphaned." where it is loaded, ""c" is unloaded." where it is unloaded
+        /// already (probed on a host attaching b that places c: Unload b said both, Unload * said the two of them each on its
+        /// own, Unload c unloaded c alone). The parent goes before the references it places.
+        /// </summary>
+        private static void UnloadXrefs(CadCommandContext c, List<DxfBlockTableRecord> blocks)
+        {
+            CadXrefManager xrefs = c.Document.Xrefs;
+
+            // Only a reference loaded is unloaded; "No matching and loaded xref names found." where all those named are not.
+            IReadOnlyList<CadExternalReference> tree = xrefs.GetReferences();
+            List<DxfBlockTableRecord> loaded = InTreeOrder(tree, blocks.FindAll(b => !xrefs.IsUnloaded(b.Name)));
+
+            if (loaded.Count == 0)
+            {
+                c.Write(
+                    blocks.Count == 0 ? "No matching xref names found." : "No matching and loaded xref names found."
+                );
+                return;
+            }
+
+            foreach (DxfBlockTableRecord block in loaded)
+            {
+                c.Write("Xref \"" + block.Name + "\": " + block.PathName);
+                xrefs.SetUnloaded(block.Name, true);
+                string unloaded = block.Name;
+
+                // Its layers and linetypes flagged 16, no longer resolved, as AutoCAD 2021 flags them.
+                if (CadXrefLayers.Unresolve(c.Database, unloaded, false))
+                {
+                    c.OpenUndoStep();
+                    c.Apply(
+                        new[]
+                        {
+                            new CadEditRecord(CadEditRecordKind.TableChanged, null, "Unload xref", null, unloaded),
+                        },
+                        s => CadXrefLayers.Unresolve(s.Database, unloaded, true)
+                    );
+                }
+
+                c.Write("\"" + block.Name + "\" is unloaded.");
+
+                foreach (CadExternalReference nested in NestedUnder(tree, block.Name))
+                {
+                    if (!blocks.Exists(b => string.Equals(b.Name, nested.Name, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        SayNested(c, nested, xrefs.IsUnloaded(nested.Name) ? "unloaded" : "orphaned");
+                    }
+                }
+            }
+
+            Redisplay(c, loaded.Count);
+        }
+
+        /// <summary>
+        /// -XREF Reload, in AutoCAD 2021's words: "No matching xref names found." where none is named; a reference whose parent
+        /// is unloaded is only said orphaned and left as it is; any other is reloaded (see <see cref="ReloadXref"/>), and where
+        /// it was unloaded, or orphaned when the command began, restored, the references it places that are unloaded said so
+        /// after it. The parent goes before the references it places.
+        /// </summary>
+        private static void ReloadXrefs(CadCommandContext c, List<DxfBlockTableRecord> blocks)
+        {
+            if (blocks.Count == 0)
+            {
+                c.Write("No matching xref names found.");
+                return;
+            }
+
+            CadXrefManager xrefs = c.Document.Xrefs;
+            IReadOnlyList<CadExternalReference> tree = xrefs.GetReferences();
+            var notLoaded = new HashSet<string>(
+                tree.Where(r =>
+                        !r.IsImage
+                        && (r.Status == CadReferenceStatus.Orphaned || r.Status == CadReferenceStatus.Unloaded)
+                    )
+                    .Select(r => r.Name),
+                StringComparer.OrdinalIgnoreCase
+            );
+
+            foreach (DxfBlockTableRecord block in InTreeOrder(tree, blocks))
+            {
+                int at = IndexOf(tree, block.Name);
+
+                if (at >= 0 && ParentUnloaded(c, tree, at))
+                {
+                    SayNested(c, tree[at], "orphaned");
+                    continue;
+                }
+
+                // One no INSERT places, here or in a drawing it is nested in, is not reloaded, only said so and no longer unloaded.
+                if (at >= 0 && tree[at].Status == CadReferenceStatus.Unreferenced)
+                {
+                    xrefs.SetUnloaded(block.Name, false);
+                    SayNested(c, tree[at], "unreferenced");
+                    continue;
+                }
+
+                bool restored = xrefs.IsUnloaded(block.Name) || notLoaded.Contains(block.Name);
+                ReloadXref(c, block, restored);
+
+                if (!restored)
+                {
+                    continue;
+                }
+
+                foreach (CadExternalReference nested in NestedUnder(tree, block.Name))
+                {
+                    if (
+                        xrefs.IsUnloaded(nested.Name)
+                        && !blocks.Exists(b => string.Equals(b.Name, nested.Name, StringComparison.OrdinalIgnoreCase))
+                    )
+                    {
+                        SayNested(c, nested, "unloaded");
+                    }
+                }
+            }
+
+            Redisplay(c, blocks.Count);
+        }
+
+        /// <summary>Says a reference placed by another as AutoCAD does after the other was unloaded or reloaded: its name and path, then its state.</summary>
+        private static void SayNested(CadCommandContext c, CadExternalReference nested, string state)
+        {
+            string path = c.Database.BlockTable.Has(nested.Name)
+                ? c.Database.BlockTable[nested.Name].PathName
+                : nested.SavedPath;
+            c.Write("Xref \"" + nested.Name + "\": " + path);
+            c.Write("\"" + nested.Name + "\" is " + state + ".");
+        }
+
+        /// <summary>The blocks in the order of the palette's tree, a parent before the references it places, the rest after them in their own order.</summary>
+        private static List<DxfBlockTableRecord> InTreeOrder(
+            IReadOnlyList<CadExternalReference> tree,
+            List<DxfBlockTableRecord> blocks
+        )
+        {
+            var ordered = new List<DxfBlockTableRecord>();
+
+            foreach (CadExternalReference row in tree)
+            {
+                DxfBlockTableRecord block = row.IsImage
+                    ? null
+                    : blocks.Find(b => string.Equals(b.Name, row.Name, StringComparison.OrdinalIgnoreCase));
+
+                if (block != null && !ordered.Contains(block))
+                {
+                    ordered.Add(block);
+                }
+            }
+
+            ordered.AddRange(blocks.Where(b => !ordered.Contains(b)));
+            return ordered;
+        }
+
+        /// <summary>The index of the row of a reference of a name in the tree, the references of a drawing before its images; -1 for none.</summary>
+        private static int IndexOf(IReadOnlyList<CadExternalReference> tree, string name)
+        {
+            for (int i = 0; i < tree.Count; i++)
+            {
+                if (!tree[i].IsImage && string.Equals(tree[i].Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>The rows below the row of a name, which the reference places, nested to any depth, in the order of the tree.</summary>
+        private static List<CadExternalReference> NestedUnder(IReadOnlyList<CadExternalReference> tree, string name)
+        {
+            var found = new List<CadExternalReference>();
+            int at = IndexOf(tree, name);
+
+            for (int i = at + 1; at >= 0 && i < tree.Count && !tree[i].IsImage && tree[i].Depth > tree[at].Depth; i++)
+            {
+                found.Add(tree[i]);
+            }
+
+            return found;
+        }
+
+        /// <summary>Whether a row of the tree is placed by a reference now unloaded, however far up.</summary>
+        private static bool ParentUnloaded(CadCommandContext c, IReadOnlyList<CadExternalReference> tree, int at)
+        {
+            int depth = tree[at].Depth;
+
+            for (int i = at - 1; i >= 0 && depth > 0; i--)
+            {
+                if (tree[i].Depth < depth)
+                {
+                    depth = tree[i].Depth;
+
+                    if (c.Document.Xrefs.IsUnloaded(tree[i].Name))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// One reference reloaded, in AutoCAD 2021's words: "Reload Xref "b": path", then where its file did not change since it
+        /// was read "path has not changed.", else the file read anew and ""b" loaded: path"; where it was unloaded, ""b" has
+        /// been restored." Its layers and linetypes the drawing has not yet written, and those it has flagged resolved again,
+        /// are brought as <see cref="CadXrefLayers.Bring"/> says.
+        /// </summary>
+        private static void ReloadXref(CadCommandContext c, DxfBlockTableRecord block, bool restored)
+        {
+            c.Write("Reload Xref \"" + block.Name + "\": " + block.PathName);
+            CadXrefManager xrefs = c.Document.Xrefs;
+            xrefs.SetUnloaded(block.Name, false);
+            string found = xrefs.Locate(block.PathName);
+
+            if (found == null)
+            {
+                c.Write("\"" + block.PathName + "\" cannot be found.");
+                return;
+            }
+
+            bool changed = xrefs.Read(found).HasChanged;
+            xrefs.Forget(found);
+            DxfDatabase referenced = xrefs.Read(found).Database;
+            c.Write(
+                referenced == null ? "Error: Unable to load " + found + "."
+                : changed ? "\"" + block.Name + "\" loaded: " + found
+                : found + " has not changed."
+            );
+
+            if (referenced != null && restored)
+            {
+                c.Write("\"" + block.Name + "\" has been restored.");
+            }
+
+            string name = block.Name;
+
+            if (referenced != null && CadXrefLayers.Bring(c.Database, name, referenced, false))
+            {
+                c.OpenUndoStep();
+                c.Apply(
+                    new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Reload xref", null, name) },
+                    s => CadXrefLayers.Bring(s.Database, name, referenced, true)
+                );
+            }
+        }
+
+        /// <summary>Draws every space again after an external reference or image was unloaded or reloaded, which changes no record.</summary>
+        private static void Redisplay(CadCommandContext c, int count)
+        {
+            if (count > 0)
+            {
+                c.Document.Regen();
+            }
+        }
+
+        /// <summary>-XREF Path: the old path shown and a new one asked until one names a file that is found, or Enter keeps it.</summary>
+        private static IEnumerable<CadPrompt> EditXrefPath(CadCommandContext c, string name)
+        {
+            while (true)
+            {
+                DxfBlockTableRecord block = c.Database.BlockTable[name];
+                c.Write("xref name: \"" + name + "\"");
+                c.Write("Old path: " + block.PathName);
+                yield return CadPrompt.ForString("Enter new path");
+                string typed = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim().Trim('"') : string.Empty;
+
+                if (typed.Length == 0)
+                {
+                    c.Write("Path unchanged.");
+                    yield break;
+                }
+
+                if (c.Document.Xrefs.Locate(typed) == null)
+                {
+                    c.Write("\"" + typed + "\": Can't find file in search path.");
+                    continue;
+                }
+
+                string old = block.PathName;
+                c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Xref path", old, typed) }, s =>
+                    s.Database.BlockTable[name].PathName = typed
+                );
+                yield break;
+            }
+        }
+
+        /// <summary>-XREF pathType: each path found written anew as Full, Relative or None, in one undo step; one not found is not changed.</summary>
+        private static void SetXrefPathType(CadCommandContext c, List<DxfBlockTableRecord> blocks, CadPathType type)
+        {
+            var paths = new List<KeyValuePair<string, string>>();
+            int unchanged = 0;
+
+            foreach (DxfBlockTableRecord block in blocks)
+            {
+                string found = c.Document.Xrefs.Locate(block.PathName);
+                string path = found == null ? null : CadXrefManager.PathFor(found, type, c.Document.DrawingFolder);
+
+                if (path == null || string.Equals(path, block.PathName, StringComparison.Ordinal))
+                {
+                    unchanged++;
+                    continue;
+                }
+
+                paths.Add(new KeyValuePair<string, string>(block.Name, path));
+            }
+
+            if (paths.Count > 0)
+            {
+                CadEditResult result = c.Apply(
+                    new[]
+                    {
+                        new CadEditRecord(
+                            CadEditRecordKind.TableChanged,
+                            null,
+                            "Xref path type",
+                            null,
+                            type.ToString()
+                        ),
+                    },
+                    s =>
+                    {
+                        foreach (KeyValuePair<string, string> pair in paths)
+                        {
+                            s.Database.BlockTable[pair.Key].PathName = pair.Value;
+                        }
+                    }
+                );
+
+                if (result.Succeeded)
+                {
+                    c.Write(paths.Count.ToString(CultureInfo.InvariantCulture) + " path(s) changed.");
+                }
+            }
+
+            if (unchanged > 0)
+            {
+                c.Write(unchanged.ToString(CultureInfo.InvariantCulture) + " path(s) not changed.");
+            }
+        }
+
+        /// <summary>-XREF Attach and Overlay, and XATTACH with no window: the file's name typed, then every placing asked.</summary>
+        private static IEnumerable<CadPrompt> AttachTyped(CadCommandContext c, bool overlay)
+        {
+            yield return CadPrompt.ForString(
+                overlay ? "Enter name of file to overlay" : "Enter name of file to attach"
+            );
+            string typed = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim().Trim('"') : string.Empty;
+
+            if (typed.Length == 0)
+            {
+                yield break;
+            }
+
+            var request = new CadAttachRequest(c.Document, CadAttachKind.Xref)
+            {
+                IsOverlay = overlay,
+                SpecifyScaleOnScreen = true,
+                SpecifyRotationOnScreen = true,
+                UniformScale = false,
+            };
+            string name = NameBefore(ref typed);
+            request.FileName = FileOf(c, typed, ".dxf");
+
+            if (name != null)
+            {
+                request.Name = name;
+            }
+
+            foreach (CadPrompt prompt in PlaceXref(c, request))
+            {
+                yield return prompt;
+            }
+        }
+
+        /// <summary>The name of <c>name=path</c>, the path left; null where none is given.</summary>
+        private static string NameBefore(ref string typed)
+        {
+            int equals = typed.IndexOf('=');
+
+            if (equals <= 0)
+            {
+                return null;
+            }
+
+            string name = typed.Substring(0, equals).Trim();
+            typed = typed.Substring(equals + 1).Trim().Trim('"');
+            return name;
+        }
+
+        /// <summary>The full path of a file typed: as typed where it names one, else found where an external reference is found; the extension given where it has none.</summary>
+        private static string FileOf(CadCommandContext c, string typed, string extension)
+        {
+            try
+            {
+                if (!Path.HasExtension(typed))
+                {
+                    typed += extension;
+                }
+
+                if (Path.IsPathRooted(typed))
+                {
+                    return typed;
+                }
+
+                string found = c.Document.Xrefs.Locate(typed);
+
+                if (found != null)
+                {
+                    return found;
+                }
+
+                string folder = c.Document.DrawingFolder;
+                return folder == null ? Path.GetFullPath(typed) : Path.Combine(folder, typed);
+            }
+            catch (Exception exception)
+                when (exception is ArgumentException
+                    || exception is NotSupportedException
+                    || exception is PathTooLongException
+                )
+            {
+                return typed;
+            }
+        }
+
+        /// <summary>
+        /// Attaches or overlays the drawing a request names and places its INSERT, in one undo step: the reference reused
+        /// where the drawing has one of the name and file, refused where the name is a block's or another file's.
+        /// </summary>
+        private static IEnumerable<CadPrompt> PlaceXref(CadCommandContext c, CadAttachRequest request)
+        {
+            if (request.Error != null)
+            {
+                c.Write(request.Error);
+                yield break;
+            }
+
+            string name = request.Name;
+
+            if (!IsBlockName(name) || name.IndexOf('|') >= 0)
+            {
+                c.Write("Invalid xref name \"" + name + "\".");
+                yield break;
+            }
+
+            if (c.Database.BlockTable.Has(name))
+            {
+                DxfBlockTableRecord existing = c.Database.BlockTable[name];
+
+                if (!existing.IsFromExternalReference)
+                {
+                    c.Write(
+                        "\""
+                            + name
+                            + "\" is the name of a block of the drawing: the external reference is not attached."
+                    );
+                    yield break;
+                }
+
+                if (
+                    !string.Equals(
+                        c.Document.Xrefs.Locate(existing.PathName),
+                        request.FileName,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                {
+                    c.Write("Xref \"" + name + "\" names another file: give this one a name of its own, as name=path.");
+                    yield break;
+                }
+
+                c.Write("Xref \"" + name + "\" has already been defined.");
+                name = existing.Name;
+            }
+            else
+            {
+                c.Write((request.IsOverlay ? "Overlay" : "Attach") + " Xref \"" + name + "\": " + request.SavedPath);
+                c.Write("\"" + name + "\" loaded: " + request.FileName);
+            }
+
+            var placing = new XrefPlacing
+            {
+                Point = request.Point,
+                Scale = request.Scale,
+                Rotation = request.Rotation,
+            };
+
+            foreach (
+                CadPrompt prompt in AskPlacing(
+                    c,
+                    placing,
+                    request.SpecifyPointOnScreen,
+                    request.SpecifyScaleOnScreen,
+                    request.SpecifyRotationOnScreen,
+                    request.UniformScale
+                )
+            )
+            {
+                yield return prompt;
+            }
+
+            if (!placing.Given)
+            {
+                yield break;
+            }
+
+            double factor = request.UnitFactor;
+            double angle = c.Session.Ucs.AngleToWorld(placing.Rotation);
+            GeoPoint3 point = placing.Point;
+            GeoVector3 scale = placing.Scale;
+            string saved = request.SavedPath;
+            bool overlay = request.IsOverlay;
+            CadSpace space = c.Space;
+            DxfDatabase referenced = request.FileName == null ? null : c.Document.Xrefs.Read(request.FileName).Database;
+            c.Apply(
+                new[]
+                {
+                    new CadEditRecord(
+                        CadEditRecordKind.TableChanged,
+                        null,
+                        overlay ? "Overlay xref" : "Attach xref",
+                        null,
+                        name
+                    ),
+                },
+                s =>
+                {
+                    DxfBlockTableRecord block =
+                        s.Database.BlockTable.Has(name) ? s.Database.BlockTable[name]
+                        : overlay ? s.Database.OverlayXref(saved, name)
+                        : s.Database.AttachXref(saved, name);
+
+                    // The layers and linetypes of the drawing attached, written as AutoCAD 2021 writes them.
+                    if (referenced != null)
+                    {
+                        CadXrefLayers.Bring(s.Database, name, referenced, true);
+                    }
+
+                    var insert = new DxfBlockReference(point, block);
+                    s.Append(space, Current(c, insert));
+                    insert.ScaleFactors = new GeoVector3(scale.X * factor, scale.Y * factor, scale.Z * factor);
+                    insert.Rotation = angle;
+                }
+            );
+        }
+
+        /// <summary>Where an external reference is placed, given or asked, and whether it was.</summary>
+        private sealed class XrefPlacing
+        {
+            public GeoPoint3 Point { get; set; }
+
+            public GeoVector3 Scale { get; set; }
+
+            public double Rotation { get; set; }
+
+            public bool Given { get; set; }
+        }
+
+        /// <summary>
+        /// Asks what is to be specified on screen, as AutoCAD's -XREF Attach asks it: "Specify insertion point or
+        /// [Scale/X/Y/Z/Rotate/PScale/PX/PY/PZ/PRotate]:" (a P option sets the same as its plain one), "Enter X scale factor,
+        /// specify opposite corner, or [Corner/XYZ] &lt;1&gt;:" and "Enter Y scale factor &lt;use X scale factor&gt;:", or
+        /// "Specify scale factor for XYZ axes &lt;1&gt;:" where it is scaled alike along every axis, and "Specify rotation angle
+        /// &lt;0&gt;:".
+        /// </summary>
+        private static IEnumerable<CadPrompt> AskPlacing(
+            CadCommandContext c,
+            XrefPlacing placing,
+            bool askPoint,
+            bool askScale,
+            bool askRotation,
+            bool uniform
+        )
+        {
+            bool scaleGiven = false;
+            bool rotationGiven = false;
+
+            while (askPoint)
+            {
+                yield return CadPrompt.ForPoint("Specify insertion point", null, XrefPointKeywords);
+
+                if (c.Input.IsPoint)
+                {
+                    placing.Point = P3(c.Input.Point);
+                    break;
+                }
+
+                if (c.Input.Kind != CadInputKind.Keyword)
+                {
+                    yield break;
+                }
+
+                string option =
+                    c.Input.Text.StartsWith("P", StringComparison.Ordinal) && c.Input.Text.Length > 1
+                        ? c.Input.Text.Substring(1)
+                        : c.Input.Text;
+
+                if (option == "Rotate")
+                {
+                    yield return CadPrompt.ForAngle("Specify rotation angle", null, null, Number(0.0)).Turning();
+
+                    if (c.Input.Kind == CadInputKind.Number)
+                    {
+                        placing.Rotation = c.Input.Number;
+                        rotationGiven = true;
+                    }
+
+                    continue;
+                }
+
+                string axis = option == "Scale" ? null : option;
+                yield return CadPrompt.ForDistance(
+                    axis == null ? "Specify scale factor for XYZ axes" : "Specify " + axis + " scale factor",
+                    null,
+                    null,
+                    Length(1.0)
+                );
+
+                if (c.Input.Kind == CadInputKind.Number && c.Input.Number != 0.0)
+                {
+                    double f = c.Input.Number;
+                    GeoVector3 now = placing.Scale;
+                    placing.Scale =
+                        axis == null ? new GeoVector3(f, f, f)
+                        : axis == "X" ? new GeoVector3(f, now.Y, now.Z)
+                        : axis == "Y" ? new GeoVector3(now.X, f, now.Z)
+                        : new GeoVector3(now.X, now.Y, f);
+                    scaleGiven = true;
+                }
+            }
+
+            if (askScale && !scaleGiven)
+            {
+                if (uniform)
+                {
+                    yield return CadPrompt.ForDistance("Specify scale factor for XYZ axes", null, null, Length(1.0));
+                    double f = c.Input.Kind == CadInputKind.Number && c.Input.Number != 0.0 ? c.Input.Number : 1.0;
+                    placing.Scale = new GeoVector3(f, f, f);
+                }
+                else
+                {
+                    var at = new GeoPoint2(placing.Point.X, placing.Point.Y);
+                    yield return CadPrompt.ForPoint(
+                        "Enter X scale factor, specify opposite corner,",
+                        null,
+                        new[] { "Corner", "XYZ" },
+                        "1",
+                        true
+                    );
+                    double? x = null;
+                    double? y = null;
+                    double? z = null;
+
+                    if (c.Input.Is("Corner"))
+                    {
+                        yield return CadPrompt.ForPoint("Specify opposite corner", at);
+                    }
+                    else if (c.Input.Is("XYZ"))
+                    {
+                        yield return CadPrompt.ForDistance("Specify X scale factor", null, null, Length(1.0));
+                        x = c.Input.Kind == CadInputKind.Number ? c.Input.Number : 1.0;
+                        yield return CadPrompt.ForDistance("Specify Y scale factor", null, null, "use X scale factor");
+                        y = c.Input.Kind == CadInputKind.Number ? c.Input.Number : x;
+                        yield return CadPrompt.ForDistance("Specify Z scale factor", null, null, "use X scale factor");
+                        z = c.Input.Kind == CadInputKind.Number ? c.Input.Number : x;
+                    }
+
+                    if (c.Input.IsPoint)
+                    {
+                        GeoVector2 corner = c.Input.Point - at;
+                        x = corner.X;
+                        y = corner.Y;
+                    }
+                    else if (x == null && c.Input.Kind == CadInputKind.Text)
+                    {
+                        if (
+                            !double.TryParse(
+                                c.Input.Text,
+                                NumberStyles.Float,
+                                CultureInfo.InvariantCulture,
+                                out double typed
+                            )
+                            || typed == 0.0
+                            || double.IsInfinity(typed)
+                            || double.IsNaN(typed)
+                        )
+                        {
+                            c.Write("Requires a nonzero number, a point or an option keyword.");
+                            yield break;
+                        }
+
+                        x = typed;
+                    }
+
+                    x = x ?? 1.0;
+
+                    if (y == null)
+                    {
+                        yield return CadPrompt.ForDistance("Enter Y scale factor", null, null, "use X scale factor");
+                        y = c.Input.Kind == CadInputKind.Number && c.Input.Number != 0.0 ? c.Input.Number : x;
+                    }
+
+                    if (x.Value == 0.0 || y.Value == 0.0)
+                    {
+                        c.Write("Value must be nonzero.");
+                        yield break;
+                    }
+
+                    placing.Scale = new GeoVector3(x.Value, y.Value, z ?? x.Value);
+                }
+            }
+
+            if (askRotation && !rotationGiven)
+            {
+                yield return CadPrompt
+                    .ForAngle(
+                        "Specify rotation angle",
+                        new GeoPoint2(placing.Point.X, placing.Point.Y),
+                        null,
+                        Number(0.0)
+                    )
+                    .Turning();
+
+                if (c.Input.Kind == CadInputKind.Number)
+                {
+                    placing.Rotation = c.Input.Number;
+                }
+            }
+
+            placing.Given = true;
+        }
+
+        /// <summary>
+        /// -IMAGE (-IM): "Enter image option [?/Detach/Path/Reload/Unload/Attach] &lt;Attach&gt;:", each option asking for a list
+        /// of image names with wildcards and commas, in AutoCAD 2021's words.
+        /// </summary>
+        private static IEnumerable<CadPrompt> ImageTyped(CadCommandContext c)
+        {
+            yield return CadPrompt.ForKeyword("Enter image option", ImageOptions, "Attach");
+
+            if (c.Input.Kind != CadInputKind.Keyword)
+            {
+                yield break;
+            }
+
+            string option = c.Input.Text;
+
+            if (option == "Attach")
+            {
+                foreach (CadPrompt prompt in ImageAttachTyped(c))
+                {
+                    yield return prompt;
+                }
+
+                yield break;
+            }
+
+            // A drawing with no image definition says so at the option and asks no names, as AutoCAD 2021 does.
+            if (ImagesNamed(c.Database, "*").Count == 0)
+            {
+                c.Write("No images in current drawing.");
+                yield break;
+            }
+
+            string ask =
+                option == "?" ? "Images to list"
+                : option == "Path" ? "Enter list of images for path modification"
+                : "Enter list of images to " + option.ToLowerInvariant();
+            yield return CadPrompt.ForString(ask, option == "?" ? "*" : null);
+            string names =
+                c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim()
+                : option == "?" ? "*"
+                : null;
+
+            if (names == null)
+            {
+                yield break;
+            }
+
+            List<KeyValuePair<string, DxfRasterImageDef>> images = ImagesNamed(c.Database, names);
+
+            if (images.Count == 0 && option != "?")
+            {
+                c.Write("No matching image names found.");
+                yield break;
+            }
+
+            switch (option)
+            {
+                case "?":
+                    ListImages(c, images);
+                    break;
+                case "Detach":
+                    DetachImages(c, images);
+                    break;
+                case "Unload":
+                    foreach (KeyValuePair<string, DxfRasterImageDef> image in images)
+                    {
+                        c.Document.Xrefs.SetImageLoaded(image.Key, false);
+                    }
+
+                    Redisplay(c, images.Count);
+                    break;
+                case "Reload":
+                    foreach (KeyValuePair<string, DxfRasterImageDef> image in images)
+                    {
+                        c.Write("  Reloading...");
+                        c.Document.Xrefs.SetImageLoaded(image.Key, true);
+                        string found = c.Document.Xrefs.Locate(image.Value.SourceFileName);
+                        c.Write("Reload image " + image.Key + ": " + (found ?? image.Value.SourceFileName));
+                        c.Write(
+                            found == null ? image.Key + ": Image file not found." : image.Key + " loaded and relinked."
+                        );
+                    }
+
+                    Redisplay(c, images.Count);
+                    break;
+                case "Path":
+                    foreach (KeyValuePair<string, DxfRasterImageDef> image in images)
+                    {
+                        c.Write("Image name: " + image.Key);
+                        c.Write("Old path:   " + image.Value.SourceFileName);
+                        yield return CadPrompt.ForString("Enter New path");
+                        string typed = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim().Trim('"') : string.Empty;
+
+                        if (
+                            typed.Length > 0
+                            && !string.Equals(typed, image.Value.SourceFileName, StringComparison.Ordinal)
+                        )
+                        {
+                            string key = image.Key;
+                            c.Apply(
+                                new[]
+                                {
+                                    new CadEditRecord(
+                                        CadEditRecordKind.TableChanged,
+                                        null,
+                                        "Image path",
+                                        image.Value.SourceFileName,
+                                        typed
+                                    ),
+                                },
+                                s =>
+                                    ((DxfRasterImageDef)CadXrefManager.Images(s.Database).GetAt(key)).SourceFileName =
+                                        typed
+                            );
+                        }
+                    }
+
+                    break;
+            }
+        }
+
+        /// <summary>The image definitions of a drawing whose names match a list of names with wildcards, in ordinal order.</summary>
+        private static List<KeyValuePair<string, DxfRasterImageDef>> ImagesNamed(DxfDatabase database, string names)
+        {
+            string[] patterns = names.Split(',').Select(p => p.Trim().Trim('"')).Where(p => p.Length > 0).ToArray();
+            var found = new List<KeyValuePair<string, DxfRasterImageDef>>();
+            DxfDBDictionary dictionary = CadXrefManager.Images(database);
+
+            if (dictionary != null)
+            {
+                foreach (DxfDBDictionaryEntry entry in dictionary)
+                {
+                    if (
+                        entry.Value is DxfRasterImageDef definition
+                        && patterns.Any(p => CadWildcard.IsMatch(entry.Key, p, true))
+                    )
+                    {
+                        found.Add(new KeyValuePair<string, DxfRasterImageDef>(entry.Key, definition));
+                    }
+                }
+            }
+
+            found.Sort(
+                (a, b) =>
+                {
+                    int byName = string.Compare(a.Key, b.Key, StringComparison.OrdinalIgnoreCase);
+                    return byName != 0 ? byName : string.CompareOrdinal(a.Key, b.Key);
+                }
+            );
+            return found;
+        }
+
+        /// <summary>-IMAGE ?: the table AutoCAD 2021 prints, each definition with its images and path, and the counts.</summary>
+        private static void ListImages(CadCommandContext c, List<KeyValuePair<string, DxfRasterImageDef>> images)
+        {
+            c.Write("Image Name".PadRight(33) + "Instances  Path");
+            c.Write(new string('-', 16).PadRight(33) + new string('-', 9) + "  " + new string('-', 10));
+            int instances = 0;
+
+            foreach (KeyValuePair<string, DxfRasterImageDef> image in images)
+            {
+                int count = image.Value.GetEntityCount(out _);
+                instances += count;
+                c.Write(
+                    image.Key.PadRight(33)
+                        + count.ToString(CultureInfo.InvariantCulture).PadLeft(9)
+                        + "  "
+                        + image.Value.SourceFileName
+                );
+            }
+
+            c.Write("Total image definitions: " + images.Count.ToString(CultureInfo.InvariantCulture));
+            c.Write("Total image instances: " + instances.ToString(CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>-IMAGE Detach: each definition erased with the images that show it, as AutoCAD's detach, in one undo step; the images in the spaces asked through the owner gate.</summary>
+        private static void DetachImages(CadCommandContext c, List<KeyValuePair<string, DxfRasterImageDef>> images)
+        {
+            if (images.Count == 0)
+            {
+                return;
+            }
+
+            var planned = new List<CadEditRecord>();
+            var handles = new HashSet<string>(images.Select(i => i.Value.Handle), StringComparer.OrdinalIgnoreCase);
+
+            foreach (CadSpace space in c.Document.Spaces)
+            {
+                foreach (DxfEntity entity in space.Block)
+                {
+                    if (
+                        entity is DxfRasterImage image
+                        && !(entity is DxfWipeout)
+                        && image.ImageDef != null
+                        && handles.Contains(image.ImageDef.Handle)
+                    )
+                    {
+                        planned.Add(new CadEditRecord(CadEditRecordKind.Erased, entity.Handle));
+                    }
+                }
+            }
+
+            var names = images.Select(i => i.Key).ToList();
+            planned.Add(
+                new CadEditRecord(CadEditRecordKind.TableChanged, null, "Detach image", string.Join(",", names), null)
+            );
+            c.Apply(planned, s =>
+            {
+                DxfDBDictionary dictionary = CadXrefManager.Images(s.Database);
+
+                foreach (string name in names)
+                {
+                    dictionary.GetAt(name).Erase();
+                }
+            });
+        }
+
+        /// <summary>-IMAGE Attach and IMAGEATTACH with no window: "Enter image file name to attach:", as name=path to name it, then every placing asked.</summary>
+        private static IEnumerable<CadPrompt> ImageAttachTyped(CadCommandContext c)
+        {
+            yield return CadPrompt.ForString("Enter image file name to attach");
+            string typed = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim().Trim('"') : string.Empty;
+
+            if (typed.Length == 0)
+            {
+                yield break;
+            }
+
+            var request = new CadAttachRequest(c.Document, CadAttachKind.Image)
+            {
+                SpecifyScaleOnScreen = true,
+                SpecifyRotationOnScreen = true,
+            };
+            string name = NameBefore(ref typed);
+            request.FileName = FileOf(c, typed, ".png");
+
+            if (name != null)
+            {
+                request.Name = name;
+            }
+
+            foreach (CadPrompt prompt in PlaceImage(c, request, true))
+            {
+                yield return prompt;
+            }
+        }
+
+        /// <summary>
+        /// Attaches the picture a request names and places its IMAGE, in one undo step, as AutoCAD 2021's -IMAGE Attach asks:
+        /// "Specify insertion point &lt;0,0&gt;:", "Base image size: Width: 10.583333, Height: 7.9375, Millimeters", "Specify
+        /// scale factor &lt;1&gt;:" and "Specify rotation angle &lt;0&gt;:". A definition of the name and path is reused; one of the
+        /// name and another path is refused, as AutoCAD refuses it.
+        /// </summary>
+        private static IEnumerable<CadPrompt> PlaceImage(CadCommandContext c, CadAttachRequest request, bool typed)
+        {
+            if (request.Error != null)
+            {
+                c.Write(request.Error);
+                yield break;
+            }
+
+            string name = request.Name;
+            DxfDBDictionary images = CadXrefManager.Images(c.Database);
+
+            if (images != null && images.Contains(name))
+            {
+                var existing = images.GetAt(name) as DxfRasterImageDef;
+
+                if (
+                    existing == null
+                    || !string.Equals(
+                        c.Document.Xrefs.Locate(existing.SourceFileName),
+                        request.FileName,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                {
+                    c.Write(
+                        "Warning: The image name " + name + " is already in use. Use the syntax <imagename>=<filename>."
+                    );
+                    yield break;
+                }
+            }
+
+            GeoPoint3 point = request.Point;
+            double scale = request.Scale.X;
+            double rotation = request.Rotation;
+
+            if (request.SpecifyPointOnScreen)
+            {
+                yield return CadPrompt.ForPoint("Specify insertion point", null, null, typed ? "0,0" : null);
+
+                if (c.Input.IsPoint)
+                {
+                    point = P3(c.Input.Point);
+                }
+                else if (!c.Input.IsNone || !typed)
+                {
+                    yield break;
+                }
+            }
+
+            if (request.SpecifyScaleOnScreen)
+            {
+                c.Write(
+                    "Base image size: Width: "
+                        + Plain(request.BaseWidth)
+                        + ", Height: "
+                        + Plain(request.BaseHeight)
+                        + ", "
+                        + UnitName(c.Database.Insunits)
+                );
+                yield return CadPrompt.ForDistance("Specify scale factor", new GeoPoint2(point.X, point.Y), null, "1");
+
+                if (c.Input.Kind == CadInputKind.Number && c.Input.Number > 0.0)
+                {
+                    scale = c.Input.Number;
+                }
+            }
+
+            if (request.SpecifyRotationOnScreen)
+            {
+                yield return CadPrompt
+                    .ForAngle("Specify rotation angle", new GeoPoint2(point.X, point.Y), null, Number(0.0))
+                    .Turning();
+
+                if (c.Input.Kind == CadInputKind.Number)
+                {
+                    rotation = c.Input.Number;
+                }
+            }
+
+            double angle = c.Session.Ucs.AngleToWorld(rotation);
+            double width = request.BaseWidth * scale;
+            double height = request.BaseHeight * scale;
+            var u = new GeoVector3(width * Math.Cos(angle), width * Math.Sin(angle), 0.0);
+            var v = new GeoVector3(-height * Math.Sin(angle), height * Math.Cos(angle), 0.0);
+            string saved = request.SavedPath;
+            var pixels = new GeoVector2(request.PixelWidth, request.PixelHeight);
+            CadSpace space = c.Space;
+            c.Apply(null, s =>
+            {
+                DxfDBDictionary dictionary = CadXrefManager.Images(s.Database)
+                    ?? DxfRasterImageDef.CreateImageDictionary(s.Database);
+                DxfRasterImageDef definition;
+
+                if (dictionary.Contains(name))
+                {
+                    definition = (DxfRasterImageDef)dictionary.GetAt(name);
+                }
+                else
+                {
+                    definition = new DxfRasterImageDef(saved, pixels);
+                    dictionary.SetAt(name, definition);
+                }
+
+                var image = new DxfRasterImage(definition);
+                image.SetOrientation(point, u, v);
+                s.Append(space, Current(c, image));
+            });
+        }
+
+        /// <summary>A number as AutoCAD prints a size: up to six places, no zeros after the last figure; 1, 0.75, 10.583333.</summary>
+        private static string Plain(double value) => value.ToString("0.######", CultureInfo.InvariantCulture);
+
+        /// <summary>
+        /// IMAGECLIP (ICL): "Select image to clip:", then "Enter image clipping option [ON/OFF/Delete/New boundary] &lt;New&gt;:":
+        /// ON and OFF switch the clip, Delete takes the boundary away, New boundary asks a rectangle, a polygon or a polyline,
+        /// Invert clip switching between hiding what lies outside and what lies inside, as AutoCAD 2021 asks.
+        /// </summary>
+        private static IEnumerable<CadPrompt> ImageClip(CadCommandContext c)
+        {
+            yield return CadPrompt.ForEntity("Select image to clip");
+
+            if (c.Input.Kind != CadInputKind.Selection)
+            {
+                yield break;
+            }
+
+            string handle = c.Input.Handles[0];
+
+            if (!(c.Document.FindEntity(handle) is DxfRasterImage picked) || picked is DxfWipeout)
+            {
+                c.Write("Object selected is not an image.");
+                yield break;
+            }
+
+            yield return CadPrompt.ForKeyword(
+                "Enter image clipping option",
+                new[] { "ON", "OFF", "Delete", "New boundary" },
+                "New"
+            );
+
+            if (c.Input.Kind != CadInputKind.Keyword)
+            {
+                yield break;
+            }
+
+            string option = c.Input.Text;
+
+            if (option == "ON" || option == "OFF")
+            {
+                bool on = option == "ON";
+                c.Apply(
+                    new[]
+                    {
+                        new CadEditRecord(
+                            CadEditRecordKind.PropertyChanged,
+                            handle,
+                            "Clipping",
+                            null,
+                            on ? "On" : "Off"
+                        ),
+                    },
+                    s => ((DxfRasterImage)s.Document.FindEntity(handle)).IsClipped = on
+                );
+                yield break;
+            }
+
+            if (option == "Delete")
+            {
+                c.Apply(
+                    new[]
+                    {
+                        new CadEditRecord(
+                            CadEditRecordKind.PropertyChanged,
+                            handle,
+                            "Clip boundary",
+                            null,
+                            "Whole image"
+                        ),
+                    },
+                    s => ((DxfRasterImage)s.Document.FindEntity(handle)).SetClipBoundaryToWholeImage()
+                );
+                yield break;
+            }
+
+            if (Clipped(picked))
+            {
+                yield return CadPrompt.ForKeyword("Delete old boundary?", new[] { "No", "Yes" }, "Yes");
+
+                if (c.Input.Is("No"))
+                {
+                    yield break;
+                }
+            }
+
+            bool inverted = false;
+            List<GeoPoint2> corners = null;
+            DxfClipBoundaryType type = DxfClipBoundaryType.Rectangle;
+
+            while (corners == null)
+            {
+                c.Write(
+                    inverted
+                        ? "Inside mode - Objects inside boundary will be hidden."
+                        : "Outside mode - Objects outside boundary will be hidden."
+                );
+                yield return CadPrompt.ForKeyword(
+                    "Specify clipping boundary or select invert option",
+                    new[] { "Select polyline", "Polygonal", "Rectangular", "Invert clip" },
+                    "Rectangular"
+                );
+
+                if (c.Input.Kind != CadInputKind.Keyword)
+                {
+                    yield break;
+                }
+
+                if (c.Input.Is("Invert clip"))
+                {
+                    inverted = !inverted;
+                    continue;
+                }
+
+                if (c.Input.Is("Rectangular"))
+                {
+                    yield return CadPrompt.ForPoint("Specify first corner point");
+
+                    if (!c.Input.IsPoint)
+                    {
+                        yield break;
+                    }
+
+                    GeoPoint2 first = c.Input.Point;
+                    yield return CadPrompt.ForPoint("Specify opposite corner point", first);
+
+                    if (!c.Input.IsPoint)
+                    {
+                        yield break;
+                    }
+
+                    GeoPoint2 second = c.Input.Point;
+                    corners = new List<GeoPoint2>
+                    {
+                        first,
+                        new GeoPoint2(first.X, second.Y),
+                        second,
+                        new GeoPoint2(second.X, first.Y),
+                        first,
+                    };
+                    continue;
+                }
+
+                if (c.Input.Is("Polygonal"))
+                {
+                    var points = new List<GeoPoint2>();
+                    yield return CadPrompt.ForPoint("Specify first point");
+
+                    if (!c.Input.IsPoint)
+                    {
+                        yield break;
+                    }
+
+                    points.Add(c.Input.Point);
+
+                    while (true)
+                    {
+                        yield return CadPrompt.ForPoint(
+                            "Specify next point",
+                            points[points.Count - 1],
+                            points.Count >= 3 ? new[] { "Close", "Undo" } : new[] { "Undo" }
+                        );
+
+                        if (c.Input.IsPoint)
+                        {
+                            points.Add(c.Input.Point);
+                            continue;
+                        }
+
+                        if (c.Input.Is("Undo"))
+                        {
+                            if (points.Count > 1)
+                            {
+                                points.RemoveAt(points.Count - 1);
+                            }
+
+                            continue;
+                        }
+
+                        break;
+                    }
+
+                    if (points.Count < 3)
+                    {
+                        yield break;
+                    }
+
+                    points.Add(points[0]);
+                    corners = points;
+                    type = DxfClipBoundaryType.Poly;
+                    continue;
+                }
+
+                yield return CadPrompt.ForEntity("Select polyline");
+
+                if (
+                    c.Input.Kind != CadInputKind.Selection
+                    || !(c.Document.FindEntity(c.Input.Handles[0]) is DxfPolyline outline)
+                    || !outline.Closed
+                    || HasArcs(outline)
+                )
+                {
+                    c.Write("The boundary is a closed polyline of straight segments.");
+                    yield break;
+                }
+
+                corners = new List<GeoPoint2>();
+
+                for (int i = 0; i < outline.NumberOfVertices; i++)
+                {
+                    GeoPoint3 at = outline.GetPoint3dAt(i);
+                    corners.Add(new GeoPoint2(at.X, at.Y));
+                }
+
+                corners.Add(corners[0]);
+                type = DxfClipBoundaryType.Poly;
+            }
+
+            if (inverted && string.CompareOrdinal(c.Database.Version ?? string.Empty, "AC1024") < 0)
+            {
+                c.Write("An inverted clip needs a drawing of R2010 or later.");
+                yield break;
+            }
+
+            List<GeoPoint2> world = corners;
+            DxfClipBoundaryType kind = type;
+            bool invert = inverted;
+            Tolerance tolerance = c.Session.Tolerance;
+            c.Apply(
+                new[]
+                {
+                    new CadEditRecord(
+                        CadEditRecordKind.PropertyChanged,
+                        handle,
+                        "Clip boundary",
+                        null,
+                        kind == DxfClipBoundaryType.Rectangle ? "Rectangular" : "Polygonal"
+                    ),
+                },
+                s =>
+                {
+                    var image = (DxfRasterImage)s.Document.FindEntity(handle);
+                    GeoTransform3 toPixels = image.PixelToModelTransform.Inverse(tolerance);
+                    var pixels = new List<GeoPoint2>();
+
+                    foreach (GeoPoint2 corner in world)
+                    {
+                        GeoPoint3 pixel = toPixels.Transform(new GeoPoint3(corner.X, corner.Y, 0.0));
+                        pixels.Add(new GeoPoint2(pixel.X, pixel.Y));
+                    }
+
+                    pixels[pixels.Count - 1] = pixels[0];
+                    image.SetClipBoundary(kind, pixels);
+                    image.IsClipped = true;
+
+                    if (invert || image.IsClipInverted)
+                    {
+                        image.IsClipInverted = invert;
+                    }
+                }
+            );
+        }
+
+        /// <summary>Whether an image is clipped by a boundary of its own rather than its whole picture.</summary>
+        internal static bool Clipped(DxfRasterImage image)
+        {
+            IReadOnlyList<GeoPoint2> boundary = image.GetClipBoundary();
+            int across = (int)image.ImageWidth;
+            int up = (int)image.ImageHeight;
+            return image.IsClipped
+                && !(
+                    image.ClipBoundaryType == DxfClipBoundaryType.Rectangle
+                    && boundary.Count == 5
+                    && boundary.Min(p => p.X) == -0.5
+                    && boundary.Min(p => p.Y) == -0.5
+                    && boundary.Max(p => p.X) == across - 0.5
+                    && boundary.Max(p => p.Y) == up - 0.5
+                );
+        }
+
+        private static bool HasArcs(DxfPolyline polyline)
+        {
+            for (int i = 0; i < polyline.NumberOfVertices; i++)
+            {
+                if (polyline.GetBulgeAt(i) != 0.0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>TRANSPARENCY: "Select image(s):", then "Enter transparency mode [ON/OFF] &lt;OFF&gt;:", the transparent pixels of a picture letting what is under it show while ON.</summary>
+        private static IEnumerable<CadPrompt> Transparency(CadCommandContext c)
+        {
+            foreach (
+                CadPrompt prompt in c.SelectFirst(CadPrompt.ForSelection("Select image(s)"), e =>
+                    e is DxfRasterImage && !(e is DxfWipeout)
+                )
+            )
+            {
+                yield return prompt;
+            }
+
+            var images = new List<string>();
+
+            foreach (string handle in c.Input.Handles ?? Array.Empty<string>())
+            {
+                if (c.Document.FindEntity(handle) is DxfRasterImage image && !(image is DxfWipeout))
+                {
+                    images.Add(handle);
+                }
+            }
+
+            if (images.Count == 0)
+            {
+                yield break;
+            }
+
+            bool now = ((DxfRasterImage)c.Document.FindEntity(images[0])).ImageTransparency;
+            yield return CadPrompt.ForKeyword("Enter transparency mode", new[] { "ON", "OFF" }, now ? "ON" : "OFF");
+
+            if (c.Input.Kind != CadInputKind.Keyword)
+            {
+                yield break;
+            }
+
+            bool on = c.Input.Is("ON");
+            c.Apply(
+                images
+                    .Select(h => new CadEditRecord(
+                        CadEditRecordKind.PropertyChanged,
+                        h,
+                        "Transparency",
+                        null,
+                        on ? "On" : "Off"
+                    ))
+                    .ToList(),
+                s =>
+                {
+                    foreach (string handle in images)
+                    {
+                        ((DxfRasterImage)s.Document.FindEntity(handle)).ImageTransparency = on;
+                    }
+                }
+            );
+        }
+    }
+}

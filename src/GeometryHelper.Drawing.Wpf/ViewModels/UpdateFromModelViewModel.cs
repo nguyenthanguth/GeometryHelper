@@ -5,8 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using GeometryHelper.Dxf.Viewer;
-using GeometryHelper.Dxf.Viewer.Wpf;
+using GeometryHelper.Cad;
+using GeometryHelper.Cad.Wpf;
 
 namespace GeometryHelper.Drawing.Wpf
 {

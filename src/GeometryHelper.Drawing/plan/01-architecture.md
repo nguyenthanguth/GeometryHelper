@@ -67,7 +67,7 @@ its object's id (in the entity's XDATA, under an application name of the module'
 before it changes an entity that has one, it asks:
 
 ```csharp
-namespace GeometryHelper.Dxf.Viewer
+namespace GeometryHelper.Cad
 {
     public interface ICadEntityOwner
     {

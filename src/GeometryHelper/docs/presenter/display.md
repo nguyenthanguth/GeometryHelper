@@ -1,6 +1,6 @@
 # Opening, drawing and picking
 
-A drawing opened as a [`CadDocument`](xref:GeometryHelper.Dxf.Viewer.CadDocument), turned into what the canvas draws, and
+A drawing opened as a [`CadDocument`](xref:GeometryHelper.Cad.CadDocument), turned into what the canvas draws, and
 asked what lies under a point or inside a box. Nothing on this page needs a window: the document, its display lists and
 its index are plain objects, which is how the presenter's own tests drive them.
 
@@ -24,12 +24,12 @@ document.Layers;                                                  // 0 (white) a
 | a drawing with no handles | one of R12 written by hand, with neither header nor tables, is read anew with a handle for each entity, as AutoCAD gives them on opening it: the next above every handle of the file, in its order, with `$HANDSEED` above them and `$HANDLING` 1, a header made where it has none. The document picks, snaps and edits by handle and an undo reads the drawing back from its saved bytes, so the handles are written, and saved with it, as AutoCAD saves it. Three walls and a column read as LINEs 1 to 3 and the CIRCLE 4, and `Database` is the copy read anew |
 | `Database` | the [`DxfDatabase`](xref:GeometryHelper.Dxf.DxfDatabase); a new object after an undo or a redo, so hold the handle of an entity, not the entity |
 | `FindEntity(handle)`, `FindSpace(handle)` | the entity of a handle, or null where there is none or it is erased; the space that holds it |
-| `Layers` | a [`CadLayerInfo`](xref:GeometryHelper.Dxf.Viewer.CadLayerInfo) for each layer: name, colour as 0xRRGGBB, on, frozen, locked, linetype, line weight in millimetres |
-| `Selection` | the [`CadSelection`](xref:GeometryHelper.Dxf.Viewer.CadSelection) of the document (see [Selecting](#selecting)) |
+| `Layers` | a [`CadLayerInfo`](xref:GeometryHelper.Cad.CadLayerInfo) for each layer: name, colour as 0xRRGGBB, on, frozen, locked, linetype, line weight in millimetres |
+| `Selection` | the [`CadSelection`](xref:GeometryHelper.Cad.CadSelection) of the document (see [Selecting](#selecting)) |
 
 ## Spaces
 
-A [`CadSpace`](xref:GeometryHelper.Dxf.Viewer.CadSpace) is model space or one layout. `Spaces` lists model space first, then
+A [`CadSpace`](xref:GeometryHelper.Cad.CadSpace) is model space or one layout. `Spaces` lists model space first, then
 the layouts in the order of their tabs, a tie going by name; the layout "Model" of the file is not listed twice.
 `CurrentSpace` is the one the canvas shows.
 
@@ -41,10 +41,10 @@ of 2 per cent of its larger side. Model space has no paper and its `PaperBounds`
 
 ## What is drawn
 
-`GetDisplay(space)` gives the [`DisplayList2`](xref:GeometryHelper.Dxf.Viewer.DisplayList2) of a space, made the first time
-and kept. It holds [`DisplayItem2`](xref:GeometryHelper.Dxf.Viewer.DisplayItem2) objects in drawing order, the first at the
+`GetDisplay(space)` gives the [`DisplayList2`](xref:GeometryHelper.Cad.DisplayList2) of a space, made the first time
+and kept. It holds [`DisplayItem2`](xref:GeometryHelper.Cad.DisplayItem2) objects in drawing order, the first at the
 back, and the box that holds them all. Each item carries the handle of the entity it came from, its layer, and a
-[`DisplayStyle`](xref:GeometryHelper.Dxf.Viewer.DisplayStyle): colour, line weight and dashes, already worked out. The
+[`DisplayStyle`](xref:GeometryHelper.Cad.DisplayStyle): colour, line weight and dashes, already worked out. The
 items of a drawing share the strings of its layer names and give back the room the list made by doubling left empty: a
 drawing of 100 000 entities (178 000 items, one in five a text) keeps 35.5 MB of display list where it kept 41.1 MB.
 
@@ -449,13 +449,13 @@ from two threads at once, so nothing else may use it until it returns.
 
 | Item | What it is |
 |---|---|
-| [`DisplayPolyline2`](xref:GeometryHelper.Dxf.Viewer.DisplayPolyline2) | a chain of points, open or closed: a line is one of two points; an ellipse and a spline are sampled into one |
-| [`DisplaySegments2`](xref:GeometryHelper.Dxf.Viewer.DisplaySegments2) | many separate segments in one item: the lines of a hatch's pattern |
-| [`DisplayRay2`](xref:GeometryHelper.Dxf.Viewer.DisplayRay2) | a line without end from its base point: both ways for an XLINE, on from it for a RAY; the canvas draws the part the view shows (`TryClip`) |
-| [`DisplayArc2`](xref:GeometryHelper.Dxf.Viewer.DisplayArc2) | an arc or a whole circle, kept as an arc and flattened by the canvas to the tolerance of the screen |
-| [`DisplayFill2`](xref:GeometryHelper.Dxf.Viewer.DisplayFill2) | a filled outline with its holes: a solid hatch, a SOLID, and a WIPEOUT, which masks what is under it |
-| [`DisplayText2`](xref:GeometryHelper.Dxf.Viewer.DisplayText2) | a text with its place, height, turn, width factor, justification and font name; the canvas sets the letters, a TEXT's spaces before and after its words kept, as AutoCAD justifies by them: "ABC " on the right of its baseline a space further left than "ABC" |
-| [`DisplayViewport2`](xref:GeometryHelper.Dxf.Viewer.DisplayViewport2) | a viewport of a layout: its frame, and the model-space items it shows |
+| [`DisplayPolyline2`](xref:GeometryHelper.Cad.DisplayPolyline2) | a chain of points, open or closed: a line is one of two points; an ellipse and a spline are sampled into one |
+| [`DisplaySegments2`](xref:GeometryHelper.Cad.DisplaySegments2) | many separate segments in one item: the lines of a hatch's pattern |
+| [`DisplayRay2`](xref:GeometryHelper.Cad.DisplayRay2) | a line without end from its base point: both ways for an XLINE, on from it for a RAY; the canvas draws the part the view shows (`TryClip`) |
+| [`DisplayArc2`](xref:GeometryHelper.Cad.DisplayArc2) | an arc or a whole circle, kept as an arc and flattened by the canvas to the tolerance of the screen |
+| [`DisplayFill2`](xref:GeometryHelper.Cad.DisplayFill2) | a filled outline with its holes: a solid hatch, a SOLID, and a WIPEOUT, which masks what is under it |
+| [`DisplayText2`](xref:GeometryHelper.Cad.DisplayText2) | a text with its place, height, turn, width factor, justification and font name; the canvas sets the letters, a TEXT's spaces before and after its words kept, as AutoCAD justifies by them: "ABC " on the right of its baseline a space further left than "ABC" |
+| [`DisplayViewport2`](xref:GeometryHelper.Cad.DisplayViewport2) | a viewport of a layout: its frame, and the model-space items it shows |
 
 The six entities of the file give six items: four `DisplayPolyline2`, one `DisplayArc2` and one `DisplayText2`, in a box
 from (0, 0) to (100, 75). A polyline of a LWPOLYLINE with an arc segment gives a `DisplayPolyline2` and a `DisplayArc2`.
@@ -523,7 +523,7 @@ written.
 
 The MTEXT editor (TEXTEDIT, MTEXT) sets the words being typed by this same layout, as AutoCAD's in-place editor shows
 them as they will look:
-[`CadMTextEditorLayout`](xref:GeometryHelper.Dxf.Viewer.CadMTextEditorLayout) lays out the editor's words with the
+[`CadMTextEditorLayout`](xref:GeometryHelper.Cad.CadMTextEditorLayout) lays out the editor's words with the
 MTEXT's width, attachment, spacing, columns, mask and frame, and gives the parts the canvas would draw and where each
 place of the editor stands. The editor's frame draws those parts at the canvas's zoom, so a line breaks, a baseline lies
 and a stack stands in the editor where it will be drawn. In "II II II" 20 wide the caret after the last letter is on the
@@ -588,7 +588,7 @@ and the colour are greyed while the mask is off, the colour while the drawing's 
 5.0 is refused and its box marked. OK shows the mask in the editor at once and writes it with the words when the editor
 closes (group 90 flags 1 and 2, 45 the factor, 63 and 421 the colour), one undo step of the drawing; a mask left off takes
 the flags out and keeps the rest of the record. The mask is public as
-[`CadMTextMask`](xref:GeometryHelper.Dxf.Viewer.CadMTextMask).
+[`CadMTextMask`](xref:GeometryHelper.Cad.CadMTextMask).
 
 The Symbol menu of the Insert panel has AutoCAD 2021's twenty-one items in its order: Degrees `%%d`, Plus/Minus `%%p`,
 Diameter `%%c`, Almost Equal `\U+2248`, Angle `\U+2220`, Boundary Line `\U+E100`, Centerline `\U+2104`, Delta `\U+0394`,
@@ -608,13 +608,13 @@ Match on the Formatting panel is AutoCAD 2021's Match Text Formatting: it takes 
 the letters typed next where none are, and the next letters selected (by the mouse, or a double click on a word) are given
 all of it, the font, bold, italic, the lines, the colour, the height, the slant, the tracking and the width, as one step of
 the editor's undo; with the brush up the pointer is a pen, and Esc puts it down before it asks about the changes
-([`CadMTextEditor.BeginMatch`](xref:GeometryHelper.Dxf.Viewer.CadMTextEditor.BeginMatch*),
-[`ApplyMatch`](xref:GeometryHelper.Dxf.Viewer.CadMTextEditor.ApplyMatch*)). The paragraph's own codes (alignment, indents,
+([`CadMTextEditor.BeginMatch`](xref:GeometryHelper.Cad.CadMTextEditor.BeginMatch*),
+[`ApplyMatch`](xref:GeometryHelper.Cad.CadMTextEditor.ApplyMatch*)). The paragraph's own codes (alignment, indents,
 spacing) are not matched. AutoCAPS on the Tools panel turns the letters typed, pasted or imported into capitals while it
 is on, `abc` with "def" typed after it becoming `abcDEF`, and leaves the words already there to Change Case. Import Text
 asks for a `.txt` or `.rtf` file (32 KB at most, as AutoCAD 2021 asks: a larger file is refused with "Import Text: The
 file is over 32 KB" in the command line's history) and puts its words in at the caret, over the selection, as one step of
-the editor's undo ([`CadMTextImport`](xref:GeometryHelper.Dxf.Viewer.CadMTextImport)). A text file is read by its byte
+the editor's undo ([`CadMTextImport`](xref:GeometryHelper.Cad.CadMTextImport)). A text file is read by its byte
 order mark, else as UTF-8 where it is valid UTF-8, else as Latin-1, each line a paragraph, in the look of the letters typed
 there. An RTF (told by its start, whatever its name) keeps the font where it is not the document's default, bold, italic,
 underline, strikethrough, the colour (as a true colour) and the size (the MTEXT's height times its ratio to the size of
@@ -631,7 +631,7 @@ selection and goes round to the start; Replace puts the replacement in place of 
 first letter, and selects the next, or, where the selection is no match, only selects one; Replace All is one step of the
 editor's undo and does not search what it put in, so "a" replaced by "aa" in "aaa" gives six. With no option set a
 search ignores capitals, finds "cafe" in "café" and "ABC" in "ＡＢＣ", and finds "bolt" inside "bolted"; a symbol or a stack
-counts as one place that no words match ([`CadMTextFindOptions`](xref:GeometryHelper.Dxf.Viewer.CadMTextFindOptions)).
+counts as one place that no words match ([`CadMTextFindOptions`](xref:GeometryHelper.Cad.CadMTextFindOptions)).
 
 Spell Check on the Text Editor tab underlines in red, wavy, each word not in the dictionary as the words are typed,
 checked as Check Spelling checks them (a word of one letter, in capitals or with a digit is passed over); a right-click
@@ -646,7 +646,7 @@ built-in dictionary is the SCOWL word lists of Kevin Atkinson in American and Br
 file of 270 KB inside the library (its notice is in `THIRD-PARTY-NOTICES.md`), with the drafting terms the library had
 before, and the endings -s, -es, -ed, -ing, -ly, -er, -est and 's tried; it is read when the first word is checked, in
 about 25 ms (.NET Framework 4.8), and the words nearest one take 6 to 30 ms to find (a text of 7 600 places is checked in 2.4 ms). The check is public as
-[`CadSpellDictionary`](xref:GeometryHelper.Dxf.Viewer.CadSpellDictionary), and SPELL, which has the same dictionary,
+[`CadSpellDictionary`](xref:GeometryHelper.Cad.CadSpellDictionary), and SPELL, which has the same dictionary,
 starts with the same custom file where the window sets one (`CadCommandSession.SpellDictionaryPath`).
 
 Esc ends an edit in place as AutoCAD 2021 ends it. In the edit box of a single-line text it drops what was typed: a
@@ -668,23 +668,23 @@ turns the view, the layers frozen in that viewport only, and the model-space dis
 target and turned by the twist, is taken back to the point of model space it stands for.
 Because a viewport draws model space, an edit in model space drops the display lists of every layout too.
 
-A viewport clipped by an entity (VPCLIP) has its `Clip`, a [`DisplayClip2`](xref:GeometryHelper.Dxf.Viewer.DisplayClip2): the
+A viewport clipped by an entity (VPCLIP) has its `Clip`, a [`DisplayClip2`](xref:GeometryHelper.Cad.DisplayClip2): the
 boundary as a closed ring of paper units, a circle as two vertices with the bulge 1 and the arcs of a polyline kept as
 arcs, an ellipse or a spline sampled finely, `Flatten(tolerance)` cutting the arcs to a chord that lies no farther than the
 tolerance and `Contains` and `DistanceToEdge` answering for a point. A REGION boundary with a hole, or of several faces, adds its other
 rings (`Others`, `FlattenAll(tolerance)` giving every ring): a point is inside where it is inside an odd number of them, so that a
 ring inside the first is a hole, as AutoCAD 2021 plotted one with nothing of model space in it. The canvas draws model space through that outline in
 place of the frame (arcs kept to a tenth of a pixel), draws no frame of its own, since the boundary entity is the border and
-is drawn as itself, and a pick finds the viewport by the distance to the outline. [`CadViewportClips.OutlineOf(viewport)`](xref:GeometryHelper.Dxf.Viewer.CadViewportClips)
+is drawn as itself, and a pick finds the viewport by the distance to the outline. [`CadViewportClips.OutlineOf(viewport)`](xref:GeometryHelper.Cad.CadViewportClips)
 makes the outline from the viewport. A viewport that is not clipped is drawn as it was, its frame a rectangle.
 
 A block reference or external reference clipped by XCLIP is drawn inside its boundary alone. Each item it draws has a
-`BlockClip`, a [`DisplayClipRegion`](xref:GeometryHelper.Dxf.Viewer.DisplayClipRegion): the boundary as a ring in drawing
+`BlockClip`, a [`DisplayClipRegion`](xref:GeometryHelper.Cad.DisplayClipRegion): the boundary as a ring in drawing
 units (`Ring`, `Outline`), within the region of the clipped block the reference stands in (`Parent`), with the box of
 what is shown (`Bounds`) and `Contains`, `Reaches` (inside, or within a distance, as a pick asks) and `Meets` (a box, as a
 crossing asks) answering for a point or a box. The box of the display list is the box of what is shown, and the canvas, a
 plot and the images written clip every item to its region. The frame of the boundary is a closed chain of its own
-(`IsClipFrame`, left out of a plot where XCLIPFRAME is 2, `IsNotPlotted`) that no clip touches. A [`PickIndex`](xref:GeometryHelper.Dxf.Viewer.PickIndex)
+(`IsClipFrame`, left out of a plot where XCLIPFRAME is 2, `IsNotPlotted`) that no clip touches. A [`PickIndex`](xref:GeometryHelper.Cad.PickIndex)
 finds a clipped item only where its region does, a window takes the reference by the box of what is shown, and a crossing and
 the aperture of a snap meet only the part inside. Each cell of a MINSERT is clipped by its own place, and a clip that is
 switched off draws the block whole. A clip made in a system tilted out of the plan has the region where its prism cuts the plane
@@ -734,7 +734,7 @@ to the layer table, a layer switched off or given a colour, makes the builder re
 
 ## The view
 
-[`CadView`](xref:GeometryHelper.Dxf.Viewer.CadView) is what part of a space the canvas shows and at what zoom: the point of
+[`CadView`](xref:GeometryHelper.Cad.CadView) is what part of a space the canvas shows and at what zoom: the point of
 the drawing at the middle of the canvas, and the pixels one drawing unit takes. Panning and zooming are arithmetic on those
 three numbers, so they are tested here. Y runs up in the drawing and down on the screen.
 
@@ -759,7 +759,7 @@ The zoom is held between 1E-9 and 1E9 pixels to the unit.
 
 ## Picking
 
-[`PickIndex`](xref:GeometryHelper.Dxf.Viewer.PickIndex) is a grid over the items of one display list that answers which of
+[`PickIndex`](xref:GeometryHelper.Cad.PickIndex) is a grid over the items of one display list that answers which of
 them lie near a point or in a box without looking at every item. It works in the drawing's coordinates, never in pixels, so
 a caller working in pixels divides by the zoom first. `GetPickIndex(space)` gives the index of a space, made once and kept
 with its display list.
@@ -788,7 +788,7 @@ and a window of 100 by 100 that takes 100 of them 0.56 ms.
 
 ## Selecting
 
-[`CadSelection`](xref:GeometryHelper.Dxf.Viewer.CadSelection) holds the handles of the selected entities, ignoring case.
+[`CadSelection`](xref:GeometryHelper.Cad.CadSelection) holds the handles of the selected entities, ignoring case.
 
 ```csharp
 document.Selection.Set(index.Pick(50, 40.5, 2));   // the circle

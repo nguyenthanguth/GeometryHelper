@@ -7,10 +7,10 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using GeometryHelper.Cad;
+using GeometryHelper.Cad.Wpf;
 using GeometryHelper.Drawing.Plugins;
 using GeometryHelper.Dxf;
-using GeometryHelper.Dxf.Viewer;
-using GeometryHelper.Dxf.Viewer.Wpf;
 
 namespace GeometryHelper.Drawing.Wpf
 {

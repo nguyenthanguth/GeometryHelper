@@ -7,7 +7,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using GeometryHelper.Dxf.Viewer.Wpf;
+using GeometryHelper.Cad.Wpf;
 using Xunit;
 
 namespace GeometryHelper.Drawing.Wpf.UnitTest

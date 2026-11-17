@@ -4,11 +4,11 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using GeometryHelper.Cad;
+using GeometryHelper.Cad.Plugins;
+using GeometryHelper.Cad.Wpf.Plugins;
 using GeometryHelper.Drawing.Plugins;
 using GeometryHelper.Dxf;
-using GeometryHelper.Dxf.Viewer;
-using GeometryHelper.Dxf.Viewer.Plugins;
-using GeometryHelper.Dxf.Viewer.Wpf.Plugins;
 using GeometryHelper.Geometry;
 using Xunit;
 using Xunit.Abstractions;
@@ -310,7 +310,7 @@ namespace GeometryHelper.Drawing.UnitTest.Plugins
             File.Copy(BuiltSample, dll);
 
             using (CadPluginManager manager = Manager())
-            using (var dialog = new GeometryHelper.Dxf.Viewer.Wpf.PluginManagerViewModel(manager))
+            using (var dialog = new GeometryHelper.Cad.Wpf.PluginManagerViewModel(manager))
             {
                 var catalog = new DrawingPluginCatalog(manager);
                 Assert.True(dialog.Load(dll).Succeeded);

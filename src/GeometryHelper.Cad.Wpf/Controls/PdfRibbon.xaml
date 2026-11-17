@@ -1,0 +1,178 @@
+<UserControl
+    x:Class="GeometryHelper.Cad.Wpf.PdfRibbon"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Cad.Wpf"
+>
+    <!--
+    The contextual PDF Underlay tab, as AutoCAD 2021 draws it for PDF underlays and in the look of the Image tab: Adjust (Fade and
+    Contrast, each a slider and a box from 0 to 100, Monochrome and Adjust colors for background), Clipping (Create Clipping
+    Boundary, Remove Clipping), Options (Show Underlay, the Frame box of PDFFRAME, Underlay Layers) and Close. Its logic is
+    PdfTabViewModel; each value changed is one undo step named after the command that changes the same thing. The ribbon's
+    styles are the workspace's, found at run time (DynamicResource).
+    -->
+    <UserControl.Resources>
+        <Geometry x:Key="IconPdfClipCreate">M6 6h12v12H6zM3 9V3h6M21 15v6h-6</Geometry>
+        <Geometry x:Key="IconPdfClipRemove">M6 6h12v12H6zM3 3l18 18</Geometry>
+        <Geometry x:Key="IconPdfLayers">M12 3l9 5-9 5-9-5zM3 12l9 5 9-5M3 16l9 5 9-5</Geometry>
+        <Geometry x:Key="IconClosePdf">M5 5l14 14M19 5L5 19</Geometry>
+        <Style x:Key="PdfLabel" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,0,6,2" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="MinWidth" Value="52" />
+        </Style>
+        <Style x:Key="PdfLevel" TargetType="Slider">
+            <Setter Property="Width" Value="130" />
+            <Setter Property="Minimum" Value="0" />
+            <Setter Property="Maximum" Value="100" />
+            <Setter Property="IsSnapToTickEnabled" Value="True" />
+            <Setter Property="TickFrequency" Value="1" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,6,2" />
+        </Style>
+        <Style x:Key="PdfField" TargetType="TextBox">
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Margin" Value="0,0,0,2" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Right" />
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel Orientation="Horizontal">
+        <!-- Adjust: the fade and contrast of PDFADJUST, Monochrome, Adjust colors for background. -->
+        <Border Style="{DynamicResource GroupBorder}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Adjust" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Style="{StaticResource PdfLabel}" Text="Fade" />
+                    <Slider
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        Style="{StaticResource PdfLevel}"
+                        AutomationProperties.Name="Fade"
+                        Value="{Binding Fade, Mode=TwoWay, Delay=300}"
+                    />
+                    <TextBox
+                        Grid.Row="0"
+                        Grid.Column="2"
+                        Style="{StaticResource PdfField}"
+                        AutomationProperties.Name="Fade value"
+                        Text="{Binding Fade, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                    />
+                    <TextBlock Grid.Row="1" Style="{StaticResource PdfLabel}" Text="Contrast" />
+                    <Slider
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        Style="{StaticResource PdfLevel}"
+                        AutomationProperties.Name="Contrast"
+                        Value="{Binding Contrast, Mode=TwoWay, Delay=300}"
+                    />
+                    <TextBox
+                        Grid.Row="1"
+                        Grid.Column="2"
+                        Style="{StaticResource PdfField}"
+                        AutomationProperties.Name="Contrast value"
+                        Text="{Binding Contrast, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                    />
+                    <StackPanel Grid.Row="0" Grid.RowSpan="3" Grid.Column="3" Margin="10,2,0,0">
+                        <CheckBox
+                            Content="Monochrome"
+                            Margin="0,0,0,4"
+                            IsChecked="{Binding Monochrome}"
+                            ToolTip="PDFADJUST, Monochrome: the underlay in shades of grey"
+                        />
+                        <CheckBox
+                            Content="Adjust colors for background"
+                            IsChecked="{Binding AdjustColors}"
+                            ToolTip="The colours of the PDF turned to show on the background: a dark one shows its black as white"
+                        />
+                    </StackPanel>
+                </Grid>
+            </DockPanel>
+        </Border>
+
+        <!-- Clipping: PDFCLIP's New boundary and Delete. -->
+        <Border Style="{DynamicResource GroupBorder}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Clipping" />
+                <StackPanel Orientation="Horizontal">
+                    <Button
+                        Style="{DynamicResource BigButton}"
+                        Tag="{StaticResource IconPdfClipCreate}"
+                        Content="Create Clipping Boundary"
+                        IsEnabled="True"
+                        Command="{Binding CreateClipCommand}"
+                        ToolTip="PDFCLIP, New boundary: pick a rectangle or a polygon on the underlay (one underlay at a time)"
+                    />
+                    <Button
+                        Style="{DynamicResource BigButton}"
+                        Tag="{StaticResource IconPdfClipRemove}"
+                        Content="Remove Clipping"
+                        IsEnabled="True"
+                        Command="{Binding RemoveClipCommand}"
+                        ToolTip="PDFCLIP, Delete: the underlay shows its whole page again"
+                    />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Options: Show Underlay, the drawing's PDF frames (PDFFRAME) and the layers of the PDF. -->
+        <Border Style="{DynamicResource GroupBorder}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Options" />
+                <StackPanel Orientation="Horizontal">
+                    <StackPanel VerticalAlignment="Top" Margin="0,2,0,0">
+                        <CheckBox
+                            Content="Show Underlay"
+                            Margin="0,0,0,4"
+                            IsChecked="{Binding ShowUnderlay}"
+                            ToolTip="Off, the underlay is shown as its frame alone"
+                        />
+                        <ComboBox
+                            Style="{DynamicResource GhComboBox}"
+                            Width="170"
+                            ItemsSource="{Binding FrameNames}"
+                            SelectedItem="{Binding Frame, Mode=TwoWay}"
+                            ToolTip="Frame: PDFFRAME, whether the frames of the PDF underlays are shown and plotted"
+                        />
+                    </StackPanel>
+                    <Button
+                        Style="{DynamicResource BigButton}"
+                        Tag="{StaticResource IconPdfLayers}"
+                        Content="Underlay Layers"
+                        IsEnabled="True"
+                        Command="{Binding LayersCommand}"
+                        ToolTip="PDFLAYERS: switch the layers of the PDF on and off"
+                    />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Close. -->
+        <Border Style="{DynamicResource GroupBorder}" BorderThickness="0">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Close" />
+                <Button
+                    Style="{DynamicResource BigButton}"
+                    Tag="{StaticResource IconClosePdf}"
+                    Content="Close PDF Underlay"
+                    IsEnabled="True"
+                    Command="{Binding CloseCommand}"
+                    Margin="0"
+                    ToolTip="Close the tab: the underlays are let go"
+                />
+            </DockPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

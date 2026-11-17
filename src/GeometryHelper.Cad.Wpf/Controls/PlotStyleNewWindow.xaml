@@ -1,0 +1,126 @@
+<Window
+    x:Class="GeometryHelper.Cad.Wpf.PlotStyleNewWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Cad.Wpf"
+    Title="Add Plot Style Table"
+    Width="460"
+    SizeToContent="Height"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Cad.Wpf;component/Themes/BlockDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <!-- Header: the title, dragged to move the dialog, and the close button (Cancel). -->
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
+                    <TextBlock
+                        Text="Add Plot Style Table"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center"
+                    />
+                </DockPanel>
+            </Border>
+
+            <!-- Footer: Cancel and OK. -->
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Cancel"
+                        Padding="14,5"
+                        Margin="0,0,8,0"
+                        Click="OnCancel"
+                        IsCancel="True"
+                    />
+                    <Button
+                        Style="{StaticResource StylePrimaryButton}"
+                        Content="OK"
+                        Padding="14,5"
+                        Click="OnOk"
+                        IsDefault="True"
+                    />
+                </StackPanel>
+            </Border>
+
+            <StackPanel Margin="16,12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="100" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="8" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="8" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="File name" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <TextBox
+                        Grid.Column="1"
+                        Style="{StaticResource StyleBox}"
+                        Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                        AutomationProperties.Name="File name"
+                    />
+                    <TextBlock Grid.Row="2" Text="Start from" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <ComboBox
+                        Grid.Row="2"
+                        Grid.Column="1"
+                        Style="{StaticResource GhComboBox}"
+                        ItemsSource="{Binding Sources}"
+                        SelectedItem="{Binding Source, Mode=TwoWay}"
+                        AutomationProperties.Name="Start from"
+                    />
+                    <TextBlock Grid.Row="4" Text="Kind" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <TextBlock
+                        Grid.Row="4"
+                        Grid.Column="1"
+                        Text="{Binding Kind}"
+                        Foreground="{StaticResource GhTextMuted}"
+                    />
+                </Grid>
+                <TextBlock
+                    Text="{Binding Message}"
+                    Foreground="{StaticResource GhWarn}"
+                    TextWrapping="Wrap"
+                    Margin="0,10,0,0"
+                />
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</Window>

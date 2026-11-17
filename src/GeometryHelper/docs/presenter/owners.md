@@ -7,7 +7,7 @@ contract, and a model drawing is one owner of it.
 
 ## The tag
 
-An owned entity carries a [`CadOwnerTag`](xref:GeometryHelper.Dxf.Viewer.CadOwnerTag) in its extended data under the
+An owned entity carries a [`CadOwnerTag`](xref:GeometryHelper.Cad.CadOwnerTag) in its extended data under the
 application GH_OWNER: the owner's name, the id of the object the entity draws, and where the owner wants one a second id,
 such as the view it is in.
 
@@ -26,7 +26,7 @@ extended data holds one; a longer one is refused when the tag is made.
 
 ## The rule
 
-An owner says what the presenter may do to each of its entities, as a [`CadEditRule`](xref:GeometryHelper.Dxf.Viewer.CadEditRule):
+An owner says what the presenter may do to each of its entities, as a [`CadEditRule`](xref:GeometryHelper.Cad.CadEditRule):
 
 | Rule | The presenter may | Example in a model drawing |
 |---|---|---|
@@ -35,9 +35,9 @@ An owner says what the presenter may do to each of its entities, as a [`CadEditR
 | `MoveOnly` | move it, and the move goes to the owner | a mark dragged off its part, a view moved on the sheet |
 | `Edit` | any edit, each taken or refused by the owner | a dimension moved, its text overridden, erased |
 
-An owner is an [`ICadEntityOwner`](xref:GeometryHelper.Dxf.Viewer.ICadEntityOwner): its `Name`, `GetEditRule(entity)`, and
+An owner is an [`ICadEntityOwner`](xref:GeometryHelper.Cad.ICadEntityOwner): its `Name`, `GetEditRule(entity)`, and
 `TryApply(document, edit)`, which takes an edit, records it and changes its entities in the document, or refuses it. Owners
-are registered with the document's [`CadOwnerRegistry`](xref:GeometryHelper.Dxf.Viewer.CadOwnerRegistry), `document.Owners`,
+are registered with the document's [`CadOwnerRegistry`](xref:GeometryHelper.Cad.CadOwnerRegistry), `document.Owners`,
 which finds the owner an entity's tag names:
 
 | The entity | Its rule |
@@ -54,7 +54,7 @@ projected lines, symbols, marks, dimensions and views, is read-only throughout u
 
 ## What an edit is
 
-The owner is handed a [`CadEdit`](xref:GeometryHelper.Dxf.Viewer.CadEdit): the handle, a [`CadEditKind`](xref:GeometryHelper.Dxf.Viewer.CadEditKind),
+The owner is handed a [`CadEdit`](xref:GeometryHelper.Cad.CadEdit): the handle, a [`CadEditKind`](xref:GeometryHelper.Cad.CadEditKind),
 the property, and the old and new values as text, numbers in the invariant culture, as many digits as bring them back to
 the bit, separated by commas.
 
@@ -72,8 +72,8 @@ A mark of handle 2F moved 10 to the right is `new CadEdit("2F", CadEditKind.Move
 
 ## How an edit is routed
 
-[`CadDocument.ApplyEdit`](xref:GeometryHelper.Dxf.Viewer.CadDocument) asks the document's gate about every planned change of an
-existing entity before it writes anything. The default gate, [`CadOwnerEditGate`](xref:GeometryHelper.Dxf.Viewer.CadOwnerEditGate),
+[`CadDocument.ApplyEdit`](xref:GeometryHelper.Cad.CadDocument) asks the document's gate about every planned change of an
+existing entity before it writes anything. The default gate, [`CadOwnerEditGate`](xref:GeometryHelper.Cad.CadOwnerEditGate),
 asks the registry for the entity's rule and refuses a kind the rule does not allow, with the words the command line shows:
 
 ```
@@ -84,7 +84,7 @@ This text belongs to the model and can only be moved.
 A change the rule lets through, to an entity whose owner takes its own edits (`MoveOnly` or `Edit`), is handed to the owner
 as a `CadEdit` through `CadOwnerRegistry.TryApply`. The owner changes the entity and records its hand edit, and what it does
 through `ApplyEdit` while it applies joins the same undo step, so one undo takes both back. The action of the presenter's
-command then leaves that entity alone ([`CadEditScope`](xref:GeometryHelper.Dxf.Viewer.CadEditScope)`.IsHandled(handle)`), and is not run at all where the owners made every
+command then leaves that entity alone ([`CadEditScope`](xref:GeometryHelper.Cad.CadEditScope)`.IsHandled(handle)`), and is not run at all where the owners made every
 planned change. An owner that does not take the edit refuses the whole edit, "The model owner did not take this edit.", and
 the drawing is read back as it was. An owner that throws has its edit refused and a Warn written.
 

@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using GeometryHelper.Cad;
 using GeometryHelper.Drawing.Plugins;
-using GeometryHelper.Dxf.Viewer;
 
 namespace GeometryHelper.Drawing.Wpf
 {

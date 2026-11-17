@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using GeometryHelper.Dxf.Viewer.Wpf;
+using GeometryHelper.Cad.Wpf;
 
 namespace GeometryHelper.Drawing.Wpf
 {

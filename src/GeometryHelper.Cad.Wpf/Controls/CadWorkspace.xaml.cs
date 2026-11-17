@@ -1,0 +1,1878 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Windows;
+using System.Windows.Automation;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
+using System.Windows.Media;
+using GeometryHelper.Dxf;
+using GeometryHelper.Geometry;
+using Microsoft.Win32;
+
+namespace GeometryHelper.Cad.Wpf
+{
+    /// <summary>
+    /// The presenter's whole window content, laid out as AutoCAD's own (A20): the title bar, the ribbon, the DRAWINGS list on
+    /// the left, the canvas with the command line under it, Properties on the right and the status bar. Its data context is a
+    /// <see cref="MainViewModel"/>; a window or a host such as a plugin of another program puts it in and lets it run.
+    /// </summary>
+    /// <remarks>
+    /// Keys as AutoCAD's: Esc closes the AutoComplete list, then cancels the command, then clears the selection; Ctrl+O opens a
+    /// DXF, Ctrl+W switches selection cycling, Ctrl+N runs the new document an extension offers
+    /// (<see cref="MainViewModel.NewDocumentOffer"/>) or, with none, makes a new drawing (NEW), Ctrl+S saves, Ctrl+Shift+S
+    /// saves as, Ctrl+Z undoes and Ctrl+Y redoes, Delete erases the selection; F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR,
+    /// F11 OTRACK, F12 DYN (the prompt and what is typed shown beside the cursor, Tab moving between its fields at a point prompt), and
+    /// Ctrl+9 shows or hides the command line. In the DRAWINGS list a click selects a row, a double click or Enter opens it,
+    /// Delete does nothing and a right click shows Open and the Close items; OSNAP of the status bar has the menu of the object
+    /// snaps on its arrow and its right click, and Shift+right-click on the canvas while a point is asked gives the snap menu.
+    /// The arrows of Trim, Fillet, Array, Draw Order, Paste and the dimension splits on the ribbon drop their other commands
+    /// (Extend, Chamfer, Polar Array, Send to Back, Paste as Block, Radius), the button then showing and running the one picked
+    /// until another is, and the title of Modify the rest of the group, as AutoCAD 2021's panel slides out. As the window
+    /// narrows, Home's panels shrink as AutoCAD's do (<see cref="RibbonStrip"/>): at 1 600 pixels View, Clipboard, Utilities
+    /// and Groups are each one button that drops the panel below it.
+    /// Letters typed with the focus on the canvas go to the command line, where Enter or Space runs the line (Space types a
+    /// space at a prompt for text) and Up and Down recall what was typed before. Once no key has come for the delay of Input
+    /// Settings, the AutoComplete list opens above the command line, or with DYN on under the box of dynamic input at the
+    /// cursor; while it is open the arrows move its row chosen and Enter or Space runs that row. With DYN on, ↓ at a prompt
+    /// with options opens their menu at the cursor, where the arrows move, Enter picks and Esc closes it alone. A right click on the command line gives its menu, and the G button the application
+    /// menu. A value of Properties is committed by Enter
+    /// or by leaving it, and Esc puts the old one back. DXF files dropped on it are opened.
+    /// </remarks>
+    public partial class CadWorkspace : UserControl
+    {
+        /// <summary>Identifies the <see cref="TitleBarContent"/> property.</summary>
+        public static readonly DependencyProperty TitleBarContentProperty = DependencyProperty.Register(
+            nameof(TitleBarContent),
+            typeof(object),
+            typeof(CadWorkspace),
+            new PropertyMetadata(null)
+        );
+
+        /// <summary>Identifies the <see cref="AppName"/> property.</summary>
+        public static readonly DependencyProperty AppNameProperty = DependencyProperty.Register(
+            nameof(AppName),
+            typeof(string),
+            typeof(CadWorkspace),
+            new PropertyMetadata("GeometryHelper Drawing")
+        );
+
+        private readonly System.Windows.Threading.DispatcherTimer _autosave =
+            new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
+        private readonly System.Windows.Threading.DispatcherTimer _suggest =
+            new System.Windows.Threading.DispatcherTimer();
+        private AppMenuViewModel _appMenu;
+        private MainViewModel _model;
+
+        /// <summary>The title bar's search box: Enter starts the first command found, Escape empties the box.</summary>
+        private void OnTitleSearchKey(object sender, KeyEventArgs e)
+        {
+            if (_model == null)
+            {
+                return;
+            }
+
+            if (e.Key == Key.Enter && _model.RunTitleSearchResult())
+            {
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Escape)
+            {
+                _model.TitleSearchText = string.Empty;
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>The box lost the keyboard: the list closes, as AutoCAD's search does when a click lands elsewhere.</summary>
+        private void OnTitleSearchLostFocus(object sender, KeyboardFocusChangedEventArgs e)
+        {
+            if (_model != null)
+            {
+                _model.TitleSearchText = string.Empty;
+            }
+        }
+
+        private void OnTitleResultClick(object sender, RoutedEventArgs e)
+        {
+            if (_model != null && ((FrameworkElement)sender).DataContext is CommandSuggestionViewModel row)
+            {
+                _model.RunTitleSearchResult(row);
+            }
+        }
+
+        private Point _dynamicAt;
+        private GeoPoint2 _bandAt;
+        private bool _fieldsPlaced;
+        private Rect _lengthOtherSide;
+        private DateTime _lastAutosave = DateTime.UtcNow;
+
+        /// <summary>Makes the workspace.</summary>
+        public CadWorkspace()
+        {
+            InitializeComponent();
+            AllowDrop = true;
+            DataContextChanged += OnDataContextChanged;
+            CanvasView.CursorMoved += (s, e) =>
+            {
+                _bandAt = new GeoPoint2(e.BandX, e.BandY);
+                _model?.SetCursor(e.X, e.Y, _bandAt);
+                PlaceDynamicInput(e.X, e.Y);
+            };
+            CanvasView.HeldAt = (at, taken) =>
+            {
+                GeoPoint2? held = _model?.HoldDynamicInput(at);
+
+                // A click that takes the point takes the number typed with it.
+                if (taken && held.HasValue)
+                {
+                    _model.CommandText = string.Empty;
+                }
+
+                return held;
+            };
+            CanvasView.ViewChanged += (s, e) => _model?.NotifyViewChangedByUser();
+            CanvasView.PixelSizeChanged += (s, e) =>
+                _model?.SetCanvasSize(CanvasView.PixelWidth, CanvasView.PixelHeight);
+            CanvasView.HistoryWritten += (s, e) => _model?.RefreshHistory();
+            CanvasView.SelectionChanged += (s, e) => _model?.RefreshHistory();
+            CanvasView.SnapMenuRequested += (s, e) => ShowMenu(_model?.SnapOverrideMenu(), CanvasView);
+
+            // Dynamic blocks: a flip grip clicked flips, a visibility or lookup grip shows its list at the grip. A right-click shows
+            // AutoCAD's Default, Edit, Command or Grips menu, the Edit menu offering Reset Block for a dynamic block; with no
+            // command running and SHORTCUTMENU giving no menu, Enter.
+            CanvasView.CustomGripClicked += (s, e) =>
+                ShowMenu(_model?.ClickCustomGrip(e.Handle, e.GripIndex), CanvasView);
+            CanvasView.ShortcutMenuRequested += (s, e) =>
+            {
+                System.Collections.Generic.IReadOnlyList<CadMenuItemViewModel> items = _model?.CanvasMenu();
+
+                if (items == null)
+                {
+                    _model?.Enter();
+                }
+                else
+                {
+                    ShowMenu(items, CanvasView);
+                }
+            };
+
+            // Text edited in place: a double click on a text edits it; the editor follows the view; a click outside it ends it.
+            CanvasView.ObjectDoubleClicked += (s, e) => _model?.EditTextAt(e.Handle);
+            CanvasView.HyperlinkClicked += (s, e) => _model?.FollowHyperlink(e.Handle);
+
+            // Objects selected, dragged out of the canvas while the tool palettes are open, can be dropped on a palette as tools.
+            CanvasView.ObjectDragWanted = () => _model != null && _model.IsToolPalettesShown;
+            CanvasView.ObjectsDragged += (s, e) =>
+            {
+                var data = new DataObject();
+                data.SetData(ObjectDrag.Format, ObjectDrag.Write(e.Handles));
+                DragDrop.DoDragDrop(CanvasView, data, DragDropEffects.Copy);
+            };
+            CanvasView.HyperlinkTooltip = handle => _model?.HyperlinkTooltip(handle);
+
+            // Table cells: a click in a cell selects it, a double click opens it for typing, and the cells selected are drawn.
+            CanvasView.CellClicked = (point, shift) => _model != null && _model.SelectTableCellAt(point, shift);
+            CanvasView.CellDoubleClicked = point => _model != null && _model.EditTableCellAt(point);
+            CanvasView.CellOutline = () => _model?.TableCellOutline();
+            CanvasView.CellsLetGo = () => _model?.ClearTableCell();
+
+            // A press in a cell dragged selects a range; the grips of the cells and of a whole table drag their lines, stretch
+            // it or autofill, one undo step each; a right click while the autofill grip is dragged shows the ways to fill.
+            CanvasView.CellRangeDragged = (anchor, cursor) => _model != null && _model.SelectTableRange(anchor, cursor);
+            CanvasView.CellGripPressed = grip => _model?.StartTableCellDrag(grip);
+            CanvasView.TableDragEnded = drag => _model?.EndTableDrag(drag);
+            CanvasView.TableFillMenuRequested += (s, e) =>
+                ShowMenu(_model?.TableFillMenu(CanvasView.TableDrag), CanvasView);
+            CanvasView.ViewChanged += (s, e) => PlaceInPlace(false);
+            CanvasView.PixelSizeChanged += (s, e) => PlaceInPlace(false);
+            CanvasView.PreviewMouseDown += OnCanvasDownWhileEditing;
+            MTextEditorBox.EscapePressed += (s, e) => _model?.EscapeTextEditor();
+            MTextEditorBox.CloseRequested += (s, e) => _model?.CloseTextEditor(true);
+            MTextEditorBox.SizeChanged += (s, e) => PlaceInPlace(false);
+
+            // Autosave (Global settings › Save and export): looked at every minute while the workspace is shown.
+            _autosave.Tick += (s, e) => AutosaveIfDue();
+            Loaded += (s, e) => _autosave.Start();
+            Unloaded += (s, e) => _autosave.Stop();
+
+            // AutoComplete: the list opens once no key has come for the delay of Input Settings (300 ms by default).
+            _suggest.Tick += (s, e) =>
+            {
+                _suggest.Stop();
+                _model?.ShowSuggestions();
+            };
+            Loaded += (s, e) =>
+            {
+                Window window = Window.GetWindow(this);
+
+                if (window != null)
+                {
+                    window.Deactivated += (w, a) => _model?.CloseSuggestions();
+                }
+            };
+        }
+
+        /// <summary>Gets or sets what the far right of the title bar holds, as a window's minimise, maximise and close buttons.</summary>
+        public object TitleBarContent
+        {
+            get => GetValue(TitleBarContentProperty);
+            set => SetValue(TitleBarContentProperty, value);
+        }
+
+        /// <summary>
+        /// Gets or sets the name of the app, shown at the left of the title in the title bar and as the heading of the start
+        /// screen: "GeometryHelper Drawing" unless a host gives its own, as GeometryHelper DXF does.
+        /// </summary>
+        public string AppName
+        {
+            get => (string)GetValue(AppNameProperty);
+            set => SetValue(AppNameProperty, value);
+        }
+
+        /// <summary>Gets the canvas, so that a host can draw it at once (<see cref="CadCanvas.RenderNow"/>) before a screenshot.</summary>
+        public CadCanvas DrawingCanvas => CanvasView;
+
+        /// <summary>Shows the Select File dialog for drawings, DWG first as AutoCAD's, and opens the one chosen.</summary>
+        public void ShowOpenDialog()
+        {
+            if (_model == null)
+            {
+                return;
+            }
+
+            var dialog = new OpenFileDialog { Filter = CadDrawingFile.OpenFilter, Title = "Select File" };
+
+            if (_model.Document?.FileName != null && Path.IsPathRooted(_model.Document.FileName))
+            {
+                dialog.InitialDirectory = Path.GetDirectoryName(_model.Document.FileName);
+            }
+
+            if (dialog.ShowDialog(Window.GetWindow(this)) == true)
+            {
+                _model.Open(dialog.FileName);
+            }
+        }
+
+        /// <summary>
+        /// Shows the Save Drawing As dialog of <see cref="MainViewModel.CreateSaveAsJob"/>, AutoCAD 2018 Drawing (*.dwg) and a DXF of
+        /// each version, and saves the drawing to the file chosen, in the version of the type chosen.
+        /// </summary>
+        public void ShowSaveAsDialog()
+        {
+            CadExportJob job = _model?.Document == null ? null : _model.CreateSaveAsDialogJob();
+
+            if (job == null)
+            {
+                return;
+            }
+
+            AskExportFile(job);
+
+            if (job.FileName != null)
+            {
+                _model.SaveAs(job.FileName, job.FileType);
+            }
+        }
+
+        /// <summary>Shows the Layer manager of the drawing shown, as a dialog over the window.</summary>
+        public void ShowLayerManager()
+        {
+            LayerManagerViewModel manager = _model?.CreateLayerManager();
+
+            if (manager == null)
+            {
+                return;
+            }
+
+            var dialog = new LayerManagerWindow(manager) { Owner = Window.GetWindow(this) };
+            dialog.ShowDialog();
+        }
+
+        /// <summary>Shows the Plugin manager of the window's plugins, as a dialog over the window; nothing without a plugin manager.</summary>
+        public void ShowPluginManager()
+        {
+            PluginManagerViewModel manager = _model?.CreatePluginManager();
+
+            if (manager == null)
+            {
+                return;
+            }
+
+            var dialog = new PluginManagerWindow(manager) { Owner = Window.GetWindow(this) };
+            dialog.ShowDialog();
+        }
+
+        /// <summary>Shows Global settings as a dialog over the window, on a category; null for the first.</summary>
+        /// <param name="category">The category, as Shortcuts.</param>
+        public void ShowGlobalSettings(string category = null)
+        {
+            if (_model == null)
+            {
+                return;
+            }
+
+            var dialog = new GlobalSettingsWindow(_model.CreateGlobalSettings(category))
+            {
+                Owner = Window.GetWindow(this),
+            };
+            dialog.ShowDialog();
+        }
+
+        /// <summary>Shows Drafting Settings as a dialog over the window, on a tab; null for Object Snap.</summary>
+        /// <param name="tab">The tab, as "Snap and Grid".</param>
+        public void ShowDraftingSettings(string tab = null)
+        {
+            if (_model == null)
+            {
+                return;
+            }
+
+            var dialog = new DraftingSettingsWindow(_model.CreateDraftingSettings(tab))
+            {
+                Owner = Window.GetWindow(this),
+            };
+            dialog.ShowDialog();
+        }
+
+        /// <inheritdoc/>
+        protected override void OnPreviewKeyDown(KeyEventArgs e)
+        {
+            base.OnPreviewKeyDown(e);
+
+            if (_model == null)
+            {
+                return;
+            }
+
+            Key key = e.Key == Key.System ? e.SystemKey : e.Key;
+
+            if (key == Key.LeftShift || key == Key.RightShift)
+            {
+                CanvasView.OnShiftChanged();
+            }
+
+            ModifierKeys modifiers = Keyboard.Modifiers;
+            bool inEditor =
+                (Keyboard.FocusedElement is TextBox box && box != CommandBox)
+                || Keyboard.FocusedElement is CadMTextEditBox;
+
+            if (!inEditor && CanvasView.TableDragKey(key))
+            {
+                // A drag of a table's line takes the width typed into its field, Enter and Esc.
+                e.Handled = true;
+            }
+            else if (!inEditor && DynamicInputKey(key))
+            {
+                e.Handled = true;
+            }
+            else if (
+                modifiers == ModifierKeys.None
+                && FileList.IsKeyboardFocusWithin
+                && (key == Key.Enter || key == Key.Delete)
+            )
+            {
+                // In the DRAWINGS list Enter opens the row clicked, and Delete does nothing: it neither erases objects nor removes a file.
+                e.Handled = _model.FileListKey(key == Key.Enter ? "Enter" : "Delete");
+            }
+            else if (
+                !inEditor
+                && _model.TableCell != null
+                && _model.CommandText.Length == 0
+                && (modifiers & ~ModifierKeys.Shift) == 0
+                && TableCellKey(key) is string cellKey
+                && _model.TableCellKey(cellKey, modifiers == ModifierKeys.Shift)
+            )
+            {
+                // Cells of a table selected: the arrows move them, Delete empties them, F2 opens one for typing, Esc lets them go.
+                e.Handled = true;
+            }
+            else if (
+                !inEditor
+                && _model.TableCell != null
+                && _model.CommandText.Length == 0
+                && modifiers == ModifierKeys.Control
+                && (key == Key.X || key == Key.C || key == Key.V)
+                && _model.TableCellKey(
+                    key == Key.X ? "Cut"
+                        : key == Key.C ? "Copy"
+                        : "Paste",
+                    false
+                )
+            )
+            {
+                // Cells of a table selected: Ctrl+X, Ctrl+C and Ctrl+V cut, copy and paste the cells, not objects.
+                e.Handled = true;
+            }
+            else if (key == Key.Escape && !inEditor)
+            {
+                if (!CanvasView.CancelGesture())
+                {
+                    _model.Escape();
+                }
+
+                e.Handled = true;
+            }
+            else if (modifiers == ModifierKeys.Control && key == Key.O)
+            {
+                ShowOpenDialog();
+                e.Handled = true;
+            }
+            else if (modifiers == ModifierKeys.Control && key == Key.N)
+            {
+                // The new document an extension offers, else NEW, as in AutoCAD.
+                _model.NewByShortcut();
+                e.Handled = true;
+            }
+            else if (modifiers == ModifierKeys.Control && key == Key.S)
+            {
+                _model.Save();
+                e.Handled = true;
+            }
+            else if (modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && key == Key.S)
+            {
+                ShowSaveAsDialog();
+                e.Handled = true;
+            }
+            else if (modifiers == ModifierKeys.Control && key == Key.Z && !inEditor)
+            {
+                CanvasView.CommitView();
+                _model.Undo();
+                e.Handled = true;
+            }
+            else if (modifiers == ModifierKeys.Control && key == Key.Y && !inEditor)
+            {
+                CanvasView.CommitView();
+                _model.Redo();
+                e.Handled = true;
+            }
+            else if (
+                modifiers == ModifierKeys.None
+                && key == Key.Delete
+                && !(Keyboard.FocusedElement is TextBox)
+                && !inEditor
+            )
+            {
+                _model.EraseSelection();
+                e.Handled = true;
+            }
+            else if (
+                modifiers == ModifierKeys.None
+                && key == Key.Tab
+                && (Keyboard.FocusedElement == CommandBox || Keyboard.FocusedElement == CanvasView)
+                && !_model.IsCommandRunning
+                && _model.TabSuggestions()
+            )
+            {
+                // Tab shows the system variables listed apart, as AutoCAD 2021's Separate commands and system variables.
+                _suggest.Stop();
+                BringChosenIntoView();
+                e.Handled = true;
+            }
+            else if (
+                modifiers == ModifierKeys.None
+                && key == Key.Tab
+                && (Keyboard.FocusedElement == CommandBox || Keyboard.FocusedElement == CanvasView)
+                && _model.TabDynamicInput()
+            )
+            {
+                // Tab moves between the fields of dynamic input, locking a number typed, as in AutoCAD.
+                e.Handled = true;
+                HoldAgain();
+            }
+            else if (modifiers == ModifierKeys.None && !(Keyboard.FocusedElement is CadMTextEditBox) && Toggle(key))
+            {
+                e.Handled = true;
+            }
+            else if (
+                !inEditor
+                && (modifiers != ModifierKeys.None || (key >= Key.F1 && key <= Key.F24))
+                && _model.RunKey(Gesture(key, modifiers))
+            )
+            {
+                // A key the shortcuts give a command or a toggle (Global settings › Shortcuts), as Ctrl+1 gives PROPERTIES; Ctrl+9
+                // hides the command line, and the canvas then takes the keys typed.
+                if (!_model.IsCommandLineShown && CommandBox.IsKeyboardFocusWithin)
+                {
+                    CanvasView.Focus();
+                }
+
+                e.Handled = true;
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void OnPreviewTextInput(TextCompositionEventArgs e)
+        {
+            base.OnPreviewTextInput(e);
+
+            // As in AutoCAD, typing with the focus on the canvas types into the command line; hidden (Ctrl+9), the text is kept
+            // there all the same, and dynamic input shows it beside the cursor.
+            if (
+                !(Keyboard.FocusedElement is TextBox)
+                && !(Keyboard.FocusedElement is ComboBox)
+                && !(Keyboard.FocusedElement is CadMTextEditBox)
+                && !string.IsNullOrEmpty(e.Text)
+                && !char.IsControl(e.Text[0])
+                && e.Text != " "
+                && _model != null
+            )
+            {
+                _model.CommandText += e.Text;
+
+                if (_model.IsCommandLineShown)
+                {
+                    CommandBox.Focus();
+                    CommandBox.CaretIndex = CommandBox.Text.Length;
+                }
+
+                e.Handled = true;
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void OnPreviewKeyUp(KeyEventArgs e)
+        {
+            base.OnPreviewKeyUp(e);
+
+            if (e.Key == Key.LeftShift || e.Key == Key.RightShift)
+            {
+                CanvasView.OnShiftChanged();
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            base.OnKeyDown(e);
+
+            if (
+                _model == null
+                || Keyboard.FocusedElement is TextBox
+                || Keyboard.FocusedElement is ButtonBase
+                || Keyboard.FocusedElement is CadMTextEditBox
+            )
+            {
+                return;
+            }
+
+            // Text typed with the command line hidden: Backspace takes a letter back, Enter or Space runs it (Space types a
+            // space at a prompt for text).
+            if (_model.CommandText.Length > 0 && e.Key == Key.Back)
+            {
+                _model.CommandText = _model.CommandText.Substring(0, _model.CommandText.Length - 1);
+                e.Handled = true;
+            }
+            else if (_model.CommandText.Length > 0 && e.Key == Key.Space && _model.PromptTakesSpaces)
+            {
+                _model.CommandText += " ";
+                e.Handled = true;
+            }
+            else if (_model.CommandText.Length > 0 && (e.Key == Key.Space || e.Key == Key.Enter))
+            {
+                if (!_model.RunSuggestion())
+                {
+                    _model.SubmitCommand();
+                }
+
+                e.Handled = true;
+            }
+            else if (
+                e.Key == Key.Space
+                && Keyboard.Modifiers == ModifierKeys.Shift
+                && _model.Document != null
+                && _model.Document.SelectionCycling >= 1
+            )
+            {
+                // Shift+Space arms selection cycling, as AutoCAD's: each click at one place then takes the next object there.
+                CanvasView.ArmCycling();
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Space || e.Key == Key.Enter)
+            {
+                // Space or Enter with the focus on the canvas is Enter, as in AutoCAD: it ends a command or runs the last again.
+                _model.Enter();
+                e.Handled = true;
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void OnDragOver(DragEventArgs e)
+        {
+            base.OnDragOver(e);
+            e.Effects =
+                e.Data.GetDataPresent(DataFormats.FileDrop)
+                || e.Data.GetDataPresent(DesignCenterDrag.Format)
+                || e.Data.GetDataPresent(ToolPaletteDrag.Format)
+                    ? DragDropEffects.Copy
+                    : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        /// <inheritdoc/>
+        protected override void OnDrop(DragEventArgs e)
+        {
+            base.OnDrop(e);
+
+            // A block, layer, style or drawing dragged out of DesignCenter is placed or copied in where it is dropped.
+            if (_model != null && e.Data.GetData(DesignCenterDrag.Format) is string dragged)
+            {
+                _model.DropFromDesignCenter(dragged, CanvasView.DrawingPointAt(e.GetPosition(CanvasView)));
+                e.Handled = true;
+                return;
+            }
+
+            // A block or hatch tool dragged out of a tool palette is placed, or fills the area, where it is dropped.
+            if (_model != null && e.Data.GetData(ToolPaletteDrag.Format) is string tool)
+            {
+                _model.DropToolPaletteTool(tool, CanvasView.DrawingPointAt(e.GetPosition(CanvasView)));
+                e.Handled = true;
+                return;
+            }
+
+            if (_model != null && e.Data.GetData(DataFormats.FileDrop) is string[] files)
+            {
+                foreach (string file in files.Where(CadDrawingFile.IsDrawingName))
+                {
+                    _model.Open(file);
+                }
+
+                // A plugin package dropped is installed, as the Plugin manager's Install does.
+                foreach (string file in files.Where(f => f.EndsWith(".ghplugin", StringComparison.OrdinalIgnoreCase)))
+                {
+                    _model.InstallPlugin(file);
+                }
+
+                e.Handled = true;
+            }
+        }
+
+        private bool Toggle(Key key)
+        {
+            string name;
+
+            switch (key)
+            {
+                case Key.F3 when _model.Settings.F3TogglesSnaps:
+                    name = "OSNAP";
+                    break;
+                case Key.F7:
+                    name = "GRID";
+                    break;
+                case Key.F8:
+                    name = "ORTHO";
+                    break;
+                case Key.F9:
+                    name = "SNAP";
+                    break;
+                case Key.F10:
+                    name = "POLAR";
+                    break;
+                case Key.F11:
+                    name = "OTRACK";
+                    break;
+                default:
+                    return false;
+            }
+
+            StatusToggleViewModel toggle = _model.Toggles.First(t => t.Name == name);
+            toggle.IsOn = !toggle.IsOn;
+            return true;
+        }
+
+        private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (_model != null)
+            {
+                _model.OpenRequested -= OnOpenRequested;
+                _model.SaveAsRequested -= OnSaveAsRequested;
+                _model.LayerManagerRequested -= OnLayerManagerRequested;
+                _model.PluginLoadRequested -= OnPluginLoadRequested;
+                _model.PluginInstallRequested -= OnPluginInstallRequested;
+                _model.PluginManagerRequested -= OnPluginManagerRequested;
+                _model.SettingsRequested -= OnSettingsRequested;
+                _model.SettingsApplied -= OnSettingsApplied;
+                _model.CloseRequested -= OnCloseRequested;
+                _model.QuitRequested -= OnQuitRequested;
+                _model.DraftingSettingsRequested -= OnDraftingSettingsRequested;
+                _model.StyleDialogRequested -= OnStyleDialogRequested;
+                _model.InPlaceEditChanged -= OnInPlaceEditChanged;
+                _model.TableLiveChanged -= OnTableLiveChanged;
+                _model.TableCellChanged -= OnTableCellChanged;
+                _model.PropertyChanged -= OnModelPropertyChanged;
+            }
+
+            _model = e.NewValue as MainViewModel;
+
+            if (_model != null)
+            {
+                _model.OpenRequested += OnOpenRequested;
+                _model.SaveAsRequested += OnSaveAsRequested;
+                _model.LayerManagerRequested += OnLayerManagerRequested;
+                _model.PluginLoadRequested += OnPluginLoadRequested;
+                _model.PluginInstallRequested += OnPluginInstallRequested;
+                _model.PluginManagerRequested += OnPluginManagerRequested;
+                _model.SettingsRequested += OnSettingsRequested;
+                _model.SettingsApplied += OnSettingsApplied;
+                _model.CloseRequested += OnCloseRequested;
+                _model.QuitRequested += OnQuitRequested;
+                _model.DraftingSettingsRequested += OnDraftingSettingsRequested;
+                _model.StyleDialogRequested += OnStyleDialogRequested;
+                _model.AskSaveChanges = document =>
+                    CadQuestionWindow.AskSave(Window.GetWindow(this), new[] { document });
+                _model.AskSaveAll = documents => CadQuestionWindow.AskSave(Window.GetWindow(this), documents);
+                _model.PickColor = dialog => SelectColorWindow.Pick(Window.GetWindow(this), dialog);
+                _model.ShowLinetypeManager = manager => LinetypeManagerWindow.Show(Window.GetWindow(this), manager);
+                _model.ShowHatchSettings = settings => HatchSettingsWindow.Show(Window.GetWindow(this), settings);
+                _model.ShowMissingShx = dialog => MissingShxWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowPointStyle = dialog => PointStyleWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowBlockDefinition = dialog => BlockDefinitionWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowInsertTable = dialog =>
+                    InsertTableWindow.Show(Window.GetWindow(this), dialog, over =>
+                        StyleDialogs.ShowTableStyle(over, _model)
+                    );
+                _model.ShowCellBorders = dialog => CellBordersWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowDataFormat = dialog => DataFormatWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowInsertTableBlock = dialog => InsertTableBlockWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowCreateCellStyle = dialog => CreateCellStyleWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowManageCellStyles = dialog => ManageCellStylesWindow.Show(Window.GetWindow(this), dialog);
+                _model.TableCellChanged += OnTableCellChanged;
+                _model.CellGripDragRequested = grip => CanvasView.DragCellGrip(grip);
+                _model.CommitPendingView = () => CanvasView.CommitView();
+                _model.ShowBlocksPalette = dialog => BlocksPaletteWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowWriteBlock = dialog => WriteBlockWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowAttributeDefinition = dialog =>
+                    AttributeDefinitionWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowAttributeEditor = dialog => AttributeEditorWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowBlockAttributeManager = dialog =>
+                    BlockAttributeManagerWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowEditAttributes = dialog => EditAttributesWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowPurge = dialog => PurgeWindow.Show(Window.GetWindow(this), dialog);
+                _model.ConfirmPurgeItem = question =>
+                    CadQuestionWindow.ConfirmPurgeItem(Window.GetWindow(this), question);
+                _model.ShowGroupManager = dialog => GroupManagerWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowLayerStates = dialog => LayerStatesWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowScaleList = dialog => ScaleListEditWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowLeaderSettings = dialog => LeaderSettingsWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowGeometricTolerance = dialog => GeometricToleranceWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowField = dialog => FieldWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowInputSearchOptions = dialog => InputSearchOptionsWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowViewManager = dialog => ViewManagerWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowDrawingUnits = dialog => DrawingUnitsWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowDrawingProperties = dialog => DrawingPropertiesWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowHyperlink = dialog => HyperlinkWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowDimInspect = dialog => DimInspectWindow.Show(Window.GetWindow(this), dialog);
+                _model.OpenLink = OpenWithSystem;
+                _model.AskRedefineBlock = name => CadQuestionWindow.AskRedefineBlock(Window.GetWindow(this), name);
+                _model.ShowBlockEdit = dialog => BlockEditWindow.Show(Window.GetWindow(this), dialog);
+                _model.AskSaveBlockChanges = name => BlockCloseWindow.Ask(Window.GetWindow(this), name);
+                _model.ShowVisibilityStates = dialog => VisibilityStatesWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowAuthoringPalette = palette => AuthoringPaletteWindow.Toggle(Window.GetWindow(this), palette);
+                _model.ShowPasteSpecial = dialog => PasteSpecialWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowMatchPropSettings = dialog => MatchPropSettingsWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowSelectSimilarSettings = dialog =>
+                    SelectSimilarSettingsWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowTextWindow = dialog => TextWindow.ShowText(Window.GetWindow(this), dialog);
+                _model.ShowOverkill = dialog => OverkillWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowConstraintSettings = dialog => ConstraintSettingsWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowParameters = (palette, show) =>
+                {
+                    if (show)
+                    {
+                        ParametersPaletteWindow.ShowPalette(Window.GetWindow(this), palette);
+                    }
+                    else
+                    {
+                        ParametersPaletteWindow.ClosePalette();
+                    }
+                };
+                AttachPlotStyles();
+                _model.AskKeepMTextChanges = question =>
+                    MTextUnsavedChangesWindow.Ask(Window.GetWindow(this), question);
+                _model.ShowParagraph = dialog => ParagraphWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowColumnSettings = dialog => ColumnSettingsWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowBackgroundMask = dialog => MTextMaskWindow.Show(Window.GetWindow(this), dialog);
+                _model.AskMTextSize = dialog => MTextSizeWindow.Ask(Window.GetWindow(this), dialog);
+                _model.ShowMTextFindReplace = editor => MTextFindReplaceWindow.Open(Window.GetWindow(this), editor);
+                _model.AskImportTextFile = AskImportTextFile;
+                _model.ShowCharacterMap = dialog => CharacterMapWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowDictionaries = dialog => SpellDictionariesWindow.Show(Window.GetWindow(this), dialog);
+                _model.InPlaceEditChanged += OnInPlaceEditChanged;
+                _model.TableLiveChanged += OnTableLiveChanged;
+                _model.ShowPlot = dialog => PlotWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowPlotPreview = preview => PlotPreviewWindow.Show(Window.GetWindow(this), preview);
+                _model.AskPlotFile = AskPlotFile;
+                _model.AskImageFile = AskImageFile;
+                _model.AskExportFile = AskExportFile;
+                _model.WindowsPrinters = WindowsPlotPrinter.Installed;
+                _model.ShowPageSetupManager = manager => PageSetupManagerWindow.Show(Window.GetWindow(this), manager);
+                _model.ShowQuickSelect = dialog => QuickSelectWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowFindReplace = dialog => FindReplaceWindow.Show(Window.GetWindow(this), dialog);
+                AttachViewUtility();
+                AttachDialogsFive();
+                AttachDataLinks();
+                MainViewModel shown = _model;
+                _model.ShowExternalReferences = palette =>
+                    ExternalReferencesWindow.ShowPalette(Window.GetWindow(this), shown, palette);
+                _model.ShowAttachReference = dialog => AttachReferenceWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowLayerWalk = dialog => LayerWalkWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowLayerTranslator = dialog => LayerTranslatorWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowDesignCenter = palette =>
+                    DesignCenterWindow.ShowPalette(Window.GetWindow(this), shown, palette);
+                _model.CloseDesignCenter = DesignCenterWindow.ClosePalette;
+                _model.ShowPdfLayers = dialog => PdfLayersWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowToolPalettes = palettes =>
+                    ToolPalettesWindow.ShowPalette(Window.GetWindow(this), shown, palettes);
+                _model.CloseToolPalettes = ToolPalettesWindow.ClosePalette;
+                _model.ShowXrefBind = dialog => XrefBindWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowXrefBindRefused = box => XrefBindRefusedWindow.Show(Window.GetWindow(this), box);
+                _model.WatchReferenceFiles = true;
+                _model.ReadClipboardText = () => Clipboard.ContainsText() ? Clipboard.GetText() : null;
+                _model.WriteClipboardText = text => Clipboard.SetText(text ?? string.Empty);
+                _model.PropertyChanged += OnModelPropertyChanged;
+
+                if (CanvasView.PixelWidth > 0 && CanvasView.PixelHeight > 0)
+                {
+                    _model.SetCanvasSize(CanvasView.PixelWidth, CanvasView.PixelHeight);
+                }
+            }
+        }
+
+        /// <summary>Browse for Plot File: where a plot is written, a PDF, the folder and name offered; null where it is cancelled.</summary>
+        private string AskPlotFile(string folder, string name)
+        {
+            // Of the type of the name offered: a PDF, or for GeometryHelper PNG and JPG an image.
+            string extension = Path.GetExtension(name).ToLowerInvariant();
+            string filter =
+                extension == ".png" ? "PNG files (*.png)|*.png"
+                : extension == ".jpg" ? "JPEG files (*.jpg)|*.jpg"
+                : "PDF files (*.pdf)|*.pdf";
+            var dialog = new SaveFileDialog
+            {
+                Filter = filter,
+                Title = "Browse for Plot File",
+                FileName = name,
+                DefaultExt = extension.Length > 0 ? extension : ".pdf",
+            };
+
+            if (folder != null && Directory.Exists(folder))
+            {
+                dialog.InitialDirectory = folder;
+            }
+
+            return dialog.ShowDialog(Window.GetWindow(this)) == true ? dialog.FileName : null;
+        }
+
+        /// <summary>Create Raster File: where PNGOUT, JPGOUT or BMPOUT writes, of the type of the name offered; null where it is cancelled.</summary>
+        private string AskImageFile(string folder, string name)
+        {
+            string extension = Path.GetExtension(name).ToLowerInvariant();
+            string filter =
+                extension == ".jpg" ? "JPEG files (*.jpg)|*.jpg"
+                : extension == ".bmp" ? "Bitmap files (*.bmp)|*.bmp"
+                : "PNG files (*.png)|*.png";
+            var dialog = new SaveFileDialog
+            {
+                Filter = filter,
+                Title = "Create Raster File",
+                FileName = name,
+                DefaultExt = extension,
+            };
+
+            if (folder != null && Directory.Exists(folder))
+            {
+                dialog.InitialDirectory = folder;
+            }
+
+            return dialog.ShowDialog(Window.GetWindow(this)) == true ? dialog.FileName : null;
+        }
+
+        /// <summary>
+        /// Export Data of EXPORT, Save As PDF of -EXPORT and EXPORTPDF, or Import File of IMPORT: the standard Save dialog of the
+        /// job's types, its type chosen first, an Open dialog where the job <see cref="CadExportJob.Opens"/>; the file and the
+        /// type chosen put into the job, the file null where it is cancelled.
+        /// </summary>
+        private void AskExportFile(CadExportJob job)
+        {
+            string Filter(string type) =>
+                type + "|" + string.Join(";", CadExportJob.ExtensionsOf(type).Select(e => "*" + e));
+            string folder = job.FileName == null ? null : Path.GetDirectoryName(job.FileName);
+            FileDialog dialog = job.Opens
+                ? new OpenFileDialog { CheckFileExists = true }
+                : (FileDialog)new SaveFileDialog();
+            dialog.Title = job.Title;
+            dialog.Filter = string.Join("|", job.FileTypes.Select(Filter));
+            dialog.FilterIndex = job.FileTypes.ToList().IndexOf(job.FileType) + 1;
+            dialog.FileName = job.FileName == null ? string.Empty : Path.GetFileName(job.FileName);
+
+            if (folder != null && Directory.Exists(folder))
+            {
+                dialog.InitialDirectory = folder;
+            }
+
+            if (dialog.ShowDialog(Window.GetWindow(this)) == true)
+            {
+                job.FileName = dialog.FileName;
+                job.FileType = job.FileTypes[Math.Max(0, Math.Min(job.FileTypes.Count - 1, dialog.FilterIndex - 1))];
+            }
+            else
+            {
+                job.FileName = null;
+            }
+        }
+
+        private void OnOpenRequested(object sender, EventArgs e) => ShowOpenDialog();
+
+        private void OnSaveAsRequested(object sender, EventArgs e) => ShowSaveAsDialog();
+
+        private void OnLayerManagerRequested(object sender, EventArgs e) => ShowLayerManager();
+
+        private void OnPluginLoadRequested(object sender, EventArgs e) =>
+            PluginManagerWindow.PickPlugin(Window.GetWindow(this), path => _model.LoadPlugin(path));
+
+        private void OnPluginInstallRequested(object sender, EventArgs e) =>
+            PluginManagerWindow.PickPackage(Window.GetWindow(this), path => _model.InstallPlugin(path));
+
+        private void OnPluginManagerRequested(object sender, EventArgs e) => ShowPluginManager();
+
+        private void OnSettingsRequested(object sender, string category) => ShowGlobalSettings(category);
+
+        /// <summary>DSETTINGS and the menus' settings item: Drafting Settings, after the menu or the command line is done with.</summary>
+        private void OnDraftingSettingsRequested(object sender, EventArgs e) =>
+            Dispatcher.BeginInvoke(new Action(() => ShowDraftingSettings()));
+
+        /// <summary>STYLE, DIMSTYLE and the style boxes' last items: the Text Style dialog or the Dimension Style Manager, after the command or the box is done with.</summary>
+        private void OnStyleDialogRequested(object sender, string name) =>
+            Dispatcher.BeginInvoke(new Action(() => StyleDialogs.Show(Window.GetWindow(this), _model, name)));
+
+        /// <summary>The name of a key the cells of a table take; null for any other.</summary>
+        private static string TableCellKey(Key key)
+        {
+            switch (key)
+            {
+                case Key.Left:
+                case Key.Right:
+                case Key.Up:
+                case Key.Down:
+                case Key.Delete:
+                case Key.F2:
+                case Key.Escape:
+                    return key.ToString();
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>The cells of a table selected changed: the canvas draws them anew.</summary>
+        private void OnTableCellChanged(object sender, EventArgs e) => CanvasView.InvalidateVisual();
+
+        /// <summary>A click on a row of the DRAWINGS list selects it, Ctrl and Shift adding; a double click opens it.</summary>
+        private void OnFileRowDown(object sender, MouseButtonEventArgs e)
+        {
+            if (_model == null || !(((FrameworkElement)sender).DataContext is FileRowViewModel row))
+            {
+                return;
+            }
+
+            FileList.Focus();
+
+            if (e.ClickCount == 2)
+            {
+                _model.Activate(row);
+            }
+            else
+            {
+                ModifierKeys modifiers = Keyboard.Modifiers;
+                _model.SelectFileRow(
+                    row,
+                    (modifiers & ModifierKeys.Control) != 0,
+                    (modifiers & ModifierKeys.Shift) != 0
+                );
+            }
+
+            e.Handled = true;
+        }
+
+        /// <summary>A right click on a row: the row selected alone unless it is selected already, then its menu.</summary>
+        private void OnFileRowRightUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_model == null || !(((FrameworkElement)sender).DataContext is FileRowViewModel row))
+            {
+                return;
+            }
+
+            if (!row.IsSelected)
+            {
+                _model.SelectFileRow(row);
+            }
+
+            ShowMenu(_model.FileRowMenu(row), (UIElement)sender);
+            e.Handled = true;
+        }
+
+        /// <summary>A right click on OSNAP of the status bar: the menu of the object snaps, as its arrow gives.</summary>
+        private void OnStatusToggleRightUp(object sender, MouseButtonEventArgs e)
+        {
+            if (
+                _model != null
+                && ((FrameworkElement)sender).DataContext is StatusToggleViewModel toggle
+                && toggle.Name == "OSNAP"
+            )
+            {
+                ShowMenu(_model.OsnapMenu(), (UIElement)sender);
+                e.Handled = true;
+            }
+        }
+
+        private void OnOsnapArrow(object sender, RoutedEventArgs e) => ShowMenu(_model?.OsnapMenu(), (UIElement)sender);
+
+        /// <summary>The scale of the status bar clicked: the scale list opened over it, as AutoCAD's.</summary>
+        private void OnScaleMenu(object sender, RoutedEventArgs e) => ShowMenu(_model?.ScaleMenu(), (UIElement)sender);
+
+        /// <summary>The arrow of a split button of the ribbon, or the title of Modify: its menu dropped under it, as AutoCAD's ribbon drops one.</summary>
+        private void OnRibbonMenu(object sender, RoutedEventArgs e)
+        {
+            var button = (Button)sender;
+            ContextMenu menu = button.ContextMenu;
+
+            if (menu != null)
+            {
+                menu.PlacementTarget = button;
+                menu.Placement = PlacementMode.Bottom;
+                menu.IsOpen = true;
+            }
+        }
+
+        /// <summary>
+        /// An item of a split button's menu picked: the button beside the arrow takes its label, icon and command, as AutoCAD's
+        /// split buttons show the one used last, until another is picked. Extend picked from Trim's arrow leaves the button
+        /// reading Extend and running EXTEND; Radius picked from Linear's arrow leaves the big button's label reading Radius ▾.
+        /// Kept for the window's session only.
+        /// </summary>
+        private void OnSplitChoice(object sender, RoutedEventArgs e)
+        {
+            var item = (MenuItem)sender;
+
+            if (
+                item.Parent is ContextMenu menu
+                && menu.PlacementTarget is Button arrow
+                && arrow.Parent is Panel split
+                && split.Children.Count > 0
+                && split.Children[0] is Button main
+            )
+            {
+                string name = AutomationProperties.GetName(item);
+                main.Content = string.IsNullOrEmpty(name) ? item.Header : name;
+                main.Tag = item.Tag;
+                main.CommandParameter = item.CommandParameter;
+                main.ToolTip = item.ToolTip;
+            }
+        }
+
+        /// <summary>Opens a menu of a view model's items at the mouse.</summary>
+        private static void ShowMenu(
+            System.Collections.Generic.IReadOnlyList<CadMenuItemViewModel> items,
+            UIElement target
+        )
+        {
+            if (items == null || items.Count == 0)
+            {
+                return;
+            }
+
+            ContextMenu menu = CadMenus.Make(items);
+            menu.PlacementTarget = target;
+            menu.Placement = PlacementMode.MousePoint;
+            menu.IsOpen = true;
+        }
+
+        /// <summary>CLOSE typed: the drawing shown closed once the command has ended.</summary>
+        private void OnCloseRequested(object sender, EventArgs e) =>
+            Dispatcher.BeginInvoke(new Action(() => _model?.CloseDocument()));
+
+        /// <summary>QUIT or EXIT typed: the window closed once the command has ended, which asks about the drawings not saved as its x does.</summary>
+        private void OnQuitRequested(object sender, EventArgs e) =>
+            Dispatcher.BeginInvoke(new Action(() => Window.GetWindow(this)?.Close()));
+
+        /// <summary>Saves the copies of the drawings with changes once the minutes of Global settings have gone by since the last.</summary>
+        private void AutosaveIfDue()
+        {
+            int minutes = _model?.Settings.AutosaveMinutes ?? 0;
+
+            if (minutes > 0 && (DateTime.UtcNow - _lastAutosave).TotalMinutes >= minutes)
+            {
+                _lastAutosave = DateTime.UtcNow;
+                _model.Autosave();
+            }
+        }
+
+        /// <summary>Gives the canvas what Global settings say of it: colours, lineweights, font, wheel zoom, pickbox, aperture and whether a box may be dragged.</summary>
+        private void OnSettingsApplied(object sender, EventArgs e)
+        {
+            GlobalSettings settings = _model.Settings;
+            CanvasView.Options.Background = settings.CanvasBackground;
+            CanvasView.Options.Paper = settings.Paper;
+            CanvasView.Options.BlockEditorBackground = settings.BlockEditorBackground;
+            CanvasView.Options.SelectionColor = settings.Selection;
+            CanvasView.Options.ShowLineWeights = _model.ShowLineWeights;
+            CanvasView.Options.LineweightScale = settings.LineweightDisplayScale;
+            CanvasView.Options.FontName = settings.DrawingFont;
+            CanvasView.WheelZoomFactor = settings.WheelZoomFactor;
+            CanvasView.WheelReversed = settings.WheelZoomReversed;
+            CanvasView.PickboxPixels = settings.PickboxPixels;
+            CanvasView.GripSize = settings.GripSize;
+            CanvasView.GripMultifunctional = settings.GripMultifunctional;
+            CanvasView.AperturePixels = settings.AperturePixels;
+            CanvasView.SelectByDragging = settings.SelectByDragging;
+            CanvasView.Options.VisibleLineColor = settings.VisibleLines;
+            CanvasView.Options.GripColor = settings.Grip;
+            CanvasView.Options.CustomGripColor = DxfColor
+                .FromColorIndex(DxfColorMethod.ByAci, (short)settings.GripDynamicColor)
+                .ColorValue;
+            CanvasView.TableIndicator = settings.TableIndicator;
+            CanvasView.ShortcutMenu = settings.ShortcutMenu;
+            CanvasView.TableIndicatorColor = settings.TableIndicatorColor;
+            CanvasView.CrosshairPercent = settings.CrosshairPercent;
+
+            if (CanvasView.PixelWidth > 0 && CanvasView.PixelHeight > 0)
+            {
+                CanvasView.RenderNow();
+            }
+
+            CanvasView.InvalidateVisual();
+        }
+
+        /// <summary>
+        /// Puts the box of dynamic input 18 px right of the cursor and 14 px below it, as AutoCAD's tooltip, or on the other side
+        /// of it where it would leave the canvas, and places the dimensional input, the box kept off its fields. While the AutoComplete list
+        /// or the options menu is open under the box, the box stays where it is, so that the pointer can reach a row.
+        /// </summary>
+        private void PlaceDynamicInput(double x, double y)
+        {
+            _dynamicAt = new Point(x, y);
+            CadView view = CanvasView.View;
+
+            if (view == null || _model == null || CanvasView.ActualWidth <= 0.0 || CanvasView.PixelWidth <= 0)
+            {
+                return;
+            }
+
+            double scale = CanvasView.PixelWidth / CanvasView.ActualWidth;
+            view.DrawingToPixel(x, y, out double px, out double py);
+            px /= scale;
+            py /= scale;
+            // The dimensions run to the point a field holds, else to where the rubber band ends, snapped; the box stays at the cursor.
+            GeoPoint2 held = _model.HoldDynamicInput(_bandAt) ?? _bandAt;
+            view.DrawingToPixel(held.X, held.Y, out double hx, out double hy);
+            PlaceDimensionalInput(view, scale, new Point(hx / scale, hy / scale));
+
+            if (_model.IsSuggestionListAtCursor || _model.IsDynamicInputMenuOpen)
+            {
+                return;
+            }
+
+            const double Right = 18.0;
+            const double Below = 14.0;
+            double left = px + Right;
+            double top = py + Below;
+
+            if (left + DynamicInputBox.ActualWidth > CanvasView.ActualWidth)
+            {
+                left = Math.Max(0.0, px - Right - DynamicInputBox.ActualWidth);
+            }
+
+            if (top + DynamicInputBox.ActualHeight > CanvasView.ActualHeight)
+            {
+                top = Math.Max(0.0, py - Below - DynamicInputBox.ActualHeight);
+            }
+
+            Canvas.SetLeft(DynamicInputBox, left);
+            Canvas.SetTop(DynamicInputBox, top);
+            KeepFieldsClear(left, top);
+        }
+
+        /// <summary>
+        /// The dimensional input of a point, a distance or an angle asked from a base point, the fields alone with nothing drawn
+        /// under them: the length by the middle of the rubber band, 8 px off it to its left as it runs from the base point, and
+        /// the angle 50 px along the band from the base point, 8 px off it to its right, so that neither covers the band. The
+        /// view shows the length's field, the angle's or both, as the prompt asks.
+        /// </summary>
+        private void PlaceDimensionalInput(CadView view, double scale, Point cursor)
+        {
+            CadPrompt prompt = _model.Session?.Prompt;
+            _fieldsPlaced = false;
+
+            if (!_model.IsDynamicInputDimensional || prompt?.BasePoint == null)
+            {
+                return;
+            }
+
+            GeoPoint2 from = prompt.BasePoint.Value;
+            view.DrawingToPixel(from.X, from.Y, out double bx, out double by);
+            var origin = new Point(bx / scale, by / scale);
+            Vector band = cursor - origin;
+
+            if (band.Length < 1.0)
+            {
+                DimensionalInput.Visibility = Visibility.Hidden;
+                return;
+            }
+
+            DimensionalInput.ClearValue(VisibilityProperty);
+            Vector along = band / band.Length;
+            var normal = new Vector(along.Y, -along.X);
+            const double Gap = 8.0;
+            const double Near = 50.0;
+            Put(LengthField, Beside(LengthField, origin + band / 2.0, normal, Gap));
+            Put(AngleField, Beside(AngleField, origin + along * Near, -normal, Gap));
+            _lengthOtherSide = Beside(LengthField, origin + band / 2.0, -normal, Gap);
+            _fieldsPlaced = true;
+        }
+
+        /// <summary>
+        /// The box of the prompt kept off the fields of dimensional input, which it would hide: of the length moved to the band's
+        /// other side and the box moved up or down clear of the fields, inside the canvas, the one that moves a box the least.
+        /// </summary>
+        private void KeepFieldsClear(double left, double top)
+        {
+            if (!_fieldsPlaced)
+            {
+                return;
+            }
+
+            Rect length = _model.IsDynamicInputLength ? Placed(LengthField) : Rect.Empty;
+            Rect angle = _model.IsDynamicInputAngle ? Placed(AngleField) : Rect.Empty;
+            double width = DynamicInputBox.ActualWidth;
+            double height = DynamicInputBox.ActualHeight;
+            const double Clear = 2.0;
+            bool Hides(Rect box, Rect field) =>
+                !field.IsEmpty
+                && new Rect(
+                    box.X - Clear,
+                    box.Y - Clear,
+                    box.Width + 2.0 * Clear,
+                    box.Height + 2.0 * Clear
+                ).IntersectsWith(field);
+            var at = new Rect(left, top, width, height);
+
+            if (!Hides(at, length) && !Hides(at, angle))
+            {
+                return;
+            }
+
+            double least = double.MaxValue;
+            double bestTop = top;
+            bool flip = false;
+
+            if (
+                !length.IsEmpty
+                && !Hides(at, angle)
+                && !Hides(at, _lengthOtherSide)
+                && !_lengthOtherSide.IntersectsWith(angle)
+            )
+            {
+                least = (_lengthOtherSide.TopLeft - length.TopLeft).Length;
+                flip = true;
+            }
+
+            foreach (Rect field in new[] { length, angle })
+            {
+                if (field.IsEmpty)
+                {
+                    continue;
+                }
+
+                foreach (double y in new[] { field.Top - Clear - height, field.Bottom + Clear })
+                {
+                    var moved = new Rect(left, y, width, height);
+
+                    if (
+                        y >= 0.0
+                        && y + height <= CanvasView.ActualHeight
+                        && !Hides(moved, length)
+                        && !Hides(moved, angle)
+                        && Math.Abs(y - top) < least
+                    )
+                    {
+                        least = Math.Abs(y - top);
+                        bestTop = y;
+                        flip = false;
+                    }
+                }
+            }
+
+            if (flip)
+            {
+                Put(LengthField, _lengthOtherSide);
+            }
+            else
+            {
+                Canvas.SetTop(DynamicInputBox, bestTop);
+            }
+        }
+
+        private static Rect Placed(FrameworkElement field) =>
+            new Rect(Canvas.GetLeft(field), Canvas.GetTop(field), field.ActualWidth, field.ActualHeight);
+
+        /// <summary>A number typed into a field of dynamic input, or locked by Tab: the dimensions and the preview are drawn again at the point it holds.</summary>
+        private void HoldAgain()
+        {
+            if (_model != null && _model.IsDynamicInputShown && _model.IsCommandRunning)
+            {
+                PlaceDynamicInput(_dynamicAt.X, _dynamicAt.Y);
+                CanvasView.InvalidateVisual();
+            }
+        }
+
+        /// <summary>The box held still with its list or menu open: moved back inside the canvas where the list or the menu would leave it.</summary>
+        private void KeepOnCanvas()
+        {
+            double left = Canvas.GetLeft(DynamicInputBox);
+            double top = Canvas.GetTop(DynamicInputBox);
+            Canvas.SetLeft(
+                DynamicInputBox,
+                Math.Max(0.0, Math.Min(left, CanvasView.ActualWidth - DynamicInputBox.ActualWidth))
+            );
+            Canvas.SetTop(
+                DynamicInputBox,
+                Math.Max(0.0, Math.Min(top, CanvasView.ActualHeight - DynamicInputBox.ActualHeight))
+            );
+        }
+
+        /// <summary>Where a field goes off a point of the rubber band towards one side, its nearest edge the gap from the point.</summary>
+        private static Rect Beside(FrameworkElement field, Point at, Vector side, double gap)
+        {
+            field.UpdateLayout();
+            double reach = (Math.Abs(side.X) * field.ActualWidth + Math.Abs(side.Y) * field.ActualHeight) / 2.0;
+            Point centre = at + side * (gap + reach);
+            return new Rect(
+                centre.X - field.ActualWidth / 2.0,
+                centre.Y - field.ActualHeight / 2.0,
+                field.ActualWidth,
+                field.ActualHeight
+            );
+        }
+
+        private static void Put(FrameworkElement field, Rect at)
+        {
+            Canvas.SetLeft(field, at.X);
+            Canvas.SetTop(field, at.Y);
+        }
+
+        /// <summary>A row of the options menu of dynamic input clicked: the prompt takes its keyword.</summary>
+        private void OnDynamicOptionClick(object sender, MouseButtonEventArgs e)
+        {
+            if (_model != null && ((FrameworkElement)sender).DataContext is DynamicInputOptionViewModel row)
+            {
+                _model.PickDynamicInputOption(row);
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>
+        /// The keys of dynamic input before the window's: with the options menu open the arrows move its row and Enter or Space
+        /// picks it; ↓ opens the menu of a prompt with options; with the AutoComplete list at the cursor and the canvas holding
+        /// the keyboard, the arrows move its row.
+        /// </summary>
+        /// <returns>Whether dynamic input took the key.</returns>
+        private bool DynamicInputKey(Key key)
+        {
+            if (
+                Keyboard.Modifiers != ModifierKeys.None
+                || !(Keyboard.FocusedElement == CommandBox || Keyboard.FocusedElement == CanvasView)
+            )
+            {
+                return false;
+            }
+
+            if (_model.IsDynamicInputMenuOpen)
+            {
+                switch (key)
+                {
+                    case Key.Up:
+                    case Key.Down:
+                        _model.MoveDynamicInputOption(key == Key.Down ? 1 : -1);
+                        return true;
+                    case Key.Enter:
+                    case Key.Space:
+                        _model.PickDynamicInputOption();
+                        return true;
+                    case Key.Tab:
+                        return true;
+                }
+
+                return false;
+            }
+
+            if (key == Key.Down && !_model.IsSuggestionListOpen && _model.OpenDynamicInputMenu())
+            {
+                return true;
+            }
+
+            if (
+                (key == Key.Up || key == Key.Down)
+                && _model.IsSuggestionListAtCursor
+                && Keyboard.FocusedElement == CanvasView
+            )
+            {
+                _model.MoveSuggestion(key == Key.Down ? 1 : -1);
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>The key pressed as the shortcuts write it: Ctrl+1, Ctrl+Shift+P, F3.</summary>
+        internal static string Gesture(Key key, ModifierKeys modifiers)
+        {
+            string name =
+                key >= Key.D0 && key <= Key.D9
+                    ? ((int)(key - Key.D0)).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                : key >= Key.NumPad0 && key <= Key.NumPad9
+                    ? ((int)(key - Key.NumPad0)).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                : key.ToString();
+            return ((modifiers & ModifierKeys.Control) != 0 ? "Ctrl+" : string.Empty)
+                + ((modifiers & ModifierKeys.Alt) != 0 ? "Alt+" : string.Empty)
+                + ((modifiers & ModifierKeys.Shift) != 0 ? "Shift+" : string.Empty)
+                + name;
+        }
+
+        private void OnCommandKeyDown(object sender, KeyEventArgs e)
+        {
+            if (_model == null)
+            {
+                return;
+            }
+
+            if (_model.IsSuggestionListOpen)
+            {
+                // The AutoComplete list open: the arrows move the row chosen, Enter or Space runs it.
+                switch (e.Key)
+                {
+                    case Key.Up:
+                    case Key.Down:
+                        _model.MoveSuggestion(e.Key == Key.Down ? 1 : -1);
+                        BringChosenIntoView();
+                        e.Handled = true;
+                        return;
+                    case Key.Enter:
+                    case Key.Space:
+                        _suggest.Stop();
+                        _model.RunSuggestion();
+                        e.Handled = true;
+                        return;
+                }
+            }
+
+            switch (e.Key)
+            {
+                case Key.Space when _model.PromptTakesSpaces:
+                    break;
+                case Key.Enter:
+                case Key.Space:
+                    // Space ends the line as Enter does, as in AutoCAD.
+                    _suggest.Stop();
+                    _model.SubmitCommand();
+                    e.Handled = true;
+                    break;
+                case Key.Up:
+                    _model.RecallPrevious();
+                    CommandBox.CaretIndex = CommandBox.Text.Length;
+                    e.Handled = true;
+                    break;
+                case Key.Down:
+                    _model.RecallNext();
+                    CommandBox.CaretIndex = CommandBox.Text.Length;
+                    e.Handled = true;
+                    break;
+            }
+        }
+
+        /// <summary>What is typed changed: the AutoComplete list is asked for once the delay of Input Settings has gone by with no other key.</summary>
+        private void OnModelPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (_model == null)
+            {
+                return;
+            }
+
+            switch (e.PropertyName)
+            {
+                case nameof(MainViewModel.IsDynamicInputShown):
+                case nameof(MainViewModel.IsDynamicInputPolar):
+                case nameof(MainViewModel.IsDynamicInputDimensional):
+                case nameof(MainViewModel.IsSuggestionListAtCursor):
+                case nameof(MainViewModel.IsDynamicInputMenuOpen):
+                    // The box opened, or the list or the menu under it: placed again once laid out, so that it stays on the canvas.
+                    Dispatcher.BeginInvoke(
+                        new Action(() =>
+                        {
+                            DynamicInputLayer.UpdateLayout();
+                            bool frozen =
+                                _model != null && (_model.IsSuggestionListAtCursor || _model.IsDynamicInputMenuOpen);
+
+                            if (frozen && Canvas.GetLeft(DynamicInputBox) is double left && !double.IsNaN(left))
+                            {
+                                KeepOnCanvas();
+                            }
+                            else
+                            {
+                                PlaceDynamicInput(_dynamicAt.X, _dynamicAt.Y);
+                            }
+                        }),
+                        System.Windows.Threading.DispatcherPriority.Loaded
+                    );
+                    return;
+                case nameof(MainViewModel.ShowLineWeights):
+                    // The drawing shown draws its own LWDISPLAY.
+                    if (CanvasView.Options.ShowLineWeights != _model.ShowLineWeights)
+                    {
+                        CanvasView.Options.ShowLineWeights = _model.ShowLineWeights;
+
+                        if (CanvasView.PixelWidth > 0 && CanvasView.PixelHeight > 0)
+                        {
+                            CanvasView.RenderNow();
+                        }
+
+                        CanvasView.InvalidateVisual();
+                    }
+
+                    return;
+            }
+
+            if (e.PropertyName != nameof(MainViewModel.CommandText))
+            {
+                return;
+            }
+
+            CanvasView.Typed = _model.CommandText;
+            HoldAgain();
+            _suggest.Stop();
+
+            if (_model.CommandText.Length > 0 && !_model.IsSuggestionListOpen)
+            {
+                _suggest.Interval = TimeSpan.FromMilliseconds(_model.Settings.AutoCompleteDelay);
+                _suggest.Start();
+            }
+        }
+
+        /// <summary>The row chosen of the AutoComplete list scrolled into sight after the arrows moved it.</summary>
+        private void BringChosenIntoView()
+        {
+            // Both lists, the command line's and the one under the box of dynamic input, show five rows at a time.
+            int index = _model.Suggestions.ToList().FindIndex(s => s.IsSelected);
+            SuggestionList.ShowRow(index);
+            CursorSuggestionList.ShowRow(index);
+        }
+
+        /// <summary>A right click on the command line: its menu, as AutoCAD's (Recent Commands, Input Settings, Copy, Copy History, Paste, Paste To CmdLine, Options…).</summary>
+        private void OnCommandLineRightUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_model != null)
+            {
+                ShowMenu(_model.CommandLineMenu(CommandBox.SelectedText), CommandInput);
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>The G button: the application menu dropped under it, the keyboard in its search box.</summary>
+        private void OnAppMenuButton(object sender, RoutedEventArgs e)
+        {
+            if (_model == null)
+            {
+                return;
+            }
+
+            _model.CloseSuggestions();
+            _appMenu = _model.CreateAppMenu(AppName);
+            _appMenu.Chosen += OnAppMenuChosen;
+            _appMenu.ExitRequested += OnAppMenuExit;
+            AppMenu.DataContext = _appMenu;
+            AppMenuPopup.IsOpen = true;
+            AppMenu.FocusSearch();
+        }
+
+        private void OnAppMenuChosen(object sender, EventArgs e) => AppMenuPopup.IsOpen = false;
+
+        private void OnAppMenuExit(object sender, EventArgs e) =>
+            Dispatcher.BeginInvoke(new Action(() => Window.GetWindow(this)?.Close()));
+
+        private void OnAppMenuClosed(object sender, EventArgs e)
+        {
+            if (_appMenu != null)
+            {
+                _appMenu.Chosen -= OnAppMenuChosen;
+                _appMenu.ExitRequested -= OnAppMenuExit;
+                _appMenu = null;
+            }
+
+            AppMenu.DataContext = null;
+        }
+
+        /// <summary>Import Text's Select File: a .txt or .rtf file of the user's choosing; null where none is picked.</summary>
+        private string AskImportTextFile()
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = "Select File",
+                CheckFileExists = true,
+                Filter =
+                    "Text files (*.txt;*.rtf)|*.txt;*.rtf|Text files (*.txt)|*.txt|Rich text files (*.rtf)|*.rtf|All files (*.*)|*.*",
+            };
+            return dialog.ShowDialog(Window.GetWindow(this)) == true ? dialog.FileName : null;
+        }
+
+        /// <summary>A menu of the Text Editor tab: Symbol, Justification, Line Spacing, Case, Clear; the editor keeps the keyboard.</summary>
+        private void OnEditorMenu(object sender, RoutedEventArgs e)
+        {
+            var button = (Button)sender;
+
+            if (button.DataContext is TextEditorViewModel editor)
+            {
+                ShowMenu(editor.Menu(button.CommandParameter as string ?? button.Tag as string), button);
+            }
+        }
+
+        /// <summary>A box of the Text Editor tab (height, oblique, tracking, width): Enter sets the value and gives the keyboard back to the words.</summary>
+        private void OnEditorBoxKey(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter || e.Key == Key.Escape)
+            {
+                var box = (TextBox)sender;
+
+                if (e.Key == Key.Enter)
+                {
+                    box.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+                }
+                else
+                {
+                    box.GetBindingExpression(TextBox.TextProperty)?.UpdateTarget();
+                }
+
+                MTextEditorBox.Focus();
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>The edit box of a single-line text: Enter ends the edit with its words, Esc cancels it, as AutoCAD 2021's TEXTEDIT.</summary>
+        private void OnInPlaceKey(object sender, KeyEventArgs e)
+        {
+            if (_model == null)
+            {
+                return;
+            }
+
+            if (e.Key == Key.Enter)
+            {
+                e.Handled = true;
+                _model.CommitInPlace(InPlaceTextBox.Text);
+            }
+            else if (e.Key == Key.Escape)
+            {
+                e.Handled = true;
+                _model.CancelInPlace();
+            }
+            else if (e.Key == Key.F && (Keyboard.Modifiers & ModifierKeys.Control) != 0 && _model.ShowField != null)
+            {
+                // Insert Field: the field's code goes in the box at the caret, as the words of a TEXT hold it while it is edited.
+                e.Handled = true;
+                _fieldDialogShown = true;
+
+                try
+                {
+                    CadFieldRequest request = _model.NewFieldRequest();
+                    string code = _model.AskField(request);
+
+                    if (code != null)
+                    {
+                        int at = InPlaceTextBox.SelectionStart;
+                        InPlaceTextBox.SelectedText = code;
+                        InPlaceTextBox.CaretIndex = at + code.Length;
+                    }
+                }
+                finally
+                {
+                    _fieldDialogShown = false;
+                    InPlaceTextBox.Focus();
+                }
+            }
+        }
+
+        // Whether the Field dialog is open over the edit box: the box losing the keyboard to it does not end the edit.
+        private bool _fieldDialogShown;
+
+        /// <summary>The edit box losing the keyboard to another part of the window ends the edit with its words, as a click outside it does.</summary>
+        private void OnInPlaceLostFocus(object sender, KeyboardFocusChangedEventArgs e)
+        {
+            if (
+                _model != null
+                && _model.IsTextEditShown
+                && InPlaceTextBox.IsVisible
+                && !_fieldDialogShown
+                && !InPlaceTextBox.IsKeyboardFocusWithin
+                && e.NewFocus is UIElement
+            )
+            {
+                _model.CommitInPlace(InPlaceTextBox.Text);
+            }
+        }
+
+        /// <summary>A click on the canvas while a text is edited in place ends the edit with its words, as in AutoCAD; it picks nothing.</summary>
+        private void OnCanvasDownWhileEditing(object sender, MouseButtonEventArgs e)
+        {
+            if (_model == null || e.ChangedButton != MouseButton.Left)
+            {
+                return;
+            }
+
+            // A click on the canvas closes the AutoComplete list and the options menu at the cursor, and goes on as a click.
+            if (_model.IsSuggestionListAtCursor)
+            {
+                _model.CloseSuggestions();
+            }
+
+            _model.CloseDynamicInputMenu();
+
+            if (_model.IsTextEditShown)
+            {
+                _model.CommitInPlace(InPlaceTextBox.Text);
+                e.Handled = true;
+            }
+            else if (_model.IsMTextEditorShown)
+            {
+                _model.CloseTextEditor(true);
+                e.Handled = true;
+            }
+        }
+
+        private void OnInPlaceEditChanged(object sender, EventArgs e) => PlaceInPlace(true);
+
+        /// <summary>The rows of a table whose cell is typed in moved: the table is drawn anew and the editor stands where its cell now is.</summary>
+        private void OnTableLiveChanged(object sender, EventArgs e)
+        {
+            CanvasView.RefreshTableLive();
+            PlaceInPlace(false);
+        }
+
+        /// <summary>
+        /// Puts the editor of the text edited in place over it: the edit box of a single-line text with its baseline on the
+        /// text's, as high as the text on the canvas and turned with it, its words all selected; the MTEXT editor's frame with
+        /// the MTEXT's attachment point on its own. Hidden when no text is edited.
+        /// </summary>
+        /// <param name="opened">Whether the edit has just started, so that the editor takes the keyboard and its words.</param>
+        private void PlaceInPlace(bool opened)
+        {
+            CadInPlaceEdit edit = _model?.InPlaceEdit;
+            CadView view = CanvasView.View;
+
+            if (edit == null || view == null || CanvasView.ActualWidth <= 0.0 || CanvasView.PixelWidth <= 0)
+            {
+                InPlaceTextBox.Visibility = Visibility.Collapsed;
+                MTextEditorBox.Visibility = Visibility.Collapsed;
+
+                if (MTextEditorBox.Model != null)
+                {
+                    MTextEditorBox.Model = null;
+                }
+
+                if (opened && (InPlaceTextBox.IsKeyboardFocusWithin || MTextEditorBox.IsKeyboardFocused))
+                {
+                    CanvasView.Focus();
+                }
+
+                return;
+            }
+
+            double scale = CanvasView.PixelWidth / CanvasView.ActualWidth;
+            double unit = view.PixelsPerUnit / scale;
+            // A cell of a table typed in stands where its row has grown to: the point its text is attached at moves with it.
+            GeoVector2 moved = edit.TableLive?.Shift(edit.Attachment) ?? new GeoVector2(0.0, 0.0);
+            view.DrawingToPixel(edit.Location.X + moved.X, edit.Location.Y + moved.Y, out double px, out double py);
+            double x = px / scale;
+            double y = py / scale;
+            double degrees = -edit.Rotation * 180.0 / Math.PI;
+
+            if (edit.Kind == CadInPlaceKind.Text)
+            {
+                MTextEditorBox.Visibility = Visibility.Collapsed;
+                double size = Math.Max(8.0, edit.Height * unit / 0.72);
+                string family = _model.TrueTypeFamilyOf(edit.StyleName) ?? "Arial";
+                int rgb = _model.DrawnRgbOf(edit.Handle);
+                rgb = ((rgb >> 16) & 0xFF) + ((rgb >> 8) & 0xFF) + (rgb & 0xFF) < 60 ? 0xFFFFFF : rgb;
+                InPlaceTextBox.FontFamily = new System.Windows.Media.FontFamily(family);
+                InPlaceTextBox.FontSize = size;
+                InPlaceTextBox.Foreground = new System.Windows.Media.SolidColorBrush(
+                    System.Windows.Media.Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb)
+                );
+                InPlaceTextBox.MinWidth = Math.Max(40.0, size * 3.0);
+
+                // The box's baseline on the text's: the font's ascent and the box's padding and border above it.
+                double ascent = size * InPlaceTextBox.FontFamily.Baseline;
+                double left = x - 5.0;
+                double top = y - ascent - 1.0;
+                Canvas.SetLeft(InPlaceTextBox, left);
+                Canvas.SetTop(InPlaceTextBox, top);
+                InPlaceTextBox.RenderTransform = new System.Windows.Media.RotateTransform(degrees, 5.0, y - top);
+                InPlaceTextBox.Visibility = Visibility.Visible;
+
+                if (opened)
+                {
+                    InPlaceTextBox.Text = edit.Value;
+                    InPlaceTextBox.UpdateLayout();
+                    InPlaceTextBox.Focus();
+                    InPlaceTextBox.SelectAll();
+                }
+
+                return;
+            }
+
+            InPlaceTextBox.Visibility = Visibility.Collapsed;
+
+            MTextEditorBox.Document = _model.Document;
+
+            if (MTextEditorBox.Model != _model.TextEditor)
+            {
+                MTextEditorBox.Model = _model.TextEditor;
+            }
+
+            MTextEditorBox.PixelsPerUnit = unit;
+            MTextEditorBox.DefaultRgb = edit.Handle != null ? _model.DrawnRgbOf(edit.Handle) : _model.LayerRgbOf(null);
+            MTextEditorBox.LayerRgb = _model.LayerRgbOf(edit.Handle);
+            MTextEditorBox.Visibility = Visibility.Visible;
+            MTextEditorBox.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            Point anchor = MTextEditorBox.Anchor;
+            Canvas.SetLeft(MTextEditorBox, x - anchor.X);
+            Canvas.SetTop(MTextEditorBox, y - anchor.Y);
+            MTextEditorBox.RenderTransform = new System.Windows.Media.RotateTransform(degrees, anchor.X, anchor.Y);
+
+            if (opened)
+            {
+                MTextEditorBox.Focus();
+                Keyboard.Focus(MTextEditorBox);
+            }
+        }
+
+        /// <summary>Select Objects and Quick Select beside the selection box of Properties: the command named by the button's Tag is started.</summary>
+        private void OnPaletteCommand(object sender, RoutedEventArgs e) =>
+            (DataContext as MainViewModel)?.StartCommand((sender as FrameworkElement)?.Tag as string);
+
+        /// <summary>A value of Properties: Enter commits it, Esc puts the old one back.</summary>
+        private void OnValueKeyDown(object sender, KeyEventArgs e)
+        {
+            var editor = (TextBox)sender;
+
+            if (e.Key == Key.Enter)
+            {
+                editor.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+                editor.SelectAll();
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Escape)
+            {
+                editor.GetBindingExpression(TextBox.TextProperty)?.UpdateTarget();
+                CanvasView.Focus();
+                e.Handled = true;
+            }
+        }
+    }
+}

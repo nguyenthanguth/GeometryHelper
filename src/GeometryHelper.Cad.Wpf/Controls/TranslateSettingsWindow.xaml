@@ -1,0 +1,123 @@
+<Window
+    x:Class="GeometryHelper.Cad.Wpf.TranslateSettingsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Cad.Wpf"
+    Title="Settings"
+    Width="400"
+    Height="330"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary Source="/GeometryHelper.Cad.Wpf;component/Themes/BlockDialogs.xaml" />
+    </Window.Resources>
+
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
+                    <TextBlock
+                        Text="Layer Translator Settings"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center"
+                    />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button
+                        Style="{StaticResource StylePrimaryButton}"
+                        Content="OK"
+                        Padding="18,5"
+                        Margin="0,0,8,0"
+                        Click="OnOk"
+                        IsDefault="True"
+                    />
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Cancel"
+                        Padding="14,5"
+                        Background="{StaticResource GhClose}"
+                        Foreground="White"
+                        FontWeight="SemiBold"
+                        BorderThickness="0"
+                        Click="OnCancel"
+                        IsCancel="True"
+                    />
+                </StackPanel>
+            </Border>
+
+            <StackPanel Margin="16,12">
+                <CheckBox
+                    Style="{StaticResource StyleCheck}"
+                    Content="Force object color to ByLayer"
+                    IsChecked="{Binding ForceColorByLayer, Mode=TwoWay}"
+                    Margin="0,0,0,8"
+                />
+                <CheckBox
+                    Style="{StaticResource StyleCheck}"
+                    Content="Force object linetype to ByLayer"
+                    IsChecked="{Binding ForceLinetypeByLayer, Mode=TwoWay}"
+                    Margin="0,0,0,8"
+                />
+                <CheckBox
+                    Style="{StaticResource StyleCheck}"
+                    Content="Force object transparency to ByLayer"
+                    IsChecked="{Binding ForceTransparencyByLayer, Mode=TwoWay}"
+                    Margin="0,0,0,8"
+                />
+                <CheckBox
+                    Style="{StaticResource StyleCheck}"
+                    Content="Translate objects in blocks"
+                    IsChecked="{Binding TranslateObjectsInBlocks, Mode=TwoWay}"
+                    Margin="0,0,0,8"
+                />
+                <CheckBox
+                    Style="{StaticResource StyleCheck}"
+                    Content="Write transaction log"
+                    IsChecked="{Binding WriteTransactionLog, Mode=TwoWay}"
+                    Margin="0,0,0,8"
+                />
+                <CheckBox
+                    Style="{StaticResource StyleCheck}"
+                    Content="Show layer contents when selected"
+                    IsChecked="{Binding ShowLayerContents, Mode=TwoWay}"
+                    Margin="0,0,0,8"
+                />
+                <TextBlock
+                    Foreground="{StaticResource GhTextMuted}"
+                    TextWrapping="Wrap"
+                    Text="The log is written beside the drawing, plan.dxf as plan.log. A layer selected on the left shows its objects alone while it is selected."
+                />
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</Window>

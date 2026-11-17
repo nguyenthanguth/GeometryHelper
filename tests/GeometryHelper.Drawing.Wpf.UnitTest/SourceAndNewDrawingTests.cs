@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using GeometryHelper.Dxf.Viewer.Wpf;
+using GeometryHelper.Cad.Wpf;
 using Xunit;
 
 namespace GeometryHelper.Drawing.Wpf.UnitTest

@@ -1,0 +1,757 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using GeometryHelper.Dxf;
+using GeometryHelper.Geometry;
+
+namespace GeometryHelper.Cad
+{
+    /// <summary>
+    /// The inquiry commands: DIST, AREA (with its Add area and Subtract area modes), ID and LIST, which measure and change
+    /// nothing, writing what they find on the command line in AutoCAD's words: DIST from (0, 0) to (100, 100) writes "Distance
+    /// = 141.4214,  Angle in XY Plane = 45,  Angle from XY Plane = 0" in a drawing whose angles are shown to whole degrees
+    /// ($AUPREC 0), its angles to that precision.
+    /// </summary>
+    internal static partial class CadCommands
+    {
+        private static IEnumerable<CadPrompt> Dist(CadCommandContext c)
+        {
+            yield return CadPrompt.ForPoint("Specify first point");
+
+            if (!c.Input.IsPoint)
+            {
+                yield break;
+            }
+
+            GeoPoint2 a = c.Input.Point;
+            yield return CadPrompt.ForPoint("Specify second point", a);
+
+            if (!c.Input.IsPoint)
+            {
+                yield break;
+            }
+
+            // The angle and the deltas are along the axes of the UCS, as AutoCAD reports them.
+            GeoVector2 d = c.Session.Ucs.ToUcs(c.Input.Point - a);
+            c.Remember(DistanceKey, d.Length);
+            c.Write(
+                "Distance = "
+                    + Length(d.Length)
+                    + ",  Angle in XY Plane = "
+                    + Degrees(c, c.Session.CountAngle(Math.Atan2(d.Y, d.X)))
+                    + ",  Angle from XY Plane = "
+                    + Degrees(c, c.Session.CountAngle(0.0))
+            );
+            c.Write("Delta X = " + Length(d.X) + ",  Delta Y = " + Length(d.Y) + ",  Delta Z = " + Length(0.0));
+        }
+
+        private static IEnumerable<CadPrompt> Id(CadCommandContext c)
+        {
+            yield return CadPrompt.ForPoint("Specify point");
+
+            if (c.Input.IsPoint)
+            {
+                // In the coordinates of the UCS, as AutoCAD's ID.
+                GeoPoint2 at = c.Session.Ucs.ToUcs(c.Input.Point);
+                c.Write("X = " + Length(at.X) + "     Y = " + Length(at.Y) + "     Z = " + Length(0.0));
+            }
+        }
+
+        /// <summary>
+        /// AREA of points picked, closed back to the first, or of a closed object: a circle, a closed polyline, an ellipse; or,
+        /// after Add area or Subtract area, a total each area measured is added to or taken from until Enter: a rectangle 100 by
+        /// 50 added and a circle of radius 10 taken out leave "Total area = 4685.8407".
+        /// </summary>
+        private static IEnumerable<CadPrompt> Area(CadCommandContext c)
+        {
+            yield return CadPrompt.ForPoint(
+                "Specify first corner point",
+                null,
+                new[] { "Object", "Add area", "Subtract area" },
+                "Object"
+            );
+
+            if (!c.Input.Is("Add area") && !c.Input.Is("Subtract area"))
+            {
+                foreach (CadPrompt prompt in AreaOf(c, null, null))
+                {
+                    yield return prompt;
+                }
+
+                yield break;
+            }
+
+            double sum = 0.0;
+            bool adding = c.Input.Is("Add area");
+
+            while (true)
+            {
+                yield return CadPrompt.ForPoint(
+                    "Specify first corner point",
+                    null,
+                    new[] { "Object", adding ? "Subtract area" : "Add area" }
+                );
+
+                if (c.Input.Is("Add area") || c.Input.Is("Subtract area"))
+                {
+                    adding = c.Input.Is("Add area");
+                    continue;
+                }
+
+                if (!c.Input.IsPoint && !c.Input.Is("Object"))
+                {
+                    yield break;
+                }
+
+                foreach (CadPrompt prompt in AreaOf(c, adding ? "ADD" : "SUBTRACT", area =>
+                    {
+                        sum += adding ? area : -area;
+                        c.Write("Total area = " + Length(sum));
+                    }))
+                {
+                    yield return prompt;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Measures from the answer given to "Specify first corner point": the points that follow it, or with Object the object
+        /// picked; in a mode of AREA (ADD, SUBTRACT) its prompts say so, objects are picked until Enter, and each area is handed on.
+        /// </summary>
+        private static IEnumerable<CadPrompt> AreaOf(CadCommandContext c, string mode, Action<double> measured)
+        {
+            string before = mode == null ? string.Empty : "(" + mode + " mode) ";
+
+            while (c.Input.Is("Object") || (mode != null && c.Input.Kind == CadInputKind.Selection))
+            {
+                yield return CadPrompt.ForEntity(before + "Select objects");
+
+                if (c.Input.Kind != CadInputKind.Selection)
+                {
+                    yield break;
+                }
+
+                // A region gives its area and perimeter, holes taken away, as AutoCAD's AREA gives them.
+                if (
+                    c.Document.FindEntity(c.Input.Handles[0]) is DxfUnknownEntity region
+                    && region.GetRegionShape() is DxfRegionShape shape
+                )
+                {
+                    c.Write("Area = " + Length(shape.Area) + ", Perimeter = " + Length(shape.Perimeter));
+                    KeepArea(c, shape.Area, shape.Perimeter);
+
+                    if (mode == null)
+                    {
+                        yield break;
+                    }
+
+                    measured(shape.Area);
+                    continue;
+                }
+
+                if (
+                    !(c.Document.FindEntity(c.Input.Handles[0]) is DxfCurve curve)
+                    || curve is DxfLine
+                    || curve is DxfXline
+                    || curve is DxfRay
+                )
+                {
+                    c.Write("Selected object does not have an area.");
+
+                    if (mode == null)
+                    {
+                        yield break;
+                    }
+
+                    continue;
+                }
+
+                double length = curve.GetDistanceAtParameter(curve.EndParam);
+                string around =
+                    curve is DxfCircle ? "Circumference"
+                    : curve.Closed ? "Perimeter"
+                    : "Length";
+                c.Write("Area = " + Length(curve.Closed ? curve.Area : 0.0) + ", " + around + " = " + Length(length));
+                KeepArea(c, curve.Closed ? curve.Area : 0.0, length);
+
+                if (mode == null)
+                {
+                    yield break;
+                }
+
+                measured(curve.Closed ? curve.Area : 0.0);
+            }
+
+            if (!c.Input.IsPoint)
+            {
+                yield break;
+            }
+
+            var points = new List<GeoPoint2> { c.Input.Point };
+
+            while (true)
+            {
+                bool total = points.Count >= 3;
+                yield return CadPrompt.ForPoint(
+                    before + "Specify next point",
+                    points[points.Count - 1],
+                    total ? new[] { "Undo", "Total" } : new[] { "Undo" },
+                    total ? "Total" : null
+                );
+
+                if (c.Input.IsPoint)
+                {
+                    points.Add(c.Input.Point);
+                }
+                else if (c.Input.Is("Undo"))
+                {
+                    if (points.Count > 1)
+                    {
+                        points.RemoveAt(points.Count - 1);
+                    }
+                }
+                else if (c.Input.Is("Total") || points.Count >= 2)
+                {
+                    break;
+                }
+                else
+                {
+                    yield break;
+                }
+            }
+
+            // The shoelace sum of the polygon closed back to its first point, and the length round it.
+            double twice = 0.0;
+            double perimeter = 0.0;
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                GeoPoint2 p = points[i];
+                GeoPoint2 q = points[(i + 1) % points.Count];
+                twice += p.X * q.Y - q.X * p.Y;
+                perimeter += (q - p).Length;
+            }
+
+            c.Write("Area = " + Length(Math.Abs(twice) / 2.0) + ", Perimeter = " + Length(perimeter));
+            KeepArea(c, Math.Abs(twice) / 2.0, perimeter);
+            measured?.Invoke(Math.Abs(twice) / 2.0);
+        }
+
+        /// <summary>LIST: each object selected as AutoCAD lists it, its kind, layer, space and handle, then its shape.</summary>
+        private static IEnumerable<CadPrompt> ListObjects(CadCommandContext c)
+        {
+            foreach (CadPrompt prompt in c.SelectObjects())
+            {
+                yield return prompt;
+            }
+
+            foreach (string handle in c.Selected)
+            {
+                DxfEntity entity = c.Document.FindEntity(handle);
+                CadSpace space = c.Document.FindSpace(handle);
+                // The kind set in eight places and two more before its layer, as AutoCAD 2021 writes it: "LINE      Layer:",
+                // "DIMENSION  Layer:", "MULTILEADER  Layer:".
+                c.Write(new string(' ', 18) + ListedKind(entity).PadRight(8) + "  Layer: \"" + entity.Layer + "\"");
+                c.Write(
+                    new string(' ', 28) + "Space: " + (space == null || space.IsModel ? "Model space" : "Paper space")
+                );
+                c.Write(new string(' ', 19) + "Handle = " + handle.ToLowerInvariant());
+
+                foreach (string line in Listed(c, entity, handle, space))
+                {
+                    c.Write(line);
+                }
+            }
+        }
+
+        /// <summary>
+        /// The kind LIST names an object by, as AutoCAD 2021 names it: DIMENSION for a dimension of any type, BLOCK REFERENCE
+        /// for an INSERT or a MINSERT, ATTRIBUTE DEFINITION, 3D FACE, and the type of its record for the others (LWPOLYLINE,
+        /// POLYLINE, MULTILEADER, ACAD_TABLE, IMAGE).
+        /// </summary>
+        private static string ListedKind(DxfEntity entity)
+        {
+            switch (entity)
+            {
+                case DxfDimension _:
+                    return "DIMENSION";
+                case DxfBlockReference _:
+                    return "BLOCK REFERENCE";
+                case DxfAttributeDefinition _:
+                    return "ATTRIBUTE DEFINITION";
+                case DxfFace _:
+                    return "3D FACE";
+                default:
+                    return entity.Item?.Type ?? CadProperties.KindOf(entity).ToUpperInvariant();
+            }
+        }
+
+        /// <summary>The lines LIST writes of an object's shape: AutoCAD's for a line, a circle, an arc, a polyline, a point, an ellipse and a dimension, the rows Properties shows for the others.</summary>
+        private static IEnumerable<string> Listed(CadCommandContext c, DxfEntity entity, string handle, CadSpace space)
+        {
+            switch (entity)
+            {
+                case DxfLine line:
+                    GeoVector3 delta = line.Delta;
+                    GeoVector2 flat = c.Session.Ucs.ToUcs(new GeoVector2(delta.X, delta.Y));
+                    var d = new GeoVector3(flat.X, flat.Y, delta.Z);
+                    yield return "              from point, " + At(c, line.StartPoint);
+                    yield return "                to point, " + At(c, line.EndPoint);
+                    yield return "          Length = "
+                        + Length(line.Length)
+                        + ",  Angle in XY Plane = "
+                        + Degrees(c, c.Session.CountAngle(Math.Atan2(d.Y, d.X))).PadLeft(6);
+                    yield return "                  Delta X = "
+                        + Length(d.X)
+                        + ", Delta Y = "
+                        + Length(d.Y)
+                        + ", Delta Z = "
+                        + Length(d.Z);
+                    yield break;
+                case DxfCircle circle:
+                    yield return "            center point, " + At(c, circle.Center);
+                    yield return "            radius " + Length(circle.Radius).PadLeft(9);
+                    yield return "     circumference " + Length(circle.Circumference).PadLeft(9);
+                    yield return "              area " + Length(circle.Area).PadLeft(9);
+                    yield break;
+                case DxfArc arc:
+                    yield return "            center point, " + At(c, arc.Center);
+                    yield return "            radius " + Length(arc.Radius).PadLeft(9);
+                    yield return "             start angle "
+                        + Degrees(c, c.Session.CountAngle(c.Session.Ucs.AngleToUcs(arc.StartAngle))).PadLeft(6);
+                    yield return "               end angle "
+                        + Degrees(c, c.Session.CountAngle(c.Session.Ucs.AngleToUcs(arc.EndAngle))).PadLeft(6);
+                    yield return "                  length " + Length(arc.Length).PadLeft(9);
+                    yield break;
+                case DxfPolyline polyline:
+                    yield return "                            " + (polyline.Closed ? "Closed" : "Open");
+                    yield return "                    area   " + Length(polyline.Closed ? polyline.Area : 0.0);
+                    yield return "                "
+                        + (polyline.Closed ? "perimeter " : "   length ")
+                        + Length(polyline.Length);
+
+                    for (int i = 0; i < polyline.NumberOfVertices; i++)
+                    {
+                        yield return "                at point  " + At(c, polyline.GetPoint3dAt(i));
+                    }
+
+                    yield break;
+                case DxfUnknownEntity region when region.DxfName == "REGION":
+                    foreach (string line in ListedRegion(c, region))
+                    {
+                        yield return line;
+                    }
+
+                    yield break;
+                case DxfDBPoint point:
+                    yield return "                at point, " + At(c, point.Position);
+                    yield break;
+                case DxfEllipse ellipse:
+                    foreach (string line in ListedEllipse(c, ellipse))
+                    {
+                        yield return line;
+                    }
+
+                    yield break;
+                case DxfDimension dimension:
+                    foreach (string line in ListedDimension(c, dimension))
+                    {
+                        yield return line;
+                    }
+
+                    yield break;
+            }
+
+            foreach (CadPropertyGroup group in CadProperties.Describe(c.Document, space, new[] { handle }).Groups)
+            {
+                if (group.Title == "General" || group.Title == "Plot style" || group.Title == "View")
+                {
+                    continue;
+                }
+
+                foreach (CadPropertyRow row in group.Rows)
+                {
+                    yield return "                  " + row.Label + " = " + row.Value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// The lines LIST writes of a region, as AutoCAD 2021 writes them: its area and perimeter, holes taken away, and the box
+        /// round it, lower and upper bound with each number set to a width of 9 (a box 40 by 30 reads "Lower Bound X = 0.0000   , Y =
+        /// 0.0000   , Z = 0.0000"); none for a region whose ACIS data the library cannot read.
+        /// </summary>
+        private static IEnumerable<string> ListedRegion(CadCommandContext c, DxfUnknownEntity region)
+        {
+            DxfRegionShape shape = region.GetRegionShape();
+
+            if (shape == null)
+            {
+                yield break;
+            }
+
+            yield return new string(' ', 29) + "Area: " + Length(shape.Area);
+            yield return new string(' ', 24) + "Perimeter: " + Length(shape.Perimeter);
+            double[] low = { double.MaxValue, double.MaxValue, double.MaxValue };
+            double[] high = { double.MinValue, double.MinValue, double.MinValue };
+
+            foreach (DxfRegionLoop loop in shape.Loops)
+            {
+                foreach (DxfCurve curve in loop.Curves)
+                {
+                    GeoAabb3 box = curve.GeometricExtents;
+                    low[0] = Math.Min(low[0], box.Min.X);
+                    low[1] = Math.Min(low[1], box.Min.Y);
+                    low[2] = Math.Min(low[2], box.Min.Z);
+                    high[0] = Math.Max(high[0], box.Max.X);
+                    high[1] = Math.Max(high[1], box.Max.Y);
+                    high[2] = Math.Max(high[2], box.Max.Z);
+                }
+            }
+
+            string Bound(double[] v) =>
+                "X = " + Length(v[0]).PadRight(9) + ", Y = " + Length(v[1]).PadRight(9) + ", Z = " + Length(v[2]);
+
+            yield return "   Bounding Box: Lower Bound " + Bound(low);
+            yield return new string(' ', 17) + "Upper Bound " + Bound(high);
+        }
+
+        /// <summary>
+        /// The lines LIST writes of an ellipse, as AutoCAD 2021 writes them: its area and circumference whole, else its length,
+        /// its ends and its start and end angles, these counted as the drawing counts angles (an arc from 30 to 120 degrees reads
+        /// 60 and 330 with ANGBASE 90 and ANGDIR 1); its centre, axes and radius ratio either way.
+        /// </summary>
+        private static IEnumerable<string> ListedEllipse(CadCommandContext c, DxfEllipse ellipse)
+        {
+            bool whole = ellipse.Closed;
+
+            if (whole)
+            {
+                yield return Labelled("Area", Length(ellipse.Area));
+                yield return Labelled("Circumference", Length(ellipse.GetDistanceAtParameter(ellipse.EndParam)));
+            }
+            else
+            {
+                yield return Labelled("Length", Length(ellipse.GetDistanceAtParameter(ellipse.EndParam)));
+            }
+
+            yield return Labelled("Center", Spaced(c, ellipse.Center, false));
+            yield return Labelled("Major Axis", Spaced(c, ellipse.Center + ellipse.MajorAxis, true, ellipse.Center));
+            yield return Labelled("Minor Axis", Spaced(c, ellipse.Center + ellipse.MinorAxis, true, ellipse.Center));
+
+            if (!whole)
+            {
+                yield return Labelled("Start Point", Spaced(c, ellipse.StartPoint, false));
+                yield return Labelled("End Point", Spaced(c, ellipse.EndPoint, false));
+                yield return Labelled("Start Angle", Degrees(c, c.Session.CountAngle(ellipse.StartAngle)));
+                yield return Labelled("End Angle", Degrees(c, c.Session.CountAngle(ellipse.EndAngle)));
+            }
+
+            yield return Labelled("Radius Ratio", Length(ellipse.RadiusRatio));
+        }
+
+        /// <summary>A line of an ellipse's list, its label set right to end at the 34th place: "             Center: X = ...".</summary>
+        private static string Labelled(string label, string value) => label.PadLeft(33) + ": " + value;
+
+        /// <summary>
+        /// A point, or a vector from another point, as LIST writes those of an ellipse: "X = 600.0000 , Y = -300.0000, Z = 0.0000",
+        /// in the UCS.
+        /// </summary>
+        private static string Spaced(CadCommandContext c, GeoPoint3 world, bool vector, GeoPoint3 from = default)
+        {
+            CadUcs ucs = c.Session.Ucs;
+            GeoPoint3 p = ucs.IsWorld ? world : ucs.ToUcs(world);
+
+            if (vector)
+            {
+                GeoPoint3 o = ucs.IsWorld ? from : ucs.ToUcs(from);
+                p = new GeoPoint3(p.X - o.X, p.Y - o.Y, p.Z - o.Z);
+            }
+
+            return "X = " + Length(p.X).PadRight(9) + ", Y = " + Length(p.Y).PadRight(9) + ", Z = " + Length(p.Z);
+        }
+
+        /// <summary>
+        /// The lines LIST writes of a dimension, as AutoCAD 2021 writes them: whether it is associative, its type, its defining
+        /// points, its obliquing and text angles where it has them, its text position and text, its style, the overrides of
+        /// its style (<see cref="ListedOverrides"/>) and whether it is annotative. The rotation of a rotated dimension is an
+        /// amount turned, counted the way ANGDIR counts from the X axis (30 reads 330 with ANGDIR 1, whatever ANGBASE is); the
+        /// obliquing and text angles are directions, counted from ANGBASE (30 reads 60 with ANGBASE 90 and ANGDIR 1), as AutoCAD
+        /// writes them. In a turned UCS the points are the UCS's and the rotation and obliquing angle are counted from its X axis
+        /// (a dimension turned 30 is horizontal in a UCS turned 30), the text angle left as it is. A jogged radius writes its centre, chord point, override centre and jog point.
+        /// </summary>
+        private static IEnumerable<string> ListedDimension(CadCommandContext c, DxfDimension dimension)
+        {
+            double tolerance = c.Session.Tolerance.EqualAngleRad;
+            yield return "associative: " + (dimension.DimAssoc != null ? "yes" : "no");
+            double oblique = 0.0;
+
+            switch (dimension)
+            {
+                case DxfRotatedDimension rotated:
+                    // Counted from the UCS's X axis: one turned 30 is horizontal in a UCS turned 30, as AutoCAD 2021 lists it.
+                    double turn = c.Session.Ucs.AngleToUcs(rotated.Rotation);
+                    bool horizontal = Math.Abs(Math.IEEERemainder(turn, 2.0 * Math.PI)) <= tolerance;
+                    bool vertical = Math.Abs(Math.IEEERemainder(turn - Math.PI / 2.0, 2.0 * Math.PI)) <= tolerance;
+                    yield return "type: "
+                        + (
+                            horizontal ? "horizontal"
+                            : vertical ? "vertical"
+                            : "rotated"
+                        );
+
+                    if (!horizontal && !vertical)
+                    {
+                        yield return " rotation:" + Degrees(c, c.Database.Angdir ? -turn : turn).PadLeft(7);
+                    }
+
+                    yield return "1st extension  defining point: " + At(c, rotated.XLine1Point);
+                    yield return "2nd extension  defining point: " + At(c, rotated.XLine2Point);
+                    yield return "dimension line defining point: " + At(c, rotated.DimLinePoint);
+                    oblique = rotated.Oblique;
+                    break;
+                case DxfAlignedDimension aligned:
+                    yield return "type: aligned";
+                    yield return "1st extension  defining point: " + At(c, aligned.XLine1Point);
+                    yield return "2nd extension  defining point: " + At(c, aligned.XLine2Point);
+                    yield return "dimension line defining point: " + At(c, aligned.DimLinePoint);
+                    oblique = aligned.Oblique;
+                    break;
+                case DxfLineAngularDimension2 lines:
+                    yield return "type: angular";
+                    yield return "first line     defining point: " + At(c, lines.XLine1Start);
+                    yield return "first line     defining point: " + At(c, lines.XLine1End);
+                    yield return "second line    defining point: " + At(c, lines.XLine2Start);
+                    yield return "second line    defining point: " + At(c, lines.XLine2End);
+                    yield return "dimension arc defining point: " + At(c, lines.ArcPoint);
+                    break;
+                case DxfPoint3AngularDimension three:
+                    yield return "type: arc";
+                    yield return "1st extension defining point: " + At(c, three.XLine1Point);
+                    yield return "2nd extension defining point: " + At(c, three.XLine2Point);
+                    yield return "arc center    defining point: " + At(c, three.CenterPoint);
+                    yield return "dimension arc defining point: " + At(c, three.ArcPoint);
+                    break;
+                case DxfArcDimension arc:
+                    yield return "type: arc";
+                    yield return "1st extension defining point: " + At(c, arc.XLine1Point);
+                    yield return "2nd extension defining point: " + At(c, arc.XLine2Point);
+                    yield return "arc center    defining point: " + At(c, arc.CenterPoint);
+                    yield return "dimension arc defining point: " + At(c, arc.ArcPoint);
+                    break;
+                case DxfRadialDimensionLarge jogged:
+                    yield return "type: jogged";
+                    yield return "center defining point:          " + At(c, jogged.Center);
+                    yield return "chord point defining point:     " + At(c, jogged.ChordPoint);
+                    yield return "override center defining point: " + At(c, jogged.OverrideCenter);
+                    yield return "jog point defining point:       " + At(c, jogged.JogPoint);
+                    break;
+                case DxfRadialDimension radial:
+                    yield return "type: radial";
+                    yield return "center defining point: " + At(c, radial.Center);
+                    yield return "defining point:        " + At(c, radial.ChordPoint);
+                    break;
+                case DxfDiametricDimension diametric:
+                    yield return "type: diameter";
+                    yield return "       defining point: " + At(c, diametric.FarChordPoint);
+                    yield return "defining point:        " + At(c, diametric.ChordPoint);
+                    break;
+                case DxfOrdinateDimension ordinate:
+                    yield return "type: " + (ordinate.UsingXAxis ? "X" : "Y") + " ordinate";
+                    yield return "feature      defining point: " + At(c, ordinate.DefiningPoint);
+                    yield return "leader       defining point: " + At(c, ordinate.LeaderEndPoint);
+                    yield return "feature UCS  defining point: " + At(c, ordinate.Origin);
+                    break;
+            }
+
+            if (Math.Abs(Math.IEEERemainder(oblique, 2.0 * Math.PI)) > tolerance)
+            {
+                yield return "obliquing angle:"
+                    + Degrees(c, c.Session.CountAngle(c.Session.Ucs.AngleToUcs(oblique))).PadLeft(7);
+            }
+
+            if (Math.Abs(Math.IEEERemainder(dimension.TextRotation, 2.0 * Math.PI)) > tolerance)
+            {
+                yield return "text angle:" + Degrees(c, c.Session.CountAngle(dimension.TextRotation)).PadLeft(7);
+            }
+
+            yield return (dimension.UsingDefaultTextPosition ? "default" : "user specified")
+                + " text position: "
+                + At(c, dimension.TextPosition);
+            yield return string.IsNullOrEmpty(dimension.DimensionText)
+                ? "default text"
+                : "dimension text modifier: " + dimension.DimensionText;
+            yield return "dimension style: \"" + dimension.DimensionStyleName + "\"";
+
+            foreach (string line in ListedOverrides(c, dimension))
+            {
+                yield return line;
+            }
+
+            yield return "Annotative: " + (dimension.Annotative == DxfAnnotativeStates.True ? "Yes" : "No");
+        }
+
+        // The variables whose real values LIST writes as plain numbers, not as distances in the drawing's units.
+        private static readonly HashSet<string> Scalars = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "Dimscale",
+            "Dimaltf",
+            "Dimlfac",
+            "Dimtvp",
+            "Dimtfac",
+        };
+
+        private static readonly string[] ColourNames = { "red", "yellow", "green", "cyan", "blue", "magenta", "white" };
+
+        /// <summary>
+        /// The lines LIST writes of the overrides of a dimension's style, as AutoCAD 2021 writes them: "dimension style
+        /// overrides:", then one line for each variable overridden, by name in alphabetical order, the name set in twelve places
+        /// after a space: " DIMASZ      5.0000". Distances in the drawing's units, nought feet and nought inches after whole
+        /// feet left out (5", 1', 1'-3 1/2"); DIMSCALE, DIMALTF, DIMLFAC, DIMTVP and DIMTFAC as numbers to $LUPREC places;
+        /// DIMJOGANG in the drawing's angle units; colours as "1 (red)", "8", BYBLOCK or BYLAYER; flags On or Off; arrowheads
+        /// by AutoCAD's names (Dot, ArchTick, ClosedFilled for none); linetypes and text styles by name; lineweights and whole
+        /// numbers as numbers. None where the dimension overrides nothing.
+        /// </summary>
+        private static IEnumerable<string> ListedOverrides(CadCommandContext c, DxfDimension dimension)
+        {
+            var lines = new List<KeyValuePair<string, string>>();
+
+            foreach (KeyValuePair<DxfDimVariable, object> pair in dimension.OverriddenVariables())
+            {
+                string name =
+                    pair.Key.Name == "Dimfxlen" ? "DIMFXL"
+                    : pair.Key.Name == "DimfxlenOn" ? "DIMFXLON"
+                    : pair.Key.Name.ToUpperInvariant();
+                lines.Add(new KeyValuePair<string, string>(name, Overridden(c, pair.Key, pair.Value)));
+            }
+
+            if (lines.Count == 0)
+            {
+                yield break;
+            }
+
+            lines.Sort((a, b) => string.CompareOrdinal(a.Key, b.Key));
+            yield return "dimension style overrides:";
+
+            foreach (KeyValuePair<string, string> line in lines)
+            {
+                yield return line.Value.Length == 0 ? " " + line.Key : " " + line.Key.PadRight(12) + line.Value;
+            }
+        }
+
+        /// <summary>The value of an override as LIST writes it, by what the variable holds.</summary>
+        private static string Overridden(CadCommandContext c, DxfDimVariable variable, object value)
+        {
+            DxfDatabase database = c.Database;
+
+            switch (variable.Kind)
+            {
+                case DxfDimKind.Real:
+                    return Scalars.Contains(variable.Name)
+                        ? Capped(
+                            ((double)value).ToString(
+                                "F" + Math.Max(0, Math.Min(8, database.Luprec)).ToString(CultureInfo.InvariantCulture),
+                                CultureInfo.InvariantCulture
+                            ),
+                            (double)value,
+                            database.Luprec
+                        )
+                        : Distance(c, (double)value);
+                case DxfDimKind.Angle:
+                    return CadUnits.Angle((double)value, database.Aunits, database.Auprec);
+                case DxfDimKind.Flag:
+                    return (bool)value ? "On" : "Off";
+                case DxfDimKind.Text:
+                    return (string)value;
+                case DxfDimKind.Colour:
+                    int index = ((DxfColor)value).ColorIndex;
+                    return index == 0 ? "BYBLOCK"
+                        : index == 256 ? "BYLAYER"
+                        : index >= 1 && index <= 7
+                            ? index.ToString(CultureInfo.InvariantCulture) + " (" + ColourNames[index - 1] + ")"
+                        : index.ToString(CultureInfo.InvariantCulture);
+                case DxfDimKind.Weight:
+                    return ((int)(DxfLineWeight)value).ToString(CultureInfo.InvariantCulture);
+                case DxfDimKind.Letter:
+                    return ((char)value).ToString();
+                case DxfDimKind.Block:
+                    return CadArrowheads.ListedName(value as DxfBlockTableRecord);
+                case DxfDimKind.Linetype:
+                    // A linetype of none, or of an object that is none, is BYBLOCK as AutoCAD lists it.
+                    return (value as DxfSymbolTableRecord)?.Name ?? "BYBLOCK";
+                case DxfDimKind.TextStyle:
+                    return (value as DxfSymbolTableRecord)?.Name ?? string.Empty;
+                default:
+                    return ((int)value).ToString(CultureInfo.InvariantCulture);
+            }
+        }
+
+        /// <summary>
+        /// A distance of an override as LIST writes it, in the drawing's units ($LUNITS, $LUPREC); in engineering and
+        /// architectural units nought feet left out, and nought inches after whole feet: 5", 1', -1 1/4", 1'-3 1/2", 0".
+        /// </summary>
+        private static string Distance(CadCommandContext c, double value)
+        {
+            int units = c.Database.Lunits;
+            string text = CadUnits.Length(value, units, c.Database.Luprec);
+            int mark = text.IndexOf("'-", StringComparison.Ordinal);
+
+            if ((units != 3 && units != 4) || mark < 0 || !text.EndsWith("\"", StringComparison.Ordinal))
+            {
+                return units == 4 || units == 5 ? text : Capped(text, value, c.Database.Luprec);
+            }
+
+            string sign = text.StartsWith("-", StringComparison.Ordinal) ? "-" : string.Empty;
+            string feet = text.Substring(sign.Length, mark - sign.Length);
+            string inches = text.Substring(mark + 2, text.Length - mark - 3);
+            bool noFeet = feet.TrimStart('0').Length == 0;
+            bool noInches = inches.IndexOfAny("123456789".ToCharArray()) < 0;
+
+            // A fraction of no whole inch is written alone: 1/16", not 0 1/16".
+            string written =
+                noFeet
+                    ? sign + (inches.StartsWith("0 ", StringComparison.Ordinal) ? inches.Substring(2) : inches) + "\""
+                : noInches ? sign + feet + "'"
+                : text;
+            return units == 4 ? written : Capped(written, value, c.Database.Luprec);
+        }
+
+        /// <summary>
+        /// A number as AutoCAD 2021's LIST writes it: the text where it is twelve characters or fewer, else the number in
+        /// scientific form with six places (five for a negative one, to keep to twelve) or the drawing's where that is fewer:
+        /// 1 000.5 at 8 places is 1.000500E+03, minus 100.5 is -1.00500E+02, 1 000.5 at 4 places stays 1000.5000.
+        /// </summary>
+        private static string Capped(string text, double value, int luprec)
+        {
+            if (text.Length <= 12)
+            {
+                return text;
+            }
+
+            int places = Math.Max(0, Math.Min(Math.Min(8, luprec), value < 0.0 ? 5 : 6));
+            string format = (places == 0 ? "0" : "0." + new string('0', places)) + "E+00";
+            return (value < 0.0 ? "-" : string.Empty) + Math.Abs(value).ToString(format, CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>A point as LIST writes one: "X= 100.0000  Y=   0.0000  Z=   0.0000".</summary>
+        private static string At(CadCommandContext c, GeoPoint3 world)
+        {
+            GeoPoint3 p = c.Session.Ucs.IsWorld ? world : c.Session.Ucs.ToUcs(world);
+            return "X=" + Length(p.X).PadLeft(9) + "  Y=" + Length(p.Y).PadLeft(9) + "  Z=" + Length(p.Z).PadLeft(9);
+        }
+
+        /// <summary>An angle in degrees from 0 to 360, to the places of the drawing's $AUPREC: 45 at 0, as AutoCAD's template has it, 45.00 at 2.</summary>
+        private static string Degrees(CadCommandContext c, double radians)
+        {
+            string format = "F" + Math.Max(0, Math.Min(8, c.Database.Auprec)).ToString(CultureInfo.InvariantCulture);
+            double degrees = radians * 180.0 / Math.PI % 360.0;
+
+            // Nought added makes -0 nought; a turn that rounds to 360 is written as nought, as AutoCAD writes it.
+            degrees = (degrees < 0.0 ? degrees + 360.0 : degrees) + 0.0;
+            string text = degrees.ToString(format, CultureInfo.InvariantCulture);
+            return text == 360.0.ToString(format, CultureInfo.InvariantCulture)
+                ? 0.0.ToString(format, CultureInfo.InvariantCulture)
+                : text;
+        }
+    }
+}

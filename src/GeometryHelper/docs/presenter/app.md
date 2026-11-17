@@ -3,11 +3,11 @@
 What the presenter keeps between runs and how the window behaves: global settings in a JSON file, the copies autosave
 leaves beside a drawing, how a drawing is closed, the keys and the mouse, and the two standalone apps with their options. The
 settings are in the core and run in a test; autosave, closing and the window belong to the controls
-(`GeometryHelper.Dxf.Viewer.Wpf`), which the API reference does not list, so they are described here and not linked.
+(`GeometryHelper.Cad.Wpf`), which the API reference does not list, so they are described here and not linked.
 
 ## Global settings
 
-[`GlobalSettings`](xref:GeometryHelper.Dxf.Viewer.GlobalSettings) is what applies to the whole app and every drawing on the
+[`GlobalSettings`](xref:GeometryHelper.Cad.GlobalSettings) is what applies to the whole app and every drawing on the
 machine, kept as JSON in `%AppData%\GeometryHelper\Drawing\settings.json` (`GlobalSettings.DefaultPath`). Every setting has
 its default in code, so deleting the file gives the defaults back.
 
@@ -67,8 +67,8 @@ The defaults are AutoCAD's where it has one. Numbers show as the units say: `For
 with a comma for the thousands `12,345.68`. The thousands cannot be parted by the decimal separator: `ThousandsSeparator =
 "Point"` with `DecimalSeparator = "Point"` throws. `SetShortcuts(aliases, keys)` replaces the aliases and keys, and
 `ShortcutConflicts(names)` says an alias that is the name of another command ("The alias DU is the name of the command DU");
-`ToShortcuts()` gives the [`CadShortcuts`](xref:GeometryHelper.Dxf.Viewer.CadShortcuts) a registry takes.
-[`GlobalLayer`](xref:GeometryHelper.Dxf.Viewer.GlobalLayer) is a layer of the default table: name, colour, linetype, line weight and whether it plots.
+`ToShortcuts()` gives the [`CadShortcuts`](xref:GeometryHelper.Cad.CadShortcuts) a registry takes.
+[`GlobalLayer`](xref:GeometryHelper.Cad.GlobalLayer) is a layer of the default table: name, colour, linetype, line weight and whether it plots.
 
 ### What the text settings reach
 
@@ -560,8 +560,8 @@ A row dragged onto the canvas does the same where it is dropped: a block is plac
 drawing file inserted there as a block, and layers, styles, linetypes and layouts copied in. The content is read from the
 files on disk, so a drawing open with unsaved changes is dragged as it was saved; a drawing not saved yet is browsed from its
 open state but cannot be dragged. The same is done from code with
-[`CadDesignCenterDrawing`](xref:GeometryHelper.Dxf.Viewer.CadDesignCenterDrawing) (`Open`, `Of`, `Items`) and
-[`CadDesignCenter.Add`](xref:GeometryHelper.Dxf.Viewer.CadDesignCenter.Add*).
+[`CadDesignCenterDrawing`](xref:GeometryHelper.Cad.CadDesignCenterDrawing) (`Open`, `Of`, `Items`) and
+[`CadDesignCenter.Add`](xref:GeometryHelper.Cad.CadDesignCenter.Add*).
 
 The right-click menu of a drawing file, or of the **Blocks** row of a drawing, adds **Create Tool Palette of Blocks**, and that
 of blocks adds **Create Tool Palette**: a tool palette named for the drawing, with a block tool for each block (every block
@@ -643,11 +643,11 @@ file, one palette or all) and **Import Palette…** reads it, adding the palette
 | hatch | `hatchType` (`pattern`, `userDefined`, `solid` or `gradient`), `pattern`, `angle` (degrees), `scale`, `spacing`, `gradient` (`GR_LINEAR` and the others), `associative` |
 | overrides of a command, block or hatch | `layer`, `color` (`ByLayer`, `ByBlock`, `1` to `255`), `linetype`, `lineWeight` (hundredths of a millimetre; -1 ByLayer, -2 ByBlock, -3 default); a member left out is the drawing's current one |
 
-From code, [`CadToolPalettes`](xref:GeometryHelper.Dxf.Viewer.CadToolPalettes) (`CreateStarter`, `Load`, `Save`, `Add`,
+From code, [`CadToolPalettes`](xref:GeometryHelper.Cad.CadToolPalettes) (`CreateStarter`, `Load`, `Save`, `Add`,
 `Rename`, `Remove`, `Move`, `Copy`, `Cut`, `Paste`, `Import`, `Export`, `ToJson`, `TryParse`),
-[`CadToolPalette`](xref:GeometryHelper.Dxf.Viewer.CadToolPalette), [`CadTool`](xref:GeometryHelper.Dxf.Viewer.CadTool)
+[`CadToolPalette`](xref:GeometryHelper.Cad.CadToolPalette), [`CadTool`](xref:GeometryHelper.Cad.CadTool)
 (`ForCommand`, `ForBlock`, `ForHatch`, `ForText`, `ForSeparator`, `FromObject`) and
-[`CadCommandSession.StartTool`](xref:GeometryHelper.Dxf.Viewer.CadCommandSession.StartTool*) do the same without the window.
+[`CadCommandSession.StartTool`](xref:GeometryHelper.Cad.CadCommandSession.StartTool*) do the same without the window.
 
 ### The Parametric tab
 
@@ -682,11 +682,11 @@ There are two standalone apps, both net8.0-windows, both the same window over th
 
 | App | What it is | Use it to |
 |---|---|---|
-| GeometryHelper DXF, `GeometryHelper.Dxf.App.exe` | the presenter alone: `GeometryHelper.Dxf.Viewer` and its controls, no model drawing | open, edit and plot DXF drawings in place of AutoCAD; the program to associate with `.dxf` files |
+| GeometryHelper DXF, `GeometryHelper.Cad.App.exe` | the presenter alone: `GeometryHelper.Cad` and its controls, no model drawing | open, edit and plot DXF drawings in place of AutoCAD; the program to associate with `.dxf` files |
 | GeometryHelper Drawing, `GeometryHelper.Drawing.App.exe` | the presenter with the model drawing added: the Drawing tab, New drawing, Update from model and the drawing plugins | make drawings from a model (see [Model drawings](../drawing/index.md#the-app)) and edit them |
 
 ```
-GeometryHelper.Dxf.App.exe plan.dxf
+GeometryHelper.Cad.App.exe plan.dxf
 ```
 
 opens the window on a drawing, as double-clicking a file associated with the app does. The app reads the global settings from
@@ -694,7 +694,7 @@ the user's file and loads the command plugins of its plugin folder on the startu
 `%AppData%\GeometryHelper\Dxf`, GeometryHelper Drawing in `%AppData%\GeometryHelper\Drawing`, so that a drawing plugin is
 never offered to the app that has no model drawing. The title bar and the start screen carry the app's name.
 
-Both apps start through `CadAppHost` of `GeometryHelper.Dxf.Viewer.Wpf`, and their window is its `CadAppWindow`. GeometryHelper
+Both apps start through `CadAppHost` of `GeometryHelper.Cad.Wpf`, and their window is its `CadAppWindow`. GeometryHelper
 Drawing derives from `CadAppHost` to add its parts: the host's protected members take its options off the command line, put
 the model drawing into the view model, make a drawing before the file is opened, draw its dialogs and select what its
 options name. A host of its own does the same.
@@ -704,11 +704,11 @@ options name. A host of its own does the same.
 GeometryHelper DXF has an icon of its own, a white set square and an orange point on a blue tile, at 16, 24, 32, 48 and 256
 pixels: the exe carries it, and the window shows it on the taskbar and in Alt+Tab (`CadAppHost.WindowIcon`). A drawing file
 associated with the app shows a page with the same tile on it. Both are written from their vector drawing by
-`src/GeometryHelper.Dxf.App/Icons/make-icons.ps1` into `app.ico` and `drawing-file.ico`; the second is copied beside the exe.
+`src/GeometryHelper.Cad.App/Icons/make-icons.ps1` into `app.ico` and `drawing-file.ico`; the second is copied beside the exe.
 
 ```
-GeometryHelper.Dxf.App.exe --register
-GeometryHelper.Dxf.App.exe --unregister
+GeometryHelper.Cad.App.exe --register
+GeometryHelper.Cad.App.exe --unregister
 ```
 
 `--register` associates .dxf and .dwg files with the app for the user alone, under `HKEY_CURRENT_USER\Software\Classes`, so
@@ -718,7 +718,7 @@ no administrator is asked for:
 |---|---|
 | `GeometryHelper.Drawing` | `Drawing (GeometryHelper DXF)`, the type Explorer shows |
 | `GeometryHelper.Drawing\DefaultIcon` | `drawing-file.ico` beside the exe (the exe's own icon where the file is missing) |
-| `GeometryHelper.Drawing\shell\open\command` | `"…\GeometryHelper.Dxf.App.exe" "%1"` |
+| `GeometryHelper.Drawing\shell\open\command` | `"…\GeometryHelper.Cad.App.exe" "%1"` |
 | `.dxf\OpenWithProgids`, `.dwg\OpenWithProgids` | `GeometryHelper.Drawing`, so the app is in the Open with list |
 | `.dxf`, `.dwg` | `GeometryHelper.Drawing`, only where no program has the extension |
 
@@ -747,7 +747,7 @@ folder) the message box says so.
 | Out of memory, an access violation or another fault of native code, on the window's thread | The entry is written, the box says the app cannot go on, and it closes: after these the process can no longer be trusted to hold the drawings |
 
 A stack overflow cannot be caught by any handler: .NET ends the process at once and nothing is written, so a crash with no
-entry in the log and no message is one of those. `GeometryHelper.Dxf.App` and `GeometryHelper.Drawing` both install the
+entry in the log and no message is one of those. `GeometryHelper.Cad.App` and `GeometryHelper.Drawing` both install the
 handlers, as part of `CadAppHost.Run`.
 
 ### Screenshots
@@ -755,7 +755,7 @@ handlers, as part of `CadAppHost.Run`.
 For a picture of the window in a test or a document:
 
 ```
-GeometryHelper.Dxf.App.exe --screenshot out.png plan.dxf --size 1600 960
+GeometryHelper.Cad.App.exe --screenshot out.png plan.dxf --size 1600 960
 ```
 
 draws the window with the drawing open into a PNG, with no window shown, and exits: 0 when written, 2 for arguments or a file

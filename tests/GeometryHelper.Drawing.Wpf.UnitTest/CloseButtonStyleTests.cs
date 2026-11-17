@@ -5,7 +5,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using GeometryHelper.Dxf.Viewer.Wpf;
+using GeometryHelper.Cad.Wpf;
 using Xunit;
 
 namespace GeometryHelper.Drawing.Wpf.UnitTest

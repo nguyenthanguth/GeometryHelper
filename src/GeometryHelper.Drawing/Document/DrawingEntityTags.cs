@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using GeometryHelper.Cad;
 using GeometryHelper.Dxf;
-using GeometryHelper.Dxf.Viewer;
 
 namespace GeometryHelper.Drawing
 {

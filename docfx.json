@@ -5,7 +5,7 @@
         {
           "files": [
             "src/GeometryHelper/GeometryHelper.csproj",
-            "src/GeometryHelper.Dxf.Viewer/GeometryHelper.Dxf.Viewer.csproj"
+            "src/GeometryHelper.Cad/GeometryHelper.Cad.csproj"
           ]
         },
         {
