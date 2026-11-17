@@ -18,7 +18,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>DRAWORDER: "Enter object ordering option [Above objects/Under objects/Front/Back] &lt;Back&gt;:", then for Above and Under the objects to order against.</summary>
         private static IEnumerable<CadPrompt> DrawOrder(CadCommandContext c)
         {
-            foreach (CadPrompt prompt in c.SelectObjects())
+            foreach (CadPrompt prompt in c.SelectObjectsWithEcho(false))
             {
                 yield return prompt;
             }

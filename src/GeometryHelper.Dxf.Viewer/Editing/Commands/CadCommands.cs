@@ -103,7 +103,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("LAYTHW", c => LayersAll(c, true)));
             registry.Add(new CadCommand("LAYLCK", c => LayerLock(c, true)));
             registry.Add(new CadCommand("LAYULK", c => LayerLock(c, false)));
-            registry.Add(new CadCommand("LAYISO", LayerIsolate));
+            registry.Add(new CadCommand("LAYISO", LayerIsolate, true));
             registry.Add(new CadCommand("LAYUNISO", LayerUnisolate));
             registry.Add(new CadCommand("LAYERP", LayerPrevious));
             registry.Add(new CadCommand("LAYERPMODE", LayerPreviousMode));
@@ -121,10 +121,10 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("XCLIP", XClip, true));
             registry.Add(new CadCommand("-SCALELISTEDIT", ScaleListEdit));
             registry.Add(new CadCommand("SCALELISTEDIT", ScaleListDialog));
-            registry.Add(new CadCommand("-OBJECTSCALE", ObjectScale));
-            registry.Add(new CadCommand("OBJECTSCALE", ObjectScaleDialog));
-            registry.Add(new CadCommand("AIOBJECTSCALEADD", AnnotationScaleAdd));
-            registry.Add(new CadCommand("AIOBJECTSCALEREMOVE", AnnotationScaleRemove));
+            registry.Add(new CadCommand("-OBJECTSCALE", ObjectScale, true));
+            registry.Add(new CadCommand("OBJECTSCALE", ObjectScaleDialog, true));
+            registry.Add(new CadCommand("AIOBJECTSCALEADD", AnnotationScaleAdd, true));
+            registry.Add(new CadCommand("AIOBJECTSCALEREMOVE", AnnotationScaleRemove, true));
             registry.Add(new CadCommand("MEASUREGEOM", MeasureGeom));
             registry.Add(new CadCommand("UNITS", Units));
             registry.Add(new CadCommand("-UNITS", UnitsTyped));
@@ -138,7 +138,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("LINETYPE", Linetype));
             registry.Add(new CadCommand("-LINETYPE", LinetypeTyped));
             registry.Add(new CadCommand("HATCH", Hatch));
-            registry.Add(new CadCommand("HATCHEDIT", HatchEdit));
+            registry.Add(new CadCommand("HATCHEDIT", HatchEdit, true));
             registry.Add(new CadCommand("BOUNDARY", Boundary));
             registry.Add(new CadCommand("STYLE", StyleDialog));
             registry.Add(new CadCommand("-STYLE", StyleTyped));
@@ -149,7 +149,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("OFFSET", Offset));
             registry.Add(new CadCommand("FILLET", Fillet));
             registry.Add(new CadCommand("CHAMFER", Chamfer));
-            registry.Add(new CadCommand("STRETCH", Stretch));
+            registry.Add(new CadCommand("STRETCH", Stretch, true));
             registry.Add(new CadCommand("ARRAY", ArrayAny, true));
             registry.Add(new CadCommand("ARRAYRECT", ArrayRectangular, true));
             registry.Add(new CadCommand("ARRAYPOLAR", ArrayPolar, true));
@@ -159,13 +159,13 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("OVERKILL", OverkillDialog, true));
             registry.Add(new CadCommand("-OVERKILL", OverkillTyped, true));
             registry.Add(new CadCommand("ALIGN", Align, true));
-            registry.Add(new CadCommand("TRIM", Trim));
-            registry.Add(new CadCommand("EXTEND", ExtendCommand));
+            registry.Add(new CadCommand("TRIM", Trim, true));
+            registry.Add(new CadCommand("EXTEND", ExtendCommand, true));
             registry.Add(new CadCommand("BREAK", Break));
             registry.Add(new CadCommand("BREAKATPOINT", BreakAtPoint));
-            registry.Add(new CadCommand("JOIN", Join));
+            registry.Add(new CadCommand("JOIN", Join, true));
             registry.Add(new CadCommand("LENGTHEN", Lengthen));
-            registry.Add(new CadCommand("PEDIT", Pedit));
+            registry.Add(new CadCommand("PEDIT", Pedit, true));
             registry.Add(new CadCommand("REVCLOUD", RevCloud));
             registry.Add(new CadCommand("REVCLOUDPROPERTIES", RevCloudProperties));
             AddBlocksTo(registry);
@@ -179,7 +179,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("PASTEBLOCK", PasteBlock));
             registry.Add(new CadCommand("PASTEORIG", PasteOrig));
             registry.Add(new CadCommand("PASTESPEC", PasteSpecial));
-            registry.Add(new CadCommand("TEXTEDIT", TextEdit));
+            registry.Add(new CadCommand("TEXTEDIT", TextEdit, true));
             registry.Add(new CadCommand("MTEDIT", MTextEdit));
             AddPlotTo(registry);
             AddImageOutTo(registry);

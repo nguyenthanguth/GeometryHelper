@@ -18,7 +18,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             string name = null;
             string description = string.Empty;
-            IReadOnlyList<string> handles = c.PreSelected;
+            IReadOnlyList<string> handles = c.TakePreSelection();
 
             while (handles.Count == 0)
             {

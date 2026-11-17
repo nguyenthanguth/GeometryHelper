@@ -12,6 +12,7 @@ namespace GeometryHelper.Dxf.Viewer
     public sealed class CadCommandContext
     {
         private readonly IReadOnlyList<string> _preSelected;
+        private bool _preSelectionTaken;
 
         internal CadCommandContext(CadCommandSession session, CadCommand command, IReadOnlyList<string> preSelected)
         {
@@ -70,7 +71,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// body yields what this yields: <c>foreach (CadPrompt p in c.SelectObjects()) yield return p;</c>.
         /// </summary>
         /// <returns>The prompts to yield.</returns>
-        public IEnumerable<CadPrompt> SelectObjects()
+        public IEnumerable<CadPrompt> SelectObjects() => SelectObjectsWithEcho(true);
+
+        /// <summary>
+        /// <see cref="SelectObjects"/> that says "N found" for the objects taken from before the command, as AutoCAD's commands
+        /// do, or does not, as ALIGN, DRAWORDER and MIRROR3D take them without a word.
+        /// </summary>
+        /// <param name="echo">Whether "N found" is written for the objects selected before the command.</param>
+        /// <returns>The prompts to yield.</returns>
+        internal IEnumerable<CadPrompt> SelectObjectsWithEcho(bool echo)
         {
             IReadOnlyList<string> handles;
 
@@ -78,6 +87,11 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 handles = _preSelected;
                 Session.RememberSelection(handles);
+
+                if (echo)
+                {
+                    Write(Found(handles.Count));
+                }
             }
             else
             {
@@ -114,6 +128,7 @@ namespace GeometryHelper.Dxf.Viewer
             if (handles.Count > 0)
             {
                 Session.RememberSelection(handles);
+                Write(Found(handles.Count));
             }
             else
             {
@@ -131,6 +146,126 @@ namespace GeometryHelper.Dxf.Viewer
             Selected = Unlocked(handles);
             ClearsSelection = true;
         }
+
+        /// <summary>
+        /// Asks a command's first selection, unless objects were selected before the command started, which are taken instead as
+        /// AutoCAD takes them for the commands that start with "Select objects": the prompt is not asked, "N found" is written
+        /// (N the objects <paramref name="only"/> accepts), and <see cref="Input"/> is the selection as if it had been picked there,
+        /// so that the body reads <c>c.Input.Handles</c> after it as it does after the prompt. Where none of the objects selected
+        /// before is accepted, "0 found" is written and the prompt is asked. The objects taken are used once: a second call asks.
+        /// The body yields what this yields: <c>foreach (CadPrompt p in c.SelectFirst(prompt)) yield return p;</c>.
+        /// </summary>
+        /// <param name="prompt">The prompt asked where nothing was selected before.</param>
+        /// <param name="only">Whether an object is of the kind the command works on; null accepts every object.</param>
+        /// <param name="echo">Whether "N found" is written for the objects taken.</param>
+        /// <returns>The prompts to yield.</returns>
+        internal IEnumerable<CadPrompt> SelectFirst(
+            CadPrompt prompt,
+            Func<DxfEntity, bool> only = null,
+            bool echo = true
+        )
+        {
+            IReadOnlyList<string> handles = TakePreSelection(only, echo);
+
+            if (handles.Count > 0)
+            {
+                Input = new CadInput(CadInputKind.Selection, default, 0.0, null, handles);
+                yield break;
+            }
+
+            yield return prompt;
+        }
+
+        /// <summary>
+        /// Takes the objects selected before the command started that <paramref name="only"/> accepts, once, for a body that
+        /// reads its objects its own way: they are remembered as the previous selection, the document's selection is cleared when
+        /// the command ends (grips gone, as AutoCAD's), and "N found" is written.
+        /// </summary>
+        /// <param name="only">Whether an object is of the kind the command works on; null accepts every object.</param>
+        /// <param name="echo">Whether "N found" is written.</param>
+        /// <returns>The handles taken, in ordinal order; empty where nothing was selected before or none was accepted.</returns>
+        internal IReadOnlyList<string> TakePreSelection(Func<DxfEntity, bool> only = null, bool echo = true)
+        {
+            if (_preSelected.Count == 0 || _preSelectionTaken)
+            {
+                return Array.Empty<string>();
+            }
+
+            _preSelectionTaken = true;
+            var handles = new List<string>();
+
+            foreach (string handle in _preSelected)
+            {
+                if (only == null || (Document.FindEntity(handle) is DxfEntity entity && only(entity)))
+                {
+                    handles.Add(handle);
+                }
+            }
+
+            if (echo)
+            {
+                Write(Found(handles.Count));
+            }
+
+            if (handles.Count > 0)
+            {
+                Session.RememberSelection(handles);
+            }
+
+            ClearsSelection = true;
+            return handles;
+        }
+
+        /// <summary>
+        /// Asks a command's one object (PEDIT, SPLINEDIT, HATCHEDIT, TEXTEDIT), unless exactly one object was selected before the
+        /// command started, which is taken instead without a word, as AutoCAD takes it: the prompt is not asked and
+        /// <see cref="Input"/> is that object picked there. Where several were selected, or the one is not accepted, the prompt is
+        /// asked and the selection is left as it is. The object is taken once: a second call asks.
+        /// </summary>
+        /// <param name="prompt">The prompt asked where no single object was selected before.</param>
+        /// <param name="only">Whether an object is of the kind the command works on; null accepts every object.</param>
+        /// <param name="filtering">
+        /// Whether the objects <paramref name="only"/> accepts are counted (SPLINEDIT takes the one spline among a mixed selection)
+        /// rather than every object selected (PEDIT takes one object, a line too, which it offers to turn into a polyline).
+        /// </param>
+        /// <returns>The prompts to yield.</returns>
+        internal IEnumerable<CadPrompt> SelectOneFirst(
+            CadPrompt prompt,
+            Func<DxfEntity, bool> only = null,
+            bool filtering = false
+        )
+        {
+            var candidates = new List<string>();
+
+            if (!_preSelectionTaken)
+            {
+                foreach (string handle in _preSelected)
+                {
+                    if (!filtering || only == null || (Document.FindEntity(handle) is DxfEntity entity && only(entity)))
+                    {
+                        candidates.Add(handle);
+                    }
+                }
+            }
+
+            if (
+                candidates.Count == 1
+                && Document.FindEntity(candidates[0]) is DxfEntity one
+                && (filtering || only == null || only(one))
+            )
+            {
+                _preSelectionTaken = true;
+                Session.RememberSelection(candidates);
+                ClearsSelection = true;
+                Input = new CadInput(CadInputKind.Selection, default, 0.0, null, candidates);
+                yield break;
+            }
+
+            yield return prompt;
+        }
+
+        /// <summary>"3 found", as AutoCAD counts the objects a selection took.</summary>
+        private static string Found(int count) => count.ToString(CultureInfo.InvariantCulture) + " found";
 
         /// <summary>Writes a line into the history of the command line.</summary>
         /// <param name="line">The line.</param>

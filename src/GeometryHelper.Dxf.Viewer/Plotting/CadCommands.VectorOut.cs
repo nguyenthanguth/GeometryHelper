@@ -48,7 +48,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             registry.Add(new CadCommand("WMFOUT", WmfOut));
             registry.Add(new CadCommand("PSOUT", PostScriptOut));
-            registry.Add(new CadCommand("STLOUT", StlOut));
+            registry.Add(new CadCommand("STLOUT", StlOut, true));
             registry.Add(new CadCommand("SVGOUT", SvgOut));
         }
 
@@ -248,7 +248,13 @@ namespace GeometryHelper.Dxf.Viewer
         {
             while (true)
             {
-                yield return CadPrompt.ForSelection("Select solids or watertight meshes");
+                foreach (
+                    CadPrompt prompt in c.SelectFirst(CadPrompt.ForSelection("Select solids or watertight meshes"))
+                )
+                {
+                    yield return prompt;
+                }
+
                 int removed = c.Input.Handles == null ? 0 : c.Input.Handles.Count;
 
                 if (removed > 0)

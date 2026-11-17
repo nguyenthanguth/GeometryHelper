@@ -99,6 +99,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             var turned = (DxfSpline)model.Document.FindEntity(spline.Handle);
             Assert.True(turned.EndPoint.IsEqualTo(start, new Tolerance(1E-6, 1E-6)));
 
+            // SPLINEDIT took the spline selected first, and the grips are gone as it ended, as AutoCAD's are.
+            model.Document.Selection.Set(new[] { spline.Handle });
+
             Item(Item(model.CanvasMenu(), "Spline").Items, "Display Control Vertices").Command.Execute(null);
 
             Assert.False(model.IsCommandRunning);

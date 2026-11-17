@@ -52,7 +52,10 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static IEnumerable<CadPrompt> MLeaderAlign(CadCommandContext c)
         {
-            yield return CadPrompt.ForSelection("Select multileaders");
+            foreach (CadPrompt prompt in c.SelectFirst(CadPrompt.ForSelection("Select multileaders")))
+            {
+                yield return prompt;
+            }
 
             if (c.Input.Kind != CadInputKind.Selection)
             {

@@ -19,11 +19,11 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("-HATCH", HatchTyped));
             registry.Add(new CadCommand("GRADIENT", Gradient));
             registry.Add(new CadCommand("HATCHTOBACK", HatchToBack));
-            registry.Add(new CadCommand("REGION", Region, true));
-            registry.Add(new CadCommand("UNION", Union, true));
+            registry.Add(new CadCommand("REGION", Region));
+            registry.Add(new CadCommand("UNION", Union));
             registry.Add(new CadCommand("SUBTRACT", Subtract));
-            registry.Add(new CadCommand("INTERSECT", Intersect, true));
-            registry.Add(new CadCommand("SPLINEDIT", SplineEdit));
+            registry.Add(new CadCommand("INTERSECT", Intersect));
+            registry.Add(new CadCommand("SPLINEDIT", SplineEdit, true));
             registry.Add(new CadCommand("CLASSICINSERT", Insert));
         }
 

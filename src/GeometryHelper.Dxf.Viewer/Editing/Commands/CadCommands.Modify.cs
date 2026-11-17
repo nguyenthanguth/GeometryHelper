@@ -239,6 +239,16 @@ namespace GeometryHelper.Dxf.Viewer
         )
         {
             c.Write(extend ? "Select boundary edges ..." : "Select cutting edges ...");
+
+            // Objects selected before the command are the edges, as AutoCAD takes them in Standard mode: "Select cutting edges ...3 found".
+            IReadOnlyList<string> before = c.TakePreSelection();
+
+            if (before.Count > 0)
+            {
+                edges.Value = before;
+                yield break;
+            }
+
             yield return CadPrompt.ForSelection("Select objects or <select all>");
             edges.Value = c.Input.Kind == CadInputKind.Selection && c.Input.Handles.Count > 0 ? c.Input.Handles : null;
         }
@@ -1023,7 +1033,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static IEnumerable<CadPrompt> Join(CadCommandContext c)
         {
-            yield return CadPrompt.ForSelection("Select source object or multiple objects to join at once");
+            foreach (
+                CadPrompt prompt in c.SelectFirst(
+                    CadPrompt.ForSelection("Select source object or multiple objects to join at once")
+                )
+            )
+            {
+                yield return prompt;
+            }
 
             if (c.Input.Kind != CadInputKind.Selection || c.Input.Handles.Count == 0)
             {

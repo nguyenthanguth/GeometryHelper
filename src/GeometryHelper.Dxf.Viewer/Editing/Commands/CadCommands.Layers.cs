@@ -325,7 +325,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>LAYISO: the layers of the objects selected kept on, every other turned off, the current layer moved to one kept.</summary>
         private static IEnumerable<CadPrompt> LayerIsolate(CadCommandContext c)
         {
-            yield return CadPrompt.ForSelection("Select objects on the layer(s) to be isolated");
+            foreach (
+                CadPrompt prompt in c.SelectFirst(
+                    CadPrompt.ForSelection("Select objects on the layer(s) to be isolated")
+                )
+            )
+            {
+                yield return prompt;
+            }
+
             var kept = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (string handle in c.Input.Handles)

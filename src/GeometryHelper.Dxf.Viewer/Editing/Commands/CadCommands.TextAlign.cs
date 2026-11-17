@@ -50,9 +50,16 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt
-                    .ForSelection("Select text objects to align", new[] { "alIgnment", "Options" })
-                    .WithoutOr();
+                foreach (
+                    CadPrompt asked in c.SelectFirst(
+                        CadPrompt
+                            .ForSelection("Select text objects to align", new[] { "alIgnment", "Options" })
+                            .WithoutOr()
+                    )
+                )
+                {
+                    yield return asked;
+                }
 
                 if (c.Input.Is("alIgnment"))
                 {

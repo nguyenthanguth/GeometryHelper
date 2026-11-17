@@ -13,8 +13,8 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("REVERSE", Reverse, true));
             registry.Add(new CadCommand("SETBYLAYER", SetByLayer, true));
             registry.Add(new CadCommand("CHPROP", ChProp, true));
-            registry.Add(new CadCommand("BURST", Burst));
-            registry.Add(new CadCommand("TXTEXP", TextExplode));
+            registry.Add(new CadCommand("BURST", Burst, true));
+            registry.Add(new CadCommand("TXTEXP", TextExplode, true));
             registry.Add(new CadCommand("CHSPACE", ChangeSpace, true));
 
             // Which properties SETBYLAYER sets, and its two last questions' defaults: AutoCAD keeps it in the registry, 255 at first.

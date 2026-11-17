@@ -129,6 +129,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             foreach (string name in new[] { "Add Current Scale", "Delete Current Scale" })
             {
+                // A command that takes the objects selected first clears the grips when it ends, as AutoCAD's does.
+                model.Document.Selection.Set(new[] { text.Handle });
                 int before = model.History.Count;
                 CadMenuItemViewModel item = Item(scales.Items, name);
                 Assert.True(item.IsEnabled);
