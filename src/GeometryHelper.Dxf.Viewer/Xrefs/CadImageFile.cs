@@ -1,33 +1,36 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
     /// The size and resolution of a picture file read from its head, as AutoCAD reads them when it attaches an image: a PNG
-    /// (its IHDR and pHYs), a JPEG (its frame and JFIF density) or a BMP (its info header). No pixel is decoded.
+    /// (its IHDR and pHYs), a JPEG (its frame and JFIF density), a BMP, DIB or RLE (its info header), and a GIF, PCX, TGA or
+    /// TIFF (<see cref="CadRasterReader"/>). Whether the picture is bitonal, one bit a pixel, is read with them. No pixel is
+    /// decoded.
     /// </summary>
     internal static class CadImageFile
     {
-        /// <summary>Whether a path names a picture the presenter attaches: .png, .jpg, .jpeg or .bmp.</summary>
-        internal static bool IsPicture(string path)
-        {
-            string extension;
+        // The pictures already measured, by file and the time it was written, so that a scan of 30 MB is read once.
+        private static readonly Dictionary<string, bool> Bitonals = new Dictionary<string, bool>(
+            StringComparer.OrdinalIgnoreCase
+        );
 
-            try
-            {
-                extension = Path.GetExtension(path ?? string.Empty);
-            }
-            catch (ArgumentException)
-            {
-                return false;
-            }
+        /// <summary>
+        /// The filter of the dialogs that choose an image file, as AutoCAD's Select Image File dialog groups the types: all of
+        /// them first, then each by name.
+        /// </summary>
+        internal const string OpenFilter =
+            "All image files|*.bmp;*.rle;*.dib;*.gif;*.jpg;*.jpeg;*.pcx;*.png;*.tga;*.tif;*.tiff"
+            + "|BMP, RLE, DIB (*.bmp;*.rle;*.dib)|*.bmp;*.rle;*.dib|GIF (*.gif)|*.gif|JPEG (*.jpg;*.jpeg)|*.jpg;*.jpeg"
+            + "|PCX (*.pcx)|*.pcx|PNG (*.png)|*.png|TGA (*.tga)|*.tga|TIFF (*.tif;*.tiff)|*.tif;*.tiff";
 
-            return string.Equals(extension, ".png", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(extension, ".jpg", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(extension, ".jpeg", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(extension, ".bmp", StringComparison.OrdinalIgnoreCase);
-        }
+        /// <summary>
+        /// Whether a path names a picture the presenter attaches: .bmp, .rle, .dib, .gif, .jpg, .jpeg, .pcx, .png, .tga, .tif or
+        /// .tiff.
+        /// </summary>
+        internal static bool IsPicture(string path) => CadRasterReader.IsPictureName(path);
 
         /// <summary>
         /// Reads the pixels across and up of a picture and the millimetres a pixel is across and up, nought where the file
@@ -41,18 +44,74 @@ namespace GeometryHelper.Dxf.Viewer
             out double millimetresY
         )
         {
-            width = 0;
-            height = 0;
-            millimetresX = 0.0;
-            millimetresY = 0.0;
+            bool read = TryDescribe(path, out CadRaster picture);
+            width = read ? picture.Width : 0;
+            height = read ? picture.Height : 0;
+            millimetresX = read ? picture.MillimetresX : 0.0;
+            millimetresY = read ? picture.MillimetresY : 0.0;
+            return read;
+        }
+
+        /// <summary>
+        /// Whether a picture file is bitonal, one bit a pixel and one plane (a scanned drawing): the image of one cannot be
+        /// adjusted, and it is shown in the colour of the image object. False for a file that cannot be read.
+        /// </summary>
+        internal static bool IsBitonal(string path)
+        {
+            if (path == null)
+            {
+                return false;
+            }
+
+            string key;
+
+            try
+            {
+                key = path + "|" + File.GetLastWriteTimeUtc(path).Ticks;
+            }
+            catch (Exception exception)
+                when (exception is IOException
+                    || exception is UnauthorizedAccessException
+                    || exception is ArgumentException
+                    || exception is NotSupportedException
+                )
+            {
+                return false;
+            }
+
+            lock (Bitonals)
+            {
+                if (Bitonals.TryGetValue(key, out bool known))
+                {
+                    return known;
+                }
+            }
+
+            bool bitonal = TryDescribe(path, out CadRaster picture) && picture.IsBitonal;
+
+            lock (Bitonals)
+            {
+                Bitonals[key] = bitonal;
+            }
+
+            return bitonal;
+        }
+
+        /// <summary>Reads the size, resolution and kind of a picture file from its head; false where it is none this reads.</summary>
+        internal static bool TryDescribe(string path, out CadRaster picture)
+        {
+            picture = null;
             byte[] head;
 
             try
             {
                 using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                 {
-                    // The head of a JPEG may lie behind large EXIF data: up to 1 MB is read.
-                    head = new byte[(int)Math.Min(stream.Length, 1 << 20)];
+                    // The head of a JPEG may lie behind large EXIF data: up to 1 MB is read. A TIFF keeps its directory
+                    // where the writer left it, often at the end, so all of it is read.
+                    string extension = Path.GetExtension(path).ToLowerInvariant();
+                    long most = extension == ".tif" || extension == ".tiff" ? 1L << 30 : 1 << 20;
+                    head = new byte[(int)Math.Min(stream.Length, most)];
                     int read = 0;
 
                     while (read < head.Length)
@@ -78,18 +137,37 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
+            int width = 0;
+            int height = 0;
+            double mx = 0.0;
+            double my = 0.0;
+            bool bitonal = false;
             bool read2 =
-                Png(head, ref width, ref height, ref millimetresX, ref millimetresY)
-                || Jpeg(head, ref width, ref height, ref millimetresX, ref millimetresY)
-                || Bmp(head, ref width, ref height, ref millimetresX, ref millimetresY);
-            return read2 && width > 0 && height > 0;
+                Png(head, ref width, ref height, ref mx, ref my, ref bitonal)
+                || Jpeg(head, ref width, ref height, ref mx, ref my);
+
+            if (read2 && width > 0 && height > 0)
+            {
+                picture = new CadRaster
+                {
+                    Width = width,
+                    Height = height,
+                    MillimetresX = mx,
+                    MillimetresY = my,
+                    IsBitonal = bitonal,
+                };
+                return true;
+            }
+
+            // The others are read by their own decoders, for the header alone.
+            return CadRasterReader.TryRead(head, path, false, out picture) && picture.Width > 0 && picture.Height > 0;
         }
 
-        private static bool Png(byte[] b, ref int width, ref int height, ref double mx, ref double my)
+        private static bool Png(byte[] b, ref int width, ref int height, ref double mx, ref double my, ref bool bitonal)
         {
             byte[] signature = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
 
-            if (b.Length < 24)
+            if (b.Length < 26)
             {
                 return false;
             }
@@ -104,6 +182,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             width = BigEndian(b, 16);
             height = BigEndian(b, 20);
+
+            // One bit a pixel: a grey or palette picture of bit depth 1.
+            bitonal = b[24] == 1 && (b[25] == 0 || b[25] == 3);
             int at = 8;
 
             while (at + 8 <= b.Length)
@@ -198,40 +279,7 @@ namespace GeometryHelper.Dxf.Viewer
             return false;
         }
 
-        private static bool Bmp(byte[] b, ref int width, ref int height, ref double mx, ref double my)
-        {
-            if (b.Length < 26 || b[0] != 'B' || b[1] != 'M')
-            {
-                return false;
-            }
-
-            int header = LittleEndian(b, 14);
-
-            if (header == 12)
-            {
-                width = b[18] | (b[19] << 8);
-                height = b[20] | (b[21] << 8);
-                return true;
-            }
-
-            if (b.Length < 46)
-            {
-                return false;
-            }
-
-            width = LittleEndian(b, 18);
-            height = Math.Abs(LittleEndian(b, 22));
-            int x = LittleEndian(b, 38);
-            int y = LittleEndian(b, 42);
-            mx = x > 0 ? 1000.0 / x : 0.0;
-            my = y > 0 ? 1000.0 / y : 0.0;
-            return true;
-        }
-
         private static int BigEndian(byte[] b, int at) =>
             (b[at] << 24) | (b[at + 1] << 16) | (b[at + 2] << 8) | b[at + 3];
-
-        private static int LittleEndian(byte[] b, int at) =>
-            b[at] | (b[at + 1] << 8) | (b[at + 2] << 16) | (b[at + 3] << 24);
     }
 }

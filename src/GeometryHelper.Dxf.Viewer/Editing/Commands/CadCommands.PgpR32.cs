@@ -77,6 +77,21 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
+            // A bitonal picture (one bit a pixel: a scanned drawing) has no brightness, contrast or fade to adjust. Said once
+            // for all of them; the others of the selection go on, and where there are none the command ends.
+            int before = handles.Count;
+            handles.RemoveAll(h => IsBitonalImage(c, (DxfRasterImage)c.Document.FindEntity(h)));
+
+            if (handles.Count < before)
+            {
+                c.Write("Bitonal images cannot be adjusted.");
+
+                if (handles.Count == 0)
+                {
+                    yield break;
+                }
+            }
+
             IEnumerable<CadPrompt> asked =
                 c.Command.Name == "IMAGEADJUST" ? ImageAdjustDialog(c, handles) : ImageAdjustOptions(c, handles);
 
@@ -84,6 +99,17 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 yield return prompt;
             }
+        }
+
+        /// <summary>
+        /// Whether the picture an image shows is bitonal, read from the file its definition names where it is found; false for
+        /// a picture not found, which AutoCAD cannot tell either.
+        /// </summary>
+        internal static bool IsBitonalImage(CadCommandContext c, DxfRasterImage image)
+        {
+            string saved = image?.Path;
+            string found = string.IsNullOrEmpty(saved) ? null : c.Document.Xrefs.Locate(saved);
+            return found != null && CadImageFile.IsBitonal(found);
         }
 
         /// <summary>The option and its value, asked of the images selected as -IMAGEADJUST asks them, then given them.</summary>

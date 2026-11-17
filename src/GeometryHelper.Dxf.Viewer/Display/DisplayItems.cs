@@ -1801,6 +1801,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets whether the picture's transparent pixels let what is under it show (the IMAGE's transparency on).</summary>
         public bool IsTransparent { get; internal set; }
 
+        /// <summary>
+        /// Gets whether the picture is bitonal, one bit a pixel as a scanned drawing is: its dark pixels are then drawn in the
+        /// colour of the image object and its light ones are the background, which transparency lets what is under it show.
+        /// </summary>
+        public bool IsBitonal { get; internal set; }
+
+        /// <summary>
+        /// Gets whether the picture is drawn with the quality Draft, each pixel a square, rather than High, the pixels blended
+        /// where the picture is scaled (the drawing's IMAGEQUALITY).
+        /// </summary>
+        public bool IsDraft { get; internal set; }
+
         /// <summary>Gets the brightness of the picture, 0 to 100, 50 as it is.</summary>
         public int Brightness { get; internal set; } = 50;
 

@@ -436,6 +436,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 if (image)
                 {
+                    // TGA, PCX, a DIB and an RLE bitmap, and the TIFFs Windows cannot read, are read by the presenter's own decoders.
+                    if (!CadRasterReader.IsDecodedByThePlatform(path))
+                    {
+                        BitmapSource own = CadRasterBitmap.Read(path, width);
+
+                        if (own != null)
+                        {
+                            return own;
+                        }
+                    }
+
                     var picture = new BitmapImage();
                     picture.BeginInit();
                     picture.CacheOption = BitmapCacheOption.OnLoad;
@@ -677,14 +688,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the kinds of file offered, as the dialog's note says them.</summary>
         public string FilesNote =>
             IsImage
-                ? "Files of type: PNG (*.png), JPEG (*.jpg, *.jpeg), Bitmap (*.bmp). TIFF, GIF, PDF and the other raster types of AutoCAD are not offered."
+                ? "Files of type: all image files, Bitmap (*.bmp), RLE (*.rle), DIB (*.dib), GIF (*.gif), JPEG (*.jpg, *.jpeg), PCX (*.pcx), PNG (*.png), TGA (*.tga), TIFF (*.tif, *.tiff). PDF and the other raster types of AutoCAD's Raster Design are not offered."
                 : "Files of type: Drawing (*.dwg), of AutoCAD 2000 to 2018, and Drawing Exchange Format (*.dxf).";
 
         /// <summary>Gets the filter of the Browse dialog: for a drawing, DWG first as AutoCAD's, then DXF.</summary>
-        public string BrowseFilter =>
-            IsImage
-                ? "Images (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp|PNG (*.png)|*.png|JPEG (*.jpg;*.jpeg)|*.jpg;*.jpeg|Bitmap (*.bmp)|*.bmp"
-                : CadDrawingFile.OpenFilter;
+        public string BrowseFilter => IsImage ? CadImageFile.OpenFilter : CadDrawingFile.OpenFilter;
 
         /// <summary>Gets or sets the full path of the file chosen; set, the dialog reads it and shows what it found.</summary>
         public string FileName

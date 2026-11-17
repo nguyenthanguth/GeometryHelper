@@ -148,6 +148,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Whether the frames of images are drawn (IMAGEFRAME 1 or 2), as AutoCAD 2021 draws them until set off.</summary>
         private readonly bool _imageFrames = true;
 
+        /// <summary>Whether the frames of images are shown but not plotted (IMAGEFRAME 2).</summary>
+        private readonly bool _imageFramesNotPlotted;
+
+        /// <summary>Whether images are drawn in draft quality (IMAGEQUALITY Draft), each pixel a square.</summary>
+        private readonly bool _imageDraft;
+
         /// <summary>Whether the frames of wipeouts are drawn (WIPEOUTFRAME 1 or 2), as AutoCAD 2021 draws them until set off.</summary>
         private readonly bool _wipeoutFrames = true;
 
@@ -234,11 +240,15 @@ namespace GeometryHelper.Dxf.Viewer
                 )
                 {
                     _imageFrames = variables.ImageFrame != DxfFrameSetting.ImageFrameOff;
+                    _imageFramesNotPlotted = variables.ImageFrame == DxfFrameSetting.ImageFrameOnNoPlot;
+                    _imageDraft = variables.ImageQuality == DxfImageQuality.Draft;
                 }
             }
             catch (Exception)
             {
                 _imageFrames = true;
+                _imageFramesNotPlotted = false;
+                _imageDraft = false;
             }
 
             try
@@ -2788,6 +2798,8 @@ namespace GeometryHelper.Dxf.Viewer
             )
             {
                 IsTransparent = image.ImageTransparency,
+                IsBitonal = found != null && CadImageFile.IsBitonal(found),
+                IsDraft = _imageDraft,
                 Brightness = image.Brightness,
                 Contrast = image.Contrast,
                 Fade = image.Fade,
@@ -2800,9 +2812,20 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
+            int framesFrom = list.Items.Count;
+
             foreach (object shape in image.GetGeometry())
             {
                 AddShape(shape, m, list, style, handle, layerName, false, false);
+            }
+
+            // IMAGEFRAME 2 shows the frame and leaves it out of a plot.
+            if (_imageFramesNotPlotted)
+            {
+                for (int k = framesFrom; k < list.Items.Count; k++)
+                {
+                    list.Items[k].IsNotPlotted = true;
+                }
             }
 
             if (found == null && loaded && saved.Length > 0)

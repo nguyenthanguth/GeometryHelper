@@ -36,9 +36,39 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Fetch(
                 path + "|" + stamp.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 path,
-                () => SKBitmap.Decode(path),
+                () => ReadFile(path),
                 wait
             );
+
+        /// <summary>
+        /// Reads a picture file: PNG, JPEG, GIF and BMP by the platform's decoders, and any other (TGA, PCX, TIFF, a DIB or an
+        /// RLE bitmap), or one the platform cannot read, by the presenter's own (<see cref="CadRasterReader"/>).
+        /// </summary>
+        private static SKBitmap ReadFile(string path)
+        {
+            if (CadRasterReader.IsDecodedByThePlatform(path))
+            {
+                SKBitmap bitmap = SKBitmap.Decode(path);
+
+                if (bitmap != null)
+                {
+                    return bitmap;
+                }
+            }
+
+            byte[] bytes = System.IO.File.ReadAllBytes(path);
+
+            if (!CadRasterReader.TryRead(bytes, path, true, out CadRaster raster))
+            {
+                return null;
+            }
+
+            var made = new SKBitmap(
+                new SKImageInfo(raster.KeptWidth, raster.KeptHeight, SKColorType.Rgba8888, SKAlphaType.Unpremul)
+            );
+            System.Runtime.InteropServices.Marshal.Copy(raster.Rgba, 0, made.GetPixels(), raster.Rgba.Length);
+            return made;
+        }
 
         /// <summary>
         /// The picture of the bytes of a bitmap file, an OLE frame's, under a key that tells it from any other: decoded at once

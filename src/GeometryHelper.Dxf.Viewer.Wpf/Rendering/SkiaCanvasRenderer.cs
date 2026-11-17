@@ -1419,12 +1419,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     }
 
                     paint.ColorFilter =
-                        _plot != null && picture.IsMonochrome ? Monochrome() : Adjustments(picture, background);
+                        _plot != null && picture.IsMonochrome ? Monochrome()
+                        : picture.IsBitonal ? Bitonal(stroke.Color)
+                        : Adjustments(picture, background);
                     canvas.DrawImage(
                         image,
                         SKRect.Create((float)w, (float)h),
                         SKRect.Create((float)w, (float)h),
-                        new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear),
+                        picture.IsDraft
+                            ? new SKSamplingOptions(SKFilterMode.Nearest, SKMipmapMode.None)
+                            : new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear),
                         paint
                     );
                     paint.ColorFilter?.Dispose();
@@ -1452,6 +1456,38 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 new[] { lr, lg, lb, 0f, shift, lr, lg, lb, 0f, shift, lr, lg, lb, 0f, shift, 0f, 0f, 0f, 1f, 0f }
             );
         }
+
+        /// <summary>
+        /// A colour matrix that draws a bitonal picture as AutoCAD does: every pixel the colour of the image object, as opaque
+        /// as the pixel is dark, so that the black lines of a scan are drawn in that colour and the white of the page lets
+        /// the background (or, with transparency on, what is under the image) show.
+        /// </summary>
+        private static SKColorFilter Bitonal(SKColor colour) =>
+            SKColorFilter.CreateColorMatrix(
+                new[]
+                {
+                    0f,
+                    0f,
+                    0f,
+                    0f,
+                    colour.Red / 255f,
+                    0f,
+                    0f,
+                    0f,
+                    0f,
+                    colour.Green / 255f,
+                    0f,
+                    0f,
+                    0f,
+                    0f,
+                    colour.Blue / 255f,
+                    -0.2126f,
+                    -0.7152f,
+                    -0.0722f,
+                    0f,
+                    1f,
+                }
+            );
 
         /// <summary>
         /// The brightness, contrast and fade of an image as one colour matrix: contrast scales each channel about its middle by

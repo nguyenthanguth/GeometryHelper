@@ -233,7 +233,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 310 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 311 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -255,7 +255,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | selection | QSELECT, FILTER, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP, GROUPEDIT (Name; Add objects, Remove objects, REName) |
 | OLE objects | INSERTOBJ (a bitmap or a PNG, as a static picture), and the variables OLEFRAME, OLEHIDE and OLEQUALITY (see OLE objects below) |
 | metafiles | WMFIN (Basepoint, Scale, X, Y, Z, Rotate, Explode, REpeat), and the variables WMFBKGND and WMFFOREGND (see WMFIN below) |
-| references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), XOPEN, XBIND, -XBIND (Block, Dimstyle, LAyer, LType, Style), -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), IMAGEADJUST, -IMAGEADJUST (Contrast, Fade, Brightness), XCLIP (ON, OFF, Clipdepth, Delete, generate Polyline, New boundary), TRANSPARENCY |
+| references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), XOPEN, XBIND, -XBIND (Block, Dimstyle, LAyer, LType, Style), -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), IMAGEQUALITY (High, Draft), IMAGEADJUST, -IMAGEADJUST (Contrast, Fade, Brightness), XCLIP (ON, OFF, Clipdepth, Delete, generate Polyline, New boundary), TRANSPARENCY |
 | housekeeping | PURGE, -PURGE (Blocks, Dimstyles, Groups, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All), RENAME, -RENAME (Block, Dimstyle, LAyer, LType, multileadeRstyle, Style, Tablestyle, Ucs, VIew, VPort) |
 | properties and links | DWGPROPS (the Drawing Properties dialog), HYPERLINK, -HYPERLINK (Remove, Insert: Area, Object) (see [Drawing properties, hyperlinks, GROUPEDIT, ATTREDEF and MEASUREGEOM Quick](#drawing-properties-hyperlinks-groupedit-attredef-and-measuregeom-quick)) |
 
@@ -2392,13 +2392,51 @@ rest as the file has it, and Reload writes the file's properties back with 1071 
 not write the records again from the file when it opens a drawing of VISRETAIN 0, as AutoCAD does. The current layer, a new name with a | and deleting are refused in AutoCAD 2021's words:
 "Cannot set CLAYER to that value." (the layer box, the Layer manager, CLAYER), "Invalid layer name." (-LAYER Set) and
 `"grid|X" is an invalid layer name.` (-LAYER New). IMAGEATTACH
-and -IMAGE Attach place a PNG, JPEG or BMP at AutoCAD's size: 40 by 30 pixels saved at 3 779 pixels a metre are
+and -IMAGE Attach place a picture of any of AutoCAD 2021's raster types at its size: BMP, DIB, RLE, GIF, JPEG, PCX, PNG,
+TGA and TIFF (see Raster types below). 40 by 30 pixels saved at 3 779 pixels a metre are
 10.584811 by 7.938608 mm, one of no resolution one unit wide. The picture is drawn by its pixels, decoded once off the
 window's thread, clipped by IMAGECLIP (Rectangular, Polygonal, Select polyline, Invert clip), its frame shown by
-IMAGEFRAME 1 or 2 (2 kept as frames shown and not plotted, 70 of 3, as AutoCAD 2021 writes it; a drawing with no image yet given its RASTERVARIABLES when IMAGEFRAME is first changed, 72 the unit of the drawing, 1 for millimetres), its transparent pixels showing what is under it with TRANSPARENCY ON; one not found is its frame with
+IMAGEFRAME 1 or 2 (2 kept as frames shown and not plotted, 70 of 3, as AutoCAD 2021 writes it, the frame left out of a plot; a drawing with no image yet given its RASTERVARIABLES when IMAGEFRAME is first changed, 72 the unit of the drawing, 1 for millimetres), its transparent pixels showing what is under it with TRANSPARENCY ON; one not found is its frame with
 its file's name. A drawing of 100 000 entities shown as a reference is read and drawn in 0.90 s, where opening it alone
 takes 0.87 s (.NET Framework 4.8). AutoCAD 2021 reads no DXF as an external reference ("Unable to load"): it keeps the
 block and the INSERTs of a drawing the presenter saved, AUDIT finds no error, and its -XREF ? lists them.
+
+**Raster types.** AutoCAD 2021 attached each of these in its console (a 40 by 30 picture of 254 dots an inch is 4 by 3 mm, a TGA,
+which has no resolution, one unit wide), and so does the presenter, from the file's own head: PNG, JPEG and GIF (the platform
+reads their pixels; a GIF is shown by its first frame), BMP (1, 2, 4, 8, 16, 24 and 32 bits, from the top or the bottom, with a
+palette or bit masks), DIB (the same with no file header) and RLE (a bitmap of 4 or 8 bits run-length coded), PCX (1 to 8 bits in
+one plane, 1 bit in three or four planes with the palette of the header, 8 bits in one plane with the palette at the end of the
+file, 8 bits in three planes as true colour, its dots an inch as the resolution), TGA (colour-mapped, true colour and grey, plain
+or run-length coded, 15, 16, 24 or 32 bits, from either corner), and TIFF, the first image of the file, in either byte order,
+stored plain, as PackBits, LZW or Deflate, or coded for fax (modified Huffman, Group 3 in one dimension or two, Group 4), in
+strips or in tiles, bilevel, 2 or 4 bits, 8 and 16 bits of grey or palette, RGB with or without alpha, and CMYK, chunky or planar,
+with the horizontal predictor, its resolution read from XResolution, YResolution and ResolutionUnit. The decoders are the
+presenter's own (`CadTgaFile`, `CadPcxFile`, `CadTiffFile`, `CadCcitt`, `CadBmpFile`), with no package behind them; the
+presenter's TIFF reader was checked against files Windows' own encoder wrote with LZW, Deflate, PackBits, Group 3 and Group 4,
+and a bilevel one of 2 700 pixels across with every run length of both tables. A TIFF coded as JPEG, a BigTIFF, floating point
+samples, a TIFF whose orientation is not the top left, and the rest of what Raster Design's object enabler adds are not read: such
+an image is attached but drawn as its frame alone. A picture of more than 16 million pixels is kept as the mean of squares of
+pixels, so that the thin line of a scanned drawing stays a grey line. Select Image File (`IMAGEATTACH`, Browse, Select New Path)
+lists All image files first, then BMP, RLE and DIB, GIF, JPEG, PCX, PNG, TGA and TIFF each by name. A file of another type is
+refused, `Only BMP, DIB, GIF, JPEG, PCX, PNG, RLE, TGA and TIFF pictures are attached.`
+
+A **bitonal** picture (one bit a pixel and one plane: a scanned drawing; a 1-bit BMP, PNG, PCX or TIFF) is drawn as AutoCAD
+draws it: its dark pixels in the colour of the image object, which `CHPROP` or CECOLOR gives it, its light ones the background,
+what is under the image showing through only where TRANSPARENCY is ON. The pixels are laid over each other by their luminance, so a
+scan of 300 dots an inch shown smaller keeps its lines as greys, not as nothing. IMAGEQUALITY (`Enter image quality setting
+[High/Draft] <High>:`, the drawing's own setting offered, Enter keeping it) sets how every image is drawn: High blends the pixels
+where the picture is scaled, Draft draws each as a square, faster. AutoCAD 2021 keeps it in the drawing's RASTERVARIABLES (the
+library's `DxfRasterVariables.ImageQuality`, group 71: 0 draft, 1 high) and has no system variable of that name (`getvar` of it is
+nil); one undo step. A drawing of R12 has no object to keep it in, and says so. IMAGEFRAME 2 shows the frames and leaves them out of
+a plot and of a PDF, where 1 plots them. TRANSPARENCY applies to any image selected, as AutoCAD 2021's does, though only a
+bitonal one has a background to make transparent.
+
+Selecting images (and nothing else; a wipeout is no image) shows the contextual Image tab (green, as the Array tab is): Adjust
+(Brightness, Contrast and Fade, each a slider and a box from 0 to 100, greyed where an image selected is bitonal), Clipping (Create
+Clipping Boundary, which runs IMAGECLIP, New boundary, on the one image, and Remove Clipping, which gives the images their whole
+pictures), Options (Show Image, Transparency and the Frame box with Hide Frames, Display and Plot Frames, Display but Not Plot
+Frames: the drawing's IMAGEFRAME) and Close Image, which lets go of the selection. A value written in it is one undo step named
+IMAGEADJUST, TRANSPARENCY, IMAGECLIP or Show image; an image on a locked layer is left as it is. The tab follows an undo.
 
 BATTMAN shows the Block Attribute Manager of the block of an INSERT selected, else of the first block with attributes:
 its attribute definitions in the block's order, the modes as AutoCAD's letters (I invisible, C constant, V verify, P
@@ -3215,8 +3253,10 @@ line picked with them is not counted, and with no image the command ends), "Ente
 the image's own where one is selected and the factory's (50 for brightness and contrast, 0 for fade) where several are, so that
 Enter then gives them all the factory's: two images of brightness 70 and 50 selected together offer 50 and both become 50. An
 image on a locked layer is left as it is, `The image is on a locked layer.` The change is one undo step, and the canvas draws the
-picture lighter or darker as it was already drawn. AutoCAD refuses a bitonal picture, `Bitonal images cannot be adjusted.`; the
-presenter keeps no colour depth of an image definition and so refuses none, writing the values the picture then ignores. ATTEXT (DDATTEXT) and -ATTEXT write the attributes of the blocks to a file, on the command line as AutoCAD 2021's console
+picture lighter or darker as it was already drawn. A bitonal picture (one bit a pixel, read from the picture's file where that is found) is
+refused, `Bitonal images cannot be adjusted.`, said once for all of them as AutoCAD 2021's console says it: where only bitonal
+images are selected the command ends there, and where others are selected with them the option and the value are asked and given
+to the others alone. A picture not found cannot be told bitonal, and is adjusted. ATTEXT (DDATTEXT) and -ATTEXT write the attributes of the blocks to a file, on the command line as AutoCAD 2021's console
 asks it (-ATTEXT, and ATTEXT where no window shows its dialog): "Enter extraction type or enable object selection [Cdf/Sdf/Dxf/Objects] <C>:",
 for Objects "Select objects:" and "Enter attribute extraction type [Cdf/Sdf/Dxf] <C>:", then for a comma-delimited (CDF) or
 space-delimited (SDF) file "Enter template file name:" (the last one named is offered; `.txt` is added to a name with no
