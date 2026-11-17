@@ -341,6 +341,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     "SELECTSIMILARMODE",
                     "SETBYLAYERMODE",
                     "SHOWPAGESETUPFORNEWLAYOUTS",
+                    "SKETCHINC",
+                    "SKPOLY",
+                    "SKTOLERANCE",
                     "SORTENTS",
                     "SPLDEGREE",
                     "SPLFRAME",
@@ -348,6 +351,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     "SPLINETYPE",
                     "SPLKNOTS",
                     "SPLMETHOD",
+                    "TDCREATE",
+                    "TDINDWG",
+                    "TDUCREATE",
+                    "TDUPDATE",
+                    "TDUSRTIMER",
+                    "TDUUPDATE",
                     "TEXTSIZE",
                     "TEXTSTYLE",
                     "THICKNESS",
@@ -366,6 +375,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     "USERR3",
                     "USERR4",
                     "USERR5",
+                    "USRTIMER",
                     "WIPEOUTFRAME",
                     "WMFBKGND",
                     "WMFFOREGND",
@@ -379,8 +389,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // 1, 2, 3, 5, 4b, 4a and 1b, MLINE, MLEDIT and MLSTYLE, IMAGEADJUST, -IMAGEADJUST, ATTEXT and -ATTEXT, INSERTOBJ, and
             // -OBJECTSCALE, AIOBJECTSCALEADD and AIOBJECTSCALEREMOVE, OBJECTSCALE, REFEDIT, -REFEDIT, REFSET and REFCLOSE, and
             // HATCHSETORIGIN, TABLEEXPORT, VPMAX, VPMIN and REVCLOUDPROPERTIES, CENTERMARK and CENTERLINE, WMFIN, MIRROR3D, SPLINE and BLEND, OOPS and WIPEOUT, SELECTSIMILAR, ADDSELECTED and TEXTSCR,
-            // and LAYMRG, -LAYMRG, LAYDEL, -LAYDEL, LAYCUR, COPYTOLAYER, -COPYTOLAYER, -DIMSTYLE and DIMUPDATE, SCALETEXT, JUSTIFYTEXT, TXT2MTXT and ATTDISP, ARRAYPATH, OVERKILL and -OVERKILL, PUBLISH and -PUBLISH, STYLESMANAGER, REVERSE, SETBYLAYER, CHPROP, BURST, TXTEXP and CHSPACE, ARRAYEDIT, FIELD and UPDATEFIELD, DWGPROPS, HYPERLINK, -HYPERLINK, GROUPEDIT, ATTREDEF, HATCHGENERATEBOUNDARY, HATCHSETBOUNDARY, -HATCHEDIT, MATCHCELL, EDITTABLECELL, IMAGEQUALITY, and the block authoring BPARAMETER, BACTION, BVSTATE, -BVSTATE, BVHIDE, BVSHOW, BTESTBLOCK and BAUTHORPALETTECLOSE, LAYWALK, LAYTRANS, ADCENTER and ADCCLOSE.
-            Assert.Equal(323, registry.Commands.Count);
+            // and LAYMRG, -LAYMRG, LAYDEL, -LAYDEL, LAYCUR, COPYTOLAYER, -COPYTOLAYER, -DIMSTYLE and DIMUPDATE, SCALETEXT, JUSTIFYTEXT, TXT2MTXT and ATTDISP, ARRAYPATH, OVERKILL and -OVERKILL, PUBLISH and -PUBLISH, STYLESMANAGER, REVERSE, SETBYLAYER, CHPROP, BURST, TXTEXP and CHSPACE, ARRAYEDIT, FIELD and UPDATEFIELD, DWGPROPS, HYPERLINK, -HYPERLINK, GROUPEDIT, ATTREDEF, HATCHGENERATEBOUNDARY, HATCHSETBOUNDARY, -HATCHEDIT, MATCHCELL, EDITTABLECELL, IMAGEQUALITY, and the block authoring BPARAMETER, BACTION, BVSTATE, -BVSTATE, BVHIDE, BVSHOW, BTESTBLOCK and BAUTHORPALETTECLOSE, LAYWALK, LAYTRANS, ADCENTER and ADCCLOSE, FILL, QTEXT, LIMITS, TIME, STATUS, MULTIPLE, TRACE, SKETCH, MASSPROP, MINSERT, DIMINSPECT and -DIMINSPECT.
+            Assert.Equal(335, registry.Commands.Count);
             Assert.NotNull(registry.Find("SETVAR"));
             Assert.Null(registry.Find("PDMODE"));
             Assert.True(registry.FindVariable("PDMODE").IsInDrawing);

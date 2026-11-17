@@ -119,6 +119,8 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
+            // An inspection dimension: its words in a frame between the label and the rate (DIMINSPECT).
+            Inspected(dimension, style, picture, words);
             Dressed(style, picture);
             return picture;
         }

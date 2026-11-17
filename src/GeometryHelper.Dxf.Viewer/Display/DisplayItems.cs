@@ -1430,6 +1430,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         public bool IsField { get; internal set; }
 
+        /// <summary>
+        /// Gets whether the text is shown as its box alone, as AutoCAD shows it where QTEXTMODE is 1: the canvas draws the
+        /// rectangle that holds its lines, in the text's colour, and not its letters. The words stay for what reads them.
+        /// </summary>
+        public bool IsQuick { get; internal set; }
+
         /// <summary>Gets whether the canvas draws the letters in the bold face of <see cref="FontName"/>, as a run of an MTEXT coded <c>|b1</c> is drawn.</summary>
         public bool IsBold
         {
@@ -1564,6 +1570,7 @@ namespace GeometryHelper.Dxf.Viewer
             : base(from.Style, from.Handle, from.Layer)
         {
             IsField = from.IsField;
+            IsQuick = from.IsQuick;
             _backward = from._backward;
             FontName = from.FontName;
             Text = from.Text;

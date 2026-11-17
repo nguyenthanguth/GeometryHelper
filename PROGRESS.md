@@ -779,7 +779,7 @@ in place; more raster types; dynamic block authoring; DWGPROPS; MEASUREGEOM Quic
 Boundary; GROUPEDIT; HYPERLINK; CHSPACE; Plot View; the Hatch Creation contextual tab; the MLEDIT dialog;
 CLEANSCREENON/OFF and F5; a Manage tab; ATTREDEF; command search.
 
-Wave 3 (Low): done: layer3 (LAYWALK, LAYTRANS with the Layer Translator, DesignCenter; follow-up: ribbon spots for LAYWALK and DesignCenter, Search/Favorites, persisted History). Running: small3 (SKETCH, TRACE, FILL, QTEXT, LIMITS, TIME, STATUS, MULTIPLE, MASSPROP, MINSERT, DIMINSPECT, SAVEALL, CLOSEALL), pdfunder1 (PDF underlays), constraints1 (parametric constraints). SKETCH, TRACE; FILL and QTEXT; LIMITS; TIME, STATUS, MULTIPLE; MASSPROP; MINSERT; DIMINSPECT; LAYWALK,
+Wave 3 (Low): done: layer3 (LAYWALK, LAYTRANS with the Layer Translator, DesignCenter; follow-up: ribbon spots for LAYWALK and DesignCenter, Search/Favorites, persisted History). Done too: small3 (SKETCH, TRACE, FILL, QTEXT, LIMITS, TIME, STATUS, MULTIPLE, MASSPROP, MINSERT, DIMINSPECT, SAVEALL, CLOSEALL; follow-up: TRACE entity, SKPOLY 2 in the header, DIMINSPECT above the line). Running: pdfunder1 (PDF underlays), constraints1 (parametric constraints). SKETCH, TRACE; FILL and QTEXT; LIMITS; TIME, STATUS, MULTIPLE; MASSPROP; MINSERT; DIMINSPECT; LAYWALK,
 LAYTRANS; SAVEALL, CLOSEALL; PDF underlays; more EXPORT writers; parametric constraints; DesignCenter and palettes.
 
 ### To do

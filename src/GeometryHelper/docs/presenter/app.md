@@ -280,6 +280,13 @@ document while it runs, so CLOSE raises `CloseRequested` and the window closes t
 - The file stays in the file list where it is on disk; the next drawing open is shown, or the start screen where none is left.
 - Closing the window asks once, for all the drawings not saved.
 
+CLOSEALL closes every drawing the window has open, as Close All Drawings of the file list does: the commands running are ended, and
+where drawings have changes not saved the window asks once for all of them (one asked alone gets its own question). Save
+saves each in turn, Don't save closes them as they are, and Cancel, or a save that fails, closes none. SAVEALL saves every open
+drawing that has changes, each to its file in the order of the files (a drawing with no file asks its Save As), leaves the drawing that
+was shown shown, and says `Saved 3 drawings.` or `No drawing has changes to save.`; it asks nothing else. Both do their work once the
+command has ended, as CLOSE does, and both are the window's own commands, so a session with no window does not know them.
+
 ## The window
 
 The window is laid out as AutoCAD's own: a ribbon of tabs and panels with the layer box and a properties box, Properties on the
