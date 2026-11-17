@@ -55,7 +55,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("-IMAGE", ImageTyped));
             registry.Add(new CadCommand("XOPEN", XrefOpen));
             registry.Add(new CadCommand("IMAGECLIP", ImageClip));
-            registry.Add(new CadCommand("TRANSPARENCY", Transparency));
+            registry.Add(new CadCommand("TRANSPARENCY", Transparency, true));
             registry.Add(new CadCommand("IMAGEQUALITY", ImageQuality));
         }
 
@@ -2091,7 +2091,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>TRANSPARENCY: "Select image(s):", then "Enter transparency mode [ON/OFF] &lt;OFF&gt;:", the transparent pixels of a picture letting what is under it show while ON.</summary>
         private static IEnumerable<CadPrompt> Transparency(CadCommandContext c)
         {
-            yield return CadPrompt.ForSelection("Select image(s)");
+            foreach (
+                CadPrompt prompt in c.SelectFirst(CadPrompt.ForSelection("Select image(s)"), e =>
+                    e is DxfRasterImage && !(e is DxfWipeout)
+                )
+            )
+            {
+                yield return prompt;
+            }
+
             var images = new List<string>();
 
             foreach (string handle in c.Input.Handles ?? Array.Empty<string>())

@@ -60,9 +60,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static void AddTextToolsTo(CadCommandRegistry registry)
         {
-            registry.Add(new CadCommand("SCALETEXT", ScaleText));
-            registry.Add(new CadCommand("JUSTIFYTEXT", JustifyText));
-            registry.Add(new CadCommand("TXT2MTXT", TextToMText));
+            registry.Add(new CadCommand("SCALETEXT", ScaleText, true));
+            registry.Add(new CadCommand("JUSTIFYTEXT", JustifyText, true));
+            registry.Add(new CadCommand("TXT2MTXT", TextToMText, true));
         }
 
         /// <summary>Where an option holds a box: across (0 left, 1 centre, 2 right) and level (0 baseline, 1 bottom, 2 middle, 3 top).</summary>

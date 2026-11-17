@@ -16,14 +16,27 @@ namespace GeometryHelper.Dxf.Viewer
     {
         private static IEnumerable<CadPrompt> Stretch(CadCommandContext c)
         {
-            c.Write("Select objects to stretch by crossing-window or crossing-polygon...");
             var boxes = new List<DisplayBox>();
             var polygons = new List<List<GeoPoint2>>();
             var gathered = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
             var single = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
             string mode = null;
 
-            while (true)
+            // Objects selected before the command are taken whole, as AutoCAD moves them: no window is asked.
+            IReadOnlyList<string> before = c.TakePreSelection();
+
+            foreach (string handle in before)
+            {
+                gathered.Add(handle);
+                single.Add(handle);
+            }
+
+            if (before.Count == 0)
+            {
+                c.Write("Select objects to stretch by crossing-window or crossing-polygon...");
+            }
+
+            while (before.Count == 0)
             {
                 yield return CadPrompt.ForPoint(
                     mode == null ? "Select objects" : "Specify first corner",
@@ -661,7 +674,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static IEnumerable<CadPrompt> Align(CadCommandContext c)
         {
-            foreach (CadPrompt prompt in c.SelectObjects())
+            foreach (CadPrompt prompt in c.SelectObjectsWithEcho(false))
             {
                 yield return prompt;
             }

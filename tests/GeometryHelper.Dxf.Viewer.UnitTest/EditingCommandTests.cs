@@ -33,6 +33,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 {
                     "Command: M",
                     "MOVE",
+                    "1 found",
                     "Specify base point or [Displacement] <Displacement>:",
                     "Specify second point or <use first point as displacement>:",
                 },

@@ -164,13 +164,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>"Select annotative objects:" unless objects were selected first; the annotative among them added to the list.</summary>
         private static IEnumerable<CadPrompt> AnnotativeSelection(CadCommandContext c, List<string> handles)
         {
-            IReadOnlyList<string> picked;
+            IReadOnlyList<string> picked = c.TakePreSelection(null, false);
 
-            if (c.PreSelected.Count > 0)
-            {
-                picked = c.PreSelected;
-            }
-            else
+            if (picked.Count == 0)
             {
                 yield return CadPrompt.ForSelection("Select annotative objects");
                 picked = c.Input.Handles ?? Array.Empty<string>();
@@ -336,16 +332,12 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static IEnumerable<CadPrompt> CurrentScaleChange(CadCommandContext c, bool add)
         {
-            IReadOnlyList<string> picked;
+            IReadOnlyList<string> picked = c.TakePreSelection(null, false);
 
-            if (c.PreSelected.Count > 0)
-            {
-                picked = c.PreSelected;
-            }
-            else
+            if (picked.Count == 0)
             {
                 yield return CadPrompt.ForSelection("Select annotative objects");
-                picked = c.Input.Handles;
+                picked = c.Input.Handles ?? Array.Empty<string>();
             }
 
             List<string> handles = AnnotativeAmong(c, picked);

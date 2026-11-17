@@ -36,8 +36,8 @@ namespace GeometryHelper.Dxf.Viewer
         {
             registry.Add(new CadCommand("PDFATTACH", PdfAttach));
             registry.Add(new CadCommand("-PDFATTACH", PdfAttachTyped));
-            registry.Add(new CadCommand("PDFADJUST", PdfAdjust));
-            registry.Add(new CadCommand("-PDFADJUST", PdfAdjust));
+            registry.Add(new CadCommand("PDFADJUST", PdfAdjust, true));
+            registry.Add(new CadCommand("-PDFADJUST", PdfAdjust, true));
             registry.Add(new CadCommand("PDFCLIP", PdfClip));
             registry.Add(new CadCommand("PDFLAYERS", PdfLayers));
             registry.Add(new CadCommand("-PDFUNDERLAY", PdfUnderlayTyped));
@@ -449,7 +449,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static IEnumerable<CadPrompt> PdfAdjust(CadCommandContext c)
         {
-            yield return CadPrompt.ForSelection("Select PDF underlay");
+            foreach (
+                CadPrompt prompt in c.SelectFirst(CadPrompt.ForSelection("Select PDF underlay"), e =>
+                    e is DxfPdfUnderlay
+                )
+            )
+            {
+                yield return prompt;
+            }
 
             List<string> handles = PdfUnderlaysOf(c, c.Input.Handles);
 

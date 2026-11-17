@@ -12,9 +12,9 @@ namespace GeometryHelper.Dxf.Viewer
     {
         internal static void AddDimensionAssociationTo(CadCommandRegistry registry)
         {
-            registry.Add(new CadCommand("DIMREASSOCIATE", DimReassociate));
-            registry.Add(new CadCommand("DIMDISASSOCIATE", DimDisassociate));
-            registry.Add(new CadCommand("-DIMDISASSOCIATE", DimDisassociate));
+            registry.Add(new CadCommand("DIMREASSOCIATE", DimReassociate, true));
+            registry.Add(new CadCommand("DIMDISASSOCIATE", DimDisassociate, true));
+            registry.Add(new CadCommand("-DIMDISASSOCIATE", DimDisassociate, true));
             registry.AddVariable(
                 CadSystemVariable.Whole(
                     "DIMASSOC",
@@ -38,7 +38,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static IEnumerable<CadPrompt> DimReassociate(CadCommandContext c)
         {
-            foreach (CadPrompt prompt in c.SelectObjects())
+            foreach (CadPrompt prompt in c.SelectObjectsOf("Select objects", e => e is DxfDimension))
             {
                 yield return prompt;
             }
@@ -186,7 +186,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static IEnumerable<CadPrompt> DimDisassociate(CadCommandContext c)
         {
-            foreach (CadPrompt prompt in c.SelectObjects())
+            foreach (CadPrompt prompt in c.SelectObjectsOf("Select objects", e => e is DxfDimension))
             {
                 yield return prompt;
             }

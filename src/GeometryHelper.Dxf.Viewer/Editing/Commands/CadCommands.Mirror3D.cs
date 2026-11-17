@@ -32,7 +32,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static IEnumerable<CadPrompt> Mirror3D(CadCommandContext c)
         {
-            foreach (CadPrompt prompt in c.SelectObjects())
+            foreach (CadPrompt prompt in c.SelectObjectsWithEcho(false))
             {
                 yield return prompt;
             }

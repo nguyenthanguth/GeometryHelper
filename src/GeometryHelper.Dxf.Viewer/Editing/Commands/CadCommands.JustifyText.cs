@@ -18,7 +18,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static IEnumerable<CadPrompt> JustifyText(CadCommandContext c)
         {
-            yield return CadPrompt.ForSelection();
+            foreach (CadPrompt prompt in c.SelectFirst(CadPrompt.ForSelection(), IsText))
+            {
+                yield return prompt;
+            }
 
             if (c.Input.Kind != CadInputKind.Selection)
             {

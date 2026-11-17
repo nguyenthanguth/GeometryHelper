@@ -36,7 +36,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForSelection("Select multileaders");
+                foreach (CadPrompt asked in c.SelectFirst(CadPrompt.ForSelection("Select multileaders")))
+                {
+                    yield return asked;
+                }
 
                 if (c.Input.Kind != CadInputKind.Selection || c.Input.Handles.Count == 0)
                 {

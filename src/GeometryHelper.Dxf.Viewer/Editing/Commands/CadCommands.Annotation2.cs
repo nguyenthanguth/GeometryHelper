@@ -13,9 +13,9 @@ namespace GeometryHelper.Dxf.Viewer
         {
             registry.Add(new CadCommand("DIMOVERRIDE", DimOverride));
             registry.Add(new CadCommand("MLEADEREDIT", MLeaderEdit));
-            registry.Add(new CadCommand("TEXTALIGN", TextAlign));
-            registry.Add(new CadCommand("MLEADERALIGN", MLeaderAlign));
-            registry.Add(new CadCommand("MLEADERCOLLECT", MLeaderCollect));
+            registry.Add(new CadCommand("TEXTALIGN", TextAlign, true));
+            registry.Add(new CadCommand("MLEADERALIGN", MLeaderAlign, true));
+            registry.Add(new CadCommand("MLEADERCOLLECT", MLeaderCollect, true));
             registry.Add(new CadCommand("ATTIPEDIT", AttributeInPlace));
             registry.Add(new CadCommand("SPELL", Spell));
             AddTextToolsTo(registry);

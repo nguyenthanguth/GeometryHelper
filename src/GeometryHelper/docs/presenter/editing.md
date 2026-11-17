@@ -231,6 +231,37 @@ degrees turns the plane's x axis square to itself, not back, and the words are h
 mirrored with the rest and say they run against the plane's x axis. A multileader of a block is based where a leader from
 the left meets the block, the box from 150 to 180 at (150, 25).
 
+### Selecting first
+
+With PICKFIRST 1, the default, objects selected before a command (picked or boxed on the canvas, grips showing) are taken by the
+commands that start with `Select objects:`, as AutoCAD 2021 takes them: the command does not ask, writes `N found` where AutoCAD
+writes it, goes on to its next question, and the grips are gone when it ends. A line on layer Steel selected and then LAYISO
+says `1 found` and `Layer "Steel" has been isolated.`, with no `Select objects on the layer(s) to be isolated:` between; the same
+for a circle on layer 0 as well, `2 layers have been isolated.` PICKFIRST 0 makes every command ask.
+
+What takes the selection was probed in AutoCAD 2021's console, one command at a time (SSSETFIRST sets the selection, then the
+command is typed; the console does not clear it between lines as long as the line is not led by Esc):
+
+- Commands that take it and say `N found`: ERASE, MOVE, COPY, ROTATE, SCALE, MIRROR, STRETCH (the objects are moved whole, no
+  window is asked), EXPLODE, ARRAY, ARRAYRECT, ARRAYPOLAR, ARRAYPATH, -ARRAY, CHANGE, CHPROP, COPYCLIP, CUTCLIP, -COPYTOLAYER,
+  LAYCUR, LAYISO, GROUP, HIDEOBJECTS, ISOLATEOBJECTS, LIST, XCLIP, -OVERKILL, JOIN, REVERSE, HATCHGENERATEBOUNDARY, HATCHSETORIGIN,
+  -HATCHEDIT, DELCONSTRAINT, DCDISPLAY, CONSTRAINTBAR, and BURST, TXTEXP and TXT2MTXT (Express Tools, not in the
+  console; their LISP asks with `SSGET`, which takes the selection and writes `N found`).
+- Commands that take it and say nothing: ALIGN, DRAWORDER, MIRROR3D, SELECTSIMILAR, RESETBLOCK (`1 block reset.`), OBJECTSCALE,
+  -OBJECTSCALE, AIOBJECTSCALEADD, AIOBJECTSCALEREMOVE.
+- Commands that filter it: JUSTIFYTEXT and SCALETEXT count the texts and MTEXTs (`2 found` of a selection of nine), DIMDISASSOCIATE and
+  DIMREASSOCIATE the dimensions, TRANSPARENCY, IMAGEADJUST and PDFADJUST the images or underlays (a line selected says `0 found` and
+  the command asks `Select image(s):`); TEXTALIGN, MLEADERALIGN, MLEADERCOLLECT, STLOUT and XCLIP say `N found` and then how many
+  were filtered out or ineligible, and where none is left ask again.
+- Commands for one object that take it when exactly one object is selected, and say nothing: PEDIT (a line too, which it offers to
+  turn into a polyline; two objects selected and it asks `Select polyline or [Multiple]:`), SPLINEDIT (the one spline among a mixed
+  selection), HATCHEDIT, TEXTEDIT.
+- TRIM and EXTEND take it as the cutting or boundary edges (`Select cutting edges ...`, `2 found`) in Standard mode (TRIMEXTENDMODE
+  0); in Quick mode they ask as before.
+- Commands that ask whatever is selected: REGION, UNION, INTERSECT, SUBTRACT and MASSPROP, and the commands that pick one object, LAYOFF,
+  LAYFRZ, LAYLCK, LAYULK, FILLET, CHAMFER, OFFSET, BREAK, DIVIDE, MEASURE, LENGTHEN, DIMBREAK and DIMSPACE. LAYDEL, LAYMRG and MATCHPROP run
+  no further in the console, so they are not probed and stay as they were (LAYDEL and LAYMRG ask).
+
 ### The commands
 
 [`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 383 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
@@ -648,8 +679,7 @@ taken, anything else picked is left out, and a hatch on a locked layer is passed
 no origin of its own: it is in the base points of its pattern lines, so the command moves each line's base point by what
 the origin moves, found from the pattern the presenter holds (ANSI32 at 30 degrees and scale 2 set to (10, 5) and then to
 (20, 20) has its first line based at (20, 20), not at (30, 25)). A pattern the presenter does not have is taken to have been
-laid from (0, 0). The console takes no hatch selected before the command (it asks `Select hatch objects:` as ERASE asks `Select
-objects:` there), so that way in is not probed. A solid fill and a gradient have no lines and are left as they are; lines made by the user follow the
+laid from (0, 0). AutoCAD 2021 takes a hatch selected before the command (`1 found`, then `Select new hatch origin:`). A solid fill and a gradient have no lines and are left as they are; lines made by the user follow the
 hatch's spacing alone in the library, so a user-defined hatch is left as it is too, where AutoCAD moves its base point.
 
 HATCH asks `Pick internal point or [Select objects/Undo/seTtings]:` and takes, besides those words, `remove Boundaries` (the

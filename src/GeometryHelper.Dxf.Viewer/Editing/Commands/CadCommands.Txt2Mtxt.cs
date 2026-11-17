@@ -27,7 +27,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForSelection("Select objects", new[] { "Settings" });
+                foreach (
+                    CadPrompt asked in c.SelectFirst(CadPrompt.ForSelection("Select objects", new[] { "Settings" }))
+                )
+                {
+                    yield return asked;
+                }
 
                 if (c.Input.Is("Settings"))
                 {

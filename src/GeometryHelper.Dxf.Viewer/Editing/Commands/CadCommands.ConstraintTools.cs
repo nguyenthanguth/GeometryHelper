@@ -19,8 +19,8 @@ namespace GeometryHelper.Dxf.Viewer
         private static void AddConstraintToolsTo(CadCommandRegistry registry)
         {
             registry.Add(new CadCommand("AUTOCONSTRAIN", AutoConstrain));
-            registry.Add(new CadCommand("CONSTRAINTBAR", ConstraintBarCommand));
-            registry.Add(new CadCommand("DELCONSTRAINT", DelConstraint));
+            registry.Add(new CadCommand("CONSTRAINTBAR", ConstraintBarCommand, true));
+            registry.Add(new CadCommand("DELCONSTRAINT", DelConstraint, true));
             registry.Add(new CadCommand("CONSTRAINTSETTINGS", ConstraintSettingsCommand));
             registry.AddVariable(
                 CadSystemVariable.Whole(
@@ -668,7 +668,10 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static IEnumerable<CadPrompt> ConstraintBarCommand(CadCommandContext c)
         {
-            yield return CadPrompt.ForSelection("Select objects");
+            foreach (CadPrompt prompt in c.SelectFirst(CadPrompt.ForSelection("Select objects")))
+            {
+                yield return prompt;
+            }
 
             if (c.Input.Kind != CadInputKind.Selection || c.Input.Handles.Count == 0)
             {

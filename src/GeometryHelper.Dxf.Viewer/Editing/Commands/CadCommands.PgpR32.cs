@@ -19,8 +19,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static void AddPgpR32To(CadCommandRegistry registry)
         {
-            registry.Add(new CadCommand("IMAGEADJUST", ImageAdjust));
-            registry.Add(new CadCommand("-IMAGEADJUST", ImageAdjust));
+            registry.Add(new CadCommand("IMAGEADJUST", ImageAdjust, true));
+            registry.Add(new CadCommand("-IMAGEADJUST", ImageAdjust, true));
             registry.Add(new CadCommand("ATTEXT", AttributeExtractDialog));
             registry.Add(new CadCommand("-ATTEXT", AttributeExtract));
             registry.AddVariable(
@@ -61,7 +61,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static IEnumerable<CadPrompt> ImageAdjust(CadCommandContext c)
         {
-            yield return CadPrompt.ForSelection("Select image(s)");
+            foreach (
+                CadPrompt prompt in c.SelectFirst(CadPrompt.ForSelection("Select image(s)"), e =>
+                    e is DxfRasterImage && !(e is DxfWipeout)
+                )
+            )
+            {
+                yield return prompt;
+            }
+
             var handles = new List<string>();
 
             foreach (string handle in c.Input.Handles ?? Array.Empty<string>())

@@ -22,7 +22,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("MULTIPLE", Multiple));
             registry.Add(new CadCommand("TRACE", Trace));
             registry.Add(new CadCommand("SKETCH", Sketch));
-            registry.Add(new CadCommand("MASSPROP", MassProperties, true));
+            registry.Add(new CadCommand("MASSPROP", MassProperties));
             registry.Add(new CadCommand("MINSERT", MInsert));
             registry.Add(new CadCommand("DIMINSPECT", DimInspect, true));
             registry.Add(new CadCommand("-DIMINSPECT", DimInspectTyped, true));

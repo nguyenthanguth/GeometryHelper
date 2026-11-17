@@ -28,7 +28,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("DIMCONSTRAINT", DimConstraintCommand));
             registry.Add(new CadCommand("DCCONVERT", DcConvert));
             registry.Add(new CadCommand("DCFORM", DcForm));
-            registry.Add(new CadCommand("DCDISPLAY", DcDisplay));
+            registry.Add(new CadCommand("DCDISPLAY", DcDisplay, true));
             registry.Add(new CadCommand("-PARAMETERS", ParametersTyped));
             registry.Add(new CadCommand("PARAMETERS", ParametersPalette));
             registry.Add(new CadCommand("PARAMETERSCLOSE", ParametersClose));
@@ -602,7 +602,10 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static IEnumerable<CadPrompt> DcDisplay(CadCommandContext c)
         {
-            yield return CadPrompt.ForSelection("Select objects");
+            foreach (CadPrompt prompt in c.SelectFirst(CadPrompt.ForSelection("Select objects")))
+            {
+                yield return prompt;
+            }
 
             if (c.Input.Kind != CadInputKind.Selection || c.Input.Handles.Count == 0)
             {
