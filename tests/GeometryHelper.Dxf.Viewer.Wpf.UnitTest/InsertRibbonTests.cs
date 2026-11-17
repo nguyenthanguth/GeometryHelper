@@ -47,6 +47,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                         "Insert",
                         "Annotate",
                         "View",
+                        "Manage",
                         "Output",
                         "Plugins",
                         "Settings",

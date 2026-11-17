@@ -711,6 +711,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["ATTIPEDIT"] = "Edit an attribute value in place",
             ["ATTSYNC"] = "Bring blocks in line with their attributes",
             ["AUDIT"] = "Check the drawing and fix errors",
+            ["ALIASEDIT"] = "Edit the command aliases",
+            ["APPLOAD"] = "Load and unload plugins in the Plugin manager",
+            ["CUI"] = "Customize the keys and aliases",
+            ["INPUTSEARCHDELAY"] = "Milliseconds before AutoComplete lists names",
             ["BASE"] = "Set the insertion base point",
             ["BATTMAN"] = "Block Attribute Manager",
             ["BAUTHORPALETTE"] = "Block Authoring palettes",
@@ -1576,6 +1580,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 ),
             };
         }
+
+        /// <summary>What a command does in a few words, as the Shortcuts page lists it and the application menu's search matches it; empty for a command with none.</summary>
+        internal static string DescriptionOf(string command) =>
+            command != null && Descriptions.TryGetValue(command, out string description) ? description : string.Empty;
 
         /// <summary>The commands with their aliases and keys: those of the settings, or AutoCAD's with <paramref name="autoCad"/>, and those plugins and extensions added.</summary>
         private void FillShortcuts(bool autoCad)

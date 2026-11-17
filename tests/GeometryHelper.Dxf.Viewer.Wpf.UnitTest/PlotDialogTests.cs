@@ -92,7 +92,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal(92.0, dialog.SheetPictureWidth, 9);
             Assert.Equal(92.0 * 297 / 420, dialog.SheetPictureHeight, 9);
             Assert.Equal(
-                new[] { "Display", "Extents", "Limits", "Window" },
+                new[] { "Display", "Extents", "Limits", "View", "Window" },
                 dialog.Areas.Select(a => a.Name).ToArray()
             );
             Assert.Equal("Window", dialog.Area.Name);

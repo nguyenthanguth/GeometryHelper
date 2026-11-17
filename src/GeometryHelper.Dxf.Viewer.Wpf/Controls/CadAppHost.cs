@@ -40,8 +40,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <c>--cursor</c> puts the cursor on a point of the drawing, showing the snap and the rubber band of the prompt waiting;
     /// <c>--type REC</c> types text and leaves it unsent, the AutoComplete list shown for it, and <c>--type {Down}</c> opens
     /// the options menu of dynamic input; <c>--dialog plot:png</c>, <c>plot:jpg</c> and <c>plot-custom</c> draw PLOT's
-    /// dialog on a raster device and its Custom Image Size;
-    /// <c>--toggle</c> switches status toggles, as GRID or DYN; <c>--tab</c> shows a ribbon tab (Home, Insert, Annotate, View,
+    /// dialog on a raster device and its Custom Image Size, and <c>plot-view</c> its PDF form plotting the first named view;
+    /// <c>--toggle</c> switches status toggles, as GRID or DYN; <c>--tab</c> shows a ribbon tab (Home, Insert, Annotate, View, Manage, Output,
     /// Plugins, Settings or the header of a tab a host adds; another name exits with 2); <c>--plugin</c> loads a command
     /// plugin, every file trusted.
     /// <c>--layers</c> draws the Layer manager instead, and <c>--dialog</c> one of the presenter's dialogs or menus:
@@ -105,7 +105,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         protected virtual string Usage =>
             "Usage: "
             + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app")
-            + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Home|Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|mtext-unsaved|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|canvas-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|scalelist|qleader|qleader-line|qleader-attach|selectarrow|tolerance|tolerance-filled|tolerance-full|gdtsymbol|gdtmaterial|inputsearch|view|newview|units|units-direction|xref|xref-tree|plot:png|plot:jpg|plot-custom|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|mlstyle|mlstyle-new|mlstyle-new-page|mlstyle-modify|mlstyle-load|mledit|plotstamp|plotstamp-advanced|plotstamp-fields|imageadjust|attext|xbind|insertobject|recovery|spell|spell-settings|objectscale|objectscale-add|insertlayout|templateoptions|saveaspdf|pdf-override|pdf-options|rename|lweight|boundary|viewports|viewports-named|filter|layerfilter|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
+            + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Home|Insert|Annotate|View|Manage|Output|Plugins|Settings] [--dialog save-changes|mtext-unsaved|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|canvas-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|scalelist|qleader|qleader-line|qleader-attach|selectarrow|tolerance|tolerance-filled|tolerance-full|gdtsymbol|gdtmaterial|inputsearch|view|newview|units|units-direction|xref|xref-tree|plot:png|plot:jpg|plot-custom|plot-view|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|mlstyle|mlstyle-new|mlstyle-new-page|mlstyle-modify|mlstyle-load|mledit|plotstamp|plotstamp-advanced|plotstamp-fields|imageadjust|attext|xbind|insertobject|recovery|spell|spell-settings|objectscale|objectscale-add|insertlayout|templateoptions|saveaspdf|pdf-override|pdf-options|rename|lweight|boundary|viewports|viewports-named|filter|layerfilter|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
 
         /// <summary>
         /// Runs the app on the STA thread of its entry point: the window until it is closed, or the screenshot where the first
@@ -610,9 +610,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 && (
                     dialogName.StartsWith("plot:", StringComparison.OrdinalIgnoreCase)
                     || string.Equals(dialogName, "plot-custom", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(dialogName, "plot-view", StringComparison.OrdinalIgnoreCase)
                 )
             )
             {
+                bool viewShown = string.Equals(dialogName, "plot-view", StringComparison.OrdinalIgnoreCase);
                 // PLOT's dialog on a raster device, --dialog plot:png or plot:jpg, and its Custom Image Size, --dialog plot-custom.
                 var job = new CadPlotJob(
                     model.Space,
@@ -620,12 +622,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     DisplayBox.Empty,
                     null
                 );
-                job.Settings.UseDevice(
-                    dialogName.EndsWith("jpg", StringComparison.OrdinalIgnoreCase)
-                        ? CadPlotSettings.JpgDevice
-                        : CadPlotSettings.PngDevice
-                );
-                job.Settings.Area = CadPlotArea.Extents;
+                if (!viewShown)
+                {
+                    job.Settings.UseDevice(
+                        dialogName.EndsWith("jpg", StringComparison.OrdinalIgnoreCase)
+                            ? CadPlotSettings.JpgDevice
+                            : CadPlotSettings.PngDevice
+                    );
+                }
+
+                job.Settings.Area = viewShown ? CadPlotArea.View : CadPlotArea.Extents;
                 var plot = new PlotDialogViewModel(model.Document, job, false, null, model.Settings.CustomPixelSizes);
 
                 if (string.Equals(dialogName, "plot-custom", StringComparison.OrdinalIgnoreCase))
@@ -970,6 +976,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     : string.Equals(tab, "Insert", StringComparison.OrdinalIgnoreCase) ? model.InsertTab
                     : string.Equals(tab, "Annotate", StringComparison.OrdinalIgnoreCase) ? model.AnnotateTab
                     : string.Equals(tab, "View", StringComparison.OrdinalIgnoreCase) ? model.ViewTab
+                    : string.Equals(tab, "Manage", StringComparison.OrdinalIgnoreCase) ? model.ManageTab
                     : string.Equals(tab, "Output", StringComparison.OrdinalIgnoreCase) ? model.OutputTab
                     : model.Extensions.FirstOrDefault(e =>
                         string.Equals(e.TabHeader, tab, StringComparison.OrdinalIgnoreCase)

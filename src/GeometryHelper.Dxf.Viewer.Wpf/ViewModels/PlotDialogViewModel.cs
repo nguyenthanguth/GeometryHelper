@@ -40,20 +40,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>An entry of the What to plot list: the area and the hint shown after it, "every object" for Extents.</summary>
     public sealed class PlotAreaRow
     {
-        internal PlotAreaRow(CadPlotArea area, string hint)
+        internal PlotAreaRow(CadPlotArea area, string hint, bool isEnabled = true)
         {
             Area = area;
             Hint = hint;
+            IsEnabled = isEnabled;
         }
 
         /// <summary>Gets the area.</summary>
         public CadPlotArea Area { get; }
 
-        /// <summary>Gets its name: Display, Extents, Limits, Window, Layout.</summary>
+        /// <summary>Gets its name: Display, Extents, Limits, View, Window, Layout.</summary>
         public string Name => Area.ToString();
 
         /// <summary>Gets the hint shown after it.</summary>
         public string Hint { get; }
+
+        /// <summary>Gets whether it can be chosen: every one but View of a drawing with no named view, which is shown greyed.</summary>
+        public bool IsEnabled { get; }
 
         /// <inheritdoc/>
         public override string ToString() => Name;
@@ -153,12 +157,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Devices = devices;
             _mmPaper = _settings.Paper.IsPixels || _settings.IsPrinter ? CadPaper.Default : _settings.Paper;
             Papers = PapersOf(_settings);
+            ViewNames = CadPlotSettings.ViewNames(document, Space);
+            var view = new PlotAreaRow(
+                CadPlotArea.View,
+                ViewNames.Count > 0 ? "a named view" : "no named view",
+                ViewNames.Count > 0
+            );
             Areas = Space.IsModel
                 ? new[]
                 {
                     new PlotAreaRow(CadPlotArea.Display, "what the view shows"),
                     new PlotAreaRow(CadPlotArea.Extents, "every object"),
                     new PlotAreaRow(CadPlotArea.Limits, "LIMMIN to LIMMAX"),
+                    view,
                     new PlotAreaRow(CadPlotArea.Window, "two points"),
                 }
                 : new[]
@@ -166,6 +177,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     new PlotAreaRow(CadPlotArea.Display, "what the view shows"),
                     new PlotAreaRow(CadPlotArea.Extents, "every object"),
                     new PlotAreaRow(CadPlotArea.Layout, "the sheet"),
+                    view,
                     new PlotAreaRow(CadPlotArea.Window, "two points"),
                 };
 
@@ -173,6 +185,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 _settings.Area = CadPlotArea.Extents;
             }
+
+            ChooseView();
 
             Scales = CadPlotScale.ListFor(document.Database);
             ScaleNames = Scales.Select(s => s.Name).Concat(new[] { CustomScale }).ToList();
@@ -545,6 +559,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     named.PlotStamp = _settings.PlotStamp;
                     named.PdfShx = _settings.PdfShx;
                     _settings = named;
+                    ChooseView();
                     RefreshDevice();
                 }
             }
@@ -714,9 +729,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get => Areas.FirstOrDefault(a => a.Area == _settings.Area) ?? Areas[0];
             set
             {
-                if (value != null && value.Area != _settings.Area)
+                if (value != null && value.IsEnabled && value.Area != _settings.Area)
                 {
                     _settings.Area = value.Area;
+                    ChooseView();
                     Refresh();
                 }
             }
@@ -724,6 +740,52 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets whether the area is a window: the Window&lt; button and its corners are shown.</summary>
         public bool IsWindow => _settings.Area == CadPlotArea.Window;
+
+        /// <summary>Gets the named views the plot can take, as the View list of the Plot area shows them: those of the space's kind, by name; empty where there are none, which greys View in What to plot.</summary>
+        public IReadOnlyList<string> ViewNames { get; }
+
+        /// <summary>Gets whether the area is a named view: the View list is shown.</summary>
+        public bool IsView => _settings.Area == CadPlotArea.View;
+
+        /// <summary>Gets or sets the named view plotted; the first of <see cref="ViewNames"/> when View is chosen first.</summary>
+        public string ViewName
+        {
+            get => _settings.ViewName;
+            set
+            {
+                string found = ViewNames.FirstOrDefault(v =>
+                    string.Equals(v, value, StringComparison.OrdinalIgnoreCase)
+                );
+
+                if (found != null && found != _settings.ViewName)
+                {
+                    _settings.ViewName = found;
+                    Refresh();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Makes the settings' view one of the drawing's where the area is View: the name it has as the drawing spells it, else
+        /// the first view; with no view the area falls back to the display, as View is greyed then.
+        /// </summary>
+        private void ChooseView()
+        {
+            if (_settings.Area != CadPlotArea.View)
+            {
+                return;
+            }
+
+            if (ViewNames.Count == 0)
+            {
+                _settings.Area = CadPlotArea.Display;
+                return;
+            }
+
+            _settings.ViewName = ViewNames.FirstOrDefault(v =>
+                string.Equals(v, _settings.ViewName, StringComparison.OrdinalIgnoreCase)
+            ) ?? ViewNames[0];
+        }
 
         /// <summary>Gets the corners of the window, as "From (120, 60) to (7 620, 5 360)"; empty where none is picked.</summary>
         public string WindowText
@@ -1415,6 +1477,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     nameof(Paper),
                     nameof(Area),
                     nameof(IsWindow),
+                    nameof(IsView),
+                    nameof(ViewName),
                     nameof(WindowText),
                     nameof(Centered),
                     nameof(IsCenterEnabled),

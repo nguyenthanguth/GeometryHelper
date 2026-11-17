@@ -2809,6 +2809,168 @@
             The panels of the Output tab (design OutputTab), AutoCAD 2021's basics: Plot (Plot, Page Setup Manager, Preview, Plot
             Stamp), Export to DWF/PDF (Export PDF, Export) and Import. Some 600 wide, so no panel shrinks: the strip has no steps.
             -->
+            <!-- Manage: Action Recorder and CAD Standards are parked (greyed with a tooltip saying so); the rest run commands. -->
+            <DataTemplate DataType="{x:Type local:ManageRibbonViewModel}">
+                <local:RibbonStrip>
+                    <local:RibbonPanel Title="Action Recorder" MinFullWidth="230" Icon="{StaticResource GhIconRecord}">
+                        <StackPanel Orientation="Horizontal">
+                            <Button
+                                Style="{StaticResource BigButton}"
+                                Tag="{StaticResource GhIconRecord}"
+                                Content="Record"
+                                IsEnabled="False"
+                                ToolTipService.ShowOnDisabled="True"
+                                ToolTip="Record (ACTRECORD): the Action Recorder is not built yet"
+                            />
+                            <WrapPanel Style="{StaticResource SmallColumn}">
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconPlay}"
+                                    Content="Play"
+                                    IsEnabled="False"
+                                    ToolTipService.ShowOnDisabled="True"
+                                    ToolTip="Play (ACTPLAY): the Action Recorder is not built yet"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconList}"
+                                    Content="Manage Action Macros"
+                                    IsEnabled="False"
+                                    ToolTipService.ShowOnDisabled="True"
+                                    ToolTip="Manage Action Macros (ACTMANAGER): the Action Recorder is not built yet"
+                                />
+                            </WrapPanel>
+                        </StackPanel>
+                    </local:RibbonPanel>
+                    <local:RibbonPanel Title="Customization" MinFullWidth="270" Icon="{StaticResource GhIconGear}">
+                        <StackPanel Orientation="Horizontal">
+                            <Button
+                                Style="{StaticResource BigButton}"
+                                Tag="{StaticResource GhIconGear}"
+                                Content="User Interface"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Command="{Binding Model.StartCommandCommand}"
+                                CommandParameter="CUI"
+                                ToolTip="User Interface (CUI): Global settings, Shortcuts: the keys and the aliases"
+                            />
+                            <Button
+                                Style="{StaticResource BigButton}"
+                                Tag="{StaticResource GhIconToolPalette}"
+                                Content="Tool Palettes"
+                                IsEnabled="False"
+                                ToolTipService.ShowOnDisabled="True"
+                                ToolTip="Tool Palettes (TOOLPALETTES): tool palettes are not built yet"
+                            />
+                            <WrapPanel Style="{StaticResource SmallColumn}">
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconKeyboard}"
+                                    Content="Edit Aliases"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="ALIASEDIT"
+                                    ToolTip="Edit Aliases (ALIASEDIT): Global settings, Shortcuts"
+                                />
+                            </WrapPanel>
+                        </StackPanel>
+                    </local:RibbonPanel>
+                    <local:RibbonPanel Title="Applications" MinFullWidth="160" Icon="{StaticResource GhIconPluginLoad}">
+                        <StackPanel Orientation="Horizontal">
+                            <Button
+                                Style="{StaticResource BigButton}"
+                                Tag="{StaticResource GhIconPluginLoad}"
+                                Content="Load Application"
+                                IsEnabled="{Binding CanLoadApplication}"
+                                Command="{Binding Model.StartCommandCommand}"
+                                CommandParameter="APPLOAD"
+                                ToolTipService.ShowOnDisabled="True"
+                                ToolTip="Load Application (APPLOAD): the Plugin manager, where plugins are loaded and unloaded; greyed where the window has none"
+                            />
+                            <Button
+                                Style="{StaticResource BigButton}"
+                                Tag="{StaticResource GhIconScript}"
+                                Content="Run Script"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Command="{Binding Model.StartCommandCommand}"
+                                CommandParameter="SCRIPT"
+                                Margin="0"
+                                ToolTip="Run Script (SCRIPT): commands read from a .scr file"
+                            />
+                        </StackPanel>
+                    </local:RibbonPanel>
+                    <local:RibbonPanel Title="CAD Standards" MinFullWidth="130" Icon="{StaticResource GhIconStandards}">
+                        <WrapPanel Style="{StaticResource SmallColumn}">
+                            <Button
+                                Style="{StaticResource SmallButton}"
+                                Tag="{StaticResource GhIconStandards}"
+                                Content="Configure"
+                                IsEnabled="False"
+                                ToolTipService.ShowOnDisabled="True"
+                                ToolTip="Configure (STANDARDS): CAD standards are not built yet"
+                            />
+                            <Button
+                                Style="{StaticResource SmallButton}"
+                                Tag="{StaticResource GhIconCheckSpelling}"
+                                Content="Check"
+                                IsEnabled="False"
+                                ToolTipService.ShowOnDisabled="True"
+                                ToolTip="Check (CHECKSTANDARDS): CAD standards are not built yet"
+                            />
+                            <Button
+                                Style="{StaticResource SmallButton}"
+                                Tag="{StaticResource GhIconLayers}"
+                                Content="Layer Translator"
+                                IsEnabled="False"
+                                ToolTipService.ShowOnDisabled="True"
+                                ToolTip="Layer Translator (LAYTRANS): CAD standards are not built yet"
+                            />
+                        </WrapPanel>
+                    </local:RibbonPanel>
+                    <local:RibbonPanel Title="Cleanup" MinFullWidth="180" Icon="{StaticResource GhIconErase}">
+                        <StackPanel Orientation="Horizontal">
+                            <Button
+                                Style="{StaticResource BigButton}"
+                                Tag="{StaticResource GhIconErase}"
+                                Content="Purge"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Command="{Binding Model.StartCommandCommand}"
+                                CommandParameter="PURGE"
+                                ToolTip="Purge (PURGE): remove unused blocks, layers, styles and other named objects"
+                            />
+                            <WrapPanel Style="{StaticResource SmallColumn}">
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconOverkill}"
+                                    Content="Overkill"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="OVERKILL"
+                                    ToolTip="Overkill (OVERKILL): delete duplicate and overlapping objects"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconAudit}"
+                                    Content="Audit"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="AUDIT"
+                                    ToolTip="Audit (AUDIT): check the drawing and fix errors"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconRefresh}"
+                                    Content="Recover"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="RECOVER"
+                                    ToolTip="Recover (RECOVER): open a damaged drawing and repair it"
+                                />
+                            </WrapPanel>
+                        </StackPanel>
+                    </local:RibbonPanel>
+                </local:RibbonStrip>
+            </DataTemplate>
+
             <DataTemplate DataType="{x:Type local:OutputRibbonViewModel}">
                 <local:RibbonStrip>
                     <local:RibbonPanel Title="Plot" MinFullWidth="330" Icon="{StaticResource GhIconPlot}">
@@ -3325,6 +3487,14 @@
                         IsChecked="{Binding ViewTab.IsTabSelected, Mode=OneWay}"
                         Command="{Binding SelectTabCommand}"
                         CommandParameter="{Binding ViewTab}"
+                        Margin="0,0,4,0"
+                    />
+                    <ToggleButton
+                        Style="{StaticResource GhRibbonTab}"
+                        Content="Manage"
+                        IsChecked="{Binding ManageTab.IsTabSelected, Mode=OneWay}"
+                        Command="{Binding SelectTabCommand}"
+                        CommandParameter="{Binding ManageTab}"
                         Margin="0,0,4,0"
                     />
                     <ToggleButton

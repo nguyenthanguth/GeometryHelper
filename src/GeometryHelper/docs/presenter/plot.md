@@ -33,7 +33,7 @@ CadEditResult result = settings.ApplyTo(document, document.ModelSpace);
 | the sheet, `ISO_A3_(420.00_x_297.00_MM)`, its size and margins in millimetres | 4, 44, 45, 40 to 43, 72 of 1 |
 | the turn: landscape or portrait as AutoCAD reckons it from the sheet as named, plus 180 upside down | 73 |
 | the offset from the printable area's corner | 46, 47 |
-| what is plotted: Display, Extents, Limits, Window or Layout | 74, the window 48, 49, 140, 141 |
+| what is plotted: Display, Extents, Limits, View, Window or Layout; for a view its name | 74 (3 for a view), 6; the window 48, 49, 140, 141 |
 | the scale: paper millimetres to drawing units; 75 with 147 and flag 16 where it is one of AutoCAD's standard scales, 75 of 0 for Fit | 142, 143, 75, 147 |
 | the plot style table by the name of its file (`CadPlotSettings.StyleSheet`), as `monochrome.ctb`; empty for none | 7 |
 | centred (4), plot with plot styles (32), scale lineweights (64), plot lineweights (128) | 70 |
@@ -73,6 +73,7 @@ CadPlotPage page = CadPlotPage.Compute(document, document.ModelSpace, settings, 
 | Layout | a layout's sheet, its origin at the printable corner plus the offset, at 1:1 unless fitted: the paper (-7.5, -20) to (412.5, 277) of an A3 layout lies on the whole sheet |
 | Limits | LIMMIN to LIMMAX in model space, a layout's own limits in a layout |
 | Display | what the view shows, the extents where no view is given |
+| View | the window of a named view of the space's kind (`CadPlotSettings.ViewName`): a view 2 000 wide and 1 000 high about (3 000, 2 000) plots (2 000, 1 500) to (4 000, 2 500), at 0.205 on A3 fitted; a view the drawing lacks plots the extents; a twist is not applied |
 
 [`CadPlotScale.ListFor`](xref:GeometryHelper.Dxf.Viewer.CadPlotScale) gives the Scale list: 1:1, 1:2, 1:5, 1:10, 1:20,
 1:50, 1:100, 1:200, 1:500 and 1:1000, then the scales of the drawing's own list that are none of those.
@@ -207,7 +208,8 @@ The dialog follows AutoCAD's: the page setup's name, with Add… to keep the dia
 GeometryHelper PDF, PNG or JPG or a printer of Windows (None is listed greyed); the paper size and its small picture, and
 for a printer the number of copies; what to plot, and for a window the
 Window&lt; button, which hides the dialog while "Specify first corner:" and "Specify opposite corner:" are answered on the
-drawing and shows it again with the window set; the offset, or Center the plot; Fit to paper, or the scale and its two
+drawing and shows it again with the window set, and for a view the View list of the drawing's named views (View, between Limits
+or Layout and Window, is greyed with the tip "The drawing has no named view: save one with VIEW first." where there is none; choosing it takes the first view, and a page setup whose view the drawing lacks takes the first view, or the display where there is none); the offset, or Center the plot; Fit to paper, or the scale and its two
 units; the plot style table; the plot options; and the orientation. Apply to Layout writes the page setup at once, Save
 changes to layout writes it when OK plots. Preview… shows the preview, whose Plot plots.
 
@@ -225,7 +227,7 @@ Enter paper size or [?] <ISO A3 (420.00 x 297.00 MM)>:
 Enter paper units [Inches/Millimeters] <Millimeters>:
 Enter drawing orientation [Portrait/Landscape] <Landscape>:
 Plot upside down? [Yes/No] <No>:
-Enter plot area [Display/Extents/Limits/Window] <Display>: W
+Enter plot area [Display/Extents/Limits/View/Window] <Display>: W
 Enter lower left corner of window <0.000000,0.000000>: 120,60
 Enter upper right corner of window <0.000000,0.000000>: 7620,5360
 Enter plot scale (Plotted Millimeters=Drawing Units) or [Fit] <Fit>: 1=20
@@ -242,8 +244,8 @@ Effective plotting area:  375.00 wide by 265.00 high
 
 Without the detailed configuration it asks the layout, a page setup's name, the device and the file. In a layout the
 area offers Layout in place of Limits, and the last prompts are Scale lineweights, Plot paper space first and Hide
-paperspace objects; the last two, like the shade plot, change nothing in a 2D plot. View is not offered: the presenter has
-no named views. The file is written by the window, which holds the PDF writer.
+paperspace objects; the last two, like the shade plot, change nothing in a 2D plot. View is always offered, as AutoCAD's
+console offers it, and asks `Enter view name:`: a name the drawing has not, or none, says `<x> not found.` or `No view specified.  You must enter a view name.` and asks again; letters of either case find a view. The file is written by the window, which holds the PDF writer.
 
 ## Printing on a printer of Windows
 

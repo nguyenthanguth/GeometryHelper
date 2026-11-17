@@ -23,6 +23,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>The sheet of a layout, its origin at the printable area's corner; a layout only.</summary>
         Layout,
+
+        /// <summary>A named view of the drawing, the one <see cref="CadPlotSettings.ViewName"/> names: its window, as the VIEW command saved it.</summary>
+        View,
     }
 
     /// <summary>
@@ -271,6 +274,60 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets the window plotted where <see cref="Area"/> is <see cref="CadPlotArea.Window"/>, in drawing units.</summary>
         public DisplayBox Window { get; set; } = DisplayBox.Empty;
 
+        private string _viewName = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the name of the named view plotted where <see cref="Area"/> is <see cref="CadPlotArea.View"/>, as it is
+        /// written in the page setup (group 6 of the plot settings); empty by default. The name is trimmed and kept as given;
+        /// <see cref="ViewNames"/> lists the views a drawing offers.
+        /// </summary>
+        public string ViewName
+        {
+            get => _viewName;
+            set => _viewName = (value ?? string.Empty).Trim();
+        }
+
+        /// <summary>
+        /// Gets the named views a space can plot, as the View list of the Plot dialog offers them: the views of model space for
+        /// model space, those of paper space for a layout, in ordinal order of their names, letters of either case the same;
+        /// empty where there are none, which is when the dialog greys View.
+        /// </summary>
+        /// <param name="document">The document.</param>
+        /// <param name="space">The space plotted.</param>
+        /// <returns>The names, a new list.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the document or the space is null.</exception>
+        public static IReadOnlyList<string> ViewNames(CadDocument document, CadSpace space)
+        {
+            if (document == null)
+            {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            if (space == null)
+            {
+                throw new ArgumentNullException(nameof(space));
+            }
+
+            var names = new List<string>();
+
+            foreach (DxfViewTableRecord view in document.Database.ViewTable)
+            {
+                if (view.IsPaperspaceView == !space.IsModel && !string.IsNullOrEmpty(view.Name))
+                {
+                    names.Add(view.Name);
+                }
+            }
+
+            names.Sort(
+                (a, b) =>
+                {
+                    int byName = string.Compare(a, b, StringComparison.OrdinalIgnoreCase);
+                    return byName != 0 ? byName : string.CompareOrdinal(a, b);
+                }
+            );
+            return names;
+        }
+
         /// <summary>Gets or sets whether the plot is scaled to fill the printable area; on by default.</summary>
         public bool FitToPaper { get; set; } = true;
 
@@ -398,7 +455,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// Reads how a space is plotted from the drawing, as AutoCAD's Plot dialog opens on a layout's page setup: the plot
         /// settings of the space's LAYOUT, model space's from the layout Model. The sheet is the standard one of the name the
         /// layout gives and its margins, else one made of the layout's size and margins, ISO A3 where it gives none; a named
-        /// view plots as the display, a layout's sheet of model space as its extents; the plot style table is kept by the name
+        /// view is kept by its name (<see cref="ViewName"/>), a layout's sheet of model space as its extents; the plot style table is kept by the name
         /// of its file (<see cref="StyleSheet"/>), <c>monochrome.ctb</c> reading as <see cref="CadPlotStyleTable.Monochrome"/>
         /// and <c>grayscale.ctb</c> as <see cref="CadPlotStyleTable.Grayscale"/> through <see cref="StyleTable"/>. A space
         /// whose settings cannot be read is given the defaults, a layout plotting its sheet at 1:1.
@@ -1035,6 +1092,9 @@ namespace GeometryHelper.Dxf.Viewer
                     case DxfPlotType.Window:
                         settings.Area = CadPlotArea.Window;
                         break;
+                    case DxfPlotType.View:
+                        settings.Area = CadPlotArea.View;
+                        break;
                     case DxfPlotType.Layout:
                         settings.Area = isModel ? CadPlotArea.Extents : CadPlotArea.Layout;
                         break;
@@ -1043,6 +1103,7 @@ namespace GeometryHelper.Dxf.Viewer
                         break;
                 }
 
+                settings.ViewName = layout.PlotViewName;
                 DxfExtents2d window = layout.PlotWindowArea;
                 settings.Window = new DisplayBox(
                     Math.Min(window.MinPoint.X, window.MaxPoint.X),
@@ -1238,6 +1299,9 @@ namespace GeometryHelper.Dxf.Viewer
                 case CadPlotArea.Window:
                     layout.PlotType = DxfPlotType.Window;
                     break;
+                case CadPlotArea.View:
+                    layout.PlotType = DxfPlotType.View;
+                    break;
                 case CadPlotArea.Layout:
                     layout.PlotType = layout.ModelType ? DxfPlotType.Extents : DxfPlotType.Layout;
                     break;
@@ -1245,6 +1309,8 @@ namespace GeometryHelper.Dxf.Viewer
                     layout.PlotType = DxfPlotType.Display;
                     break;
             }
+
+            layout.PlotViewName = ViewName;
 
             if (!Window.IsEmpty)
             {
