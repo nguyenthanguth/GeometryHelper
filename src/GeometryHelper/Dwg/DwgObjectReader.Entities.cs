@@ -1634,6 +1634,53 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>
+        /// A PDFUNDERLAY: its normal, insertion point, turn (radians, DXF has degrees), scale along the three sides, display
+        /// flags, contrast and fade, its clip boundary (a count and that many corners, two for a rectangle) and by handle its
+        /// definition.
+        /// </summary>
+        private void ReadPdfUnderlay()
+        {
+            double[] normal = _data.Point3();
+            double[] insertion = _data.Point3();
+            double rotation = _data.BitDouble();
+            double[] scale = _data.Point3();
+            int flags = _data.RawChar();
+            int contrast = _data.RawChar();
+            int fade = _data.RawChar();
+            int count = Count(_data.BitLong());
+            var vertices = new List<double[]>();
+
+            for (int i = 0; i < count; i++)
+            {
+                vertices.Add(_data.RawPoint2());
+            }
+
+            ulong definition = H();
+            _object.Add(100, "AcDbUnderlayReference");
+            _object.Add(340, definition);
+            _object.AddPoint(10, insertion);
+            _object.Add(41, scale[0]);
+            _object.Add(42, scale[1]);
+            _object.Add(43, scale[2]);
+            AddNonZero(50, Degrees(rotation));
+            AddExtrusion(normal);
+
+            // AutoCAD 2021 writes no flags where they are 11, a new underlay's.
+            if (flags != 11)
+            {
+                _object.Add(280, flags);
+            }
+
+            _object.Add(281, contrast);
+            _object.Add(282, fade);
+
+            foreach (double[] vertex in vertices)
+            {
+                _object.AddPoint(11, vertex);
+            }
+        }
+
+        /// <summary>
         /// An MLINE: its scale, justification, start, plane and flags, then for each vertex its point, direction and mitre
         /// and for each line of the style its segment and fill parameters; the style by handle, and DXF names it too.
         /// </summary>

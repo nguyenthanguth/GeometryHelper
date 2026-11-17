@@ -36,6 +36,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets how far along the dash pattern an item starts, in drawing units; nought for an item that starts the pattern.</summary>
         internal double DashPhase { get; }
 
+        /// <summary>Gets or sets how the colour is turned where the item belongs to an underlay (fade, contrast, monochrome, colours adjusted for the background); null for every other item.</summary>
+        internal DisplayUnderlayLook Underlay { get; set; }
+
         /// <summary>Gets the colour as 0xRRGGBB.</summary>
         public int Rgb { get; }
 

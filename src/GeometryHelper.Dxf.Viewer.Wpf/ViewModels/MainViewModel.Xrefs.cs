@@ -35,6 +35,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets how the workspace shows the attach dialog; the action it closed with is in its request.</summary>
         public Func<AttachReferenceViewModel, bool> ShowAttachReference { get; set; }
 
+        /// <summary>Gets or sets how the workspace shows the PDF Layers dialog of PDFLAYERS; the action it closed with is in its request.</summary>
+        public Func<PdfLayersViewModel, bool> ShowPdfLayers { get; set; }
+
         /// <summary>
         /// Gets or sets how the workspace shows the Bind Xrefs/DGN Underlays dialog of the palette's Bind…; the action it closed
         /// with is in it. With none set, the drawings are bound by BINDTYPE as it stands.
@@ -384,9 +387,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
                 case "XATTACH":
                 case "IMAGEATTACH":
+                case "PDFATTACH":
                     if (e.Payload is CadAttachRequest request && ShowAttachReference != null)
                     {
                         e.Handled = ShowAttachReference(new AttachReferenceViewModel(request));
+                    }
+
+                    break;
+                case "PDFLAYERS":
+                    if (e.Payload is CadPdfLayersRequest layers && ShowPdfLayers != null)
+                    {
+                        e.Handled = ShowPdfLayers(new PdfLayersViewModel(layers));
                     }
 
                     break;

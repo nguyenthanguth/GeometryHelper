@@ -57,6 +57,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                         "Hatch Creation",
                         "Hatch Editor",
                         "Image",
+                        "PDF Underlay",
                         "Block Editor",
                     },
                     children.OfType<ToggleButton>().Select(t => (string)t.Content)
@@ -90,7 +91,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     "XATTACH",
                     "IMAGECLIP",
                     "EXTERNALREFERENCES",
+                    "PDFADJUST",
+                    "PDFLAYERS",
                     "TRANSPARENCY",
+                    "PDFOSNAP",
                 };
                 Assert.Equal(commands, buttons.Select(b => (string)b.CommandParameter));
 
@@ -107,12 +111,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 // INSERT opened the palette on Current drawing, BLOCK, ATTDEF, BEDIT and XATTACH their dialogs, ER the palette; BATTMAN found no block with attributes in the room and opened nothing.
                 Assert.Equal(new[] { "palette Current drawing", "block", "attdef", "bedit", "attach", "xref" }, shown);
 
-                // What is not built is there, greyed, its tooltip saying so.
+                // The buttons of PDF underlays: Adjust, Underlay Layers and Snap to Underlays run PDFADJUST, PDFLAYERS and PDFOSNAP.
                 foreach (string name in new[] { "Adjust", "Underlay Layers", "Snap to Underlays" })
                 {
-                    Button greyed = Descendants(strip).OfType<Button>().Single(b => Equals(b.Content, name));
-                    Assert.False(greyed.IsEnabled);
-                    Assert.Contains("not offered", (string)greyed.ToolTip, StringComparison.Ordinal);
+                    Button underlay = Descendants(strip).OfType<Button>().Single(b => Equals(b.Content, name));
+                    Assert.True(underlay.IsEnabled);
+                    Assert.DoesNotContain("not offered", (string)underlay.ToolTip, StringComparison.Ordinal);
                 }
             });
         }
@@ -150,7 +154,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Button attach = Descendants(strip).OfType<Button>().Single(b => "XATTACH".Equals(b.CommandParameter));
                 List<MenuItem> attaches = MenuOf(SplitArrowOf(attach));
                 Assert.Equal(
-                    new[] { "XATTACH", "IMAGEATTACH" },
+                    new[] { "XATTACH", "IMAGEATTACH", "PDFATTACH" },
                     attaches.Where(i => i.IsEnabled).Select(i => (string)i.CommandParameter)
                 );
                 Assert.Equal(
@@ -159,7 +163,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                         "Attach DWG…",
                         "Attach DWF…",
                         "Attach DGN…",
-                        "Attach PDF…",
                         "Attach Point Cloud…",
                         "Attach Coordination Model…",
                     },

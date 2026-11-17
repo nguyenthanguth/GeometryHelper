@@ -95,6 +95,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether the row is an image.</summary>
         public bool IsImage => Reference != null && Reference.IsImage;
 
+        /// <summary>Gets whether the row is the definition of a PDF underlay.</summary>
+        public bool IsPdf => Reference != null && Reference.IsPdf;
+
         /// <summary>Gets the colour of the status: green Loaded, red Not Found, amber Unloaded, Needs Reloading and Orphaned, the text's otherwise.</summary>
         public Brush StatusBrush
         {
@@ -125,6 +128,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public System.Windows.Media.Geometry Icon =>
             System.Windows.Media.Geometry.Parse(
                 IsCurrent ? "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 14l2 2 4-4"
+                : IsPdf
+                    ? "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M8 13h2a1.2 1.2 0 0 1 0 2.4H8zM8 13v5M13 13v5M13 13h1.5a2 2 0 0 1 0 5H13"
                 : IsImage ? "M3 5h18v14H3zM7 15l3-4 3 3 2-2 3 3M8 9h.01"
                 : "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5"
             );
@@ -172,6 +177,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _model = model ?? throw new ArgumentNullException(nameof(model));
             AttachDxfCommand = new DelegateCommand(_ => _model.StartCommand("XATTACH"), _ => Document != null);
             AttachImageCommand = new DelegateCommand(_ => _model.StartCommand("IMAGEATTACH"), _ => Document != null);
+            AttachPdfCommand = new DelegateCommand(_ => _model.StartCommand("PDFATTACH"), _ => Document != null);
             OpenCommand = new DelegateCommand(_ => Open(), _ => IsReference && Selected.Reference.FoundAt != null);
             UnloadCommand = new DelegateCommand(_ => Run("Unload"), _ => OwnRows.Count > 0);
             ReloadCommand = new DelegateCommand(_ => Run("Reload"), _ => OwnRows.Count > 0);
@@ -331,7 +337,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 return _preview
                     ?? (
-                        _preview = PreviewOf(_selected.Reference.FoundAt, _selected.IsImage, Document?.Fonts, 420, 240)
+                        _preview = PreviewOf(
+                            _selected.Reference.FoundAt,
+                            _selected.IsImage,
+                            Document?.Fonts,
+                            420,
+                            240,
+                            _selected.IsPdf
+                        )
                     );
             }
         }
@@ -341,6 +354,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets the command of Attach Image… (IMAGEATTACH).</summary>
         public ICommand AttachImageCommand { get; }
+
+        /// <summary>Gets the command of Attach PDF… (PDFATTACH).</summary>
+        public ICommand AttachPdfCommand { get; }
 
         /// <summary>Gets the command of Open: the drawing referenced opened as another drawing of the window, the picture in its own program.</summary>
         public ICommand OpenCommand { get; }
@@ -419,7 +435,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             string name = _selected.Name;
-            _model.RunWithAnswers(_selected.IsImage ? "-IMAGE" : "-XREF", "P", Pattern(name), path, string.Empty);
+            _model.RunWithAnswers(
+                _selected.IsPdf ? "-PDFUNDERLAY"
+                    : _selected.IsImage ? "-IMAGE"
+                    : "-XREF",
+                "P",
+                Pattern(name),
+                path,
+                string.Empty
+            );
             Refresh();
         }
 
@@ -430,10 +454,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             : "No path";
 
         /// <summary>The picture of a file: a drawing's model space drawn, or the picture read at the width asked; null where it cannot be read.</summary>
-        internal static ImageSource PreviewOf(string path, bool image, CadFonts fonts, int width, int height)
+        internal static ImageSource PreviewOf(
+            string path,
+            bool image,
+            CadFonts fonts,
+            int width,
+            int height,
+            bool pdf = false
+        )
         {
             try
             {
+                if (pdf)
+                {
+                    return CadStylePreview.PdfPage(path, 1, width, height);
+                }
+
                 if (image)
                 {
                     // TGA, PCX, a DIB and an RLE bitmap, and the TIFFs Windows cannot read, are read by the presenter's own decoders.
@@ -477,7 +513,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            if (reference.IsImage)
+            if (reference.IsImage || reference.IsPdf)
             {
                 System.Diagnostics.Process.Start(
                     new System.Diagnostics.ProcessStartInfo(reference.FoundAt) { UseShellExecute = true }
@@ -507,9 +543,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 : option == "Reload" ? "R"
                 : "D";
             IEnumerable<ReferenceRowViewModel> xrefRows = option == "Detach" ? SelectedRows : own;
-            string xrefs = Patterns(xrefRows.Where(r => r.Reference != null && !r.IsImage));
+            string xrefs = Patterns(xrefRows.Where(r => r.Reference != null && !r.IsImage && !r.IsPdf));
             string images = Patterns(own.Where(r => r.IsImage));
-            bool both = xrefs.Length > 0 && images.Length > 0;
+            string pdfs = Patterns(own.Where(r => r.IsPdf));
+            bool both = (xrefs.Length > 0 ? 1 : 0) + (images.Length > 0 ? 1 : 0) + (pdfs.Length > 0 ? 1 : 0) > 1;
 
             if (both)
             {
@@ -526,6 +563,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 if (images.Length > 0)
                 {
                     _model.RunWithAnswers("-IMAGE", answer, images);
+                }
+
+                if (pdfs.Length > 0)
+                {
+                    _model.RunWithAnswers("-PDFUNDERLAY", answer, pdfs);
                 }
             }
             finally
@@ -574,6 +616,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static bool IsBindable(ReferenceRowViewModel row) =>
             row.Reference != null
             && !row.IsImage
+            && !row.IsPdf
             && (
                 row.Reference.Status == CadReferenceStatus.Loaded
                 || row.Reference.Status == CadReferenceStatus.NeedsReloading
@@ -586,7 +629,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private void Bind()
         {
             List<string> names = SelectedRows
-                .Where(r => r.Reference != null && !r.IsImage)
+                .Where(r => r.Reference != null && !r.IsImage && !r.IsPdf)
                 .OrderBy(r => Rows.IndexOf(r))
                 .Select(r => r.Name)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -603,7 +646,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void ReloadAll()
         {
-            if (Rows.Any(r => r.Reference != null && !r.IsImage))
+            if (Rows.Any(r => r.Reference != null && !r.IsImage && !r.IsPdf))
             {
                 _model.RunWithAnswers("-XREF", "R", "*");
             }
@@ -611,6 +654,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (Rows.Any(r => r.IsImage))
             {
                 _model.RunWithAnswers("-IMAGE", "R", "*");
+            }
+
+            if (Rows.Any(r => r.IsPdf))
+            {
+                _model.RunWithAnswers("-PDFUNDERLAY", "R", "*");
             }
 
             Refresh();
@@ -623,7 +671,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            if (!_selected.IsImage)
+            if (!_selected.IsImage && !_selected.IsPdf)
             {
                 _model.RunWithAnswers("-XREF", "T", Pattern(_selected.Name), type.ToString());
                 Refresh();
@@ -676,23 +724,34 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the request.</summary>
         public CadAttachRequest Request { get; }
 
-        /// <summary>Gets the title: Attach External Reference, or Attach Image.</summary>
-        public string Title => IsImage ? "Attach Image" : "Attach External Reference";
+        /// <summary>Gets the title: Attach External Reference, Attach Image, or Attach PDF Underlay.</summary>
+        public string Title =>
+            IsPdf ? "Attach PDF Underlay"
+            : IsImage ? "Attach Image"
+            : "Attach External Reference";
 
         /// <summary>Gets whether a picture is attached.</summary>
         public bool IsImage => Request.Kind == CadAttachKind.Image;
 
+        /// <summary>Gets whether a PDF is attached.</summary>
+        public bool IsPdf => Request.Kind == CadAttachKind.Pdf;
+
         /// <summary>Gets whether a drawing is attached.</summary>
-        public bool IsXref => !IsImage;
+        public bool IsXref => Request.Kind == CadAttachKind.Xref;
 
         /// <summary>Gets the kinds of file offered, as the dialog's note says them.</summary>
         public string FilesNote =>
-            IsImage
+            IsPdf
+                ? "Files of type: PDF (*.pdf). The first page is chosen; choose more pages in the list with Ctrl or Shift."
+            : IsImage
                 ? "Files of type: all image files, Bitmap (*.bmp), RLE (*.rle), DIB (*.dib), GIF (*.gif), JPEG (*.jpg, *.jpeg), PCX (*.pcx), PNG (*.png), TGA (*.tga), TIFF (*.tif, *.tiff). PDF and the other raster types of AutoCAD's Raster Design are not offered."
-                : "Files of type: Drawing (*.dwg), of AutoCAD 2000 to 2018, and Drawing Exchange Format (*.dxf).";
+            : "Files of type: Drawing (*.dwg), of AutoCAD 2000 to 2018, and Drawing Exchange Format (*.dxf).";
 
         /// <summary>Gets the filter of the Browse dialog: for a drawing, DWG first as AutoCAD's, then DXF.</summary>
-        public string BrowseFilter => IsImage ? CadImageFile.OpenFilter : CadDrawingFile.OpenFilter;
+        public string BrowseFilter =>
+            IsPdf ? "PDF files (*.pdf)|*.pdf|All files (*.*)|*.*"
+            : IsImage ? CadImageFile.OpenFilter
+            : CadDrawingFile.OpenFilter;
 
         /// <summary>Gets or sets the full path of the file chosen; set, the dialog reads it and shows what it found.</summary>
         public string FileName
@@ -716,6 +775,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         nameof(Error),
                         nameof(CanOk),
                         nameof(Preview),
+                        nameof(Pages),
+                        nameof(PageCount),
                     }
                 )
                 {
@@ -752,6 +813,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     if (
                         reference.IsImage == IsImage
+                        && reference.IsPdf == IsPdf
                         && !names.Contains(reference.Name, StringComparer.OrdinalIgnoreCase)
                     )
                     {
@@ -859,7 +921,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool IsScaleYZTyped => !Request.SpecifyScaleOnScreen && !Request.UniformScale;
 
         /// <summary>Gets or sets the label of the first scale box: X: for a drawing, Scale: for a picture.</summary>
-        public string ScaleLabel => IsImage ? "Scale:" : "X:";
+        public string ScaleLabel => IsXref ? "X:" : "Scale:";
 
         /// <summary>Gets or sets the scale along X, as typed; the scale of a picture.</summary>
         public string ScaleX
@@ -929,13 +991,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets the title of the unit group: Block Unit for a drawing, Resolution for a picture.</summary>
-        public string UnitTitle => IsImage ? "Resolution" : "Block Unit";
+        public string UnitTitle =>
+            IsPdf ? "Page"
+            : IsImage ? "Resolution"
+            : "Block Unit";
 
         /// <summary>Gets the unit: of the drawing chosen for a reference, of this drawing for a picture.</summary>
-        public string UnitText => Request.Units == DxfUnits.Undefined ? "Unitless" : Request.Units.ToString();
+        public string UnitText =>
+            IsPdf ? "Inches"
+            : Request.Units == DxfUnits.Undefined ? "Unitless"
+            : Request.Units.ToString();
 
         /// <summary>Gets the label of the second line of the unit group: Factor: for a drawing, Size: for a picture.</summary>
-        public string UnitSecondLabel => IsImage ? "Size:" : "Factor:";
+        public string UnitSecondLabel => IsXref ? "Factor:" : "Size:";
 
         /// <summary>
         /// Gets the second line of the unit group: the factor of a drawing's unit, 1.0000; of a picture its pixels and what a
@@ -945,6 +1013,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             get
             {
+                if (IsPdf)
+                {
+                    return Request.PageCount == 0
+                        ? string.Empty
+                        : Request.PageWidth(1).ToString("0.####", CultureInfo.InvariantCulture)
+                            + " × "
+                            + Request.PageHeight(1).ToString("0.####", CultureInfo.InvariantCulture)
+                            + " in · "
+                            + Request.PageCount.ToString(CultureInfo.InvariantCulture)
+                            + (Request.PageCount == 1 ? " page" : " pages");
+                }
+
                 if (!IsImage)
                 {
                     return Request.UnitFactor.ToString("0.0000", CultureInfo.InvariantCulture);
@@ -981,7 +1061,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets whether OK can be pressed: a file chosen that can be attached, and a name.</summary>
         public bool CanOk =>
-            Request.FileName != null && Request.Error == null && !string.IsNullOrWhiteSpace(Request.Name);
+            Request.FileName != null
+            && Request.Error == null
+            && (IsPdf ? Request.SelectedPages.Count > 0 : !string.IsNullOrWhiteSpace(Request.Name));
 
         /// <summary>Gets the preview of the file chosen: the drawing drawn, or the picture; null before one is chosen.</summary>
         public ImageSource Preview
@@ -994,12 +1076,77 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
 
                 _preview =
-                    IsImage ? ExternalReferencesViewModel.PreviewOf(Request.FileName, true, null, 200, 150)
+                    IsPdf
+                        ? CadStylePreview.PdfPage(
+                            Request.FileName,
+                            Request.SelectedPages.Count > 0 ? Request.SelectedPages[0] : 1,
+                            200,
+                            150
+                        )
+                    : IsImage ? ExternalReferencesViewModel.PreviewOf(Request.FileName, true, null, 200, 150)
                     : Request.Drawing == null ? null
                     : CadStylePreview.Drawing(Request.Drawing, Request.Document.Fonts, 200, 150);
                 return _preview;
             }
         }
+
+        /// <summary>Gets the pages of the PDF chosen, each with its thumbnail drawn when the list asks for it; none before a PDF is chosen.</summary>
+        public IReadOnlyList<PdfPageRowViewModel> Pages
+        {
+            get
+            {
+                var rows = new List<PdfPageRowViewModel>();
+
+                for (int page = 1; page <= Request.PageCount; page++)
+                {
+                    rows.Add(new PdfPageRowViewModel(Request, page));
+                }
+
+                return rows;
+            }
+        }
+
+        /// <summary>Gets how many pages the PDF chosen has.</summary>
+        public int PageCount => Request.PageCount;
+
+        /// <summary>Makes the pages given the ones attached, as the list's selection changes; the first page where none is chosen.</summary>
+        /// <param name="numbers">The numbers of the pages chosen, from 1.</param>
+        public void SelectPages(IEnumerable<int> numbers)
+        {
+            Request.SelectedPages.Clear();
+            Request.SelectedPages.AddRange(
+                numbers.Where(n => n >= 1 && n <= Request.PageCount).OrderBy(n => n).Distinct()
+            );
+            _preview = null;
+            Raise(nameof(Preview));
+            Raise(nameof(CanOk));
+        }
+
+        /// <summary>Gets the units the Unit box offers, as the scale prompt's Unit option does.</summary>
+        public IReadOnlyList<string> Units { get; } =
+            new[] { "Unitless", "Millimeter", "Centimeter", "Meter", "Kilometer", "Inch", "Foot", "Yard", "Mile" };
+
+        /// <summary>
+        /// Gets or sets the unit the PDF page's inches are read as, which sets the scale as the scale prompt's Unit option does:
+        /// Inch in a drawing of millimetres makes it 25.4. Unitless until set.
+        /// </summary>
+        public string SelectedUnit
+        {
+            get => _unit;
+            set
+            {
+                _unit = value ?? "Unitless";
+                string key =
+                    _unit == "Millimeter" ? "MM"
+                    : _unit == "Mile" ? "MILe"
+                    : _unit;
+                double factor = CadCommands.PdfUnitScale(key, Request.Document.Database.Insunits);
+                ScaleX = BlockNumbers.Text(factor);
+                Raise(nameof(SelectedUnit));
+            }
+        }
+
+        private string _unit = "Unitless";
 
         /// <summary>Writes what the dialog holds into the request and says what it was closed with.</summary>
         /// <param name="action">OK or Cancel.</param>
@@ -1010,7 +1157,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Request.Point = new GeoPoint3(Read(_x, 0.0), Read(_y, 0.0), Read(_z, 0.0));
                 double x = Read(_scaleX, 1.0);
                 Request.Scale =
-                    Request.UniformScale || IsImage
+                    Request.UniformScale || !IsXref
                         ? new GeoVector3(x, x, x)
                         : new GeoVector3(x, Read(_scaleY, x), Read(_scaleZ, x));
                 Request.Rotation = Read(_angle, 0.0) * Math.PI / 180.0;
@@ -1040,6 +1187,36 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return "units";
             }
         }
+    }
+
+    /// <summary>One page of the list of the Attach PDF Underlay dialog: its number, its size and its thumbnail, drawn when first shown.</summary>
+    public sealed class PdfPageRowViewModel : ObservableObject
+    {
+        private readonly CadAttachRequest _request;
+        private ImageSource _thumbnail;
+
+        internal PdfPageRowViewModel(CadAttachRequest request, int number)
+        {
+            _request = request;
+            Number = number;
+        }
+
+        /// <summary>Gets the number of the page, from 1.</summary>
+        public int Number { get; }
+
+        /// <summary>Gets the title the list shows: Page 1.</summary>
+        public string Title => "Page " + Number.ToString(CultureInfo.InvariantCulture);
+
+        /// <summary>Gets the size the list shows under the title, in inches to two places: 2.78 x 1.39 in.</summary>
+        public string Size =>
+            _request.PageWidth(Number).ToString("0.##", CultureInfo.InvariantCulture)
+            + " x "
+            + _request.PageHeight(Number).ToString("0.##", CultureInfo.InvariantCulture)
+            + " in";
+
+        /// <summary>Gets the thumbnail of the page, drawn the first time it is asked for.</summary>
+        public ImageSource Thumbnail =>
+            _thumbnail ?? (_thumbnail = CadStylePreview.PdfPage(_request.FileName, Number, 90, 70));
     }
 
     /// <summary>

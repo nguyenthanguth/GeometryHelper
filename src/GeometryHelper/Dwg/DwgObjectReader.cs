@@ -1086,6 +1086,12 @@ namespace GeometryHelper.Dwg
                 case "IMAGEDEF_REACTOR":
                     ReadImageDefinitionReactor();
                     return true;
+                case "PDFUNDERLAY":
+                    ReadPdfUnderlay();
+                    return true;
+                case "PDFDEFINITION":
+                    ReadPdfDefinition();
+                    return true;
                 case "DBCOLOR":
                     ReadBookColour();
                     return true;

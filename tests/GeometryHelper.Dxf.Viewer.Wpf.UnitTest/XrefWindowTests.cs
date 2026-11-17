@@ -343,7 +343,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     List<MenuItem> items = attach.Items.OfType<MenuItem>().ToList();
                     Assert.Equal(8, items.Count);
                     Assert.Equal(
-                        6,
+                        5,
                         items.Count(i =>
                             !i.IsEnabled && ((string)i.Header).EndsWith("not offered", StringComparison.Ordinal)
                         )

@@ -79,11 +79,25 @@
                         </DockPanel>
                     </MenuItem.Header>
                 </MenuItem>
+                <MenuItem Style="{StaticResource GhMenuItem}" Command="{Binding AttachPdfCommand}">
+                    <MenuItem.Header>
+                        <DockPanel Width="220">
+                            <TextBlock
+                                DockPanel.Dock="Right"
+                                Text="PDFATTACH"
+                                FontFamily="{StaticResource GhMonoFont}"
+                                FontSize="10"
+                                Foreground="{StaticResource GhTextMuted}"
+                            />
+                            <TextBlock Text="Attach PDF…" />
+                        </DockPanel>
+                    </MenuItem.Header>
+                </MenuItem>
                 <Separator Style="{StaticResource GhMenuSeparator}" />
                 <MenuItem Style="{StaticResource GhMenuItem}" IsEnabled="False" Header="Attach DWG…   not offered" />
                 <MenuItem Style="{StaticResource GhMenuItem}" IsEnabled="False" Header="Attach DWF…   not offered" />
                 <MenuItem Style="{StaticResource GhMenuItem}" IsEnabled="False" Header="Attach DGN…   not offered" />
-                <MenuItem Style="{StaticResource GhMenuItem}" IsEnabled="False" Header="Attach PDF…   not offered" />
+
                 <MenuItem
                     Style="{StaticResource GhMenuItem}"
                     IsEnabled="False"

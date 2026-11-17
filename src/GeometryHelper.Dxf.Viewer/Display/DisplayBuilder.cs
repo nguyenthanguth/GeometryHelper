@@ -2219,6 +2219,9 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfOle2Frame ole:
                     DrawOle(ole, frame, list, style, handle, layerName);
                     return;
+                case DxfPdfUnderlay pdf:
+                    DrawPdf(pdf, frame, list, style, handle, layerName);
+                    return;
             }
 
             Shapes:

@@ -1,11 +1,12 @@
-# Images, wipeouts and OLE objects
+# Images, PDF underlays, wipeouts and OLE objects
 
-Pictures in a drawing: an IMAGE shows a picture file by its path, a WIPEOUT masks what lies under it, and an OLE2FRAME
-holds a picture (or a document) inside the drawing itself.
+Pictures in a drawing: an IMAGE shows a picture file by its path, a PDFUNDERLAY shows a page of a PDF file by its path, a
+WIPEOUT masks what lies under it, and an OLE2FRAME holds a picture (or a document) inside the drawing itself.
 
 | Entity | Class | AutoCAD's class | The picture is |
 |---|---|---|---|
 | IMAGE | [`DxfRasterImage`](xref:GeometryHelper.Dxf.DxfRasterImage) | `RasterImage` | a file outside the drawing, named by a [`DxfRasterImageDef`](xref:GeometryHelper.Dxf.DxfRasterImageDef) |
+| PDFUNDERLAY | [`DxfPdfUnderlay`](xref:GeometryHelper.Dxf.DxfPdfUnderlay) | `PdfReference` | a page of a PDF file outside the drawing, named by a [`DxfPdfDefinition`](xref:GeometryHelper.Dxf.DxfPdfDefinition) |
 | WIPEOUT | [`DxfWipeout`](xref:GeometryHelper.Dxf.DxfWipeout) | `Wipeout` | none: it hides what is under it |
 | OLE2FRAME | [`DxfOle2Frame`](xref:GeometryHelper.Dxf.DxfOle2Frame) | `Ole2Frame` | inside the drawing, as Windows' OLE saved it |
 
@@ -146,6 +147,38 @@ DXF of R2000, R2010 and R2018, which the library reads the same. Making 10 000 w
   `Unload`, `OpenImage`, `ImageCopy`, `SetImage`, `Embed`, `ColorDepth`, `FileType`, `Organization` and the rest), which
   need the file read; `RasterImage.Scale`, which AutoCAD works out from the picture loaded; and `Wipeout.HasFrame`, which
   AutoCAD 2021 gave true for every wipeout whatever its drawing said.
+
+## PDF underlays
+
+A PDF underlay (R2010 and later) shows one page of a PDF file, its lines, fills, words and pictures, at a place, a scale and a turn in the
+drawing. Like an image it holds no picture of its own: its [`DxfPdfDefinition`](xref:GeometryHelper.Dxf.DxfPdfDefinition) names the file (group 1) and
+the page (group 2, its number as text) under a name in ACAD_PDFUNDERLAYS of the named object dictionary, as AutoCAD 2021 writes them, and the
+drawings' CLASSES list `PDFUNDERLAY` (`AcDbPdfReference`) and `PDFDEFINITION` (`AcDbPdfDefinition`).
+
+```csharp
+DxfDBDictionary underlays = DxfPdfDefinition.CreatePdfDictionary(db);            // ACAD_PDFUNDERLAYS
+var page = new DxfPdfDefinition(@"D:\plans\sample.pdf", "1");                    // page 1
+underlays.SetAt(DxfPdfDefinition.SuggestName(underlays, page.SourceFileName, "1"), page);   // "sample - Page_1"
+var underlay = new DxfPdfUnderlay(page);                                         // scale 1, at the origin, clip on, no boundary
+db.ModelSpace.AppendEntity(underlay);                                            // page.GetEntityCount() is 1
+underlay.Position = new GeoPoint3(10, 20, 0);
+underlay.ScaleFactors = new GeoVector3(25.4, 25.4, 25.4);                        // a page of 8.27 inches is 210 millimetres
+underlay.Rotation = Math.PI / 2;
+underlay.SetClipBoundary(new[] { new GeoPoint2(1, 1), new GeoPoint2(2, 2) });    // inches of the page; stored as (1, 2) and (2, 1)
+```
+
+The page is measured in **inches**, as AutoCAD 2021 measures it (a page of 200 by 100 points is 2.7778 by 1.3889 at scale 1, and the scale 25.4
+makes it 70.56 by 35.28 millimetres), and the clip boundary is in the same inches from the page's lower left corner, before the scale and the turn:
+the corners (1, 1) and (2, 2) of a page placed at (10, 20) with the scale 2 show the part from (12, 22) to (14, 24). Two corners are a rectangle, which AutoCAD
+stores as its upper left and lower right; three or more are a polygon, open. `IsClipped` is true for a new underlay, as AutoCAD keeps it, which clips nothing
+until it has a boundary (`HasClipBoundary`); `IsClipInverted` shows what lies outside the boundary. `Fade` (0 to 100), `Contrast` (0 to 100, 100 as it is),
+`Monochrome`, `AdjustColorForBackground` and `IsOn` are the flags and levels of the record (groups 280, 281, 282); AutoCAD writes no 280 for the flags a new
+underlay has. A file of R2007 or older has no PDF underlays: they are refused with the version said. The layers of a PDF an underlay switches on or off are
+kept by the presenter as the extended data `GEOMETRYHELPER_PDFLAYERS` of the entity, which AutoCAD ignores.
+
+DWG: the entity is written and read in AutoCAD's layout (its normal, corner, turn in radians, scales, flags, contrast, fade, the clip corners and the handle of the
+definition); the definition holds the path and the page name. The library reads no PDF: its extent is the clip boundary alone (`GeometricExtents` of an underlay
+with none throws, as for an entity of no shape); the [presenter](../presenter/editing.md) reads the page and draws it.
 
 ## OLE objects
 

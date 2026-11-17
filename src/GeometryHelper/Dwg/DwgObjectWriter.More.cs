@@ -144,6 +144,36 @@ namespace GeometryHelper.Dwg
             H(3, image.Handle(360));
         }
 
+        /// <summary>A PDFUNDERLAY: its normal, corner, turn, scales, flags, contrast, fade and clip corners, its definition by handle.</summary>
+        private void WritePdfUnderlay()
+        {
+            DwgGroups underlay = _record.Of("AcDbUnderlayReference");
+            _data.Point3(underlay.Point(210, 0.0, 0.0, 1.0));
+            _data.Point3(underlay.Point(10));
+            _data.BitDouble(Radians(underlay.Double(50)));
+            _data.Point3(new[] { underlay.Double(41, 1.0), underlay.Double(42, 1.0), underlay.Double(43, 1.0) });
+            _data.RawChar(underlay.Int(280, 11));
+            _data.RawChar(underlay.Int(281, 100));
+            _data.RawChar(underlay.Int(282));
+            List<double[]> vertices = Points(underlay, 11);
+            _data.BitLong(vertices.Count);
+
+            foreach (double[] vertex in vertices)
+            {
+                _data.RawPoint2(vertex);
+            }
+
+            H(5, underlay.Handle(340));
+        }
+
+        /// <summary>A PDFDEFINITION: the path of the PDF file and the name of the page.</summary>
+        private void WritePdfDefinition()
+        {
+            DwgGroups definition = _record.Of("AcDbUnderlayDefinition");
+            T(definition.Text(1));
+            T(definition.Text(2));
+        }
+
         private void WriteImageDefinition()
         {
             DwgGroups definition = _record.Of("AcDbRasterImageDef");

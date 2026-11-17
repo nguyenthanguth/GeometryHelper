@@ -793,6 +793,11 @@
                 <local:ImageRibbon />
             </DataTemplate>
 
+            <!-- The contextual PDF Underlay tab while PDF underlays are selected: its own control (PdfRibbon). -->
+            <DataTemplate DataType="{x:Type local:PdfTabViewModel}">
+                <local:PdfRibbon />
+            </DataTemplate>
+
             <!-- The contextual Block Editor tab while a block is open in the Block Editor (BEDIT): its own control (BlockEditorRibbon). -->
             <DataTemplate DataType="{x:Type local:BlockEditorRibbonViewModel}">
                 <local:BlockEditorRibbon />
@@ -2022,9 +2027,9 @@
                     </local:RibbonPanel>
 
                     <!--
-                    Reference: Attach's split (XATTACH, IMAGEATTACH; the formats not built greyed), Clip (IMAGECLIP), External
-                    References (the palette), the image frame box (IMAGEFRAME) and Transparency; Adjust, Underlay Layers and Snap to
-                    Underlays greyed: no underlays are built.
+                    Reference: Attach's split (XATTACH, IMAGEATTACH, PDFATTACH; the formats not built greyed), Clip (IMAGECLIP), External
+                    References (the palette), the image frame box (IMAGEFRAME) and Transparency; Adjust (PDFADJUST), Underlay Layers
+                    (PDFLAYERS) and Snap to Underlays (PDFOSNAP) of PDF underlays.
                     -->
                     <local:RibbonPanel
                         Title="Reference"
@@ -2099,8 +2104,11 @@
                                                 <MenuItem
                                                     Style="{StaticResource GhMenuItem}"
                                                     Header="Attach PDF…"
-                                                    IsEnabled="False"
-                                                    ToolTip="Attach PDF: not offered"
+                                                    Tag="{StaticResource GhIconAttach}"
+                                                    Click="OnSplitChoice"
+                                                    Command="{Binding Model.StartCommandCommand}"
+                                                    CommandParameter="PDFATTACH"
+                                                    ToolTip="Attach PDF (PDFATTACH)"
                                                 />
                                                 <MenuItem
                                                     Style="{StaticResource GhMenuItem}"
@@ -2142,15 +2150,19 @@
                                     Style="{StaticResource NarrowSmallButton}"
                                     Tag="{StaticResource GhIconAdjust}"
                                     Content="Adjust"
-                                    Opacity="0.5"
-                                    ToolTip="Adjust (ADJUST): not offered"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="PDFADJUST"
+                                    ToolTip="Fade, contrast and monochrome of a PDF underlay (PDFADJUST)"
                                 />
                                 <Button
                                     Style="{StaticResource NarrowSmallButton}"
                                     Tag="{StaticResource GhIconUnderlayLayers}"
                                     Content="Underlay Layers"
-                                    Opacity="0.5"
-                                    ToolTip="Underlay Layers (ULAYERS): not offered"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="PDFLAYERS"
+                                    ToolTip="Layers of a PDF underlay (PDFLAYERS)"
                                 />
                             </StackPanel>
                             <StackPanel Margin="6,2,0,0" VerticalAlignment="Top">
@@ -2187,8 +2199,10 @@
                                     Style="{StaticResource NarrowSmallButton}"
                                     Tag="{StaticResource GhIconSnapUnderlay}"
                                     Content="Snap to Underlays"
-                                    Opacity="0.5"
-                                    ToolTip="Snap to Underlays: not offered"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="PDFOSNAP"
+                                    ToolTip="Object snaps on the geometry of PDF underlays (PDFOSNAP)"
                                 />
                             </StackPanel>
                         </StackPanel>
@@ -3706,6 +3720,36 @@
                             </Style>
                         </ToggleButton.Style>
                     </ToggleButton>
+                    <!-- The contextual PDF Underlay tab, green as the others, while PDF underlays are selected. -->
+                    <ToggleButton
+                        Content="PDF Underlay"
+                        IsChecked="{Binding PdfTab.IsTabSelected, Mode=OneWay}"
+                        Margin="4,0,0,0"
+                        Command="{Binding SelectTabCommand}"
+                        CommandParameter="{Binding PdfTab}"
+                        Visibility="{Binding PdfTab.IsTabVisible, Converter={StaticResource Shown}}"
+                    >
+                        <ToggleButton.Style>
+                            <Style TargetType="ToggleButton" BasedOn="{StaticResource GhRibbonTab}">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border
+                                                Background="#2F8F4E"
+                                                CornerRadius="2,2,0,0"
+                                                Padding="{TemplateBinding Padding}"
+                                            >
+                                                <ContentPresenter
+                                                    TextElement.Foreground="White"
+                                                    TextElement.FontWeight="SemiBold"
+                                                />
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ToggleButton.Style>
+                    </ToggleButton>
                     <!-- The contextual Block Editor tab, green as the others, while a block is open in the Block Editor. -->
                     <ToggleButton
                         Content="Block Editor"
@@ -3764,6 +3808,10 @@
                                     <Setter Property="BorderThickness" Value="0,2,0,0" />
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding ImageTab.IsTabSelected}" Value="True">
+                                    <Setter Property="BorderBrush" Value="#2F8F4E" />
+                                    <Setter Property="BorderThickness" Value="0,2,0,0" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding PdfTab.IsTabSelected}" Value="True">
                                     <Setter Property="BorderBrush" Value="#2F8F4E" />
                                     <Setter Property="BorderThickness" Value="0,2,0,0" />
                                 </DataTrigger>

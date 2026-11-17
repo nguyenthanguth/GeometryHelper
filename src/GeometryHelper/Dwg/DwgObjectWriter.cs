@@ -431,6 +431,10 @@ namespace GeometryHelper.Dwg
                     return () => WriteRasterImage("AcDbWipeout");
                 case "IMAGEDEF":
                     return WriteImageDefinition;
+                case "PDFUNDERLAY":
+                    return WritePdfUnderlay;
+                case "PDFDEFINITION":
+                    return WritePdfDefinition;
                 case "RASTERVARIABLES":
                     return WriteRasterVariables;
                 case "SPATIAL_FILTER":

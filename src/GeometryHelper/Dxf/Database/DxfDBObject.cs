@@ -778,6 +778,9 @@ namespace GeometryHelper.Dxf
                 case "IMAGEDEF":
                     made = new DxfRasterImageDef(item);
                     break;
+                case "PDFDEFINITION":
+                    made = new DxfPdfDefinition(item);
+                    break;
                 case "RASTERVARIABLES":
                     made = new DxfRasterVariables(item);
                     break;

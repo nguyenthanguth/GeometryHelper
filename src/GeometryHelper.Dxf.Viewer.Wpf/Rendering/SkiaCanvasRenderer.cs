@@ -1127,13 +1127,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         private SKColor ColorOf(DisplayItem2 item, CanvasOptions options, bool isSelected, bool isHover, int background)
         {
+            // What an underlay draws is faded, greyed or turned for the background where it is painted.
+            DisplayUnderlayLook underlay = item.Style?.Underlay;
+
             if (_plot != null)
             {
-                return Color(_plot.Resolver.PenFor(item).Rgb, 255);
+                int pen = _plot.Resolver.PenFor(item).Rgb;
+                return Color(underlay == null ? pen : underlay.Apply(pen, 0xFFFFFF), 255);
             }
 
-            int rgb = isSelected
-                ? options.SelectionColor
+            int rgb =
+                isSelected ? options.SelectionColor
+                : underlay != null ? underlay.Apply(item.Style.Rgb, background)
                 : Visible(item.Style.Rgb, background, options.VisibleLineColor);
 
             if (isHover && !isSelected)

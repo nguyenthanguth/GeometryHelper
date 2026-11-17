@@ -52,6 +52,16 @@ namespace GeometryHelper.Dwg
             _object.Add(281, units);
         }
 
+        /// <summary>A PDFDEFINITION: the path of the PDF file and the name of the page, its number as text.</summary>
+        private void ReadPdfDefinition()
+        {
+            byte[] file = T();
+            byte[] page = T();
+            _object.Add(100, "AcDbUnderlayDefinition");
+            _object.Add(1, file);
+            _object.Add(2, page);
+        }
+
         /// <summary>An IMAGEDEF_REACTOR: its class version, then its image, its owner, which DXF writes again.</summary>
         private void ReadImageDefinitionReactor()
         {

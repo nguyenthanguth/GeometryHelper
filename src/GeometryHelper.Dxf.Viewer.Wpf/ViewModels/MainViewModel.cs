@@ -2039,6 +2039,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "XOPEN":
                 case "XATTACH":
                 case "IMAGEATTACH":
+                case "PDFATTACH":
+                case "PDFLAYERS":
                     OnXrefRequested(e);
                     break;
             }
@@ -2331,6 +2333,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 HideArrayTab();
                 HideHatchTab();
                 HideImageTab();
+                HidePdfTab();
                 SelectionLabel = string.Empty;
                 PropertyGroups = Array.Empty<PropertyGroupViewModel>();
                 PropertiesBanner = null;
@@ -2345,6 +2348,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             SyncArrayTab(handles);
             SyncHatchTab();
             SyncImageTab(handles);
+            SyncPdfTab(handles);
             CadSelectionInfo info = CadProperties.Describe(_current.Document, Space, handles, View);
             string banner = null;
 

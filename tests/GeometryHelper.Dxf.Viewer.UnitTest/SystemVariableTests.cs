@@ -277,6 +277,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     "FILEDIA",
                     "FILLETRAD",
                     "FILLMODE",
+                    "FRAME",
                     "HIGHLIGHT",
                     "HPANG",
                     "HPASSOC",
@@ -313,6 +314,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     "OLEQUALITY",
                     "ORTHOMODE",
                     "OSNAPZ",
+                    "PDFFRAME",
+                    "PDFOSNAP",
                     "PDFSHX",
                     "PDMODE",
                     "PDSIZE",
@@ -380,7 +383,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // -OBJECTSCALE, AIOBJECTSCALEADD and AIOBJECTSCALEREMOVE, OBJECTSCALE, REFEDIT, -REFEDIT, REFSET and REFCLOSE, and
             // HATCHSETORIGIN, TABLEEXPORT, VPMAX, VPMIN and REVCLOUDPROPERTIES, CENTERMARK and CENTERLINE, WMFIN, MIRROR3D, SPLINE and BLEND, OOPS and WIPEOUT, SELECTSIMILAR, ADDSELECTED and TEXTSCR,
             // and LAYMRG, -LAYMRG, LAYDEL, -LAYDEL, LAYCUR, COPYTOLAYER, -COPYTOLAYER, -DIMSTYLE and DIMUPDATE, SCALETEXT, JUSTIFYTEXT, TXT2MTXT and ATTDISP, ARRAYPATH, OVERKILL and -OVERKILL, PUBLISH and -PUBLISH, STYLESMANAGER, REVERSE, SETBYLAYER, CHPROP, BURST, TXTEXP and CHSPACE, ARRAYEDIT, FIELD and UPDATEFIELD, DWGPROPS, HYPERLINK, -HYPERLINK, GROUPEDIT, ATTREDEF, HATCHGENERATEBOUNDARY, HATCHSETBOUNDARY, -HATCHEDIT, MATCHCELL and EDITTABLECELL.
-            Assert.Equal(311, registry.Commands.Count);
+            Assert.Equal(318, registry.Commands.Count);
             Assert.NotNull(registry.Find("SETVAR"));
             Assert.Null(registry.Find("PDMODE"));
             Assert.True(registry.FindVariable("PDMODE").IsInDrawing);
