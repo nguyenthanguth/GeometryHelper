@@ -957,6 +957,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["SCALETEXT"] = "Scale texts about a base point of their own",
             ["SCRIPT"] = "Run a script of commands",
             ["ADDSELECTED"] = "Draw a new object like the one picked",
+            ["SELECT"] = "Select objects and keep them selected",
             ["SELECTALL"] = "Select all objects",
             ["SELECTSIMILAR"] = "Select objects like the ones picked",
             ["SELECTSIMILARMODE"] = "Which properties SELECTSIMILAR matches",

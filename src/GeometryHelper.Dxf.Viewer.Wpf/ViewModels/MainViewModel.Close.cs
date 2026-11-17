@@ -274,6 +274,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ((DelegateCommand)StartCommandCommand).RaiseCanExecuteChanged();
             _startCommandWithOptionCommand?.RaiseCanExecuteChanged();
             Raise(nameof(IsGroupSelectionOn));
+            Raise(nameof(IsPickAddOn));
             Revision++;
         }
 

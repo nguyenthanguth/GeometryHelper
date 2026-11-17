@@ -4575,6 +4575,21 @@ For the circle: General (Color ByLayer, Layer Steel, Linetype ByLayer, Linetype 
 show `*Varies*`; with nothing selected the panel shows the drawing's current colour, layer, linetype, linetype scale,
 lineweight and transparency, the plot style and the view.
 
+**The selection box.** With objects of several kinds selected the box reads `All (7)` and shows only the General rows, the
+values that differ as `*Varies*`. It is a list, as AutoCAD 2021's is: `All (7)` first, then one row for each kind with its
+count, in the order of the kinds' names, so that five MTEXTs and two OLE frames give `All (7)`, `MText (5)` and `OLE Object (2)`
+([`CadProperties.Kinds(document, handles)`](xref:GeometryHelper.Dxf.Viewer.CadProperties) gives the rows, each a
+[`CadSelectionKind`](xref:GeometryHelper.Dxf.Viewer.CadSelectionKind) with the handles of its objects). Choosing `MText (5)`
+shows what five MTEXTs alone would show, the Text and Geometry groups with the General one, and every value typed there
+reaches those five and no other of the seven, as one undo step; the drawing's selection stays all seven, grips and highlight
+unchanged. `All (7)` returns to the common rows. Another selection (an object added or taken away, a new pick) returns the box
+to All; an edit leaves the kind chosen where it is. A selection of one
+kind has the one row, `Line (3)`, which is the whole selection. The Quick Properties panel has the same list in its title and
+works on the kind chosen in it. Beside the box are the buttons of AutoCAD's palette: Toggle value of PICKADD (PICKADD 1 and 0,
+shown pressed while it is 1), Select Objects (the new SELECT command, which asks `Select objects:` and makes the objects picked
+the selection, with no undo step) and Quick Select (QSELECT). AutoCAD 2021's order of the kinds in the list is taken to be
+alphabetical; it could not be seen in the console.
+
 [`CadPropertyEditor.Set(document, handles, label, value)`](xref:GeometryHelper.Dxf.Viewer.CadPropertyEditor) types a value back into a row, as AutoCAD's palette does, one undo
 step:
 

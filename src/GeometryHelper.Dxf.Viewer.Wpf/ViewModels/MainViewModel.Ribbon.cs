@@ -273,6 +273,37 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        /// <summary>
+        /// Gets or sets whether a pick adds to the selection (PICKADD not 0), as the Toggle value of PICKADD button of Properties
+        /// shows it; setting it writes PICKADD 1 or 0, as the button does, with nothing said.
+        /// </summary>
+        public bool IsPickAddOn
+        {
+            get => _current != null && _current.Document.PickAdd != 0;
+            set
+            {
+                if (_current != null && value != IsPickAddOn)
+                {
+                    _current.Document.PickAdd = value ? 1 : 0;
+                    Raise(nameof(IsPickAddOn));
+                }
+            }
+        }
+
+        /// <summary>
+        /// SELECT, as the Select Objects button of Properties starts it: asks "Select objects:" and makes the objects picked the
+        /// selection, whatever was selected before. It changes nothing in the drawing, so it is no undo step.
+        /// </summary>
+        private static IEnumerable<CadPrompt> SelectCommandBody(CadCommandContext c)
+        {
+            yield return CadPrompt.ForSelection();
+
+            if (c.Input.Kind == CadInputKind.Selection && c.Input.Handles.Count > 0)
+            {
+                c.Document.Selection.Set(c.Input.Handles);
+            }
+        }
+
         /// <summary>Gets or sets whether the DRAWINGS list is shown at the left (View › Interface).</summary>
         public bool IsFileListShown
         {
