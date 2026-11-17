@@ -56,7 +56,7 @@ each.
 | Classes | every class of the file |
 | Tables | VPORT, LTYPE, LAYER, STYLE, VIEW, UCS, APPID, DIMSTYLE, BLOCK_RECORD |
 | Blocks | every block with its entities; the layouts as `*Paper_Space`, `*Paper_Space0` and on, with their viewports |
-| Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs (of several lines too), SOLID, TRACE, 3DFACE, SHAPE (see below), DIMENSION (linear, aligned, angular by two lines or three points, radius, diameter, ordinate), VIEWPORT, HATCH (every boundary kind, pattern, solid fill, gradient), LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, REGION, 3DSOLID and BODY (see below), ACAD_TABLE |
+| Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs (of several lines too), SOLID, TRACE, 3DFACE, SHAPE (see below), DIMENSION (linear, aligned, angular by two lines or three points, radius, diameter, ordinate), VIEWPORT, HATCH (every boundary kind, pattern, solid fill, gradient), LEADER, MULTILEADER, TOLERANCE, MLINE, OLE2FRAME, IMAGE, WIPEOUT, REGION, 3DSOLID and BODY (see below), ACAD_TABLE |
 | Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, IMAGEDEF, IMAGEDEF_REACTOR, DBCOLOR, TABLESTYLE, MATERIAL, VISUALSTYLE, the detail and section view styles (ACDBDETAILVIEWSTYLE, ACDBSECTIONVIEWSTYLE), the manager of the persistent names of subentities beside solids (ACDBASSOCPERSSUBENTMANAGER), the fields and the draw order (FIELD, FIELDLIST, SORTENTSTABLE), the link of a table to data (DATALINK), the cell styles a table style of AutoCAD 2000 to 2007 keeps for a round trip (CELLSTYLEMAP), the data of a dynamic block (the evaluation graph ACAD_EVALUATION_GRAPH with the linear, visibility, flip, rotation, XY, polar, point, base point, lookup and alignment parameters, their grips, the stretch, polar stretch, move, scale, rotate, flip, array and lookup actions and the components of the grip locations, written BLOCKLINEARPARAMETER, BLOCKSTRETCHACTION and so on; ACDB_BLOCKREPRESENTATION_DATA, ACDB_DYNAMICBLOCKPURGEPREVENTER_VERSION, and the block properties table with its grip, the user and the constraint parameters, the proxy node and the associative network of variables, dependencies and groups of constraints, written ACDBASSOCNETWORK, ACDBASSOCVARIABLE and so on), and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
 | Of each | layer, linetype, colour (from AutoCAD 2004 with its true colour and transparency, and a colour of a book with its name), linetype scale, visibility, lineweight, owner, reactors, extension dictionary, extended data, and the proxy graphics where AutoCAD saved them |
 | Preview | the picture of the file's preview, where it holds one, as the section `THUMBNAILIMAGE` of the DXF, last: a bitmap of Windows without its file header (`DxfDatabase.ThumbnailBitmap` gives its bytes), or a PNG file |
@@ -267,6 +267,19 @@ AutoCAD writes them, a turn, slant and thickness of 0, a width of 1 and the extr
 (10, 20, 30) of size 2.5, turned 0.3 rad, 0.8 wide, slanted 0.2 rad and 4 thick on the normal (0, 0.6, 0.8) comes out
 as AutoCAD's DXF of it in all six versions.
 
+## OLE frames
+
+An OLE2FRAME, a picture pasted or an object embedded or linked, is read from a DWG of AutoCAD 2000 to 2018 and written to
+every version the writer knows. The object's binary is what the DXF holds under the groups 310: AutoCAD's head of 128 bytes
+(the four corners of the frame, then the sizes and the space) and the compound file, which Windows' OLE wrote. The DWG keeps
+it whole behind four values of the entity: the version (group 70, 2), the tile mode (a bit short, 1 for the frames of model space that the file read holds, which DXF's group 72 counts as 0; the
+writer writes 0 for paper space), the length and the bytes of the binary, and last the plot quality (group 73, a
+raw byte, 2 for high). The groups 10 and 11 (the upper left and lower right corners) and the kind (71) and the user type (3)
+of DXF are not in the DWG; the reader gives them from the head and the compound file, as
+[`DxfOle2Frame`](xref:GeometryHelper.Dxf.DxfOle2Frame) reads them, so that a DWG and its DXF open to the same frame. A drawing
+of AutoCAD 2010 with 17 bitmaps pasted (frames of 0.4 to 6 MB each) gives 17 frames of the kind Static, each with its picture.
+The extended data AutoCAD keeps beside the object (OLEBEGIN to OLEEND) is read and written as that of any entity. The
+OLEFRAME of AutoCAD R13 (type 0x2B, an object of OLE 1) is still left out.
 ## What is not read yet
 
 A type that is not read is left out, with what it owns, and counted: one Debug line of
@@ -275,10 +288,10 @@ A type that is not read is left out, with what it owns, and counted: one Debug l
 call.
 
 - Entities: a REGION, 3DSOLID or BODY of AutoCAD 2004 to 2010 whose SAB holds a record or subtype the grammars do not
-  know (see above), the OLE frames, proxies, the surfaces (EXTRUDEDSURFACE, REVOLVEDSURFACE and the others), and every
-  entity of a class the list above does not name. No drawing on the machine the reader was checked on holds an OLE frame
-  or a proxy (AutoCAD 2021's own 113 sample drawings do not), AutoCAD's console drops the data of an OLE frame, and so
-  neither is read nor written until a drawing of AutoCAD's own shows how it lays them out.
+  know (see above), proxies, the surfaces (EXTRUDEDSURFACE, REVOLVEDSURFACE and the others), and every
+  entity of a class the list above does not name. No drawing on the machine the reader was checked on holds a proxy
+  (AutoCAD 2021's own 113 sample drawings do not), and so it is neither read nor written until a drawing of AutoCAD's own
+  shows how it lays it out.
 - Objects: the other objects of classes, and the data of a dynamic block with a group of a class of 2D constraint node outside
   the 22 of the samples (ACDBASSOC2DCONSTRAINTGROUP). The group is read from a DWG of AutoCAD 2007 to 2010 (the layout of
   version 1) and from one of AutoCAD 2013 and 2018 (version 2, see above), and written to R2018 in the layout of version 2
@@ -729,7 +742,7 @@ it does not recompose them differently, and the header is AutoCAD's.
 |---|---|
 | Header | every header variable of the version; those a DXF does not give (a drawing of `DxfWriter` gives few) as AutoCAD 2021 gives a new drawing |
 | Tables | VPORT, LTYPE, LAYER, STYLE, VIEW, UCS, APPID, DIMSTYLE, BLOCK_RECORD |
-| Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs, of one line or of several, SOLID, TRACE, 3DFACE, SHAPE given by its number (see below), DIMENSION (every kind), VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, ACAD_TABLE, REGION, 3DSOLID and BODY with their ACIS data (see below) |
+| Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs, of one line or of several, SOLID, TRACE, 3DFACE, SHAPE given by its number (see below), DIMENSION (every kind), VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, MLINE, OLE2FRAME, IMAGE, WIPEOUT, ACAD_TABLE, REGION, 3DSOLID and BODY with their ACIS data (see below) |
 | Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, TABLESTYLE (before R2010 with its CELLSTYLEMAP), DATATABLE (R2000 and R2004), DBCOLOR, IMAGEDEF, IMAGEDEF_REACTOR, RASTERVARIABLES, WIPEOUTVARIABLES, SPATIAL_FILTER (the clip of an INSERT, XCLIP), MATERIAL, VISUALSTYLE, the detail and section view styles, the manager of the persistent names of subentities, FIELD, FIELDLIST, SORTENTSTABLE and DATALINK, the data of a dynamic block (its graph and its parameters, grips and actions, the properties table, the user parameter, the proxy node and the network of variables and dependencies and the groups of constraints, see above), the TABLECONTENT and TABLEGEOMETRY a table keeps for a round trip, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
 | Of each | layer, linetype, colour (index, true colour, transparency, a colour of a book through its DBCOLOR), linetype scale, visibility, lineweight, material, plot style, owner, reactors, extension dictionary, extended data, proxy graphics |
 

@@ -815,13 +815,15 @@ namespace GeometryHelper.Dwg
             return handle;
         }
 
-        private static string Hex(byte[] bytes)
-        {
-            var text = new StringBuilder(bytes.Length * 2);
+        private static string Hex(byte[] bytes) => Hex(bytes, 0, bytes.Length);
 
-            foreach (byte b in bytes)
+        private static string Hex(byte[] bytes, int start, int count)
+        {
+            var text = new StringBuilder(count * 2);
+
+            for (int i = start; i < start + count; i++)
             {
-                text.Append(b.ToString("X2", CultureInfo.InvariantCulture));
+                text.Append(bytes[i].ToString("X2", CultureInfo.InvariantCulture));
             }
 
             return text.ToString();
@@ -1034,6 +1036,9 @@ namespace GeometryHelper.Dwg
                     ReadXRecord();
                     return true;
                 case 0x50:
+                    return true;
+                case 0x4A:
+                    ReadOle2Frame();
                     return true;
                 case 0x52:
                     ReadLayout();

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace GeometryHelper.Dwg
 {
@@ -51,6 +52,41 @@ namespace GeometryHelper.Dwg
             _data.Point3(tolerance.Point(210, 0, 0, 1));
             T(tolerance.Text(1));
             H(5, _drawing.HandleOf("DIMSTYLE", tolerance.Text(3, "Standard")));
+        }
+
+        /// <summary>
+        /// Writes an OLE2FRAME as <see cref="DwgObjectReader"/> reads it: the version, the tile mode (1 in model space, where
+        /// DXF counts 0), the binary of the groups 310 and the plot quality.
+        /// </summary>
+        private void WriteOle2Frame()
+        {
+            DwgGroups frame = _record.Of("AcDbOle2Frame");
+            var binary = new List<byte>();
+
+            foreach (string line in frame.Each(310))
+            {
+                string hex = line.Trim();
+
+                for (int i = 0; i + 1 < hex.Length; i += 2)
+                {
+                    binary.Add(
+                        byte.TryParse(
+                            hex.Substring(i, 2),
+                            NumberStyles.HexNumber,
+                            CultureInfo.InvariantCulture,
+                            out byte value
+                        )
+                            ? value
+                            : (byte)0
+                    );
+                }
+            }
+
+            _data.BitShort(frame.Int(70, 2));
+            _data.BitShort(frame.Int(72) == 0 ? 1 : 0);
+            _data.BitLong(binary.Count);
+            _data.Bytes(binary.ToArray());
+            _data.RawChar(frame.Int(73, 2));
         }
 
         private void WriteMLine()

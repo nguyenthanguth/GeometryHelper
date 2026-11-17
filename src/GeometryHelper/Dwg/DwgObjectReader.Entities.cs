@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Text;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -1539,6 +1540,58 @@ namespace GeometryHelper.Dwg
             {
                 _object.AddPoint(213, annotationOffset);
             }
+        }
+
+        /// <summary>
+        /// An OLE2FRAME: its version, the space it stands in, the object's binary (AutoCAD's head of 128 bytes with the four
+        /// corners of the frame, then the compound file) and, last, how it is plotted. DXF holds the same binary in lines of
+        /// 127 bytes under 310, with the corners as 10 and 11, and the kind (71) and user type (3) that the compound file
+        /// gives, as the library's reader of an OLE2FRAME takes them from there; the pairs of 71 and 3 and of 10 and 11 are
+        /// left out where the file holds no head or no compound file.
+        /// </summary>
+        private void ReadOle2Frame()
+        {
+            int version = _data.BitShort();
+            int mode = _data.BitShort();
+            int length = Count(_data.BitLong());
+            byte[] binary = _data.Bytes(length);
+            int quality = _data.Remaining >= 8 ? _data.RawChar() : 2;
+            _object.Add(100, "AcDbOle2Frame");
+            _object.Add(70, version);
+            DxfCompoundFile file = DxfOleData.Compound(binary, out _);
+
+            if (file != null)
+            {
+                string userType = DxfOleData.UserTypeOf(file);
+
+                if (!string.IsNullOrEmpty(userType))
+                {
+                    _object.Add(3, Encoding.UTF8.GetBytes(userType));
+                }
+            }
+
+            if (DxfOleData.TryCorners(binary, out GeoPoint3[] corners))
+            {
+                _object.AddPoint(10, new[] { corners[0].X, corners[0].Y, corners[0].Z });
+                _object.AddPoint(11, new[] { corners[2].X, corners[2].Y, corners[2].Z });
+            }
+
+            if (file != null)
+            {
+                _object.Add(71, (int)DxfOleData.TypeOf(file));
+            }
+
+            // DXF counts 0 for model space and 1 for paper space, where the file has the TILEMODE of the layout.
+            _object.Add(72, mode == 0 ? 1 : 0);
+            _object.Add(73, quality);
+            _object.Add(90, length);
+
+            for (int at = 0; at < length; at += 127)
+            {
+                _object.Add(310, Hex(binary, at, Math.Min(127, length - at)));
+            }
+
+            _object.Add(1, "OLE");
         }
 
         /// <summary>A TOLERANCE, a feature control frame: its point, direction, plane and text, and its dimension style.</summary>

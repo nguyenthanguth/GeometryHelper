@@ -18,7 +18,7 @@ namespace GeometryHelper.Dwg
     /// and the objects. Written are the tables and their records, the blocks, LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE,
     /// RAY, XLINE, LWPOLYLINE, the 2D and 3D POLYLINE with their vertices, the polygon and polyface mesh, TEXT, MTEXT,
     /// ATTDEF, INSERT, alone or as an array, with its ATTRIBs, of one line or of several, SOLID, TRACE, 3DFACE, DIMENSION,
-    /// VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, ACAD_TABLE, and REGION, 3DSOLID and BODY
+    /// VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, MLINE, OLE2FRAME, IMAGE, WIPEOUT, ACAD_TABLE, and REGION, 3DSOLID and BODY
     /// with their ACIS data in the data store of the file, and of the objects DICTIONARY, XRECORD, LAYOUT, GROUP,
     /// MLINESTYLE, MLEADERSTYLE, TABLESTYLE, DBCOLOR, IMAGEDEF, RASTERVARIABLES, WIPEOUTVARIABLES, MATERIAL, VISUALSTYLE
     /// (in the form of each version), the detail and section view styles, the manager of the
