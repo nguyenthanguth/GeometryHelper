@@ -323,14 +323,14 @@
                     <DockPanel>
                         <Grid DockPanel.Dock="Top" Background="{StaticResource GhHeader}">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="200" />
                                 <ColumnDefinition Width="60" />
                                 <ColumnDefinition Width="70" />
                                 <ColumnDefinition Width="80" />
                                 <ColumnDefinition Width="120" />
                                 <ColumnDefinition Width="120" />
                                 <ColumnDefinition Width="70" />
-                                <ColumnDefinition Width="3*" />
+                                <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Style="{StaticResource HeadCell}" Text="Name" />
                             <TextBlock Grid.Column="1" Style="{StaticResource HeadCell}" Text="On" />
@@ -345,27 +345,36 @@
                             ItemsSource="{Binding Preview}"
                             Background="Transparent"
                             BorderThickness="0"
+                            Padding="0"
                             HorizontalContentAlignment="Stretch"
                             IsHitTestVisible="False"
                             Foreground="{StaticResource GhText}"
                             AutomationProperties.Name="Layers the filter lets through"
                         >
+                            <!-- No inset of the system's row, so that a row's columns start where the header's do. -->
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                </Style>
+                            </ListBox.ItemContainerStyle>
                             <ListBox.ItemTemplate>
                                 <DataTemplate DataType="{x:Type local:LayerFilterPreviewRowViewModel}">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="2*" />
+                                            <ColumnDefinition Width="200" />
                                             <ColumnDefinition Width="60" />
                                             <ColumnDefinition Width="70" />
                                             <ColumnDefinition Width="80" />
                                             <ColumnDefinition Width="120" />
                                             <ColumnDefinition Width="120" />
                                             <ColumnDefinition Width="70" />
-                                            <ColumnDefinition Width="3*" />
+                                            <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock
                                             Style="{StaticResource Cell}"
                                             Text="{Binding Name}"
+                                            ToolTip="{Binding Name}"
                                             FontWeight="SemiBold"
                                         />
                                         <TextBlock Grid.Column="1" Style="{StaticResource Cell}" Text="{Binding On}" />

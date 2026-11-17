@@ -55,8 +55,37 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the height of the dialog: 660 with the VP columns, else 600.</summary>
         public double WindowHeight => HasViewportColumns ? 660 : 600;
 
-        /// <summary>Gets the narrowest the table is drawn: the width of its columns, 1 090, and with the VP columns 1 820; in a window narrower than that the table scrolls sideways.</summary>
-        public double TableMinWidth => HasViewportColumns ? 1820 : 1090;
+        /// <summary>The narrowest the Name column is dragged to.</summary>
+        public const double MinNameWidth = 80;
+
+        /// <summary>The widest the Name column is dragged to.</summary>
+        public const double MaxNameWidth = 600;
+
+        private double _nameWidth = 140;
+
+        /// <summary>
+        /// Gets or sets the width of the Name column, 140 at first and kept between <see cref="MinNameWidth"/> and
+        /// <see cref="MaxNameWidth"/>. It is one fixed width for the header and every row, so scrolling the list never moves a
+        /// column; a name longer than it is cut with an ellipsis, and the header's right edge drags it.
+        /// </summary>
+        public double NameWidth
+        {
+            get => _nameWidth;
+            set
+            {
+                if (Set(ref _nameWidth, Math.Max(MinNameWidth, Math.Min(MaxNameWidth, value))))
+                {
+                    Raise(nameof(TableMinWidth));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the narrowest the table is drawn: the Name column and the 934 of the others, 728 more with the VP columns, and 20
+        /// for the list's border and scroll bar (1 094 with Name at its 140, where the dialog's 1 380 holds 1 102 beside the
+        /// filter tree); in a window narrower than that the table scrolls sideways.
+        /// </summary>
+        public double TableMinWidth => NameWidth + 934 + 20 + (HasViewportColumns ? 728 : 0);
 
         /// <summary>Gets whether a viewport is there for the VP columns to act on: one worked through, or one alone selected on the paper.</summary>
         public bool HasTargetViewport => _target != null;

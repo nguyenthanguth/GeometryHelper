@@ -183,6 +183,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void OnClose(object sender, RoutedEventArgs e) => Close();
 
+        /// <summary>The grip of the Name head dragged: the column is as much wider or narrower as the mouse moved.</summary>
+        private void OnNameResize(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e) =>
+            Model.NameWidth += e.HorizontalChange;
+
         /// <summary>A layer's name dragged: the layers chosen, or the layer alone where it is not among them, go onto a group filter of the tree.</summary>
         private void OnNameMove(object sender, MouseEventArgs e)
         {
