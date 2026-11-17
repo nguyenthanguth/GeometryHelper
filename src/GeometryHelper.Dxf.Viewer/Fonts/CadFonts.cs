@@ -11,7 +11,8 @@ namespace GeometryHelper.Dxf.Viewer
     /// txt.shx) and big font in the folder of the drawing and then in <see cref="Folders"/> in their order, read once and
     /// kept; a TrueType typeface or file as the canvas has it, a file also in the Fonts folder of Windows; a font named in
     /// <see cref="Substitutions"/> looked for as the font it is given for, as AutoCAD's font mapping file does; and one not
-    /// found replaced by <see cref="Replacement"/>, as AutoCAD's FONTALT replaces it, said once a font through
+    /// found replaced by <see cref="Replacement"/>, as AutoCAD's FONTALT replaces it (a TrueType font not found, by the
+    /// canvas's drawing font, as AutoCAD maps it through Windows), said once a font through
     /// <see cref="CadDocument.FontMissing"/>. The one font carried is the presenter's own single-stroke font,
     /// <see cref="BuiltIn"/>; no folder of AutoCAD's is looked in unless the user lists it.
     /// </summary>
@@ -455,8 +456,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// The face a text style is drawn in, and its font and big font where they are not found: a font not found drawn in
-        /// the first half of <see cref="Replacement"/>, a big font not found in its half after the comma, else its letters as
-        /// question marks. With fonts off, the style's typeface or file as the canvas takes it.
+        /// the first half of <see cref="Replacement"/> (a TrueType family or file not found is not drawn in an SHX replacement,
+        /// but by the canvas in its drawing font, whose font linking draws the letters the font lacks), a big font not found in
+        /// its half after the comma, else its letters as question marks. With fonts off, the style's typeface or file as the canvas takes it.
         /// </summary>
         private CadFontFace Face(
             string fileName,
@@ -486,12 +488,21 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 string alternate = Half(0);
                 CadFontFace replaced = alternate.Length == 0 ? null : Find(alternate, drawingFolder, true, false);
+                string extension = Path.GetExtension(named).ToLowerInvariant();
+
+                // A TrueType font not found is drawn in a TrueType font, the drawing font, as AutoCAD draws it through the font
+                // mapping of Windows: an SHX replacement has no Korean, Chinese or Japanese letters, and draws a 돋움체 text as
+                // question marks. The replacement is for a font that is an SHX font.
+                if (replaced != null && replaced.Shx != null && (isFamily || IsTrueTypeFile(extension)))
+                {
+                    replaced = null;
+                }
+
                 string drawnIn =
                     replaced == null ? string.Empty
                     : IsBuiltIn(alternate) ? BuiltInTitle
                     : alternate;
                 string what = named + (substituted ? " (as " + wanted + ")" : string.Empty);
-                string extension = Path.GetExtension(named).ToLowerInvariant();
                 string line =
                     "Font " + what + " not found: using " + (drawnIn.Length == 0 ? "the drawing font" : drawnIn) + ".";
                 missing = new CadMissingFont(
@@ -617,6 +628,9 @@ namespace GeometryHelper.Dxf.Viewer
                 ? new CadFontFace(name, null, null, null)
                 : null;
         }
+
+        private static bool IsTrueTypeFile(string extension) =>
+            extension == ".ttf" || extension == ".ttc" || extension == ".otf";
 
         private bool HasFamily(string name) => _familyExists == null || _familyExists(name);
 
