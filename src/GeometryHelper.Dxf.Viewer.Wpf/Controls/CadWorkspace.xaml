@@ -788,6 +788,11 @@
                 <local:HatchRibbon />
             </DataTemplate>
 
+            <!-- The contextual Image tab while images are selected: its own control (ImageRibbon). -->
+            <DataTemplate DataType="{x:Type local:ImageTabViewModel}">
+                <local:ImageRibbon />
+            </DataTemplate>
+
             <!-- The contextual Block Editor tab while a block is open in the Block Editor (BEDIT): its own control (BlockEditorRibbon). -->
             <DataTemplate DataType="{x:Type local:BlockEditorRibbonViewModel}">
                 <local:BlockEditorRibbon />
@@ -3671,6 +3676,36 @@
                             </Style>
                         </ToggleButton.Style>
                     </ToggleButton>
+                    <!-- The contextual Image tab, green as the others, while images are selected. -->
+                    <ToggleButton
+                        Content="Image"
+                        IsChecked="{Binding ImageTab.IsTabSelected, Mode=OneWay}"
+                        Margin="4,0,0,0"
+                        Command="{Binding SelectTabCommand}"
+                        CommandParameter="{Binding ImageTab}"
+                        Visibility="{Binding ImageTab.IsTabVisible, Converter={StaticResource Shown}}"
+                    >
+                        <ToggleButton.Style>
+                            <Style TargetType="ToggleButton" BasedOn="{StaticResource GhRibbonTab}">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border
+                                                Background="#2F8F4E"
+                                                CornerRadius="2,2,0,0"
+                                                Padding="{TemplateBinding Padding}"
+                                            >
+                                                <ContentPresenter
+                                                    TextElement.Foreground="White"
+                                                    TextElement.FontWeight="SemiBold"
+                                                />
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ToggleButton.Style>
+                    </ToggleButton>
                     <!-- The contextual Block Editor tab, green as the others, while a block is open in the Block Editor. -->
                     <ToggleButton
                         Content="Block Editor"
@@ -3725,6 +3760,10 @@
                                     <Setter Property="BorderThickness" Value="0,2,0,0" />
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding HatchEditorTab.IsTabSelected}" Value="True">
+                                    <Setter Property="BorderBrush" Value="#2F8F4E" />
+                                    <Setter Property="BorderThickness" Value="0,2,0,0" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ImageTab.IsTabSelected}" Value="True">
                                     <Setter Property="BorderBrush" Value="#2F8F4E" />
                                     <Setter Property="BorderThickness" Value="0,2,0,0" />
                                 </DataTrigger>

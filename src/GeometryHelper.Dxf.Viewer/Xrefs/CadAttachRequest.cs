@@ -195,7 +195,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (!CadImageFile.IsPicture(_fileName))
             {
-                Error = "Only PNG, JPEG and BMP pictures are attached.";
+                Error = "Only BMP, DIB, GIF, JPEG, PCX, PNG, RLE, TGA and TIFF pictures are attached.";
                 return;
             }
 

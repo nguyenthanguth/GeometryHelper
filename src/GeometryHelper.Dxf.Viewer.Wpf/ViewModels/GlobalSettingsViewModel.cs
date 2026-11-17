@@ -620,6 +620,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["LAYER"] = "Open the Layer manager",
             ["OPTIONS"] = "Open Global settings",
             ["IMAGEADJUST"] = "Brightness, contrast and fade of images",
+            ["IMAGEQUALITY"] = "Draw images in high or draft quality",
             ["-IMAGEADJUST"] = "Adjust images on the command line",
             ["ATTEXT"] = "Write the attributes of blocks to a file",
             ["-ATTEXT"] = "Extract attributes on the command line",

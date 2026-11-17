@@ -56,6 +56,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                         "Array",
                         "Hatch Creation",
                         "Hatch Editor",
+                        "Image",
                         "Block Editor",
                     },
                     children.OfType<ToggleButton>().Select(t => (string)t.Content)

@@ -56,6 +56,58 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("XOPEN", XrefOpen));
             registry.Add(new CadCommand("IMAGECLIP", ImageClip));
             registry.Add(new CadCommand("TRANSPARENCY", Transparency));
+            registry.Add(new CadCommand("IMAGEQUALITY", ImageQuality));
+        }
+
+        /// <summary>
+        /// IMAGEQUALITY: "Enter image quality setting [High/Draft] &lt;High&gt;:" (the drawing's own setting offered), the quality
+        /// every image of the drawing is drawn in: High blends its pixels where it is scaled, Draft draws each pixel as a
+        /// square, faster. It is kept in the drawing's variables of images (RASTERVARIABLES, group 71), made where there are
+        /// none as IMAGEFRAME makes them, and is no system variable: AutoCAD 2021's <c>getvar</c> of it is nil. One undo step.
+        /// </summary>
+        private static IEnumerable<CadPrompt> ImageQuality(CadCommandContext c)
+        {
+            if (c.Database.NamedObjectsDictionary == null)
+            {
+                c.Write("IMAGEQUALITY is kept in the drawing's objects, which a drawing of R12 has none of.");
+                yield break;
+            }
+
+            DxfRasterVariables variables = ImageVariables(c.Database);
+            bool draft = variables != null && variables.ImageQuality == DxfImageQuality.Draft;
+            yield return CadPrompt.ForKeyword(
+                "Enter image quality setting",
+                new[] { "High", "Draft" },
+                draft ? "Draft" : "High"
+            );
+
+            if (c.Input.Kind != CadInputKind.Keyword)
+            {
+                yield break;
+            }
+
+            bool wanted = c.Input.Is("Draft");
+
+            if (wanted == draft)
+            {
+                yield break;
+            }
+
+            c.Apply(
+                new[]
+                {
+                    new CadEditRecord(
+                        CadEditRecordKind.TableChanged,
+                        null,
+                        "IMAGEQUALITY",
+                        draft ? "Draft" : "High",
+                        wanted ? "Draft" : "High"
+                    ),
+                },
+                s =>
+                    (ImageVariables(s.Database) ?? DxfRasterVariables.GetRasterVariables(s.Database)).ImageQuality =
+                        wanted ? DxfImageQuality.Draft : DxfImageQuality.High
+            );
         }
 
         /// <summary>XREF (XR), EXTERNALREFERENCES (ER) and IMAGE (IM): the window's External References palette.</summary>
@@ -2007,7 +2059,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Whether an image is clipped by a boundary of its own rather than its whole picture.</summary>
-        private static bool Clipped(DxfRasterImage image)
+        internal static bool Clipped(DxfRasterImage image)
         {
             IReadOnlyList<GeoPoint2> boundary = image.GetClipBoundary();
             int across = (int)image.ImageWidth;

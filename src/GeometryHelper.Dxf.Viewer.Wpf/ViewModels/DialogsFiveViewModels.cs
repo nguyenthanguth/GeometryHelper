@@ -622,6 +622,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return null;
             }
 
+            if (!CadRasterReader.IsDecodedByThePlatform(file))
+            {
+                // TGA, PCX, a DIB, an RLE bitmap and TIFF: the presenter's own decoders.
+                BitmapSource own = CadRasterBitmap.Read(file, 160);
+
+                if (own != null)
+                {
+                    return own;
+                }
+            }
+
             try
             {
                 var image = new BitmapImage();

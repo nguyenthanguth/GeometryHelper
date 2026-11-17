@@ -2330,6 +2330,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 HideArrayTab();
                 HideHatchTab();
+                HideImageTab();
                 SelectionLabel = string.Empty;
                 PropertyGroups = Array.Empty<PropertyGroupViewModel>();
                 PropertiesBanner = null;
@@ -2343,6 +2344,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             handles.Sort(StringComparer.OrdinalIgnoreCase);
             SyncArrayTab(handles);
             SyncHatchTab();
+            SyncImageTab(handles);
             CadSelectionInfo info = CadProperties.Describe(_current.Document, Space, handles, View);
             string banner = null;
 

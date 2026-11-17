@@ -290,7 +290,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.NotNull(dialog.Preview);
 
                 dialog.FileName = Path.Combine(folder.FullPath, "plan-level2.dxf");
-                Assert.Equal("Only PNG, JPEG and BMP pictures are attached.", dialog.Error);
+                Assert.Equal(
+                    "Only BMP, DIB, GIF, JPEG, PCX, PNG, RLE, TGA and TIFF pictures are attached.",
+                    dialog.Error
+                );
                 Assert.False(dialog.CanOk);
             }
         }
