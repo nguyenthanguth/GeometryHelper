@@ -1528,6 +1528,18 @@ namespace GeometryHelper.Dxf.Viewer
                 request.FileName += ".dxf";
             }
 
+            foreach (CadPrompt prompt in WriteBlockSource(c, request))
+            {
+                yield return prompt;
+            }
+        }
+
+        /// <summary>
+        /// What -WBLOCK asks after its file, and EXPORT's Block asks after the file it chose: the block, the whole drawing or
+        /// new objects (their base point and the objects), then the file written.
+        /// </summary>
+        internal static IEnumerable<CadPrompt> WriteBlockSource(CadCommandContext c, CadWriteBlockRequest request)
+        {
             yield return CadPrompt.ForString(
                 "Enter name of existing block or [= (block=output file)/* (whole drawing)]",
                 "define new drawing"

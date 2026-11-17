@@ -362,7 +362,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         Entry(
                             "Other Formats",
                             IconOther,
-                            "Save in another format: Bitmap here; the rest of AutoCAD's list is refused (EXPORT)",
+                            "Save in another format: Bitmap, Metafile, Encapsulated PS, Block and DXX Extract here; the rest of AutoCAD's list is refused (EXPORT)",
                             Start("EXPORT"),
                             open
                         ),
@@ -448,7 +448,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         Entry(
                             "Other Formats",
                             IconOther,
-                            "Export to another format: Bitmap here; the rest of AutoCAD's list is refused (EXPORT)",
+                            "Export to another format: Bitmap, Metafile, Encapsulated PS, Block and DXX Extract here; the rest of AutoCAD's list is refused (EXPORT)",
                             Start("EXPORT"),
                             open
                         ),

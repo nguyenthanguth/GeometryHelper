@@ -8,26 +8,29 @@ namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
     /// EXPORT and -EXPORT, as AutoCAD 2021's. EXPORT asks the file by the window's Export Data dialog, of the types AutoCAD's
-    /// help lists for it (<see cref="CadExportJob.ExportFileTypes"/>), and writes Bitmap through BMPOUT's image; the other
+    /// help lists for it (<see cref="CadExportJob.ExportFileTypes"/>), and writes Bitmap through BMPOUT's image, Metafile as WMFOUT,
+    /// Encapsulated PS as PSOUT, Block as -WBLOCK and DXX Extract as ATTEXT's DXF extract (Lithography asks for solids, as STLOUT); the other
     /// types have no writer here and are refused. -EXPORT asks AutoCAD's prompts, word for word as AutoCAD 2021's console
     /// writes them, and writes its Pdf through the PDF writer of -PLOT; Dwf and dwfX are refused.
     /// </summary>
     internal static partial class CadCommands
     {
         private const string WritersNote =
-            "PNGOUT, JPGOUT and BMPOUT write images, PLOT and -EXPORT write a PDF, SAVEAS writes a DXF.";
+            "PNGOUT, JPGOUT and BMPOUT write images, WMFOUT a metafile, PSOUT a PostScript file, WBLOCK a block, ATTEXT an attribute extract, PLOT and -EXPORT a PDF, SAVEAS a DXF.";
 
         internal static void AddExportTo(CadCommandRegistry registry)
         {
             registry.Add(new CadCommand("EXPORT", Export));
             registry.Add(new CadCommand("-EXPORT", ExportTyped));
+            AddVectorOutTo(registry);
         }
 
         /// <summary>
         /// EXPORT: the file and its type by the window's Export Data dialog or, with no window or FILEDIA 0, "Enter file
         /// name &lt;file&gt;:", the type then read from the name's extension, and the last type taken for a name of none. The
         /// type chosen is kept for the next EXPORT of the session, as AutoCAD keeps it. Bitmap goes on as BMPOUT does, with
-        /// "Select objects or &lt;all objects and viewports&gt;:"; any other type is refused, nothing written.
+        /// "Select objects or &lt;all objects and viewports&gt;:"; Metafile, Encapsulated PS, Block, DXX Extract and Lithography go on as <see cref="ExportGoingOn"/>
+        /// says; any other type is refused, nothing written.
         /// </summary>
         private static IEnumerable<CadPrompt> Export(CadCommandContext c)
         {
@@ -91,7 +94,19 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (type != CadExportJob.Bitmap)
             {
-                c.Write(type + " has no writer in the presenter: nothing was exported. " + WritersNote);
+                IEnumerable<CadPrompt> goingOn = ExportGoingOn(c, type, file);
+
+                if (goingOn == null)
+                {
+                    c.Write(type + " has no writer in the presenter: nothing was exported. " + WritersNote);
+                    yield break;
+                }
+
+                foreach (CadPrompt prompt in goingOn)
+                {
+                    yield return prompt;
+                }
+
                 yield break;
             }
 
@@ -107,6 +122,51 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 yield return prompt;
             }
+        }
+
+        /// <summary>
+        /// What EXPORT asks after its file for a type other than Bitmap, as AutoCAD runs the command that writes it: Metafile
+        /// as WMFOUT ("Select objects:"), Encapsulated PS as PSOUT (what to plot, the units, the scale, the size), Block as
+        /// -WBLOCK ("Enter name of existing block or [= (block=output file)/* (whole drawing)] &lt;define new drawing&gt;:"),
+        /// DXX Extract as ATTEXT's DXF extract ("Select objects:", the blocks selected that have attributes) and Lithography
+        /// as STLOUT, which no 2D object satisfies. The file's extension is the type's where it has another. Null for a type
+        /// the presenter has no writer for (3D DWF, 3D DWFx, ACIS, IGES, V7 DGN, V8 DGN).
+        /// </summary>
+        private static IEnumerable<CadPrompt> ExportGoingOn(CadCommandContext c, string type, string file)
+        {
+            if (!CadExportJob.ExtensionsOf(type).Contains(Path.GetExtension(file), StringComparer.OrdinalIgnoreCase))
+            {
+                file += CadExportJob.ExtensionsOf(type)[0];
+            }
+
+            switch (type)
+            {
+                case CadExportJob.Metafile:
+                    return WriteMetafile(c, file);
+                case CadExportJob.PostScript:
+                    return PostScriptQuestions(c, file);
+                case CadExportJob.Block:
+                    return WriteBlockSource(c, new CadWriteBlockRequest(c.Document) { FileName = file });
+                case CadExportJob.DxxExtract:
+                    return ExtractToDxx(c, file);
+                case CadExportJob.Lithography:
+                    return StlOut(c);
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>"Select objects:", then the blocks selected that have attributes written to the file as a DXX extract, as ATTEXT's Dxf writes it; nothing selected writes nothing.</summary>
+        private static IEnumerable<CadPrompt> ExtractToDxx(CadCommandContext c, string file)
+        {
+            yield return CadPrompt.ForSelection();
+
+            if (c.Input.Handles == null || c.Input.Handles.Count == 0)
+            {
+                yield break;
+            }
+
+            WriteAttributeExtract(c, true, false, c.Input.Handles, null, file);
         }
 
         /// <summary>

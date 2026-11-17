@@ -394,10 +394,11 @@ written as a PNG of 1.2 MB in 0.25 s (.NET Framework 4.8; 0.20 s on .NET 10).
 EXPORT asks for the file in the window's Export Data dialog, which lists the types AutoCAD 2021's help gives for it: 3D
 DWF, 3D DWFx, ACIS, Bitmap, Block, DXX Extract, Encapsulated PS, IGES, Lithography, Metafile, V7 DGN and V8 DGN
 ([`CadExportJob.ExportFileTypes`](xref:GeometryHelper.Dxf.Viewer.CadExportJob)). Bitmap goes on as BMPOUT does, with
-`Select objects or <all objects and viewports>:`. The presenter has no writer for the other types, so EXPORT refuses them
-and writes nothing: `Metafile (*.wmf) has no writer in the presenter: nothing was exported.`, with a pointer to PNGOUT,
-JPGOUT and BMPOUT, PLOT and -EXPORT, and SAVEAS. AutoCAD's EXPORT lists no DXF, PNG, JPG or PDF, and neither does this
-one. Bitmap is offered first; after that, the type last chosen is offered for the rest of the session. With FILEDIA 0, or
+`Select objects or <all objects and viewports>:`. Metafile, Encapsulated PS, Block, DXX Extract and Lithography go on as
+the commands that write them, after the file the dialog chose ([below](#wmfout-psout-stlout-and-svgout)); the types
+the presenter has no writer for (3D DWF, 3D DWFx, ACIS, IGES, V7 DGN and V8 DGN) are refused and nothing is written:
+`IGES (*.iges;*.igs) has no writer in the presenter: nothing was exported.`, with a pointer to the commands that write.
+AutoCAD's EXPORT lists no DXF, PNG, JPG or PDF, and neither does this one. Bitmap is offered first; after that, the type last chosen is offered for the rest of the session. With FILEDIA 0, or
 with no window, EXPORT asks `Enter file name <C:\Plans\plan-level2.bmp>:`. A name ending in the extension of a listed type
 takes that type, as `plan.dgn` takes V7 DGN; any other name has the extension of the type last chosen added.
 
@@ -422,6 +423,66 @@ the drawing's name, `C:\Plans\plan-level2.pdf`. A drawing of Layout1 on ISO A3 a
 1 190.5512 by 841.8898 and 2 383.937 by 1 683.7795 points, by
 `CadPdfWriter.WritePages` from the request -PLOT whose payload is a
 [`CadPlotBook`](xref:GeometryHelper.Dxf.Viewer.CadPlotBook).
+
+## WMFOUT, PSOUT, STLOUT and SVGOUT
+
+These write the drawing as vectors, and are also the types of EXPORT that go on as they do. All four draw from the display
+list of the space worked in (`CadVectorPicture`): lines, arcs taken in short chords, fills (a hatch, a solid, a wipeout
+in white) and the words of text, each in its own colour, line weight and dashes. Colours are those of a white sheet: white,
+and what is within 2 per cent of it, is black. Left out: images, the model that the viewports of a layout show, the grey
+ground of a field and the tints of a hatch's loops; the part of a block outside its XCLIP is left out by its vertices. The files
+are written by the command itself, with no window, so the same drawing gives the same bytes. The window asks the file in a
+Save dialog of one type (Create WMF File, Create PostScript File, Create SVG File); with FILEDIA 0, or with no window,
+the command asks `Enter file name <C:\Plans\plan-level2.wmf>:` (`Enter PostScript file name` for PSOUT).
+
+**WMFOUT** asks the file, then `Select objects:`, and writes the objects selected as a placeable Windows Metafile.
+Nothing selected writes nothing. The box of the objects is put into whole numbers, its longer side 20 000 logical units
+long and y down, and the header gives 1 440 units to the inch, so a drawing 5 000 by 2 000 is a window of 20 000 by 8 000
+that is 13.9 inches wide. A line is a Polyline with a pen of its colour and of its line weight (0.25 millimetres is 14
+units); a dashed line has a pen of no width and the style dash or dot, as GDI draws no dash with a wide pen; a fill is a
+PolyPolygon of a solid brush, filled by the even-odd rule, with no pen; a text of a TrueType font is a TextOut of a font of
+its face, its height and angle, aligned to the left, centre or right of its point (the words of an SHX font come as their
+strokes, Polylines).
+A text's width factor and slant are not written. WMFIN reads the file back: the two lines of a drawing, one red along y = 20
+and one green along y = 80, from x = 10 to 190, are the two shapes of colours 0xFF0000 and 0x00FF00 of a picture 20 000 by
+6 667. Nothing is printed, the drawing is not changed, and there is no undo step.
+
+**PSOUT** asks the file, then the questions of AutoCAD 2021's (read from its resource strings): `What to plot -- Display,
+Extents, Limits, View, or Window <D>:` (View asks `Enter view name:`, Window `Specify window for export` and its two corners;
+a view the drawing does not have, or a window of no size, is `Invalid view - output canceled.` or `Invalid window - output
+canceled.`), `Enter screen preview image type [None/EPSI/TIFF] <None>:` (for EPSI and TIFF it asks the size of the
+preview, `[128/256/512] <128>`, and says the file holds none), `Enter size units [Inches/Millimeters] <Inches>:`, `Enter
+plotted Inches to drawing units (as P=D) or [Fit/? (help)] <F>:` (a scale as `1=48`, `1:48`, or Fit; `?` gives the help)
+and `Enter the Size or Width,Height (in Inches) <USER>:` (a label of the table AutoCAD lists, A to K, A4 to A0 and USER, or
+two numbers; Fit, and `?`, print `Standard values for output size`, the table, as AutoCAD 2021's console does: A is 8.00 by
+10.50, B 10.00 by 16.00, A4 7.80 by 11.20, USER 7.50 by 10.50). The answers to the area and the units are the next
+defaults. Fit scales the area to the size given, or, with USER, to the USER size of 7.5 by 10.5 inches, the output being
+the size the area then has (a drawing 200 by 100 shown in a window of the shape 942 by 534 is 7.50 wide by 4.25 high, as
+AutoCAD's console wrote it); a scale with USER makes the output the size of the area; a scale and a size put the area in
+the middle of the size, cut by it. `Effective plotting area:  18.00 wide by 6.00 high` ends it. The file is
+Encapsulated PostScript level 2 (`%!PS-Adobe-3.0 EPSF-3.0`) with its `%%BoundingBox` the
+output box rounded outwards: the lines 180 by 60 at `1=10` in millimetres are 51.024 by 17.008 points, `0 0 52 18`. Lines
+are `moveto`, `lineto` and `stroke` with their colour, line weight in points and dashes, fills are `eofill`, and a text is
+one of the base fonts (Helvetica, Times or Courier, in the look of its bold and italic) at its height, angle, width
+factor and slant, aligned by `stringwidth`; everything is clipped to the box. A letter beyond ASCII is written as its
+octal code of Latin-1, which a base font's own encoding may show as another glyph.
+
+**STLOUT** asks `Select solids or watertight meshes:` and, as the presenter has no solids, answers what is selected with
+`2 were filtered out` (`1 was filtered out`) and asks again, as AutoCAD 2021's console does for a drawing of no solids
+(probed); Enter on no objects asks again too, and only Esc ends it. Nothing is written. EXPORT of Lithography does the same.
+
+**SVGOUT** is the presenter's own: AutoCAD 2021 writes no SVG. It asks the file, then `Select objects or <all objects and
+viewports>:`, and writes an SVG 1.1 file in UTF-8 whose viewBox is the box of the objects in drawing units with y turned
+down, and whose width and height are in pixels, the longer side 1 333.33 of them (13.9 inches at 96 to the inch). Lines
+are polylines of their colour and a stroke as wide as their line weight would be on that page (0.25 millimetres is 0.94
+pixel), fills are paths of the even-odd rule, and a text is a `text` element with its font family, size, weight, style,
+anchor, angle, width factor and slant.
+
+**EXPORT** goes on as these do after its file: Metafile as WMFOUT (`Select objects:`), Encapsulated PS as PSOUT (from `What
+to plot`), Lithography as STLOUT, Block as -WBLOCK (`Enter name of existing block or [= (block=output file)/* (whole
+drawing)] <define new drawing>:`, then a base point and the objects), and DXX Extract as ATTEXT's DXF extract (`Select
+objects:`, then the blocks selected that have attributes, `3 objects in extract file.`). A name whose extension is not the
+type's has the type's added.
 
 ## EXPORTPDF, EXPORTDWF and EXPORTDWFX
 
