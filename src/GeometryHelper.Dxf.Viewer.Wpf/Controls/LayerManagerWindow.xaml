@@ -41,6 +41,26 @@
                 <Setter Property="Background" Value="{StaticResource VpHead}" />
                 <Setter Property="Foreground" Value="{StaticResource GhIcon}" />
             </Style>
+            <!-- The grip on the right edge of the Name head: a thin line, the cursor a left-right arrow, dragged to resize the column. -->
+            <Style x:Key="NameGrip" TargetType="Thumb">
+                <Setter Property="Width" Value="7" />
+                <Setter Property="HorizontalAlignment" Value="Right" />
+                <Setter Property="Cursor" Value="SizeWE" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Thumb">
+                            <Border Background="Transparent">
+                                <Border
+                                    Width="1"
+                                    Margin="0,4"
+                                    HorizontalAlignment="Right"
+                                    Background="{StaticResource GhBorder}"
+                                />
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
             <Style x:Key="Check" TargetType="CheckBox" BasedOn="{StaticResource GhCheckBox}">
                 <Setter Property="Margin" Value="8,0" />
             </Style>
@@ -441,53 +461,84 @@
                 </Border>
                 <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4">
                     <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                        <DockPanel MinWidth="{Binding TableMinWidth}">
-                            <Grid DockPanel.Dock="Top" Background="{StaticResource GhHeader}">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="28" />
-                                    <ColumnDefinition Width="*" MinWidth="150" />
-                                    <ColumnDefinition Width="40" />
-                                    <ColumnDefinition Width="40" />
-                                    <ColumnDefinition Width="40" />
-                                    <ColumnDefinition Width="120" />
-                                    <ColumnDefinition Width="120" />
-                                    <ColumnDefinition Width="104" />
-                                    <ColumnDefinition Width="92" />
-                                    <ColumnDefinition Width="112" />
-                                    <ColumnDefinition Width="48" />
-                                    <ColumnDefinition Width="190" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="1" Style="{StaticResource HeadCell}" Text="Name" />
-                                <TextBlock Grid.Column="2" Style="{StaticResource HeadCell}" Text="On" />
-                                <TextBlock Grid.Column="3" Style="{StaticResource HeadCell}" Text="Frz" />
-                                <TextBlock Grid.Column="4" Style="{StaticResource HeadCell}" Text="Lock" />
-                                <TextBlock Grid.Column="5" Style="{StaticResource HeadCell}" Text="Colour" />
-                                <TextBlock Grid.Column="6" Style="{StaticResource HeadCell}" Text="Linetype" />
-                                <TextBlock Grid.Column="7" Style="{StaticResource HeadCell}" Text="Weight" />
-                                <TextBlock Grid.Column="8" Style="{StaticResource HeadCell}" Text="Transparency" />
-                                <TextBlock Grid.Column="9" Style="{StaticResource HeadCell}" Text="Plot Style" />
-                                <TextBlock
-                                    Grid.Column="10"
-                                    Style="{StaticResource HeadCell}"
-                                    Text="Plot"
-                                    ToolTip="Plot: the layer is printed (the printer icon)"
-                                />
-                                <TextBlock Grid.Column="11" Style="{StaticResource HeadCell}" Text="Description" />
-                                <StackPanel
-                                    Grid.Column="12"
-                                    Orientation="Horizontal"
-                                    Visibility="{Binding HasViewportColumns, Converter={StaticResource Shown}}"
-                                >
-                                    <TextBlock Width="74" Style="{StaticResource VpHeadCell}" Text="VP Freeze" />
-                                    <TextBlock Width="104" Style="{StaticResource VpHeadCell}" Text="New VP Freeze" />
-                                    <TextBlock Width="110" Style="{StaticResource VpHeadCell}" Text="VP Color" />
-                                    <TextBlock Width="110" Style="{StaticResource VpHeadCell}" Text="VP Linetype" />
-                                    <TextBlock Width="104" Style="{StaticResource VpHeadCell}" Text="VP Lineweight" />
-                                    <TextBlock Width="116" Style="{StaticResource VpHeadCell}" Text="VP Transparency" />
-                                    <TextBlock Width="110" Style="{StaticResource VpHeadCell}" Text="VP Plot Style" />
-                                </StackPanel>
-                            </Grid>
+                        <DockPanel
+                            MinWidth="{Binding TableMinWidth}"
+                            Width="{Binding ViewportWidth, RelativeSource={RelativeSource AncestorType=ScrollViewer}}"
+                        >
+                            <!-- The table is given the width of the viewport (or its minimum): inside the sideways ScrollViewer it was measured at infinite width, and the list, scrolled, sized itself to the longest name it had realized. Every column is a fixed width, Name included (NameWidth, dragged by the grip), so the header's columns and a row's are the same wherever the list is scrolled; the header starts a pixel in, as the list's border does. -->
+                            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}">
+                                <Grid HorizontalAlignment="Left" Margin="1,0,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="28" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="40" />
+                                        <ColumnDefinition Width="40" />
+                                        <ColumnDefinition Width="40" />
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="104" />
+                                        <ColumnDefinition Width="92" />
+                                        <ColumnDefinition Width="112" />
+                                        <ColumnDefinition Width="48" />
+                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="1" Width="{Binding NameWidth}">
+                                        <Grid>
+                                            <TextBlock Style="{StaticResource HeadCell}" Text="Name" />
+                                            <Thumb
+                                                Style="{StaticResource NameGrip}"
+                                                DragDelta="OnNameResize"
+                                                ToolTip="Drag to resize the Name column"
+                                            />
+                                        </Grid>
+                                    </Border>
+                                    <TextBlock Grid.Column="2" Style="{StaticResource HeadCell}" Text="On" />
+                                    <TextBlock Grid.Column="3" Style="{StaticResource HeadCell}" Text="Frz" />
+                                    <TextBlock Grid.Column="4" Style="{StaticResource HeadCell}" Text="Lock" />
+                                    <TextBlock Grid.Column="5" Style="{StaticResource HeadCell}" Text="Colour" />
+                                    <TextBlock Grid.Column="6" Style="{StaticResource HeadCell}" Text="Linetype" />
+                                    <TextBlock Grid.Column="7" Style="{StaticResource HeadCell}" Text="Weight" />
+                                    <TextBlock Grid.Column="8" Style="{StaticResource HeadCell}" Text="Transparency" />
+                                    <TextBlock Grid.Column="9" Style="{StaticResource HeadCell}" Text="Plot Style" />
+                                    <TextBlock
+                                        Grid.Column="10"
+                                        Style="{StaticResource HeadCell}"
+                                        Text="Plot"
+                                        ToolTip="Plot: the layer is printed (the printer icon)"
+                                    />
+                                    <TextBlock Grid.Column="11" Style="{StaticResource HeadCell}" Text="Description" />
+                                    <StackPanel
+                                        Grid.Column="12"
+                                        Orientation="Horizontal"
+                                        Visibility="{Binding HasViewportColumns, Converter={StaticResource Shown}}"
+                                    >
+                                        <TextBlock Width="74" Style="{StaticResource VpHeadCell}" Text="VP Freeze" />
+                                        <TextBlock
+                                            Width="104"
+                                            Style="{StaticResource VpHeadCell}"
+                                            Text="New VP Freeze"
+                                        />
+                                        <TextBlock Width="110" Style="{StaticResource VpHeadCell}" Text="VP Color" />
+                                        <TextBlock Width="110" Style="{StaticResource VpHeadCell}" Text="VP Linetype" />
+                                        <TextBlock
+                                            Width="104"
+                                            Style="{StaticResource VpHeadCell}"
+                                            Text="VP Lineweight"
+                                        />
+                                        <TextBlock
+                                            Width="116"
+                                            Style="{StaticResource VpHeadCell}"
+                                            Text="VP Transparency"
+                                        />
+                                        <TextBlock
+                                            Width="110"
+                                            Style="{StaticResource VpHeadCell}"
+                                            Text="VP Plot Style"
+                                        />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
                             <ListBox
                                 x:Name="Table"
                                 PreviewKeyDown="OnTableKey"
@@ -647,10 +698,10 @@
                                 </ListBox.ItemContainerStyle>
                                 <ListBox.ItemTemplate>
                                     <DataTemplate DataType="{x:Type local:LayerRowViewModel}">
-                                        <Grid>
+                                        <Grid HorizontalAlignment="Left">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="28" />
-                                                <ColumnDefinition Width="*" MinWidth="150" />
+                                                <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="40" />
                                                 <ColumnDefinition Width="40" />
                                                 <ColumnDefinition Width="40" />
@@ -668,29 +719,35 @@
                                                 Text="{Binding CurrentMark}"
                                                 Foreground="{StaticResource GhOk}"
                                             />
-                                            <!-- The name, edited in place by F2, a slow second click, a double click or Rename Layer. -->
-                                            <TextBlock
+                                            <!-- The name, edited in place by F2, a slow second click, a double click or Rename Layer; one width for every row, a longer name cut with an ellipsis and shown in full as a tooltip. -->
+                                            <Border
                                                 Grid.Column="1"
-                                                Style="{StaticResource Cell}"
-                                                Text="{Binding Name}"
-                                                FontWeight="SemiBold"
-                                                Visibility="{Binding IsRenaming, Converter={StaticResource Hidden}}"
-                                                MouseLeftButtonDown="OnNameDown"
-                                                MouseMove="OnNameMove"
-                                            />
-                                            <TextBox
-                                                Grid.Column="1"
-                                                Margin="4,2"
-                                                Padding="2,1"
-                                                Style="{StaticResource GhTextBox}"
-                                                FontWeight="SemiBold"
-                                                Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
-                                                Visibility="{Binding IsRenaming, Converter={StaticResource Shown}}"
-                                                IsVisibleChanged="OnNameBoxShown"
-                                                PreviewKeyDown="OnNameBoxKey"
-                                                LostKeyboardFocus="OnNameBoxLeft"
-                                                AutomationProperties.Name="New name of the layer"
-                                            />
+                                                Width="{Binding DataContext.NameWidth, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                            >
+                                                <Grid>
+                                                    <TextBlock
+                                                        Style="{StaticResource Cell}"
+                                                        Text="{Binding Name}"
+                                                        ToolTip="{Binding Name}"
+                                                        FontWeight="SemiBold"
+                                                        Visibility="{Binding IsRenaming, Converter={StaticResource Hidden}}"
+                                                        MouseLeftButtonDown="OnNameDown"
+                                                        MouseMove="OnNameMove"
+                                                    />
+                                                    <TextBox
+                                                        Margin="4,2"
+                                                        Padding="2,1"
+                                                        Style="{StaticResource GhTextBox}"
+                                                        FontWeight="SemiBold"
+                                                        Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
+                                                        Visibility="{Binding IsRenaming, Converter={StaticResource Shown}}"
+                                                        IsVisibleChanged="OnNameBoxShown"
+                                                        PreviewKeyDown="OnNameBoxKey"
+                                                        LostKeyboardFocus="OnNameBoxLeft"
+                                                        AutomationProperties.Name="New name of the layer"
+                                                    />
+                                                </Grid>
+                                            </Border>
                                             <CheckBox
                                                 Grid.Column="2"
                                                 Style="{StaticResource Check}"

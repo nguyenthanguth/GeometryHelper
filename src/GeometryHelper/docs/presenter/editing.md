@@ -4778,6 +4778,11 @@ drawing of named plot styles, as AutoCAD 2021 does: `Enter Plot Style Name or [?
 the drawing has not is `Unknown plot style.` and asked again; Enter goes back to the options), then
 `Enter name list of layer(s) for plot style name Style 1 <0>:`.
 
+The Name column is one fixed width, 140 to begin with, for the header and every row, so scrolling a long list never moves
+a column: a drawing of 367 layers whose names run to 130 letters keeps its columns where they are from the top of the list to
+the bottom. A name longer than the column is cut with an ellipsis and shown in full as a tooltip. Drag the right edge of the
+Name head to resize the column (80 to 600); the table scrolls sideways where the columns do not fit the dialog.
+
 The tree on the left of the table is AutoCAD's filter tree. Under All come the filters the drawing keeps, by name, each
 nested filter under its own, then the three AutoCAD makes: All Used Layers, Unreconciled New Layers (always empty: the
 library does not reconcile layers) and Viewport Overrides. Choosing a node lists the layers it lets through, and the
