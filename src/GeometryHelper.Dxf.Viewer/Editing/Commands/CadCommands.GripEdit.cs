@@ -46,7 +46,7 @@ namespace GeometryHelper.Dxf.Viewer
                 hot.Count == 1 ? CadGrips.Shown(c.Document, c.Document.FindEntity(hot[0].Key))[hot[0].Value] : null;
             CadPreview reshaped =
                 custom?.Custom == null || custom.Kind == CadGripKind.CustomFlip || custom.Kind == CadGripKind.CustomList
-                    ? null
+                    ? ViewportGrip(c, hot, origins, () => basePoint)
                     : CadPreview.Reshaping(c, hot[0].Key, (entity, point) =>
                     {
                         Action<DxfBlockReference> write = CadDynamicBlocks.Plan(
@@ -161,6 +161,80 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
             }
+        }
+
+        /// <summary>
+        /// What STRETCH of the one grip of a viewport previews with the cursor at a point: the viewport as the grip dragged there
+        /// would leave it, a corner resizing the frame with the model standing still on the sheet and the middle moving it with
+        /// the model (as <c>CadGrips.GripDrag</c> does); a viewport clipped by an entity moves with its boundary. Null for any
+        /// other grip.
+        /// </summary>
+        private static CadPreview ViewportGrip(
+            CadCommandContext c,
+            IReadOnlyList<KeyValuePair<string, int>> hot,
+            IReadOnlyList<GeoPoint2> origins,
+            Func<GeoPoint2> basePoint
+        )
+        {
+            if (hot.Count != 1 || !(c.Document.FindEntity(hot[0].Key) is DxfViewport viewport))
+            {
+                return null;
+            }
+
+            IReadOnlyList<CadGrip> grips = CadGrips.Shown(c.Document, viewport);
+            CadGripKind kind = grips[hot[0].Value].Kind;
+            GeoPoint2 origin = origins[0];
+
+            // Where the grip goes with the cursor at a point: from where it was by the way from the base point.
+            GeoPoint2 Target(GeoPoint2 point) => origin + (point - basePoint());
+
+            string handle = hot[0].Key;
+
+            if (kind == CadGripKind.Center && viewport.NonRectClipEntity is DxfEntity boundary)
+            {
+                return CadPreview.MovingOne(
+                    c,
+                    new[] { handle, boundary.Handle },
+                    input => Affine2.Translation(input.Point.X - basePoint().X, input.Point.Y - basePoint().Y),
+                    true
+                );
+            }
+
+            if (kind == CadGripKind.Center)
+            {
+                return CadPreview.Reshaping(c, handle, (entity, point) =>
+                {
+                    var v = (DxfViewport)entity;
+                    GeoPoint2 to = Target(point);
+                    v.CenterPoint = new GeoPoint3(to.X, to.Y, v.CenterPoint.Z);
+                    return true;
+                });
+            }
+
+            if (kind != CadGripKind.Corner)
+            {
+                return null;
+            }
+
+            GeoPoint2 kept = grips[(hot[0].Value + 2) % 4].Point;
+            return CadPreview.Reshaping(c, handle, (entity, point) =>
+            {
+                GeoPoint2 to = Target(point);
+                double least = Tolerance.Default.EqualPoint;
+
+                if (Math.Abs(to.X - kept.X) <= least || Math.Abs(to.Y - kept.Y) <= least)
+                {
+                    return false;
+                }
+
+                ((DxfViewport)entity).FitFrame(
+                    Math.Min(kept.X, to.X),
+                    Math.Min(kept.Y, to.Y),
+                    Math.Max(kept.X, to.X),
+                    Math.Max(kept.Y, to.Y)
+                );
+                return true;
+            });
         }
 
         /// <summary>The prompt of a mode: a point for STRETCH, MOVE and MIRROR, an angle for ROTATE, a factor for SCALE, each from the base point.</summary>

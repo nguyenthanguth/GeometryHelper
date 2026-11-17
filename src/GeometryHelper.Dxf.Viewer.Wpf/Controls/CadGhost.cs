@@ -19,6 +19,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private readonly List<double[]> _paths = new List<double[]>();
         private readonly List<int> _pathColours = new List<int>();
         private readonly List<DisplayRay2> _rays = new List<DisplayRay2>();
+        private readonly List<KeyValuePair<DisplayViewport2, GeoPoint2>> _viewports =
+            new List<KeyValuePair<DisplayViewport2, GeoPoint2>>();
         private readonly List<double[]> _dragPaths = new List<double[]>();
         private readonly List<int> _dragColours = new List<int>();
         private readonly List<DisplayRay2> _dragRays = new List<DisplayRay2>();
@@ -31,6 +33,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private readonly List<double[]> _movedPaths = new List<double[]>();
         private readonly List<int> _movedColours = new List<int>();
         private readonly List<DisplayRay2> _movedRays = new List<DisplayRay2>();
+        private readonly List<KeyValuePair<DisplayViewport2, GeoPoint2>> _movedViewports =
+            new List<KeyValuePair<DisplayViewport2, GeoPoint2>>();
         private IReadOnlyList<string> _movedHandles;
         private DisplayList2 _movedList;
         private double _movedTolerance;
@@ -176,6 +180,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _paths.Clear();
             _pathColours.Clear();
             _rays.Clear();
+            _viewports.Clear();
             _list = list;
             _tolerance = tolerance;
             _built = true;
@@ -185,7 +190,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return _paths;
             }
 
-            Gather(list, _handles, tolerance, _paths, _pathColours, _rays);
+            Gather(document, list, _handles, tolerance, _paths, _pathColours, _rays, _viewports);
             return _paths;
         }
 
@@ -216,10 +221,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _movedPaths.Clear();
             _movedColours.Clear();
             _movedRays.Clear();
+            _movedViewports.Clear();
             _movedHandles = handles;
             _movedList = list;
             _movedTolerance = tolerance;
-            Gather(list, handles, tolerance, _movedPaths, _movedColours, _movedRays);
+            Gather(document, list, handles, tolerance, _movedPaths, _movedColours, _movedRays, _movedViewports);
             return _movedPaths;
         }
 
@@ -229,6 +235,35 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         public IReadOnlyList<double[]> MovedRays(Affine2 moved, DisplayBox view, List<int> colours = null) =>
             Clip(_movedRays, moved, view, colours);
+
+        /// <summary>
+        /// Gets the viewports of the objects the last <see cref="Paths(CadDocument, CadSpace, double)"/> outlined as they will be
+        /// once a transformation is carried out (<see cref="CadViewportPreview.After"/>): the frame where the edit puts it and
+        /// the model shown through it as the edit leaves it. A viewport clipped by an entity that is not among the objects is
+        /// left out, the edit leaving it where it stands.
+        /// </summary>
+        public IReadOnlyList<DisplayViewport2> Viewports(Affine2 moved) => After(_viewports, moved);
+
+        /// <summary>
+        /// Gets the viewports of the objects the last <see cref="Paths(CadDocument, CadSpace, IReadOnlyList{string}, double)"/>
+        /// outlined, as <see cref="Viewports"/> gives those of the objects the command took.
+        /// </summary>
+        public IReadOnlyList<DisplayViewport2> MovedViewports(Affine2 moved) => After(_movedViewports, moved);
+
+        private static IReadOnlyList<DisplayViewport2> After(
+            List<KeyValuePair<DisplayViewport2, GeoPoint2>> viewports,
+            Affine2 moved
+        )
+        {
+            var after = new List<DisplayViewport2>(viewports.Count);
+
+            foreach (KeyValuePair<DisplayViewport2, GeoPoint2> viewport in viewports)
+            {
+                after.Add(CadViewportPreview.After(viewport.Key, moved, viewport.Value));
+            }
+
+            return after;
+        }
 
         /// <summary>
         /// Gets the colours of the outlines one of the <c>Paths</c> methods gave, one for each, as 0xRRGGBB: the colour each
@@ -241,14 +276,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             : ReferenceEquals(paths, _dragPaths) ? _dragColours
             : (IReadOnlyList<int>)Array.Empty<int>();
 
-        /// <summary>The outlines of the items of some objects of a display list, added to the paths with their colours, and the rays.</summary>
+        /// <summary>
+        /// The outlines of the items of some objects of a display list, added to the paths with their colours, and the rays; the
+        /// viewports that follow the edit (a clipped one only with its boundary, as the edit takes them) added to the viewports.
+        /// A viewport's outline is its frame, or the outline it is clipped to.
+        /// </summary>
         private static void Gather(
+            CadDocument document,
             DisplayList2 list,
             IReadOnlyList<string> handles,
             double tolerance,
             List<double[]> paths,
             List<int> colours,
-            List<DisplayRay2> rays
+            List<DisplayRay2> rays,
+            List<KeyValuePair<DisplayViewport2, GeoPoint2>> viewports
         )
         {
             if (handles.Count == 0)
@@ -263,6 +304,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 if (item.Handle == null || !wanted.Contains(item.Handle))
                 {
                     continue;
+                }
+
+                if (item is DisplayViewport2 viewport)
+                {
+                    // A clipped viewport takes its frame from its boundary: moved alone, it stays where it is.
+                    var entity = document.FindEntity(item.Handle) as DxfViewport;
+
+                    if (entity?.NonRectClipEntity is DxfEntity boundary && !wanted.Contains(boundary.Handle))
+                    {
+                        continue;
+                    }
+
+                    GeoPoint3 target = entity?.ViewTarget ?? default;
+                    viewports.Add(
+                        new KeyValuePair<DisplayViewport2, GeoPoint2>(viewport, new GeoPoint2(target.X, target.Y))
+                    );
                 }
 
                 Outline(item, tolerance, paths, colours, rays);
@@ -318,7 +375,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// The outline of one display item, each a run of X and Y, added to the paths with the item's colour for each; an XLINE
         /// or a RAY added to the rays.
         /// </summary>
-        private static void Outline(
+        internal static void Outline(
             DisplayItem2 item,
             double tolerance,
             List<double[]> paths,
@@ -402,7 +459,34 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case DisplayRay2 ray:
                     rays.Add(ray);
                     break;
+                case DisplayViewport2 viewport:
+                    paths.AddRange(FrameRings(viewport, tolerance));
+                    break;
             }
+        }
+
+        /// <summary>The rings of a viewport's frame as a ghost draws them, each closed: the outline it is clipped to, or the rectangle of the frame.</summary>
+        internal static IReadOnlyList<double[]> FrameRings(DisplayViewport2 viewport, double tolerance)
+        {
+            var rings = new List<double[]>();
+
+            if (viewport.Clip != null)
+            {
+                foreach (double[] ring in viewport.Clip.FlattenAll(tolerance))
+                {
+                    var closed = new double[ring.Length + 2];
+                    Array.Copy(ring, closed, ring.Length);
+                    closed[ring.Length] = ring[0];
+                    closed[ring.Length + 1] = ring[1];
+                    rings.Add(closed);
+                }
+
+                return rings;
+            }
+
+            DisplayBox b = viewport.Bounds;
+            rings.Add(new[] { b.MinX, b.MinY, b.MaxX, b.MinY, b.MaxX, b.MaxY, b.MinX, b.MaxY, b.MinX, b.MinY });
+            return rings;
         }
 
         /// <summary>
@@ -468,6 +552,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _paths.Clear();
             _pathColours.Clear();
             _rays.Clear();
+            _viewports.Clear();
             _built = false;
         }
     }
