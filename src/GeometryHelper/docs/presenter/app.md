@@ -28,7 +28,7 @@ spaces of indent, 7 984 characters for the defaults.
 ### The categories
 
 The presenter's Global settings dialog has eight categories, none of them about drawings made from a model. The JSON keeps the
-settings of those, which GeometryHelper.Drawing reads and neither that dialog nor the presenter shows or applies: the preset,
+settings of those, which a host that makes model drawings reads and neither that dialog nor the presenter shows or applies: the preset,
 sheet, orientation and projection of a new drawing, the model-change check and its interval, the DXF layout and opening the
 folder after an export, the colour of hidden lines, the decimals of dimensions and the height of titles, and the font, height and
 width factor of drawing text. A file that holds them keeps them, and OK writes them back as they were.
@@ -42,14 +42,14 @@ width factor of drawing text. A file that holds them keeps them, and OK writes t
 | Text and fonts | the UI font, chosen from the font families installed on Windows (each shown in its own face) or typed; what Esc in the MTEXT editor with changes does (Hidden messages); the replacement font of a font not found (FONTALT), whether the Missing Fonts dialog is shown on opening a drawing, the font mapping file (FONTMAP) and the fonts drawn in others | UI font Inter, Esc asks, `ghsimplex`, the dialog on, no mapping file, no substitutions |
 | Folder preference | the font search folders and the support file search folders (linetypes and hatch patterns), each in order, with the default Fonts, Hatches and Linetypes folders next to the dll shown read-only under them | none |
 | Shortcuts | the aliases and the keys | AutoCAD's (see [Editing](editing.md#aliases-and-keys)) |
-| Save and export | the save folder, autosave (how often, and its format, DXF or DWG); Template settings: the template folder and the default template for QNEW (see [Drawing templates](#drawing-templates)); Other programs: whether other programs may connect and drive the app (see [Driving the app from another program](remote.md#the-setting)) | empty, which is the user's Documents (a new model drawing goes into its folder `GeometryHelper Drawing`), 10 minutes, DXF; template folder empty, which is `%AppData%\GeometryHelper\Drawing\Template`, no default template for QNEW, which is the built-in metric one; other programs allowed to connect |
+| Save and export | the save folder, autosave (how often, and its format, DXF or DWG); Template settings: the template folder and the default template for QNEW (see [Drawing templates](#drawing-templates)); Other programs: whether other programs may connect and drive the app (see [Driving the app from another program](remote.md#the-setting)) | empty, which is the user's Documents, 10 minutes, DXF; template folder empty, which is `%AppData%\GeometryHelper\Drawing\Template`, no default template for QNEW, which is the built-in metric one; other programs allowed to connect |
 | Drawing text (file only) | the font a style's missing font is drawn in where the replacement is not found either, the heights and the width factor of drawing text: TEXT and MTEXT start from the text height and write the width factor, and DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER and DIMANGULAR write their text at the text height | drawing font Arial, text 2.5, titles 5, width factor 0.8 |
 
 Folder preference lists the folders you add, each editable, and under them the default folder next to `GeometryHelper.Cad.dll`
 for each kind, read-only, marked "(default)" with its full path ("(default) not found" where the folder is missing) and an Open
 folder button; they are never saved into the settings file. A line under each list says the order. The default folders are
 `Fonts`, `Hatches` and `Linetypes` beside the dll (the dll's folder, not the exe's, so that an app which embeds it, such as
-GeometryHelper.Drawing, finds the same ones). Put SHX fonts and big fonts, `.ttf`, `.ttc` and `.otf` files in `Fonts`, `.pat` files
+a host that makes model drawings, finds the same ones). Put SHX fonts and big fonts, `.ttf`, `.ttc` and `.otf` files in `Fonts`, `.pat` files
 in `Hatches` and `.lin` files in `Linetypes`. A font, a pattern file or a linetype file is looked for in three places, in this
 order: (1) the folders you set in Folder preference, in order; (2) the default folder of its kind next to the dll; (3) the built-in
 font (GeometryHelper Simplex), patterns (48) and linetypes (39). A folder that does not exist is passed over without a word. The
@@ -97,14 +97,6 @@ writes it as the text's width factor, and MTEXT, for a factor other than 1, open
 dimension at the text height, in place of the dimension style's DIMTXT; where that is not the style's, it is kept as an override
 of the dimension (as DIMOVERRIDE writes one), so that a CAD that draws the dimension again from its style draws its text as high as
 the picture has it. With no settings applied, as in a test, the style's DIMTXT and a width factor of 1 are used.
-
-### Where a new model drawing is saved
-
-A model drawing made in the app is saved at once, once the settings are applied, into the save folder, or where that is empty into
-`GeometryHelper Drawing` in the user's Documents, made where it is not there. It is named by its number, `B-101.dxf`, and
-`B-101 (2).dxf` where that name is taken, so that no file is written over; characters a file name cannot hold become `_`. It
-then has a file, which Save writes to and [autosave](#autosave) keeps copies beside. A folder that cannot be made or written to is
-said on the command line, and the drawing stays without a file until Save As.
 
 ### In the dialog
 
@@ -328,7 +320,7 @@ A tab clicked, LAYOUT Set, TILEMODE and CTAB are one undo step each, named as Au
 with the view each space had kept and no copy of the drawing (see [Editing](editing.md#model-space-through-a-viewport)). The Undo and Redo
 buttons, the canvas menu and Ctrl+Z take a wheel turn made less than 80 milliseconds before as a step first.
 The panel on the left lists the drawing files, and has no layouts or layers. The ribbon has, among its tabs, Insert, Annotate and View, a Plugins
-tab (see [Command plugins](plugins.md)), a Settings tab, and the tabs a host adds: the model drawing adds its Drawing tab.
+tab (see [Command plugins](plugins.md)), a Settings tab, and the tabs a host adds.
 
 ### The keys and the mouse
 
@@ -692,17 +684,16 @@ show the files as a list or as large pictures. GeometryHelper CAD, which has no 
 Ctrl+N` (NEW) and says "Ctrl+O opens a DXF, Ctrl+N starts a new drawing." on the command line. An extension may offer a new
 document of its own, a `CadNewDocumentOffer` (its menu name, button text, tooltip, start-screen line, welcome line and what
 running it does) returned by `CadWorkspaceExtension.NewDocumentOffer`: the start screen then adds its button and calls NEW
-"Blank drawing", the New entry of the application menu lists it, and Ctrl+N runs it. GeometryHelper Drawing offers "New
+"Blank drawing", the New entry of the application menu lists it, and Ctrl+N runs it. A host that makes model drawings offers "New
 drawing from a model… · Ctrl+N" this way. The window tells the two apart by `MainViewModel.NewDocumentOffer` (`HasNewDocumentOffer`).
 
 ## The apps
 
-There are two standalone apps, both net8.0-windows, both the same window over the same settings file:
+The standalone app is net8.0-windows:
 
 | App | What it is | Use it to |
 |---|---|---|
 | GeometryHelper CAD, `GeometryHelper.Cad.App.exe` | the presenter alone: `GeometryHelper.Cad` and its controls, no model drawing | open, edit and plot DXF drawings in place of AutoCAD; the program to associate with `.dxf` files |
-| GeometryHelper Drawing, `GeometryHelper.Drawing.App.exe` | the presenter with the model drawing added: the Drawing tab, New drawing, Update from model and the drawing plugins | make drawings from a model (see [Model drawings](../drawing/index.md#the-app)) and edit them |
 
 ```
 GeometryHelper.Cad.App.exe plan.dxf
@@ -710,11 +701,10 @@ GeometryHelper.Cad.App.exe plan.dxf
 
 opens the window on a drawing, as double-clicking a file associated with the app does. The app reads the global settings from
 the user's file and loads the command plugins of its plugin folder on the startup list: GeometryHelper CAD keeps them in
-`%AppData%\GeometryHelper\Dxf`, GeometryHelper Drawing in `%AppData%\GeometryHelper\Drawing`, so that a drawing plugin is
-never offered to the app that has no model drawing. The title bar and the start screen carry the app's name.
+`%AppData%\GeometryHelper\Dxf`, so that a drawing plugin is never offered to an app that has no model drawing. The title bar and the start screen carry the app's name.
 
-Both apps start through `CadAppHost` of `GeometryHelper.Cad.Wpf`, and their window is its `CadAppWindow`. GeometryHelper
-Drawing derives from `CadAppHost` to add its parts: the host's protected members take its options off the command line, put
+The app starts through `CadAppHost` of `GeometryHelper.Cad.Wpf`, and its window is `CadAppWindow`. A host that makes model
+drawings derives from `CadAppHost` to add its parts: the host's protected members take its options off the command line, put
 the model drawing into the view model, make a drawing before the file is opened, draw its dialogs and select what its
 options name. A host of its own does the same.
 
@@ -746,7 +736,7 @@ the choice "Always use this app" itself. It writes one line, `.dxf and .dwg file
 exits with 0, or with 1 and the reason where the registry refuses. `--unregister` takes out the ProgID and its Open with
 entries, and the default of an extension only where it is the app's; what other programs wrote stays. Run it again after
 moving the app, since the command names the exe where it was. A file opened from Explorer starts a new window of the app,
-one per file, even while the app runs. GeometryHelper Drawing takes the same two switches and writes the same ProgID, so
+one per file, even while the app runs. A host built on `CadAppHost` takes the same two switches and writes the same ProgID, so
 the app registered last is the one that opens the files.
 
 ### Crashes and the crash log
@@ -766,7 +756,7 @@ folder) the message box says so.
 | Out of memory, an access violation or another fault of native code, on the window's thread | The entry is written, the box says the app cannot go on, and it closes: after these the process can no longer be trusted to hold the drawings |
 
 A stack overflow cannot be caught by any handler: .NET ends the process at once and nothing is written, so a crash with no
-entry in the log and no message is one of those. `GeometryHelper.Cad.App` and `GeometryHelper.Drawing` both install the
+entry in the log and no message is one of those. `GeometryHelper.Cad.App` and any other host built on `CadAppHost` install the
 handlers, as part of `CadAppHost.Run`.
 
 ### Screenshots
@@ -788,7 +778,7 @@ it cannot read. Both apps take these options:
 | `--run "MOVE;0,0"` | types lines on the command line, parted by semicolons, an empty part being Enter |
 | `--cursor x,y` | puts the cursor on a point of the drawing, to show the snap and the rubber band of the prompt waiting |
 | `--toggle GRID,DYN` | switches status toggles |
-| `--tab Insert` | shows a ribbon tab: Home (the default), Insert, Annotate, View, Plugins, Settings, or a host's, as Drawing; another name exits with 2, `--tab Nowhere: no such tab.` |
+| `--tab Insert` | shows a ribbon tab: Home (the default), Insert, Annotate, View, Plugins, Settings, or a host's; another name exits with 2, `--tab Nowhere: no such tab.` |
 | `--plugin path.dll` | loads a command plugin, every file trusted, into a folder of the run under the temporary folder |
 | `--layers` | draws the Layer manager instead of the window, the lines of `--run` typed first: `--space Layout1 --run MS --layers` shows its VP columns |
 | `--dialog name` | draws a dialog or a menu instead of the window, the lines of `--run` typed first where it needs them |
@@ -825,10 +815,7 @@ They need a drawing: with none, `--dialog rename: needs a drawing.` exits with 2
 with no picture, `objectscale` with no annotative object, `xbind` with no reference), the dialog says so, as `--dialog imageadjust:
 the space shown has no image (--run "-IMAGE;...").`, and exits with 2.
 
-GeometryHelper Drawing adds its own: `--new-drawing "Test bodies" Assembly` makes a model drawing from a source with a
-preset and shows it, `--tab Drawing` shows its tab, `--pick view|dimension|mark|line` selects the first entity of the
-drawing that draws one, `--hand-edit` moves its first dimension 25 up by hand, and `--dialog
-new|new-source|new-settings|update|settings[:Tab]|export|message|run-plugin` draws a dialog of the model drawing.
+A host that makes model drawings adds its own switches by the same hooks.
 
 Fonts are looked for in Global settings > Folder preference > Font search folders in order, then in the `Fonts` folder next to `GeometryHelper.Cad.dll` (see [the categories](#the-categories)), a bare name taking `.shx` and a full path used as it is; the list is empty by default, the folder of the drawing is not looked in, and AutoCAD's own Fonts folders are never looked in unless you add them there. A TrueType file is also looked for in the Windows Fonts folder, and a TrueType family Windows does not have is drawn from a file of that family in those folders. A style naming `romans.shx` is drawn as the single strokes of romans, read from the file: shapes, unifont and big fonts, every pen code; a TEXT of romans.shx `ABC123` 10 high right-aligned on x 100 is inked from 44.762 to 100, as AutoCAD puts it. A style naming Arial is drawn by the canvas. A letter a TrueType font has no glyph for is drawn from a font that has it, as AutoCAD draws it through the font linking of Windows, on the screen, on a plot, in a PDF and in the outlines of TXTEXP: the Vietnamese letters of U+1EA0 to U+1EF9 in Gulim or Malgun Gothic (an MTEXT written on a Korean machine names Gulim for them, `\fGulim|b0|i0|c129|p50;ỗ`) were the font's empty box and are Arial's own letters; the fonts tried are Arial, Segoe UI, Tahoma and Times New Roman in that order, in the face's bold and italic, then the font Windows gives the letter, and a letter none has stays the font's box. A font named in the substitution table, or in the font mapping file (an `.fmp` file of `oldfont;newfont` lines, as FONTMAP), is drawn in the font given for it. A TrueType family or file the machine has not (a Korean drawing's 돋움체, DotumChe or Gulim on a machine without them) is drawn in a TrueType font, the drawing font (Arial by default), as AutoCAD draws it through the font mapping of Windows; its Korean, Chinese or Japanese letters come out of the font Windows links for them (Malgun Gothic, SimSun, MS Gothic) as the letters of any Arial text do, where the single-stroke font would have drawn each as a question mark. The style keeps the drawing's own font name, and the command line says `Font DotumChe not found: using the drawing font.` once. A family is matched by any of its names, English or local (`Malgun Gothic` and `맑은 고딕`, `MS Gothic` and `ＭＳ ゴシック`, `SimSun` and `宋体` are one font). The Text Style dialog's Font name box always shows the font the style stores, whether or not the machine has it: a family it lacks is listed as stored and marked `(not installed)` (`DotumChe`), an SHX file or big font no folder has `(not found)`, and a family it has under another of its names (`맑은 고딕`) selects the installed entry (`Malgun Gothic`); showing a style writes nothing, so Apply after a look at every style leaves each style's font, big font, charset and file as they were, and only a change made in the dialog marks a style as changed. A TrueType family that has names in other languages in its font file shows them after its English name, in muted words: `TT  Malgun Gothic  맑은 고딕`, `TT  MS Gothic  ＭＳ ゴシック`, `TT  DotumChe  돋움체` where DotumChe is installed, and `TT  Arial` alone; a name too long for the box is trimmed with an ellipsis and the tooltip holds them all. The list stays in the order of the English names, and typing in the box finds a font by the start of any of its names (`dot` or `돋` finds DotumChe, `맑` finds Malgun Gothic). Picking a family stores its English name, as before, and a style that stores a local name keeps it stored. The same names follow the font in the style list of the dialog and in the MTEXT editor's font box; the Missing Fonts dialog lists a family the machine lacks as the drawing stores it, with nothing after it. An SHX font not found is drawn in the replacement font (as FONTALT): by default GeometryHelper Simplex (`ghsimplex`), the presenter's own single-stroke font after the Hershey Roman Simplex letters, its capitals as high as the text. Write `simplex.shx,gbcbig.shx` to give a big font for big fonts not found too. On opening, the command line lists the missing SHX files once, each with what it is drawn in: `Missing SHX files: romans.shx drawn in GeometryHelper Simplex.` A drawing opened with SHX files not found shows the Missing SHX files dialog: the files, the styles that use them and what they are drawn in, and a replacement to pick for each or the replacement font kept. Where TrueType fonts the machine has not are named too, by a text style or by an MTEXT's font code (`{\fDotumChe|b0|i0|c129|p50;...}`; MTEXTs of model space, layouts and blocks are read, those inside dimensions, leaders and attributes are not), the dialog is titled Missing Fonts and a second, read-only list follows with each family or `.ttf`/`.ttc`/`.otf` name once, whatever its case, in the order of the names, and what it is drawn in (`DotumChe`: `Arial, letters it lacks from another font`; Arial is the drawing font of Global settings). A TrueType font has no replacement to pick. A drawing whose only missing fonts are TrueType opens the dialog with that list alone, titled Missing Fonts; with SHX files alone the title stays Missing SHX files. A family the machine has under another of its names is not listed. Do not show again turns the dialog off; Global settings › Text and fonts › Font not found has the switch Show the missing fonts dialog on opening a drawing to turn it on again (saved as `showMissingShxDialog`). The Chinese, Japanese and Korean code pages of the big fonts are registered by the app at start.
 

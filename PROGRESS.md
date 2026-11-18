@@ -1,8 +1,8 @@
 # Progress
 
 The list of work on the drawing stack. Part A is the 2D presenter (`GeometryHelper.Cad`, `.Cad.Wpf`, and its app
-`GeometryHelper.Cad.App`), which works like AutoCAD 2021. Part B is model drawings (`GeometryHelper.Drawing`), the
-Tekla-like side.
+`GeometryHelper.Cad.App`), which works like AutoCAD 2021. Part B, model drawings, moved to the private repository
+TeklaHelper.DrawingManager on 2026-11-18.
 
 - `[x]` done and merged into `main`; `[ ]` to do; `(running)` an agent is on it now.
 - The maintainer adds, removes or reorders items here; the lead takes the next open item from the top, ticks it when it
@@ -49,27 +49,9 @@ maintainer meets one as a real fault. Details for each are in the history at `dd
 
 ## Part B: model drawings
 
-The active part. The maintainer may change this list before work starts.
-
-Left by the Part A cleanup (2026-11-12), for the Part B replan: the Drawing app's own settings dialog (ExportLayout,
-OpenAfterExport, presets, sources; SettingsSources moved into DrawingWorkspace); hidden lines now drawn in the layer's ACI
-8 grey, not #9AA4B1; the model icon on the New offer; the shared "This line belongs to the model" refusal text and the
-plugin "drawing" kind names.
-
-- [x] G1 Hidden-line projection written to DXF
-- [x] G2 Views (viewports), the drawing document, owners
-- [x] G3 Dimensions
-- [x] G4 Marks and symbols
-- [x] G5 The sheet
-- [x] U1 Model drawing UI: drawing list, New drawing, Update, Export, Drawing settings
-- [x] P1 Drawing plugins: the API, a sample, Run plugin
-- [ ] G0 The maintainer's list of Tekla drawing faults to compare with
-- [ ] G3 Dimension chain texts that fit
-- [ ] G6 step 4: comparison with Tekla; Tekla welds are unreadable
-- [ ] U1 checked against the maintainer's own UI design
-- [ ] P1 picks on the canvas and a Run button in the Plugin manager
+Moved to the private repository TeklaHelper.DrawingManager on 2026-11-18.
 
 ## Release
 
 - [ ] Review by the maintainer of everything above
-- [ ] Packages `GeometryHelper.Drawing` and `GeometryHelper.Cad` on NuGet (only when the work is complete)
+- [ ] Package `GeometryHelper.Cad` on NuGet (only when the work is complete)

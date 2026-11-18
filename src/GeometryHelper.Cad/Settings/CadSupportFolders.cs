@@ -20,7 +20,7 @@ namespace GeometryHelper.Cad
     /// <summary>
     /// The default support folders, as AutoCAD's own Fonts and Support folders are: <c>Fonts</c>, <c>Hatches</c> and
     /// <c>Linetypes</c> beside GeometryHelper.Cad.dll (not beside the exe, so that a host which embeds the dll, such as
-    /// GeometryHelper.Drawing or a Tekla plugin, finds the same ones). A font, a pattern file or a linetype file is looked
+    /// a model drawing library or a Tekla plugin, finds the same ones). A font, a pattern file or a linetype file is looked
     /// for in the folders the user set in Global settings' Folder preference first, then in these, then in the presenter's
     /// own built-in sets. A folder that does not exist is passed over without a word.
     /// </summary>

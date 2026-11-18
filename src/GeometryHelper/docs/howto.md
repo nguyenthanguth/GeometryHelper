@@ -92,23 +92,6 @@ where it compares coordinates; the pages say which.
 | load, unload and reload a plugin | `CadPluginManager.Load(path)`, `Unload(name)`, `Reload(name)` | [Command plugins](presenter/plugins.md#loading-and-unloading) |
 | keep settings between runs | `GlobalSettings.Load(path)`, `settings.Save(path)` | [Settings, autosave and the window](presenter/app.md#global-settings) |
 
-## Model drawings
-
-| To | Call | Page |
-|---|---|---|
-| give a drawing its objects | `new DrawingSource(new[] { new DrawingObject(id, kind, solid, frame, ...) })` | [Sources](drawing/source.md) |
-| read a selection of Tekla into a source | `DrawingSourceConvert.FromObjects(objects)`, `FromAssembly`, `FromPart` | [Sources](drawing/source.md#reading-tekla-structures) |
-| make a drawing | `DrawingBuilder.Build(source, DrawingSettings.Assembly, tolerance)` | [Settings, scale and sheet](drawing/settings.md) |
-| choose the sheet, the scales and the views | `settings.Sheet.Size`, `settings.Scales`, `settings.Views.Kinds` | [Settings, scale and sheet](drawing/settings.md#every-setting) |
-| find the lines seen and hidden of one view | `ViewProjector.Project(inputs, frame, tolerance)` | [Views, projection, sections and details](drawing/views.md#projection) |
-| dimension a view by rule | `Annotator.Dimension(view, objects, frame, settings, tolerance)` | [Dimensions, marks and symbols](drawing/annotation.md#dimensions) |
-| mark the parts of a view | `Marker.Mark(...)`; what a mark says `MarkContent`, `MarkFormat` | [Dimensions, marks and symbols](drawing/annotation.md#marks) |
-| save a drawing and open it again | `drawing.Save(path)`, `Drawing.Open(path, source, tolerance)` | [Making it again](drawing/update.md#made-saved-and-opened) |
-| show a drawing in the presenter | `drawing.OpenInPresenter()` | [Making it again](drawing/update.md#showing-a-drawing-in-the-presenter) |
-| make it again when the model changes | `drawing.Update(newSource)`; on a thread `Prepare` then `Apply` | [Making it again](drawing/update.md#update) |
-| add a section, a detail or a view | `drawing.AddSection(...)`, `AddDetail(...)`, `AddView(kind)` | [Making it again](drawing/update.md#adding-and-changing-one-view) |
-| find what was edited by hand | `drawing.Edits`, `UpdateReport.EditsKept`, `EditsDropped` | [Making it again](drawing/update.md#hand-edits) |
-
 ## Meshing, label placement and packing
 
 | To | Call | Page |

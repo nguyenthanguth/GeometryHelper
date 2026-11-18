@@ -127,7 +127,7 @@ namespace GeometryHelper.Cad.Plugins
 
         /// <summary>
         /// Gets or sets what finds the drawing plugins in the assemblies of a plugin loaded, given its manifest (null for a bare
-        /// .dll), and gives their names: the catalog of GeometryHelper.Drawing sets it. Null, as it is until set, loads command
+        /// .dll), and gives their names: the catalog of a model drawing library sets it. Null, as it is until set, loads command
         /// plugins only, and refuses a manifest of the kind "drawing". Where it is set, a plugin of the kind "drawing", or a
         /// bare .dll, is loaded when it has a drawing plugin or a command; a reason it throws as a
         /// <see cref="CadPluginException"/> is the reason the load is refused.

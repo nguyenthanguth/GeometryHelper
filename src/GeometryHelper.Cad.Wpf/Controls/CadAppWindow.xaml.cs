@@ -7,7 +7,7 @@ namespace GeometryHelper.Cad.Wpf
     /// <summary>
     /// The main window of a standalone app of the presenter: the <see cref="CadWorkspace"/> in a frame of its own, the title
     /// bar drawn by the workspace and the window's minimise, maximise and close buttons at its right. GeometryHelper CAD shows
-    /// it as it is; GeometryHelper Drawing adds the model drawing to its workspace.
+    /// it as it is; a host that makes model drawings adds them to its workspace.
     /// </summary>
     public partial class CadAppWindow : Window
     {

@@ -5,6 +5,7 @@ release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
 ## Unreleased
+**CHANGED.** Part B, the model drawing (`GeometryHelper.Drawing`, `GeometryHelper.Drawing.Wpf`, `GeometryHelper.Drawing.App`, and `DrawingSourceConvert` of `GeometryHelper.TeklaConvert`), moved out of the repository on 2026-11-18 into a private one, TeklaHelper.DrawingManager; none of it was ever released. `GeometryHelper.TeklaConvert` no longer depends on it, and the presenter keeps the seams a host of model drawings uses: the owner contract, `CadWorkspaceExtension`, `CadAppHost` and `CadPluginManager.DrawingPluginFinder`.
 **NEW.** Another program can drive a running GeometryHelper CAD, as a Tekla Open API program drives a running Tekla Structures: the new project `GeometryHelper.Cad.Remote` (netstandard2.0, referencing only GeometryHelper, so a Tekla 2020 plugin on .NET Framework 4.8 can use it) holds `CadApplication` (`new CadApplication()` connects to the app the user activated last, `GetRunning()` lists the apps, `ForDocument(path)` finds the one with a file open), `CadRemoteDocument` and `CadObjectFilter`. A drawing has an id for the session and a `CadRemoteDocument` always means its own drawing, whatever tab is shown meanwhile; one closed meanwhile throws `CadRemoteException` ("The drawing A-101.dwg is no longer open.") and never falls through to another. `Insert`, `Modify` and `Delete` are queued and `CommitChanges()` applies them in order as one undo step with the canvas drawn again; an owner that refuses any change refuses all, with its own words and nothing applied. Entities travel as the library's DXF text, so the client uses `DxfLine`, `DxfMText`, `DxfDimension`, `DxfBlockReference` and the rest: a layer the drawing lacks is made, a dimension made in code is drawn by the app, an INSERT of a block the drawing lacks brings the block's definition when the INSERT was made from a block of the program's own that holds objects (or was read from another drawing of the app), and is refused with the reason when it is neither in the drawing nor defined. `SendCommand("ZOOM E ")` types on the drawing's command line and returns when the command ends or after 30 seconds with what the command line wrote; `Save()`, `SaveAs(path, version)`, `Open`, `New`, `Activate`, `GetObject(s)`, `GetSelectedObjects` and `Select` complete it. The channel is a named pipe `GeometryHelper.Cad.<process id>` open to the current Windows user only (a security descriptor built with the Win32 call, no new package) and shut to other computers; each app announces itself in `%LocalAppData%\GeometryHelper\Remote\<process id>.json` and deletes the file on exit. The app (`CadAppHost`) starts it; a library user who starts no `CadRemoteServer` has nothing listening. `PickPoint(prompt)`, `PickPoint(prompt, basePoint)`, `PickObjects(prompt)` and `PickObject(prompt)` ask the user on the canvas, as Tekla's `Picker` does: the prompt appears on the drawing's command line, the user clicks, types or windows as for any command (objects selected before the call are taken at once), and Esc throws `CadRemoteException` with `IsCancelled` true; an optional time ends the pick in the app when it is up. The app stays free while a pick waits (the server looks every 20 milliseconds whether it has ended, each look its own short piece of work on the UI thread), and another program that asks meanwhile is told at once that the app is busy waiting for the user to pick. `drawing.Layers` lists the layers (`CadRemoteLayer`: name, on, frozen, locked, plottable, colour as an index or a true colour, linetype, lineweight, description), `AddLayer` and `ModifyLayer` queue with `CommitChanges` so that a layer and the objects on it are one undo step, and `CurrentLayer`, `Layouts` and `CurrentLayout` read and set the layer new objects go on and the tab shown. Global settings › Save and export › Other programs has **Allow other programs to connect** (`allowRemoteConnections`, on by default): off stops the server and deletes the instance file, on starts a new server, with no restart, and a line under it says `Other programs can connect: GeometryHelper.Cad.<process id>`. The guide is [Driving the app from another program](src/GeometryHelper/docs/presenter/remote.md), with a Tekla plugin sketch, and `tests/GeometryHelper.Cad.Remote.Sample` is a console program that draws a framed title on a layer of its own and a circle where the user picks.
 **FIXED.** OSNAP and its alias OS typed at the command line asked the status bar's "Enter mode [ON/OFF] <ON>:" instead of opening Drafting Settings, which is what AutoCAD 2021 does (OSNAP, OS and DDOSNAP open it on the Object Snap tab; -OSNAP is the command-line form, and F3 and the status-bar button toggle the object snaps with no dialog). Typed, OSNAP, OS and DDOSNAP now open Drafting Settings on the Object Snap tab, 'OSNAP does the same inside LINE or any other command and the command goes on ("Resuming LINE command."), and DSETTINGS (DS, SE) opens on the tab used last, as AutoCAD's does. The request the window listens to (`DraftingSettingsRequested`) now carries the tab, which was dropped before, so every route opened Object Snap. F3, the status bar, ORTHO typed ("Enter mode [ON/OFF] <OFF>:"), GRID, SNAP and -OSNAP are unchanged. AutoCAD 2021's console knows no POLAR, OTRACK or DYN command ("Unknown command"); the presenter's typed POLAR and DYN toggles are kept. `OSNAP OFF` typed no longer switches the snaps off, as in AutoCAD: F3 or OSMODE 16384 does.
 **FIXED.** The Object Snap tab of Drafting Settings was laid out badly (the maintainer's picture): Select All and Clear All sat above the check boxes and pushed them 85 pixels below the "Object Snap modes" label, the boxes had no group around them and stood at the window's edge, and about 100 pixels were left empty above the footer. The tab is now AutoCAD 2021's: Object Snap On and Object Snap Tracking On at the top, then a bordered "Object Snap modes" group (drawn as the Snap and Grid and Polar Tracking tabs draw theirs) whose two columns of check boxes begin 16 pixels under its title, nine rows then five, 33 pixels apart, with Select All and Clear All stacked at its top right beside them, and AutoCAD's hint about tracking in small muted words under the group. The window is 540 high instead of 580, which is the height of the tallest tab, Snap and Grid (its last group ended 60 pixels above the old footer): the Object Snap and Snap and Grid tabs each leave no more than 24 pixels above the footer (a test measures it), the Polar Tracking tab, the shortest, more, and all three tabs keep the one size. Every binding and command is unchanged.
@@ -12,7 +13,7 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 **NEW.** The font boxes show a TrueType family's other names after its English one, as the maintainer asked (`TT  DotumChe  돋움체`, `TT  Malgun Gothic  맑은 고딕`, `TT  MS Gothic  ＭＳ ゴシック`; `TT  Arial` stays alone, SHX fonts are unchanged). The names come from the font's own name table (family name 1 and the typographic family name 16, in every language), read in the scan of the Fonts folders that already reads each file, in the order of their language ids with the English ones and repeats left out: `CadTrueTypeFonts.LocalNamesOf` (new). The Text Style dialog's Font name box, the MTEXT editor's font box and the font column of the dialog's style list show them in muted words after the name, trimmed with an ellipsis where they do not fit, all of them in the tooltip; the Missing Fonts dialog shows a family it lacks as the drawing stores it. The list stays sorted by the English name and the value a style stores is unchanged: picking a font stores its English family, and a style that stores `맑은 고딕` keeps it, byte for byte, after Apply. Typing in the Text Style box finds a font by the start of any of its names (`dot` or `돋` finds DotumChe, `맑` finds Malgun Gothic): the `FontSearch` attached property matches each name on its own, since the box's own text search takes one text per entry. The first scan of 1 324 families went from 204 to 245 ms in a console probe (the Text Style dialog's first open, 1.75 s, did not change within noise).
 **FIXED.** The Text Style dialog showed an empty Font name box for a style whose font the machine does not have (the maintainer's pictures: 0-BIM-TEXT of DotumChe, a Korean family not installed, against AutoCAD, which shows 돋움체), and merely showing such a style, or pressing Apply after it, rewrote it. The box was bound to the font by name; a style whose family was not in the list had it added by a second list handed to the box, which cleared the selection and pushed a blank back, so the dialog took the style as changed (the footer said "Unsaved changes to 0-BIM-TEXT. Apply redraws the 26 texts that use it" before anything was touched) and Apply wrote it as an SHX style of the file `dotumche.ttf`, its typeface, bold and italic flags and Korean character set (129) gone. The box now always shows the style's own font, in the list as the style stores it, marked `(not installed)` for a TrueType family and `(not found)` for an SHX file the font folders lack; a family stored under a localized name the system knows another way (`맑은 고딕`, installed as Malgun Gothic) selects the installed entry; the Big font box does the same for a big font no folder has; and showing a style never marks it changed, whatever it holds: a style drawn from a font file alone, a typeface with its character set, a big font on a TrueType style, a height of 2.123456 or a width of 0.123456789 come back as they are stored (a drawing of ten styles, each shown and Apply pressed: its text identical to the byte, none marked changed). A real edit (a width factor, bold, another font) still marks the style changed and keeps the font it was not asked to change. The list of SHX fonts is the folders of Folder preference and the `Fonts` folder beside `GeometryHelper.Cad.dll`, no longer the drawing's own folder, which is not looked in; the hint under the box says so.
 **FIXED.** The MTEXT editor's font box was empty where the letters under the caret were in a font the list lacks: a family this machine has not (`\fGhNoSuchFontFamily|b0|i0|c129|p34;`), or a font code in other letters than the list spells it (`\fARIAL`). The box lists the font after the style's while the caret is in it, and shows the listed spelling.
-**NEW.** Default support folders, as AutoCAD has its Fonts and Support folders: `Fonts`, `Hatches` and `Linetypes` next to `GeometryHelper.Cad.dll` (the dll's folder, not the exe's, so an app that embeds the dll, such as GeometryHelper.Drawing, finds them). They ship with the presenter, reach the output of every project that uses it, and hold a `README.txt` each; `Hatches` holds `GeometryHelper.pat` (the 48 built-in patterns) and `Linetypes` holds `GeometryHelper.lin` (the 39 built-in linetypes), written in AutoCAD's `.pat` and `.lin` formats from the built-in definitions as models for your own files (a test keeps them equal to the sets; the name `GeometryHelper.pat` or `.lin` still always means the built-in set). Put SHX fonts and big fonts, `.ttf`, `.ttc` and `.otf` files, `.pat` files and `.lin` files there and they are found by name. A font, a pattern file or a linetype file is looked for in three places, in this order: the folders set in Global settings > Folder preference, the default folder next to the dll, then the built-in font, patterns and linetypes; a folder that does not exist is passed over without a word. TrueType fonts installed in Windows are found first, as before (by family through the canvas, a style's `.ttf` file name through the Windows Fonts folder); for a typeface Windows does not have, a `.ttf`, `.ttc` or `.otf` file of that family in those folders is drawn instead, with no installing, and the family is not listed as missing (the regular face is preferred to a bold or italic one; a folder's file list is read at each look and a file's family names once). New `CadSupportFolders` and `CadSupportKind`. Folder preference shows the default folders as read-only rows marked "(default)" with their full path ("not found" where missing) and an Open folder button, never saved into the settings file, and a line under each list that says the order.
+**NEW.** Default support folders, as AutoCAD has its Fonts and Support folders: `Fonts`, `Hatches` and `Linetypes` next to `GeometryHelper.Cad.dll` (the dll's folder, not the exe's, so an app that embeds the dll, such as a model drawing app, finds them). They ship with the presenter, reach the output of every project that uses it, and hold a `README.txt` each; `Hatches` holds `GeometryHelper.pat` (the 48 built-in patterns) and `Linetypes` holds `GeometryHelper.lin` (the 39 built-in linetypes), written in AutoCAD's `.pat` and `.lin` formats from the built-in definitions as models for your own files (a test keeps them equal to the sets; the name `GeometryHelper.pat` or `.lin` still always means the built-in set). Put SHX fonts and big fonts, `.ttf`, `.ttc` and `.otf` files, `.pat` files and `.lin` files there and they are found by name. A font, a pattern file or a linetype file is looked for in three places, in this order: the folders set in Global settings > Folder preference, the default folder next to the dll, then the built-in font, patterns and linetypes; a folder that does not exist is passed over without a word. TrueType fonts installed in Windows are found first, as before (by family through the canvas, a style's `.ttf` file name through the Windows Fonts folder); for a typeface Windows does not have, a `.ttf`, `.ttc` or `.otf` file of that family in those folders is drawn instead, with no installing, and the family is not listed as missing (the regular face is preferred to a bold or italic one; a folder's file list is read at each look and a file's family names once). New `CadSupportFolders` and `CadSupportKind`. Folder preference shows the default folders as read-only rows marked "(default)" with their full path ("not found" where missing) and an Open folder button, never saved into the settings file, and a line under each list that says the order.
 **CHANGED.** The folder of the drawing is no longer looked in for fonts (SHX and TrueType files), hatch pattern files (`.pat`) or linetype files (`.lin`): the maintainer found it confusing. Put them in a folder of Folder preference or in the default folders next to the dll. Xrefs and images are still found relative to the drawing. The test `AFontIsLookedForInTheDrawingsFolderFirstThenInTheFoldersInOrder_OfAnyCase` is now `AFontIsLookedForInTheFoldersInOrder_OfAnyCase_AndNotInTheDrawingsFolder`.
 **BREAKING.** The AutoCAD-like presenter projects are renamed: `GeometryHelper.Dxf.Viewer` is now `GeometryHelper.Cad`, `GeometryHelper.Dxf.Viewer.Wpf` is `GeometryHelper.Cad.Wpf`, and the app `GeometryHelper.Dxf.App` is `GeometryHelper.Cad.App` (the exe is `GeometryHelper.Cad.App.exe`). The projects, folders, assemblies and root namespaces follow, and so do the tests and samples (`GeometryHelper.Cad.UnitTest`, `GeometryHelper.Cad.Wpf.UnitTest`, `GeometryHelper.Cad.Plugins.UnitTest`, `GeometryHelper.Cad.Plugins.Net8Runner`, `GeometryHelper.Cad.SamplePlugin`). Every namespace `GeometryHelper.Dxf.Viewer[.X]` becomes `GeometryHelper.Cad[.X]` and `GeometryHelper.Dxf.Viewer.Wpf[.X]` becomes `GeometryHelper.Cad.Wpf[.X]`; code that used the DXF types through the parent namespace now needs `using GeometryHelper.Dxf;`. A plugin built against the old assemblies must be rebuilt against `GeometryHelper.Cad`. Nothing else changes: the DXF and DWG reader and writer keep the namespace `GeometryHelper.Dxf`, `GeometryHelper.CadConvert` keeps its name, and the settings folder `%AppData%\GeometryHelper\Drawing` and every settings key are unchanged.
 **CHANGED.** The presenter's app is called GeometryHelper CAD, no longer GeometryHelper DXF, to match its new project names and the DWG drawings it opens: the title bar ("GeometryHelper CAD  plan.dxf"), the start screen, "Exit GeometryHelper CAD", the file type Explorer shows ("Drawing (GeometryHelper CAD)", written the next time the association is set) and the guides. Its folder of plugins and recent files stays `%AppData%GeometryHelperDxf`, so nothing kept there is lost.
@@ -3707,7 +3708,7 @@ file's winning, saying how many were added, changed, unchanged, skipped for a co
 settings file that holds a factor keeps it.
 **CHANGED.** The presenter's Global settings has eight categories. Drawing defaults, Data sources and the Drawing text rows
 of Text and fonts are gone from it, being the defaults of drawings made from a model; `GlobalSettings` still reads and writes
-them, and GeometryHelper.Drawing still uses them. Fonts is now **Folder preference**, the font and support file search
+them, and a host that makes model drawings still uses them. Fonts is now **Folder preference**, the font and support file search
 folders alone; the replacement font, the font mapping file and the substitutions are on Text and fonts, whose UI font is a
 box of the font families installed on Windows, each in its own face, that also takes a name typed.
 `GlobalSettingsViewModel.IsFontsPage`, `IsSourcesPage` and `Sources` give way to `IsFolderPreferencePage` and
@@ -3721,12 +3722,12 @@ is any other style. The Layer manager no longer has its Owner column (always emp
 wrote. The canvas no longer draws a layer named Hidden in the colour of Global settings' hidden lines: a layer is drawn in its
 own colour, as AutoCAD draws it. `GlobalSettings` still reads and writes `DefaultPreset`, `DefaultSheetSize`,
 `DefaultOrientation`, `DefaultProjection`, `CheckForModelChanges`, `CheckEverySeconds`, `ExportLayout`, `OpenAfterExport`,
-`HiddenLines` and `DimensionDecimals` for GeometryHelper.Drawing; the presenter shows and applies none of them.
+`HiddenLines` and `DimensionDecimals` for a host that makes model drawings; the presenter shows and applies none of them.
 **BREAKING.** `MainViewModel.NewFromModelRequested`, `CanMakeFromModel`, `NewFromModelCommand` and `WelcomeText` are removed
 from the presenter. An extension that makes a document of its own returns a `CadNewDocumentOffer` (the menu name, button
 text, tooltip, start-screen line, welcome line and the action) from the new `CadWorkspaceExtension.NewDocumentOffer`; the
 view model gives `MainViewModel.NewDocumentOffer`, `HasNewDocumentOffer` and `NewOfferedDocumentCommand`, and Ctrl+N, the
-start screen and the New entry of the application menu use it. GeometryHelper.Drawing.Wpf offers "Drawing from a model" this
+start screen and the New entry of the application menu use it. A host that makes model drawings offers "Drawing from a model" this
 way. Without an offer nothing about models shows.
 **BREAKING.** Removed from the presenter: `CadDimStyleEditor.IsModelStyle`, `StyleRowViewModel.IsModel`,
 `GlobalSettingCategory.IsModel`, `LayerRowViewModel.Owner`, `CanvasOptions.HiddenLineColor` and
@@ -6384,7 +6385,7 @@ borders, each one undo step; a cell of a table of 100 rows of 20 columns is writ
 2021 audited drawings of R2000, R2013 and R2018 made so with no error and lists their tables as tables. A table turned
 is now drawn where it stands: its block was turned twice.
 
-**NEW.** `GeometryHelper.Dxf.Viewer`, `GeometryHelper.Dxf.Viewer.Wpf` and the `GeometryHelper.Drawing.App` window are a 2D
+**NEW.** `GeometryHelper.Dxf.Viewer` and `GeometryHelper.Dxf.Viewer.Wpf` are a 2D
 presenter for any DXF, built as AutoCAD behaves (not packed yet). A file opens as a `CadDocument` drawn from display
 lists through SkiaSharp: 100 000 entities open in 0.9 s, a click picks in 0.007 ms and a window of 1 000 entities draws
 in under 1 ms. It edits as AutoCAD does, with a command line that has AutoCAD's prompts, names and aliases, object snaps,
@@ -6455,18 +6456,6 @@ Under Objects, Bring Text to Front), which gives DRAWORDER its option once the o
 Select. Annotate's Dimensions panel has the Linear and Continue splits, Quick, Adjust Space, Break and a slide-out with
 Oblique and Text Angle. The Text Editor tab fits 1 600 pixels, Spell Check and Tools collapsed and Close the last panel.
 
-**NEW.** `GeometryHelper.Drawing` makes a model drawing, in the manner of Tekla's, from a `DrawingSource` of
-`DrawingObject` bodies: views along the axes and an isometric view with exact hidden-line projection (2 000 objects in
-the front view take 0.3 s), sections with ANSI31 hatches, details, dimensions by rule, marks that keep clear of the
-symbols and dimensions, centre lines, weld symbols to ISO 2553, section, detail and level marks. A drawing is one DXF that
-also carries its own document, so it opens again with its settings. `Drawing.Update(source, settings)` makes it again with
-other settings or a changed model and keeps what was moved or drawn by hand; `Prepare` makes the update on a thread of
-its own and `Apply` writes it as one undo step. `ReDimension`, `ReMark`, `AddView`, `AddSection` (a cut along a line drawn
-in a view) and `AddDetail` change the settings for one view and are kept through later updates; `ReCentreLines` makes the
-drawing again with the centre lines of one view drawn anew. A general arrangement
-of 1 000 members is drawn in 1.2 s. The dialogs, the Drawing tab and the commands VIEWSECTION and VIEWDETAIL are in
-`GeometryHelper.Drawing.Wpf`.
-
 **NEW.** Weld symbols are placed clear of the view's dimensions, centre lines, section, detail and level marks and of one
 another, as marks are: `WeldSymbol.Find` given the dimensions and what else to keep clear of tries the knee up and right of
 the weld, up and left, down and right and down and left, nearest first, and the arrow always ends at the weld's middle. A
@@ -6474,11 +6463,6 @@ symbol left of its weld runs its reference line to the left. The fillet a6 of TC
 a dimension line and a dimension's text, now stands under the base plate; the 36 symbols of TC5 in its front, top and right
 views at 1:2 to 1:20 have no overlap. `WeldSymbol.FindOverlaps` lists what overlaps, and the marks of a view are placed after
 the symbols and keep clear of them.
-
-**NEW.** A model drawing made in the app is saved at once, once the global settings are applied, into their save folder
-(the folder `GeometryHelper Drawing` in the user's Documents where it is empty), named by its number: `B-101.dxf`, or
-`B-101 (2).dxf` where that name is taken, so that no file is written over. It then has a file, which Save writes to, and
-autosave keeps copies beside it.
 
 **NEW.** TEXT and MTEXT write the width factor of the global settings (0.8 by default), and the dimension commands DIMLINEAR,
 DIMALIGNED, DIMRADIUS, DIMDIAMETER and DIMANGULAR write the text of a dimension at the text height of the global settings,
@@ -6494,12 +6478,7 @@ marks on five test bodies, 18 moved, all in views with short dimensions.
 **FIXED.** The 2D presenter draws an MTEXT at the width factor its words open with (`\W0.8000;` for 0.8, as the T
 command and AutoCAD write it) and measures it at that width, as it does a TEXT.
 
-**FIXED.** A model drawing saved and opened again from its DXF, by Open or from the file list, is a model drawing again,
-not a plain read-only DXF: its owner is registered, so a mark can be moved and a projected line cannot, it is listed under
-"Opened from a file · model drawings" with the Drawing tab, and saving writes to the file it came from. Update from model
-asks for the source, since the file does not keep it, and says in words when none is at hand or when the source holds none
-of the drawing's objects. **NEW.** `Drawing.Open(CadDocument, DrawingSource, Tolerance)` and
-`CadWorkspaceExtension.DocumentOpened`.
+**NEW.** `CadWorkspaceExtension.DocumentOpened`: a host that makes model drawings is told when a document is opened, before it is shown, so that it can register the owner of the entities the document holds.
 
 **FIXED.** The Text override of a dimension can be set in Properties, as in AutoCAD: `<> TYP` shows `3000 TYP` on a
 dimension of 3 000, and an empty text shows the measurement. On a model drawing it is a hand edit and one undo step.
@@ -6520,16 +6499,6 @@ find a place instead of 185, and every other mark is the same to the bit; two of
 
 **FIXED.** The presenter draws an MTEXT at its text style's width factor when its words set none of their own, as it
 already took the style's slant. ROMANS 2.5 high in a style of width 0.75 is drawn 6.75 wide, and `\W1.2x;` makes it 0.9.
-
-**FIXED.** VIEWSECTION and VIEWDETAIL on a model drawing opened again from its file said "No view of the drawing is
-there."; they now make it again from the source its file names first, or say to pick the source in Update from model.
-
-**FIXED.** A model drawing just made and saved into the save folder was listed twice: as the drawing, and as its file once
-another file of the folder was opened, or once it was saved with Save and shown again. It is now one row.
-
-**FIXED.** Properties of a model drawing opened again said "Opened from a file" for its source though its file names it; it
-now says, for example, "Test bodies (from file)" until the drawing is made again. The out-of-date dot now shows on such a
-drawing too, checked in the source its file names without changing it.
 
 **NEW.** The presenter's clipboard as AutoCAD's: COPYCLIP (Ctrl+C), CUTCLIP (Ctrl+X), COPYBASE (Ctrl+Shift+C), PASTECLIP
 (Ctrl+V), PASTEBLOCK (Ctrl+Shift+V), PASTEORIG and PASTESPEC, between drawings and between copies of the app, text from other
@@ -6774,22 +6743,8 @@ AutoCAD 2021's six ribbon tabs is in the drawing plan, 72-autocad-gap.md.
 **FIXED.** A screenshot run of the app that left a drawing changed waited for ever on the question to save it when the
 window closed; it answers "Don't save".
 
-**NEW.** Drawing plugins, shaped as Tekla's drawing plugins are. A class derived from `DrawingPlugin` says what it needs in
-`DefineInput` and adds dimensions to a view in `Run`. `Drawing.RunPlugin` runs it and keeps the run in the drawing's DXF, and
-every update runs it again, so its dimensions follow the model. The sample Bolt dimensions gives the pitch 300 of TC5's
-base-plate bolts, and 340 once they are moved 20 further apart and the drawing is updated, a hand-moved dimension staying
-where it was put.
-
-**NEW.** Drawing plugins in the app: Run plugin on the Drawing tab shows the drawing plugins loaded, the view (the one
-selected, else the first), the objects of the view of the kinds the plugin asks for, each ticked, and the plugin's settings
-with their defaults and ranges, checked as typed. `PLUGIN` asks for the plugin by name, the view and each setting in turn.
-Each run is one undo step, refused in words while the drawing is being made again, and a plugin that fails leaves the drawing
-as it was and is said on the command line. The dimensions a plugin adds keep clear of those the view has already: on TC5 the
-sample's 50, 300, 50 stand on tier 1 on the left of the front view, outside the drawing's own, where before 7 pairs
-overlapped.
-
 **NEW.** The plugin manager loads drawing plugins from a `.dll` or a `.ghplugin` whose plugin.json says `"kind": "drawing"`,
-through a `DrawingPluginCatalog`. It uses the same shadow copy, trusted folders, startup list and log as command plugins; on
+through the `DrawingPluginFinder` a library that makes model drawings gives it. It uses the same shadow copy, trusted folders, startup list and log as command plugins; on
 .NET 8, unloading frees the plugin's code.
 
 **CHANGED.** `UpdateReport.PluginRunsToRunAgain` now lists only the runs whose plugin is not at hand. `PluginRunsRun` and
@@ -6803,13 +6758,6 @@ drawing and in its file.
 
 **FIXED.** EXPLODE of a dimension, mark or view of a model drawing is refused in words ("This dimension belongs to the model
 and cannot be exploded here."); before, the dimension was erased and recorded as a hand edit, and its pieces lost.
-
-**FIXED.** An update prepared before the drawing was made again is refused by `Drawing.Apply`: adding the top view and the
-isometric one at once no longer loses the first. In the presenter a second Add view, AUTODIM or AUTOMARK while B1 is being
-made says "B1 is being made again; wait for it.", and a drawing closed meanwhile is not written into.
-
-**FIXED.** Export no longer saves the drawing shown from a worker thread, nor ties its database to the exported or temporary
-file; the bytes written are unchanged.
 
 **FIXED.** Save As onto the file of another open document, B-101.dxf of a model drawing among them, is refused until that
 document is closed.
@@ -6831,16 +6779,6 @@ hole-edge dimensions at 1:20.
 **NEW.** `DrawingDocumentStore.WriteValues` and `ReadValues`: named values the app keeps with a drawing in the XRECORD
 `VALUES` of GH_DRAWING. A file without them reads as none, and writing none leaves a drawing as one never given any, byte
 for byte.
-
-**FIXED.** A model drawing saved and opened again keeps the source it was made from, its preset and the assemblies it
-draws whole. Update from model chooses that source when one of the name is connected, Properties shows the preset
-(Assembly, not Custom), and a fitting added to a whole assembly is drawn. Drawing settings, Add view, Auto dimension and
-Auto marks work on a drawing opened again from its file: they make it again from the source its file names, or the one
-Update from model found its objects in, in one undo step. With none at hand they say to pick its source in Update from
-model first, and a source with none of its objects is refused, leaving the drawing as it was.
-
-**FIXED.** Opening a file that a drawing just made was saved as shows that drawing instead of opening a second document
-over the same file.
 
 **FIXED.** A text override of a single space is kept, so the dimension shows no text, as in AutoCAD. Every other value is
 still trimmed.
@@ -6870,17 +6808,6 @@ the 10 000 take 1.1 s and the 2 000 0.02 s. `GetAt`, `Contains`, `Remove` and th
 dictionary names cost as little: 2 000 entries looked up one by one take 0.001 s, where they took 1.5 s. Every other
 edit that puts groups into a record's bytes gains as well: 10 000 vertices added one by one to a LWPOLYLINE in a drawing
 take 0.26 s, where they took 0.83 s, and 2 000 loops added to a hatch 0.32 s, where they took 0.56 s.
-
-**NEW.** `DrawingSourceConvert` in GeometryHelper.TeklaConvert reads Tekla model objects into the `DrawingSource` of
-GeometryHelper.Drawing, in the current work plane and without changing the model: `FromAssembly` the main part, the
-secondaries and the sub-assemblies, set in the main part's frame; `FromPart` one part in its own frame; `FromObjects` a
-selection. A part comes with its body, its frame, its name, its PART_POS as its mark, its profile, its material, its
-assembly as its parent and ASSEMBLY_POS, LENGTH and WEIGHT as attributes. A bolt is made from its group's data: an M20
-group of four, 60 long, gives four cylinders of 24 sides and 20 across along the group's Z axis, as long as the body
-Tekla draws for them, with Diameter "20", HoleDiameter "22", Length "60", Count "4", Standard and the parts bolted; a
-group with holes only gives holes of 22 through the parts bolted. A weld carries what its symbol reads: a fillet of 5
-above the line, 200 long, is WeldType "Fillet", WeldSide "Arrow", WeldSize "a5" and WeldLength "200". Each
-GeometryHelper.TeklaConvert.{year} package depends on GeometryHelper.Drawing from now on.
 
 **NEW.** The sheet of a DXF layout is set, as AutoCAD's `PlotSettingsValidator` sets it, where it was only read: a layout
 made in code lay on the A3 it was given. `CanonicalMediaName` takes a name that ends in the sheet's size in millimetres

@@ -13,7 +13,6 @@
             "src/GeometryHelper.Cad/GeometryHelper.Cad.csproj",
             "src/GeometryHelper.CadConvert/GeometryHelper.CadConvert.csproj",
             "src/GeometryHelper.IfcConvert/GeometryHelper.IfcConvert.csproj",
-            "src/GeometryHelper.Drawing/GeometryHelper.Drawing.csproj",
             "src/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj"
           ]
         }

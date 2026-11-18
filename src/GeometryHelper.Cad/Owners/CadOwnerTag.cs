@@ -13,8 +13,8 @@ namespace GeometryHelper.Cad
     /// <remarks>
     /// <para>
     /// A line of the front view of a model drawing drawing the beam B-12 is tagged
-    /// <c>new CadOwnerTag("GeometryHelper.Drawing", "B-12", "V-1").WriteTo(line)</c>, and its extended data reads
-    /// <c>1001 GH_OWNER</c>, <c>1000 GeometryHelper.Drawing</c>, <c>1000 B-12</c>, <c>1000 V-1</c>; with no second id the last
+    /// <c>new CadOwnerTag("ModelDrawing", "B-12", "V-1").WriteTo(line)</c>, and its extended data reads
+    /// <c>1001 GH_OWNER</c>, <c>1000 ModelDrawing</c>, <c>1000 B-12</c>, <c>1000 V-1</c>; with no second id the last
     /// group is left out. The application is registered in the drawing's table of applications when the tag is written.
     /// AutoCAD keeps the data and ignores it, so a tagged drawing opens there as any other.
     /// </para>
@@ -184,7 +184,7 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>Gives the tag as a line for debugging.</summary>
-        /// <returns>The line, such as <c>GeometryHelper.Drawing B-12 V-1</c>.</returns>
+        /// <returns>The line, such as <c>ModelDrawing B-12 V-1</c>.</returns>
         public override string ToString() => Owner + " " + ObjectId + (ExtraId == null ? string.Empty : " " + ExtraId);
 
         /// <summary>Refuses a text too long for a string of extended data once it is escaped.</summary>

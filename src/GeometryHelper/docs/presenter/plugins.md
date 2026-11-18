@@ -179,12 +179,9 @@ folder, one for each process, those of processes that have ended deleted at the 
 
 The presenter's own assemblies (`GeometryHelper`, `GeometryHelper.Cad` and the controls) are never loaded from a
 plugin's folder, on either runtime. The manager's files are `plugins.json`, the startup list and the trusted folders; the
-apps keep them with the plugin folder, GeometryHelper CAD in `%AppData%\GeometryHelper\Dxf` and GeometryHelper Drawing in
-`%AppData%\GeometryHelper\Drawing`, and the plugin folder, `Plugins`, is loaded at every start.
+apps keep them with the plugin folder, GeometryHelper CAD in `%AppData%\GeometryHelper\Dxf`, and the plugin folder, `Plugins`, is loaded at every start.
 
-A plugin.json with `"kind": "drawing"` holds drawing plugins (classes derived from `DrawingPlugin`, see [Plugin runs](../drawing/update.md#plugin-runs)). The plugin manager loads them once a `DrawingPluginCatalog` is made over it, through the same shadow copy, trusted folders, startup list and log, and lists them under the Drawing chip of the Plugin manager; on .NET 8, unloading frees the plugin's code.
-
-Run plugin on the Drawing tab, or `PLUGIN` on the command line, runs a drawing plugin loaded on the drawing shown: the plugin, the view, the objects (all ticked by default, so that the run takes those an update adds too) and its settings, each checked against its range. The run is kept in the drawing and runs again on every update; Undo takes it back, and a plugin that fails leaves the drawing as it was.
+A plugin.json with `"kind": "drawing"` holds drawing plugins, which this presenter does not run: a library that makes model drawings gives the plugin manager a `DrawingPluginFinder`, and the manager then loads such a plugin through the same shadow copy, trusted folders, startup list and log, and lists it under the Drawing chip of the Plugin manager. Without a finder the presenter refuses the plugin with the manager's reason.
 
 ## What the window adds
 

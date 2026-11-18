@@ -48,9 +48,8 @@ which finds the owner an entity's tag names:
 | has the tag of an owner that throws | `ReadOnly`, and the exception is written as a Warn line of [`GeometryHelperLog`](xref:GeometryHelper.GeometryHelperLog) |
 
 The third row is what a saved model drawing opens as in the plain presenter: a beam drawing of 95 tagged entities, its
-projected lines, symbols, marks, dimensions and views, is read-only throughout until a
-[`Drawing`](xref:GeometryHelper.Drawing.Drawing) opens the file and registers its owner (see
-[Update](../drawing/update.md#showing-a-drawing-in-the-presenter)). The app does that itself when it opens a DXF that carries a drawing document.
+projected lines, symbols, marks, dimensions and views, is read-only throughout until the program that made it opens the
+file and registers its owner.
 
 ## What an edit is
 
@@ -131,16 +130,14 @@ With a LINE and a TEXT tagged "Acme.Labels", and the owner registered with `docu
 `Register` throws for a null owner, an empty name, or a name registered already; names are compared character by character,
 case and all. `Unregister(name)` takes the owner out, and its entities are `ReadOnly` from then on.
 
-## What the model drawing makes of each
+## What a model drawing makes of each
 
-[`DrawingOwner`](xref:GeometryHelper.Drawing.DrawingOwner) is the owner of a model drawing's entities, named
-`GeometryHelper.Drawing`. It reads the id in the tag and says: a mark or a view (its viewport or its title) `MoveOnly`, a
-dimension `Edit` (moved, its text overridden, erased), and everything else `ReadOnly`: the projected lines, a section's
-hatch, the symbols, the frame, the title block and the part list. An edit it takes is recorded as a hand edit of the drawing,
-and kept through the next update. See [The document in the DXF, and its owner](../drawing/document.md).
+The owner of a model drawing's entities, such as the one TeklaHelper.DrawingManager registers, reads the id in the tag and
+says: a mark or a view (its viewport or its title) `MoveOnly`, a dimension `Edit` (moved, its text overridden, erased), and
+everything else `ReadOnly`: the projected lines, a section's hatch, the symbols, the frame, the title block and the part
+list. An edit it takes is recorded as a hand edit of the drawing, and kept through the next update.
 
 ## See also
 
 - [Editing as AutoCAD does](editing.md): `ApplyEdit`, the gate and the undo steps the owner joins.
-- [Update](../drawing/update.md): how a model drawing keeps hand edits through an update.
 - [Command plugins](plugins.md): a plugin's edits go through the same gate.

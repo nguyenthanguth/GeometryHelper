@@ -94,21 +94,6 @@
       href: presenter/app.md
     - name: Driving the app from another program
       href: presenter/remote.md
-- name: Model drawings
-  href: drawing/index.md
-  items:
-    - name: Sources
-      href: drawing/source.md
-    - name: Views, projection, sections and details
-      href: drawing/views.md
-    - name: Dimensions, marks and symbols
-      href: drawing/annotation.md
-    - name: Settings, scale and sheet
-      href: drawing/settings.md
-    - name: Making it again
-      href: drawing/update.md
-    - name: The document in the DXF
-      href: drawing/document.md
 - name: Meshing
   href: meshing.md
   items:

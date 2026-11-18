@@ -7,9 +7,6 @@
         <Project Path="src/GeometryHelper.Cad.Remote/GeometryHelper.Cad.Remote.csproj" />
         <Project Path="src/GeometryHelper.Cad/GeometryHelper.Cad.csproj" />
         <Project Path="src/GeometryHelper.Cad.Wpf/GeometryHelper.Cad.Wpf.csproj" />
-        <Project Path="src/GeometryHelper.Drawing/GeometryHelper.Drawing.csproj" />
-        <Project Path="src/GeometryHelper.Drawing.Wpf/GeometryHelper.Drawing.Wpf.csproj" />
-        <Project Path="src/GeometryHelper.Drawing.App/GeometryHelper.Drawing.App.csproj" />
         <Project Path="src/GeometryHelper.Cad.App/GeometryHelper.Cad.App.csproj" />
     </Folder>
     <Folder Name="/tests/">
@@ -19,13 +16,10 @@
         <Project Path="tests/GeometryHelper.Cad.UnitTest/GeometryHelper.Cad.UnitTest.csproj" />
         <Project Path="tests/GeometryHelper.Cad.Remote.UnitTest/GeometryHelper.Cad.Remote.UnitTest.csproj" />
         <Project Path="tests/GeometryHelper.Cad.Remote.Sample/GeometryHelper.Cad.Remote.Sample.csproj" />
-        <Project Path="tests/GeometryHelper.Drawing.UnitTest/GeometryHelper.Drawing.UnitTest.csproj" />
         <Project Path="tests/GeometryHelper.Cad.Wpf.UnitTest/GeometryHelper.Cad.Wpf.UnitTest.csproj" />
-        <Project Path="tests/GeometryHelper.Drawing.Wpf.UnitTest/GeometryHelper.Drawing.Wpf.UnitTest.csproj" />
         <Project Path="tests/GeometryHelper.Cad.Plugins.UnitTest/GeometryHelper.Cad.Plugins.UnitTest.csproj" />
         <Project Path="tests/GeometryHelper.Cad.Plugins.Net8Runner/GeometryHelper.Cad.Plugins.Net8Runner.csproj" />
         <Project Path="tests/GeometryHelper.Cad.SamplePlugin/GeometryHelper.Cad.SamplePlugin.csproj" />
-        <Project Path="tests/GeometryHelper.Drawing.SamplePlugin/GeometryHelper.Drawing.SamplePlugin.csproj" />
     </Folder>
     <Folder Name="/benchmarks/">
         <Project Path="benchmarks/GeometryHelper.Benchmarks/GeometryHelper.Benchmarks.csproj" />
