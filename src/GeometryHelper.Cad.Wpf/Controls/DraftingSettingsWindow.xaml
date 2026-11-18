@@ -5,7 +5,7 @@
     xmlns:local="clr-namespace:GeometryHelper.Cad.Wpf"
     Title="Drafting Settings"
     Width="560"
-    Height="580"
+    Height="540"
     WindowStyle="None"
     ResizeMode="NoResize"
     ShowInTaskbar="False"
@@ -46,7 +46,7 @@
             <DataTemplate x:Key="SnapTemplate" DataType="{x:Type local:SnapModeRowViewModel}">
                 <StackPanel
                     Orientation="Horizontal"
-                    Margin="0,0,0,9"
+                    VerticalAlignment="Center"
                     ToolTip="{Binding ToolTip}"
                     ToolTipService.ShowOnDisabled="True"
                     IsEnabled="{Binding IsAvailable}"
@@ -691,48 +691,63 @@
                     </Grid>
                 </StackPanel>
 
-                <!-- Object Snap: on, tracking on, the fourteen snaps in two columns, Select All and Clear All. -->
-                <DockPanel Visibility="{Binding IsObjectSnapTab, Converter={StaticResource Shown}}">
-                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,14">
-                        <StackPanel Orientation="Horizontal">
-                            <CheckBox Style="{StaticResource Check}" IsChecked="{Binding IsSnapOn, Mode=TwoWay}" />
-                            <TextBlock Text="Object Snap On (F3)" VerticalAlignment="Center" Margin="0,0,24,0" />
-                            <CheckBox Style="{StaticResource Check}" IsChecked="{Binding IsTrackingOn, Mode=TwoWay}" />
-                            <TextBlock Text="Object Snap Tracking On (F11)" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </DockPanel>
-                    <StackPanel DockPanel.Dock="Right" Margin="16,0,0,0">
-                        <Button
-                            Style="{StaticResource GhDialogButton}"
-                            Content="Select All"
-                            Command="{Binding SelectAllCommand}"
-                            Margin="0,0,0,6"
-                        />
-                        <Button
-                            Style="{StaticResource GhDialogButton}"
-                            Content="Clear All"
-                            Command="{Binding ClearAllCommand}"
-                        />
+                <!-- Object Snap, as AutoCAD 2021's tab: on and tracking on at the top; the "Object Snap modes" group holding the
+                     fourteen snaps in two columns of rows evenly spaced (nine, then five) with Select All and Clear All stacked
+                     at its top right; the hint under the group. -->
+                <StackPanel Visibility="{Binding IsObjectSnapTab, Converter={StaticResource Shown}}">
+                    <StackPanel.Resources>
+                        <ResourceDictionary Source="/GeometryHelper.Cad.Wpf;component/Themes/BlockDialogs.xaml" />
+                    </StackPanel.Resources>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <CheckBox Style="{StaticResource Check}" IsChecked="{Binding IsSnapOn, Mode=TwoWay}" />
+                        <TextBlock Text="Object Snap On (F3)" VerticalAlignment="Center" Margin="0,0,24,0" />
+                        <CheckBox Style="{StaticResource Check}" IsChecked="{Binding IsTrackingOn, Mode=TwoWay}" />
+                        <TextBlock Text="Object Snap Tracking On (F11)" VerticalAlignment="Center" />
                     </StackPanel>
+                    <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Object Snap modes">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Margin="16,0,0,0" VerticalAlignment="Top">
+                                <Button
+                                    Style="{StaticResource GhDialogButton}"
+                                    Content="Select All"
+                                    Width="96"
+                                    Command="{Binding SelectAllCommand}"
+                                    Margin="0,0,0,6"
+                                />
+                                <Button
+                                    Style="{StaticResource GhDialogButton}"
+                                    Content="Clear All"
+                                    Width="96"
+                                    Command="{Binding ClearAllCommand}"
+                                />
+                            </StackPanel>
+                            <ItemsControl
+                                ItemsSource="{Binding Modes}"
+                                ItemTemplate="{StaticResource SnapTemplate}"
+                                Focusable="False"
+                                VerticalAlignment="Top"
+                            >
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel
+                                            Orientation="Vertical"
+                                            Height="297"
+                                            ItemHeight="33"
+                                            ItemWidth="200"
+                                        />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </DockPanel>
+                    </HeaderedContentControl>
                     <TextBlock
-                        DockPanel.Dock="Top"
-                        Style="{StaticResource Label}"
-                        Text="Object Snap modes"
-                        FontWeight="SemiBold"
-                        Margin="0,0,0,10"
+                        Text="To track from an Osnap point, pause over the point while in a command. A tracking vector appears when you move the cursor. To stop tracking, pause over the point again."
+                        FontSize="{StaticResource GhSmallFontSize}"
+                        Foreground="{StaticResource GhTextMuted}"
+                        TextWrapping="Wrap"
+                        Margin="2,10,0,0"
                     />
-                    <ItemsControl
-                        ItemsSource="{Binding Modes}"
-                        ItemTemplate="{StaticResource SnapTemplate}"
-                        Focusable="False"
-                    >
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Vertical" Height="232" ItemWidth="180" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                    </ItemsControl>
-                </DockPanel>
+                </StackPanel>
             </Grid>
         </DockPanel>
     </Border>
