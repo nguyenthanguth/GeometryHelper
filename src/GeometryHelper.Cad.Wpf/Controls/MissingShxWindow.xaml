@@ -439,12 +439,19 @@
                                                         <ColumnDefinition Width="*" />
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock
-                                                        Text="{Binding Family}"
-                                                        FontFamily="{StaticResource GhMonoFont}"
                                                         Margin="10,4"
                                                         VerticalAlignment="Center"
                                                         TextTrimming="CharacterEllipsis"
-                                                    />
+                                                    >
+                                                        <Run
+                                                            Text="{Binding Family, Mode=OneWay}"
+                                                            FontFamily="{StaticResource GhMonoFont}"
+                                                        /><Run
+                                                            Text="{Binding LocalText, Mode=OneWay, StringFormat='  {0}'}"
+                                                            Foreground="{StaticResource GhTextMuted}"
+                                                            FontSize="11"
+                                                        />
+                                                    </TextBlock>
                                                     <TextBlock
                                                         Grid.Column="1"
                                                         Text="{Binding DrawnIn}"

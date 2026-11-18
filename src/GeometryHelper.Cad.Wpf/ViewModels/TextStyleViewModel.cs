@@ -37,6 +37,21 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets what the list shows after the name: the font of a text style, as romans.shx or Arial; empty for a dimension style.</summary>
         public string Detail { get; }
 
+        /// <summary>
+        /// Gets the other names of the font where it is a TrueType family this machine has under another name too, after
+        /// <see cref="Detail"/> in muted words: "맑은 고딕" for Malgun Gothic; empty for an SHX file and for a family with one name.
+        /// </summary>
+        public string DetailLocal => FontNameLabels.LocalText(Detail);
+
+        /// <summary>
+        /// Gets the font in full for the row's tooltip, where the row trims it: "Malgun Gothic  맑은 고딕", or the font alone;
+        /// null for a row with none (a dimension style).
+        /// </summary>
+        public string DetailAll =>
+            Detail.Length == 0 ? null
+            : DetailLocal.Length == 0 ? Detail
+            : Detail + FontNameLabels.Gap + DetailLocal;
+
         /// <inheritdoc/>
         public override string ToString() => Name;
     }
@@ -44,18 +59,28 @@ namespace GeometryHelper.Cad.Wpf
     /// <summary>
     /// A font of the Font Name list: its name as AutoCAD lists it (romans.shx, Arial), whether it is TrueType, which its icon
     /// shows, and whether this machine has it: a style may name a font nobody installed here, which the list shows as the
-    /// style stored it, marked "(not installed)" for a TrueType family and "(not found)" for an SHX file.
+    /// style stored it, marked "(not installed)" for a TrueType family and "(not found)" for an SHX file. A TrueType family
+    /// that has names in other languages shows them after its English name (<see cref="LocalNames"/>), and a name typed in
+    /// the box finds it by any of them; the name the entry stands for, which a style stores, is the English one.
     /// </summary>
     public sealed class FontItemViewModel
     {
-        internal FontItemViewModel(string name, bool isTrueType, bool isInstalled = true)
+        private IReadOnlyList<string> _localNames;
+
+        internal FontItemViewModel(
+            string name,
+            bool isTrueType,
+            bool isInstalled = true,
+            IReadOnlyList<string> localNames = null
+        )
         {
             Name = name;
             IsTrueType = isTrueType;
             IsInstalled = isInstalled;
+            _localNames = localNames == null ? null : FontNameLabels.Others(name, localNames);
         }
 
-        /// <summary>Gets the name: an SHX file with its extension, a TrueType family.</summary>
+        /// <summary>Gets the name: an SHX file with its extension, a TrueType family by its English name.</summary>
         public string Name { get; }
 
         /// <summary>Gets whether the font is TrueType (the TT icon), not an SHX file (the compass icon).</summary>
@@ -63,6 +88,31 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>Gets whether this machine has the font: a family the system lists, an SHX file of a font folder.</summary>
         public bool IsInstalled { get; }
+
+        /// <summary>
+        /// Gets the other names of a TrueType family, in the order of their languages: DotumChe has 돋움체, Malgun Gothic
+        /// 맑은 고딕, Arial none; none for an SHX file and for a family this machine lacks. Read from the name table of the
+        /// font the first time it is asked, so the list costs nothing for an entry nobody draws.
+        /// </summary>
+        public IReadOnlyList<string> LocalNames =>
+            _localNames ?? (_localNames = IsTrueType ? FontNameLabels.OthersOf(Name) : Array.Empty<string>());
+
+        /// <summary>Gets <see cref="LocalNames"/> in one line, the box's muted words after the name: "돋움체"; empty for none.</summary>
+        public string LocalText => string.Join(FontNameLabels.Gap, LocalNames);
+
+        /// <summary>
+        /// Gets every name for the tooltip, "DotumChe  돋움체"; null for a font with one name, which has no tooltip but its
+        /// own name.
+        /// </summary>
+        public string AllNames => LocalNames.Count == 0 ? null : FontNameLabels.Label(Name, LocalNames);
+
+        /// <summary>
+        /// Gets whether what was typed starts the name or one of the other names, letters of either case the same: "dot" and
+        /// "돋" both find DotumChe.
+        /// </summary>
+        /// <param name="typed">What was typed.</param>
+        /// <returns>Whether it starts a name; false for nothing typed.</returns>
+        public bool Matches(string typed) => FontNameLabels.Matches(Name, LocalNames, typed);
 
         /// <summary>Gets the words after the name where the font is not here: "(not installed)", "(not found)"; empty where it is.</summary>
         public string Hint =>

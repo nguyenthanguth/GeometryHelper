@@ -9,7 +9,8 @@ namespace GeometryHelper.Cad
     /// <summary>
     /// The TrueType fonts of the machine by their family, as AutoCAD's Text Style dialog lists them and writes a style of one:
     /// the file of its regular face (group 3, <c>arial.ttf</c>) beside the family (the style's extended data, Arial). Each
-    /// font file of the Fonts folder of Windows and of the user's is read once, for its family and face in its name table.
+    /// font file of the Fonts folder of Windows and of the user's is read once, for its family and face in its name table,
+    /// and for the other names the family has in other languages (<see cref="LocalNamesOf"/>).
     /// </summary>
     public static class CadTrueTypeFonts
     {
@@ -31,6 +32,11 @@ namespace GeometryHelper.Cad
         /// </summary>
         public static Func<string, bool, bool, string, double> MeasureWidth { get; set; }
 
+        // The other names of each family (Korean, Japanese, Chinese ...) by the family; written by the scan.
+        private static Dictionary<string, string[]> _others = new Dictionary<string, string[]>(
+            StringComparer.OrdinalIgnoreCase
+        );
+
         /// <summary>Gets the families found, in ordinal order, letters of either case the same: Arial, Calibri, ...</summary>
         public static IReadOnlyList<string> Families => Files.Value.Keys.ToList();
 
@@ -46,6 +52,22 @@ namespace GeometryHelper.Cad
             return Files.Value.TryGetValue(name, out string file)
                 ? file
                 : name.Replace(" ", string.Empty).ToLowerInvariant() + ".ttf";
+        }
+
+        /// <summary>
+        /// Gets the names a family has besides its English one, as its name table holds them (family name 1, and the typographic
+        /// family name 16 where there is one), in every language: DotumChe has 돋움체, Malgun Gothic 맑은 고딕, MS Gothic
+        /// ＭＳ ゴシック, Arial none. A name equal to the English one, or to another, letters of either case the same, is left
+        /// out; the names come in the order of their language ids, so the same fonts give the same list on every read.
+        /// </summary>
+        /// <param name="family">The family by its English name, as <see cref="Families"/> lists it, letters of either case the same.</param>
+        /// <returns>The other names; empty for a family with one name and for a name that is no family found.</returns>
+        public static IReadOnlyList<string> LocalNamesOf(string family)
+        {
+            string name = (family ?? string.Empty).Trim();
+            return name.Length > 0 && Files.Value != null && _others.TryGetValue(name, out string[] names)
+                ? names
+                : Array.Empty<string>();
         }
 
         /// <summary>Gets the family of a font file a style names (arial.ttf gives Arial); null where none found has that file.</summary>
@@ -110,6 +132,7 @@ namespace GeometryHelper.Cad
             var best = new SortedDictionary<string, KeyValuePair<int, string>>(StringComparer.OrdinalIgnoreCase);
             var paths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var ranks = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var others = new Dictionary<string, List<KeyValuePair<int, string>>>(StringComparer.OrdinalIgnoreCase);
             var folders = new[]
             {
                 Environment.GetFolderPath(Environment.SpecialFolder.Fonts),
@@ -146,12 +169,18 @@ namespace GeometryHelper.Cad
 
                     if (
                         (extension != ".ttf" && extension != ".ttc" && extension != ".otf")
-                        || !TryNames(path, out string family, out string face)
+                        || !TryNames(path, out string family, out string face, out var named)
                     )
                     {
                         continue;
                     }
 
+                    if (!others.TryGetValue(family, out List<KeyValuePair<int, string>> listed))
+                    {
+                        others[family] = listed = new List<KeyValuePair<int, string>>();
+                    }
+
+                    listed.AddRange(named);
                     string file = Path.GetFileName(path);
                     string styleName = face ?? string.Empty;
                     bool bold = styleName.IndexOf("Bold", StringComparison.OrdinalIgnoreCase) >= 0;
@@ -204,17 +233,62 @@ namespace GeometryHelper.Cad
             }
 
             _paths = paths;
+            _others = OtherNames(others);
             return files;
         }
 
         /// <summary>
-        /// Reads the family (name 1) and the face (name 2) of the first font of a file from its name table, in English of the
-        /// Windows platform where it has them, else the first of the Windows platform.
+        /// The other names of each family: those of every face it has, an English one (any English language) and a repeat
+        /// left out, in the order of their language ids and then of their letters, so that the faces' file order never shows.
         /// </summary>
-        private static bool TryNames(string path, out string family, out string face)
+        private static Dictionary<string, string[]> OtherNames(
+            Dictionary<string, List<KeyValuePair<int, string>>> named
+        )
+        {
+            var result = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (KeyValuePair<string, List<KeyValuePair<int, string>>> pair in named)
+            {
+                var distinct = new List<string>();
+                var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { pair.Key };
+
+                foreach (
+                    KeyValuePair<int, string> other in pair
+                        .Value.Where(o => (o.Key & 0x3FF) != 9)
+                        .OrderBy(o => o.Key)
+                        .ThenBy(o => o.Value, StringComparer.Ordinal)
+                )
+                {
+                    if (seen.Add(other.Value))
+                    {
+                        distinct.Add(other.Value);
+                    }
+                }
+
+                if (distinct.Count > 0)
+                {
+                    result[pair.Key] = distinct.ToArray();
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Reads the family (name 1) and the face (name 2) of the first font of a file from its name table, in English of the
+        /// Windows platform where it has them, else the first of the Windows platform; and every family name (name 1 and the
+        /// typographic family name 16) of the platform in any language, each with its language id.
+        /// </summary>
+        private static bool TryNames(
+            string path,
+            out string family,
+            out string face,
+            out List<KeyValuePair<int, string>> named
+        )
         {
             family = null;
             face = null;
+            named = new List<KeyValuePair<int, string>>();
 
             try
             {
@@ -267,13 +341,30 @@ namespace GeometryHelper.Cad
                         int length = Big16(reader);
                         int offset = Big16(reader);
 
-                        if (platform != 3 || (id != 1 && id != 2) || (names.ContainsKey(id) && language != 0x409))
+                        if (platform != 3 || (id != 1 && id != 2 && id != 16))
+                        {
+                            continue;
+                        }
+
+                        bool keep = id != 16 && (!names.ContainsKey(id) || language == 0x409);
+
+                        if (!keep && id == 2)
                         {
                             continue;
                         }
 
                         stream.Position = strings + offset;
-                        names[id] = Encoding.BigEndianUnicode.GetString(reader.ReadBytes(length));
+                        string text = Encoding.BigEndianUnicode.GetString(reader.ReadBytes(length));
+
+                        if (keep)
+                        {
+                            names[id] = text;
+                        }
+
+                        if (id != 2 && text.Trim().Length > 0)
+                        {
+                            named.Add(new KeyValuePair<int, string>(language, text.Trim()));
+                        }
                     }
 
                     names.TryGetValue(1, out family);

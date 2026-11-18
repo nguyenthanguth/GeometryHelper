@@ -36,6 +36,43 @@ namespace GeometryHelper.Cad.Wpf
     }
 
     /// <summary>
+    /// Turns the name of a TrueType family, as the MTEXT editor's font box lists it, into its other names (Korean, Japanese,
+    /// Chinese ...) from the font's name table: "Malgun Gothic" gives "맑은 고딕", "Arial" gives nothing. Given the parameter
+    /// "all" it gives the family and its other names for a tooltip, "Malgun Gothic  맑은 고딕", and null for a family with one name.
+    /// </summary>
+    public sealed class FontLocalNamesConverter : IValueConverter
+    {
+        /// <summary>Turns a family into its other names.</summary>
+        /// <param name="value">The family, as a text; anything else counts as no family.</param>
+        /// <param name="targetType">Not used.</param>
+        /// <param name="parameter">"all" for every name, null for the other names alone.</param>
+        /// <param name="culture">Not used.</param>
+        /// <returns>The other names in one line, empty for none; with "all", every name, null for none.</returns>
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            string family = value as string ?? string.Empty;
+            string others = FontNameLabels.LocalText(family);
+
+            if (!"all".Equals(parameter))
+            {
+                return others;
+            }
+
+            return others.Length == 0 ? null : family + FontNameLabels.Gap + others;
+        }
+
+        /// <summary>Not supported: the names are read, never written back.</summary>
+        /// <param name="value">Not used.</param>
+        /// <param name="targetType">Not used.</param>
+        /// <param name="parameter">Not used.</param>
+        /// <param name="culture">Not used.</param>
+        /// <returns>Nothing; it throws.</returns>
+        /// <exception cref="NotSupportedException">Always.</exception>
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+            throw new NotSupportedException();
+    }
+
+    /// <summary>
     /// Turns the key of an icon of the icon set, as GhIconLayers, into its drawing: the icon of a row of the command line's
     /// AutoComplete list or of the application menu. A text that is no key of the set is read as path data, as
     /// "M4 4h16v16H4z"; null, or a text that reads as neither, gives nothing.

@@ -23,6 +23,7 @@
             <local:BoolToVisibilityConverter x:Key="Shown" />
             <local:BoolToVisibilityConverter x:Key="Hidden" Invert="True" />
             <local:RgbBrushConverter x:Key="RgbBrush" />
+            <local:FontLocalNamesConverter x:Key="FontLocalNames" />
 
             <!-- A big button of the ribbon: its Tag is the icon, its Content the label. -->
             <Style x:Key="BigButton" TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
@@ -1342,7 +1343,27 @@
                                         ToolTip="Font"
                                         FontFamily="{StaticResource GhMonoFont}"
                                         FontSize="11"
-                                    />
+                                    >
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid ToolTip="{Binding Converter={StaticResource FontLocalNames}, ConverterParameter=all}">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="{Binding}" VerticalAlignment="Center" />
+                                                    <TextBlock
+                                                        Grid.Column="1"
+                                                        Text="{Binding Converter={StaticResource FontLocalNames}}"
+                                                        Margin="6,0,0,0"
+                                                        VerticalAlignment="Center"
+                                                        Foreground="{StaticResource GhTextMuted}"
+                                                        TextTrimming="CharacterEllipsis"
+                                                    />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
                                 </DockPanel>
                                 <ComboBox
                                     Style="{StaticResource GhComboBox}"

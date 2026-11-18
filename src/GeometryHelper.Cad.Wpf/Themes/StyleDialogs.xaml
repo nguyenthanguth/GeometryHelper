@@ -216,13 +216,28 @@
                 Foreground="{StaticResource GhOk}"
                 Visibility="Hidden"
             />
-            <TextBlock
-                DockPanel.Dock="Right"
-                Text="{Binding Detail}"
-                Margin="6,0,0,0"
-                Foreground="{StaticResource GhTextMuted}"
-                FontFamily="{StaticResource GhMonoFont}"
-            />
+            <Grid DockPanel.Dock="Right" MaxWidth="112" Margin="6,0,0,0" ToolTip="{Binding DetailAll}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    Text="{Binding Detail}"
+                    Foreground="{StaticResource GhTextMuted}"
+                    FontFamily="{StaticResource GhMonoFont}"
+                    TextTrimming="CharacterEllipsis"
+                />
+                <TextBlock
+                    Grid.Column="1"
+                    Text="{Binding DetailLocal}"
+                    Margin="6,0,0,0"
+                    MaxWidth="52"
+                    Foreground="{StaticResource GhTextMuted}"
+                    FontSize="11"
+                    VerticalAlignment="Center"
+                    TextTrimming="CharacterEllipsis"
+                />
+            </Grid>
             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
         </DockPanel>
         <DataTemplate.Triggers>
@@ -232,9 +247,19 @@
         </DataTemplate.Triggers>
     </DataTemplate>
 
-    <!-- A font of the Font name list with its kind: SHX or TT, and "(not installed)" or "(not found)" where this machine lacks it. -->
+    <!--
+    A font of the Font name list with its kind: SHX or TT, the English name, the family's other names after it in muted words
+    (trimmed with an ellipsis where the box is too narrow, all of them in the tooltip), and "(not installed)" or "(not found)"
+    where this machine lacks it.
+    -->
     <DataTemplate x:Key="FontItemTemplate" DataType="{x:Type local:FontItemViewModel}">
-        <StackPanel Orientation="Horizontal">
+        <Grid ToolTip="{Binding AllNames}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
             <Border
                 CornerRadius="3"
                 Margin="0,0,6,0"
@@ -244,15 +269,30 @@
             >
                 <TextBlock x:Name="Mark" Text="SHX" FontSize="9" FontWeight="SemiBold" />
             </Border>
-            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" FontFamily="{StaticResource GhMonoFont}" />
             <TextBlock
+                Grid.Column="1"
+                Text="{Binding Name}"
+                VerticalAlignment="Center"
+                FontFamily="{StaticResource GhMonoFont}"
+            />
+            <TextBlock
+                Grid.Column="2"
+                Text="{Binding LocalText}"
+                Margin="8,0,0,0"
+                VerticalAlignment="Center"
+                Foreground="{StaticResource GhTextMuted}"
+                FontSize="11"
+                TextTrimming="CharacterEllipsis"
+            />
+            <TextBlock
+                Grid.Column="3"
                 Text="{Binding Hint}"
                 Margin="6,0,0,0"
                 VerticalAlignment="Center"
                 Foreground="{StaticResource GhTextMuted}"
                 FontSize="11"
             />
-        </StackPanel>
+        </Grid>
         <DataTemplate.Triggers>
             <DataTrigger Binding="{Binding IsTrueType}" Value="True">
                 <Setter TargetName="Mark" Property="Text" Value="TT" />
