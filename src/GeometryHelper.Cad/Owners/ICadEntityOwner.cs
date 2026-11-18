@@ -15,7 +15,7 @@ namespace GeometryHelper.Cad
     public interface ICadEntityOwner
     {
         /// <summary>
-        /// Gets the owner's name, as the <see cref="CadOwnerTag.Owner"/> of its entities gives it: "GeometryHelper.Drawing"
+        /// Gets the owner's name, as the <see cref="CadOwnerTag.Owner"/> of its entities gives it: "ModelDrawing"
         /// for a model drawing. Names are compared character by character, case and all.
         /// </summary>
         string Name { get; }

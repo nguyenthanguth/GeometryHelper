@@ -11,10 +11,7 @@ using System.Text;
 using GeometryHelper.Cad;
 using GeometryHelper.Cad.Plugins;
 using GeometryHelper.Cad.Wpf.Plugins;
-using GeometryHelper.Drawing;
-using GeometryHelper.Drawing.Plugins;
 using GeometryHelper.Dxf;
-using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Cad.Plugins.Net8Runner
 {
@@ -28,14 +25,7 @@ namespace GeometryHelper.Cad.Plugins.Net8Runner
         private const string FirstDone = "Numbered {0} circles.";
         private const string SecondDone = "Second build: numbered {0} circles.";
 
-        private const string DrawingSample = "GeometryHelper.Drawing.SamplePlugin";
-        private const string FirstRounding = "input.AddSetting(\"Rounding\", 1.0, 0.01, 100.0);";
-        private const string SecondRounding = "input.AddSetting(\"Rounding\", 5.0, 0.01, 100.0);";
-
         private static int _failures;
-
-        /// <summary>The drawing the drawing plugin ran on, kept alive while its load context is to be collected.</summary>
-        private static Drawing.Drawing _drawing;
 
         private static int Main()
         {
@@ -64,36 +54,6 @@ namespace GeometryHelper.Cad.Plugins.Net8Runner
                 Check(
                     "the load context of the package installed is collected after uninstalling",
                     Collected(installed)
-                );
-
-                WeakReference[] drawing = DrawingPluginRunAndUnload(
-                    root,
-                    Path.Combine(AppContext.BaseDirectory, "DrawingSamplePlugin", DrawingSample + ".dll")
-                );
-                Check(
-                    "the load context of the drawing plugin is collected after unloading, its drawing kept",
-                    Collected(drawing) && _drawing.PluginRuns.Count == 1
-                );
-
-                string drawingBeside = Path.Combine(AppContext.BaseDirectory, "DrawingSamplePlugin");
-                string drawingSecond = BuildSecondVersion(
-                    Path.Combine(drawingBeside, "BoltDimensions.cs.txt"),
-                    Path.Combine(root, "drawing-second"),
-                    DrawingSample,
-                    FirstRounding,
-                    SecondRounding,
-                    typeof(DrawingPlugin),
-                    typeof(CadPlugin),
-                    typeof(DxfDatabase)
-                );
-                WeakReference[] rebuilt = DrawingPluginRebuiltAndReloaded(
-                    root,
-                    Path.Combine(drawingBeside, DrawingSample + ".dll"),
-                    drawingSecond
-                );
-                Check(
-                    "every load context of the drawing plugin rebuilt and reloaded is collected after unloading",
-                    Collected(rebuilt)
                 );
             }
             catch (Exception exception)
@@ -259,176 +219,6 @@ namespace GeometryHelper.Cad.Plugins.Net8Runner
             }
 
             return Distinct(contexts);
-        }
-
-        /// <summary>
-        /// Loads the sample drawing plugin through a catalog, runs it on a plate with a bolt, unloads it; gives the load
-        /// contexts it saw. The drawing, which keeps the run, is kept in <see cref="_drawing"/>.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        private static WeakReference[] DrawingPluginRunAndUnload(string root, string built)
-        {
-            var tolerance = Tolerance.Default;
-            DrawingSource source = PlateWithBolt(tolerance);
-            var contexts = new List<WeakReference>();
-
-            using (
-                var manager = new CadPluginManager(
-                    new CadPluginAssemblyLoader(),
-                    Path.Combine(root, "drawing"),
-                    Path.Combine(root, "drawing.json"),
-                    Path.Combine(root, "copies4")
-                )
-            )
-            {
-                manager.ConfirmUntrusted = p => true;
-                var catalog = new DrawingPluginCatalog(manager);
-                CadPluginResult loaded = manager.Load(built);
-                Check("the sample drawing plugin loads: " + loaded, loaded.Succeeded && catalog.Plugins.Count == 1);
-                contexts.AddRange(Contexts());
-                _drawing = DrawingBuilder.Build(source, DrawingSettings.Assembly, tolerance);
-                _drawing.Plugins = catalog;
-                UpdateReport report = _drawing.RunPlugin(catalog.Find("Bolt dimensions"), _drawing.Views[0].Id);
-                Check("it runs on a drawing: " + report, report.PluginRunsRun.Count == 1);
-                CadPluginResult unloaded = manager.Unload(DrawingSample);
-                Check(
-                    "it unloads and leaves the catalog: " + unloaded.Message,
-                    unloaded.Succeeded && catalog.Plugins.Count == 0
-                );
-            }
-
-            return Distinct(contexts);
-        }
-
-        /// <summary>
-        /// Loads the sample drawing plugin from a folder of its own, runs it, builds a second version over its .dll while it is
-        /// loaded, reloads it and runs the new build, which declares another rounding, then unloads it; gives the load contexts.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        private static WeakReference[] DrawingPluginRebuiltAndReloaded(string root, string built, string second)
-        {
-            string dev = Path.Combine(root, "drawing-dev");
-            Directory.CreateDirectory(dev);
-            string path = Path.Combine(dev, DrawingSample + ".dll");
-            File.Copy(built, path);
-            var tolerance = Tolerance.Default;
-            var asked = new List<string>();
-            var contexts = new List<WeakReference>();
-
-            using (
-                var manager = new CadPluginManager(
-                    new CadPluginAssemblyLoader(),
-                    Path.Combine(root, "drawing2"),
-                    Path.Combine(root, "drawing2.json"),
-                    Path.Combine(root, "copies5")
-                )
-            )
-            {
-                manager.ConfirmUntrusted = p =>
-                {
-                    asked.Add(p);
-                    return true;
-                };
-                var catalog = new DrawingPluginCatalog(manager);
-                CadPluginResult loaded = manager.Load(path);
-                Check(
-                    "the drawing plugin loads from a folder that is not trusted, asked about once: " + loaded,
-                    loaded.Succeeded && asked.Count == 1 && asked[0] == path
-                );
-                contexts.AddRange(Contexts());
-                Drawing.Drawing first = DrawingBuilder.Build(
-                    PlateWithBolt(tolerance),
-                    DrawingSettings.Assembly,
-                    tolerance
-                );
-                first.Plugins = catalog;
-                first.RunPlugin(catalog.Find("Bolt dimensions"), first.Views[0].Id);
-                Expect("the first build declares the rounding 1", Rounding(first), "1");
-
-                // Built again while loaded: the copy is loaded, so the file is not locked.
-                File.Copy(second, path, true);
-                Check("the drawing plugin's .dll loaded is not locked, so a new build overwrites it", true);
-                CadPluginResult reloaded = manager.Reload(DrawingSample);
-                Check(
-                    "the drawing plugin reloads with no warning: " + reloaded,
-                    reloaded.Succeeded && reloaded.Warnings.Count == 0 && catalog.Plugins.Count == 1
-                );
-                contexts.AddRange(Contexts());
-                Drawing.Drawing again = DrawingBuilder.Build(
-                    PlateWithBolt(tolerance),
-                    DrawingSettings.Assembly,
-                    tolerance
-                );
-                again.RunPlugin(catalog.Find("Bolt dimensions"), again.Views[0].Id);
-                Expect("the new build runs after PLUGINRELOAD, without a restart", Rounding(again), "5");
-                UpdateReport update = first.Update(PlateWithBolt(tolerance));
-                Check(
-                    "the drawing it ran on before runs its run again with the new build on update",
-                    update.PluginRunsRun.Count == 1 && Rounding(first) == "1"
-                );
-                CadPluginResult unloaded = manager.Unload(DrawingSample);
-                Check(
-                    "the drawing plugin unloads and leaves the catalog: " + unloaded.Message,
-                    unloaded.Succeeded && catalog.Plugins.Count == 0
-                );
-            }
-
-            return Distinct(contexts);
-        }
-
-        /// <summary>The rounding the drawing's one plugin run keeps.</summary>
-        private static string Rounding(Drawing.Drawing drawing) =>
-            drawing.PluginRuns.Single().Settings.Single(s => s.Key == "Rounding").Value;
-
-        /// <summary>A plate 400 by 400 by 25 with one bolt through it, 150 off its middle.</summary>
-        private static DrawingSource PlateWithBolt(Tolerance tolerance)
-        {
-            GeoSolid3 plate = GeoSolid3.Extrude(
-                new GeoPolygon2(
-                    new GeoPoint2(-200, -200),
-                    new GeoPoint2(200, -200),
-                    new GeoPoint2(200, 200),
-                    new GeoPoint2(-200, 200)
-                ),
-                GeoCoordinateSystem3.Global,
-                25,
-                tolerance
-            );
-            GeoSolid3 bolt = GeoSolid3.Cylinder(
-                new GeoPoint3(150, 0, -30),
-                new GeoPoint3(150, 0, 50),
-                10,
-                24,
-                tolerance
-            );
-            return new DrawingSource(
-                new[]
-                {
-                    new DrawingObject(
-                        "P-1",
-                        DrawingObjectKind.Part,
-                        plate,
-                        GeoCoordinateSystem3.Global,
-                        "PLATE",
-                        "P1",
-                        "PL25*400",
-                        "S355",
-                        "A-1",
-                        true
-                    ),
-                    new DrawingObject(
-                        "B-1",
-                        DrawingObjectKind.Bolt,
-                        bolt,
-                        new GeoCoordinateSystem3(new GeoPoint3(150, 0, -30), GeoVector3.ZAxis, GeoVector3.XAxis),
-                        "BOLT",
-                        "M20",
-                        "M20*80",
-                        "8.8",
-                        "A-1"
-                    ),
-                }
-            );
         }
 
         /// <summary>Runs NUMCIRCLES on three circles; the line it writes when it is done.</summary>

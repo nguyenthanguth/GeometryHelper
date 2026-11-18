@@ -7,7 +7,7 @@ plugins all run in a test with nothing on the screen. The window is a set of con
 
 It opens and edits through [`DxfDatabase`](xref:GeometryHelper.Dxf.DxfDatabase) and nothing else, so what a drawing holds
 that the presenter does not draw or edit is kept as the file had it: a drawing opened and saved with no edit is written
-back byte for byte. It works in two dimensions only: there is no orbit, no 3D view and no model. A model drawing made by [`GeometryHelper.Drawing`](../drawing/index.md) is shown in it as any other DXF, and its
+back byte for byte. It works in two dimensions only: there is no orbit, no 3D view and no model. A model drawing made by another program is shown in it as any other DXF, and its
 own entities answer to their [owner](owners.md).
 
 ## The projects
@@ -17,7 +17,6 @@ own entities answer to their [owner](owners.md).
 | `GeometryHelper.Cad` | the document, display lists, picking, the command line and its commands, snaps, grips, Properties, layers, owners, plugins and global settings; no window | netstandard2.0 |
 | `GeometryHelper.Cad.Wpf` | the controls: the canvas drawn through SkiaSharp 4.155.0, the file list, Properties, the layer box, the command line and the status bar | net48 and net8.0-windows |
 | `GeometryHelper.Cad.App` | GeometryHelper CAD, the presenter's own app, `GeometryHelper.Cad.App.exe plan.dxf` (see [The apps](app.md#the-apps)) | net8.0-windows |
-| `GeometryHelper.Drawing.App` | GeometryHelper Drawing, the app with the model drawing added, `GeometryHelper.Drawing.App.exe plan.dxf` | net8.0-windows |
 
 The core is the part to build on: it is what a test drives, and what the controls call. The controls and the window are
 not in the API reference; the pages here say what they do where it matters.
@@ -115,5 +114,4 @@ its neighbours and the threads gain nothing.
 ## See also
 
 - [DXF files](../dxf/index.md): the model the presenter opens and edits.
-- [Model drawings](../drawing/index.md): drawings made from a 3D model, shown here.
 - [Editing rules and what the model does not do](../dxf/rules.md): what each entity accepts.

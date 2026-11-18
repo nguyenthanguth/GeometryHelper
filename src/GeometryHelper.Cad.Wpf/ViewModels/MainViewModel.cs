@@ -3023,7 +3023,7 @@ namespace GeometryHelper.Cad.Wpf
     }
 
     /// <summary>
-    /// What a host adds to the presenter without the presenter knowing it (A16: Part B adds model drawings this way, in GeometryHelper.Drawing.Wpf): a ribbon
+    /// What a host adds to the presenter without the presenter knowing it (A16: a library that makes model drawings adds them this way): a ribbon
     /// tab after Home, shown while <see cref="IsTabVisible"/>; commands on the command line of every document; a new
     /// document of its own beside NEW; words for its own documents in the DRAWINGS list, the title and the status bar; rows
     /// and a banner in Properties. It is added with <see cref="MainViewModel.AddExtension"/>; every member has a default that

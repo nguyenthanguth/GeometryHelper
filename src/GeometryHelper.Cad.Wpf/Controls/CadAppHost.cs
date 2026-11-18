@@ -19,7 +19,7 @@ namespace GeometryHelper.Cad.Wpf
     /// <summary>
     /// Starts a standalone app of the presenter: the window on the drawing named on the command line, or, with
     /// <c>--screenshot</c>, a picture of the window or of one of its dialogs drawn into a PNG with no window shown. GeometryHelper
-    /// DXF runs it as it is; GeometryHelper Drawing derives from it to add the model drawing and its own options.
+    /// DXF runs it as it is; a host that makes model drawings derives from it to add the model drawing and its own options.
     /// </summary>
     /// <remarks>
     /// <para>

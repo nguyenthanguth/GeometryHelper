@@ -4649,7 +4649,7 @@ the drawing's current settings, which new entities take.
 The row "Text override" of a dimension is set as in AutoCAD: `<>` stands for the measurement, so `<> TYP` on a dimension of
 3 000 shows `3000 TYP`, and an empty text shows the measurement. The text of the dimension's own picture is written again
 and one undo takes it back. On a model drawing the edit goes through its owner as a hand edit (see
-[Owners](owners.md#what-the-model-drawing-makes-of-each)).
+[Owners](owners.md#what-a-model-drawing-makes-of-each)).
 
 The other kinds have AutoCAD 2021's rows too, each set the same way:
 

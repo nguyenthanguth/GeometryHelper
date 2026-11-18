@@ -33,7 +33,7 @@ namespace GeometryHelper.Cad.Plugins
         public const string CommandKind = "command";
 
         /// <summary>
-        /// The kind of a drawing plugin of GeometryHelper.Drawing: "drawing". The presenter alone refuses it; a manager given
+        /// The kind of a drawing plugin of a model drawing library: "drawing". The presenter alone refuses it; a manager given
         /// a <see cref="CadPluginManager.DrawingPluginFinder"/> loads it.
         /// </summary>
         public const string DrawingKind = "drawing";

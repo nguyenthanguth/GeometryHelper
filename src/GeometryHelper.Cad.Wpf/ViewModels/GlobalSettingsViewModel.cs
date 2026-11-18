@@ -1675,7 +1675,7 @@ namespace GeometryHelper.Cad.Wpf
             };
 
             // The font of drawing text, its height and width factor are the defaults of drawings made from a model, kept in the
-            // file for GeometryHelper.Drawing and not shown here, as the other settings of drawings made from a model are not.
+            // file for a host that makes them and not shown here, as the other settings of drawings made from a model are not.
             _pages["Text and fonts"] = new[]
             {
                 new GlobalSettingSection(
