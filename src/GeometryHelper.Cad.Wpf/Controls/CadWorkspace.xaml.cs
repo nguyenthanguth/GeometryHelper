@@ -1633,26 +1633,8 @@ namespace GeometryHelper.Cad.Wpf
             }
         }
 
-        /// <summary>A box of the Text Editor tab (height, oblique, tracking, width): Enter sets the value and gives the keyboard back to the words.</summary>
-        private void OnEditorBoxKey(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter || e.Key == Key.Escape)
-            {
-                var box = (TextBox)sender;
-
-                if (e.Key == Key.Enter)
-                {
-                    box.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
-                }
-                else
-                {
-                    box.GetBindingExpression(TextBox.TextProperty)?.UpdateTarget();
-                }
-
-                MTextEditorBox.Focus();
-                e.Handled = true;
-            }
-        }
+        /// <summary>A box of the Text Editor tab (height, oblique, tracking, width) after Enter set its value or Esc put it back (<see cref="CommitOnEnter"/>): the keyboard goes back to the words.</summary>
+        private void OnEditorBoxFinished(object sender, RoutedEventArgs e) => MTextEditorBox.Focus();
 
         /// <summary>The edit box of a single-line text: Enter ends the edit with its words, Esc cancels it, as AutoCAD 2021's TEXTEDIT.</summary>
         private void OnInPlaceKey(object sender, KeyEventArgs e)
