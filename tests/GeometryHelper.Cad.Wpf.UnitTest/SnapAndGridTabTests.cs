@@ -312,7 +312,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void TheWindow_Is580High_AndIsMadeOverTheTab_Isometric_AndWithABoxRefused()
+        public void TheWindow_Is540High_AndIsMadeOverTheTab_Isometric_AndWithABoxRefused()
         {
             string path = _folder.Write("room-" + Guid.NewGuid().ToString("N") + ".dxf", TestFiles.Room(out _, out _));
             Exception failure = null;
@@ -337,7 +337,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     {
                         var window = new DraftingSettingsWindow(dialog);
                         Assert.Equal(560.0, window.Width);
-                        Assert.Equal(580.0, window.Height);
+                        Assert.Equal(540.0, window.Height);
                         var body = (FrameworkElement)window.Content;
                         window.Content = null;
                         body.DataContext = window.DataContext;
