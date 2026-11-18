@@ -191,7 +191,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         public void KoreanLettersInAFamilyTheMachineHasNot_AreDrawnThroughTheFontLinking_NotAsQuestionMarks()
         {
             const string words = "한글 도면";
-            Assert.Null(SKFontManager.Default.MatchFamily("DotumChe"));
+            Assert.Null(SKFontManager.Default.MatchFamily("GhNoSuchFontFamily"));
 
             CadDocument Own(string family, string file)
             {
@@ -200,7 +200,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                 return document;
             }
 
-            byte[] missing = Picture(Own("DotumChe", string.Empty));
+            byte[] missing = Picture(Own("GhNoSuchFontFamily", string.Empty));
             byte[] arial = Picture(Own("Arial", "arial.ttf"));
 
             // The drawing font is Arial, which has no Hangul: its letters come out of the font Windows links for them, as in a

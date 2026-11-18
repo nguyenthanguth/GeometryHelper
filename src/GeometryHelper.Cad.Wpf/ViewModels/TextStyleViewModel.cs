@@ -41,13 +41,18 @@ namespace GeometryHelper.Cad.Wpf
         public override string ToString() => Name;
     }
 
-    /// <summary>A font of the Font Name list: its name as AutoCAD lists it (romans.shx, Arial) and whether it is TrueType, which its icon shows.</summary>
+    /// <summary>
+    /// A font of the Font Name list: its name as AutoCAD lists it (romans.shx, Arial), whether it is TrueType, which its icon
+    /// shows, and whether this machine has it: a style may name a font nobody installed here, which the list shows as the
+    /// style stored it, marked "(not installed)" for a TrueType family and "(not found)" for an SHX file.
+    /// </summary>
     public sealed class FontItemViewModel
     {
-        internal FontItemViewModel(string name, bool isTrueType)
+        internal FontItemViewModel(string name, bool isTrueType, bool isInstalled = true)
         {
             Name = name;
             IsTrueType = isTrueType;
+            IsInstalled = isInstalled;
         }
 
         /// <summary>Gets the name: an SHX file with its extension, a TrueType family.</summary>
@@ -55,6 +60,15 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>Gets whether the font is TrueType (the TT icon), not an SHX file (the compass icon).</summary>
         public bool IsTrueType { get; }
+
+        /// <summary>Gets whether this machine has the font: a family the system lists, an SHX file of a font folder.</summary>
+        public bool IsInstalled { get; }
+
+        /// <summary>Gets the words after the name where the font is not here: "(not installed)", "(not found)"; empty where it is.</summary>
+        public string Hint =>
+            IsInstalled ? string.Empty
+            : IsTrueType ? "(not installed)"
+            : "(not found)";
 
         /// <inheritdoc/>
         public override string ToString() => Name;
@@ -87,10 +101,19 @@ namespace GeometryHelper.Cad.Wpf
         private readonly List<KeyValuePair<string, bool>> _shxFiles;
         private string _filter = AllStyles;
         private StyleRowViewModel _selected;
+        private readonly List<FontItemViewModel> _installed;
+        private readonly List<FontItemViewModel> _installedBig;
+        private readonly ObservableCollection<FontItemViewModel> _fontList;
+        private readonly ObservableCollection<FontItemViewModel> _bigList;
+        private FontItemViewModel _extraFont;
+        private FontItemViewModel _extraBig;
         private string _fontName;
+        private bool _trueType;
+        private FontItemViewModel _selectedFont;
         private string _fontStyle = "Regular";
         private bool _useBigFont;
         private string _bigFont;
+        private FontItemViewModel _selectedBigFont;
         private string _height;
         private string _widthFactor;
         private string _obliqueAngle;
@@ -110,11 +133,8 @@ namespace GeometryHelper.Cad.Wpf
         public TextStyleViewModel(CadDocument document)
         {
             _document = document ?? throw new ArgumentNullException(nameof(document));
-            _shxFiles = ShxFiles(
-                document.Fonts.Folders.Concat(
-                    new[] { document.HasFile ? Path.GetDirectoryName(document.FileName) : null }
-                )
-            );
+            // The folders a font is looked for in: Folder preference, then the Fonts folder beside the dll; not the drawing's own.
+            _shxFiles = ShxFiles(document.Fonts.FontFolders);
             var fonts = new List<FontItemViewModel>();
             fonts.AddRange(
                 _shxFiles
@@ -123,8 +143,11 @@ namespace GeometryHelper.Cad.Wpf
             );
             fonts.AddRange(CadTrueTypeFonts.Families.Select(f => new FontItemViewModel(f, true)));
             fonts.Add(new FontItemViewModel(BuiltInFont, false));
-            FontNames = Ordered(fonts);
+            _installed = Ordered(fonts);
+            _fontList = new ObservableCollection<FontItemViewModel>(_installed);
             BigFonts = _shxFiles.Where(f => f.Value).Select(f => f.Key).ToList();
+            _installedBig = BigFonts.Select(f => new FontItemViewModel(f, false)).ToList();
+            _bigList = new ObservableCollection<FontItemViewModel>(_installedBig);
             SetCurrentCommand = new DelegateCommand(_ => SetCurrent());
             NewCommand = new DelegateCommand(_ => New(AskName?.Invoke("New Text Style", NextName())));
             DeleteCommand = new DelegateCommand(_ => Delete());
@@ -191,42 +214,81 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>
         /// Gets the fonts: the presenter's own first (<see cref="BuiltInFont"/>), then the SHX files of the font folders and the
         /// TrueType families, in the order of their names; a file ghsimplex.shx of a folder is passed over for the presenter's own.
+        /// Where the style shown names a font this machine lacks, the font is listed too, as the style stores it and marked
+        /// (<see cref="FontItemViewModel.IsInstalled"/>), so that the box always shows the style's own font.
         /// </summary>
-        public IReadOnlyList<FontItemViewModel> FontNames { get; private set; }
+        public IReadOnlyList<FontItemViewModel> FontNames => _fontList;
 
-        /// <summary>Gets or sets the font, as listed.</summary>
+        /// <summary>
+        /// Gets or sets the font by its name, as the style stores it or the list names it; a name the list lacks is added to it,
+        /// marked as not installed. A null is passed over.
+        /// </summary>
         public string FontName
         {
             get => _fontName;
             set
             {
-                if (Set(ref _fontName, value))
+                if (value != null && Set(ref _fontName, value))
                 {
-                    Raise(nameof(IsTrueType));
-                    Raise(nameof(IsVerticalEnabled));
-                    Raise(nameof(VerticalText));
+                    FontItemViewModel item = Find(FontNames, value, null);
+                    bool trueType = item?.IsTrueType ?? IsFontFile(value);
 
-                    if (IsTrueType)
+                    if (item == null)
                     {
-                        _useBigFont = false;
-                        _vertical = false;
-                        Raise(nameof(UseBigFont));
-                        Raise(nameof(Vertical));
+                        item = new FontItemViewModel(value, trueType, IsHere(value, trueType));
+                        ListExtra(_fontList, _installed, ref _extraFont, item);
                     }
 
-                    Changed();
+                    Chosen(item);
                 }
             }
         }
 
+        /// <summary>
+        /// Gets or sets the font the box has selected. It is the style's own entry as stored, or, where the style names a family
+        /// by a name this machine knows another way (a localized name as 돋움체 for DotumChe), the installed entry; showing it
+        /// changes nothing. Picking another entry is an edit. A null, which a list drawn again hands back, is passed over.
+        /// </summary>
+        public FontItemViewModel SelectedFont
+        {
+            get => _selectedFont;
+            set
+            {
+                if (value == null || ReferenceEquals(value, _selectedFont))
+                {
+                    Raise(nameof(SelectedFont));
+                    return;
+                }
+
+                _fontName = value.Name;
+                Raise(nameof(FontName));
+                Chosen(value);
+            }
+        }
+
         /// <summary>Gets whether the font is TrueType: Font Style is offered, Use Big Font and Vertical are not.</summary>
-        public bool IsTrueType =>
-            FontNames.Any(f => f.IsTrueType && string.Equals(f.Name, _fontName, StringComparison.OrdinalIgnoreCase))
-            || (
-                _fontName != null
-                && !_fontName.EndsWith(".shx", StringComparison.OrdinalIgnoreCase)
-                && Path.GetExtension(_fontName).Length > 0
-            );
+        public bool IsTrueType => _trueType;
+
+        /// <summary>The font of the entry is the one shown: what follows from its kind, and a change noted.</summary>
+        private void Chosen(FontItemViewModel item)
+        {
+            _selectedFont = item;
+            _trueType = item.IsTrueType;
+            Raise(nameof(SelectedFont));
+            Raise(nameof(IsTrueType));
+            Raise(nameof(IsVerticalEnabled));
+            Raise(nameof(VerticalText));
+
+            if (_trueType)
+            {
+                _useBigFont = false;
+                _vertical = false;
+                Raise(nameof(UseBigFont));
+                Raise(nameof(Vertical));
+            }
+
+            Changed();
+        }
 
         /// <summary>Gets the font styles of a TrueType font: Regular, Bold, Italic, Bold Italic.</summary>
         public IReadOnlyList<string> FontStyles => Styles4;
@@ -256,7 +318,9 @@ namespace GeometryHelper.Cad.Wpf
                     if (_useBigFont && string.IsNullOrEmpty(_bigFont) && !_loading)
                     {
                         _bigFont = BigFonts.FirstOrDefault();
+                        _selectedBigFont = _bigFont == null ? null : Find(BigFontItems, _bigFont, false);
                         Raise(nameof(BigFont));
+                        Raise(nameof(SelectedBigFont));
                     }
 
                     Changed();
@@ -267,7 +331,13 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets the big fonts of the font folders.</summary>
         public IReadOnlyList<string> BigFonts { get; }
 
-        /// <summary>Gets or sets the big font.</summary>
+        /// <summary>
+        /// Gets the big fonts the box lists: those of <see cref="BigFonts"/>, and the style's own big font where no folder has it,
+        /// as the style stores it and marked "(not found)".
+        /// </summary>
+        public IReadOnlyList<FontItemViewModel> BigFontItems => _bigList;
+
+        /// <summary>Gets or sets the big font by its file name, as the style stores it; a name the folders lack is listed, marked as not found.</summary>
         public string BigFont
         {
             get => _bigFont;
@@ -275,8 +345,32 @@ namespace GeometryHelper.Cad.Wpf
             {
                 if (Set(ref _bigFont, value))
                 {
+                    ShowBigFont(value);
                     Changed();
                 }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the big font the box has selected. Picking another entry is an edit; a null, which a list drawn again hands
+        /// back, is passed over.
+        /// </summary>
+        public FontItemViewModel SelectedBigFont
+        {
+            get => _selectedBigFont;
+            set
+            {
+                if (value == null || ReferenceEquals(value, _selectedBigFont))
+                {
+                    Raise(nameof(SelectedBigFont));
+                    return;
+                }
+
+                _selectedBigFont = value;
+                _bigFont = value.Name;
+                Raise(nameof(SelectedBigFont));
+                Raise(nameof(BigFont));
+                Changed();
             }
         }
 
@@ -650,14 +744,7 @@ namespace GeometryHelper.Cad.Wpf
             CadTextStyleSettings settings = style == null ? new CadTextStyleSettings() : CadTextStyleSettings.Of(style);
             _saved = settings;
             _loading = true;
-            FontName = FontOf(settings);
-
-            if (!FontNames.Any(f => string.Equals(f.Name, _fontName, StringComparison.OrdinalIgnoreCase)))
-            {
-                FontNames = Ordered(FontNames.Concat(new[] { new FontItemViewModel(_fontName, IsTrueType) }));
-                Raise(nameof(FontNames));
-            }
-
+            ShowFont(settings);
             FontStyle = settings.Font.Bold
                 ? (settings.Font.Italic ? "Bold Italic" : "Bold")
                 : (settings.Font.Italic ? "Italic" : "Regular");
@@ -675,6 +762,129 @@ namespace GeometryHelper.Cad.Wpf
             IsDirty = false;
             Changed();
         }
+
+        /// <summary>
+        /// Shows the font of a style as it stores it: its entry of the list; else the installed family the system matches the
+        /// stored name to (a localized name, 돋움체 for DotumChe), the stored name kept; else an entry of the name as stored, marked
+        /// as not installed, beside the installed ones. Nothing is written and no change noted.
+        /// </summary>
+        private void ShowFont(CadTextStyleSettings settings)
+        {
+            string name = FontOf(settings);
+            bool trueType = settings.Font.TypeFace.Length > 0 || IsFontFile(settings.FileName) || IsFontFile(name);
+            FontItemViewModel item = Find(_installed, name, trueType) ?? (trueType ? Alias(name) : null);
+            FontItemViewModel extra = null;
+
+            if (item == null)
+            {
+                item = extra = new FontItemViewModel(name, trueType, IsHere(name, trueType));
+            }
+
+            ListExtra(_fontList, _installed, ref _extraFont, extra);
+            _fontName = name;
+            _trueType = trueType;
+            _selectedFont = item;
+            Raise(nameof(FontName));
+            Raise(nameof(SelectedFont));
+            Raise(nameof(IsTrueType));
+            Raise(nameof(IsVerticalEnabled));
+            Raise(nameof(VerticalText));
+        }
+
+        /// <summary>Shows a big font as its entry of the list, or as an entry marked not found beside those of the folders, nothing changed.</summary>
+        private void ShowBigFont(string name)
+        {
+            FontItemViewModel item = name == null ? null : Find(_installedBig, name, false);
+            FontItemViewModel extra = null;
+
+            if (name != null && item == null)
+            {
+                item = extra = new FontItemViewModel(name, false, IsHere(name, false));
+            }
+
+            ListExtra(_bigList, _installedBig, ref _extraBig, extra);
+            _selectedBigFont = item;
+            Raise(nameof(SelectedBigFont));
+        }
+
+        /// <summary>
+        /// Lists the font of the style shown beside the installed ones where this machine has none of its name, in its place by
+        /// name, the one listed for the style before dropped. The list is changed in place, not replaced: a box whose list is
+        /// replaced loses the entry it had selected and, handed it again, keeps no index for it.
+        /// </summary>
+        private static void ListExtra(
+            ObservableCollection<FontItemViewModel> list,
+            List<FontItemViewModel> installed,
+            ref FontItemViewModel kept,
+            FontItemViewModel extra
+        )
+        {
+            if (ReferenceEquals(kept, extra))
+            {
+                return;
+            }
+
+            if (kept != null)
+            {
+                list.Remove(kept);
+            }
+
+            kept = extra;
+
+            if (extra != null)
+            {
+                list.Insert(Ordered(installed.Concat(new[] { extra })).IndexOf(extra), extra);
+            }
+        }
+
+        /// <summary>The entry of a name, of a kind where asked (the SHX file before the TrueType family of one name); null for none.</summary>
+        private static FontItemViewModel Find(IEnumerable<FontItemViewModel> list, string name, bool? trueType) =>
+            list.FirstOrDefault(f =>
+                string.Equals(f.Name, name, StringComparison.OrdinalIgnoreCase)
+                && (trueType == null || f.IsTrueType == trueType)
+            );
+
+        /// <summary>The installed family the system matches a name to where the name is not its own (a localized name); null for none.</summary>
+        private FontItemViewModel Alias(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name) || Path.HasExtension(name))
+            {
+                return null;
+            }
+
+            string family = SkiaCanvasRenderer.MatchedFamily(name);
+            return family == null ? null : Find(_installed, family, true);
+        }
+
+        /// <summary>
+        /// Gets whether this machine has a font a style names though the list does not carry it: an SHX or TrueType file the font
+        /// folders or Windows find, a family any of whose names the system matches, a family a font file of the folders holds.
+        /// </summary>
+        private bool IsHere(string name, bool trueType)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return false;
+            }
+
+            if (_document.Fonts.Locate(name, null) != null)
+            {
+                return true;
+            }
+
+            string bare = Path.HasExtension(name) ? Path.GetFileNameWithoutExtension(name) : name;
+            return trueType
+                && (
+                    SkiaCanvasRenderer.MatchedFamily(bare) != null
+                    || CadFontFiles.Find(_document.Fonts.FontFolders, bare) != null
+                );
+        }
+
+        /// <summary>Gets whether a name is a font file, which only TrueType has: a name with an extension other than .shx.</summary>
+        private static bool IsFontFile(string name) =>
+            name != null
+            && !name.EndsWith(".shx", StringComparison.OrdinalIgnoreCase)
+            && Path.GetExtension(name).Length > 0;
 
         /// <summary>A setting changed: Apply enabled where it differs from the style's, the preview drawn again.</summary>
         private void Changed()
@@ -713,12 +923,20 @@ namespace GeometryHelper.Cad.Wpf
                 return false;
             }
 
-            settings.Height = height;
-            settings.WidthFactor = width;
-            settings.ObliqueAngle = oblique * Math.PI / 180.0;
+            // A number shown as the box rounds it (four places) is the style's own number where the style has it so, not the rounded one.
+            settings.Height = _saved != null && _height.Trim() == Number(_saved.Height) ? _saved.Height : height;
+            settings.WidthFactor =
+                _saved != null && _widthFactor.Trim() == Number(_saved.WidthFactor) ? _saved.WidthFactor : width;
+            settings.ObliqueAngle =
+                _saved != null && _obliqueAngle.Trim() == Number(_saved.ObliqueAngle * 180.0 / Math.PI)
+                    ? _saved.ObliqueAngle
+                    : oblique * Math.PI / 180.0;
             settings.UpsideDown = _upsideDown;
             settings.Backwards = _backwards;
             settings.Annotative = _annotative;
+
+            string was = _saved == null ? null : FontOf(_saved);
+            bool unchanged = _saved != null && string.Equals(was, _fontName, StringComparison.OrdinalIgnoreCase);
 
             if (IsTrueType)
             {
@@ -728,16 +946,27 @@ namespace GeometryHelper.Cad.Wpf
                         : _fontName;
                 bool bold = _fontStyle.StartsWith("Bold", StringComparison.Ordinal);
                 bool italic = _fontStyle.EndsWith("Italic", StringComparison.Ordinal);
-                DxfFontDescriptor was = _saved?.Font ?? default;
-                bool same = string.Equals(was.TypeFace, family, StringComparison.OrdinalIgnoreCase);
+
+                if (unchanged && bold == _saved.Font.Bold && italic == _saved.Font.Italic)
+                {
+                    // The font as the style stores it, whether or not this machine has it, or the file spells it.
+                    settings.FileName = _saved.FileName;
+                    settings.BigFontFileName = _saved.BigFontFileName;
+                    settings.Font = _saved.Font;
+                    settings.Vertical = _saved.Vertical;
+                    return true;
+                }
+
+                DxfFontDescriptor font = _saved?.Font ?? default;
+                bool same = string.Equals(font.TypeFace, family, StringComparison.OrdinalIgnoreCase);
                 settings.FileName =
                     same && _saved.FileName.Length > 0 ? _saved.FileName : CadTrueTypeFonts.FileOf(family);
                 settings.Font = new DxfFontDescriptor(
                     family ?? string.Empty,
                     bold,
                     italic,
-                    same ? was.CharacterSet : 0,
-                    same ? was.PitchAndFamily : 34
+                    same ? font.CharacterSet : 0,
+                    same ? font.PitchAndFamily : 34
                 );
             }
             else
@@ -745,9 +974,10 @@ namespace GeometryHelper.Cad.Wpf
                 settings.FileName = _fontName == BuiltInFont ? CadFonts.BuiltInName + ".shx" : _fontName ?? "txt";
 
                 // The file the style had, as it spelled it (txt, not txt.shx), where the font is the same.
-                if (_saved != null && string.Equals(FontOf(_saved), _fontName, StringComparison.OrdinalIgnoreCase))
+                if (unchanged)
                 {
                     settings.FileName = _saved.FileName;
+                    settings.Font = _saved.Font;
                 }
 
                 settings.BigFontFileName = _useBigFont ? _bigFont ?? string.Empty : string.Empty;

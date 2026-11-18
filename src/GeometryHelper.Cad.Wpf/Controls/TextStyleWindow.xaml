@@ -187,9 +187,9 @@
                             <TextBlock Style="{StaticResource StyleLabel}" Text="Font name" Margin="0,0,0,3" />
                             <ComboBox
                                 Style="{StaticResource GhComboBox}"
+                                AutomationProperties.Name="Font name"
                                 ItemsSource="{Binding FontNames}"
-                                SelectedValuePath="Name"
-                                SelectedValue="{Binding FontName, Mode=TwoWay}"
+                                SelectedItem="{Binding SelectedFont, Mode=TwoWay}"
                                 ItemTemplate="{StaticResource FontItemTemplate}"
                                 Margin="0,0,0,6"
                             />
@@ -229,14 +229,16 @@
                             <TextBlock Style="{StaticResource StyleLabel}" Text="Big font" Margin="0,0,0,3" />
                             <ComboBox
                                 Style="{StaticResource GhComboBox}"
-                                ItemsSource="{Binding BigFonts}"
-                                SelectedItem="{Binding BigFont, Mode=TwoWay}"
+                                AutomationProperties.Name="Big font"
+                                ItemsSource="{Binding BigFontItems}"
+                                SelectedItem="{Binding SelectedBigFont, Mode=TwoWay}"
+                                ItemTemplate="{StaticResource BigFontItemTemplate}"
                                 IsEnabled="{Binding UseBigFont}"
                                 FontFamily="{StaticResource GhMonoFont}"
                                 Margin="0,0,0,6"
                             />
                             <TextBlock
-                                Text="Fonts are found in the font search folders of Global settings › Fonts."
+                                Text="Fonts are found in the folders of Global settings › Folder preference, beside GeometryHelper.Cad.dll and in those installed in Windows."
                                 Foreground="{StaticResource GhTextMuted}"
                                 TextWrapping="Wrap"
                             />
