@@ -56,6 +56,21 @@ namespace GeometryHelper.Cad.Remote
 
         /// <summary>Saves a drawing to a file of a name.</summary>
         public const string SaveAs = "saveAs";
+
+        /// <summary>Waits for the user to pick a point, an object or objects in a drawing.</summary>
+        public const string Pick = "pick";
+
+        /// <summary>The layers of a drawing with their looks.</summary>
+        public const string Layers = "layers";
+
+        /// <summary>Reads or sets the current layer of a drawing.</summary>
+        public const string CurrentLayer = "currentLayer";
+
+        /// <summary>The names of the model tab and the layouts of a drawing, in the order of the tabs.</summary>
+        public const string Layouts = "layouts";
+
+        /// <summary>Reads or sets the layout a drawing shows.</summary>
+        public const string CurrentLayout = "currentLayout";
     }
 
     /// <summary>One app that has announced itself in the instance folder.</summary>

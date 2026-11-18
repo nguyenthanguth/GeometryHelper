@@ -18,5 +18,6 @@
         <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" />
         <ProjectReference Include="..\..\src\GeometryHelper.Cad\GeometryHelper.Cad.csproj" />
         <ProjectReference Include="..\..\src\GeometryHelper.Cad.Remote\GeometryHelper.Cad.Remote.csproj" />
+        <ProjectReference Include="..\GeometryHelper.Cad.Remote.Sample\GeometryHelper.Cad.Remote.Sample.csproj" />
     </ItemGroup>
 </Project>

@@ -216,7 +216,7 @@ namespace GeometryHelper.Cad.Remote.UnitTest
         }
 
         [Fact]
-        public void AnInsertOfABlockTheDrawingHasNot_IsRefusedWithTheReason_AndNothingIsApplied()
+        public void AnInsertOfABlockTheDrawingHasNot_ReadFromAnotherDrawing_BringsTheBlockWithIt()
         {
             var (harness, host, plain, remote) = Start(Blank());
             using (harness)
@@ -226,18 +226,19 @@ namespace GeometryHelper.Cad.Remote.UnitTest
                 var source = app.Documents.Get("B-202.dxf");
                 var insert = (DxfBlockReference)
                     source.GetObjects(new CadObjectFilter { Kind = typeof(DxfBlockReference) }).Single();
-                string start = plain.Database.ToText();
 
                 remote = app.Documents.Get("A-101.dxf");
                 remote.Insert(Line(0, 0, 5, 5));
                 remote.Insert(insert);
-                CadRemoteException refused = Assert.Throws<CadRemoteException>(() => remote.CommitChanges());
+                IReadOnlyList<string> handles = remote.CommitChanges();
 
-                Assert.Contains("has no block TAG", refused.Message, StringComparison.Ordinal);
-                Assert.Contains("A-101.dxf", refused.Message, StringComparison.Ordinal);
-                Assert.Equal(start, plain.Database.ToText());
-                Assert.False(plain.CanUndo);
-                Assert.Empty(remote.CommitChanges());
+                // The commit carried the definition of TAG, a line and its attribute, which the drawing had not.
+                Assert.Equal(2, handles.Count);
+                Assert.Equal(2, plain.Database.BlockTable["TAG"].Count(e => !e.IsErased));
+                var made = (DxfBlockReference)plain.FindEntity(handles[1]);
+                Assert.Equal("TAG", made.Name);
+                Assert.Equal("B-12", made.AttributeCollection.Single().TextString);
+                Assert.Equal("REMOTE", plain.NextUndo.Name);
                 Assert.NotNull(tagged);
             }
         }

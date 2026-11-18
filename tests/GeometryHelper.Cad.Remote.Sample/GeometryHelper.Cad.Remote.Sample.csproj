@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <!--
+    The sample program for GeometryHelper.Cad.Remote: a console program that finds the running GeometryHelper CAD, draws a
+    small framed title on a layer of its own, asks the user to pick a point and draws a circle there. Run it with the
+    app open, with dotnet run on this project. The remote tests run its logic against a headless app, with the pick
+    answered by the test.
+  -->
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net48</TargetFramework>
+        <PlatformTarget>x64</PlatformTarget>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <IsPackable>false</IsPackable>
+        <RootNamespace>GeometryHelper.Cad.Remote.Sample</RootNamespace>
+        <AssemblyName>GeometryHelper.Cad.Remote.Sample</AssemblyName>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" />
+        <ProjectReference Include="..\..\src\GeometryHelper.Cad.Remote\GeometryHelper.Cad.Remote.csproj" />
+    </ItemGroup>
+</Project>

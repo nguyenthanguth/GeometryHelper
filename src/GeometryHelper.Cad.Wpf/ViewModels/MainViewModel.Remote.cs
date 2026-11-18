@@ -9,6 +9,12 @@ namespace GeometryHelper.Cad.Wpf
     public sealed partial class MainViewModel
     {
         /// <summary>
+        /// Gets or sets the line Global settings shows under "Allow other programs to connect": who can connect, and by which
+        /// pipe. The window's remote switch sets it; a view model with no window says the channel is not started.
+        /// </summary>
+        internal string RemoteStatus { get; set; } = "The remote channel is not started in this window.";
+
+        /// <summary>
         /// Gets the drawings open, by path (a drawing with no file by its name), so that two runs list them alike. Each is
         /// shown in the file list; the one the user works in is <see cref="Document"/>.
         /// </summary>

@@ -21,11 +21,17 @@ namespace GeometryHelper.Cad.Remote
     /// in the app's drawing is <see cref="HandleOf"/>.
     /// </para>
     /// <para>
-    /// Writes are queued: <see cref="Insert"/>, <see cref="Modify"/> and <see cref="Delete(string)"/> keep what they were
-    /// given as it is at the call, and <see cref="CommitChanges"/> sends them all and the app applies them in order as one
-    /// undo step with the canvas drawn again. If the app refuses any of them (the owner of an object does not take the
-    /// change, a block is missing from the drawing) nothing is applied, <see cref="CommitChanges"/> throws with the reason and
-    /// the queue is empty.
+    /// Writes are queued: <see cref="Insert"/>, <see cref="Modify"/>, <see cref="Delete(string)"/>, <see cref="AddLayer"/> and
+    /// <see cref="ModifyLayer"/> keep what they were given as it is at the call, and <see cref="CommitChanges"/> sends them
+    /// all and the app applies them as one undo step with the canvas drawn again: the layers first, then the objects in the
+    /// order they were queued, so that an object can be put on a layer made in the same step. If the app refuses any of them
+    /// (the owner of an object does not take the change, a block is missing from the drawing) nothing is applied,
+    /// <see cref="CommitChanges"/> throws with the reason and the queue is empty.
+    /// </para>
+    /// <para>
+    /// The user's picks (<see cref="PickPoint"/>, <see cref="PickObjects"/>, <see cref="PickObject"/>) wait for the user at
+    /// the app's command line and canvas; the layers and layouts have their own members (<see cref="Layers"/>,
+    /// <see cref="CurrentLayer"/>, <see cref="Layouts"/>, <see cref="CurrentLayout"/>).
     /// </para>
     /// <para>
     /// An object inserted is not in the drawing until the commit, so <see cref="Insert"/> returns a ticket such as
@@ -33,7 +39,7 @@ namespace GeometryHelper.Cad.Remote
     /// and <see cref="Select"/> once the commit is done, and <see cref="CommitChanges"/> returns the real handles.
     /// </para>
     /// </remarks>
-    public sealed class CadRemoteDocument
+    public sealed partial class CadRemoteDocument
     {
         private sealed class ReadObject
         {
@@ -49,6 +55,7 @@ namespace GeometryHelper.Cad.Remote
             public string Reference;
             public string Layout;
             public string Ticket;
+            public CadRemoteLayer Layer;
         }
 
         // What each object read is the copy of: the drawing it came from, its handle there and the small drawing it lives in.
@@ -152,7 +159,10 @@ namespace GeometryHelper.Cad.Remote
         /// Queues an object to be added to the drawing. The entity is copied now, so changing it afterwards changes nothing;
         /// it can be one made in code (<c>new DxfLine(...)</c>), or one read from this or another drawing of the same app,
         /// which is copied with the layers, styles and blocks it needs. A layer the drawing has not is made. An INSERT of a
-        /// block the drawing has not is refused at the commit, and a dimension made in code is drawn by the app, with the
+        /// block the drawing has not brings the block's definition when the INSERT was made from a block of your own that holds
+        /// objects (<c>new DxfBlockReference(point, record)</c> with <c>record</c> in a <c>DxfDatabase</c> of yours); a block the
+        /// drawing has already is the drawing's own, whatever yours holds. An INSERT of a block that is neither in the
+        /// drawing nor defined with objects is refused at the commit. A dimension made in code is drawn by the app, with the
         /// drawing's current dimension style unless it names one.
         /// </summary>
         /// <param name="entity">The object.</param>
@@ -263,25 +273,94 @@ namespace GeometryHelper.Cad.Remote
                 dimension.DimBlock = picture;
             }
 
-            // The block an INSERT places is the drawing's own; the copy only carries its name, in a block left empty.
-            if (copy is DxfBlockReference insert && !batch.BlockTable.Has(insert.Name))
+            // The block an INSERT places is the drawing's own where it has one; a block of the caller's that holds objects
+            // goes with the copy, and any other is carried by its name alone, in a block left empty.
+            if (entity is DxfBlockReference original)
             {
-                batch.BlockTable.Add(new DxfBlockTableRecord { Name = insert.Name });
+                DxfBlockTableRecord block = original.BlockTableRecord;
+
+                if (Holds(block))
+                {
+                    Bring(batch, block);
+                }
+                else if (!batch.BlockTable.Has(original.Name))
+                {
+                    batch.BlockTable.Add(new DxfBlockTableRecord { Name = original.Name });
+                }
             }
 
             batch.ModelSpace.AppendEntity(copy);
             return copy;
         }
 
+        /// <summary>Whether a block of the caller's holds an object, which makes it a definition and not only a name.</summary>
+        private static bool Holds(DxfBlockTableRecord block)
+        {
+            if (block == null)
+            {
+                return false;
+            }
+
+            foreach (DxfEntity entity in block)
+            {
+                if (!entity.IsErased)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         /// <summary>
-        /// Sends the queued inserts, modifies and deletes and has the app apply them in order as one undo step, the canvas drawn
+        /// Makes a block of the caller's in the small drawing the commit travels in, with the blocks it inserts that hold
+        /// objects, so that the INSERT copied next places it. A block the small drawing has is left as it is.
+        /// </summary>
+        private static void Bring(DxfDatabase batch, DxfBlockTableRecord source)
+        {
+            if (batch.BlockTable.Has(source.Name))
+            {
+                return;
+            }
+
+            var made = new DxfBlockTableRecord { Name = source.Name, Origin = source.Origin };
+            batch.BlockTable.Add(made);
+
+            foreach (DxfEntity inside in source)
+            {
+                if (inside.IsErased)
+                {
+                    continue;
+                }
+
+                if (inside is DxfBlockReference nested)
+                {
+                    DxfBlockTableRecord inner = nested.BlockTableRecord;
+
+                    if (Holds(inner))
+                    {
+                        Bring(batch, inner);
+                    }
+                    else if (!batch.BlockTable.Has(nested.Name))
+                    {
+                        batch.BlockTable.Add(new DxfBlockTableRecord { Name = nested.Name });
+                    }
+                }
+
+                made.AppendEntity(inside.Clone());
+            }
+        }
+
+        /// <summary>
+        /// Sends the queued inserts, modifies, deletes and layers and has the app apply them as one undo step, the canvas drawn
         /// again. Nothing queued is no request.
         /// </summary>
         /// <returns>The handles of the objects inserted, in the order of the <see cref="Insert"/> calls.</returns>
         /// <exception cref="CadRemoteException">
         /// Thrown when the drawing is closed, a command is running in it, the owner of an object refuses the change, an object
-        /// to modify or delete is not in the drawing, or a block an INSERT places is not. Nothing is applied and the queue is
-        /// emptied.
+        /// to modify or delete is not in the drawing, a block an INSERT places is neither there nor defined with the INSERT, a
+        /// layer to add is there already or has a name or look the drawing refuses, or a layer to modify is not there. Nothing
+        /// is applied and the queue is emptied.
         /// </exception>
         public IReadOnlyList<string> CommitChanges()
         {
@@ -309,6 +388,11 @@ namespace GeometryHelper.Cad.Remote
                 if (item.Layout != null)
                 {
                     operation.Set("layout", item.Layout);
+                }
+
+                if (item.Layer != null)
+                {
+                    operation.Set("layer", item.Layer.ToJson());
                 }
 
                 operations.Add(operation);

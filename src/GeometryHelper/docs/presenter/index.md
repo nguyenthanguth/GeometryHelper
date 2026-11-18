@@ -59,6 +59,7 @@ What each line does is on the page that follows.
 | [Owners](owners.md) | the entities a model drawing wrote, and how the presenter asks their owner before it changes one |
 | [Command plugins](plugins.md) | a command written in a .dll, loaded and unloaded while the app runs |
 | [Settings, autosave and the window](app.md) | global settings as JSON, autosave copies, closing a drawing, the keys, the mouse and the app's command line |
+| [Driving the app from another program](remote.md) | a console program or a Tekla plugin reads and edits the open drawings, types commands, asks the user to pick and lists the layers and layouts, through a named pipe |
 
 ## Measured
 

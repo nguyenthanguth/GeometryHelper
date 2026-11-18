@@ -18,6 +18,7 @@
         <Project Path="tests/GeometryHelper.IfcConvert.UnitTest/GeometryHelper.IfcConvert.UnitTest.csproj" />
         <Project Path="tests/GeometryHelper.Cad.UnitTest/GeometryHelper.Cad.UnitTest.csproj" />
         <Project Path="tests/GeometryHelper.Cad.Remote.UnitTest/GeometryHelper.Cad.Remote.UnitTest.csproj" />
+        <Project Path="tests/GeometryHelper.Cad.Remote.Sample/GeometryHelper.Cad.Remote.Sample.csproj" />
         <Project Path="tests/GeometryHelper.Drawing.UnitTest/GeometryHelper.Drawing.UnitTest.csproj" />
         <Project Path="tests/GeometryHelper.Cad.Wpf.UnitTest/GeometryHelper.Cad.Wpf.UnitTest.csproj" />
         <Project Path="tests/GeometryHelper.Drawing.Wpf.UnitTest/GeometryHelper.Drawing.Wpf.UnitTest.csproj" />

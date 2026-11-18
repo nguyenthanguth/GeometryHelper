@@ -7,10 +7,29 @@ using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Cad.Remote.UnitTest
 {
-    /// <summary>Runs the work on the thread that calls it: a headless app has no window thread to hand work to.</summary>
+    /// <summary>
+    /// Runs the work on the thread that calls it, one piece at a time: a headless app has no window thread to hand work to, and
+    /// the gate stands for the window's thread, which a test takes to touch a drawing while the server is waiting on the user.
+    /// </summary>
     internal sealed class InlineDispatcher : ICadRemoteDispatcher
     {
-        public void Invoke(Action action) => action();
+        private readonly object _gate;
+
+        public InlineDispatcher()
+            : this(new object()) { }
+
+        public InlineDispatcher(object gate)
+        {
+            _gate = gate;
+        }
+
+        public void Invoke(Action action)
+        {
+            lock (_gate)
+            {
+                action();
+            }
+        }
     }
 
     /// <summary>
@@ -25,6 +44,27 @@ namespace GeometryHelper.Cad.Remote.UnitTest
         private int _newCount;
 
         public string Title { get; set; } = "GeometryHelper CAD";
+
+        /// <summary>Gets the gate the server's work is run under: what a test locks to act as the window's thread.</summary>
+        public object Gate { get; } = new object();
+
+        /// <summary>Runs an action as the window's thread would, between two pieces of the server's work.</summary>
+        public void OnAppThread(Action action)
+        {
+            lock (Gate)
+            {
+                action();
+            }
+        }
+
+        /// <summary>Runs a function as the window's thread would, between two pieces of the server's work.</summary>
+        public T OnAppThread<T>(Func<T> function)
+        {
+            lock (Gate)
+            {
+                return function();
+            }
+        }
 
         public IReadOnlyList<CadDocument> Documents => _documents;
 
@@ -121,7 +161,7 @@ namespace GeometryHelper.Cad.Remote.UnitTest
         {
             var server = new CadRemoteServer(
                 host,
-                new InlineDispatcher(),
+                new InlineDispatcher(host.Gate),
                 Folder,
                 Guid.NewGuid().ToString("N").Substring(0, 8)
             );

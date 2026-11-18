@@ -885,6 +885,16 @@ namespace GeometryHelper.Cad
         /// <summary>Gets or sets whether the folder is opened after an export: off by default.</summary>
         public bool OpenAfterExport { get; set; }
 
+        // ---- Other programs
+
+        /// <summary>
+        /// Gets or sets whether other programs on this computer may connect to the app and drive its drawings, as a program
+        /// built on GeometryHelper.Cad.Remote does (<see cref="CadRemoteServer"/>): on by default. Switched off, the app
+        /// closes its pipe and takes down the file that announces it, and no program finds it; switched on, it opens them
+        /// again, with no restart.
+        /// </summary>
+        public bool AllowRemoteConnections { get; set; } = true;
+
         // ---- Hidden messages
 
         /// <summary>
@@ -1216,6 +1226,9 @@ namespace GeometryHelper.Cad
             w.Value("exportLayout", _exportLayout);
             w.Value("openAfterExport", OpenAfterExport);
             w.Close();
+            w.Open("remote");
+            w.Value("allowRemoteConnections", AllowRemoteConnections);
+            w.Close();
             w.Open("templates");
             w.Value("folder", _templateFolder);
             w.Value("qnew", _qnewTemplate);
@@ -1398,6 +1411,7 @@ namespace GeometryHelper.Cad
                 Text("saveAndExport", "autosaveFormat", v => _s.AutosaveFormat = v);
                 Text("saveAndExport", "exportLayout", v => _s.ExportLayout = v);
                 Flag("saveAndExport", "openAfterExport", v => _s.OpenAfterExport = v);
+                Flag("remote", "allowRemoteConnections", v => _s.AllowRemoteConnections = v);
                 Text("templates", "folder", v => _s.TemplateFolder = v);
                 Text("templates", "qnew", v => _s.QnewTemplate = v);
                 Flag("input", "autoComplete", v => _s.AutoComplete = v);

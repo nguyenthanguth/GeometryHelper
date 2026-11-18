@@ -46,7 +46,10 @@ namespace GeometryHelper.Cad.Remote
 
                     if (!answer.GetBool("ok"))
                     {
-                        throw new CadRemoteException(answer.GetString("error") ?? "The app refused the request.");
+                        throw new CadRemoteException(
+                            answer.GetString("error") ?? "The app refused the request.",
+                            answer.GetBool("cancelled")
+                        );
                     }
 
                     return answer;
