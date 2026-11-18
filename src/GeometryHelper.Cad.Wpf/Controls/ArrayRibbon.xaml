@@ -21,6 +21,7 @@
             <Setter Property="Margin" Value="0,0,0,2" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="HorizontalContentAlignment" Value="Right" />
+            <Setter Property="local:CommitOnEnter.Enabled" Value="True" />
         </Style>
         <Style x:Key="ArrayLabel" TargetType="TextBlock">
             <Setter Property="Margin" Value="0,0,6,2" />

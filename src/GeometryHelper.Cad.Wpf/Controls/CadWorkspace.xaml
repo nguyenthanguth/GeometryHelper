@@ -1076,6 +1076,8 @@
                             <Setter Property="FontFamily" Value="{StaticResource GhMonoFont}" />
                             <Setter Property="FontSize" Value="11" />
                             <Setter Property="Margin" Value="3,0,6,0" />
+                            <Setter Property="local:CommitOnEnter.Enabled" Value="True" />
+                            <EventSetter Event="local:CommitOnEnter.Finished" Handler="OnEditorBoxFinished" />
                         </Style>
                         <!-- The tab is wide: its big buttons and groups are drawn a little closer than Home's, as the design draws them. -->
                         <Style x:Key="BigButton" TargetType="Button" BasedOn="{StaticResource BigButton}">
@@ -1188,7 +1190,6 @@
                                         Width="64"
                                         Text="{Binding HeightText, UpdateSourceTrigger=LostFocus}"
                                         ToolTip="Text height"
-                                        KeyDown="OnEditorBoxKey"
                                     />
                                 </StackPanel>
                                 <Button
@@ -1294,7 +1295,6 @@
                                         Style="{StaticResource EditorBox}"
                                         Text="{Binding ObliqueText, UpdateSourceTrigger=LostFocus}"
                                         ToolTip="Oblique angle"
-                                        KeyDown="OnEditorBoxKey"
                                     />
                                     <TextBlock
                                         Text="Tracking"
@@ -1306,7 +1306,6 @@
                                         Style="{StaticResource EditorBox}"
                                         Text="{Binding TrackingText, UpdateSourceTrigger=LostFocus}"
                                         ToolTip="Tracking"
-                                        KeyDown="OnEditorBoxKey"
                                     />
                                     <TextBlock
                                         Text="Width"
@@ -1318,7 +1317,6 @@
                                         Style="{StaticResource EditorBox}"
                                         Text="{Binding WidthFactorText, UpdateSourceTrigger=LostFocus}"
                                         ToolTip="Width factor"
-                                        KeyDown="OnEditorBoxKey"
                                     />
                                 </StackPanel>
                             </StackPanel>
@@ -2330,6 +2328,7 @@
                                         <TextBox
                                             Style="{StaticResource GhTextBox}"
                                             FontFamily="{StaticResource GhMonoFont}"
+                                            local:CommitOnEnter.Enabled="True"
                                             Text="{Binding Model.TextHeight, UpdateSourceTrigger=LostFocus}"
                                             ToolTip="Text height of the next Single Line text (TEXT, MTEXT)"
                                         />
