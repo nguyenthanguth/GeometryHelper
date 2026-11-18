@@ -191,6 +191,7 @@
                                 ItemsSource="{Binding FontNames}"
                                 SelectedItem="{Binding SelectedFont, Mode=TwoWay}"
                                 ItemTemplate="{StaticResource FontItemTemplate}"
+                                local:FontSearch.IsEnabled="True"
                                 Margin="0,0,0,6"
                             />
                             <TextBlock

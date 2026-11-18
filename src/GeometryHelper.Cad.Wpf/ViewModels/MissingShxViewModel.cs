@@ -235,6 +235,13 @@ namespace GeometryHelper.Cad.Wpf
         public string Family { get; }
 
         /// <summary>
+        /// Gets the other names of the family after <see cref="Family"/>, in muted words, where this machine knows it by any: a
+        /// font file the drawing names whose family is installed under other names. Empty for a family the machine lacks, as
+        /// DotumChe on a machine without it, which shows just what the drawing stores.
+        /// </summary>
+        public string LocalText => FontNameLabels.LocalText(Family);
+
+        /// <summary>
         /// Gets what it is drawn in, as the canvas draws it: "Arial, letters it lacks from another font". The canvas draws a
         /// TrueType font it has not in its drawing font (Global settings), and a letter that font lacks in the first of Arial,
         /// Segoe UI, Tahoma and Times New Roman that has it, else in the font Windows links for it.
