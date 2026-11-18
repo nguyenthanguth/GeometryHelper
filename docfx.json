@@ -5,11 +5,12 @@
         {
           "files": [
             "src/GeometryHelper/GeometryHelper.csproj",
-            "src/GeometryHelper.Cad/GeometryHelper.Cad.csproj"
+            "src/GeometryHelper.Cad.Remote/GeometryHelper.Cad.Remote.csproj"
           ]
         },
         {
           "files": [
+            "src/GeometryHelper.Cad/GeometryHelper.Cad.csproj",
             "src/GeometryHelper.CadConvert/GeometryHelper.CadConvert.csproj",
             "src/GeometryHelper.IfcConvert/GeometryHelper.IfcConvert.csproj",
             "src/GeometryHelper.Drawing/GeometryHelper.Drawing.csproj",

@@ -22,6 +22,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" />
         <ProjectReference Include="..\..\src\GeometryHelper.Cad\GeometryHelper.Cad.csproj" />
+        <ProjectReference Include="..\..\src\GeometryHelper.Cad.Remote\GeometryHelper.Cad.Remote.csproj" />
         <ProjectReference Include="..\..\src\GeometryHelper.Cad.Wpf\GeometryHelper.Cad.Wpf.csproj" />
         <!-- Built first, never referenced: the plugin tests load its .dll as a plugin, from SamplePlugin\ beside them. -->
         <ProjectReference
