@@ -1944,6 +1944,20 @@ namespace GeometryHelper.Cad.Wpf
         }
 
         /// <summary>
+        /// Gets the family the font manager gives a name, as it names it: <c>Malgun Gothic</c> for the localized <c>맑은 고딕</c>;
+        /// null where no font gives one.
+        /// </summary>
+        /// <param name="family">The name, as a style stores it.</param>
+        /// <returns>The family, or null.</returns>
+        internal static string MatchedFamily(string family)
+        {
+            // The typeface matched is not disposed, for the reason HasFamily gives.
+            return string.IsNullOrWhiteSpace(family)
+                ? null
+                : SKFontManager.Default.MatchFamily(family.Trim())?.FamilyName;
+        }
+
+        /// <summary>
         /// Measures letters as the canvas draws them, for <see cref="CadTrueTypeFonts.MeasureWidth"/>: the width of the letters one
         /// unit high in the family's face, bold or italic, the canvas's own font (Arial) for none.
         /// </summary>

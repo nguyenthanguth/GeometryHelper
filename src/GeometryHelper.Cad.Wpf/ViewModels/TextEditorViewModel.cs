@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Input;
@@ -70,6 +71,9 @@ namespace GeometryHelper.Cad.Wpf
         private readonly CadMTextMask _originalMask;
         private bool _annotative;
         private readonly bool _originalAnnotative;
+        private readonly List<string> _listedFonts;
+        private readonly ObservableCollection<string> _fonts;
+        private string _extraFont;
 
         internal TextEditorViewModel(
             MainViewModel model,
@@ -129,10 +133,12 @@ namespace GeometryHelper.Cad.Wpf
                 Refresh();
                 LayTableOut();
             };
-            Fonts = new[] { styleFont ?? "Arial" }
+            _listedFonts = new[] { styleFont ?? "Arial" }
                 .Concat(CadTrueTypeFonts.Families)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
+            _fonts = new ObservableCollection<string>(_listedFonts);
+            ListLookFont();
             Colors = new[]
             {
                 Color("ByLayer", 256, -1),
@@ -290,13 +296,46 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets whether bold and italic can be set: the font of the letters is a TrueType font.</summary>
         public bool CanBold => Editor.CanBold;
 
-        /// <summary>Gets the fonts offered: the style's first, then the TrueType families of the machine.</summary>
-        public IReadOnlyList<string> Fonts { get; }
+        /// <summary>
+        /// Gets the fonts offered: the style's first, then the TrueType families of the machine; and, while the letters under the
+        /// caret are in a font none of those is (a family this machine lacks, which a drawing from another machine names), that
+        /// font after the style's, so that the box shows it, not nothing.
+        /// </summary>
+        public IReadOnlyList<string> Fonts => _fonts;
 
-        /// <summary>Gets or sets the font of the letters, as the font box shows it.</summary>
+        /// <summary>Lists the font of the letters under the caret where the list has none of its name; the one listed for letters before is dropped.</summary>
+        private void ListLookFont()
+        {
+            string font = Editor.CurrentLook.Font;
+            string extra = font == null || _listedFonts.Contains(font, StringComparer.OrdinalIgnoreCase) ? null : font;
+
+            if (extra == _extraFont)
+            {
+                return;
+            }
+
+            if (_extraFont != null)
+            {
+                _fonts.Remove(_extraFont);
+            }
+
+            _extraFont = extra;
+
+            if (extra != null)
+            {
+                _fonts.Insert(1, extra);
+            }
+        }
+
+        /// <summary>Gets or sets the font of the letters, as the font box shows it, spelled as the list spells it.</summary>
         public string Font
         {
-            get => Editor.CurrentLook.Font ?? StyleFont ?? "Arial";
+            get
+            {
+                string font = Editor.CurrentLook.Font ?? StyleFont ?? "Arial";
+                return _listedFonts.FirstOrDefault(f => string.Equals(f, font, StringComparison.OrdinalIgnoreCase))
+                    ?? font;
+            }
             set
             {
                 if (!string.IsNullOrEmpty(value) && !string.Equals(value, Font, StringComparison.OrdinalIgnoreCase))
@@ -1551,6 +1590,8 @@ namespace GeometryHelper.Cad.Wpf
 
         private void Refresh()
         {
+            ListLookFont();
+
             foreach (
                 string name in new[]
                 {

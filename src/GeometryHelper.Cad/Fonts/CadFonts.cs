@@ -122,6 +122,9 @@ namespace GeometryHelper.Cad
         /// <summary>Gets the folders the user set, which fonts are looked for in, in order, before the Fonts folder beside the dll.</summary>
         public IReadOnlyList<string> Folders { get; }
 
+        /// <summary>Gets the folders a font file is looked for in, in order: those the user set, then the Fonts folder beside the dll where there is one.</summary>
+        internal IReadOnlyList<string> FontFolders => Folders.Concat(_roots.ExistingOf(CadSupportKind.Fonts)).ToList();
+
         /// <summary>Gets the font a font not found is drawn in, and after a comma the big font a big font not found is drawn in; empty for the canvas's own.</summary>
         public string Replacement { get; }
 

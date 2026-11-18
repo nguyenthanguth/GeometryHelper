@@ -232,7 +232,7 @@
         </DataTemplate.Triggers>
     </DataTemplate>
 
-    <!-- A font of the Font name list with its kind: SHX or TT. -->
+    <!-- A font of the Font name list with its kind: SHX or TT, and "(not installed)" or "(not found)" where this machine lacks it. -->
     <DataTemplate x:Key="FontItemTemplate" DataType="{x:Type local:FontItemViewModel}">
         <StackPanel Orientation="Horizontal">
             <Border
@@ -245,12 +245,33 @@
                 <TextBlock x:Name="Mark" Text="SHX" FontSize="9" FontWeight="SemiBold" />
             </Border>
             <TextBlock Text="{Binding Name}" VerticalAlignment="Center" FontFamily="{StaticResource GhMonoFont}" />
+            <TextBlock
+                Text="{Binding Hint}"
+                Margin="6,0,0,0"
+                VerticalAlignment="Center"
+                Foreground="{StaticResource GhTextMuted}"
+                FontSize="11"
+            />
         </StackPanel>
         <DataTemplate.Triggers>
             <DataTrigger Binding="{Binding IsTrueType}" Value="True">
                 <Setter TargetName="Mark" Property="Text" Value="TT" />
             </DataTrigger>
         </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <!-- A big font of the Big font list: its name, and "(not found)" where no font folder has it. -->
+    <DataTemplate x:Key="BigFontItemTemplate" DataType="{x:Type local:FontItemViewModel}">
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+            <TextBlock
+                Text="{Binding Hint}"
+                Margin="6,0,0,0"
+                VerticalAlignment="Center"
+                Foreground="{StaticResource GhTextMuted}"
+                FontSize="11"
+            />
+        </StackPanel>
     </DataTemplate>
 
     <!--
