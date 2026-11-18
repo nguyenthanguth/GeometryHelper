@@ -937,9 +937,12 @@ namespace GeometryHelper.Cad.Wpf
 
         private void OnSettingsRequested(object sender, string category) => ShowGlobalSettings(category);
 
-        /// <summary>DSETTINGS and the menus' settings item: Drafting Settings, after the menu or the command line is done with.</summary>
-        private void OnDraftingSettingsRequested(object sender, EventArgs e) =>
-            Dispatcher.BeginInvoke(new Action(() => ShowDraftingSettings()));
+        /// <summary>DSETTINGS, OSNAP and the menus' settings item: Drafting Settings on the tab asked for, after the menu or the command line is done with.</summary>
+        private void OnDraftingSettingsRequested(object sender, EventArgs e)
+        {
+            string tab = (e as DraftingSettingsRequestedEventArgs)?.Tab;
+            Dispatcher.BeginInvoke(new Action(() => ShowDraftingSettings(tab)));
+        }
 
         /// <summary>STYLE, DIMSTYLE and the style boxes' last items: the Text Style dialog or the Dimension Style Manager, after the command or the box is done with.</summary>
         private void OnStyleDialogRequested(object sender, string name) =>

@@ -268,7 +268,7 @@ namespace GeometryHelper.Cad
                     ["DWFOUT"] = "PLOT",
                     ["SE"] = "DSETTINGS",
                     ["DDRMODES"] = "DSETTINGS",
-                    ["DDOSNAP"] = "DSETTINGS",
+                    ["DDOSNAP"] = "OSNAP",
                     ["SET"] = "SETVAR",
                     ["SN"] = "SNAP",
                     ["TEDIT"] = "TEXTEDIT",

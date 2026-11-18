@@ -261,8 +261,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         {
             MainViewModel model = Open();
             model.SnapModes = Running;
-            model.Execute("OSNAP");
-            model.Execute("OFF");
+            model.Toggles.First(t => t.Name == "OSNAP").IsOn = false;
             Assert.False(model.Toggles.First(t => t.Name == "OSNAP").IsOn);
 
             model.Execute("-OSNAP");
@@ -271,7 +270,8 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             Assert.Equal(CadSnapModes.Center, model.SnapModes);
             Assert.False(model.Toggles.First(t => t.Name == "OSNAP").IsOn);
             Assert.Equal("-OSNAP", CadShortcuts.Default.Aliases["-OS"]);
-            Assert.Equal("DSETTINGS", model.Session.Registry.Find("OS").Name);
+            Assert.Equal("OSNAP", model.Session.Registry.Find("OS").Name);
+            Assert.Equal("DSETTINGS", model.Session.Registry.Find("DS").Name);
         }
 
         #endregion
