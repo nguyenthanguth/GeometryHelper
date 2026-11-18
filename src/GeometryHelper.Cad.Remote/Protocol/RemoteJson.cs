@@ -59,6 +59,15 @@ namespace GeometryHelper.Cad.Remote
                 : fallback;
         }
 
+        /// <summary>Gets a number member, whole or not; the fallback where there is none.</summary>
+        public double GetDouble(string name, double fallback = 0.0)
+        {
+            object value = Get(name);
+            return value is double real ? real
+                : value is long whole ? whole
+                : fallback;
+        }
+
         /// <summary>Gets a bool member; the fallback where there is none.</summary>
         public bool GetBool(string name, bool fallback = false) => Get(name) is bool flag ? flag : fallback;
 

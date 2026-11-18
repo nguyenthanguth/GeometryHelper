@@ -92,6 +92,8 @@
       href: presenter/plugins.md
     - name: Settings, autosave and the window
       href: presenter/app.md
+    - name: Driving the app from another program
+      href: presenter/remote.md
 - name: Model drawings
   href: drawing/index.md
   items:

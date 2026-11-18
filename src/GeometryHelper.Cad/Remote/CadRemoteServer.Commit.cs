@@ -17,6 +17,8 @@ namespace GeometryHelper.Cad
             Insert,
             Modify,
             Delete,
+            AddLayer,
+            ModifyLayer,
         }
 
         private sealed class Step
@@ -25,6 +27,7 @@ namespace GeometryHelper.Cad
             public string Handle;
             public DxfEntity Entity;
             public CadSpace Space;
+            public JsonObject Layer;
         }
 
         private JsonObject Commit(CadDocument document, JsonObject request)
@@ -61,6 +64,7 @@ namespace GeometryHelper.Cad
             // Every step is checked before any is applied, so that one that cannot be made changes nothing.
             var steps = new List<Step>();
             var planned = new List<CadEditRecord>();
+            var layersAdded = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (object item in request.GetArray("operations"))
             {
@@ -70,9 +74,15 @@ namespace GeometryHelper.Cad
 
                 switch (kind)
                 {
+                    case "addLayer":
+                        steps.Add(PlanNewLayer(document, operation.GetObject("layer"), layersAdded));
+                        break;
+                    case "modifyLayer":
+                        steps.Add(PlanLayerLook(document, operation.GetObject("layer"), planned));
+                        break;
                     case "insert":
                         DxfEntity added = Sent(byReference, operation);
-                        CheckBlock(document, added);
+                        CheckBlock(document, fragment, added);
                         steps.Add(
                             new Step
                             {
@@ -85,7 +95,7 @@ namespace GeometryHelper.Cad
                     case "modify":
                         Existing(document, handle);
                         DxfEntity changed = Sent(byReference, operation);
-                        CheckBlock(document, changed);
+                        CheckBlock(document, fragment, changed);
                         steps.Add(
                             new Step
                             {
@@ -106,9 +116,11 @@ namespace GeometryHelper.Cad
                 }
             }
 
+            var layers = steps.Where(s => s.Kind == StepKind.AddLayer || s.Kind == StepKind.ModifyLayer).ToList();
+            steps.RemoveAll(s => s.Kind == StepKind.AddLayer || s.Kind == StepKind.ModifyLayer);
             var inserted = new JsonArray();
             CadEditResult result = document.ApplyEdit(StepName, planned, scope =>
-                Apply(document, scope, steps, fragment, inserted)
+                Apply(document, scope, layers, steps, fragment, inserted)
             );
 
             if (!result.Succeeded)
@@ -167,34 +179,67 @@ namespace GeometryHelper.Cad
             return space ?? throw new Refusal("The drawing " + document.Title + " has no layout named " + layout + ".");
         }
 
-        /// <summary>Refuses an INSERT of a block the drawing does not have: the blocks of a drawing are its own, and none is carried in yet.</summary>
-        private static void CheckBlock(CadDocument document, DxfEntity entity)
+        /// <summary>
+        /// Refuses an INSERT of a block that is neither in the drawing nor defined in the commit: a block the drawing has is its
+        /// own and wins, and one the client defined with objects in it comes with the commit, copied in with the INSERT.
+        /// </summary>
+        private static void CheckBlock(CadDocument document, DxfDatabase fragment, DxfEntity entity)
         {
             if (entity is DxfBlockReference insert)
             {
                 string name = insert.Name;
 
-                if (!name.StartsWith("*", StringComparison.Ordinal) && !document.Database.BlockTable.Has(name))
+                if (
+                    !name.StartsWith("*", StringComparison.Ordinal)
+                    && !document.Database.BlockTable.Has(name)
+                    && !Defines(fragment, name)
+                )
                 {
                     throw new Refusal(
                         "The drawing "
                             + document.Title
                             + " has no block "
                             + name
-                            + " for the INSERT to place: only blocks the drawing already has can be inserted from outside."
+                            + " for the INSERT to place, and the commit does not define it: make the INSERT from a block of your own that holds objects."
                     );
                 }
             }
         }
 
+        /// <summary>Whether the commit's small drawing holds a block of the name with an object in it.</summary>
+        private static bool Defines(DxfDatabase fragment, string name)
+        {
+            if (fragment == null || !fragment.BlockTable.Has(name))
+            {
+                return false;
+            }
+
+            foreach (DxfEntity entity in fragment.BlockTable[name])
+            {
+                if (!entity.IsErased)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private void Apply(
             CadDocument document,
             CadEditScope scope,
+            List<Step> layers,
             List<Step> steps,
             DxfDatabase fragment,
             JsonArray inserted
         )
         {
+            // The layers are made first, so that the objects of the commit can be on them.
+            foreach (Step layer in layers)
+            {
+                WriteLayer(document, scope, layer);
+            }
+
             int i = 0;
 
             while (i < steps.Count)

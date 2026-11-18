@@ -15,12 +15,24 @@ namespace GeometryHelper.Cad
         /// <summary>How long the server waits between looks at a command it is waiting to end, in milliseconds.</summary>
         private const int CommandPoll = 20;
 
+        /// <summary>How long a request waits for the one before it before it looks whether that one is a pick, in milliseconds.</summary>
+        private const int PickLook = 50;
+
         // A request refused for a reason the client is told in words: not a fault of the app, so not logged as one.
         private sealed class Refusal : Exception
         {
-            public Refusal(string message)
-                : base(message) { }
+            public Refusal(string message, bool cancelled = false)
+                : base(message)
+            {
+                Cancelled = cancelled;
+            }
+
+            // The user ended a pick: the client is told so, apart from a failure.
+            public bool Cancelled { get; }
         }
+
+        // Set while a request waits for the user to pick: any other request is refused as busy until the pick ends.
+        private volatile bool _picking;
 
         private sealed class Known
         {
@@ -42,17 +54,40 @@ namespace GeometryHelper.Cad
             {
                 JsonObject answer;
 
-                // One request at a time for the whole app: a second client waits here for the first.
-                lock (_requests)
+                // One request at a time for the whole app: a second client waits here for the first, unless the first waits
+                // for the user to pick, which can take as long as the user likes: it is told the app is busy instead.
+                while (!Monitor.TryEnter(_requests, PickLook))
                 {
-                    answer = op == RemoteOps.Command ? RunCommand(request) : Dispatch(() => Execute(op, request));
+                    if (_picking)
+                    {
+                        throw new Refusal(
+                            "GeometryHelper CAD is busy: it is waiting for the user to pick in a drawing, for a program that asked it to. Try again when the pick is done."
+                        );
+                    }
+
+                    if (_stopping)
+                    {
+                        throw new Refusal("GeometryHelper CAD is shutting down.");
+                    }
+                }
+
+                try
+                {
+                    answer =
+                        op == RemoteOps.Command ? RunCommand(request)
+                        : op == RemoteOps.Pick ? RunPick(request)
+                        : Dispatch(() => Execute(op, request));
+                }
+                finally
+                {
+                    Monitor.Exit(_requests);
                 }
 
                 return answer.Set("id", id).Set("ok", true);
             }
             catch (Refusal refusal)
             {
-                return Failure(id, refusal.Message);
+                return Failure(id, refusal.Message, refusal.Cancelled);
             }
             catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
@@ -61,8 +96,11 @@ namespace GeometryHelper.Cad
             }
         }
 
-        private static JsonObject Failure(long id, string message) =>
-            new JsonObject().Set("id", id).Set("ok", false).Set("error", message);
+        private static JsonObject Failure(long id, string message, bool cancelled = false)
+        {
+            JsonObject failure = new JsonObject().Set("id", id).Set("ok", false).Set("error", message);
+            return cancelled ? failure.Set("cancelled", true) : failure;
+        }
 
         /// <summary>Runs a function on the dispatcher's thread, an exception it throws thrown again on this one.</summary>
         private T Dispatch<T>(Func<T> work)
@@ -134,6 +172,14 @@ namespace GeometryHelper.Cad
                     return Save(Find(request));
                 case RemoteOps.SaveAs:
                     return SaveAs(Find(request), request);
+                case RemoteOps.Layers:
+                    return Layers(Find(request));
+                case RemoteOps.CurrentLayer:
+                    return CurrentLayer(Find(request), request.GetString("name"));
+                case RemoteOps.Layouts:
+                    return Layouts(Find(request));
+                case RemoteOps.CurrentLayout:
+                    return CurrentLayout(Find(request), request.GetString("name"));
                 default:
                     throw new Refusal(
                         "GeometryHelper CAD does not know the request " + op + ": it is of an older version."

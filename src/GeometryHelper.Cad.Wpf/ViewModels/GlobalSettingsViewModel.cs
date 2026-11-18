@@ -1767,6 +1767,18 @@ namespace GeometryHelper.Cad.Wpf
                         ),
                     }
                 ),
+                new GlobalSettingSection(
+                    "Other programs",
+                    new[]
+                    {
+                        Toggle(
+                            "Allow other programs to connect",
+                            () => s.AllowRemoteConnections,
+                            v => s.AllowRemoteConnections = v
+                        ),
+                        Info("Now", null, () => _model.RemoteStatus),
+                    }
+                ),
             };
         }
 

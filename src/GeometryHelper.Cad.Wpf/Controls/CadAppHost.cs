@@ -236,8 +236,9 @@ namespace GeometryHelper.Cad.Wpf
                 model.Open(file);
             }
 
-            // Other programs drive the app through a pipe of its own; a failure to open it leaves the app running without.
-            CadRemoteServer remote = StartRemote(model, window);
+            // Other programs drive the app through a pipe of its own, while Global settings allow it; a failure to open the
+            // pipe leaves the app running without it.
+            CadRemoteSwitch remote = StartRemote(model, window);
 
             try
             {
@@ -245,37 +246,25 @@ namespace GeometryHelper.Cad.Wpf
             }
             finally
             {
-                remote?.Stop();
+                remote.Stop();
                 plugins.Dispose();
             }
         }
 
         /// <summary>
-        /// Starts the remote server on the window's thread: the pipe <c>GeometryHelper.Cad.&lt;process id&gt;</c> for the user
-        /// who runs the app, and the file that tells other programs it is there. The window announces itself again each time
-        /// it is activated, which is how a program that connects to "the app" finds the one the user worked in last.
+        /// Starts the remote server on the window's thread where the settings allow it: the pipe
+        /// <c>GeometryHelper.Cad.&lt;process id&gt;</c> for the user who runs the app, and the file that tells other programs it
+        /// is there. The window announces itself again each time it is activated, which is how a program that connects to "the
+        /// app" finds the one the user worked in last, and the server follows the setting each time the settings are applied.
         /// </summary>
-        /// <returns>The server; null when it could not be started, the reason logged.</returns>
-        private static CadRemoteServer StartRemote(MainViewModel model, CadAppWindow window)
+        /// <returns>The switch that keeps the server.</returns>
+        private static CadRemoteSwitch StartRemote(MainViewModel model, CadAppWindow window)
         {
-            var host = new CadAppRemoteHost(model, () => window.Title, window.Dispatcher);
-            var server = new CadRemoteServer(host, host);
-
-            try
-            {
-                server.Start();
-            }
-            catch (Exception ex) when (ex is IOException || ex is InvalidOperationException)
-            {
-                GeometryHelperLog.Warn(
-                    "Program: other programs cannot connect to the app; the remote server did not start.",
-                    ex
-                );
-                return null;
-            }
-
-            window.Activated += (s, e) => server.NoteActivated();
-            return server;
+            var remote = new CadRemoteSwitch(model, () => window.Title, window.Dispatcher);
+            remote.Apply();
+            model.SettingsApplied += (s, e) => remote.Apply();
+            window.Activated += (s, e) => remote.NoteActivated();
+            return remote;
         }
 
         /// <summary>

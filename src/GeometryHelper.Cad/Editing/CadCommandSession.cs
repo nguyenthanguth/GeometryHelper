@@ -309,6 +309,14 @@ namespace GeometryHelper.Cad
                 return false;
             }
 
+            LastCommandName = command.Name;
+            Run(tool == null ? command : CadToolRun.Wrap(command, tool), PreSelectedFor(command));
+            return true;
+        }
+
+        /// <summary>The objects selected before a command that works on a selection, which it takes instead of asking "Select objects:".</summary>
+        private List<string> PreSelectedFor(CadCommand command)
+        {
             var preSelected = new List<string>();
 
             // With PICKFIRST 0 a command asks for its objects whatever was selected before it, as AutoCAD's.
@@ -325,8 +333,23 @@ namespace GeometryHelper.Cad
                 }
             }
 
-            LastCommandName = command.Name;
-            Run(tool == null ? command : CadToolRun.Wrap(command, tool), preSelected);
+            return preSelected;
+        }
+
+        /// <summary>
+        /// Starts a command of the host's own that is in no registry and is not typed, as the remote channel's picks are: it
+        /// asks its prompts on this command line and ends like any command, and is not the command Enter runs again.
+        /// </summary>
+        /// <param name="command">The command.</param>
+        /// <returns>False, starting nothing, where a command is running already.</returns>
+        internal bool Begin(CadCommand command)
+        {
+            if (IsRunning)
+            {
+                return false;
+            }
+
+            Run(command, PreSelectedFor(command));
             return true;
         }
 
