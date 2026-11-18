@@ -4,6 +4,7 @@
         <Project Path="src/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj" />
         <Project Path="src/GeometryHelper.CadConvert/GeometryHelper.CadConvert.csproj" />
         <Project Path="src/GeometryHelper.IfcConvert/GeometryHelper.IfcConvert.csproj" />
+        <Project Path="src/GeometryHelper.Cad.Remote/GeometryHelper.Cad.Remote.csproj" />
         <Project Path="src/GeometryHelper.Cad/GeometryHelper.Cad.csproj" />
         <Project Path="src/GeometryHelper.Cad.Wpf/GeometryHelper.Cad.Wpf.csproj" />
         <Project Path="src/GeometryHelper.Drawing/GeometryHelper.Drawing.csproj" />
@@ -16,6 +17,7 @@
         <Project Path="tests/GeometryHelper.TeklaConvert.UnitTest/GeometryHelper.TeklaConvert.UnitTest.csproj" />
         <Project Path="tests/GeometryHelper.IfcConvert.UnitTest/GeometryHelper.IfcConvert.UnitTest.csproj" />
         <Project Path="tests/GeometryHelper.Cad.UnitTest/GeometryHelper.Cad.UnitTest.csproj" />
+        <Project Path="tests/GeometryHelper.Cad.Remote.UnitTest/GeometryHelper.Cad.Remote.UnitTest.csproj" />
         <Project Path="tests/GeometryHelper.Drawing.UnitTest/GeometryHelper.Drawing.UnitTest.csproj" />
         <Project Path="tests/GeometryHelper.Cad.Wpf.UnitTest/GeometryHelper.Cad.Wpf.UnitTest.csproj" />
         <Project Path="tests/GeometryHelper.Drawing.Wpf.UnitTest/GeometryHelper.Drawing.Wpf.UnitTest.csproj" />
