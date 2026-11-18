@@ -156,7 +156,7 @@ namespace GeometryHelper.Cad.Wpf
 
         private EventHandler _draftingSettingsRequested;
 
-        /// <summary>Raised by DSETTINGS (DS, OS) and the menus' "Object Snap Settings...": the window shows Drafting Settings over <see cref="CreateDraftingSettings"/>.</summary>
+        /// <summary>Raised by DSETTINGS (DS), OSNAP (OS) and the menus' "Object Snap Settings...": the window shows Drafting Settings over <see cref="CreateDraftingSettings"/>.</summary>
         public event EventHandler DraftingSettingsRequested
         {
             add => _draftingSettingsRequested += value;
@@ -412,7 +412,11 @@ namespace GeometryHelper.Cad.Wpf
             }
         }
 
-        /// <summary>Asks the window for Drafting Settings on a tab; with no window, says so on the command line.</summary>
+        /// <summary>
+        /// Asks the window for Drafting Settings on a tab, which it then remembers (<see cref="LastDraftingTab"/>); with no
+        /// window, says so on the command line.
+        /// </summary>
+        /// <param name="tab">The tab to show first; null for Object Snap.</param>
         internal void RequestDraftingSettings(string tab)
         {
             if (_draftingSettingsRequested == null)
@@ -421,11 +425,21 @@ namespace GeometryHelper.Cad.Wpf
                 return;
             }
 
-            _draftingSettingsRequested(this, EventArgs.Empty);
+            LastDraftingTab = tab ?? DraftingSettingsViewModel.ObjectSnapTab;
+            _draftingSettingsRequested(this, new DraftingSettingsRequestedEventArgs(LastDraftingTab));
         }
 
-        /// <summary>DSETTINGS: Drafting Settings, shown by the window once the command has ended.</summary>
-        private IEnumerable<CadPrompt> DraftingSettingsBody(CadCommandContext c)
+        /// <summary>Gets or sets the tab of Drafting Settings used last, which DSETTINGS (DS, SE) opens on; Object Snap at first.</summary>
+        internal string LastDraftingTab { get; set; } = DraftingSettingsViewModel.ObjectSnapTab;
+
+        /// <summary>DSETTINGS: Drafting Settings on the tab used last, shown by the window once the command has ended.</summary>
+        private IEnumerable<CadPrompt> DraftingSettingsBody(CadCommandContext c) => ShowDraftingSettings(c, null);
+
+        /// <summary>OSNAP: Drafting Settings on the Object Snap tab; F3 and the status bar toggle the snaps without it.</summary>
+        private IEnumerable<CadPrompt> OsnapBody(CadCommandContext c) =>
+            ShowDraftingSettings(c, DraftingSettingsViewModel.ObjectSnapTab);
+
+        private IEnumerable<CadPrompt> ShowDraftingSettings(CadCommandContext c, string tab)
         {
             if (_draftingSettingsRequested == null)
             {
@@ -433,7 +447,7 @@ namespace GeometryHelper.Cad.Wpf
             }
             else
             {
-                _afterCommand = () => RequestDraftingSettings(null);
+                _afterCommand = () => RequestDraftingSettings(tab ?? LastDraftingTab);
             }
 
             return Array.Empty<CadPrompt>();

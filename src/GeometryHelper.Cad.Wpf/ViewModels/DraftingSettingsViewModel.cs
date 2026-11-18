@@ -82,6 +82,7 @@ namespace GeometryHelper.Cad.Wpf
             _tab = new[] { SnapAndGridTab, PolarTrackingTab, ObjectSnapTab }.FirstOrDefault(t =>
                 string.Equals(t, tab, StringComparison.OrdinalIgnoreCase)
             ) ?? ObjectSnapTab;
+            model.LastDraftingTab = _tab;
             Modes = MainViewModel
                 .SnapModeTable.Select(i => new SnapModeRowViewModel(i.Kind, i.Mode, (model.SnapModes & i.Mode) != 0))
                 .ToList();
@@ -114,6 +115,7 @@ namespace GeometryHelper.Cad.Wpf
             {
                 if (Tabs.Contains(value) && Set(ref _tab, value))
                 {
+                    _model.LastDraftingTab = value;
                     Raise(nameof(IsSnapAndGridTab));
                     Raise(nameof(IsPolarTrackingTab));
                     Raise(nameof(IsObjectSnapTab));

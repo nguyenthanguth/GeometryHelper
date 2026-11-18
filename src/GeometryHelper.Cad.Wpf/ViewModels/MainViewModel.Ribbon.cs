@@ -418,8 +418,9 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>
         /// The commands of the window this file adds: NEW and QNEW (see <c>MainViewModel.Templates.cs</c>), PROPERTIESCLOSE, RIBBON, RIBBONCLOSE, INPUTSEARCHOPTIONS and -INPUTSEARCHOPTIONS
-        /// (the command line's Input Search Options), the six toggles of the status bar, DYN the last, and DSETTINGS with
-        /// AutoCAD's aliases DS and OS.
+        /// (the command line's Input Search Options), the toggles of the status bar typed (ORTHO, POLAR, DYN, GRID and SNAP),
+        /// DSETTINGS with AutoCAD's alias DS, and OSNAP with its alias OS, which open Drafting Settings and leave the toggling
+        /// of the object snaps to F3 and the status bar.
         /// </summary>
         private void AddWindowCommands(CadCommandRegistry registry)
         {
@@ -434,18 +435,19 @@ namespace GeometryHelper.Cad.Wpf
             registry.Add(new CadCommand("GRID", GridBody));
             registry.Add(new CadCommand("SNAP", SnapBody));
 
-            foreach (string name in new[] { "ORTHO", "POLAR", "OSNAP", "DYN" })
+            foreach (string name in new[] { "ORTHO", "POLAR", "DYN" })
             {
                 registry.Add(new CadCommand(name, c => ToggleBody(c, name)));
             }
 
+            registry.Add(new CadCommand("OSNAP", OsnapBody));
             registry.Add(new CadCommand("ISOPLANE", IsoplaneBody));
             registry.Add(new CadCommand("DSETTINGS", DraftingSettingsBody));
             AddBatchFourBWindowCommands(registry);
             AddMisc2WindowCommands(registry);
             AddPgpR32WindowCommands(registry);
             AddManageWindowCommands(registry);
-            var aliases = new Dictionary<string, string> { ["DS"] = "DSETTINGS", ["OS"] = "DSETTINGS" };
+            var aliases = new Dictionary<string, string> { ["DS"] = "DSETTINGS", ["OS"] = "OSNAP" };
             registry.Shortcuts = new CadShortcuts(registry.Shortcuts.Aliases.Concat(aliases), registry.Shortcuts.Keys);
         }
 
@@ -498,8 +500,8 @@ namespace GeometryHelper.Cad.Wpf
         }
 
         /// <summary>
-        /// ORTHO, POLAR, OSNAP, DYN typed: "Enter mode [ON/OFF] &lt;OFF&gt;:", the same toggle as the status bar's. SNAP and
-        /// GRID have their own (<see cref="SnapBody"/>, <see cref="GridBody"/>).
+        /// ORTHO, POLAR, DYN typed: "Enter mode [ON/OFF] &lt;OFF&gt;:", the same toggle as the status bar's. OSNAP opens
+        /// Drafting Settings (<see cref="OsnapBody"/>), as AutoCAD 2021's does; SNAP and GRID have their own (<see cref="SnapBody"/>, <see cref="GridBody"/>).
         /// </summary>
         private IEnumerable<CadPrompt> ToggleBody(CadCommandContext c, string name)
         {

@@ -141,7 +141,8 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                 Assert.True(On("ORTHO"));
                 Assert.True(model.Snap.Ortho);
 
-                model.Execute("OSNAP OFF");
+                // OSNAP typed opens Drafting Settings; OSMODE 16384 (the bit of "object snaps off") is the typed way.
+                model.Execute("OSMODE 16384");
                 Assert.False(On("OSNAP"));
                 Assert.False(model.Snap.IsOn);
 
