@@ -51,6 +51,10 @@ The third row is what a saved model drawing opens as in the plain presenter: a b
 projected lines, symbols, marks, dimensions and views, is read-only throughout until the program that made it opens the
 file and registers its owner.
 
+The rule also decides which contextual tab an entity opens: a hatch, image, PDF underlay or array of a `MoveOnly` or `ReadOnly`
+owner opens no Hatch Editor, Image, PDF Underlay or Array tab, as the tab would offer edits the owner refuses (see
+[what an extension adds](app.md#what-an-extension-adds-to-the-menu-properties-and-the-drawings-header)).
+
 ## What an edit is
 
 The owner is handed a [`CadEdit`](xref:GeometryHelper.Cad.CadEdit): the handle, a [`CadEditKind`](xref:GeometryHelper.Cad.CadEditKind),

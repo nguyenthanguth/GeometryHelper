@@ -22,6 +22,7 @@ namespace GeometryHelper.Cad.Wpf
             Label = row.Label;
             _value = row.Value;
             IsReadOnly = row.IsReadOnly;
+            IsCheck = row.IsCheck && !row.IsReadOnly;
 
             // The drop-down shows the value the row has, one of its list or not.
             if (options != null && !System.Linq.Enumerable.Contains(options, _value))
@@ -61,7 +62,21 @@ namespace GeometryHelper.Cad.Wpf
 
                 Raise(nameof(Value));
                 Raise(nameof(Varies));
+                Raise(nameof(IsOn));
             }
+        }
+
+        /// <summary>Gets whether the row is a check box an extension gave, which the window draws as a box to tick.</summary>
+        public bool IsCheck { get; }
+
+        /// <summary>
+        /// Gets or sets whether a check box is ticked: setting it commits <see cref="CadPropertyRow.YesText"/> or
+        /// <see cref="CadPropertyRow.NoText"/> as <see cref="Value"/> does.
+        /// </summary>
+        public bool IsOn
+        {
+            get => string.Equals(_value, CadPropertyRow.YesText, StringComparison.Ordinal);
+            set => Value = value ? CadPropertyRow.YesText : CadPropertyRow.NoText;
         }
 
         /// <summary>Gets whether the value cannot be edited, drawn grey.</summary>
@@ -77,7 +92,7 @@ namespace GeometryHelper.Cad.Wpf
         public bool HasOptions => !IsReadOnly && Options != null;
 
         /// <summary>Gets whether the row is a box typed into.</summary>
-        public bool IsTyped => !IsReadOnly && Options == null;
+        public bool IsTyped => !IsReadOnly && Options == null && !IsCheck;
 
         /// <inheritdoc/>
         public override string ToString() => Label + " = " + _value;

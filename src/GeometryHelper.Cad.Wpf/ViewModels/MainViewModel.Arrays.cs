@@ -46,6 +46,7 @@ namespace GeometryHelper.Cad.Wpf
                 && handles != null
                 && handles.Count == 1
                 && CadArrays.TryRead(_current.Document, handles[0]) != null
+                && IsEditableAsItsKind(handles[0])
             )
             {
                 handle = handles[0];

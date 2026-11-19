@@ -46,6 +46,7 @@ namespace GeometryHelper.Cad.Wpf
                 || handles == null
                 || handles.Count == 0
                 || handles.Any(h => !(_current.Document.FindEntity(h) is DxfPdfUnderlay))
+                || handles.Any(h => !IsEditableAsItsKind(h))
             )
             {
                 HidePdfTab();

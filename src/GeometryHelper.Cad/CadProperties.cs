@@ -29,6 +29,27 @@ namespace GeometryHelper.Cad
             Choices = choices;
         }
 
+        /// <summary>
+        /// Makes a row that an extension gives the Properties panel and that can be changed: typed into, or one of a list where
+        /// <paramref name="choices"/> are given. The panel calls <paramref name="setter"/> with the text typed or chosen, as it
+        /// does for its own rows, when Enter is pressed, the box is left or a choice is made.
+        /// </summary>
+        /// <param name="label">The label.</param>
+        /// <param name="value">The value as text.</param>
+        /// <param name="setter">What changes the value: it is given the text, and returns null where the change was made, else the words that say why it was refused, which the panel writes on the command line while the row goes back to its value.</param>
+        /// <param name="choices">The values the row offers, in order; null for a row typed into.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the label or the setter is null.</exception>
+        public CadPropertyRow(
+            string label,
+            string value,
+            Func<string, string> setter,
+            IReadOnlyList<string> choices = null
+        )
+            : this(label, value, false, choices)
+        {
+            Setter = setter ?? throw new ArgumentNullException(nameof(setter));
+        }
+
         /// <summary>Gets the label.</summary>
         public string Label { get; }
 
@@ -41,11 +62,44 @@ namespace GeometryHelper.Cad
         /// <summary>Gets the values the row offers, as the Text pos vert row of a dimension offers Centered, Above, Outside, JIS and Below; null for a row typed into.</summary>
         public IReadOnlyList<string> Choices { get; }
 
+        /// <summary>
+        /// Gets what changes the value of a row an extension gave, given the text typed or chosen (<see cref="YesText"/> or
+        /// <see cref="NoText"/> for a check box): it returns null where the change was made, else the words of the refusal. Null
+        /// for the rows the presenter makes, which it commits itself.
+        /// </summary>
+        public Func<string, string> Setter { get; }
+
+        /// <summary>Gets whether the value is a check box, which <see cref="Value"/> says is <see cref="YesText"/> or <see cref="NoText"/>.</summary>
+        public bool IsCheck { get; private set; }
+
         /// <summary>Gets whether the selected entities differ in this property.</summary>
         public bool Varies => Value == VariesText;
 
         /// <summary>The text of a value that differs among the selected entities.</summary>
         public const string VariesText = "*Varies*";
+
+        /// <summary>The value of a check box that is ticked.</summary>
+        public const string YesText = "Yes";
+
+        /// <summary>The value of a check box that is not ticked.</summary>
+        public const string NoText = "No";
+
+        /// <summary>
+        /// Makes a row that is a check box, ticked or not, that an extension gives the Properties panel: ticking it calls
+        /// <paramref name="setter"/> with <see cref="YesText"/>, and clearing it with <see cref="NoText"/>. Where the setter is null the
+        /// row only shows the answer, as text.
+        /// </summary>
+        /// <param name="label">The label.</param>
+        /// <param name="isOn">Whether the box is ticked.</param>
+        /// <param name="setter">What changes the value, as of <see cref="CadPropertyRow(string, string, Func{string, string}, IReadOnlyList{string})"/>; null for a row that is only read.</param>
+        /// <returns>The row.</returns>
+        public static CadPropertyRow Check(string label, bool isOn, Func<string, string> setter)
+        {
+            string value = isOn ? YesText : NoText;
+            return setter == null
+                ? new CadPropertyRow(label, value, true)
+                : new CadPropertyRow(label, value, setter) { IsCheck = true };
+        }
     }
 
     /// <summary>A titled group of rows of the Properties panel, such as General or Geometry.</summary>

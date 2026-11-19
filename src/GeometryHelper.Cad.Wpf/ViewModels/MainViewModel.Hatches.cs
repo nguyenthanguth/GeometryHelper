@@ -146,7 +146,7 @@ namespace GeometryHelper.Cad.Wpf
             }
 
             List<string> hatches = document
-                .Selection.Handles.Where(h => document.FindEntity(h) is DxfHatch)
+                .Selection.Handles.Where(h => document.FindEntity(h) is DxfHatch && IsEditableAsItsKind(h))
                 .OrderBy(h => h, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 

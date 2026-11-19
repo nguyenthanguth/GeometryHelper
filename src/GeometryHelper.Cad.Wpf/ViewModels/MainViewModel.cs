@@ -197,6 +197,13 @@ namespace GeometryHelper.Cad.Wpf
         /// <remarks>Each read gives a new list, so that a window bound to it before an extension was added shows its tab.</remarks>
         public IReadOnlyList<CadWorkspaceExtension> Extensions => _extensions.ToList().AsReadOnly();
 
+        /// <summary>
+        /// Gets the buttons the extensions add to the header of the DRAWINGS list, those of the first extension added first. Each
+        /// extension is asked for them as it is added; each read gives a new list.
+        /// </summary>
+        public IReadOnlyList<CadExtensionButton> FileListButtons =>
+            _extensions.SelectMany(e => e.FileListButtons ?? Array.Empty<CadExtensionButton>()).ToList().AsReadOnly();
+
         /// <summary>Gets or sets the extension whose ribbon tab is shown; null for Home. A tab hidden while shown gives Home back.</summary>
         public CadWorkspaceExtension SelectedTab
         {
@@ -280,6 +287,7 @@ namespace GeometryHelper.Cad.Wpf
             Raise(nameof(StartScreenText));
             Raise(nameof(RecentHistory));
             Raise(nameof(Extensions));
+            Raise(nameof(FileListButtons));
             RaiseSidePanel();
             RefreshFromExtensions();
         }
@@ -2464,6 +2472,18 @@ namespace GeometryHelper.Cad.Wpf
 
         private void OnSelectionChanged(object sender, EventArgs e) => UpdateProperties();
 
+        /// <summary>
+        /// Whether an object may be edited as what it is, by a contextual tab: it has no owner, or its owner takes the edits of it
+        /// (<see cref="CadEditRule.Free"/> or <see cref="CadEditRule.Edit"/>). One its owner lets only be moved, or nothing be
+        /// done to, as a section's hatch or the circles of a group of bars, opens none, whatever it is made of.
+        /// </summary>
+        private bool IsEditableAsItsKind(string handle)
+        {
+            DxfEntity entity = _current.Document.FindEntity(handle);
+            CadEditRule rule = entity == null ? CadEditRule.Free : _current.Document.Owners.GetEditRule(entity);
+            return rule == CadEditRule.Free || rule == CadEditRule.Edit;
+        }
+
         private void UpdateProperties()
         {
             if (_current == null)
@@ -2559,6 +2579,16 @@ namespace GeometryHelper.Cad.Wpf
 
                 foreach (CadPropertyRow row in group.Rows)
                 {
+                    // A row an extension gave a setter is changed by it, as the presenter's own rows are by the editor.
+                    if (row.Setter != null)
+                    {
+                        CadPropertyRow own = row;
+                        rows.Add(
+                            new PropertyRowViewModel(row, row.Choices, (r, text) => CommitExtensionProperty(own, text))
+                        );
+                        continue;
+                    }
+
                     if (element != null)
                     {
                         string target = element.Handle;
@@ -2629,6 +2659,37 @@ namespace GeometryHelper.Cad.Wpf
                 default:
                     return null;
             }
+        }
+
+        /// <summary>
+        /// Gives the text typed or chosen in a row an extension made to its setter. A refusal, or an exception the setter threw, is
+        /// written on the command line and the row goes back to its value; where the change was made the rows are read again.
+        /// </summary>
+        private bool CommitExtensionProperty(CadPropertyRow row, string text)
+        {
+            string refusal;
+
+            try
+            {
+                refusal = row.Setter(text);
+            }
+            catch (Exception exception) when (!(exception is OutOfMemoryException))
+            {
+                GeometryHelperLog.Warn(
+                    "MainViewModel: the row " + row.Label + " of an extension was not set.",
+                    exception
+                );
+                refusal = exception.Message.Split('\n')[0].Trim();
+            }
+
+            if (refusal != null)
+            {
+                Say(refusal);
+                return false;
+            }
+
+            UpdateProperties();
+            return true;
         }
 
         /// <summary>Sets a row of a parameter's or an action's properties in the Block Editor, one undo step; says why where it is refused.</summary>
@@ -3104,7 +3165,8 @@ namespace GeometryHelper.Cad.Wpf
     /// tab after Home, shown while <see cref="IsTabVisible"/>; a panel of its own at the left of the window
     /// (<see cref="SidePanelContent"/>); commands on the command line of every document; a new
     /// document of its own beside NEW; words for its own documents in the DRAWINGS list, the title and the status bar; rows
-    /// and a banner in Properties. It is added with <see cref="MainViewModel.AddExtension"/>; every member has a default that
+    /// and a banner in Properties, the rows typed into, ticked or chosen where they are given a setter; items in the canvas's
+    /// right-click menu for the objects selected; buttons in the header of the DRAWINGS list. It is added with <see cref="MainViewModel.AddExtension"/>; every member has a default that
     /// adds nothing.
     /// </summary>
     public abstract class CadWorkspaceExtension : ObservableObject
@@ -3197,7 +3259,10 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>
         /// Changes what Properties shows of the selection of a document of its own: the groups and the label, and the banner on
-        /// top; the description as given, and no banner, for a document it does not know.
+        /// top; the description as given, and no banner, for a document it does not know. A row it makes with a setter
+        /// (<see cref="CadPropertyRow(string, string, Func{string, string}, IReadOnlyList{string})"/>,
+        /// <see cref="CadPropertyRow.Check"/>) is edited in the palette as the presenter's own rows are, and a row with none is
+        /// only read.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="handles">The handles selected, in ordinal order; empty for none.</param>
@@ -3214,6 +3279,25 @@ namespace GeometryHelper.Cad.Wpf
             banner = null;
             return shown;
         }
+
+        /// <summary>
+        /// Adds items to the canvas's right-click menu for the objects selected of a document of its own, as AutoCAD adds the menu
+        /// of an object: they come first in the Edit menu, before the presenter's own items, and the presenter draws them in its own
+        /// look. Asked each time the menu opens, with objects selected and no command running; not asked with nothing selected.
+        /// </summary>
+        /// <param name="document">The document.</param>
+        /// <param name="handles">The handles selected, in ordinal order.</param>
+        /// <returns>The items, in order; null or empty for none, as for a document it does not know.</returns>
+        public virtual IReadOnlyList<CadExtensionMenuItem> CanvasMenuItems(
+            CadDocument document,
+            IReadOnlyList<string> handles
+        ) => null;
+
+        /// <summary>
+        /// Gets the buttons it adds to the header of the DRAWINGS list, left of the presenter's own Refresh and Open buttons, in
+        /// order; none by default.
+        /// </summary>
+        public virtual IReadOnlyList<CadExtensionButton> FileListButtons => Array.Empty<CadExtensionButton>();
 
         /// <summary>
         /// Tells the extension a DXF file has been opened (Open, or a row of the file list), before it is shown, so that it can

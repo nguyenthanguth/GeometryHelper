@@ -49,6 +49,7 @@ namespace GeometryHelper.Cad.Wpf
                 || handles == null
                 || handles.Count == 0
                 || handles.Any(h => !(_current.Document.FindEntity(h) is DxfRasterImage image) || image is DxfWipeout)
+                || handles.Any(h => !IsEditableAsItsKind(h))
             )
             {
                 HideImageTab();

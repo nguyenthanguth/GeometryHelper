@@ -15,7 +15,7 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>
         /// Gets the menu a right-click on the canvas shows, as AutoCAD 2021's: with no command running, the cell menu where
         /// cells of a table are selected (<see cref="TableCellViewModel.Menu"/>), the Edit menu where objects are selected, the
-        /// Default menu where none is; while a grip edit runs, the Grips menu; while a command runs whose prompt offers options,
+        /// Default menu where none is (an extension adds items to the Edit menu, <see cref="CadWorkspaceExtension.CanvasMenuItems"/>); while a grip edit runs, the Grips menu; while a command runs whose prompt offers options,
         /// the Command menu. A prompt with no options, as "Specify first point:" or "Select objects:", has none: a right-click
         /// there is Enter, as AutoCAD's SHORTCUTMENU 11 has it. SHORTCUTMENU (<see cref="GlobalSettings.ShortcutMenu"/>) set
         /// otherwise is weighed as AutoCAD weighs it: without 1 no Default menu, without 2 no Edit or cell menu, with 4 the
@@ -94,10 +94,60 @@ namespace GeometryHelper.Cad.Wpf
             return items;
         }
 
+        /// <summary>
+        /// The items the extensions add for the objects selected (<see cref="CadWorkspaceExtension.CanvasMenuItems"/>), made as the
+        /// presenter's own, in the order the extensions were added; none where nothing is selected.
+        /// </summary>
+        private List<CadMenuItemViewModel> ExtensionMenu()
+        {
+            var made = new List<CadMenuItemViewModel>();
+            CadDocument document = _current.Document;
+            List<string> handles = document.Selection.Handles.Where(h => document.FindEntity(h) != null).ToList();
+
+            if (handles.Count == 0)
+            {
+                return made;
+            }
+
+            handles.Sort(StringComparer.OrdinalIgnoreCase);
+
+            foreach (CadWorkspaceExtension extension in _extensions)
+            {
+                IReadOnlyList<CadExtensionMenuItem> items = extension.CanvasMenuItems(document, handles);
+
+                if (items != null)
+                {
+                    made.AddRange(items.Select(Made));
+                }
+            }
+
+            return made;
+        }
+
+        private static CadMenuItemViewModel Made(CadExtensionMenuItem item) =>
+            item.IsSeparator ? CadMenuItemViewModel.Separator()
+            : item.Action != null
+                ? new CadMenuItemViewModel(item.Text, item.Action, item.IsEnabled, isChecked: item.IsChecked)
+            : new CadMenuItemViewModel(
+                item.Text,
+                item.IsEnabled,
+                item.Items.Select(Made).ToList(),
+                isChecked: item.IsChecked
+            );
+
         /// <summary>AutoCAD's Edit menu (POP502), with objects selected and no command running; the items of the objects first.</summary>
         private List<CadMenuItemViewModel> EditMenu(CadCommandSession session)
         {
             List<CadMenuItemViewModel> items = RepeatItems(session);
+            List<CadMenuItemViewModel> own = ExtensionMenu();
+
+            // What the extensions add for the objects selected comes first, as the menu of an object does.
+            if (own.Count > 0)
+            {
+                items.AddRange(own);
+                items.Add(CadMenuItemViewModel.Separator());
+            }
+
             List<CadMenuItemViewModel> objects = ObjectMenu();
 
             // The items of the objects selected come before the clipboard, as AutoCAD puts its object menus.

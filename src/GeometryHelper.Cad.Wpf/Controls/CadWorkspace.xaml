@@ -5456,6 +5456,37 @@
                                             Data="{StaticResource GhIconOpen}"
                                         />
                                     </Button>
+                                    <!-- The buttons the extensions add (CadWorkspaceExtension.FileListButtons), left of Refresh and Open. -->
+                                    <ItemsControl
+                                        DockPanel.Dock="Right"
+                                        ItemsSource="{Binding FileListButtons}"
+                                        Focusable="False"
+                                    >
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button
+                                                    Style="{StaticResource GhFlatButton}"
+                                                    Width="20"
+                                                    Height="20"
+                                                    Margin="8,0,0,0"
+                                                    Command="{Binding Command}"
+                                                    ToolTip="{Binding ToolTip}"
+                                                >
+                                                    <local:IconView
+                                                        Size="16"
+                                                        StrokeThickness="2"
+                                                        Stroke="{StaticResource GhTextMuted}"
+                                                        Data="{Binding Icon}"
+                                                    />
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                     <TextBlock Style="{StaticResource PanelTitle}" Text="DRAWINGS" />
                                 </DockPanel>
                             </Border>
@@ -5955,9 +5986,30 @@
                                                                         ItemsSource="{Binding Options}"
                                                                         SelectedItem="{Binding Value, Mode=TwoWay}"
                                                                     />
+                                                                    <CheckBox
+                                                                        x:Name="Tick"
+                                                                        Style="{StaticResource GhCheckBox}"
+                                                                        Visibility="Collapsed"
+                                                                        Margin="6,0,0,0"
+                                                                        VerticalAlignment="Center"
+                                                                        AutomationProperties.Name="{Binding Label}"
+                                                                        IsChecked="{Binding IsOn, Mode=TwoWay}"
+                                                                    />
                                                                 </Grid>
                                                             </Grid>
                                                             <DataTemplate.Triggers>
+                                                                <DataTrigger Binding="{Binding IsCheck}" Value="True">
+                                                                    <Setter
+                                                                        TargetName="Cell"
+                                                                        Property="Visibility"
+                                                                        Value="Collapsed"
+                                                                    />
+                                                                    <Setter
+                                                                        TargetName="Tick"
+                                                                        Property="Visibility"
+                                                                        Value="Visible"
+                                                                    />
+                                                                </DataTrigger>
                                                                 <DataTrigger Binding="{Binding IsTyped}" Value="True">
                                                                     <Setter
                                                                         TargetName="Value"

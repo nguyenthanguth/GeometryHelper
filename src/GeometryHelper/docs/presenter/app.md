@@ -697,6 +697,37 @@ An extension may add a panel of its own between the DRAWINGS list and the canvas
 DRAWINGS list is 288 pixels wide and the canvas starts at 288. The start screen is 760 wide, or as wide as the canvas where
 that is less.
 
+### What an extension adds to the menu, Properties and the DRAWINGS header
+
+Three more seams let an extension's own objects be edited as the presenter's are, with no window of its own. Each is a
+member of `CadWorkspaceExtension` that adds nothing until it is overridden.
+
+- **The right-click menu.** `CanvasMenuItems(document, handles)` returns `CadExtensionMenuItem`s for the objects selected:
+  `new CadExtensionMenuItem("Fit to sheet", () => Fit())`, a grey one with `isEnabled: false`, a ticked one with
+  `isChecked: true`, a submenu with `new CadExtensionMenuItem("Change representation", items)`, and
+  `CadExtensionMenuItem.Separator()`. The items are first in the Edit menu, before the presenter's own, drawn in the presenter's
+  menu style, and asked each time the menu opens with objects selected and no command running; with nothing selected, the
+  Default menu is the presenter's alone. A group of bars picked, with an extension that adds "Properties..." and "Select in
+  model", gives a menu that begins with those two, a separator, and goes on with Clipboard, Isolate, Erase and the rest.
+- **Rows of Properties that can be changed.** A row made as `new CadPropertyRow("Scale", "1:50", text => Change(text))` is a
+  box typed into, one made with the list of its choices as a third argument a drop-down, and
+  `CadPropertyRow.Check("Hidden lines", true, text => Change(text))` a check box, whose setter is given "Yes" or "No". The
+  palette calls the setter on Enter, on leaving the box and on a choice, as for its own rows. The setter returns null where it
+  made the change, and the rows are read again; it returns the words of its refusal otherwise, which are written on the command
+  line while the row goes back to its value. A setter that throws is a refusal in the exception's words and a Warn in the log.
+  A row made as before, with `isReadOnly`, or a check made with a null setter, is only read.
+- **A button in the header of DRAWINGS.** `FileListButtons` returns `CadExtensionButton`s, each an icon (a path drawn as the
+  presenter's own icons are, 2 wide on a square of 24: `Geometry.Parse("M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6")` is the refresh),
+  a tooltip and an action. They stand left of the presenter's Refresh and Open, and are read as the extension is added.
+
+### The contextual tabs and the owner contract
+
+The Hatch Editor, Image, PDF Underlay and Array tabs open for the objects selected only where their [owner](owners.md) lets
+them be edited as what they are: an object with no owner, or whose owner answers `Free` or `Edit`. A hatch, an image, a PDF
+underlay or an array whose owner answers `MoveOnly` or `ReadOnly`, as the cut circles of a group of bars drawn as hatches do,
+opens no tab, and one that no owner is registered for, being `ReadOnly` as well, opens none. Two hatches selected, one free and
+one the owner only lets move, open the Hatch Editor over the free one.
+
 ### Docking and sizing the panels
 
 DRAWINGS and PROPERTIES are each docked left or right of the canvas. Dragging a panel's title shows, past 8 pixels, a band on
