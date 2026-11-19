@@ -117,6 +117,19 @@ namespace GeometryHelper.Cad.Wpf
 
         private static double PanelWidth(double width) => Math.Max(180.0, Math.Min(600.0, width));
 
+        /// <summary>Global settings applied a reset: DRAWINGS, PROPERTIES and an extension's panel are given their first widths.</summary>
+        private void OnPanelLayoutReset(object sender, EventArgs e)
+        {
+            FileListPanel.Width = 288.0;
+            PropertiesPanel.Width = 312.0;
+            _sidePanelWidth = 320.0;
+
+            if (_sidePanelOpen)
+            {
+                SidePanelColumn.Width = new GridLength(_sidePanelWidth);
+            }
+        }
+
         /// <summary>The title bar's search box: Enter starts the first command found, Escape empties the box.</summary>
         private void OnTitleSearchKey(object sender, KeyEventArgs e)
         {
@@ -744,6 +757,7 @@ namespace GeometryHelper.Cad.Wpf
                 _model.PluginManagerRequested -= OnPluginManagerRequested;
                 _model.SettingsRequested -= OnSettingsRequested;
                 _model.SettingsApplied -= OnSettingsApplied;
+                _model.PanelLayoutReset -= OnPanelLayoutReset;
                 _model.CloseRequested -= OnCloseRequested;
                 _model.QuitRequested -= OnQuitRequested;
                 _model.DraftingSettingsRequested -= OnDraftingSettingsRequested;
@@ -766,6 +780,7 @@ namespace GeometryHelper.Cad.Wpf
                 _model.PluginManagerRequested += OnPluginManagerRequested;
                 _model.SettingsRequested += OnSettingsRequested;
                 _model.SettingsApplied += OnSettingsApplied;
+                _model.PanelLayoutReset += OnPanelLayoutReset;
                 _model.CloseRequested += OnCloseRequested;
                 _model.QuitRequested += OnQuitRequested;
                 _model.DraftingSettingsRequested += OnDraftingSettingsRequested;
