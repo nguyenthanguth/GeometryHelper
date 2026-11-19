@@ -280,6 +280,7 @@ namespace GeometryHelper.Cad.Wpf
             Raise(nameof(StartScreenText));
             Raise(nameof(RecentHistory));
             Raise(nameof(Extensions));
+            RaiseSidePanel();
             RefreshFromExtensions();
         }
 
@@ -2144,6 +2145,15 @@ namespace GeometryHelper.Cad.Wpf
                 row.State = StateOf(file, info);
             }
 
+            // Every save ends here, the command line's QSAVE too, which writes the file without the window.
+            if (e.Kind == CadChangeKind.Saved)
+            {
+                foreach (CadWorkspaceExtension extension in _extensions)
+                {
+                    extension.DocumentSaved(file.Document, file.Document.FileName);
+                }
+            }
+
             if (file != _current)
             {
                 return;
@@ -2216,6 +2226,14 @@ namespace GeometryHelper.Cad.Wpf
             )
             {
                 SelectedTab = null;
+            }
+
+            if (
+                e.PropertyName == nameof(CadWorkspaceExtension.SidePanelContent)
+                || e.PropertyName == nameof(CadWorkspaceExtension.IsSidePanelVisible)
+            )
+            {
+                RaiseSidePanel();
             }
         }
 
@@ -3024,7 +3042,8 @@ namespace GeometryHelper.Cad.Wpf
 
     /// <summary>
     /// What a host adds to the presenter without the presenter knowing it (A16: a library that makes model drawings adds them this way): a ribbon
-    /// tab after Home, shown while <see cref="IsTabVisible"/>; commands on the command line of every document; a new
+    /// tab after Home, shown while <see cref="IsTabVisible"/>; a panel of its own at the left of the window
+    /// (<see cref="SidePanelContent"/>); commands on the command line of every document; a new
     /// document of its own beside NEW; words for its own documents in the DRAWINGS list, the title and the status bar; rows
     /// and a banner in Properties. It is added with <see cref="MainViewModel.AddExtension"/>; every member has a default that
     /// adds nothing.
@@ -3034,6 +3053,8 @@ namespace GeometryHelper.Cad.Wpf
         private bool _isTabVisible;
         private bool _isTabSelected;
         private object _tabContent;
+        private object _sidePanelContent;
+        private bool _isSidePanelVisible = true;
 
         /// <summary>Gets the name of the ribbon tab it adds, as "Surveys"; null for none.</summary>
         public virtual string TabHeader => null;
@@ -3046,6 +3067,30 @@ namespace GeometryHelper.Cad.Wpf
         /// show and run it (see <see cref="MainViewModel.NewDocumentOffer"/>); null for none.
         /// </summary>
         public virtual CadNewDocumentOffer NewDocumentOffer => null;
+
+        /// <summary>Gets the title of the panel it adds at the left of the window, as "Plans"; null for none.</summary>
+        public virtual string SidePanelHeader => null;
+
+        /// <summary>
+        /// Gets or sets what its panel at the left of the window shows under <see cref="SidePanelHeader"/>: a WPF element, or a
+        /// view model the window has a template for; null, as it is until set, for no panel. The window shows the panel of the
+        /// first extension that has one, left of the DRAWINGS list, 320 pixels wide until the user drags its edge.
+        /// </summary>
+        public object SidePanelContent
+        {
+            get => _sidePanelContent;
+            set => Set(ref _sidePanelContent, value);
+        }
+
+        /// <summary>
+        /// Gets or sets whether its panel is shown now; true, as it is until set. A panel with no <see cref="SidePanelContent"/>
+        /// is not shown whatever this says.
+        /// </summary>
+        public bool IsSidePanelVisible
+        {
+            get => _isSidePanelVisible;
+            set => Set(ref _isSidePanelVisible, value);
+        }
 
         /// <summary>Gets or sets what its ribbon tab shows: a WPF element, or a view model the window has a template for.</summary>
         public object TabContent
@@ -3108,6 +3153,16 @@ namespace GeometryHelper.Cad.Wpf
         /// </summary>
         /// <param name="document">The document opened.</param>
         public virtual void DocumentOpened(CadDocument document) { }
+
+        /// <summary>
+        /// Tells the extension a document has been saved to its file (Save, Save As, QSAVE, Ctrl+S, Save All), as soon as the
+        /// file is written, so that a host can stamp its own record of the file. The document is the one saved and
+        /// <paramref name="path"/> the full path of its file, the new one after Save As. It is called before the list of
+        /// files has taken a new name: do not save, close or reload a document in it.
+        /// </summary>
+        /// <param name="document">The document saved.</param>
+        /// <param name="path">The full path of the file it was saved to.</param>
+        public virtual void DocumentSaved(CadDocument document, string path) { }
 
         /// <summary>Tells the extension a document has been closed (CLOSE), so that it lets go of what it kept of it.</summary>
         /// <param name="document">The document closed.</param>

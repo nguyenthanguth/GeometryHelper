@@ -687,6 +687,26 @@ running it does) returned by `CadWorkspaceExtension.NewDocumentOffer`: the start
 "Blank drawing", the New entry of the application menu lists it, and Ctrl+N runs it. A host that makes model drawings offers "New
 drawing from a model… · Ctrl+N" this way. The window tells the two apart by `MainViewModel.NewDocumentOffer` (`HasNewDocumentOffer`).
 
+### A panel of an extension beside the DRAWINGS list
+
+An extension may add a panel of its own between the DRAWINGS list and the canvas: it sets
+`CadWorkspaceExtension.SidePanelContent` (a WPF element, or a view model the window has a template for) and overrides
+`SidePanelHeader` for the title above it. The window shows the panel of the first extension that has content
+(`MainViewModel.SidePanelExtension`, `IsSidePanelShown`), 320 pixels wide, with an edge the user drags to change the width
+(160 pixels at least); `IsSidePanelVisible` hides and shows it, and the width dragged to is remembered while the window lives
+(it is not written to the settings file, as the widths of the DRAWINGS list and of Properties are fixed). An app with no such
+extension looks as it always did: the DRAWINGS list is 288 pixels wide and the canvas starts at 288. The start screen is 760 wide, or as wide as the canvas where that is less.
+
+An extension that keeps its own record of a drawing's file overrides `DocumentSaved(document, path)`: it is called after every
+save that reaches the file (Save, Save As, QSAVE, Ctrl+S, Save All) with the document and the file's full path, so that
+a host can stamp its record of the drawing with the time of the save. It is not called for a save that failed or was refused.
+
+`MainViewModel.Reload(path)` opens an open document again from its file, in the same row of the list, for a host that rewrote
+the file while it is open. The extensions are told the old document is closed and the new one opened; the view of each space
+the user zoomed or panned and the space that was current are kept, a view still fitted to the drawing is fitted to the new one,
+and the undo history and selection are gone with the old document. A document with changes not saved is kept as it is and the
+command line says so, unless `discardChanges` is true; a file that cannot be read leaves the old document as it was.
+
 ## The apps
 
 The standalone app is net8.0-windows:

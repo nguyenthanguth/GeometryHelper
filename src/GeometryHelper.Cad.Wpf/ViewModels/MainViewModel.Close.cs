@@ -196,11 +196,10 @@ namespace GeometryHelper.Cad.Wpf
             return Save() && !file.Document.IsModified;
         }
 
-        /// <summary>The document of a file let go: plugins, extensions, handlers; the file kept in the list where it is on disk.</summary>
-        private void Release(KnownFile file)
+        /// <summary>The document of a file let go of: its plugins, the extensions told, its handlers taken off and its references released.</summary>
+        private void LetGoOfDocument(KnownFile file)
         {
             CadDocument document = file.Document;
-            Say("Closed " + document.Title + ".");
             DetachPlugins(file.Session.Registry);
 
             foreach (CadWorkspaceExtension extension in _extensions)
@@ -215,6 +214,14 @@ namespace GeometryHelper.Cad.Wpf
             document.LayerFilterChanged -= OnLayerFilterChanged;
             StopWatchingReferences(document);
             document.Xrefs.Dispose();
+        }
+
+        /// <summary>The document of a file let go: plugins, extensions, handlers; the file kept in the list where it is on disk.</summary>
+        private void Release(KnownFile file)
+        {
+            CadDocument document = file.Document;
+            Say("Closed " + document.Title + ".");
+            LetGoOfDocument(file);
             bool wasCurrent = file == _current;
 
             if (wasCurrent)

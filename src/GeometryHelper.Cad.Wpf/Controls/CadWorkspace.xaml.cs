@@ -15,7 +15,9 @@ namespace GeometryHelper.Cad.Wpf
 {
     /// <summary>
     /// The presenter's whole window content, laid out as AutoCAD's own (A20): the title bar, the ribbon, the DRAWINGS list on
-    /// the left, the canvas with the command line under it, Properties on the right and the status bar. Its data context is a
+    /// the left, the canvas with the command line under it, Properties on the right and the status bar. An extension's panel
+    /// (<see cref="CadWorkspaceExtension.SidePanelContent"/>), if one is added, stands right of the DRAWINGS list, before the canvas, with an edge
+    /// the user drags. Its data context is a
     /// <see cref="MainViewModel"/>; a window or a host such as a plugin of another program puts it in and lets it run.
     /// </summary>
     /// <remarks>
@@ -64,6 +66,42 @@ namespace GeometryHelper.Cad.Wpf
             new System.Windows.Threading.DispatcherTimer();
         private AppMenuViewModel _appMenu;
         private MainViewModel _model;
+        private double _sidePanelWidth = 320.0;
+        private bool _sidePanelOpen;
+
+        /// <summary>
+        /// Gives the panel of an extension its column right of the DRAWINGS list, 320 pixels wide or as wide as the user last dragged it
+        /// (kept while the window lives), or takes the column back where no panel is shown.
+        /// </summary>
+        private void ApplySidePanel()
+        {
+            bool shown = _model != null && _model.IsSidePanelShown;
+
+            if (shown == _sidePanelOpen)
+            {
+                return;
+            }
+
+            _sidePanelOpen = shown;
+
+            if (shown)
+            {
+                SidePanelColumn.MinWidth = 160.0;
+                WorkColumn.MinWidth = 400.0;
+                SidePanelColumn.Width = new GridLength(_sidePanelWidth);
+            }
+            else
+            {
+                if (SidePanelColumn.ActualWidth > 0.0)
+                {
+                    _sidePanelWidth = SidePanelColumn.ActualWidth;
+                }
+
+                SidePanelColumn.MinWidth = 0.0;
+                WorkColumn.MinWidth = 0.0;
+                SidePanelColumn.Width = new GridLength(0.0);
+            }
+        }
 
         /// <summary>The title bar's search box: Enter starts the first command found, Escape empties the box.</summary>
         private void OnTitleSearchKey(object sender, KeyEventArgs e)
@@ -830,6 +868,7 @@ namespace GeometryHelper.Cad.Wpf
                 _model.ReadClipboardText = () => Clipboard.ContainsText() ? Clipboard.GetText() : null;
                 _model.WriteClipboardText = text => Clipboard.SetText(text ?? string.Empty);
                 _model.PropertyChanged += OnModelPropertyChanged;
+                ApplySidePanel();
 
                 if (CanvasView.PixelWidth > 0 && CanvasView.PixelHeight > 0)
                 {
@@ -1501,6 +1540,9 @@ namespace GeometryHelper.Cad.Wpf
 
             switch (e.PropertyName)
             {
+                case nameof(MainViewModel.IsSidePanelShown):
+                    ApplySidePanel();
+                    return;
                 case nameof(MainViewModel.IsDynamicInputShown):
                 case nameof(MainViewModel.IsDynamicInputPolar):
                 case nameof(MainViewModel.IsDynamicInputDimensional):
