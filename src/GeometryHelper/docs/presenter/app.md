@@ -715,6 +715,9 @@ member of `CadWorkspaceExtension` that adds nothing until it is overridden.
   palette calls the setter on Enter, on leaving the box and on a choice, as for its own rows. The setter returns null where it
   made the change, and the rows are read again; it returns the words of its refusal otherwise, which are written on the command
   line while the row goes back to its value. A setter that throws is a refusal in the exception's words and a Warn in the log.
+  A setter whose action makes the extension ask for its rows again (`RefreshFromExtensions`) has the rows read once, when the
+  setter is done. An extension whose `CanvasMenuItems` or `DescribeSelection` throws is passed over for that call, with a
+  Warn in the log; the presenter's own items and rows, and the other extensions', are shown.
   A row made as before, with `isReadOnly`, or a check made with a null setter, is only read.
 - **A button in the header of DRAWINGS.** `FileListButtons` returns `CadExtensionButton`s, each an icon (a path drawn as the
   presenter's own icons are, 2 wide on a square of 24: `Geometry.Parse("M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6")` is the refresh),

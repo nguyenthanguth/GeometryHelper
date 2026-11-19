@@ -101,6 +101,8 @@ namespace GeometryHelper.Cad.Wpf
         private IReadOnlyList<CadSelectionKind> _kindRows = Array.Empty<CadSelectionKind>();
         private string _kindName;
         private string _kindSelection = string.Empty;
+        private int _extensionCommits;
+        private bool _propertiesAsked;
         private IReadOnlyList<PropertyGroupViewModel> _groups = Array.Empty<PropertyGroupViewModel>();
         private IReadOnlyList<CadLayerInfo> _layers = Array.Empty<CadLayerInfo>();
         private string _commandText = string.Empty;
@@ -2486,6 +2488,14 @@ namespace GeometryHelper.Cad.Wpf
 
         private void UpdateProperties()
         {
+            // Inside the setter of an extension's row the rows are not rebuilt under the row that is being set; CommitExtensionProperty
+            // reads them once it is done.
+            if (_extensionCommits > 0)
+            {
+                _propertiesAsked = true;
+                return;
+            }
+
             if (_current == null)
             {
                 HideArrayTab();
@@ -2551,8 +2561,19 @@ namespace GeometryHelper.Cad.Wpf
 
             foreach (CadWorkspaceExtension extension in _extensions)
             {
-                info = extension.DescribeSelection(_current.Document, shown, info, out string said) ?? info;
-                banner = said ?? banner;
+                // An extension that throws says nothing: the rows stand as the presenter and the others made them.
+                try
+                {
+                    info = extension.DescribeSelection(_current.Document, shown, info, out string said) ?? info;
+                    banner = said ?? banner;
+                }
+                catch (Exception exception) when (!(exception is OutOfMemoryException))
+                {
+                    GeometryHelperLog.Warn(
+                        "MainViewModel: the rows of the extension " + extension.GetType().Name + " were not read.",
+                        exception
+                    );
+                }
             }
 
             // Where the box's text is not that of a row (nothing selected, an element of the Block Editor, an extension's own
@@ -2668,6 +2689,7 @@ namespace GeometryHelper.Cad.Wpf
         private bool CommitExtensionProperty(CadPropertyRow row, string text)
         {
             string refusal;
+            _extensionCommits++;
 
             try
             {
@@ -2681,10 +2703,25 @@ namespace GeometryHelper.Cad.Wpf
                 );
                 refusal = exception.Message.Split('\n')[0].Trim();
             }
+            finally
+            {
+                _extensionCommits--;
+            }
+
+            // The setter may have made the extension ask for its rows again (RefreshFromExtensions) while the row it was called
+            // from is still in its own setter; that asking was put off, and the rows are read once, here, after it.
+            bool asked = _propertiesAsked;
+            _propertiesAsked = false;
 
             if (refusal != null)
             {
                 Say(refusal);
+
+                if (asked)
+                {
+                    UpdateProperties();
+                }
+
                 return false;
             }
 

@@ -113,11 +113,24 @@ namespace GeometryHelper.Cad.Wpf
 
             foreach (CadWorkspaceExtension extension in _extensions)
             {
-                IReadOnlyList<CadExtensionMenuItem> items = extension.CanvasMenuItems(document, handles);
-
-                if (items != null)
+                // An extension that throws adds nothing: the others' items and the presenter's own are shown.
+                try
                 {
-                    made.AddRange(items.Select(Made));
+                    IReadOnlyList<CadExtensionMenuItem> items = extension.CanvasMenuItems(document, handles);
+
+                    if (items != null)
+                    {
+                        made.AddRange(items.Select(Made).ToList());
+                    }
+                }
+                catch (Exception exception) when (!(exception is OutOfMemoryException))
+                {
+                    GeometryHelperLog.Warn(
+                        "MainViewModel: the menu items of the extension "
+                            + extension.GetType().Name
+                            + " were not read.",
+                        exception
+                    );
                 }
             }
 
