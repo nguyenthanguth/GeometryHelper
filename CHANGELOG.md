@@ -5,6 +5,29 @@ release only, and a link here for the rest. GeometryHelper.IfcConvert,
 GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes in their packages.
 
 ## Unreleased
+
+## 13.12.0 (2026-11-19)
+
+A minor release: public types and members are added to the four libraries and none is removed or renamed, as Microsoft's
+API compatibility tool found comparing each of the six packages of 13.12.0 with its package of 13.11.0. The library reads
+and writes DWG by its own code: `DwgReader` gives the `DxfDocument` or `DxfDatabase` of a DWG of AutoCAD 2000 to 2018
+(AC1015 to AC1032, AutoCAD 2007 among them) as the DXF AutoCAD writes of it, and `DwgWriter` writes a drawing back in any
+of those six versions, the test drawings opened by AutoCAD 2021 with AUDIT finding no error. A drawing is saved as an
+older DXF, R2000 to R2013 or R12, as AutoCAD 2021's SaveAs saves it (`DxfDatabase.Save(path, version)`); a damaged one is
+opened as RECOVER opens it and checked as AUDIT checks it (`DxfDatabase.Recover`, `Audit`), a drawing of 21.8 MB and 36 112
+entities reported sound in 0.25 s. More of AutoCAD's database is typed: table styles and tables made in code, the named
+UCSs, views and viewports, associative dimensions, multileader and multiline styles written as well as read, dynamic block
+grips, clipped blocks and viewports, regions made from loops, feature control frames, PDF underlays and draw order.
+`SheetPacker` packs views cut to polygons by their own shape, so that an L-shaped view lets another stand in its notch;
+`ArrangeItem.Rectangle` sets labels along the long side of a part; splines take a degree up to 25. Two changes alter what
+callers see: the colours of `DxfColor` by index are AutoCAD 2021's, 197 of the 255 changing, and a box flat on some axis is
+crossed, met and measured as its rectangle, segment or point where it threw or gave no points. CadConvert's splines
+follow to degree 25; IfcConvert and TeklaConvert do not change. The AutoCAD-like presenter, `GeometryHelper.Cad` and its
+WPF, app and remote projects, which are not packed, changed a great deal, and most of the entries below are about it; its
+three BREAKING entries touch none of the packages. The entries stand newest first as they were written, so a limit an
+older one states may be lifted by a newer one above it: the DWG writer, for one, writes all six versions, and DXF is saved
+as R12.
+
 **NEW.** `MainViewModel.ShowFolder(folder)` lists the DXF and DWG files of a folder in the DRAWINGS list without opening any, and takes a deleted file off it, so that a host keeping its drawings in a folder shows them as rows to click. A folder of three drawings gives three rows, none open. `CadWorkspaceExtension.DescribeFile(path)` names a file of the extension's own by its path, open or not, so that such a row carries the extension's name, line and dot before it is opened.
 
 **NEW.** The DRAWINGS list and the PROPERTIES panel are docked left or right of the canvas by dragging their title to that half of the window, and made wider or narrower by dragging their inner edge, between 180 and 600 pixels, the canvas kept 400 wide at least; an extension's panel goes with DRAWINGS and is 160 to 1 200 wide. Where they are and how wide is kept in the settings file (`GlobalSettings.FileListWidth`, `PropertiesWidth`, `SidePanelWidth`, `FileListOnRight`, `PropertiesOnLeft`), so the window opens as it was left, and Reset to defaults of Global settings puts them back: DRAWINGS left at 288, PROPERTIES right at 312, an extension's panel at 320. The extension's panel loses the 4-pixel splitter column it had: its edge lies over its own border, so the canvas starts 4 pixels further left.

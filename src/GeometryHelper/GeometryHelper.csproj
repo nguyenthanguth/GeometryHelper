@@ -13,32 +13,75 @@
         <PackageIcon>icon.png</PackageIcon>
         <PackageTags>geometry 2d 3d polygon polyline solid offset trim extend boolean clipper label-placement bin-packing sheet-layout cad autocad tekla bim drawing</PackageTags>
         <PackageReleaseNotes>
-      NEW IN 13.11.0
+      NEW IN 13.12.0
 
-      A minor release: public types and members added, none removed or renamed. A drawing only read and saved is
-      written as it was, to the byte.
+      A minor release: public types and members added, none removed or renamed (checked package against package with
+      Microsoft's API compatibility tool). The library now reads and writes DWG by its own code.
 
-      NEW, DXF: OLE objects
-      - OLE2FRAME entities, read until now as DxfUnknownEntity, are DxfOle2Frame, after AutoCAD's Ole2Frame, with
-        DxfRectangle3d, DxfOle2FrameItemType and DxfOlePictureFormat. The frame is read from the four corners in the head
-        of its binary, as AutoCAD 2021 reads it, not from groups 10 and 11: Location (the lower left corner), Position3d,
-        WcsWidth, WcsHeight, ScaleWidth, ScaleHeight, Rotation, LockAspect, OutputQuality, AutoOutputQuality.
-      - What the object is comes from its compound file, read by the library's own MS-CFB reader: Type (static, embedded,
-        linked), UserType, IsLinked, LinkName, LinkPath; GetCompoundDocument() and GetPictureData(out format) give the
-        compound file and the .bmp, .wmf or .emf of a static picture.
-      - TransformBy moves, scales by one factor and mirrors a frame about a line along x or y, as AutoCAD 2021 keeps it
-        upright, writing the corners into the head AutoCAD reads; a turn, shear or stretch is refused. Position3d,
-        WcsWidth, WcsHeight, ScaleWidth, ScaleHeight, LockAspect and OutputQuality are set as AutoCAD sets them; a frame
-        copied into model or paper space gets that space's marks.
-      - new DxfOle2Frame(bytes) makes a static picture of a .bmp or a .png (every kind of PNG, alpha laid over white),
-        which AutoCAD's .NET API cannot, at its natural size in millimetres: 610 by 224 pixels of 96 dots an inch are
-        161.38 by 59.26.
-      - Checked in AutoCAD 2021: its console read back every frame read, moved or made, AUDIT finding no error; Windows'
-        OLE loaded every compound file made; AutoCAD's GUI drew the pictures made and moved.
+      NEW, DWG (namespace GeometryHelper.Dwg)
+      - DwgReader.Read gives the DxfDocument and DwgReader.Open the DxfDatabase of a DWG of AutoCAD 2000, 2004, 2007,
+        2010, 2013 and 2018 (AC1015 to AC1032), from a path or a stream, as the DXF AutoCAD writes of it: tables,
+        blocks, layouts and viewports, hatches, dimensions, leaders, multileaders, tables, images, wipeouts, OLE frames,
+        multilines, regions and solids with their ACIS data, materials, visual styles and dynamic blocks. Every check
+        sum is checked; a broken object is left out with a Warn line and the rest read.
+      - DwgWriter.Write writes a DxfDatabase or a DxfDocument as a DWG of the same six versions, AC1032 where none is
+        given, the same bytes for the same drawing. AutoCAD 2021 opens the test drawings written so, AUDIT finding no
+        error.
 
-      CHANGED, DXF: results callers will see change
-      - An OLE2FRAME read from a file is a DxfOle2Frame, not a DxfUnknownEntity; its GetGeometry, GeometricExtents and
-        Explode give its frame, and UpdateExt takes it into the extents.
+      NEW, DXF: versions and repair
+      - DxfDatabase.Save(path or stream, version) saves as R2000, R2004, R2007, R2010, R2013, R2018 or R12 (AC1009)
+        as AutoCAD 2021's SaveAs does, and returns a sentence for each thing the version could not hold: a table is the
+        INSERT of its block before R2007, a solid's ACIS data is turned between SAT and SAB.
+      - DxfDatabase.Recover(path or stream, out DxfRepairReport) opens a damaged DXF as RECOVER does, and Audit(fix)
+        checks an open one as AUDIT does, with DxfRepair and 26 kinds of DxfRepairKind: a drawing of 21.8 MB and
+        36 112 entities reports "No errors found." in 0.25 s.
+
+      NEW, DXF: more of AutoCAD's database
+      - Tables: DxfTableStyle with its cell styles, new DxfTable(position, rows, columns, rowHeight, columnWidth),
+        RecomputeTableBlock, cell states, cell styles, field codes and block cells of a cell.
+      - UcsTable, ViewTable and ViewportTable of a DxfDatabase (the snap and grid of *Active); BindXref; page setups
+        made in code (new DxfPlotSettings(), CopyFrom); layer overrides of a viewport set and removed.
+      - Associative dimensions: DxfDimension.DimAssoc, SetDimAssoc and ReleaseDimAssoc, DxfDimAssoc, DxfOsnapPointRef.
+      - Multileader styles set as well as read; multileader breaks (GetBreaks, SetBreaks, ExplodeBroken).
+      - Multiline styles added, renamed and saved to .mln (DxfMlineStyleSettings), and DxfMlineBuilder to make and
+        rebuild an MLINE.
+      - Dynamic blocks: GetDynamicGrips, ResetBlock, the grip moves of a parameter and its visibility states.
+      - Clips: DxfBlockReference.ClipTo and RemoveClip with DxfSpatialFilter, as XCLIP; DxfViewport.ClipTo a REGION.
+      - Regions: DxfRegionShape.Create(outer, holes, tolerance) with its area, perimeter and loops,
+        DxfUnknownEntity.CreateRegion and GetRegionShape.
+      - DxfTolerance (feature control frames), DxfPdfUnderlay and DxfPdfDefinition, DxfDrawOrderTable,
+        DxfWipeoutVariables, DxfReadOptions.SupportFolders.
+
+      NEW, geometry, packing and arranging
+      - SheetPacker.Pack takes groups of GeoPolygon2 as well as of GeoRectangle2, for views cut to a polygon: an L- or
+        U-shaped view lets another stand in its notch. PackPlacement.ViewPolygon gives each polygon placed.
+      - ArrangeItem.Rectangle sets labels along the long side of a part's rectangle in place of a Leader: a rectangle
+        2 000 by 300, a label 100 by 40 and the default gap of 50 put the first rows 70 off its edges.
+      - GeoSpline2, GeoSpline3 and the DXF reader take a degree up to 25, where they refused one past 10.
+
+      CHANGED: results callers will see change
+      - DxfColor's colours by index are AutoCAD 2021's, not ezdxf's: 197 of the 255 change (12 was 0xA50000 and is
+        0xCC0000, 250 was black and is 0x333333), and DxfColor.ByLayer.ColorValue is 0xFFFFFF where it was 0.
+      - A TOLERANCE read is a DxfTolerance, not a DxfUnknownEntity; WIPEOUTVARIABLES a DxfWipeoutVariables, not a
+        DxfUnknownObject.
+      - A DxfDimension property that sets a style variable writes the override even at the style's own value.
+      - GetIntersections and TryIntersectWith of a triangle, polygon, face or plane with a GeoObb3 or GeoAabb3 flat on
+        some axis read the box as its rectangle, segment or point, where they gave no points.
+      - A member that has to build from a shape with a coordinate that is not finite throws InvalidOperationException,
+        where it threw an ArgumentException about its own working.
+      - GeoTransform2 and GeoTransform3.Mirror across a line or plane at 45 degrees give whole numbers for whole
+        points: (0, 10) across y = x is (10, 0), not 9.999999999999998.
+      - Arranger.Run is faster among many blocks, with the same results to the bit.
+
+      FIXED
+      - CollidesWith, DistanceTo and GetIntersections against a box flat on some axis threw "A box with a zero size on
+        some axis has no faces to build"; they answer. A box thinner than the tolerance on two axes is read as its
+        segment.
+      - A shape with a coordinate that is not finite meets nothing, where 352 members gave points of NaN.
+      - TryIntersectWith of a spline and a curve far smaller or larger takes under 5 ms, where some ran past 10 s.
+      - DistanceTo of a GeoTriangle3 nearly on one line measures to its sides.
+      - DIMJOGANG overrides are read and written in radians; DxfRadialDimensionLarge reads its points under
+        AutoCAD's groups.
 
       Details in CHANGELOG.md.
 

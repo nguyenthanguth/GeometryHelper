@@ -21,6 +21,11 @@
       and Line entities, polylines and polygons with the arcs their bulges draw, arcs, circles,
       ellipses, rays, xlines, splines, and Extents2d/Extents3d as rectangles.
 
+      SPLINES OF DEGREE 11 TO 25 (13.12.0)
+      - ToGeoSpline3 and ToGeoSpline2 read an AutoCAD Spline of degree up to 25, the order of 26 SPLINEDIT's Elevate
+        order goes to, where GeometryHelper refused one past 10 with ArgumentOutOfRangeException, and ToAcadSpline
+        writes such a spline back. Nothing else in CadConvert changes.
+
       ARCS READ AS DRAWN (13.0.0)
       - ToGeoArc2 and ToGeoArc3 read an Arc through its ends and its middle at a tolerance of nought, as AutoCAD drew
         it. GeometryHelper 13.0.0 reads three points within the tolerance of one line as a line, so the arc of radius
