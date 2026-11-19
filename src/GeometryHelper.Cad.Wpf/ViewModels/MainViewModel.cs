@@ -354,8 +354,8 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets the text of the chip All, with the number of files: "All 3".</summary>
         public string AllChipText => "All " + Count(Listed().Count());
 
-        /// <summary>Gets the text of the chip DXF, with the number of DWG and DXF files no extension describes: "DXF 3".</summary>
-        public string DxfChipText => "DXF " + Count(Listed().Count(f => f.IsDxf && f.Info(_extensions) == null));
+        /// <summary>Gets the text of the chip of plain drawings, with the number of DWG and DXF files no extension describes: "DWG/DXF 3".</summary>
+        public string DxfChipText => "DWG/DXF " + Count(Listed().Count(f => f.IsDxf && f.Info(_extensions) == null));
 
         /// <summary>Gets whether an extension is added that names its files, so that its chips show.</summary>
         public bool HasOwnFiles => _extensions.Any(e => !string.IsNullOrEmpty(e.FileKindName));
@@ -2741,7 +2741,12 @@ namespace GeometryHelper.Cad.Wpf
             foreach (var group in shown)
             {
                 string key = group.Key.Substring(1);
-                FileRows.Add(new FileRowViewModel(true, group.Key[0] == '0' ? key + " · DXF" : key, null, null));
+                // A folder of plain files is headed by what they are: "· DWG", "· DXF", or "· DWG/DXF" for both.
+                string kinds = string.Join(
+                    "/",
+                    group.Select(f => f.File.Kind).Distinct().OrderBy(k => k, StringComparer.Ordinal)
+                );
+                FileRows.Add(new FileRowViewModel(true, group.Key[0] == '0' ? key + " · " + kinds : key, null, null));
 
                 foreach (
                     var item in group
@@ -2854,14 +2859,22 @@ namespace GeometryHelper.Cad.Wpf
             /// <summary>What the first extension that knows the file's document says of it; null for a file none knows.</summary>
             public CadFileInfo Info(IReadOnlyList<CadWorkspaceExtension> extensions)
             {
-                if (Document == null)
+                if (Document != null)
                 {
-                    return null;
+                    foreach (CadWorkspaceExtension extension in extensions)
+                    {
+                        CadFileInfo info = extension.DescribeFile(Document);
+
+                        if (info != null)
+                        {
+                            return info;
+                        }
+                    }
                 }
 
                 foreach (CadWorkspaceExtension extension in extensions)
                 {
-                    CadFileInfo info = extension.DescribeFile(Document);
+                    CadFileInfo info = extension.DescribeFile(Path);
 
                     if (info != null)
                     {
@@ -2871,6 +2884,9 @@ namespace GeometryHelper.Cad.Wpf
 
                 return null;
             }
+
+            /// <summary>"DWG" for a .dwg file, "DXF" for any other.</summary>
+            public string Kind => CadDrawingFile.IsDwgName(Name) ? "DWG" : "DXF";
 
             public ViewState ViewOf(CadSpace space, double width, double height)
             {
@@ -2917,7 +2933,8 @@ namespace GeometryHelper.Cad.Wpf
                 if (Document != null)
                 {
                     int layouts = Document.Spaces.Count - 1;
-                    return "DXF · "
+                    return Kind
+                        + " · "
                         + Count(Document.EntityCount)
                         + " entities · "
                         + Count(layouts)
@@ -2928,13 +2945,13 @@ namespace GeometryHelper.Cad.Wpf
                 {
                     var info = new FileInfo(Path);
                     return info.Exists
-                        ? "DXF · " + Count((int)Math.Max(1, (info.Length + 1023) / 1024)) + " KB"
-                        : "DXF";
+                        ? Kind + " · " + Count((int)Math.Max(1, (info.Length + 1023) / 1024)) + " KB"
+                        : Kind;
                 }
                 catch (Exception ex)
                     when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException)
                 {
-                    return "DXF";
+                    return Kind;
                 }
             }
         }
@@ -3168,6 +3185,15 @@ namespace GeometryHelper.Cad.Wpf
         /// <param name="document">The document.</param>
         /// <returns>What the list shows, or null.</returns>
         public virtual CadFileInfo DescribeFile(CadDocument document) => null;
+
+        /// <summary>
+        /// Says how the list shows a file of its own by its path, open or not, so that a file listed and not opened (as
+        /// <see cref="MainViewModel.ShowFolder"/> lists them) has its own name too; null for one it does not know. The list asks
+        /// <see cref="DescribeFile(CadDocument)"/> first for a file that is open. It is asked often: answer from memory.
+        /// </summary>
+        /// <param name="path">The full path of the file.</param>
+        /// <returns>What the list shows, or null.</returns>
+        public virtual CadFileInfo DescribeFile(string path) => null;
 
         /// <summary>
         /// Changes what Properties shows of the selection of a document of its own: the groups and the label, and the banner on

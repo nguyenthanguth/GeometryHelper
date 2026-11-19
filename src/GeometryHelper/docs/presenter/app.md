@@ -707,6 +707,13 @@ the user zoomed or panned and the space that was current are kept, a view still 
 and the undo history and selection are gone with the old document. A document with changes not saved is kept as it is and the
 command line says so, unless `discardChanges` is true; a file that cannot be read leaves the old document as it was.
 
+A host that keeps its drawings in a folder calls `MainViewModel.ShowFolder(folder)`: the DXF and DWG files of the folder
+become rows of the DRAWINGS list with none opened, and a file deleted since is taken off. To name such a file before it is
+opened, an extension overrides `DescribeFile(path)` as well as `DescribeFile(document)`; the list asks the second for an open
+file first. It is asked often, so it answers from memory, and the host calls `RefreshFromExtensions()` when what it would say
+changed. A row no extension names says what the file is: "DWG · 392 entities · 1 layout" for a `.dwg`, "DXF · …" for a
+`.dxf`, under a folder headed "· DWG", "· DXF" or "· DWG/DXF".
+
 ## The apps
 
 The standalone app is net8.0-windows:
