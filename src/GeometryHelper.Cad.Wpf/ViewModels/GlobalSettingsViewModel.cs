@@ -1074,7 +1074,6 @@ namespace GeometryHelper.Cad.Wpf
         private CadSupportFolders _roots = CadSupportFolders.Default;
         private string _search = string.Empty;
         private string _notice = string.Empty;
-        private bool _resetLayout;
         private List<ShortcutRowViewModel> _allShortcuts = new List<ShortcutRowViewModel>();
 
         /// <summary>Makes the view model over a copy of the window's settings.</summary>
@@ -1375,13 +1374,6 @@ namespace GeometryHelper.Cad.Wpf
             }
 
             _model.ApplySettings(_working);
-
-            if (_resetLayout)
-            {
-                _resetLayout = false;
-                _model.ResetPanelLayout();
-            }
-
             Notice = "Applied.";
             return true;
         }
@@ -1424,7 +1416,6 @@ namespace GeometryHelper.Cad.Wpf
             var defaults = new GlobalSettings();
             defaults.CopyRecordsFrom(_working);
             Load(defaults);
-            _resetLayout = true;
             Notice = "Every category is back to its defaults; Apply or OK takes them.";
         }
 

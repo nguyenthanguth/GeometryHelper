@@ -66,69 +66,6 @@ namespace GeometryHelper.Cad.Wpf
             new System.Windows.Threading.DispatcherTimer();
         private AppMenuViewModel _appMenu;
         private MainViewModel _model;
-        private double _sidePanelWidth = 320.0;
-        private bool _sidePanelOpen;
-
-        /// <summary>
-        /// Gives the panel of an extension its column right of the DRAWINGS list, 320 pixels wide or as wide as the user last dragged it
-        /// (kept while the window lives), or takes the column back where no panel is shown.
-        /// </summary>
-        private void ApplySidePanel()
-        {
-            bool shown = _model != null && _model.IsSidePanelShown;
-
-            if (shown == _sidePanelOpen)
-            {
-                return;
-            }
-
-            _sidePanelOpen = shown;
-
-            if (shown)
-            {
-                SidePanelColumn.MinWidth = 160.0;
-                WorkColumn.MinWidth = 400.0;
-                SidePanelColumn.Width = new GridLength(_sidePanelWidth);
-            }
-            else
-            {
-                if (SidePanelColumn.ActualWidth > 0.0)
-                {
-                    _sidePanelWidth = SidePanelColumn.ActualWidth;
-                }
-
-                SidePanelColumn.MinWidth = 0.0;
-                WorkColumn.MinWidth = 0.0;
-                SidePanelColumn.Width = new GridLength(0.0);
-            }
-        }
-
-        /// <summary>The right edge of DRAWINGS dragged: the list is made wider or narrower, between 180 and 600 pixels.</summary>
-        private void OnFileListEdgeDrag(object sender, DragDeltaEventArgs e)
-        {
-            FileListPanel.Width = PanelWidth(FileListPanel.Width + e.HorizontalChange);
-        }
-
-        /// <summary>The left edge of PROPERTIES dragged: the panel is made wider or narrower, between 180 and 600 pixels.</summary>
-        private void OnPropertiesEdgeDrag(object sender, DragDeltaEventArgs e)
-        {
-            PropertiesPanel.Width = PanelWidth(PropertiesPanel.Width - e.HorizontalChange);
-        }
-
-        private static double PanelWidth(double width) => Math.Max(180.0, Math.Min(600.0, width));
-
-        /// <summary>Global settings applied a reset: DRAWINGS, PROPERTIES and an extension's panel are given their first widths.</summary>
-        private void OnPanelLayoutReset(object sender, EventArgs e)
-        {
-            FileListPanel.Width = 288.0;
-            PropertiesPanel.Width = 312.0;
-            _sidePanelWidth = 320.0;
-
-            if (_sidePanelOpen)
-            {
-                SidePanelColumn.Width = new GridLength(_sidePanelWidth);
-            }
-        }
 
         /// <summary>The title bar's search box: Enter starts the first command found, Escape empties the box.</summary>
         private void OnTitleSearchKey(object sender, KeyEventArgs e)
@@ -757,7 +694,6 @@ namespace GeometryHelper.Cad.Wpf
                 _model.PluginManagerRequested -= OnPluginManagerRequested;
                 _model.SettingsRequested -= OnSettingsRequested;
                 _model.SettingsApplied -= OnSettingsApplied;
-                _model.PanelLayoutReset -= OnPanelLayoutReset;
                 _model.CloseRequested -= OnCloseRequested;
                 _model.QuitRequested -= OnQuitRequested;
                 _model.DraftingSettingsRequested -= OnDraftingSettingsRequested;
@@ -780,7 +716,6 @@ namespace GeometryHelper.Cad.Wpf
                 _model.PluginManagerRequested += OnPluginManagerRequested;
                 _model.SettingsRequested += OnSettingsRequested;
                 _model.SettingsApplied += OnSettingsApplied;
-                _model.PanelLayoutReset += OnPanelLayoutReset;
                 _model.CloseRequested += OnCloseRequested;
                 _model.QuitRequested += OnQuitRequested;
                 _model.DraftingSettingsRequested += OnDraftingSettingsRequested;
@@ -897,7 +832,7 @@ namespace GeometryHelper.Cad.Wpf
                 _model.ReadClipboardText = () => Clipboard.ContainsText() ? Clipboard.GetText() : null;
                 _model.WriteClipboardText = text => Clipboard.SetText(text ?? string.Empty);
                 _model.PropertyChanged += OnModelPropertyChanged;
-                ApplySidePanel();
+                ApplyPanelLayout();
 
                 if (CanvasView.PixelWidth > 0 && CanvasView.PixelHeight > 0)
                 {
@@ -1181,6 +1116,7 @@ namespace GeometryHelper.Cad.Wpf
         private void OnSettingsApplied(object sender, EventArgs e)
         {
             GlobalSettings settings = _model.Settings;
+            ApplyPanelLayout();
             CanvasView.Options.Background = settings.CanvasBackground;
             CanvasView.Options.Paper = settings.Paper;
             CanvasView.Options.BlockEditorBackground = settings.BlockEditorBackground;
@@ -1569,9 +1505,6 @@ namespace GeometryHelper.Cad.Wpf
 
             switch (e.PropertyName)
             {
-                case nameof(MainViewModel.IsSidePanelShown):
-                    ApplySidePanel();
-                    return;
                 case nameof(MainViewModel.IsDynamicInputShown):
                 case nameof(MainViewModel.IsDynamicInputPolar):
                 case nameof(MainViewModel.IsDynamicInputDimensional):

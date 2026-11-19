@@ -5396,1263 +5396,1356 @@
         </Border>
 
         <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition x:Name="SidePanelColumn" Width="0" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition x:Name="WorkColumn" Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <!-- Left panel: DRAWINGS, the files only (A20); View › Interface hides it. -->
-            <Border
-                x:Name="FileListPanel"
-                Grid.Column="0"
-                Width="288"
-                Background="{StaticResource GhPanel}"
-                BorderBrush="{StaticResource GhBorder}"
-                BorderThickness="0,0,1,0"
-                Visibility="{Binding IsFileListShown, Converter={StaticResource Shown}}"
-            >
-                <DockPanel>
-                    <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="12,8">
-                        <DockPanel>
-                            <Button
-                                DockPanel.Dock="Right"
-                                Style="{StaticResource GhFlatButton}"
-                                Width="20"
-                                Height="20"
-                                Margin="8,0,0,0"
-                                Command="{Binding RefreshCommand}"
-                                ToolTip="Look for new files"
-                            >
-                                <local:IconView
-                                    Size="16"
-                                    StrokeThickness="2"
-                                    Stroke="{StaticResource GhTextMuted}"
-                                    Data="{StaticResource GhIconRefresh}"
-                                />
-                            </Button>
-                            <Button
-                                DockPanel.Dock="Right"
-                                Style="{StaticResource GhFlatButton}"
-                                Width="20"
-                                Height="20"
-                                Margin="8,0,0,0"
-                                Command="{Binding OpenCommand}"
-                                ToolTip="Open a DXF (Ctrl+O)"
-                            >
-                                <local:IconView
-                                    Size="16"
-                                    StrokeThickness="2"
-                                    Stroke="{StaticResource GhTextMuted}"
-                                    Data="{StaticResource GhIconOpen}"
-                                />
-                            </Button>
-                            <TextBlock Style="{StaticResource PanelTitle}" Text="DRAWINGS" />
-                        </DockPanel>
-                    </Border>
+            <!-- The panels docked left or right of the canvas, each moved by dragging its title and sized by dragging its inner edge. -->
+            <DockPanel x:Name="DockArea" LastChildFill="True">
+                <!-- DRAWINGS, the files only (A20); View › Interface hides it. -->
+                <Grid
+                    x:Name="FileListDock"
+                    DockPanel.Dock="Left"
+                    Visibility="{Binding IsFileListShown, Converter={StaticResource Shown}}"
+                >
                     <Border
-                        DockPanel.Dock="Top"
-                        Margin="12,8,12,4"
-                        Background="{StaticResource GhInput}"
-                        CornerRadius="4"
-                        Padding="8,5"
+                        x:Name="FileListPanel"
+                        Width="288"
+                        Background="{StaticResource GhPanel}"
+                        BorderBrush="{StaticResource GhBorder}"
+                        BorderThickness="0,0,1,0"
                     >
                         <DockPanel>
-                            <local:IconView
-                                Size="14"
-                                StrokeThickness="2"
-                                Stroke="{StaticResource GhTextMuted}"
-                                Data="{StaticResource GhIconSearch}"
-                                Margin="0,0,6,0"
-                                VerticalAlignment="Center"
+                            <Border
+                                DockPanel.Dock="Top"
+                                Background="{StaticResource GhHeader}"
+                                Padding="12,8"
+                                Cursor="SizeAll"
+                                ToolTip="Drag to dock DRAWINGS on the other side"
+                                MouseLeftButtonDown="OnPanelTitleDown"
+                                MouseMove="OnPanelTitleMove"
+                                MouseLeftButtonUp="OnPanelTitleUp"
+                                LostMouseCapture="OnPanelTitleLost"
+                                Tag="FileList"
+                            >
+                                <DockPanel>
+                                    <Button
+                                        DockPanel.Dock="Right"
+                                        Style="{StaticResource GhFlatButton}"
+                                        Width="20"
+                                        Height="20"
+                                        Margin="8,0,0,0"
+                                        Command="{Binding RefreshCommand}"
+                                        ToolTip="Look for new files"
+                                    >
+                                        <local:IconView
+                                            Size="16"
+                                            StrokeThickness="2"
+                                            Stroke="{StaticResource GhTextMuted}"
+                                            Data="{StaticResource GhIconRefresh}"
+                                        />
+                                    </Button>
+                                    <Button
+                                        DockPanel.Dock="Right"
+                                        Style="{StaticResource GhFlatButton}"
+                                        Width="20"
+                                        Height="20"
+                                        Margin="8,0,0,0"
+                                        Command="{Binding OpenCommand}"
+                                        ToolTip="Open a DXF (Ctrl+O)"
+                                    >
+                                        <local:IconView
+                                            Size="16"
+                                            StrokeThickness="2"
+                                            Stroke="{StaticResource GhTextMuted}"
+                                            Data="{StaticResource GhIconOpen}"
+                                        />
+                                    </Button>
+                                    <TextBlock Style="{StaticResource PanelTitle}" Text="DRAWINGS" />
+                                </DockPanel>
+                            </Border>
+                            <Border
+                                DockPanel.Dock="Top"
+                                Margin="12,8,12,4"
+                                Background="{StaticResource GhInput}"
+                                CornerRadius="4"
+                                Padding="8,5"
+                            >
+                                <DockPanel>
+                                    <local:IconView
+                                        Size="14"
+                                        StrokeThickness="2"
+                                        Stroke="{StaticResource GhTextMuted}"
+                                        Data="{StaticResource GhIconSearch}"
+                                        Margin="0,0,6,0"
+                                        VerticalAlignment="Center"
+                                    />
+                                    <TextBox
+                                        Style="{StaticResource GhTextBox}"
+                                        Tag="Search file, mark, name…"
+                                        Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                    />
+                                </DockPanel>
+                            </Border>
+                            <WrapPanel
+                                DockPanel.Dock="Top"
+                                Margin="12,4,12,8"
+                                Visibility="{Binding HasDocument, Converter={StaticResource Shown}}"
+                            >
+                                <RadioButton
+                                    Style="{StaticResource GhChip}"
+                                    Content="{Binding AllChipText}"
+                                    IsChecked="{Binding FilterAll}"
+                                    Margin="0,0,6,0"
+                                />
+                                <RadioButton
+                                    Style="{StaticResource GhChip}"
+                                    Content="{Binding DxfChipText}"
+                                    IsChecked="{Binding FilterDxf}"
+                                />
+                                <RadioButton
+                                    Style="{StaticResource GhChip}"
+                                    Content="{Binding OwnChipText}"
+                                    IsChecked="{Binding FilterOwn}"
+                                    Margin="6,0,6,6"
+                                    Visibility="{Binding HasOwnFiles, Converter={StaticResource Shown}}"
+                                />
+                                <RadioButton
+                                    Style="{StaticResource GhChip}"
+                                    Content="{Binding OutOfDateChipText}"
+                                    IsChecked="{Binding FilterOutOfDate}"
+                                    Margin="0,0,6,6"
+                                    Visibility="{Binding HasOwnFiles, Converter={StaticResource Shown}}"
+                                />
+                            </WrapPanel>
+                            <TextBlock
+                                DockPanel.Dock="Top"
+                                Margin="12,16"
+                                Foreground="{StaticResource GhTextMuted}"
+                                TextAlignment="Center"
+                                Visibility="{Binding HasDocument, Converter={StaticResource Hidden}}"
+                                Text="No drawing open.&#x0a;Pick a file here, or open one."
                             />
-                            <TextBox
-                                Style="{StaticResource GhTextBox}"
-                                Tag="Search file, mark, name…"
-                                Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                            />
+                            <ScrollViewer
+                                VerticalScrollBarVisibility="Auto"
+                                HorizontalScrollBarVisibility="Disabled"
+                                Focusable="False"
+                            >
+                                <!-- A click selects a row (Ctrl and Shift add), a double click or Enter opens it, a right click shows its menu (C5). -->
+                                <ItemsControl
+                                    x:Name="FileList"
+                                    ItemsSource="{Binding FileRows}"
+                                    Margin="0,0,0,6"
+                                    Focusable="True"
+                                    FocusVisualStyle="{x:Null}"
+                                >
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type local:FileRowViewModel}">
+                                            <Grid>
+                                                <TextBlock
+                                                    x:Name="Header"
+                                                    Text="{Binding Label}"
+                                                    Foreground="{StaticResource GhTextMuted}"
+                                                    FontSize="11"
+                                                    FontWeight="Medium"
+                                                    Margin="12,8,12,2"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    Visibility="Collapsed"
+                                                />
+                                                <Border
+                                                    x:Name="File"
+                                                    Background="Transparent"
+                                                    ToolTip="{Binding Path}"
+                                                    MouseLeftButtonDown="OnFileRowDown"
+                                                    MouseRightButtonUp="OnFileRowRightUp"
+                                                >
+                                                    <Border
+                                                        x:Name="Row"
+                                                        Padding="13,5,12,5"
+                                                        Background="Transparent"
+                                                        BorderBrush="Transparent"
+                                                        BorderThickness="3,0,0,0"
+                                                    >
+                                                        <DockPanel>
+                                                            <Ellipse
+                                                                x:Name="Dot"
+                                                                Width="8"
+                                                                Height="8"
+                                                                Fill="{StaticResource GhAccent}"
+                                                                Margin="0,0,8,0"
+                                                                VerticalAlignment="Center"
+                                                                Visibility="Collapsed"
+                                                            />
+                                                            <Button
+                                                                DockPanel.Dock="Right"
+                                                                Style="{StaticResource GhFlatButton}"
+                                                                Width="18"
+                                                                Height="18"
+                                                                Margin="6,0,0,0"
+                                                                VerticalAlignment="Center"
+                                                                Visibility="{Binding IsOpen, Converter={StaticResource Shown}}"
+                                                                ToolTip="Close (CLOSE)"
+                                                                Command="{Binding DataContext.CloseFileCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                CommandParameter="{Binding}"
+                                                            >
+                                                                <local:IconView
+                                                                    x:Name="CloseCross"
+                                                                    Size="10"
+                                                                    StrokeThickness="2.4"
+                                                                    Stroke="{StaticResource GhCloseCross}"
+                                                                    Data="{StaticResource GhIconClose}"
+                                                                />
+                                                            </Button>
+                                                            <TextBlock
+                                                                DockPanel.Dock="Right"
+                                                                Text="{Binding Right}"
+                                                                FontSize="11"
+                                                                FontWeight="Medium"
+                                                                Margin="8,0,0,0"
+                                                                Foreground="{StaticResource GhTextMuted}"
+                                                                VerticalAlignment="Center"
+                                                            />
+                                                            <StackPanel>
+                                                                <TextBlock
+                                                                    Text="{Binding Label}"
+                                                                    FontWeight="SemiBold"
+                                                                    FontSize="12"
+                                                                    Foreground="{StaticResource GhText}"
+                                                                    TextTrimming="CharacterEllipsis"
+                                                                />
+                                                                <TextBlock
+                                                                    Text="{Binding Detail}"
+                                                                    FontWeight="Medium"
+                                                                    FontSize="11"
+                                                                    Foreground="{StaticResource GhTextMuted}"
+                                                                    TextTrimming="CharacterEllipsis"
+                                                                    Visibility="{Binding HasDetail, Converter={StaticResource Shown}}"
+                                                                />
+                                                            </StackPanel>
+                                                        </DockPanel>
+                                                    </Border>
+                                                </Border>
+                                            </Grid>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsHeader}" Value="True">
+                                                    <Setter TargetName="Header" Property="Visibility" Value="Visible" />
+                                                    <Setter TargetName="File" Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                                <Trigger SourceName="File" Property="IsMouseOver" Value="True">
+                                                    <Setter
+                                                        TargetName="Row"
+                                                        Property="Background"
+                                                        Value="{StaticResource GhHover}"
+                                                    />
+                                                </Trigger>
+                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                    <Setter
+                                                        TargetName="Row"
+                                                        Property="Background"
+                                                        Value="{StaticResource GhHover}"
+                                                    />
+                                                    <Setter
+                                                        TargetName="Row"
+                                                        Property="BorderBrush"
+                                                        Value="{StaticResource GhAccent}"
+                                                    />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                                    <Setter
+                                                        TargetName="Row"
+                                                        Property="Background"
+                                                        Value="{StaticResource GhSelected}"
+                                                    />
+                                                    <Setter
+                                                        TargetName="CloseCross"
+                                                        Property="Stroke"
+                                                        Value="{StaticResource GhCloseCrossOnSelected}"
+                                                    />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding State}" Value="Edited">
+                                                    <Setter TargetName="Dot" Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding State}" Value="OutOfDate">
+                                                    <Setter TargetName="Dot" Property="Visibility" Value="Visible" />
+                                                    <Setter
+                                                        TargetName="Dot"
+                                                        Property="Fill"
+                                                        Value="{StaticResource GhWarn}"
+                                                    />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding State}" Value="UpToDate">
+                                                    <Setter TargetName="Dot" Property="Visibility" Value="Visible" />
+                                                    <Setter
+                                                        TargetName="Dot"
+                                                        Property="Fill"
+                                                        Value="{StaticResource GhOk}"
+                                                    />
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
                         </DockPanel>
                     </Border>
-                    <WrapPanel
-                        DockPanel.Dock="Top"
-                        Margin="12,4,12,8"
-                        Visibility="{Binding HasDocument, Converter={StaticResource Shown}}"
+                    <!-- The inner edge of DRAWINGS, dragged to make the list wider or narrower. -->
+                    <Thumb
+                        x:Name="FileListEdge"
+                        Width="5"
+                        HorizontalAlignment="Right"
+                        Cursor="SizeWE"
+                        DragDelta="OnPanelEdgeDrag"
+                        DragCompleted="OnPanelEdgeDone"
+                        Tag="FileList"
                     >
-                        <RadioButton
-                            Style="{StaticResource GhChip}"
-                            Content="{Binding AllChipText}"
-                            IsChecked="{Binding FilterAll}"
-                            Margin="0,0,6,0"
-                        />
-                        <RadioButton
-                            Style="{StaticResource GhChip}"
-                            Content="{Binding DxfChipText}"
-                            IsChecked="{Binding FilterDxf}"
-                        />
-                        <RadioButton
-                            Style="{StaticResource GhChip}"
-                            Content="{Binding OwnChipText}"
-                            IsChecked="{Binding FilterOwn}"
-                            Margin="6,0,6,6"
-                            Visibility="{Binding HasOwnFiles, Converter={StaticResource Shown}}"
-                        />
-                        <RadioButton
-                            Style="{StaticResource GhChip}"
-                            Content="{Binding OutOfDateChipText}"
-                            IsChecked="{Binding FilterOutOfDate}"
-                            Margin="0,0,6,6"
-                            Visibility="{Binding HasOwnFiles, Converter={StaticResource Shown}}"
-                        />
-                    </WrapPanel>
-                    <TextBlock
-                        DockPanel.Dock="Top"
-                        Margin="12,16"
-                        Foreground="{StaticResource GhTextMuted}"
-                        TextAlignment="Center"
-                        Visibility="{Binding HasDocument, Converter={StaticResource Hidden}}"
-                        Text="No drawing open.&#x0a;Pick a file here, or open one."
-                    />
-                    <ScrollViewer
-                        VerticalScrollBarVisibility="Auto"
-                        HorizontalScrollBarVisibility="Disabled"
-                        Focusable="False"
+                        <Thumb.Template>
+                            <ControlTemplate TargetType="Thumb">
+                                <Border Background="Transparent" />
+                            </ControlTemplate>
+                        </Thumb.Template>
+                    </Thumb>
+                </Grid>
+
+                <!-- Next to DRAWINGS, on its canvas side: the panel an extension adds (CadWorkspaceExtension.SidePanelContent); no width at all without one. -->
+                <Grid
+                    x:Name="SidePanelDock"
+                    DockPanel.Dock="Left"
+                    Visibility="{Binding IsSidePanelShown, Converter={StaticResource Shown}}"
+                >
+                    <Border
+                        x:Name="SidePanel"
+                        Width="320"
+                        Background="{StaticResource GhPanel}"
+                        BorderBrush="{StaticResource GhBorder}"
+                        BorderThickness="0,0,1,0"
                     >
-                        <!-- A click selects a row (Ctrl and Shift add), a double click or Enter opens it, a right click shows its menu (C5). -->
-                        <ItemsControl
-                            x:Name="FileList"
-                            ItemsSource="{Binding FileRows}"
-                            Margin="0,0,0,6"
-                            Focusable="True"
-                            FocusVisualStyle="{x:Null}"
-                        >
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="{x:Type local:FileRowViewModel}">
-                                    <Grid>
-                                        <TextBlock
-                                            x:Name="Header"
-                                            Text="{Binding Label}"
-                                            Foreground="{StaticResource GhTextMuted}"
-                                            FontSize="11"
-                                            FontWeight="Medium"
-                                            Margin="12,8,12,2"
-                                            TextTrimming="CharacterEllipsis"
-                                            Visibility="Collapsed"
+                        <DockPanel>
+                            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="12,8">
+                                <TextBlock
+                                    Style="{StaticResource PanelTitle}"
+                                    Text="{Binding SidePanelExtension.SidePanelHeader}"
+                                />
+                            </Border>
+                            <ContentPresenter Content="{Binding SidePanelExtension.SidePanelContent}" />
+                        </DockPanel>
+                    </Border>
+                    <!-- The inner edge of the extension's panel. -->
+                    <Thumb
+                        x:Name="SidePanelEdge"
+                        Width="5"
+                        HorizontalAlignment="Right"
+                        Cursor="SizeWE"
+                        DragDelta="OnPanelEdgeDrag"
+                        DragCompleted="OnPanelEdgeDone"
+                        Tag="SidePanel"
+                    >
+                        <Thumb.Template>
+                            <ControlTemplate TargetType="Thumb">
+                                <Border Background="Transparent" />
+                            </ControlTemplate>
+                        </Thumb.Template>
+                    </Thumb>
+                </Grid>
+
+                <!-- PROPERTIES of the selection; PROPERTIESCLOSE and View › Interface hide it, PROPERTIES shows it. -->
+                <Grid
+                    x:Name="PropertiesDock"
+                    DockPanel.Dock="Right"
+                    Visibility="{Binding IsPropertiesPanelShown, Converter={StaticResource Shown}}"
+                >
+                    <Border
+                        x:Name="PropertiesPanel"
+                        Width="312"
+                        Background="{StaticResource GhPanel}"
+                        BorderBrush="{StaticResource GhBorder}"
+                        BorderThickness="1,0,0,0"
+                    >
+                        <DockPanel>
+                            <Border
+                                DockPanel.Dock="Top"
+                                Background="{StaticResource GhHeader}"
+                                Padding="12,8"
+                                Cursor="SizeAll"
+                                ToolTip="Drag to dock PROPERTIES on the other side"
+                                MouseLeftButtonDown="OnPanelTitleDown"
+                                MouseMove="OnPanelTitleMove"
+                                MouseLeftButtonUp="OnPanelTitleUp"
+                                LostMouseCapture="OnPanelTitleLost"
+                                Tag="Properties"
+                            >
+                                <TextBlock Style="{StaticResource PanelTitle}" Text="PROPERTIES" />
+                            </Border>
+                            <TextBlock
+                                DockPanel.Dock="Top"
+                                Margin="12,24"
+                                Foreground="{StaticResource GhTextMuted}"
+                                TextAlignment="Center"
+                                Visibility="{Binding HasDocument, Converter={StaticResource Hidden}}"
+                                Text="No selection.&#x0a;Open a file to see its properties."
+                            />
+                            <!-- The selection box: a list of All and one row for each kind of object selected with its count; a kind
+                         chosen shows and edits its objects alone. Beside it, Toggle value of PICKADD, Select Objects and Quick Select. -->
+                            <DockPanel
+                                DockPanel.Dock="Top"
+                                Margin="12,8"
+                                Visibility="{Binding HasDocument, Converter={StaticResource Shown}}"
+                            >
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="6,0,0,0">
+                                    <ToggleButton
+                                        Width="26"
+                                        Height="26"
+                                        Margin="0,0,2,0"
+                                        AutomationProperties.Name="Toggle value of PICKADD"
+                                        IsChecked="{Binding IsPickAddOn, Mode=TwoWay}"
+                                        ToolTip="Toggle value of PICKADD system variable"
+                                    >
+                                        <ToggleButton.Style>
+                                            <Style TargetType="ToggleButton" BasedOn="{StaticResource GhFlatButton}">
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsChecked" Value="True">
+                                                        <Setter
+                                                            Property="Background"
+                                                            Value="{StaticResource GhSelected}"
+                                                        />
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ToggleButton.Style>
+                                        <local:IconView
+                                            Size="16"
+                                            StrokeThickness="1.8"
+                                            Stroke="{StaticResource GhIcon}"
+                                            Data="{StaticResource GhIconPickAdd}"
                                         />
-                                        <Border
-                                            x:Name="File"
-                                            Background="Transparent"
-                                            ToolTip="{Binding Path}"
-                                            MouseLeftButtonDown="OnFileRowDown"
-                                            MouseRightButtonUp="OnFileRowRightUp"
-                                        >
-                                            <Border
-                                                x:Name="Row"
-                                                Padding="13,5,12,5"
-                                                Background="Transparent"
-                                                BorderBrush="Transparent"
-                                                BorderThickness="3,0,0,0"
-                                            >
-                                                <DockPanel>
-                                                    <Ellipse
-                                                        x:Name="Dot"
-                                                        Width="8"
-                                                        Height="8"
-                                                        Fill="{StaticResource GhAccent}"
-                                                        Margin="0,0,8,0"
-                                                        VerticalAlignment="Center"
-                                                        Visibility="Collapsed"
-                                                    />
-                                                    <Button
-                                                        DockPanel.Dock="Right"
-                                                        Style="{StaticResource GhFlatButton}"
-                                                        Width="18"
-                                                        Height="18"
-                                                        Margin="6,0,0,0"
-                                                        VerticalAlignment="Center"
-                                                        Visibility="{Binding IsOpen, Converter={StaticResource Shown}}"
-                                                        ToolTip="Close (CLOSE)"
-                                                        Command="{Binding DataContext.CloseFileCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                        CommandParameter="{Binding}"
-                                                    >
+                                    </ToggleButton>
+                                    <Button
+                                        Width="26"
+                                        Height="26"
+                                        Margin="0,0,2,0"
+                                        Style="{StaticResource GhFlatButton}"
+                                        AutomationProperties.Name="Select Objects"
+                                        Tag="SELECT"
+                                        Click="OnPaletteCommand"
+                                        ToolTip="Select Objects"
+                                    >
+                                        <local:IconView
+                                            Size="16"
+                                            StrokeThickness="1.8"
+                                            Stroke="{StaticResource GhIcon}"
+                                            Data="{StaticResource GhIconSelectObjects}"
+                                        />
+                                    </Button>
+                                    <Button
+                                        Width="26"
+                                        Height="26"
+                                        Style="{StaticResource GhFlatButton}"
+                                        AutomationProperties.Name="Quick Select"
+                                        Tag="QSELECT"
+                                        Click="OnPaletteCommand"
+                                        ToolTip="Quick Select"
+                                    >
+                                        <local:IconView
+                                            Size="16"
+                                            StrokeThickness="1.8"
+                                            Stroke="{StaticResource GhIcon}"
+                                            Data="{StaticResource GhIconQuickSelect}"
+                                        />
+                                    </Button>
+                                </StackPanel>
+                                <ComboBox
+                                    Style="{StaticResource GhComboBox}"
+                                    Height="26"
+                                    AutomationProperties.Name="Selected objects"
+                                    ItemsSource="{Binding SelectionKinds}"
+                                    SelectedItem="{Binding SelectedKind, Mode=TwoWay}"
+                                />
+                            </DockPanel>
+                            <!-- The owner banner: what an extension says of a selection it owns. -->
+                            <Border
+                                DockPanel.Dock="Top"
+                                Margin="12,0,12,6"
+                                Padding="10,8"
+                                Background="{StaticResource GhInput}"
+                                BorderBrush="{StaticResource GhAccent}"
+                                BorderThickness="3,0,0,0"
+                                CornerRadius="2"
+                                Visibility="{Binding HasPropertiesBanner, Converter={StaticResource Shown}}"
+                            >
+                                <TextBlock
+                                    Text="{Binding PropertiesBanner}"
+                                    Foreground="{StaticResource GhIcon}"
+                                    TextWrapping="Wrap"
+                                />
+                            </Border>
+                            <ScrollViewer
+                                VerticalScrollBarVisibility="Auto"
+                                HorizontalScrollBarVisibility="Disabled"
+                                Focusable="False"
+                                Visibility="{Binding HasDocument, Converter={StaticResource Shown}}"
+                            >
+                                <ItemsControl ItemsSource="{Binding PropertyGroups}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel>
+                                                <ToggleButton
+                                                    x:Name="Expander"
+                                                    Style="{StaticResource GhFlatButton}"
+                                                    IsChecked="True"
+                                                    HorizontalContentAlignment="Left"
+                                                    Padding="12,6"
+                                                >
+                                                    <StackPanel Orientation="Horizontal">
                                                         <local:IconView
-                                                            x:Name="CloseCross"
-                                                            Size="10"
-                                                            StrokeThickness="2.4"
-                                                            Stroke="{StaticResource GhCloseCross}"
-                                                            Data="{StaticResource GhIconClose}"
+                                                            x:Name="Chevron"
+                                                            Size="12"
+                                                            StrokeThickness="2.5"
+                                                            Stroke="{StaticResource GhTextMuted}"
+                                                            Data="{StaticResource GhIconChevron}"
+                                                            VerticalAlignment="Center"
+                                                            RenderTransformOrigin="0.5,0.5"
                                                         />
-                                                    </Button>
-                                                    <TextBlock
-                                                        DockPanel.Dock="Right"
-                                                        Text="{Binding Right}"
-                                                        FontSize="11"
-                                                        FontWeight="Medium"
-                                                        Margin="8,0,0,0"
-                                                        Foreground="{StaticResource GhTextMuted}"
-                                                        VerticalAlignment="Center"
-                                                    />
-                                                    <StackPanel>
                                                         <TextBlock
-                                                            Text="{Binding Label}"
+                                                            Text="{Binding Title}"
+                                                            FontSize="13"
                                                             FontWeight="SemiBold"
-                                                            FontSize="12"
+                                                            Margin="6,0,0,0"
                                                             Foreground="{StaticResource GhText}"
-                                                            TextTrimming="CharacterEllipsis"
-                                                        />
-                                                        <TextBlock
-                                                            Text="{Binding Detail}"
-                                                            FontWeight="Medium"
-                                                            FontSize="11"
-                                                            Foreground="{StaticResource GhTextMuted}"
-                                                            TextTrimming="CharacterEllipsis"
-                                                            Visibility="{Binding HasDetail, Converter={StaticResource Shown}}"
                                                         />
                                                     </StackPanel>
-                                                </DockPanel>
-                                            </Border>
-                                        </Border>
-                                    </Grid>
-                                    <DataTemplate.Triggers>
-                                        <DataTrigger Binding="{Binding IsHeader}" Value="True">
-                                            <Setter TargetName="Header" Property="Visibility" Value="Visible" />
-                                            <Setter TargetName="File" Property="Visibility" Value="Collapsed" />
-                                        </DataTrigger>
-                                        <Trigger SourceName="File" Property="IsMouseOver" Value="True">
-                                            <Setter
-                                                TargetName="Row"
-                                                Property="Background"
-                                                Value="{StaticResource GhHover}"
-                                            />
-                                        </Trigger>
-                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                            <Setter
-                                                TargetName="Row"
-                                                Property="Background"
-                                                Value="{StaticResource GhHover}"
-                                            />
-                                            <Setter
-                                                TargetName="Row"
-                                                Property="BorderBrush"
-                                                Value="{StaticResource GhAccent}"
-                                            />
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding IsCurrent}" Value="True">
-                                            <Setter
-                                                TargetName="Row"
-                                                Property="Background"
-                                                Value="{StaticResource GhSelected}"
-                                            />
-                                            <Setter
-                                                TargetName="CloseCross"
-                                                Property="Stroke"
-                                                Value="{StaticResource GhCloseCrossOnSelected}"
-                                            />
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding State}" Value="Edited">
-                                            <Setter TargetName="Dot" Property="Visibility" Value="Visible" />
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding State}" Value="OutOfDate">
-                                            <Setter TargetName="Dot" Property="Visibility" Value="Visible" />
-                                            <Setter TargetName="Dot" Property="Fill" Value="{StaticResource GhWarn}" />
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding State}" Value="UpToDate">
-                                            <Setter TargetName="Dot" Property="Visibility" Value="Visible" />
-                                            <Setter TargetName="Dot" Property="Fill" Value="{StaticResource GhOk}" />
-                                        </DataTrigger>
-                                    </DataTemplate.Triggers>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-                </DockPanel>
-            </Border>
-            <!-- The right edge of DRAWINGS, dragged to make the list wider or narrower. -->
-            <Thumb
-                Grid.Column="0"
-                Width="5"
-                HorizontalAlignment="Right"
-                Cursor="SizeWE"
-                DragDelta="OnFileListEdgeDrag"
-                Visibility="{Binding IsFileListShown, Converter={StaticResource Shown}}"
-            >
-                <Thumb.Template>
-                    <ControlTemplate TargetType="Thumb">
-                        <Border Background="Transparent" />
-                    </ControlTemplate>
-                </Thumb.Template>
-            </Thumb>
-
-            <!-- Next to DRAWINGS: the panel an extension adds (CadWorkspaceExtension.SidePanelContent); no width at all without one. -->
-            <Border
-                Grid.Column="1"
-                Background="{StaticResource GhPanel}"
-                BorderBrush="{StaticResource GhBorder}"
-                BorderThickness="0,0,1,0"
-                Visibility="{Binding IsSidePanelShown, Converter={StaticResource Shown}}"
-            >
-                <DockPanel>
-                    <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="12,8">
-                        <TextBlock
-                            Style="{StaticResource PanelTitle}"
-                            Text="{Binding SidePanelExtension.SidePanelHeader}"
-                        />
+                                                </ToggleButton>
+                                                <ItemsControl x:Name="Rows" ItemsSource="{Binding Rows}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Grid Margin="12,3">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="*" />
+                                                                    <ColumnDefinition Width="*" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <TextBlock
+                                                                    Text="{Binding Label}"
+                                                                    Foreground="{StaticResource GhTextMuted}"
+                                                                    VerticalAlignment="Center"
+                                                                    TextTrimming="CharacterEllipsis"
+                                                                    Margin="0,0,8,0"
+                                                                    ToolTip="{Binding Label}"
+                                                                />
+                                                                <Grid Grid.Column="1">
+                                                                    <Border
+                                                                        x:Name="Cell"
+                                                                        Background="{StaticResource GhInput}"
+                                                                        CornerRadius="2"
+                                                                        Padding="6,3"
+                                                                    >
+                                                                        <Grid>
+                                                                            <TextBlock
+                                                                                x:Name="Value"
+                                                                                Text="{Binding Value}"
+                                                                                Foreground="{StaticResource GhTextMuted}"
+                                                                                TextTrimming="CharacterEllipsis"
+                                                                                ToolTip="{Binding Value}"
+                                                                            />
+                                                                            <TextBox
+                                                                                x:Name="Editor"
+                                                                                Style="{StaticResource GhTextBox}"
+                                                                                Visibility="Collapsed"
+                                                                                Padding="0"
+                                                                                Text="{Binding Value, UpdateSourceTrigger=LostFocus}"
+                                                                                KeyDown="OnValueKeyDown"
+                                                                            />
+                                                                        </Grid>
+                                                                    </Border>
+                                                                    <ComboBox
+                                                                        x:Name="Choice"
+                                                                        Style="{StaticResource GhComboBox}"
+                                                                        Visibility="Collapsed"
+                                                                        ItemsSource="{Binding Options}"
+                                                                        SelectedItem="{Binding Value, Mode=TwoWay}"
+                                                                    />
+                                                                </Grid>
+                                                            </Grid>
+                                                            <DataTemplate.Triggers>
+                                                                <DataTrigger Binding="{Binding IsTyped}" Value="True">
+                                                                    <Setter
+                                                                        TargetName="Value"
+                                                                        Property="Visibility"
+                                                                        Value="Collapsed"
+                                                                    />
+                                                                    <Setter
+                                                                        TargetName="Editor"
+                                                                        Property="Visibility"
+                                                                        Value="Visible"
+                                                                    />
+                                                                </DataTrigger>
+                                                                <DataTrigger
+                                                                    Binding="{Binding HasOptions}"
+                                                                    Value="True"
+                                                                >
+                                                                    <Setter
+                                                                        TargetName="Cell"
+                                                                        Property="Visibility"
+                                                                        Value="Collapsed"
+                                                                    />
+                                                                    <Setter
+                                                                        TargetName="Choice"
+                                                                        Property="Visibility"
+                                                                        Value="Visible"
+                                                                    />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Varies}" Value="True">
+                                                                    <Setter
+                                                                        TargetName="Editor"
+                                                                        Property="Foreground"
+                                                                        Value="{StaticResource GhTextMuted}"
+                                                                    />
+                                                                    <Setter
+                                                                        TargetName="Editor"
+                                                                        Property="FontStyle"
+                                                                        Value="Italic"
+                                                                    />
+                                                                    <Setter
+                                                                        TargetName="Value"
+                                                                        Property="FontStyle"
+                                                                        Value="Italic"
+                                                                    />
+                                                                </DataTrigger>
+                                                            </DataTemplate.Triggers>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                            <DataTemplate.Triggers>
+                                                <Trigger SourceName="Expander" Property="IsChecked" Value="False">
+                                                    <Setter TargetName="Rows" Property="Visibility" Value="Collapsed" />
+                                                    <Setter TargetName="Chevron" Property="RenderTransform">
+                                                        <Setter.Value>
+                                                            <RotateTransform Angle="-90" />
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Trigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </DockPanel>
                     </Border>
-                    <ContentPresenter Content="{Binding SidePanelExtension.SidePanelContent}" />
-                </DockPanel>
-            </Border>
-            <GridSplitter
-                Grid.Column="2"
-                Width="4"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Stretch"
-                ResizeBehavior="PreviousAndNext"
-                ResizeDirection="Columns"
-                Background="Transparent"
-                Visibility="{Binding IsSidePanelShown, Converter={StaticResource Shown}}"
-            />
+                    <!-- The inner edge of PROPERTIES, dragged to make the panel wider or narrower. -->
+                    <Thumb
+                        x:Name="PropertiesEdge"
+                        Width="5"
+                        HorizontalAlignment="Left"
+                        Cursor="SizeWE"
+                        DragDelta="OnPanelEdgeDrag"
+                        DragCompleted="OnPanelEdgeDone"
+                        Tag="Properties"
+                    >
+                        <Thumb.Template>
+                            <ControlTemplate TargetType="Thumb">
+                                <Border Background="Transparent" />
+                            </ControlTemplate>
+                        </Thumb.Template>
+                    </Thumb>
+                </Grid>
 
-            <Grid Grid.Column="3">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <!-- Centre: the canvas, then the command line under it only. -->
-                <Grid Grid.Column="0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <!-- Model space in tiles (VPORTS): the other tiles drawn behind, the canvas laid over the current one. -->
-                    <local:CadTilesView x:Name="TilesView" />
-                    <Grid x:Name="ActiveTile" Background="{StaticResource GhCanvas}" ClipToBounds="True">
-                        <local:CadCanvas
-                            x:Name="CanvasView"
-                            Session="{Binding Session}"
-                            Snap="{Binding Snap}"
-                            ShowGrid="{Binding GridOn}"
-                            GridSpacing="{Binding GridSpacingX}"
-                            GridSpacingY="{Binding GridSpacingY}"
-                            GridMajor="{Binding GridMajor}"
-                            GridStyle="{Binding GridStyle}"
-                            GridDisplay="{Binding GridDisplay}"
-                            SnapGridLegacy="{Binding SnapGridLegacy}"
-                            SnapBase="{Binding SnapBase}"
-                            SnapAngle="{Binding SnapAngle}"
-                            Isoplane="{Binding Isoplane}"
-                            Document="{Binding Document}"
-                            Space="{Binding Space}"
-                            View="{Binding View}"
-                            DynamicInput="{Binding IsDynamicInputShown}"
-                            Revision="{Binding Revision}"
-                            Visibility="{Binding HasDocument, Converter={StaticResource Shown}}"
-                        />
-                        <TextBlock
-                            Text="{Binding ViewportLabel}"
-                            FontFamily="{StaticResource GhMonoFont}"
-                            FontSize="11"
-                            Foreground="{StaticResource GhTextMuted}"
-                            HorizontalAlignment="Left"
-                            VerticalAlignment="Top"
-                            Margin="10,8,0,0"
-                            IsHitTestVisible="False"
-                        />
-                        <!--
+                <Grid>
+                    <!-- Centre: the canvas, then the command line under it only. -->
+                    <Grid Grid.Column="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <!-- Model space in tiles (VPORTS): the other tiles drawn behind, the canvas laid over the current one. -->
+                        <local:CadTilesView x:Name="TilesView" />
+                        <Grid x:Name="ActiveTile" Background="{StaticResource GhCanvas}" ClipToBounds="True">
+                            <local:CadCanvas
+                                x:Name="CanvasView"
+                                Session="{Binding Session}"
+                                Snap="{Binding Snap}"
+                                ShowGrid="{Binding GridOn}"
+                                GridSpacing="{Binding GridSpacingX}"
+                                GridSpacingY="{Binding GridSpacingY}"
+                                GridMajor="{Binding GridMajor}"
+                                GridStyle="{Binding GridStyle}"
+                                GridDisplay="{Binding GridDisplay}"
+                                SnapGridLegacy="{Binding SnapGridLegacy}"
+                                SnapBase="{Binding SnapBase}"
+                                SnapAngle="{Binding SnapAngle}"
+                                Isoplane="{Binding Isoplane}"
+                                Document="{Binding Document}"
+                                Space="{Binding Space}"
+                                View="{Binding View}"
+                                DynamicInput="{Binding IsDynamicInputShown}"
+                                Revision="{Binding Revision}"
+                                Visibility="{Binding HasDocument, Converter={StaticResource Shown}}"
+                            />
+                            <TextBlock
+                                Text="{Binding ViewportLabel}"
+                                FontFamily="{StaticResource GhMonoFont}"
+                                FontSize="11"
+                                Foreground="{StaticResource GhTextMuted}"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Margin="10,8,0,0"
+                                IsHitTestVisible="False"
+                            />
+                            <!--
                     Dynamic input (DYN, F12), design DynInputCursor: at the Command prompt what is typed, with the AutoComplete list
                     under it; in a command the prompt, the ↓ of its options and the X and Y fields in one box 18 px right of the
                     cursor and 14 px below it, the options menu under it; where a second point, a distance or an angle is asked the length in a field beside
                     the middle of the rubber band and the angle in one near the base point, nothing drawn under them. Only the list and the menu take clicks.
                     -->
-                        <Canvas
-                            x:Name="DynamicInputLayer"
-                            Visibility="{Binding IsDynamicInputShown, Converter={StaticResource Shown}}"
-                            TextElement.FontFamily="{StaticResource GhMonoFont}"
-                            TextElement.FontSize="11"
-                        >
-                            <Canvas.Resources>
-                                <!-- A field: the one typed into framed in the accent, a locked one with a lock. -->
-                                <Style x:Key="DynamicField" TargetType="Border">
-                                    <Setter Property="BorderBrush" Value="{StaticResource GhBorder}" />
-                                    <Setter Property="BorderThickness" Value="1" />
-                                    <Setter Property="CornerRadius" Value="2" />
-                                    <Setter Property="Background" Value="{StaticResource GhInput}" />
-                                    <Setter Property="Padding" Value="6,0" />
-                                    <Setter Property="IsHitTestVisible" Value="False" />
-                                </Style>
-                                <Style x:Key="FirstField" TargetType="Border" BasedOn="{StaticResource DynamicField}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsDynamicInputFirstActive}" Value="True">
-                                            <Setter Property="BorderBrush" Value="{StaticResource GhAccent}" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                                <Style x:Key="SecondField" TargetType="Border" BasedOn="{StaticResource DynamicField}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsDynamicInputSecondActive}" Value="True">
-                                            <Setter Property="BorderBrush" Value="{StaticResource GhAccent}" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Canvas.Resources>
-
-                            <!-- Dimensional input: the length beside the middle of the rubber band, the angle near the base point, nothing drawn under them. -->
                             <Canvas
-                                x:Name="DimensionalInput"
-                                IsHitTestVisible="False"
-                                Visibility="{Binding IsDynamicInputDimensional, Converter={StaticResource Shown}}"
+                                x:Name="DynamicInputLayer"
+                                Visibility="{Binding IsDynamicInputShown, Converter={StaticResource Shown}}"
+                                TextElement.FontFamily="{StaticResource GhMonoFont}"
+                                TextElement.FontSize="11"
                             >
-                                <Border
-                                    x:Name="LengthField"
-                                    Style="{StaticResource FirstField}"
-                                    Visibility="{Binding IsDynamicInputLength, Converter={StaticResource Shown}}"
-                                >
-                                    <StackPanel Orientation="Horizontal">
-                                        <local:IconView
-                                            Size="10"
-                                            StrokeThickness="2.5"
-                                            Stroke="{StaticResource GhAccent}"
-                                            Data="{StaticResource GhIconLock}"
-                                            Margin="0,0,4,0"
-                                            VerticalAlignment="Center"
-                                            Visibility="{Binding IsDynamicInputFirstLocked, Converter={StaticResource Shown}}"
-                                        />
-                                        <TextBlock
-                                            Text="{Binding DynamicInputFirst}"
-                                            Foreground="{StaticResource GhText}"
-                                        />
-                                    </StackPanel>
-                                </Border>
-                                <Border
-                                    x:Name="AngleField"
-                                    Style="{StaticResource SecondField}"
-                                    Visibility="{Binding IsDynamicInputAngle, Converter={StaticResource Shown}}"
-                                >
-                                    <StackPanel Orientation="Horizontal">
-                                        <local:IconView
-                                            Size="10"
-                                            StrokeThickness="2.5"
-                                            Stroke="{StaticResource GhAccent}"
-                                            Data="{StaticResource GhIconLock}"
-                                            Margin="0,0,4,0"
-                                            VerticalAlignment="Center"
-                                            Visibility="{Binding IsDynamicInputSecondLocked, Converter={StaticResource Shown}}"
-                                        />
-                                        <TextBlock Foreground="{StaticResource GhText}">
-                                            <Run Text="{Binding DynamicInputSecond, Mode=OneWay}" /><Run Text="°" />
-                                        </TextBlock>
-                                    </StackPanel>
-                                </Border>
-                            </Canvas>
+                                <Canvas.Resources>
+                                    <!-- A field: the one typed into framed in the accent, a locked one with a lock. -->
+                                    <Style x:Key="DynamicField" TargetType="Border">
+                                        <Setter Property="BorderBrush" Value="{StaticResource GhBorder}" />
+                                        <Setter Property="BorderThickness" Value="1" />
+                                        <Setter Property="CornerRadius" Value="2" />
+                                        <Setter Property="Background" Value="{StaticResource GhInput}" />
+                                        <Setter Property="Padding" Value="6,0" />
+                                        <Setter Property="IsHitTestVisible" Value="False" />
+                                    </Style>
+                                    <Style
+                                        x:Key="FirstField"
+                                        TargetType="Border"
+                                        BasedOn="{StaticResource DynamicField}"
+                                    >
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsDynamicInputFirstActive}" Value="True">
+                                                <Setter Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                    <Style
+                                        x:Key="SecondField"
+                                        TargetType="Border"
+                                        BasedOn="{StaticResource DynamicField}"
+                                    >
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsDynamicInputSecondActive}" Value="True">
+                                                <Setter Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Canvas.Resources>
 
-                            <StackPanel x:Name="DynamicInputBox">
-                                <Border
-                                    Background="{StaticResource GhHeader}"
-                                    BorderBrush="{StaticResource GhBorder}"
-                                    BorderThickness="1"
-                                    CornerRadius="3"
-                                    Padding="6,3"
-                                    HorizontalAlignment="Left"
+                                <!-- Dimensional input: the length beside the middle of the rubber band, the angle near the base point, nothing drawn under them. -->
+                                <Canvas
+                                    x:Name="DimensionalInput"
                                     IsHitTestVisible="False"
+                                    Visibility="{Binding IsDynamicInputDimensional, Converter={StaticResource Shown}}"
                                 >
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock
-                                            Text="{Binding DynamicInputPrompt}"
-                                            Foreground="{StaticResource GhIcon}"
-                                            VerticalAlignment="Center"
-                                            Margin="0,0,6,0"
-                                        >
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsCommandRunning}" Value="False">
-                                                            <Setter Property="Visibility" Value="Collapsed" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                        <!-- The ↓ of a prompt with options: ↓ opens their menu, the icon then in the accent. -->
-                                        <Border
-                                            Width="14"
-                                            Height="14"
-                                            BorderThickness="1"
-                                            CornerRadius="2"
-                                            Margin="0,0,6,0"
-                                            VerticalAlignment="Center"
-                                            Visibility="{Binding HasDynamicInputOptions, Converter={StaticResource Shown}}"
-                                        >
-                                            <Border.Style>
-                                                <Style TargetType="Border">
-                                                    <Setter Property="BorderBrush" Value="#5A6472" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger
-                                                            Binding="{Binding IsDynamicInputMenuOpen}"
-                                                            Value="True"
-                                                        >
+                                    <Border
+                                        x:Name="LengthField"
+                                        Style="{StaticResource FirstField}"
+                                        Visibility="{Binding IsDynamicInputLength, Converter={StaticResource Shown}}"
+                                    >
+                                        <StackPanel Orientation="Horizontal">
+                                            <local:IconView
+                                                Size="10"
+                                                StrokeThickness="2.5"
+                                                Stroke="{StaticResource GhAccent}"
+                                                Data="{StaticResource GhIconLock}"
+                                                Margin="0,0,4,0"
+                                                VerticalAlignment="Center"
+                                                Visibility="{Binding IsDynamicInputFirstLocked, Converter={StaticResource Shown}}"
+                                            />
+                                            <TextBlock
+                                                Text="{Binding DynamicInputFirst}"
+                                                Foreground="{StaticResource GhText}"
+                                            />
+                                        </StackPanel>
+                                    </Border>
+                                    <Border
+                                        x:Name="AngleField"
+                                        Style="{StaticResource SecondField}"
+                                        Visibility="{Binding IsDynamicInputAngle, Converter={StaticResource Shown}}"
+                                    >
+                                        <StackPanel Orientation="Horizontal">
+                                            <local:IconView
+                                                Size="10"
+                                                StrokeThickness="2.5"
+                                                Stroke="{StaticResource GhAccent}"
+                                                Data="{StaticResource GhIconLock}"
+                                                Margin="0,0,4,0"
+                                                VerticalAlignment="Center"
+                                                Visibility="{Binding IsDynamicInputSecondLocked, Converter={StaticResource Shown}}"
+                                            />
+                                            <TextBlock Foreground="{StaticResource GhText}">
+                                                <Run Text="{Binding DynamicInputSecond, Mode=OneWay}" /><Run Text="°" />
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Border>
+                                </Canvas>
+
+                                <StackPanel x:Name="DynamicInputBox">
+                                    <Border
+                                        Background="{StaticResource GhHeader}"
+                                        BorderBrush="{StaticResource GhBorder}"
+                                        BorderThickness="1"
+                                        CornerRadius="3"
+                                        Padding="6,3"
+                                        HorizontalAlignment="Left"
+                                        IsHitTestVisible="False"
+                                    >
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock
+                                                Text="{Binding DynamicInputPrompt}"
+                                                Foreground="{StaticResource GhIcon}"
+                                                VerticalAlignment="Center"
+                                                Margin="0,0,6,0"
+                                            >
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Style.Triggers>
+                                                            <DataTrigger
+                                                                Binding="{Binding IsCommandRunning}"
+                                                                Value="False"
+                                                            >
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <!-- The ↓ of a prompt with options: ↓ opens their menu, the icon then in the accent. -->
+                                            <Border
+                                                Width="14"
+                                                Height="14"
+                                                BorderThickness="1"
+                                                CornerRadius="2"
+                                                Margin="0,0,6,0"
+                                                VerticalAlignment="Center"
+                                                Visibility="{Binding HasDynamicInputOptions, Converter={StaticResource Shown}}"
+                                            >
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="BorderBrush" Value="#5A6472" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger
+                                                                Binding="{Binding IsDynamicInputMenuOpen}"
+                                                                Value="True"
+                                                            >
+                                                                <Setter
+                                                                    Property="BorderBrush"
+                                                                    Value="{StaticResource GhAccent}"
+                                                                />
+                                                                <Setter
+                                                                    Property="Background"
+                                                                    Value="{StaticResource GhSelected}"
+                                                                />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <local:IconView
+                                                    Size="8"
+                                                    StrokeThickness="2.2"
+                                                    Stroke="{StaticResource GhText}"
+                                                    Data="M12 4v16M5 13l7 7 7-7"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                />
+                                            </Border>
+                                            <!-- At the Command prompt the text typed and the caret; in a command what is typed at a prompt with no fields. -->
+                                            <StackPanel
+                                                Orientation="Horizontal"
+                                                MinWidth="108"
+                                                Visibility="{Binding IsCommandRunning, Converter={StaticResource Hidden}}"
+                                            >
+                                                <TextBlock
+                                                    Text="{Binding CommandText}"
+                                                    Foreground="{StaticResource GhText}"
+                                                />
+                                                <Rectangle
+                                                    Width="1"
+                                                    Height="13"
+                                                    Margin="1,0,0,0"
+                                                    Fill="{StaticResource GhText}"
+                                                    VerticalAlignment="Center"
+                                                />
+                                            </StackPanel>
+                                            <Border>
+                                                <Border.Style>
+                                                    <Style TargetType="Border" BasedOn="{StaticResource DynamicField}">
+                                                        <Setter
+                                                            Property="BorderBrush"
+                                                            Value="{StaticResource GhAccent}"
+                                                        />
+                                                        <Style.Triggers>
+                                                            <DataTrigger
+                                                                Binding="{Binding IsCommandRunning}"
+                                                                Value="False"
+                                                            >
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                            <DataTrigger
+                                                                Binding="{Binding IsDynamicInputFields}"
+                                                                Value="True"
+                                                            >
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                            <DataTrigger
+                                                                Binding="{Binding IsDynamicInputDimensional}"
+                                                                Value="True"
+                                                            >
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding DynamicInputValue}" Value="">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <TextBlock
+                                                    Text="{Binding DynamicInputValue}"
+                                                    Foreground="{StaticResource GhText}"
+                                                />
+                                            </Border>
+                                            <!-- Pointer input: X and Y, from the base point where there is one; Tab moves between them, a comma to Y. -->
+                                            <StackPanel Orientation="Horizontal">
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger
+                                                                Binding="{Binding IsDynamicInputFields}"
+                                                                Value="True"
+                                                            >
+                                                                <Setter Property="Visibility" Value="Visible" />
+                                                            </DataTrigger>
+                                                            <DataTrigger
+                                                                Binding="{Binding IsDynamicInputPolar}"
+                                                                Value="True"
+                                                            >
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                <Border Style="{StaticResource FirstField}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <local:IconView
+                                                            Size="10"
+                                                            StrokeThickness="2.5"
+                                                            Stroke="{StaticResource GhAccent}"
+                                                            Data="{StaticResource GhIconLock}"
+                                                            Margin="0,0,4,0"
+                                                            VerticalAlignment="Center"
+                                                            Visibility="{Binding IsDynamicInputFirstLocked, Converter={StaticResource Shown}}"
+                                                        />
+                                                        <TextBlock
+                                                            Text="{Binding DynamicInputFirst}"
+                                                            Foreground="{StaticResource GhText}"
+                                                        />
+                                                    </StackPanel>
+                                                </Border>
+                                                <TextBlock
+                                                    Text=","
+                                                    Margin="6,0"
+                                                    Foreground="{StaticResource GhTextMuted}"
+                                                    VerticalAlignment="Center"
+                                                />
+                                                <Border Style="{StaticResource SecondField}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <local:IconView
+                                                            Size="10"
+                                                            StrokeThickness="2.5"
+                                                            Stroke="{StaticResource GhAccent}"
+                                                            Data="{StaticResource GhIconLock}"
+                                                            Margin="0,0,4,0"
+                                                            VerticalAlignment="Center"
+                                                            Visibility="{Binding IsDynamicInputSecondLocked, Converter={StaticResource Shown}}"
+                                                        />
+                                                        <TextBlock
+                                                            Text="{Binding DynamicInputSecond}"
+                                                            Foreground="{StaticResource GhText}"
+                                                        />
+                                                    </StackPanel>
+                                                </Border>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                    <!-- The compact AutoComplete list under the box, the same rows as the command line's; a click runs a row. -->
+                                    <local:CommandSuggestionList
+                                        x:Name="CursorSuggestionList"
+                                        Width="230"
+                                        FontSize="11"
+                                        Margin="0,2,0,0"
+                                        HorizontalAlignment="Left"
+                                        Visibility="{Binding IsSuggestionListAtCursor, Converter={StaticResource Shown}}"
+                                    >
+                                        <local:CommandSuggestionList.Effect>
+                                            <DropShadowEffect
+                                                BlurRadius="16"
+                                                ShadowDepth="6"
+                                                Opacity="0.5"
+                                                Color="Black"
+                                            />
+                                        </local:CommandSuggestionList.Effect>
+                                    </local:CommandSuggestionList>
+                                    <!-- The options menu ↓ opens: the keywords of the prompt, one per row; a click picks one. -->
+                                    <Border
+                                        Width="140"
+                                        Margin="0,2,0,0"
+                                        Padding="0,1"
+                                        HorizontalAlignment="Left"
+                                        Background="{StaticResource GhPanel}"
+                                        BorderBrush="{StaticResource GhBorder}"
+                                        BorderThickness="1"
+                                        CornerRadius="2"
+                                        TextElement.FontFamily="{StaticResource GhFont}"
+                                        Visibility="{Binding IsDynamicInputMenuOpen, Converter={StaticResource Shown}}"
+                                    >
+                                        <Border.Effect>
+                                            <DropShadowEffect
+                                                BlurRadius="16"
+                                                ShadowDepth="6"
+                                                Opacity="0.5"
+                                                Color="Black"
+                                            />
+                                        </Border.Effect>
+                                        <ItemsControl ItemsSource="{Binding DynamicInputOptions}" Focusable="False">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type local:DynamicInputOptionViewModel}">
+                                                    <Border
+                                                        x:Name="Row"
+                                                        Padding="22,2,8,2"
+                                                        Background="Transparent"
+                                                        Cursor="Hand"
+                                                        MouseLeftButtonUp="OnDynamicOptionClick"
+                                                        AutomationProperties.Name="{Binding Keyword}"
+                                                    >
+                                                        <TextBlock
+                                                            Text="{Binding Keyword}"
+                                                            Foreground="{StaticResource GhText}"
+                                                        />
+                                                    </Border>
+                                                    <DataTemplate.Triggers>
+                                                        <Trigger SourceName="Row" Property="IsMouseOver" Value="True">
                                                             <Setter
-                                                                Property="BorderBrush"
-                                                                Value="{StaticResource GhAccent}"
+                                                                TargetName="Row"
+                                                                Property="Background"
+                                                                Value="{StaticResource GhHover}"
                                                             />
+                                                        </Trigger>
+                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                                             <Setter
+                                                                TargetName="Row"
                                                                 Property="Background"
                                                                 Value="{StaticResource GhSelected}"
                                                             />
                                                         </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Border.Style>
-                                            <local:IconView
-                                                Size="8"
-                                                StrokeThickness="2.2"
-                                                Stroke="{StaticResource GhText}"
-                                                Data="M12 4v16M5 13l7 7 7-7"
-                                                HorizontalAlignment="Center"
-                                                VerticalAlignment="Center"
-                                            />
-                                        </Border>
-                                        <!-- At the Command prompt the text typed and the caret; in a command what is typed at a prompt with no fields. -->
-                                        <StackPanel
-                                            Orientation="Horizontal"
-                                            MinWidth="108"
-                                            Visibility="{Binding IsCommandRunning, Converter={StaticResource Hidden}}"
-                                        >
-                                            <TextBlock
-                                                Text="{Binding CommandText}"
-                                                Foreground="{StaticResource GhText}"
-                                            />
-                                            <Rectangle
-                                                Width="1"
-                                                Height="13"
-                                                Margin="1,0,0,0"
-                                                Fill="{StaticResource GhText}"
-                                                VerticalAlignment="Center"
-                                            />
-                                        </StackPanel>
-                                        <Border>
-                                            <Border.Style>
-                                                <Style TargetType="Border" BasedOn="{StaticResource DynamicField}">
-                                                    <Setter Property="BorderBrush" Value="{StaticResource GhAccent}" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsCommandRunning}" Value="False">
-                                                            <Setter Property="Visibility" Value="Collapsed" />
-                                                        </DataTrigger>
-                                                        <DataTrigger
-                                                            Binding="{Binding IsDynamicInputFields}"
-                                                            Value="True"
-                                                        >
-                                                            <Setter Property="Visibility" Value="Collapsed" />
-                                                        </DataTrigger>
-                                                        <DataTrigger
-                                                            Binding="{Binding IsDynamicInputDimensional}"
-                                                            Value="True"
-                                                        >
-                                                            <Setter Property="Visibility" Value="Collapsed" />
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding DynamicInputValue}" Value="">
-                                                            <Setter Property="Visibility" Value="Collapsed" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Border.Style>
-                                            <TextBlock
-                                                Text="{Binding DynamicInputValue}"
-                                                Foreground="{StaticResource GhText}"
-                                            />
-                                        </Border>
-                                        <!-- Pointer input: X and Y, from the base point where there is one; Tab moves between them, a comma to Y. -->
-                                        <StackPanel Orientation="Horizontal">
-                                            <StackPanel.Style>
-                                                <Style TargetType="StackPanel">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger
-                                                            Binding="{Binding IsDynamicInputFields}"
-                                                            Value="True"
-                                                        >
-                                                            <Setter Property="Visibility" Value="Visible" />
-                                                        </DataTrigger>
-                                                        <DataTrigger
-                                                            Binding="{Binding IsDynamicInputPolar}"
-                                                            Value="True"
-                                                        >
-                                                            <Setter Property="Visibility" Value="Collapsed" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </StackPanel.Style>
-                                            <Border Style="{StaticResource FirstField}">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <local:IconView
-                                                        Size="10"
-                                                        StrokeThickness="2.5"
-                                                        Stroke="{StaticResource GhAccent}"
-                                                        Data="{StaticResource GhIconLock}"
-                                                        Margin="0,0,4,0"
-                                                        VerticalAlignment="Center"
-                                                        Visibility="{Binding IsDynamicInputFirstLocked, Converter={StaticResource Shown}}"
-                                                    />
-                                                    <TextBlock
-                                                        Text="{Binding DynamicInputFirst}"
-                                                        Foreground="{StaticResource GhText}"
-                                                    />
-                                                </StackPanel>
-                                            </Border>
-                                            <TextBlock
-                                                Text=","
-                                                Margin="6,0"
-                                                Foreground="{StaticResource GhTextMuted}"
-                                                VerticalAlignment="Center"
-                                            />
-                                            <Border Style="{StaticResource SecondField}">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <local:IconView
-                                                        Size="10"
-                                                        StrokeThickness="2.5"
-                                                        Stroke="{StaticResource GhAccent}"
-                                                        Data="{StaticResource GhIconLock}"
-                                                        Margin="0,0,4,0"
-                                                        VerticalAlignment="Center"
-                                                        Visibility="{Binding IsDynamicInputSecondLocked, Converter={StaticResource Shown}}"
-                                                    />
-                                                    <TextBlock
-                                                        Text="{Binding DynamicInputSecond}"
-                                                        Foreground="{StaticResource GhText}"
-                                                    />
-                                                </StackPanel>
-                                            </Border>
-                                        </StackPanel>
-                                    </StackPanel>
-                                </Border>
-                                <!-- The compact AutoComplete list under the box, the same rows as the command line's; a click runs a row. -->
-                                <local:CommandSuggestionList
-                                    x:Name="CursorSuggestionList"
-                                    Width="230"
-                                    FontSize="11"
-                                    Margin="0,2,0,0"
-                                    HorizontalAlignment="Left"
-                                    Visibility="{Binding IsSuggestionListAtCursor, Converter={StaticResource Shown}}"
-                                >
-                                    <local:CommandSuggestionList.Effect>
-                                        <DropShadowEffect BlurRadius="16" ShadowDepth="6" Opacity="0.5" Color="Black" />
-                                    </local:CommandSuggestionList.Effect>
-                                </local:CommandSuggestionList>
-                                <!-- The options menu ↓ opens: the keywords of the prompt, one per row; a click picks one. -->
-                                <Border
-                                    Width="140"
-                                    Margin="0,2,0,0"
-                                    Padding="0,1"
-                                    HorizontalAlignment="Left"
-                                    Background="{StaticResource GhPanel}"
-                                    BorderBrush="{StaticResource GhBorder}"
+                                                    </DataTemplate.Triggers>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Border>
+                                </StackPanel>
+                            </Canvas>
+                            <!-- Text edited in place: TEXTEDIT's box over a single-line text, the MTEXT editor's frame over an MTEXT. -->
+                            <Canvas x:Name="InPlaceLayer">
+                                <TextBox
+                                    x:Name="InPlaceTextBox"
+                                    Visibility="Collapsed"
+                                    Background="Black"
+                                    BorderBrush="{StaticResource GhTextMuted}"
                                     BorderThickness="1"
-                                    CornerRadius="2"
-                                    TextElement.FontFamily="{StaticResource GhFont}"
-                                    Visibility="{Binding IsDynamicInputMenuOpen, Converter={StaticResource Shown}}"
-                                >
-                                    <Border.Effect>
-                                        <DropShadowEffect BlurRadius="16" ShadowDepth="6" Opacity="0.5" Color="Black" />
-                                    </Border.Effect>
-                                    <ItemsControl ItemsSource="{Binding DynamicInputOptions}" Focusable="False">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate DataType="{x:Type local:DynamicInputOptionViewModel}">
-                                                <Border
-                                                    x:Name="Row"
-                                                    Padding="22,2,8,2"
-                                                    Background="Transparent"
-                                                    Cursor="Hand"
-                                                    MouseLeftButtonUp="OnDynamicOptionClick"
-                                                    AutomationProperties.Name="{Binding Keyword}"
-                                                >
-                                                    <TextBlock
-                                                        Text="{Binding Keyword}"
-                                                        Foreground="{StaticResource GhText}"
-                                                    />
-                                                </Border>
-                                                <DataTemplate.Triggers>
-                                                    <Trigger SourceName="Row" Property="IsMouseOver" Value="True">
-                                                        <Setter
-                                                            TargetName="Row"
-                                                            Property="Background"
-                                                            Value="{StaticResource GhHover}"
-                                                        />
-                                                    </Trigger>
-                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                        <Setter
-                                                            TargetName="Row"
-                                                            Property="Background"
-                                                            Value="{StaticResource GhSelected}"
-                                                        />
-                                                    </DataTrigger>
-                                                </DataTemplate.Triggers>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </Border>
-                            </StackPanel>
-                        </Canvas>
-                        <!-- Text edited in place: TEXTEDIT's box over a single-line text, the MTEXT editor's frame over an MTEXT. -->
-                        <Canvas x:Name="InPlaceLayer">
-                            <TextBox
-                                x:Name="InPlaceTextBox"
-                                Visibility="Collapsed"
-                                Background="Black"
-                                BorderBrush="{StaticResource GhTextMuted}"
-                                BorderThickness="1"
-                                Padding="4,0"
-                                CaretBrush="White"
-                                SelectionBrush="{StaticResource GhAccent}"
-                                VerticalContentAlignment="Center"
-                                PreviewKeyDown="OnInPlaceKey"
-                                LostKeyboardFocus="OnInPlaceLostFocus"
-                            />
-                            <local:CadMTextEditBox x:Name="MTextEditorBox" Visibility="Collapsed" />
-                        </Canvas>
-                        <!--
+                                    Padding="4,0"
+                                    CaretBrush="White"
+                                    SelectionBrush="{StaticResource GhAccent}"
+                                    VerticalContentAlignment="Center"
+                                    PreviewKeyDown="OnInPlaceKey"
+                                    LostKeyboardFocus="OnInPlaceLostFocus"
+                                />
+                                <local:CadMTextEditBox x:Name="MTextEditorBox" Visibility="Collapsed" />
+                            </Canvas>
+                            <!--
                     The start screen (design S1StartDxf): the app, Open, New, and Recent Documents as a list or as large pictures.
                     The button of a new document an extension offers shows only where one does; without, as GeometryHelper CAD, the
                     third button is NEW with Ctrl+N. It is 760 wide, or as wide as the canvas where that is less, as with the
                     panel of an extension at the left.
                     -->
-                        <StackPanel
-                            MaxWidth="760"
-                            HorizontalAlignment="Stretch"
-                            VerticalAlignment="Center"
-                            Visibility="{Binding HasDocument, Converter={StaticResource Hidden}}"
-                        >
-                            <TextBlock
-                                Text="{Binding AppName, RelativeSource={RelativeSource AncestorType=local:CadWorkspace}}"
-                                FontSize="28"
-                                FontWeight="Bold"
-                            />
-                            <TextBlock
-                                Text="{Binding StartScreenText}"
-                                Foreground="{StaticResource GhTextMuted}"
-                                Margin="0,6,0,20"
-                            />
-                            <StackPanel Orientation="Horizontal">
-                                <Button
-                                    Style="{StaticResource PrimaryButton}"
-                                    Content="Open DXF…  ·  Ctrl+O"
-                                    Command="{Binding OpenCommand}"
-                                />
-                                <Button
-                                    Style="{StaticResource SecondaryButton}"
-                                    Content="{Binding NewDocumentOffer.ButtonText}"
-                                    IsEnabled="True"
-                                    Command="{Binding NewOfferedDocumentCommand}"
-                                    ToolTip="{Binding NewDocumentOffer.Description}"
-                                    Visibility="{Binding HasNewDocumentOffer, Converter={StaticResource Shown}}"
-                                />
-                                <Button
-                                    IsEnabled="True"
-                                    Command="{Binding NewCommand}"
-                                    ToolTip="A new empty drawing (NEW)"
-                                >
-                                    <Button.Style>
-                                        <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
-                                            <Setter Property="Content" Value="New  ·  Ctrl+N" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding HasNewDocumentOffer}" Value="True">
-                                                    <Setter Property="Content" Value="Blank drawing" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-                                </Button>
-                            </StackPanel>
-                            <Border
-                                Margin="0,20,0,0"
-                                Padding="12"
-                                BorderBrush="{StaticResource GhBorder}"
-                                BorderThickness="1"
-                                CornerRadius="6"
-                                Background="{StaticResource GhBg}"
+                            <StackPanel
+                                MaxWidth="760"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Center"
+                                Visibility="{Binding HasDocument, Converter={StaticResource Hidden}}"
                             >
-                                <StackPanel>
-                                    <DockPanel Margin="0,0,0,4">
-                                        <Button
-                                            DockPanel.Dock="Right"
-                                            Width="22"
-                                            Height="20"
-                                            Margin="2,0,0,0"
-                                            Command="{Binding ShowRecentLargeCommand}"
-                                            ToolTip="Show as large images"
-                                            AutomationProperties.Name="Show as large images"
-                                        >
-                                            <Button.Style>
-                                                <Style TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsRecentLarge}" Value="True">
-                                                            <Setter
-                                                                Property="Background"
-                                                                Value="{StaticResource GhSelected}"
-                                                            />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Button.Style>
-                                            <local:IconView
-                                                Size="14"
-                                                StrokeThickness="2"
-                                                Stroke="{StaticResource GhTextMuted}"
-                                                Data="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"
-                                            />
-                                        </Button>
-                                        <Button
-                                            DockPanel.Dock="Right"
-                                            Width="22"
-                                            Height="20"
-                                            Margin="8,0,0,0"
-                                            Command="{Binding ShowRecentAsListCommand}"
-                                            ToolTip="Show as a list"
-                                            AutomationProperties.Name="Show as a list"
-                                        >
-                                            <Button.Style>
-                                                <Style TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
-                                                    <Setter Property="Background" Value="{StaticResource GhSelected}" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsRecentLarge}" Value="True">
-                                                            <Setter Property="Background" Value="Transparent" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Button.Style>
-                                            <local:IconView
-                                                Size="14"
-                                                StrokeThickness="2"
-                                                Stroke="{StaticResource GhText}"
-                                                Data="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"
-                                            />
-                                        </Button>
-                                        <TextBlock
-                                            DockPanel.Dock="Right"
-                                            Text="By date opened"
-                                            Foreground="{StaticResource GhTextMuted}"
-                                            VerticalAlignment="Center"
-                                        />
-                                        <TextBlock
-                                            Text="Recent Documents"
-                                            FontSize="13"
-                                            FontWeight="SemiBold"
-                                            VerticalAlignment="Center"
-                                        />
-                                    </DockPanel>
-                                    <TextBlock
-                                        Margin="0,8,0,4"
-                                        Foreground="{StaticResource GhTextMuted}"
-                                        Text="The drawings you open are listed here; a pin keeps one at the top."
-                                        Visibility="{Binding HasRecentDocuments, Converter={StaticResource Hidden}}"
-                                    />
-
-                                    <!-- As a list: PINNED, then RECENT; each row its preview, name, folder, date and pin. -->
-                                    <StackPanel Visibility="{Binding IsRecentLarge, Converter={StaticResource Hidden}}">
-                                        <TextBlock
-                                            Style="{StaticResource RecentHeading}"
-                                            Text="PINNED"
-                                            Visibility="{Binding HasPinnedDocuments, Converter={StaticResource Shown}}"
-                                        />
-                                        <ItemsControl
-                                            ItemsSource="{Binding PinnedDocuments}"
-                                            ItemTemplate="{StaticResource RecentRow}"
-                                            Focusable="False"
-                                        />
-                                        <TextBlock
-                                            Style="{StaticResource RecentHeading}"
-                                            Text="RECENT"
-                                            Visibility="{Binding HasUnpinnedDocuments, Converter={StaticResource Shown}}"
-                                        />
-                                        <ItemsControl
-                                            ItemsSource="{Binding UnpinnedDocuments}"
-                                            ItemTemplate="{StaticResource RecentRow}"
-                                            Focusable="False"
-                                        />
-                                    </StackPanel>
-
-                                    <!-- As large pictures, in the same order. -->
-                                    <ItemsControl
-                                        ItemsSource="{Binding RecentDocuments}"
-                                        ItemTemplate="{StaticResource RecentTile}"
-                                        Focusable="False"
-                                        Margin="0,8,0,0"
-                                        Visibility="{Binding IsRecentLarge, Converter={StaticResource Shown}}"
-                                    >
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <WrapPanel />
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                    </ItemsControl>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </Grid>
-                    <Border
-                        Grid.Row="1"
-                        Background="{StaticResource GhInput}"
-                        BorderBrush="{StaticResource GhBorder}"
-                        BorderThickness="0,1,0,0"
-                        TextElement.FontFamily="{StaticResource GhMonoFont}"
-                        TextElement.FontSize="12"
-                        Visibility="{Binding IsCommandLineShown, Converter={StaticResource Shown}}"
-                    >
-                        <StackPanel>
-                            <DockPanel Margin="12,6,12,4">
-                                <local:IconView
-                                    Size="14"
-                                    StrokeThickness="2"
-                                    Stroke="{StaticResource GhTextMuted}"
-                                    Data="{StaticResource GhIconClose}"
-                                    VerticalAlignment="Top"
-                                    Margin="0,1,8,0"
+                                <TextBlock
+                                    Text="{Binding AppName, RelativeSource={RelativeSource AncestorType=local:CadWorkspace}}"
+                                    FontSize="28"
+                                    FontWeight="Bold"
                                 />
-                                <ItemsControl
-                                    ItemsSource="{Binding RecentHistory}"
+                                <TextBlock
+                                    Text="{Binding StartScreenText}"
                                     Foreground="{StaticResource GhTextMuted}"
-                                    Focusable="False"
-                                >
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" />
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </DockPanel>
-                            <!-- The input: right-click for its menu (Recent Commands, Input Settings, Copy, Paste, Options…); AutoComplete pops up above it. -->
-                            <Border
-                                x:Name="CommandInput"
-                                Margin="8,0,8,8"
-                                Padding="8,4"
-                                BorderBrush="{StaticResource GhBorder}"
-                                BorderThickness="1"
-                                CornerRadius="2"
-                                Background="{StaticResource GhCommandInput}"
-                                PreviewMouseRightButtonUp="OnCommandLineRightUp"
-                            >
-                                <DockPanel>
-                                    <Popup
-                                        x:Name="SuggestionPopup"
-                                        PlacementTarget="{Binding ElementName=CommandInput}"
-                                        Placement="Top"
-                                        VerticalOffset="-2"
-                                        IsOpen="{Binding IsSuggestionListAtCommandLine, Mode=OneWay}"
-                                        StaysOpen="True"
-                                        AllowsTransparency="True"
-                                        Focusable="False"
+                                    Margin="0,6,0,20"
+                                />
+                                <StackPanel Orientation="Horizontal">
+                                    <Button
+                                        Style="{StaticResource PrimaryButton}"
+                                        Content="Open DXF…  ·  Ctrl+O"
+                                        Command="{Binding OpenCommand}"
+                                    />
+                                    <Button
+                                        Style="{StaticResource SecondaryButton}"
+                                        Content="{Binding NewDocumentOffer.ButtonText}"
+                                        IsEnabled="True"
+                                        Command="{Binding NewOfferedDocumentCommand}"
+                                        ToolTip="{Binding NewDocumentOffer.Description}"
+                                        Visibility="{Binding HasNewDocumentOffer, Converter={StaticResource Shown}}"
+                                    />
+                                    <Button
+                                        IsEnabled="True"
+                                        Command="{Binding NewCommand}"
+                                        ToolTip="A new empty drawing (NEW)"
                                     >
-                                        <local:CommandSuggestionList x:Name="SuggestionList" Margin="0,0,8,8">
-                                            <local:CommandSuggestionList.Effect>
-                                                <DropShadowEffect
-                                                    BlurRadius="16"
-                                                    ShadowDepth="6"
-                                                    Opacity="0.5"
-                                                    Color="Black"
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                                <Setter Property="Content" Value="New  ·  Ctrl+N" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasNewDocumentOffer}" Value="True">
+                                                        <Setter Property="Content" Value="Blank drawing" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </StackPanel>
+                                <Border
+                                    Margin="0,20,0,0"
+                                    Padding="12"
+                                    BorderBrush="{StaticResource GhBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Background="{StaticResource GhBg}"
+                                >
+                                    <StackPanel>
+                                        <DockPanel Margin="0,0,0,4">
+                                            <Button
+                                                DockPanel.Dock="Right"
+                                                Width="22"
+                                                Height="20"
+                                                Margin="2,0,0,0"
+                                                Command="{Binding ShowRecentLargeCommand}"
+                                                ToolTip="Show as large images"
+                                                AutomationProperties.Name="Show as large images"
+                                            >
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsRecentLarge}" Value="True">
+                                                                <Setter
+                                                                    Property="Background"
+                                                                    Value="{StaticResource GhSelected}"
+                                                                />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                                <local:IconView
+                                                    Size="14"
+                                                    StrokeThickness="2"
+                                                    Stroke="{StaticResource GhTextMuted}"
+                                                    Data="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"
                                                 />
-                                            </local:CommandSuggestionList.Effect>
-                                        </local:CommandSuggestionList>
-                                    </Popup>
+                                            </Button>
+                                            <Button
+                                                DockPanel.Dock="Right"
+                                                Width="22"
+                                                Height="20"
+                                                Margin="8,0,0,0"
+                                                Command="{Binding ShowRecentAsListCommand}"
+                                                ToolTip="Show as a list"
+                                                AutomationProperties.Name="Show as a list"
+                                            >
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
+                                                        <Setter
+                                                            Property="Background"
+                                                            Value="{StaticResource GhSelected}"
+                                                        />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsRecentLarge}" Value="True">
+                                                                <Setter Property="Background" Value="Transparent" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                                <local:IconView
+                                                    Size="14"
+                                                    StrokeThickness="2"
+                                                    Stroke="{StaticResource GhText}"
+                                                    Data="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"
+                                                />
+                                            </Button>
+                                            <TextBlock
+                                                DockPanel.Dock="Right"
+                                                Text="By date opened"
+                                                Foreground="{StaticResource GhTextMuted}"
+                                                VerticalAlignment="Center"
+                                            />
+                                            <TextBlock
+                                                Text="Recent Documents"
+                                                FontSize="13"
+                                                FontWeight="SemiBold"
+                                                VerticalAlignment="Center"
+                                            />
+                                        </DockPanel>
+                                        <TextBlock
+                                            Margin="0,8,0,4"
+                                            Foreground="{StaticResource GhTextMuted}"
+                                            Text="The drawings you open are listed here; a pin keeps one at the top."
+                                            Visibility="{Binding HasRecentDocuments, Converter={StaticResource Hidden}}"
+                                        />
+
+                                        <!-- As a list: PINNED, then RECENT; each row its preview, name, folder, date and pin. -->
+                                        <StackPanel Visibility="{Binding IsRecentLarge, Converter={StaticResource Hidden}}">
+                                            <TextBlock
+                                                Style="{StaticResource RecentHeading}"
+                                                Text="PINNED"
+                                                Visibility="{Binding HasPinnedDocuments, Converter={StaticResource Shown}}"
+                                            />
+                                            <ItemsControl
+                                                ItemsSource="{Binding PinnedDocuments}"
+                                                ItemTemplate="{StaticResource RecentRow}"
+                                                Focusable="False"
+                                            />
+                                            <TextBlock
+                                                Style="{StaticResource RecentHeading}"
+                                                Text="RECENT"
+                                                Visibility="{Binding HasUnpinnedDocuments, Converter={StaticResource Shown}}"
+                                            />
+                                            <ItemsControl
+                                                ItemsSource="{Binding UnpinnedDocuments}"
+                                                ItemTemplate="{StaticResource RecentRow}"
+                                                Focusable="False"
+                                            />
+                                        </StackPanel>
+
+                                        <!-- As large pictures, in the same order. -->
+                                        <ItemsControl
+                                            ItemsSource="{Binding RecentDocuments}"
+                                            ItemTemplate="{StaticResource RecentTile}"
+                                            Focusable="False"
+                                            Margin="0,8,0,0"
+                                            Visibility="{Binding IsRecentLarge, Converter={StaticResource Shown}}"
+                                        >
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                        <Border
+                            Grid.Row="1"
+                            Background="{StaticResource GhInput}"
+                            BorderBrush="{StaticResource GhBorder}"
+                            BorderThickness="0,1,0,0"
+                            TextElement.FontFamily="{StaticResource GhMonoFont}"
+                            TextElement.FontSize="12"
+                            Visibility="{Binding IsCommandLineShown, Converter={StaticResource Shown}}"
+                        >
+                            <StackPanel>
+                                <DockPanel Margin="12,6,12,4">
                                     <local:IconView
                                         Size="14"
                                         StrokeThickness="2"
                                         Stroke="{StaticResource GhTextMuted}"
-                                        Data="{StaticResource GhIconPrompt}"
-                                        VerticalAlignment="Center"
-                                        Margin="0,0,8,0"
+                                        Data="{StaticResource GhIconClose}"
+                                        VerticalAlignment="Top"
+                                        Margin="0,1,8,0"
                                     />
-                                    <TextBlock Text="{Binding Prompt}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                    <TextBox
-                                        x:Name="CommandBox"
-                                        Style="{StaticResource GhTextBox}"
-                                        Tag="Type a command"
-                                        FontFamily="{StaticResource GhMonoFont}"
-                                        FontSize="12"
-                                        Text="{Binding CommandText, UpdateSourceTrigger=PropertyChanged}"
-                                        PreviewKeyDown="OnCommandKeyDown"
-                                    />
+                                    <ItemsControl
+                                        ItemsSource="{Binding RecentHistory}"
+                                        Foreground="{StaticResource GhTextMuted}"
+                                        Focusable="False"
+                                    >
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                 </DockPanel>
-                            </Border>
-                        </StackPanel>
-                    </Border>
-                </Grid>
-
-                <!-- Right panel: PROPERTIES of the selection; PROPERTIESCLOSE and View › Interface hide it, PROPERTIES shows it. -->
-                <Border
-                    x:Name="PropertiesPanel"
-                    Grid.Column="1"
-                    Width="312"
-                    Background="{StaticResource GhPanel}"
-                    BorderBrush="{StaticResource GhBorder}"
-                    BorderThickness="1,0,0,0"
-                    Visibility="{Binding IsPropertiesPanelShown, Converter={StaticResource Shown}}"
-                >
-                    <DockPanel>
-                        <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="12,8">
-                            <TextBlock Style="{StaticResource PanelTitle}" Text="PROPERTIES" />
-                        </Border>
-                        <TextBlock
-                            DockPanel.Dock="Top"
-                            Margin="12,24"
-                            Foreground="{StaticResource GhTextMuted}"
-                            TextAlignment="Center"
-                            Visibility="{Binding HasDocument, Converter={StaticResource Hidden}}"
-                            Text="No selection.&#x0a;Open a file to see its properties."
-                        />
-                        <!-- The selection box: a list of All and one row for each kind of object selected with its count; a kind
-                         chosen shows and edits its objects alone. Beside it, Toggle value of PICKADD, Select Objects and Quick Select. -->
-                        <DockPanel
-                            DockPanel.Dock="Top"
-                            Margin="12,8"
-                            Visibility="{Binding HasDocument, Converter={StaticResource Shown}}"
-                        >
-                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="6,0,0,0">
-                                <ToggleButton
-                                    Width="26"
-                                    Height="26"
-                                    Margin="0,0,2,0"
-                                    AutomationProperties.Name="Toggle value of PICKADD"
-                                    IsChecked="{Binding IsPickAddOn, Mode=TwoWay}"
-                                    ToolTip="Toggle value of PICKADD system variable"
+                                <!-- The input: right-click for its menu (Recent Commands, Input Settings, Copy, Paste, Options…); AutoComplete pops up above it. -->
+                                <Border
+                                    x:Name="CommandInput"
+                                    Margin="8,0,8,8"
+                                    Padding="8,4"
+                                    BorderBrush="{StaticResource GhBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="2"
+                                    Background="{StaticResource GhCommandInput}"
+                                    PreviewMouseRightButtonUp="OnCommandLineRightUp"
                                 >
-                                    <ToggleButton.Style>
-                                        <Style TargetType="ToggleButton" BasedOn="{StaticResource GhFlatButton}">
-                                            <Style.Triggers>
-                                                <Trigger Property="IsChecked" Value="True">
-                                                    <Setter Property="Background" Value="{StaticResource GhSelected}" />
-                                                </Trigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </ToggleButton.Style>
-                                    <local:IconView
-                                        Size="16"
-                                        StrokeThickness="1.8"
-                                        Stroke="{StaticResource GhIcon}"
-                                        Data="{StaticResource GhIconPickAdd}"
-                                    />
-                                </ToggleButton>
-                                <Button
-                                    Width="26"
-                                    Height="26"
-                                    Margin="0,0,2,0"
-                                    Style="{StaticResource GhFlatButton}"
-                                    AutomationProperties.Name="Select Objects"
-                                    Tag="SELECT"
-                                    Click="OnPaletteCommand"
-                                    ToolTip="Select Objects"
-                                >
-                                    <local:IconView
-                                        Size="16"
-                                        StrokeThickness="1.8"
-                                        Stroke="{StaticResource GhIcon}"
-                                        Data="{StaticResource GhIconSelectObjects}"
-                                    />
-                                </Button>
-                                <Button
-                                    Width="26"
-                                    Height="26"
-                                    Style="{StaticResource GhFlatButton}"
-                                    AutomationProperties.Name="Quick Select"
-                                    Tag="QSELECT"
-                                    Click="OnPaletteCommand"
-                                    ToolTip="Quick Select"
-                                >
-                                    <local:IconView
-                                        Size="16"
-                                        StrokeThickness="1.8"
-                                        Stroke="{StaticResource GhIcon}"
-                                        Data="{StaticResource GhIconQuickSelect}"
-                                    />
-                                </Button>
+                                    <DockPanel>
+                                        <Popup
+                                            x:Name="SuggestionPopup"
+                                            PlacementTarget="{Binding ElementName=CommandInput}"
+                                            Placement="Top"
+                                            VerticalOffset="-2"
+                                            IsOpen="{Binding IsSuggestionListAtCommandLine, Mode=OneWay}"
+                                            StaysOpen="True"
+                                            AllowsTransparency="True"
+                                            Focusable="False"
+                                        >
+                                            <local:CommandSuggestionList x:Name="SuggestionList" Margin="0,0,8,8">
+                                                <local:CommandSuggestionList.Effect>
+                                                    <DropShadowEffect
+                                                        BlurRadius="16"
+                                                        ShadowDepth="6"
+                                                        Opacity="0.5"
+                                                        Color="Black"
+                                                    />
+                                                </local:CommandSuggestionList.Effect>
+                                            </local:CommandSuggestionList>
+                                        </Popup>
+                                        <local:IconView
+                                            Size="14"
+                                            StrokeThickness="2"
+                                            Stroke="{StaticResource GhTextMuted}"
+                                            Data="{StaticResource GhIconPrompt}"
+                                            VerticalAlignment="Center"
+                                            Margin="0,0,8,0"
+                                        />
+                                        <TextBlock
+                                            Text="{Binding Prompt}"
+                                            VerticalAlignment="Center"
+                                            Margin="0,0,8,0"
+                                        />
+                                        <TextBox
+                                            x:Name="CommandBox"
+                                            Style="{StaticResource GhTextBox}"
+                                            Tag="Type a command"
+                                            FontFamily="{StaticResource GhMonoFont}"
+                                            FontSize="12"
+                                            Text="{Binding CommandText, UpdateSourceTrigger=PropertyChanged}"
+                                            PreviewKeyDown="OnCommandKeyDown"
+                                        />
+                                    </DockPanel>
+                                </Border>
                             </StackPanel>
-                            <ComboBox
-                                Style="{StaticResource GhComboBox}"
-                                Height="26"
-                                AutomationProperties.Name="Selected objects"
-                                ItemsSource="{Binding SelectionKinds}"
-                                SelectedItem="{Binding SelectedKind, Mode=TwoWay}"
-                            />
-                        </DockPanel>
-                        <!-- The owner banner: what an extension says of a selection it owns. -->
-                        <Border
-                            DockPanel.Dock="Top"
-                            Margin="12,0,12,6"
-                            Padding="10,8"
-                            Background="{StaticResource GhInput}"
-                            BorderBrush="{StaticResource GhAccent}"
-                            BorderThickness="3,0,0,0"
-                            CornerRadius="2"
-                            Visibility="{Binding HasPropertiesBanner, Converter={StaticResource Shown}}"
-                        >
-                            <TextBlock
-                                Text="{Binding PropertiesBanner}"
-                                Foreground="{StaticResource GhIcon}"
-                                TextWrapping="Wrap"
-                            />
                         </Border>
-                        <ScrollViewer
-                            VerticalScrollBarVisibility="Auto"
-                            HorizontalScrollBarVisibility="Disabled"
-                            Focusable="False"
-                            Visibility="{Binding HasDocument, Converter={StaticResource Shown}}"
-                        >
-                            <ItemsControl ItemsSource="{Binding PropertyGroups}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel>
-                                            <ToggleButton
-                                                x:Name="Expander"
-                                                Style="{StaticResource GhFlatButton}"
-                                                IsChecked="True"
-                                                HorizontalContentAlignment="Left"
-                                                Padding="12,6"
-                                            >
-                                                <StackPanel Orientation="Horizontal">
-                                                    <local:IconView
-                                                        x:Name="Chevron"
-                                                        Size="12"
-                                                        StrokeThickness="2.5"
-                                                        Stroke="{StaticResource GhTextMuted}"
-                                                        Data="{StaticResource GhIconChevron}"
-                                                        VerticalAlignment="Center"
-                                                        RenderTransformOrigin="0.5,0.5"
-                                                    />
-                                                    <TextBlock
-                                                        Text="{Binding Title}"
-                                                        FontSize="13"
-                                                        FontWeight="SemiBold"
-                                                        Margin="6,0,0,0"
-                                                        Foreground="{StaticResource GhText}"
-                                                    />
-                                                </StackPanel>
-                                            </ToggleButton>
-                                            <ItemsControl x:Name="Rows" ItemsSource="{Binding Rows}">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Grid Margin="12,3">
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*" />
-                                                                <ColumnDefinition Width="*" />
-                                                            </Grid.ColumnDefinitions>
-                                                            <TextBlock
-                                                                Text="{Binding Label}"
-                                                                Foreground="{StaticResource GhTextMuted}"
-                                                                VerticalAlignment="Center"
-                                                                TextTrimming="CharacterEllipsis"
-                                                                Margin="0,0,8,0"
-                                                                ToolTip="{Binding Label}"
-                                                            />
-                                                            <Grid Grid.Column="1">
-                                                                <Border
-                                                                    x:Name="Cell"
-                                                                    Background="{StaticResource GhInput}"
-                                                                    CornerRadius="2"
-                                                                    Padding="6,3"
-                                                                >
-                                                                    <Grid>
-                                                                        <TextBlock
-                                                                            x:Name="Value"
-                                                                            Text="{Binding Value}"
-                                                                            Foreground="{StaticResource GhTextMuted}"
-                                                                            TextTrimming="CharacterEllipsis"
-                                                                            ToolTip="{Binding Value}"
-                                                                        />
-                                                                        <TextBox
-                                                                            x:Name="Editor"
-                                                                            Style="{StaticResource GhTextBox}"
-                                                                            Visibility="Collapsed"
-                                                                            Padding="0"
-                                                                            Text="{Binding Value, UpdateSourceTrigger=LostFocus}"
-                                                                            KeyDown="OnValueKeyDown"
-                                                                        />
-                                                                    </Grid>
-                                                                </Border>
-                                                                <ComboBox
-                                                                    x:Name="Choice"
-                                                                    Style="{StaticResource GhComboBox}"
-                                                                    Visibility="Collapsed"
-                                                                    ItemsSource="{Binding Options}"
-                                                                    SelectedItem="{Binding Value, Mode=TwoWay}"
-                                                                />
-                                                            </Grid>
-                                                        </Grid>
-                                                        <DataTemplate.Triggers>
-                                                            <DataTrigger Binding="{Binding IsTyped}" Value="True">
-                                                                <Setter
-                                                                    TargetName="Value"
-                                                                    Property="Visibility"
-                                                                    Value="Collapsed"
-                                                                />
-                                                                <Setter
-                                                                    TargetName="Editor"
-                                                                    Property="Visibility"
-                                                                    Value="Visible"
-                                                                />
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding HasOptions}" Value="True">
-                                                                <Setter
-                                                                    TargetName="Cell"
-                                                                    Property="Visibility"
-                                                                    Value="Collapsed"
-                                                                />
-                                                                <Setter
-                                                                    TargetName="Choice"
-                                                                    Property="Visibility"
-                                                                    Value="Visible"
-                                                                />
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding Varies}" Value="True">
-                                                                <Setter
-                                                                    TargetName="Editor"
-                                                                    Property="Foreground"
-                                                                    Value="{StaticResource GhTextMuted}"
-                                                                />
-                                                                <Setter
-                                                                    TargetName="Editor"
-                                                                    Property="FontStyle"
-                                                                    Value="Italic"
-                                                                />
-                                                                <Setter
-                                                                    TargetName="Value"
-                                                                    Property="FontStyle"
-                                                                    Value="Italic"
-                                                                />
-                                                            </DataTrigger>
-                                                        </DataTemplate.Triggers>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </StackPanel>
-                                        <DataTemplate.Triggers>
-                                            <Trigger SourceName="Expander" Property="IsChecked" Value="False">
-                                                <Setter TargetName="Rows" Property="Visibility" Value="Collapsed" />
-                                                <Setter TargetName="Chevron" Property="RenderTransform">
-                                                    <Setter.Value>
-                                                        <RotateTransform Angle="-90" />
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </Trigger>
-                                        </DataTemplate.Triggers>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-                    </DockPanel>
-                </Border>
-                <!-- The left edge of PROPERTIES, dragged to make the panel wider or narrower. -->
-                <Thumb
-                    Grid.Column="1"
-                    Width="5"
-                    HorizontalAlignment="Left"
-                    Cursor="SizeWE"
-                    DragDelta="OnPropertiesEdgeDrag"
-                    Visibility="{Binding IsPropertiesPanelShown, Converter={StaticResource Shown}}"
-                >
-                    <Thumb.Template>
-                        <ControlTemplate TargetType="Thumb">
-                            <Border Background="Transparent" />
-                        </ControlTemplate>
-                    </Thumb.Template>
-                </Thumb>
-            </Grid>
+                    </Grid>
+                </Grid>
+            </DockPanel>
+            <!-- Where a panel dragged by its title would dock: shown on that side while it is dragged. -->
+            <Border
+                x:Name="DockHint"
+                Width="288"
+                HorizontalAlignment="Left"
+                Background="{StaticResource GhAccent}"
+                Opacity="0.25"
+                IsHitTestVisible="False"
+                Visibility="Collapsed"
+            />
         </Grid>
 
         <!-- Bottom bar: Model and layout tabs at the left; state, coordinates, space, toggles and scale at the right. -->

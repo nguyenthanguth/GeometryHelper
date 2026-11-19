@@ -55,11 +55,25 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Raised when settings are applied: the window gives the canvas their colours, font, zoom factor, pickbox and aperture.</summary>
         public event EventHandler SettingsApplied;
 
-        /// <summary>Raised when Global settings applies a reset: the window puts DRAWINGS, PROPERTIES and an extension's panel back to their first widths.</summary>
-        internal event EventHandler PanelLayoutReset;
-
-        /// <summary>Puts the panels back to their first widths (<see cref="PanelLayoutReset"/>).</summary>
-        internal void ResetPanelLayout() => PanelLayoutReset?.Invoke(this, EventArgs.Empty);
+        /// <summary>
+        /// Keeps where the user docked and how wide they dragged DRAWINGS, PROPERTIES and an extension's panel in the settings
+        /// in use, which the window saves (<see cref="SettingsChanged"/>) and lays out again.
+        /// </summary>
+        internal void KeepPanelLayout(
+            double fileListWidth,
+            double propertiesWidth,
+            double sidePanelWidth,
+            bool fileListOnRight,
+            bool propertiesOnLeft
+        ) =>
+            ChangeSettings(s =>
+            {
+                s.FileListWidth = fileListWidth;
+                s.PropertiesWidth = propertiesWidth;
+                s.SidePanelWidth = sidePanelWidth;
+                s.FileListOnRight = fileListOnRight;
+                s.PropertiesOnLeft = propertiesOnLeft;
+            });
 
         /// <summary>Raised by OPTIONS and the Settings tab: the window shows Global settings over <see cref="CreateGlobalSettings"/>, on the category given (null for the first).</summary>
         public event EventHandler<string> SettingsRequested

@@ -37,12 +37,12 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 
                 // The DRAWINGS list is 288 wide: the canvas starts at 288 and the panel takes no width.
                 Assert.Equal(288.0, CanvasLeft(workspace), 0.5);
-                Assert.Equal(0.0, Column(workspace).ActualWidth);
+                Assert.Equal(0.0, Dock(workspace).ActualWidth);
             });
         }
 
         [Fact]
-        public void AnExtensionWithAPanel_IsShownRightOfTheDrawingsList_320Wide_WithTheCanvasPushedRightBy324()
+        public void AnExtensionWithAPanel_IsShownRightOfTheDrawingsList_320Wide_WithTheCanvasPushedRightBy320()
         {
             OnWorkspace(true, (model, extension, workspace) =>
             {
@@ -50,12 +50,12 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 
                 Assert.Same(extension, model.SidePanelExtension);
                 Assert.True(model.IsSidePanelShown);
-                Assert.Equal(320.0, Column(workspace).ActualWidth, 0.5);
+                Assert.Equal(320.0, Dock(workspace).ActualWidth, 0.5);
                 Assert.Equal(288.0, content.TranslatePoint(new Point(0, 0), workspace).X, 0.5);
                 Assert.Equal(319.0, content.ActualWidth, 0.5);
 
-                // The DRAWINGS list of 288, the panel, then the 4 pixels of its edge.
-                Assert.Equal(320.0 + 4.0 + 288.0, CanvasLeft(workspace), 0.5);
+                // The DRAWINGS list of 288, then the panel, its edge drawn over its own border.
+                Assert.Equal(320.0 + 288.0, CanvasLeft(workspace), 0.5);
             });
         }
 
@@ -101,10 +101,10 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         {
             OnWorkspace(true, (model, extension, workspace) =>
             {
-                // What dragging the edge does: the column takes the width.
-                Column(workspace).Width = new GridLength(400.0);
+                // What letting the edge go does: the width is kept in the settings and laid out.
+                model.KeepPanelLayout(288.0, 312.0, 400.0, false, false);
                 Layout(workspace);
-                Assert.Equal(400.0 + 4.0 + 288.0, CanvasLeft(workspace), 0.5);
+                Assert.Equal(400.0 + 288.0, CanvasLeft(workspace), 0.5);
 
                 extension.IsSidePanelVisible = false;
                 Layout(workspace);
@@ -112,7 +112,25 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 
                 extension.IsSidePanelVisible = true;
                 Layout(workspace);
-                Assert.Equal(400.0 + 4.0 + 288.0, CanvasLeft(workspace), 0.5);
+                Assert.Equal(400.0 + 288.0, CanvasLeft(workspace), 0.5);
+            });
+        }
+
+        [Fact]
+        public void DrawingsDockedRight_AndPropertiesLeft_StandOnThoseSides_ThePanelStillOnTheCanvasSideOfDrawings()
+        {
+            OnWorkspace(true, (model, extension, workspace) =>
+            {
+                model.KeepPanelLayout(300.0, 250.0, 320.0, true, true);
+                Layout(workspace);
+
+                // PROPERTIES of 250 at the left, then the canvas, then the panel of 320, then DRAWINGS of 300 at the right edge.
+                var content = (Border)extension.SidePanelContent;
+                var files = (FrameworkElement)workspace.FindName("FileListPanel");
+
+                Assert.Equal(250.0, CanvasLeft(workspace), 0.5);
+                Assert.Equal(1600.0 - 300.0, files.TranslatePoint(new Point(0, 0), workspace).X, 0.5);
+                Assert.Equal(1600.0 - 300.0 - 320.0 + 1.0, content.TranslatePoint(new Point(0, 0), workspace).X, 0.5);
             });
         }
 
@@ -141,12 +159,12 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 
             OnWorkspace(true, (model, extension, workspace) =>
             {
-                // With the panel of 320 and its edge of 4 the canvas is 676 wide, and the start screen is no wider.
+                // With the panel of 320 the canvas is 680 wide, and the start screen is no wider.
                 FrameworkElement start = StartScreenOf(workspace);
                 double left = start.TranslatePoint(new Point(0, 0), workspace).X;
 
-                Assert.Equal(676.0, 1600.0 - 312.0 - CanvasLeft(workspace), 1.0);
-                Assert.True(start.ActualWidth <= 676.5, "The start screen is " + start.ActualWidth + " wide.");
+                Assert.Equal(680.0, 1600.0 - 312.0 - CanvasLeft(workspace), 1.0);
+                Assert.True(start.ActualWidth <= 680.5, "The start screen is " + start.ActualWidth + " wide.");
                 Assert.True(left >= CanvasLeft(workspace) - 0.5, "The start screen begins at " + left + ".");
             });
         }
@@ -188,8 +206,8 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             }
         }
 
-        private static ColumnDefinition Column(CadWorkspace workspace) =>
-            (ColumnDefinition)workspace.FindName("SidePanelColumn");
+        private static FrameworkElement Dock(CadWorkspace workspace) =>
+            (FrameworkElement)workspace.FindName("SidePanelDock");
 
         private static double CanvasLeft(CadWorkspace workspace) =>
             workspace.DrawingCanvas.TranslatePoint(new Point(0, 0), workspace).X;

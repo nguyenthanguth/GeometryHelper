@@ -1233,6 +1233,13 @@ namespace GeometryHelper.Cad
             w.Value("folder", _templateFolder);
             w.Value("qnew", _qnewTemplate);
             w.Close();
+            w.Open("panels");
+            w.Value("fileListWidth", _fileListWidth);
+            w.Value("propertiesWidth", _propertiesWidth);
+            w.Value("sidePanelWidth", _sidePanelWidth);
+            w.Value("fileListOnRight", FileListOnRight);
+            w.Value("propertiesOnLeft", PropertiesOnLeft);
+            w.Close();
             WriteInputAndRecords(w);
             w.Close();
             return w.ToString();
@@ -1414,6 +1421,11 @@ namespace GeometryHelper.Cad
                 Flag("remote", "allowRemoteConnections", v => _s.AllowRemoteConnections = v);
                 Text("templates", "folder", v => _s.TemplateFolder = v);
                 Text("templates", "qnew", v => _s.QnewTemplate = v);
+                Number("panels", "fileListWidth", v => _s.FileListWidth = v);
+                Number("panels", "propertiesWidth", v => _s.PropertiesWidth = v);
+                Number("panels", "sidePanelWidth", v => _s.SidePanelWidth = v);
+                Flag("panels", "fileListOnRight", v => _s.FileListOnRight = v);
+                Flag("panels", "propertiesOnLeft", v => _s.PropertiesOnLeft = v);
                 Flag("input", "autoComplete", v => _s.AutoComplete = v);
                 Flag("input", "autoCorrect", v => _s.AutoCorrect = v);
                 Flag("input", "searchSystemVariables", v => _s.SearchSystemVariables = v);

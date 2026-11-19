@@ -693,9 +693,19 @@ An extension may add a panel of its own between the DRAWINGS list and the canvas
 `CadWorkspaceExtension.SidePanelContent` (a WPF element, or a view model the window has a template for) and overrides
 `SidePanelHeader` for the title above it. The window shows the panel of the first extension that has content
 (`MainViewModel.SidePanelExtension`, `IsSidePanelShown`), 320 pixels wide, with an edge the user drags to change the width
-(160 pixels at least); `IsSidePanelVisible` hides and shows it, and the width dragged to is remembered while the window lives
-(it is not written to the settings file, as the widths of the DRAWINGS list and of Properties are fixed). An app with no such
-extension looks as it always did: the DRAWINGS list is 288 pixels wide and the canvas starts at 288. The start screen is 760 wide, or as wide as the canvas where that is less.
+(160 to 1 200 pixels); `IsSidePanelVisible` hides and shows it. An app with no such extension looks as it always did: the
+DRAWINGS list is 288 pixels wide and the canvas starts at 288. The start screen is 760 wide, or as wide as the canvas where
+that is less.
+
+### Docking and sizing the panels
+
+DRAWINGS and PROPERTIES are each docked left or right of the canvas. Dragging a panel's title shows, past 8 pixels, a band on
+the side it would dock on: the left half of the window docks it left, the right half right. An extension's panel goes with
+DRAWINGS, on its canvas side. Dragging a panel's inner edge makes it wider or narrower: DRAWINGS and PROPERTIES 180 to 600
+pixels, an extension's panel 160 to 1 200, none growing past what leaves the canvas 400. Both are kept in the settings file
+(`GlobalSettings.FileListWidth`, `PropertiesWidth`, `SidePanelWidth`, `FileListOnRight`, `PropertiesOnLeft`) when the panel
+is let go, so the window opens with the panels where they were left; Reset to defaults of Global settings, once applied,
+puts DRAWINGS back left at 288, PROPERTIES right at 312 and an extension's panel at 320.
 
 An extension that keeps its own record of a drawing's file overrides `DocumentSaved(document, path)`: it is called after every
 save that reaches the file (Save, Save As, QSAVE, Ctrl+S, Save All) with the document and the file's full path, so that
