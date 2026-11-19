@@ -103,6 +103,20 @@ namespace GeometryHelper.Cad.Wpf
             }
         }
 
+        /// <summary>The right edge of DRAWINGS dragged: the list is made wider or narrower, between 180 and 600 pixels.</summary>
+        private void OnFileListEdgeDrag(object sender, DragDeltaEventArgs e)
+        {
+            FileListPanel.Width = PanelWidth(FileListPanel.Width + e.HorizontalChange);
+        }
+
+        /// <summary>The left edge of PROPERTIES dragged: the panel is made wider or narrower, between 180 and 600 pixels.</summary>
+        private void OnPropertiesEdgeDrag(object sender, DragDeltaEventArgs e)
+        {
+            PropertiesPanel.Width = PanelWidth(PropertiesPanel.Width - e.HorizontalChange);
+        }
+
+        private static double PanelWidth(double width) => Math.Max(180.0, Math.Min(600.0, width));
+
         /// <summary>The title bar's search box: Enter starts the first command found, Escape empties the box.</summary>
         private void OnTitleSearchKey(object sender, KeyEventArgs e)
         {

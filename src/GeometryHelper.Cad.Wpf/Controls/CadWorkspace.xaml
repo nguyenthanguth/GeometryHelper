@@ -5405,6 +5405,7 @@
 
             <!-- Left panel: DRAWINGS, the files only (A20); View › Interface hides it. -->
             <Border
+                x:Name="FileListPanel"
                 Grid.Column="0"
                 Width="288"
                 Background="{StaticResource GhPanel}"
@@ -5666,6 +5667,21 @@
                     </ScrollViewer>
                 </DockPanel>
             </Border>
+            <!-- The right edge of DRAWINGS, dragged to make the list wider or narrower. -->
+            <Thumb
+                Grid.Column="0"
+                Width="5"
+                HorizontalAlignment="Right"
+                Cursor="SizeWE"
+                DragDelta="OnFileListEdgeDrag"
+                Visibility="{Binding IsFileListShown, Converter={StaticResource Shown}}"
+            >
+                <Thumb.Template>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border Background="Transparent" />
+                    </ControlTemplate>
+                </Thumb.Template>
+            </Thumb>
 
             <!-- Next to DRAWINGS: the panel an extension adds (CadWorkspaceExtension.SidePanelContent); no width at all without one. -->
             <Border
@@ -6361,6 +6377,7 @@
 
                 <!-- Right panel: PROPERTIES of the selection; PROPERTIESCLOSE and View › Interface hide it, PROPERTIES shows it. -->
                 <Border
+                    x:Name="PropertiesPanel"
                     Grid.Column="1"
                     Width="312"
                     Background="{StaticResource GhPanel}"
@@ -6620,6 +6637,21 @@
                         </ScrollViewer>
                     </DockPanel>
                 </Border>
+                <!-- The left edge of PROPERTIES, dragged to make the panel wider or narrower. -->
+                <Thumb
+                    Grid.Column="1"
+                    Width="5"
+                    HorizontalAlignment="Left"
+                    Cursor="SizeWE"
+                    DragDelta="OnPropertiesEdgeDrag"
+                    Visibility="{Binding IsPropertiesPanelShown, Converter={StaticResource Shown}}"
+                >
+                    <Thumb.Template>
+                        <ControlTemplate TargetType="Thumb">
+                            <Border Background="Transparent" />
+                        </ControlTemplate>
+                    </Thumb.Template>
+                </Thumb>
             </Grid>
         </Grid>
 
