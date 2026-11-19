@@ -836,6 +836,48 @@ namespace GeometryHelper.Cad.Wpf
             RebuildRows();
         }
 
+        /// <summary>
+        /// Lists the DXF and DWG files of a folder in the list of files, as opening a file of it would, without opening any. A
+        /// file listed from the folder before, not open, and gone from the disk now is taken off the list, so a host that
+        /// keeps its drawings in a folder calls this again after it made or deleted one. A folder that is not there lists
+        /// nothing. The files of a folder with 30 drawings are 30 rows under one header, none of them open.
+        /// </summary>
+        /// <param name="folder">The path of the folder.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the folder is null or empty.</exception>
+        public void ShowFolder(string folder)
+        {
+            if (string.IsNullOrWhiteSpace(folder))
+            {
+                throw new ArgumentNullException(nameof(folder));
+            }
+
+            // The folder as Open names it, with no separator at its end.
+            string full = System.IO.Path.GetDirectoryName(
+                System.IO.Path.GetFullPath(System.IO.Path.Combine(folder, "x"))
+            );
+
+            foreach (
+                KeyValuePair<string, KnownFile> gone in _files
+                    .Where(p =>
+                        p.Value.Document == null
+                        && System.IO.Path.IsPathRooted(p.Value.Path)
+                        && string.Equals(
+                            System.IO.Path.GetDirectoryName(p.Value.Path),
+                            full,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                        && !System.IO.File.Exists(p.Value.Path)
+                    )
+                    .ToList()
+            )
+            {
+                _files.Remove(gone.Key);
+            }
+
+            ListFolder(full);
+            RebuildRows();
+        }
+
         /// <summary>Opens or shows the file of a row of the list; a header does nothing.</summary>
         /// <param name="row">The row.</param>
         public void Activate(FileRowViewModel row)
