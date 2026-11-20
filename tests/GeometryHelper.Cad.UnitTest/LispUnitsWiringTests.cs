@@ -77,7 +77,7 @@ namespace GeometryHelper.Cad.UnitTest
         [InlineData("(angtos 0.5 5 2)", "; error: bad argument value: angtos mode: 5")] // AutoCAD 2021
         [InlineData("(distof \"1.5\" 6)", "; error: bad argument value: distof mode: 6")] // AutoCAD 2021
         [InlineData("(angtof \"90\" 5)", "; error: bad argument value: angtof mode: 5")] // AutoCAD 2021
-        [InlineData("(rtos 1 2.0)", "; error: bad argument type: fixnump: 2.0")] // a guess: not measured
+        [InlineData("(rtos 1 2.0)", "; error: bad argument type: fixnump: 2.0")] // AutoCAD 2021 (q8): bad argument type: fixnump: 2.0
         [InlineData("(rtos)", "; error: too few arguments")]
         [InlineData("(rtos 1 2 3 4)", "; error: too many arguments")]
         [InlineData("(distof 5)", "; error: bad argument type: stringp 5")]

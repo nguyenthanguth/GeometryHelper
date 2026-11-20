@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -16,7 +17,10 @@ namespace GeometryHelper.Cad
     /// behaviour for, CMDECHO, EXPERT, HIGHLIGHT, PICKAUTO, PICKDRAG, OSNAPZ, ARRAYASSOCIATIVITY, ELEVATION, THICKNESS, MEASUREMENT,
     /// UNITMODE, LIMCHECK, SPLFRAME, SPLINETYPE, SPLINESEGS, QTEXTMODE, ATTMODE and USERI1 to USERI5 and USERR1 to USERR5, keep
     /// their value where AutoCAD does, in the drawing's header or for the session. DISTANCE, AREA and PERIMETER give the last
-    /// measure DIST and AREA made, and LASTPOINT the last point given, in the user coordinate system.
+    /// measure DIST and AREA made, and LASTPOINT the last point given, in the user coordinate system. What AutoLISP routines
+    /// ask of the program: PRODUCT, which is "GeometryHelper.Cad" where AutoCAD gives "AutoCAD", ACADVER "24.0", the version of
+    /// AutoCAD whose behaviour the presenter follows, CMDACTIVE and CMDNAMES for what runs, LISPINIT, BLIPMODE and MENUECHO, and
+    /// the axes of the user coordinate system, UCSXDIR and UCSYDIR.
     /// </summary>
     internal static partial class CadCommands
     {
@@ -291,7 +295,61 @@ namespace GeometryHelper.Cad
                     null
                 )
             );
+
+            // What AutoLISP routines ask of the program: which one it is, and what is running.
+            registry.AddVariable(
+                CadSystemVariable.ReadOnly("PRODUCT", CadVariableKind.Text, s => "\"GeometryHelper.Cad\"")
+            );
+            registry.AddVariable(CadSystemVariable.ReadOnly("ACADVER", CadVariableKind.Text, s => "\"24.0\""));
+            registry.AddVariable(
+                CadSystemVariable.ReadOnly("LISPINIT", CadVariableKind.Integer, s => "1", s => new[] { 1.0 })
+            );
+            registry.AddVariable(
+                CadSystemVariable.ReadOnly(
+                    "CMDACTIVE",
+                    CadVariableKind.Integer,
+                    s => CommandsActive(s).ToString(CultureInfo.InvariantCulture),
+                    s => new double[] { CommandsActive(s) }
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.ReadOnly("CMDNAMES", CadVariableKind.Text, s =>
+                    "\"" + (s.Current?.Name ?? string.Empty) + "\""
+                )
+            );
+            registry.AddVariable(KeptWhole("BLIPMODE", 0, 1, "blipmode", 0));
+            registry.AddVariable(KeptWhole("MENUECHO", 0, 31, "menuecho", 0));
+
+            // The axes of the user coordinate system, in the world's.
+            registry.AddVariable(
+                CadSystemVariable.ReadOnly(
+                    "UCSXDIR",
+                    CadVariableKind.Point,
+                    s => CadSystemVariable.Show(P3(s.Ucs.XAxis), true),
+                    s => CoordinatesOf(P3(s.Ucs.XAxis))
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.ReadOnly(
+                    "UCSYDIR",
+                    CadVariableKind.Point,
+                    s => CadSystemVariable.Show(P3(s.Ucs.YAxis), true),
+                    s => CoordinatesOf(P3(s.Ucs.YAxis))
+                )
+            );
+
+            // The dimension variables, which the header holds as those new dimensions take.
+            AddDimVariablesTo(registry);
         }
+
+        /// <summary>
+        /// CMDACTIVE: 1 while a command runs and 2 while a transparent one does too, as AutoCAD sums them. The bits of a script
+        /// (4) and of AutoLISP (32) wait for the session to say when one runs.
+        /// </summary>
+        private static int CommandsActive(CadCommandSession session) =>
+            (session.IsRunning ? 1 : 0) | (session.IsRunning && session.IsTransparent ? 2 : 0);
+
+        private static GeoPoint3 P3(GeoVector3 vector) => new GeoPoint3(vector.X, vector.Y, vector.Z);
 
         /// <summary>The key of the distance DIST measured last in <see cref="CadCommandSession.Remembered"/>.</summary>
         private const string DistanceKey = "measured.distance";

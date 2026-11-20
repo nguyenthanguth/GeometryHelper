@@ -617,13 +617,10 @@ namespace GeometryHelper.Cad.UnitTest
         #region Later stages
 
         [Theory]
-        [InlineData("(angle '(0 0) '(1 1))", "; error: no function definition: ANGLE")] // decision of the lead: a function of L2, not defined yet
-        [InlineData("(distance '(0 0) '(1 1))", "; error: no function definition: DISTANCE")] // L2
         [InlineData("(alert \"x\")", "; error: no function definition: ALERT")] // L2
         [InlineData("(grtext)", "; error: no function definition: GRTEXT")] // L2
         [InlineData("(redraw)", "; error: no function definition: REDRAW")] // L2
-        [InlineData("(cvunit 1 \"inch\" \"mm\")", "; error: no function definition: CVUNIT")] // L2
-        public void AFunctionOfL2_IsNotDefinedInL1(string expression, string output)
+        public void AFunctionOfL2ThatNeedsADrawing_IsNotDefinedInABareInterpreter(string expression, string output)
         {
             Assert.Equal(output, Out(expression));
         }

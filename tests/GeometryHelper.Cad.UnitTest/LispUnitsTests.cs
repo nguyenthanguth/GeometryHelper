@@ -123,6 +123,29 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Theory]
+        // AutoCAD 2021 (q8): (rtos inf 3 2) "0.00E+99"
+        [InlineData(double.PositiveInfinity, 3, 2, "0.00E+99")]
+        // AutoCAD 2021 (q8): (rtos inf 4 2) "0.00E+99"
+        [InlineData(double.PositiveInfinity, 4, 2, "0.00E+99")]
+        // AutoCAD 2021 (q8): (rtos inf 5 2) "0.00E+99"
+        [InlineData(double.PositiveInfinity, 5, 2, "0.00E+99")]
+        // AutoCAD 2021 (q8): (rtos (- inf inf) 3 2) "-2147483648'"
+        [InlineData(double.NaN, 3, 2, "-2147483648'")]
+        // AutoCAD 2021 (q8): (rtos (- inf inf) 5 2) "-2147483648 -1/0"
+        [InlineData(double.NaN, 5, 2, "-2147483648 -1/0")]
+        // AutoCAD 2021 (q1): (rtos nan 2 2) "0.00", which q8 leaves as it was
+        [InlineData(double.NaN, 2, 2, "0.00")]
+        public void AnInfinityOrANaNInEngineeringOrFractionalUnits_IsWrittenAsAutoCadWritesIt(
+            double value,
+            int mode,
+            int precision,
+            string expected
+        )
+        {
+            Assert.Equal(expected, LispUnits.Rtos(value, mode, precision, 0));
+        }
+
+        [Theory]
         // AutoCAD 2021 (p1): (rtos 12.3456 1 3) "1.235E+01"
         [InlineData(12.3456, 3, "1.235E+01")]
         // AutoCAD 2021 (p2): (rtos 0.0 1 3) "0.000E+00"

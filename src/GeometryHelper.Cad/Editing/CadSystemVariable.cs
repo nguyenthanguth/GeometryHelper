@@ -35,6 +35,8 @@ namespace GeometryHelper.Cad
         private Func<CadCommandContext, IEnumerable<CadPrompt>> _ask;
         private CadEditRecordKind _recordKind = CadEditRecordKind.SettingChanged;
         private Func<CadCommandSession, double[]> _numbers;
+        private Func<CadCommandContext, object, bool> _setFromLisp;
+        private bool _planar;
 
         private CadSystemVariable(
             string name,
@@ -138,6 +140,7 @@ namespace GeometryHelper.Cad
             Func<string, bool> write = take ?? throw new ArgumentNullException(nameof(take));
             var variable = new CadSystemVariable(name, CadVariableKind.Text, false, s => "\"" + read() + "\"");
             variable._ask = c => AskOptionalText(c, variable, write);
+            variable._setFromLisp = (c, v) => v is string text && write(text == "." ? string.Empty : text);
             return variable;
         }
 
@@ -198,6 +201,8 @@ namespace GeometryHelper.Cad
             var variable = new CadSystemVariable(name, CadVariableKind.Point, false, s => Show(P3(read()), false));
             variable._ask = c => AskPointTaken(c, variable, read, write);
             variable._numbers = s => new[] { read().X, read().Y, 0.0 };
+            variable._planar = true;
+            variable._setFromLisp = (c, v) => v is double[] p && p.Length >= 2 && write(new GeoPoint2(p[0], p[1]));
             return variable;
         }
 
@@ -253,6 +258,7 @@ namespace GeometryHelper.Cad
             var variable = new CadSystemVariable(name, CadVariableKind.Integer, inDrawing, s => get(s) ? "ON" : "OFF");
             variable._ask = c => AskSwitch(c, variable, get, set, record);
             variable._numbers = s => new[] { get(s) ? 1.0 : 0.0 };
+            variable._setFromLisp = (c, v) => SetSwitch(c, variable, get, set, record, v);
             return variable;
         }
 
@@ -288,6 +294,7 @@ namespace GeometryHelper.Cad
             );
             variable._ask = c => AskWhole(c, variable, least, most, get, set, record, check);
             variable._numbers = s => new double[] { get(s) };
+            variable._setFromLisp = (c, v) => SetWhole(c, variable, least, most, get, set, record, check, v);
             return variable;
         }
 
@@ -310,6 +317,7 @@ namespace GeometryHelper.Cad
             var variable = new CadSystemVariable(name, CadVariableKind.Real, inDrawing, s => Show(get(s), plain));
             variable._ask = c => AskReal(c, variable, bound, plain, most, get, set, record, check);
             variable._numbers = s => new[] { get(s) };
+            variable._setFromLisp = (c, v) => SetReal(c, variable, bound, most, get, set, record, check, v);
             return variable;
         }
 
@@ -323,6 +331,7 @@ namespace GeometryHelper.Cad
         {
             var variable = new CadSystemVariable(name, CadVariableKind.Text, inDrawing, s => "\"" + get(s) + "\"");
             variable._ask = c => AskText(c, variable, take);
+            variable._setFromLisp = (c, v) => v is string text && string.IsNullOrEmpty(take(c, text));
             return variable;
         }
 
@@ -342,6 +351,7 @@ namespace GeometryHelper.Cad
             var variable = new CadSystemVariable(name, CadVariableKind.Real, inDrawing, s => ShowAngle(s, get(s)));
             variable._ask = c => AskAngle(c, variable, get, set, record, plain);
             variable._numbers = s => new[] { get(s) };
+            variable._setFromLisp = (c, v) => SetAngle(c, variable, get, set, record, v);
             return variable;
         }
 
@@ -353,11 +363,14 @@ namespace GeometryHelper.Cad
             string name,
             string none,
             Func<CadCommandSession, string> get,
-            Func<CadCommandContext, string, string> take
+            Func<CadCommandContext, string, string> take,
+            bool inDrawing = false
         )
         {
-            var variable = new CadSystemVariable(name, CadVariableKind.Text, false, s => "\"" + get(s) + "\"");
+            var variable = new CadSystemVariable(name, CadVariableKind.Text, inDrawing, s => "\"" + get(s) + "\"");
             variable._ask = c => AskOptional(c, variable, none, take);
+            variable._setFromLisp = (c, v) =>
+                v is string text && string.IsNullOrEmpty(take(c, text == "." ? string.Empty : text));
             return variable;
         }
 
@@ -387,6 +400,8 @@ namespace GeometryHelper.Cad
                 GeoPoint3 point = get(s);
                 return new[] { point.X, point.Y, withZ ? point.Z : 0.0 };
             };
+            variable._planar = !withZ;
+            variable._setFromLisp = (c, v) => SetPoint(c, variable, get, set, record, v);
             return variable;
         }
 
@@ -404,6 +419,262 @@ namespace GeometryHelper.Cad
         /// for a text, which <c>getvar</c> refuses.
         /// </summary>
         internal double[] GetNumbers(CadCommandSession session) => _numbers?.Invoke(session);
+
+        /// <summary>
+        /// The value as AutoLISP's <c>getvar</c> gives it, in neutral types: an <c>int</c> for a whole number or a switch (0 or
+        /// 1), a <c>double</c> for a real (an angle in radians), a <c>string</c> for a text, and a <c>double[]</c> for a point:
+        /// three coordinates, or two for a variable AutoCAD keeps as a 2D point (SNAPBASE, LIMMIN).
+        /// </summary>
+        /// <param name="session">The command line of the document whose value it is.</param>
+        /// <returns>The value.</returns>
+        internal object ValueForLisp(CadCommandSession session)
+        {
+            double[] numbers = _numbers?.Invoke(session);
+
+            switch (Kind)
+            {
+                case CadVariableKind.Integer:
+                    if (numbers != null && numbers.Length > 0)
+                    {
+                        return (int)numbers[0];
+                    }
+
+                    return int.TryParse(
+                        _show(session),
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out int whole
+                    )
+                        ? whole
+                        : (object)Unquoted(_show(session));
+                case CadVariableKind.Real:
+                    if (numbers != null && numbers.Length > 0)
+                    {
+                        return numbers[0];
+                    }
+
+                    return double.TryParse(
+                        _show(session),
+                        NumberStyles.Float,
+                        CultureInfo.InvariantCulture,
+                        out double real
+                    )
+                        ? real
+                        : (object)Unquoted(_show(session));
+                case CadVariableKind.Point:
+                    if (numbers == null)
+                    {
+                        return Unquoted(_show(session));
+                    }
+
+                    return _planar && numbers.Length > 2 ? new[] { numbers[0], numbers[1] } : (double[])numbers.Clone();
+                default:
+                    return Unquoted(_show(session));
+            }
+        }
+
+        /// <summary>
+        /// Sets the value AutoLISP's <c>setvar</c> gave, through the variable's own rules, as SETVAR would take it typed: a whole
+        /// number may be given as a real that is whole (2.0 for 2), a real as a whole number, an angle in radians; a value out
+        /// of the variable's range, of another kind, or for a variable that is read only is refused. The change is made as
+        /// SETVAR makes it, an undo step in the drawing's name for one kept in the drawing, so the caller opens the step the
+        /// change joins first.
+        /// </summary>
+        /// <param name="session">The command line of the document whose variable it is.</param>
+        /// <param name="value">An <c>int</c>, a <c>double</c>, a <c>string</c> or a <c>double[]</c> of two or three coordinates.</param>
+        /// <returns>False where the value is refused (D55's "AutoCAD variable setting rejected").</returns>
+        internal bool SetFromLisp(CadCommandSession session, object value)
+        {
+            CadCommand setvar = session.Registry.Find("SETVAR");
+
+            if (_setFromLisp == null || value == null || setvar == null)
+            {
+                return false;
+            }
+
+            return _setFromLisp(new CadCommandContext(session, setvar, Array.Empty<string>()), value);
+        }
+
+        private static string Unquoted(string shown) =>
+            shown.Length >= 2 && shown[0] == '"' && shown[shown.Length - 1] == '"'
+                ? shown.Substring(1, shown.Length - 2)
+                : shown;
+
+        private static bool TryReal(object value, out double number)
+        {
+            number =
+                value is int i ? i
+                : value is double d ? d
+                : double.NaN;
+            return !double.IsNaN(number) && !double.IsInfinity(number);
+        }
+
+        private static bool TryWhole(object value, out int number)
+        {
+            number = 0;
+
+            if (value is int i)
+            {
+                number = i;
+                return true;
+            }
+
+            // A real that is a whole number is the number: SETVAR "LUPREC" 2.0 is 2, as AutoCAD's.
+            if (value is double d && !double.IsNaN(d) && Math.Abs(d) <= int.MaxValue && d == Math.Floor(d))
+            {
+                number = (int)d;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool SetWhole(
+            CadCommandContext c,
+            CadSystemVariable variable,
+            int least,
+            int most,
+            Func<CadCommandSession, int> get,
+            Action<CadCommandContext, int> set,
+            string record,
+            Func<CadCommandContext, int, string> check,
+            object given
+        )
+        {
+            if (!TryWhole(given, out int value) || value < least || value > most || check?.Invoke(c, value) != null)
+            {
+                return false;
+            }
+
+            int old = get(c.Session);
+
+            if (value != old)
+            {
+                variable.Store(
+                    c,
+                    record,
+                    old.ToString(CultureInfo.InvariantCulture),
+                    value.ToString(CultureInfo.InvariantCulture),
+                    () => set(c, value)
+                );
+            }
+
+            return true;
+        }
+
+        private static bool SetReal(
+            CadCommandContext c,
+            CadSystemVariable variable,
+            RealBound bound,
+            double most,
+            Func<CadCommandSession, double> get,
+            Action<CadCommandContext, double> set,
+            string record,
+            Func<double, string> check,
+            object given
+        )
+        {
+            if (
+                !TryReal(given, out double value)
+                || check?.Invoke(value) != null
+                || (bound == RealBound.Positive && !(value > 0.0))
+                || (bound == RealBound.NonNegative && value < 0.0)
+                || value > most
+            )
+            {
+                return false;
+            }
+
+            double old = get(c.Session);
+
+            if (value != old)
+            {
+                variable.Store(c, record, CadCommands.Values(old), CadCommands.Values(value), () => set(c, value));
+            }
+
+            return true;
+        }
+
+        private static bool SetAngle(
+            CadCommandContext c,
+            CadSystemVariable variable,
+            Func<CadCommandSession, double> get,
+            Action<CadCommandContext, double> set,
+            string record,
+            object given
+        )
+        {
+            if (!TryReal(given, out double radians))
+            {
+                return false;
+            }
+
+            double turn = 2.0 * Math.PI;
+            double value = radians % turn;
+            value = value < 0.0 ? value + turn : value;
+            value = value >= turn ? 0.0 : value;
+            double old = get(c.Session);
+
+            if (value != old)
+            {
+                variable.Store(c, record, CadCommands.Values(old), CadCommands.Values(value), () => set(c, value));
+            }
+
+            return true;
+        }
+
+        private static bool SetSwitch(
+            CadCommandContext c,
+            CadSystemVariable variable,
+            Func<CadCommandSession, bool> get,
+            Action<CadCommandContext, bool> set,
+            string record,
+            object given
+        )
+        {
+            if (!TryWhole(given, out int number) || number < 0 || number > 1)
+            {
+                return false;
+            }
+
+            bool value = number == 1;
+            bool old = get(c.Session);
+
+            if (value != old)
+            {
+                variable.Store(c, record, old ? "1" : "0", value ? "1" : "0", () => set(c, value));
+            }
+
+            return true;
+        }
+
+        private static bool SetPoint(
+            CadCommandContext c,
+            CadSystemVariable variable,
+            Func<CadCommandSession, GeoPoint3> get,
+            Action<CadCommandContext, GeoPoint2> set,
+            string record,
+            object given
+        )
+        {
+            if (!(given is double[] p) || p.Length < 2 || p.Length > 3)
+            {
+                return false;
+            }
+
+            var value = new GeoPoint2(p[0], p[1]);
+            GeoPoint3 old = get(c.Session);
+
+            // A point within the tolerance of the one kept is the same point, and changes nothing.
+            if ((value - new GeoPoint2(old.X, old.Y)).Length > c.Session.Tolerance.EqualPoint)
+            {
+                variable.Store(c, record, CadCommands.Values(old.X, old.Y), CadCommands.Values(value.X, value.Y), () =>
+                    set(c, value)
+                );
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// Gives a variable of the drawing the kind its change is recorded as: a setting changed until set; a table changed for
