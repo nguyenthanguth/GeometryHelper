@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using GeometryHelper.Dxf;
+using GeometryHelper.Geometry;
 using Xunit;
 using static GeometryHelper.Cad.UnitTest.EditingDrawings;
 
@@ -927,6 +928,59 @@ namespace GeometryHelper.Cad.UnitTest
             );
             Assert.Equal("N: ", session.PromptText);
             Assert.Equal("GHW", session.LastCommandName);
+        }
+
+        #endregion
+
+        #region LASTPOINT through a get function (D65)
+
+        [Fact]
+        public void GetpointWithABasePointAnswered_LeavesLastPointAsItWas()
+        {
+            // AutoCAD 2021 (q10): LASTPOINT (0.0 0.0 0.0) before; after (getpoint '(1 1) "B: ") answered 5,5 still (0.0 0.0 0.0)
+            CadCommandSession session = Typed("(getpoint '(1 1) \"B: \")", "5,5");
+
+            Assert.Equal("(5.0 5.0 0.0)", Lines(session).Last());
+            Near(new GeoPoint2(0, 0), session.LastPoint);
+        }
+
+        [Fact]
+        public void GetpointWithABasePointAnsweredByEnter_LeavesLastPointAsItWas()
+        {
+            // AutoCAD 2021 (q10): (getpoint '(7 7) "C: ") answered by Enter gives nil and LASTPOINT is still (0.0 0.0 0.0)
+            CadCommandSession session = Typed("(getpoint '(7 7) \"C: \")", Enter);
+
+            Assert.Equal("nil", Lines(session).Last());
+            Near(new GeoPoint2(0, 0), session.LastPoint);
+        }
+
+        [Fact]
+        public void GetpointWithABasePointCancelled_LeavesLastPointAsItWas()
+        {
+            // ours: D65, Esc leaves LASTPOINT as it was too
+            CadCommandSession session = Typed("(getpoint '(7 7) \"C: \")", Esc);
+
+            Near(new GeoPoint2(0, 0), session.LastPoint);
+        }
+
+        [Fact]
+        public void ARelativePointAtAGetpointWithABasePoint_IsStillMeasuredFromTheBasePoint()
+        {
+            // AutoCAD 2021 (q3): @2,0 at (getpoint '(1 1)) is (3.0 1.0 0.0); the last point is not the base point afterwards
+            CadCommandSession session = Typed("(getpoint '(1 1) \"Next: \")", "@2,0");
+
+            Assert.Equal("(3.0 1.0 0.0)", Lines(session).Last());
+            Near(new GeoPoint2(0, 0), session.LastPoint);
+        }
+
+        [Fact]
+        public void TheLastPointOfAnEarlierCommand_IsTheOneThatRemainsAfterTheGet()
+        {
+            // ours: D65, the last point is the one before the get, not the base point or the answer
+            CadCommandSession session = Typed("LINE", "3,4", Esc);
+            Run(session, "(progn (getpoint '(1 1) \"B: \") (princ))", "5,5");
+
+            Near(new GeoPoint2(3, 4), session.LastPoint);
         }
 
         #endregion

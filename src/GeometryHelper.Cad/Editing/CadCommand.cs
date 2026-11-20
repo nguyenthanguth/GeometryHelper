@@ -476,6 +476,15 @@ namespace GeometryHelper.Cad
                 : command;
 
         /// <summary>
+        /// Finds the command-line twin of a command, the one whose name is the command's with a hyphen in front: -LAYER for
+        /// LAYER, -HATCH for HATCH. AutoLISP's <c>command</c> runs it, as AutoCAD runs the form that asks its prompts on the
+        /// command line for a command run by a program.
+        /// </summary>
+        /// <param name="command">The command.</param>
+        /// <returns>The twin, or null where the command has none.</returns>
+        internal CadCommand FindTwin(CadCommand command) => command == null ? null : FindByName("-" + command.Name);
+
+        /// <summary>
         /// Gets the system variables SETVAR knows, and a name typed alone reaches where no command has it, in ordinal order of
         /// their names: those of <see cref="CreateDefault"/>, kept in the drawing or by the session, and those a window adds.
         /// </summary>
