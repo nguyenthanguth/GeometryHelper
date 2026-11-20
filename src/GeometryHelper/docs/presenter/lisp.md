@@ -105,7 +105,7 @@ refused.
 filters AutoLISP files, Plugins and All files. A `.lsp` is loaded into the drawing shown, and writes what the file wrote and
 then `name.lsp successfully loaded.`; a `.dll` goes to the [plugin manager](plugins.md), as PLUGINLOAD does; any other
 file is refused with `name.txt is not an AutoLISP file or a plugin.` Cancelling the dialog does nothing. The Plugin manager
-itself is on the Plugins tab. From code, `CadCommandSession.LoadLisp(path)` does what APPLOAD does for an AutoLISP file.
+itself is on the Plugins tab; a window that gives APPLOAD no file dialog (`MainViewModel.AskApplicationFile` null) shows the Plugin manager, as APPLOAD did before. From code, `CadCommandSession.LoadLisp(path)` does what APPLOAD does for an AutoLISP file.
 
 ### When a drawing opens
 

@@ -536,7 +536,7 @@ Action Recorder panel is not here at all: it will not be built. **Customization*
 (ALIASEDIT), which both open Global settings on Shortcuts, where the aliases and the keys are kept, and Tool Palettes
 (TOOLPALETTES, see [Tool Palettes](#tool-palettes)). **Applications** has Load Application (APPLOAD), which asks for a file, an AutoLISP file or a plugin (see
 [AutoLISP](lisp.md#loading)), and is greyed where the window can neither ask for a file nor has a plugin manager
-(`ManageRibbonViewModel.CanLoadApplication`), and Run Script (SCRIPT). The Plugin manager is on the Plugins tab. **Cleanup** has Purge (PURGE), Overkill
+(`ManageRibbonViewModel.CanLoadApplication`), and Run Script (SCRIPT). The Plugin manager is on the Plugins tab, and APPLOAD shows it where the window gives no file dialog. **Cleanup** has Purge (PURGE), Overkill
 (OVERKILL), Audit (AUDIT) and Recover (RECOVER). CUI, ALIASEDIT and APPLOAD are commands of the window, not of
 `CadCommandRegistry.CreateDefault()`: APPLOAD says `No plugin manager is in use: applications cannot be loaded.` where the
 window has neither a file dialog nor a manager, and where it is given a `.dll` and has no manager. CAD Standards' third button, Layer Translator, runs LAYTRANS (see the layers guide).

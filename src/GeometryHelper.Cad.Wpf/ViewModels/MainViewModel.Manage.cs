@@ -83,17 +83,27 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>
         /// APPLOAD: asks for a file with <see cref="AskApplicationFile"/> and loads it, an AutoLISP file into the document's
         /// interpreter and a plugin into the plugin manager; any other file gets a line saying it is neither. Nothing happens
-        /// where none is picked; a window with no picker and no plugin manager says that applications cannot be loaded.
+        /// where none is picked. A window with no picker shows its Plugin manager, and with neither says that applications
+        /// cannot be loaded.
         /// </summary>
         private void LoadApplications()
         {
-            if (AskApplicationFile == null && _plugins == null)
+            // A window that cannot ask for a file shows its Plugin manager, as APPLOAD did before it loaded AutoLISP.
+            if (AskApplicationFile == null)
             {
-                Say("No plugin manager is in use: applications cannot be loaded.");
+                if (_plugins == null)
+                {
+                    Say("No plugin manager is in use: applications cannot be loaded.");
+                }
+                else
+                {
+                    RequestPluginManager();
+                }
+
                 return;
             }
 
-            string path = AskApplicationFile?.Invoke();
+            string path = AskApplicationFile();
 
             if (string.IsNullOrWhiteSpace(path))
             {

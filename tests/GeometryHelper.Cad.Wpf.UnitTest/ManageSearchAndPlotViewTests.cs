@@ -175,7 +175,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void LoadApplication_IsGreyedWithNoPickerAndNoPluginManager_AndDoesNotShowThePluginManagerWithOne()
+        public void LoadApplication_IsGreyedWithNoPluginManager_AndShowsThePluginManagerWithOne()
         {
             MainViewModel model = Opened();
             var ribbon = (ManageRibbonViewModel)model.ManageTab.TabContent;
@@ -197,9 +197,10 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                 model.UsePlugins(manager, loadAtStart: false);
 
                 Assert.True(ribbon.CanLoadApplication);
-                // APPLOAD asks for a file now (LispWindowTests): with none to ask, nothing happens, and the manager stays on the Plugins tab.
+
+                // A window that cannot ask for a file (no AskApplicationFile) still shows its Plugin manager.
                 model.StartCommand("APPLOAD");
-                Assert.Equal(0, raised);
+                Assert.Equal(1, raised);
             }
         }
 
