@@ -203,7 +203,7 @@ namespace GeometryHelper.Cad
         /// <summary>Writes the line a prompt and its answer make, where it was not written already (null).</summary>
         private void Echo(string echo)
         {
-            if (echo != null)
+            if (echo != null && !(Prompt != null && Prompt.Unwritten && echo == Prompt.Text))
             {
                 Write(echo);
             }

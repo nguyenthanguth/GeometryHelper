@@ -282,9 +282,11 @@ namespace GeometryHelper.Cad
             // The names of the commands come first, then the c: commands of AutoLISP, then the aliases.
             CadCommand command = Registry.FindByName(name);
 
+            // A c: command is the evaluation of its function, not a command with prompts: it runs here and asks as it goes.
             if (command == null && _lisp != null && _lisp.IsCommand(name))
             {
-                command = LispCommand(name);
+                StartLispCommand(name);
+                return true;
             }
 
             command = command ?? Registry.Find(name);
@@ -661,13 +663,14 @@ namespace GeometryHelper.Cad
             }
 
             // A routine of AutoLISP waits for an answer: what looks like AutoLISP there is plain input, and a space may end it.
-            if (!_refeeding && FeedLispAsk(text, out bool asked))
+            if (!_refeeding && !_lispFeeding && FeedLispAsk(text, out bool asked))
             {
                 return asked;
             }
 
             // AutoLISP: a line that starts with ( or !, or goes on one that waited for its closing parenthesis, but at a prompt for text.
-            if (!_refeeding && IsLispInput(text) && Prompt?.Kind != CadPromptKind.String)
+            // An argument of command is text to the prompt, never AutoLISP.
+            if (!_refeeding && !_lispFeeding && IsLispInput(text) && Prompt?.Kind != CadPromptKind.String)
             {
                 return FeedLisp(text);
             }
@@ -826,7 +829,8 @@ namespace GeometryHelper.Cad
                     // With no base point, SETVAR's point takes a number as a distance from the last point, as AutoCAD 2021's.
                     GeoPoint2? measured = Prompt.BasePoint ?? (Prompt.FromLastPoint ? LastPoint : (GeoPoint2?)null);
 
-                    if (measured != null && TryLength(typed, out double along))
+                    // An argument of AutoLISP's command is a number, not a distance towards a cursor it has not got (q2).
+                    if (!_lispFeeding && measured != null && TryLength(typed, out double along))
                     {
                         GeoPoint2 reached = AlongTheBand(measured.Value, along);
                         return Answer(new CadInput(CadInputKind.Point, reached, 0.0, typed, null), echo, reached);
@@ -1481,7 +1485,7 @@ namespace GeometryHelper.Cad
             }
 
             // The points a prompt that follows the cursor takes are not written, as AutoCAD writes none of the path.
-            if (echo != null && !(Prompt.Tracks && input.IsPoint))
+            if (echo != null && !(Prompt.Tracks && input.IsPoint) && !(Prompt.Unwritten && echo == Prompt.Text))
             {
                 Write(echo);
             }
@@ -1523,15 +1527,30 @@ namespace GeometryHelper.Cad
 
         private void Advance()
         {
+            IEnumerator<CadPrompt> advancing = _body;
             bool more;
 
             try
             {
-                more = _body.MoveNext();
+                more = advancing.MoveNext();
             }
             catch (Exception exception)
             {
+                if (ReferenceEquals(advancing, _retiredBody))
+                {
+                    _retiredBody = null;
+                    GeometryHelperLog.Warn("CadCommandSession: the wait of a routine failed.", exception);
+                    return;
+                }
+
                 Fail(exception);
+                return;
+            }
+
+            // The wait of a routine that ran a command meanwhile gave its place to that command: nothing is left to do for it.
+            if (ReferenceEquals(advancing, _retiredBody))
+            {
+                _retiredBody = null;
                 return;
             }
 
@@ -1560,6 +1579,12 @@ namespace GeometryHelper.Cad
             }
 
             Changed();
+
+            // The command a routine's PAUSE waits at asked its next prompt: the routine goes on with its next argument.
+            if (_lispPause && _pauseCommand != null && ReferenceEquals(Current, _pauseCommand))
+            {
+                ResumePause(CadCommandOutcome.Completed);
+            }
         }
 
         private void Fail(Exception exception)
@@ -1601,6 +1626,16 @@ namespace GeometryHelper.Cad
                     "CadCommandSession: the command " + Current?.Name + " failed to end.",
                     exception
                 );
+            }
+
+            // The command a routine ran ends: the next text of the routine starts after the Command prompt; where the command
+            // was the one a PAUSE waited at, the routine goes on when the command is cleared away, below.
+            bool resumes = _lispPause && _pauseCommand != null && ReferenceEquals(Current, _pauseCommand);
+
+            if (_lispFeeding || (_lispStarted != null && ReferenceEquals(Current, _lispStarted)))
+            {
+                _lispStarted = null;
+                _lispPrefix = CommandEchoOn ? "Command: " : null;
             }
 
             bool cleared = outcome == CadCommandOutcome.Completed && _context != null && _context.ClearsSelection;
@@ -1648,6 +1683,11 @@ namespace GeometryHelper.Cad
                 {
                     _repeat = null;
                 }
+            }
+
+            if (resumes)
+            {
+                ResumePause(outcome);
             }
         }
 

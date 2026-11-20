@@ -116,45 +116,48 @@ namespace GeometryHelper.Cad
             return !result.Failed;
         }
 
-        /// <summary>Writes what AutoLISP wrote, a line of the history for each line of it, a blank one where it wrote nothing between two new lines; nothing where it wrote nothing.</summary>
+        /// <summary>
+        /// Writes what AutoLISP wrote, a line of the history for each line of it, a blank one where it wrote nothing between two
+        /// new lines; nothing where it wrote nothing. The text a command of the routine left on its last line, the Command
+        /// prompt or the prompt it asks, starts the first line (<c>Command: done7</c>, <c>Specify next point or [Undo]: nil</c>).
+        /// </summary>
         internal void WriteLisp(string output)
         {
+            string open = _lispPrefix;
+            _lispPrefix = null;
+
             if (string.IsNullOrEmpty(output))
             {
                 return;
             }
 
-            foreach (string line in output.Split('\n'))
+            string[] lines = output.Split('\n');
+
+            if (open != null)
+            {
+                lines[0] = open + lines[0];
+            }
+
+            foreach (string line in lines)
             {
                 Write(line);
             }
         }
 
-        /// <summary>The command a <c>defun c:name</c> made: its body runs the function on the interpreter and writes what it wrote.</summary>
-        private CadCommand LispCommand(string name)
+        /// <summary>
+        /// Runs the function of a <c>defun c:name</c> when its name is typed: the session keeps the evaluation, and where the
+        /// routine waits for the user its prompts are asked as commands of their own, until the routine ends. The command is
+        /// the one Enter runs again, and the undo step of what the routine changes outside a command is named after it.
+        /// </summary>
+        private void StartLispCommand(string name)
         {
-            _lispCommand = new CadCommand(name, c => RunLispCommand(c, name));
-            return _lispCommand;
-        }
-
-        /// <summary>The body of a <c>c:</c> command: it runs the function, and where the routine waits for the user its prompts are this command's, until the routine ends.</summary>
-        private IEnumerable<CadPrompt> RunLispCommand(CadCommandContext c, string name)
-        {
+            LastCommandName = name.ToUpperInvariant();
             _lispStep = false;
-            _lispStepName = name.ToUpperInvariant();
-            LispResult result = Lisp.RunCommand(name);
-            WriteLisp(result.Output);
-
-            if (!result.IsWaiting)
-            {
-                CloseLispStep();
-                yield break;
-            }
-
-            foreach (CadPrompt prompt in LispWait(c, null))
-            {
-                yield return prompt;
-            }
+            _lispStepName = LastCommandName;
+            _lispAnswers = false;
+            _lispPrefix = null;
+            LispContinue(Lisp.RunCommand(name), done => LastOutcome = CadCommandOutcome.Completed);
+            Changed();
         }
 
         /// <summary>
@@ -185,20 +188,27 @@ namespace GeometryHelper.Cad
             _lispPrompt = null;
             _lispStep = false;
             _lispStepName = null;
+            _lispPrefix = null;
+
+            // A form typed at the prompt of a command: its value answers that command, unless the form ran commands of its own.
+            bool atPrompt = Prompt != null;
+            CadCommand interrupted = Current;
+            _lispAnswers = atPrompt;
+            _lispTyped = atPrompt;
             LispResult result = Lisp.Run(source[0] == '!' ? source.Substring(1) : source);
-            WriteLisp(result.Output);
+            _lispTyped = false;
 
             // A routine that waits for the user is asked as a command of its own; the line is over when it is.
+            LispContinue(result, null);
+
             if (result.IsWaiting)
             {
-                StartLispWait(null);
                 return true;
             }
 
-            CloseLispStep();
             Changed();
 
-            if (Prompt == null)
+            if (!atPrompt || Prompt == null || !ReferenceEquals(Current, interrupted))
             {
                 return !result.Failed;
             }
