@@ -49,8 +49,9 @@ maintainer meets one as a real fault. Details for each are in the history at `dd
 
 ## Part C: scripting
 
-Asked for by the maintainer on 2026-11-20. Each stage starts with a look at open-source projects on GitHub that do the
-same, and names the ideas it takes. The maintainer's own AutoLISP routines are the acceptance set for the AutoLISP
+Asked for by the maintainer on 2026-11-20 and not started: the maintainer starts it later. (The letter B went with model
+drawings, which moved to TeklaHelper.DrawingManager.) Each stage starts with a look at open-source projects on GitHub
+that do the same, and names the ideas it takes. The maintainer's own AutoLISP routines are the acceptance set for the AutoLISP
 stages: they are read where they are and never copied into the repository, and tests build small routines of their own.
 
 ### AutoLISP
@@ -60,15 +61,19 @@ The goal is one routine for both programs: a `.lsp` (and its `.dcl`) written onc
 run in both alike. Each test runs the same routine in AutoCAD (accoreconsole, hidden) and in the presenter, and compares
 the two drawings written as DXF (entities, layers, coordinates within the tolerance), the values returned and the
 command-line output. What AutoCAD alone can do (COM to other programs, ARX and .NET loading) is refused with a message
-naming it, never ignored; `(getvar "PRODUCT")` tells a routine which program runs it.
+naming it, never ignored; `(getvar "PRODUCT")` tells a routine which program runs it. Input a routine asks for (points,
+picks, keywords) is fed to both programs from the test's script; DCL dialogs, which accoreconsole cannot show, are
+compared by their values and by eye.
 
 - [ ] L1. The interpreter: AutoLISP's reader, evaluator and data types (lists, symbols, reals, integers, strings, entity
-      names, selection sets), defun and c: commands, error handling with *error*, APPLOAD, (load), acad.lsp,
-      acaddoc.lsp and S::STARTUP; LISP expressions typed at the command line
-- [ ] L2. Drawing functions: (command) and (vl-cmdf) driving the presenter's commands with their prompts, ssget with
-      its modes and filters, entget, entmod, entmake, entdel, entnext, tblsearch, getpoint, getdist, getstring, getkword,
-      getvar and setvar
-- [ ] L3. vl- functions and files: vl-string, vl-sort, vl-remove, vl-file, open, read-line, write-line, findfile
+      names, selection sets), `defun` and `c:` commands, error handling with `*error*`, APPLOAD, `(load)`, `acad.lsp`,
+      `acaddoc.lsp` and `S::STARTUP`; LISP expressions typed at the command line
+- [ ] L2. Drawing functions: `command` and `vl-cmdf` driving the presenter's commands with their prompts; `ssget` with
+      its modes and filters, `ssname`, `sslength`, `ssadd`; `entsel`, `nentsel`, `entget`, `entmod`, `entmake`,
+      `entdel`, `entnext`, `tblsearch`; `getpoint`, `getcorner`, `getdist`, `getangle`, `getreal`, `getint`,
+      `getstring`, `getkword`, `initget`; `getvar`, `setvar`, `trans`, `polar`, `inters`, `osnap`; `princ` and `prompt`
+- [ ] L3. vl- functions and files: `vl-string-*`, `vl-sort`, `vl-remove`, `vl-position`, `vl-file-*`, `open`, `close`,
+      `read-line`, `write-line`, `findfile`, `getfiled`
 - [ ] L4. vla- and vlax- objects: the members the maintainer's routines use (about 40), on the presenter's own object
       model; COM to other programs (Excel) refused with a message
 - [ ] L5. DCL dialogs: the DCL parser and its tiles drawn as WPF, with action_tile, get_tile and set_tile (designed in
