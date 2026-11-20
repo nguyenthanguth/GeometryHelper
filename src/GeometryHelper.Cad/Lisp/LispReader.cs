@@ -7,7 +7,7 @@ using System.Text;
 namespace GeometryHelper.Cad.Lisp
 {
     /// <summary>
-    /// Reads AutoLISP text one form at a time, the way AutoCAD does, corners included: a symbol ends at a dot (<c>a.b</c> reads
+    /// Reads AutoLISP text one form at a time, the way AutoCAD does, corners included: a symbol ends at a dot and the rest of it is dropped (<c>a.b</c> reads
     /// as <c>A</c>), <c>.5</c> is an error and <c>1.</c> is the real 1.0, an integer past 32 bits is a real, <c>1e400</c> is
     /// 0.0, and <c>#|c|#</c> is a symbol, not a comment. Reading one form at a time is what lets <c>load</c> keep what ran
     /// before a bad form.
@@ -364,7 +364,8 @@ namespace GeometryHelper.Cad.Lisp
                 }
             }
 
-            _position = start + run.Length;
+            // What follows the dot, up to the next delimiter, is dropped: (setq e.d 5) sets E, as AutoCAD 2021 does.
+            _position = end;
             string name = run.ToUpperInvariant();
 
             return name == "NIL" ? null : _intern(name);

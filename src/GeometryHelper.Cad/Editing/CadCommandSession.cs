@@ -217,8 +217,8 @@ namespace GeometryHelper.Cad
         /// <summary>Gets the prompt waiting for an answer, or null when no command runs.</summary>
         public CadPrompt Prompt { get; private set; }
 
-        /// <summary>Gets the text the command line shows: the prompt's, or empty when no command runs.</summary>
-        public string PromptText => Prompt?.Text ?? string.Empty;
+        /// <summary>Gets the text the command line shows: the prompt's, or empty when no command runs; <c>(_&gt;</c> while a line of AutoLISP waits for its closing parenthesis.</summary>
+        public string PromptText => _lispPrompt ?? Prompt?.Text ?? string.Empty;
 
         /// <summary>Gets the lines of the history, the oldest first: each command, each prompt with its answer, each message.</summary>
         public IReadOnlyList<string> History => _history;
@@ -263,6 +263,11 @@ namespace GeometryHelper.Cad
         /// <summary>Starts a command, wrapped in the overrides of a tool of a palette where one is given.</summary>
         private bool Start(string typed, CadTool tool)
         {
+            if (_lispText != null)
+            {
+                CancelLisp();
+            }
+
             if (IsRunning)
             {
                 Escape();
@@ -273,7 +278,16 @@ namespace GeometryHelper.Cad
 
             // 'PAN and 'ZOOM at the Command prompt are PAN and ZOOM.
             name = WithoutApostrophe(name) ?? name;
-            CadCommand command = Registry.Find(name);
+
+            // The names of the commands come first, then the c: commands of AutoLISP, then the aliases.
+            CadCommand command = Registry.FindByName(name);
+
+            if (command == null && _lisp != null && _lisp.IsCommand(name))
+            {
+                command = LispCommand(name);
+            }
+
+            command = command ?? Registry.Find(name);
 
             // A system variable's name typed alone asks its new value, as SETVAR does, where no command has the name.
             if (command == null && Registry.FindVariable(name) is CadSystemVariable variable)
@@ -639,6 +653,12 @@ namespace GeometryHelper.Cad
                 return true;
             }
 
+            // AutoLISP: a line that starts with ( or !, or goes on one that waited for its closing parenthesis, but at a prompt for text.
+            if (!_refeeding && IsLispInput(text) && Prompt?.Kind != CadPromptKind.String)
+            {
+                return FeedLisp(text);
+            }
+
             if (Prompt == null)
             {
                 return Start(text);
@@ -987,6 +1007,13 @@ namespace GeometryHelper.Cad
         /// </summary>
         public void Enter()
         {
+            // A line of AutoLISP waiting for its closing parenthesis takes the new line into its text.
+            if (_lispText != null)
+            {
+                EnterLisp();
+                return;
+            }
+
             if (Prompt == null)
             {
                 if (LastCommandName != null)
@@ -1023,9 +1050,18 @@ namespace GeometryHelper.Cad
             );
         }
 
-        /// <summary>Esc: ends the command running, keeping what it made, with "*Cancel*" in the history.</summary>
+        /// <summary>
+        /// Esc: ends the command running, keeping what it made, with "*Cancel*" in the history; while a line of AutoLISP waits for
+        /// its closing parenthesis it drops that line alone and the command goes on asking, as AutoCAD does.
+        /// </summary>
         public void Escape()
         {
+            if (_lispText != null)
+            {
+                CancelLisp();
+                return;
+            }
+
             if (!IsRunning)
             {
                 return;
