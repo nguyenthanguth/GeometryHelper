@@ -3224,7 +3224,7 @@
                                 Command="{Binding Model.StartCommandCommand}"
                                 CommandParameter="APPLOAD"
                                 ToolTipService.ShowOnDisabled="True"
-                                ToolTip="Load Application (APPLOAD): the Plugin manager, where plugins are loaded and unloaded; greyed where the window has none"
+                                ToolTip="Load Application (APPLOAD): load an AutoLISP file or a plugin; the Plugin manager is on the Plugins tab"
                             />
                             <Button
                                 Style="{StaticResource BigButton}"

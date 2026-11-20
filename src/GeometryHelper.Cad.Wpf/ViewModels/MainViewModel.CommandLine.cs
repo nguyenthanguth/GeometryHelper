@@ -809,6 +809,15 @@ namespace GeometryHelper.Cad.Wpf
                 );
             }
 
+            // The c: commands of AutoLISP, which a built-in command of the same name hides, so that it is not listed twice.
+            foreach (string lisp in _current?.Session.LispCommandNames ?? (IReadOnlyList<string>)Array.Empty<string>())
+            {
+                if (registry.FindByName(lisp) == null)
+                {
+                    candidates.Add(new Candidate(lisp.ToUpperInvariant(), lisp.ToUpperInvariant(), false, null));
+                }
+            }
+
             foreach (KeyValuePair<string, string> synonym in Synonyms)
             {
                 if (registry.Find(synonym.Key) == null && registry.Find(synonym.Value) is CadCommand target)

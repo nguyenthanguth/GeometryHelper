@@ -5,7 +5,7 @@ namespace GeometryHelper.Cad.Wpf
 {
     /// <summary>
     /// The Manage ribbon tab, as AutoCAD 2021's for what the presenter has: Customization (User Interface and Edit Aliases open Global settings on Shortcuts, Tool Palettes shows the tool palettes), Applications
-    /// (Load Application, which opens the Plugin manager, greyed where the window has none; Run Script), CAD Standards
+    /// (Load Application, which loads an AutoLISP file or a plugin, greyed where the window can neither ask for a file nor has a plugin manager; Run Script), CAD Standards
     /// (parked, greyed) and Cleanup (Purge, Overkill, Audit, Recover). A button starts its command through
     /// <see cref="MainViewModel.StartCommandCommand"/>, as the buttons of Home do.
     /// </summary>
@@ -19,6 +19,7 @@ namespace GeometryHelper.Cad.Wpf
                 if (
                     e.PropertyName == nameof(MainViewModel.HasDocument)
                     || e.PropertyName == nameof(MainViewModel.Plugins)
+                    || e.PropertyName == nameof(MainViewModel.AskApplicationFile)
                 )
                 {
                     Raise(nameof(CanLoadApplication));
@@ -29,17 +30,19 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets the window's view model, whose commands the buttons run.</summary>
         public MainViewModel Model { get; }
 
-        /// <summary>Gets whether Load Application can be pressed: a drawing is open and the window has a plugin manager to show.</summary>
-        public bool CanLoadApplication => Model.HasDocument && Model.Plugins != null;
+        /// <summary>Gets whether Load Application can be pressed: a drawing is open and the window can ask for a file or has a plugin manager.</summary>
+        public bool CanLoadApplication =>
+            Model.HasDocument && (Model.AskApplicationFile != null || Model.Plugins != null);
     }
 
     /// <summary>
     /// The Manage ribbon tab and the commands CUI, ALIASEDIT and APPLOAD, which open the window's own pages where AutoCAD opens
-    /// its dialogs: Global settings on Shortcuts for the first two, the Plugin manager for the third.
+    /// its dialogs: Global settings on Shortcuts for the first two, a file to load for the third.
     /// </summary>
     public sealed partial class MainViewModel
     {
         private CadBuiltInTab _manageTab;
+        private Func<string> _askApplicationFile;
 
         /// <summary>Gets the Manage ribbon tab, always shown, after View and before Output.</summary>
         public CadWorkspaceExtension ManageTab
@@ -58,7 +61,7 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>
         /// Adds CUI and ALIASEDIT, which show Global settings on the Shortcuts page (the aliases and the keys the presenter lets
-        /// a drafter change), and APPLOAD, which shows the Plugin manager where the window has one and says so where it has none.
+        /// a drafter change), and APPLOAD, which loads an AutoLISP file or a plugin and says so where the window can do neither.
         /// </summary>
         private void AddManageWindowCommands(CadCommandRegistry registry)
         {
@@ -67,16 +70,57 @@ namespace GeometryHelper.Cad.Wpf
             registry.Add(new CadCommand("APPLOAD", c => RunWindow(LoadApplications)));
         }
 
-        /// <summary>APPLOAD: the Plugin manager, where plugins are loaded and unloaded; a line saying there is none where the window has no manager.</summary>
+        /// <summary>
+        /// Gets or sets what asks for the file APPLOAD loads, an AutoLISP file (.lsp) or a plugin (.dll), and gives its path; null
+        /// for none picked, or where no window asks. The Plugin manager stays on the Plugins tab.
+        /// </summary>
+        public Func<string> AskApplicationFile
+        {
+            get => _askApplicationFile;
+            set => Set(ref _askApplicationFile, value);
+        }
+
+        /// <summary>
+        /// APPLOAD: asks for a file with <see cref="AskApplicationFile"/> and loads it, an AutoLISP file into the document's
+        /// interpreter and a plugin into the plugin manager; any other file gets a line saying it is neither. Nothing happens
+        /// where none is picked; a window with no picker and no plugin manager says that applications cannot be loaded.
+        /// </summary>
         private void LoadApplications()
         {
-            if (_plugins == null)
+            if (AskApplicationFile == null && _plugins == null)
             {
                 Say("No plugin manager is in use: applications cannot be loaded.");
+                return;
+            }
+
+            string path = AskApplicationFile?.Invoke();
+
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return;
+            }
+
+            string extension = System.IO.Path.GetExtension(path);
+
+            if (string.Equals(extension, ".lsp", StringComparison.OrdinalIgnoreCase))
+            {
+                _current.Session.LoadLisp(path);
+                SyncHistory();
+            }
+            else if (string.Equals(extension, ".dll", StringComparison.OrdinalIgnoreCase))
+            {
+                if (_plugins == null)
+                {
+                    Say("No plugin manager is in use: applications cannot be loaded.");
+                }
+                else
+                {
+                    LoadPlugin(path);
+                }
             }
             else
             {
-                RequestPluginManager();
+                Say(System.IO.Path.GetFileName(path) + " is not an AutoLISP file or a plugin.");
             }
         }
     }

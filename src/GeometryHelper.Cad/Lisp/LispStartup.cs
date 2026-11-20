@@ -55,10 +55,24 @@ namespace GeometryHelper.Cad.Lisp
                 }
             }
 
-            // The (princ) after it keeps the value of S::STARTUP off the command line, as AutoCAD does not write it either.
-            if (session.Lisp.GetValue("S::STARTUP") is LispFunction)
+            // A defun-q makes S::STARTUP a list, which AutoCAD's documents recommend so that routines can add to it.
+            // The (princ) after the call keeps its value off the command line, as AutoCAD does not write it either.
+            if (IsCallable(session.Lisp, session.Lisp.GetValue("S::STARTUP")))
             {
                 session.WriteLisp(session.Lisp.Run("(progn (S::STARTUP) (princ))").Output);
+            }
+        }
+
+        /// <summary>Tells whether a value can be called: a function, or a list made like one, as <c>defun-q</c> makes.</summary>
+        private static bool IsCallable(LispInterpreter lisp, object value)
+        {
+            try
+            {
+                return lisp.AsFunction(value) != null;
+            }
+            catch (LispException)
+            {
+                return false;
             }
         }
 

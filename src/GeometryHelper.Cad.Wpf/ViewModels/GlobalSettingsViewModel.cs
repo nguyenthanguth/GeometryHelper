@@ -759,7 +759,7 @@ namespace GeometryHelper.Cad.Wpf
             ["ADCCLOSE"] = "Close DesignCenter",
             ["TOOLPALETTES"] = "Show the tool palettes",
             ["TOOLPALETTESCLOSE"] = "Close the tool palettes",
-            ["APPLOAD"] = "Load and unload plugins in the Plugin manager",
+            ["APPLOAD"] = "Load an AutoLISP file or a plugin",
             ["BACTION"] = "Add an action to a parameter in the Block Editor",
             ["CUI"] = "Customize the keys and aliases",
             ["INPUTSEARCHDELAY"] = "Milliseconds before AutoComplete lists names",
