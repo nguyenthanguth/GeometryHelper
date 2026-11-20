@@ -1,8 +1,8 @@
 # Progress
 
 The list of work on the drawing stack. Part A is the 2D presenter (`GeometryHelper.Cad`, `.Cad.Wpf`, and its app
-`GeometryHelper.Cad.App`), which works like AutoCAD 2021. Part B, model drawings, moved to the private repository
-TeklaHelper.DrawingManager on 2026-11-18.
+`GeometryHelper.Cad.App`), which works like AutoCAD 2021. Part C is scripting the presenter in AutoLISP and Python.
+Model drawings live in the private repository TeklaHelper.DrawingManager.
 
 - `[x]` done and merged into `main`; `[ ]` to do; `(running)` an agent is on it now.
 - The maintainer adds, removes or reorders items here; the lead takes the next open item from the top, ticks it when it
@@ -47,9 +47,46 @@ maintainer meets one as a real fault. Details for each are in the history at `dd
 - [ ] Xrefs, REFEDIT, managers and hatch dialogs: GUI-only checks and small wording differences
 - [ ] Core: Try audit follow-ups 6 (NaN-shape members)
 
-## Part B: model drawings
+## Part C: scripting
 
-Moved to the private repository TeklaHelper.DrawingManager on 2026-11-18.
+Asked for by the maintainer on 2026-11-20. Each stage starts with a look at open-source projects on GitHub that do the
+same, and names the ideas it takes. The maintainer's own AutoLISP routines are the acceptance set for the AutoLISP
+stages: they are read where they are and never copied into the repository, and tests build small routines of their own.
+
+### AutoLISP
+
+A stage is done when the maintainer's routines that need only what it adds run in `GeometryHelper.Cad.App` as they run in
+AutoCAD 2021.
+
+- [ ] L1. The interpreter: AutoLISP's reader, evaluator and data types (lists, symbols, reals, integers, strings, entity
+      names, selection sets), defun and c: commands, error handling with *error*, APPLOAD, (load), acad.lsp,
+      acaddoc.lsp and S::STARTUP; LISP expressions typed at the command line
+- [ ] L2. Drawing functions: (command) and (vl-cmdf) driving the presenter's commands with their prompts, ssget with
+      its modes and filters, entget, entmod, entmake, entdel, entnext, tblsearch, getpoint, getdist, getstring, getkword,
+      getvar and setvar
+- [ ] L3. vl- functions and files: vl-string, vl-sort, vl-remove, vl-file, open, read-line, write-line, findfile
+- [ ] L4. vla- and vlax- objects: the members the maintainer's routines use (about 40), on the presenter's own object
+      model; COM to other programs (Excel) refused with a message
+- [ ] L5. DCL dialogs: the DCL parser and its tiles drawn as WPF, with action_tile, get_tile and set_tile (designed in
+      the Design artifact first)
+- [ ] L6. Trusted folders and SECURELOAD, as AutoCAD 2021, shared with the Python stages
+
+### Python
+
+Python works with GeometryHelper.Cad in three places: a script outside the app on the libraries alone, a console and
+scripts inside the app, and a script outside that drives a running app.
+
+- [ ] P1. Choose how: CPython through pythonnet against IronPython, on net48 and .NET 10, with numpy usable; how a
+      script finds the libraries; a short decision in the plan
+- [ ] P2. A Python package `geometryhelper` (pip) loading the core and `GeometryHelper.Cad` without a window: geometry,
+      DXF and DWG read and write, a document edited and saved headless; type stubs (`.pyi`) so editors complete names
+- [ ] P3. Python inside `GeometryHelper.Cad.App`: a PYTHON console palette and the commands PYLOAD and PYRUN, with the
+      active document, the selection, the command line, prompts (get point, get selection) and undo of a script as one
+      step
+- [ ] P4. Driving a running app from outside: a Python client over `GeometryHelper.Cad.Remote`'s named pipe (open,
+      draw, select, run commands, read the drawing)
+- [ ] P5. Examples and the guide: a script per common task, and the API reference for Python from the XML docs
+- [ ] P6. Scripts in the trusted folders of L6 only, and a script's errors shown without closing the app
 
 ## Release
 
