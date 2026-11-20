@@ -31,7 +31,9 @@ namespace GeometryHelper.Cad.Lisp
         /// <summary>
         /// Writes a length as AutoLISP's rtos: LUNITS 1 scientific, 2 decimal, 3 engineering (inches written as feet and
         /// decimal inches), 4 architectural (feet and inches with a fraction), 5 fractional. 15.5 in mode 2 to 2 places is
-        /// "15.50", in mode 1 "1.55E+01", in mode 3 "1'-3.50\"", in mode 4 "1'-3 1/2\"" and in mode 5 "15 1/2".
+        /// "15.50", in mode 1 "1.55E+01", in mode 3 "1'-3.50\"", in mode 4 "1'-3 1/2\"" and in mode 5 "15 1/2". An infinity
+        /// is "0.00E+99" in every mode (to 2 places), and a NaN is a zero, but "-2147483648'" in mode 3 and "-2147483648 -1/0"
+        /// in mode 5.
         /// </summary>
         /// <param name="value">The length, in drawing units (inches where the mode has feet).</param>
         /// <param name="mode">1 to 5; any other throws <see cref="ArgumentOutOfRangeException"/> saying "rtos mode: 6".</param>
@@ -56,13 +58,25 @@ namespace GeometryHelper.Cad.Lisp
                 throw Refused("rtos prec: " + precision.ToString(CultureInfo.InvariantCulture));
             }
 
-            // AutoCAD writes no number for these: a NaN is a zero, an infinity a zero mantissa to the 99th power.
-            if (double.IsInfinity(value) && mode <= 2)
+            // AutoCAD writes no number for these (q8): an infinity is a zero mantissa to the 99th power in every mode, a NaN
+            // is a zero in decimal and scientific, the lowest whole number with a foot mark in engineering and over a zero
+            // fraction in fractional. A NaN in architectural was not measured and is taken as a zero.
+            if (double.IsInfinity(value))
             {
                 return Scientific(0.0, precision).Replace("E+00", "E+99");
             }
 
-            if (double.IsNaN(value) || double.IsInfinity(value))
+            if (double.IsNaN(value) && mode == 3)
+            {
+                return "-2147483648'";
+            }
+
+            if (double.IsNaN(value) && mode == 5)
+            {
+                return "-2147483648 -1/0";
+            }
+
+            if (double.IsNaN(value))
             {
                 value = 0.0;
             }

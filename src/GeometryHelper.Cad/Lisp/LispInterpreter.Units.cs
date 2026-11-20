@@ -37,6 +37,7 @@ namespace GeometryHelper.Cad.Lisp
             Define("ANGTOF", 1, 2, a =>
                 Units(() => LispUnits.Angtof(Str(a[0]), a.Length > 1 ? Int(a[1]) : Setting("AUNITS", 0)))
             );
+            RegisterGeometry();
         }
 
         /// <summary>The drawing's whole-number setting <paramref name="name"/>, or what a blank drawing has where <see cref="Variable"/> gives none.</summary>
