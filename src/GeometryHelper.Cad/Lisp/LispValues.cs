@@ -238,13 +238,21 @@ namespace GeometryHelper.Cad.Lisp
     /// <summary>What running AutoLISP text gave: the value, and the text AutoCAD would have put on the command line.</summary>
     public sealed class LispResult
     {
-        internal LispResult(object value, string output, bool failed, string error)
+        internal LispResult(object value, string output, bool failed, string error, bool waiting = false)
         {
             Value = value;
             Output = output;
             Failed = failed;
             Error = error;
+            IsWaiting = waiting;
         }
+
+        /// <summary>
+        /// True when the evaluation is not over but waits for the user (a <c>get</c> function, <c>entsel</c>, <c>ssget</c>), the
+        /// text it wrote so far in <see cref="Output"/>; <see cref="LispInterpreter.Resume"/> answers it. The text of the rest comes
+        /// with the next result, so that a host writes each piece once.
+        /// </summary>
+        internal bool IsWaiting { get; }
 
         /// <summary>The value of the last form, null (nil) when an error ended the run.</summary>
         public object Value { get; }

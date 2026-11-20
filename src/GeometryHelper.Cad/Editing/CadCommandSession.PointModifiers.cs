@@ -74,7 +74,7 @@ namespace GeometryHelper.Cad
                 return false;
             }
 
-            Write(Prompt.Text + " " + typed.Trim());
+            Write(Prompt.Echo(typed.Trim()));
             var modifier = new PointModifier(kind, filter, Prompt);
             _modifiers.Add(modifier);
             Prompt = FirstPrompt(modifier);

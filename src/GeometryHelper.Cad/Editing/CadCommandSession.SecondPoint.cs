@@ -36,7 +36,10 @@ namespace GeometryHelper.Cad
             _secondLast = LastPoint;
             LastPoint = first;
             Prompt = CadPrompt
-                .ForPoint("Specify second point", first)
+                .ForPoint(
+                    ReferenceEquals(outer, _lispAskPrompt) ? " Specify second point" : "Specify second point",
+                    first
+                )
                 .Hiding(outer.Keywords.ToArray())
                 .Refusing(
                     outer.Kind == CadPromptKind.Angle ? "Requires valid numeric angle or two points." : Refused(outer)

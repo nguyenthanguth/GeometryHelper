@@ -297,6 +297,12 @@ namespace GeometryHelper.Cad
             {
                 var text = new StringBuilder(_transparent ? ">>" : string.Empty).Append(Message);
 
+                // The message of AutoLISP's get functions is shown as the routine wrote it, with no keywords, default or colon added.
+                if (_raw)
+                {
+                    return text.ToString();
+                }
+
                 if (Keywords.Count > 0)
                 {
                     text.Append(Kind == CadPromptKind.Keyword || _noOr ? " [" : " or [")
@@ -317,6 +323,40 @@ namespace GeometryHelper.Cad
 
                 return _noColon ? text.ToString() : text.Append(':').ToString();
             }
+        }
+
+        // Whether the message is the whole text, as a get function of AutoLISP shows it, and whether a space ends the answer.
+        private bool _raw;
+        private bool _endsAtSpace;
+
+        /// <summary>
+        /// Gets whether a space typed is part of the answer: true for a prompt for text (<see cref="CadPromptKind.String"/>) and
+        /// false for every other kind, and for the text AutoLISP's <c>getstring</c> asks without its first argument, where a
+        /// space ends the answer as Enter does and the rest of the line is the next input. The window types a space only
+        /// where this is true and takes Space as Enter elsewhere.
+        /// </summary>
+        public bool TakesSpaces => Kind == CadPromptKind.String && !_endsAtSpace;
+
+        /// <summary>
+        /// Shows the message as it is, as AutoLISP's get functions do: <c>Pick: </c> is the whole text, and what is typed is
+        /// echoed straight after it (<see cref="Echo"/>). Where <paramref name="endsAtSpace"/> is true a space ends the
+        /// answer (<see cref="TakesSpaces"/>).
+        /// </summary>
+        internal CadPrompt AsRaw(bool endsAtSpace = false)
+        {
+            _raw = true;
+            _endsAtSpace = endsAtSpace;
+            return this;
+        }
+
+        /// <summary>The line the history gets for an answer typed or a key pressed at this prompt: the text, a space, and the answer; a raw message has no space added.</summary>
+        internal string Echo(string typed) => _raw ? Text + typed : Text + " " + typed;
+
+        /// <summary>Makes the prompt take any text where it is not a point or a number, as <c>(initget 128)</c> does.</summary>
+        internal CadPrompt AcceptingText()
+        {
+            AcceptsText = true;
+            return this;
         }
 
         // Words written after the last keyword inside the brackets, as AutoCAD writes REFCLOSE's "[Save/Discard reference changes]".

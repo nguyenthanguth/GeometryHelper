@@ -113,7 +113,7 @@ namespace GeometryHelper.Cad
                 command = Registry.Find(form) ?? command;
             }
 
-            string echo = Prompt.Text + " " + typed;
+            string echo = Prompt.Echo(typed);
 
             // ZOOM's prompt takes no ZOOM of its own, as AutoCAD's refuses it with these words.
             if (command.Name == "ZOOM" && Current != null && Current.Name == "ZOOM")
@@ -167,7 +167,11 @@ namespace GeometryHelper.Cad
         private void EndTransparent(CadCommandOutcome outcome)
         {
             Suspended outer = _suspended.Pop();
-            string result = _context?.TransparentResult;
+
+            // A form of AutoLISP typed at a prompt that waited for the user ends by answering the prompt with its value, as
+            // L1's decision 9 says; the command it interrupted does not end with it, nor does it say it is resuming.
+            string result = outer.ForLisp ? LispAnswer(_lispValue) : _context?.TransparentResult;
+            _lispValue = null;
 
             if (_grouped && !outer.Grouped)
             {
@@ -188,19 +192,30 @@ namespace GeometryHelper.Cad
 
             outer.Restore(this);
 
-            if (outcome == CadCommandOutcome.Cancelled)
+            if (outcome == CadCommandOutcome.Cancelled && !outer.ForLisp)
             {
                 Finish(CadCommandOutcome.Cancelled);
                 return;
             }
 
-            Write("Resuming " + Current.Name + " command.");
+            if (!outer.ForLisp)
+            {
+                Write("Resuming " + Current.Name + " command.");
+            }
+
             Changed();
 
             // 'CAL's value is typed at the prompt that was waiting.
             if (result != null)
             {
-                Feed(result);
+                if (outer.ForLisp)
+                {
+                    Refeed(result);
+                }
+                else
+                {
+                    Feed(result);
+                }
             }
         }
 
@@ -278,6 +293,9 @@ namespace GeometryHelper.Cad
 
             /// <summary>Gets whether the command had opened its undo step, which the transparent one then shares.</summary>
             internal bool Grouped { get; }
+
+            /// <summary>Gets or sets whether what interrupted the command is a form of AutoLISP that waits for the user, not a transparent command.</summary>
+            internal bool ForLisp { get; set; }
 
             /// <summary>Puts the command and its prompt back, the last point (LASTPOINT) as it was before the transparent command.</summary>
             internal void Restore(CadCommandSession session)

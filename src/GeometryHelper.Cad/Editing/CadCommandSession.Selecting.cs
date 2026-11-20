@@ -309,7 +309,7 @@ namespace GeometryHelper.Cad
         private bool OptionText(string typed)
         {
             // Text a modifier handed on has its echo written already.
-            string echo = _refeeding ? null : Prompt.Text + " " + typed;
+            string echo = _refeeding ? null : Prompt.Echo(typed);
 
             if (_option == "Group")
             {
@@ -621,6 +621,12 @@ namespace GeometryHelper.Cad
             if (Prompt.Expected == null)
             {
                 return Invalid("Expects a single object.");
+            }
+
+            // The words of a routine's entsel are one line, as AutoCAD 2021 writes them.
+            if (ReferenceEquals(Prompt, _lispAskPrompt))
+            {
+                return Invalid("Expects a point or " + Prompt.Expected);
             }
 
             Write("Expects a point or");

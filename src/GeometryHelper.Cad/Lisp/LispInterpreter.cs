@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading;
 
@@ -19,10 +18,13 @@ namespace GeometryHelper.Cad.Lisp
     /// <remarks>
     /// <para>
     /// Each document has an interpreter of its own, and nothing it defines is seen by another. Each call of
-    /// <see cref="Run"/>, <see cref="RunCommand"/> or <see cref="Load"/> is evaluated on a new thread with a stack of 256 MB
-    /// while the caller waits, so that a routine that recurses deeply cannot take the host down: user functions nested past
-    /// 20 000 deep give the hard error <c>internal stack limit reached (simulated)</c>, which neither <c>*error*</c> nor
-    /// <c>vl-catch-all-apply</c> sees.
+    /// <see cref="Run"/>, <see cref="RunCommand"/> or <see cref="Load"/> is evaluated on a new background thread with a stack
+    /// of 256 MB while the caller waits, so that a routine that recurses deeply cannot take the host down: user functions
+    /// nested past 20 000 deep give the hard error <c>internal stack limit reached (simulated)</c>, which neither
+    /// <c>*error*</c> nor <c>vl-catch-all-apply</c> sees. The two threads never run together: the evaluating thread hands
+    /// the caller's thread whatever touches a document, and a routine that waits for the user (the get functions of a
+    /// <see cref="CadCommandSession"/>) gives control back to the caller until it is answered. A call made while an
+    /// evaluation goes on or waits is refused with <c>Can't reenter LISP.</c>.
     /// </para>
     /// <para>
     /// A function of a later stage (<c>command</c>, <c>ssget</c>, <c>vla-</c>, <c>vlax-</c>) is not defined, and calling it
@@ -39,7 +41,6 @@ namespace GeometryHelper.Cad.Lisp
         );
         private readonly Dictionary<LispSymbol, object> _defined = new Dictionary<LispSymbol, object>();
         private readonly StringBuilder _output = new StringBuilder();
-        private readonly object _gate = new object();
         private readonly LispSymbol _true;
         private readonly LispSymbol _empty;
         private readonly LispSymbol _quote;
@@ -49,7 +50,6 @@ namespace GeometryHelper.Cad.Lisp
         private LispBuiltin _quoteFunction;
         private IReadOnlyList<string> _supportFolders = Array.Empty<string>();
         private readonly List<string> _loadedFiles = new List<string>();
-        private Thread _worker;
         private int _depth;
 
         /// <summary>Makes an interpreter with the functions of the core language and nothing defined by a program.</summary>
@@ -765,111 +765,48 @@ namespace GeometryHelper.Cad.Lisp
         #region Top level
 
         /// <summary>
-        /// Runs a piece of work as one top-level evaluation: on a thread of its own with a large stack while the caller
-        /// waits, with the output collected, an error reported the way AutoCAD does, and the value of the work written after
-        /// what it wrote.
+        /// Runs a piece of work as one top-level evaluation: on a thread of its own with a large stack that takes turns with
+        /// the caller (see <c>LispInterpreter.Host.cs</c>), with the output collected, an error reported the way AutoCAD does,
+        /// and the value of the work written after what it wrote.
         /// </summary>
-        private LispResult Execute(Func<object> work, bool echo = true)
+        private LispResult Execute(Func<object> work, bool echo = true) => Evaluate(() => Complete(work, echo));
+
+        /// <summary>The body of one top-level evaluation, which runs on the worker thread.</summary>
+        private LispResult Complete(Func<object> work, bool echo)
         {
-            return OnWorker(() =>
+            _output.Clear();
+            _chunkStart = 0;
+            _depth = 0;
+            object value = null;
+            bool failed = false;
+            string error = null;
+
+            try
             {
-                bool nested = _worker == Thread.CurrentThread && _topLevelRunning;
-                int start = nested ? _output.Length : 0;
+                value = work();
 
-                if (!nested)
+                if (echo && (!(value is LispSymbol symbol) || symbol.Name.Length != 0))
                 {
-                    _output.Clear();
-                    _depth = 0;
-                    _topLevelRunning = true;
+                    _output.Append(LispPrinter.Print(value, true, display: true));
                 }
-
-                object value = null;
-                bool failed = false;
-                string error = null;
-
-                try
-                {
-                    value = work();
-
-                    if (echo && (!(value is LispSymbol symbol) || symbol.Name.Length != 0))
-                    {
-                        _output.Append(LispPrinter.Print(value, true, display: true));
-                    }
-                }
-                catch (LispException exception)
-                {
-                    failed = true;
-                    error = exception.Message;
-                    value = null;
-                    Report(exception);
-                }
-                catch (Exception exception) when (!(exception is ThreadAbortException))
-                {
-                    failed = true;
-                    error = "internal error: " + exception.Message;
-                    value = null;
-                    _output.Append("; error: ").Append(error);
-                }
-                finally
-                {
-                    if (!nested)
-                    {
-                        _topLevelRunning = false;
-                    }
-                }
-
-                string text = _output.ToString(start, _output.Length - start);
-                return new LispResult(value, text, failed, error);
-            });
-        }
-
-        private bool _topLevelRunning;
-
-        private T OnWorker<T>(Func<T> work)
-        {
-            if (_worker == Thread.CurrentThread)
+            }
+            catch (LispException exception)
             {
-                return work();
+                failed = true;
+                error = exception.Message;
+                value = null;
+                Report(exception);
+            }
+            catch (Exception exception) when (!(exception is ThreadAbortException))
+            {
+                failed = true;
+                error = "internal error: " + exception.Message;
+                value = null;
+                _output.Append("; error: ").Append(error);
             }
 
-            lock (_gate)
-            {
-                T result = default;
-                Exception failure = null;
-                var thread = new Thread(
-                    () =>
-                    {
-                        try
-                        {
-                            result = work();
-                        }
-                        catch (Exception exception)
-                        {
-                            failure = exception;
-                        }
-                    },
-                    StackSize
-                );
-
-                _worker = thread;
-
-                try
-                {
-                    thread.Start();
-                    thread.Join();
-                }
-                finally
-                {
-                    _worker = null;
-                }
-
-                if (failure != null)
-                {
-                    ExceptionDispatchInfo.Capture(failure).Throw();
-                }
-
-                return result;
-            }
+            string text = _output.ToString(_chunkStart, _output.Length - _chunkStart);
+            return new LispResult(value, text, failed, error);
         }
 
         /// <summary>

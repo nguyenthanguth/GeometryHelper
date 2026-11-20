@@ -51,7 +51,7 @@ namespace GeometryHelper.Cad.Lisp
             {
                 if (!string.IsNullOrWhiteSpace(file))
                 {
-                    session.WriteLisp(session.Lisp.Load(file.Trim()).Output);
+                    session.RunHosted(() => session.Lisp.Load(file.Trim()));
                 }
             }
 
@@ -59,7 +59,7 @@ namespace GeometryHelper.Cad.Lisp
             // The (princ) after the call keeps its value off the command line, as AutoCAD does not write it either.
             if (IsCallable(session.Lisp, session.Lisp.GetValue("S::STARTUP")))
             {
-                session.WriteLisp(session.Lisp.Run("(progn (S::STARTUP) (princ))").Output);
+                session.RunHosted(() => session.Lisp.Run("(progn (S::STARTUP) (princ))"));
             }
         }
 
@@ -94,7 +94,7 @@ namespace GeometryHelper.Cad.Lisp
 
                 if (File.Exists(path))
                 {
-                    session.WriteLisp(session.Lisp.Load(path).Output);
+                    session.RunHosted(() => session.Lisp.Load(path));
                     return;
                 }
             }

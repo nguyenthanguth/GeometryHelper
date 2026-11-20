@@ -27,6 +27,7 @@ namespace GeometryHelper.Cad
                 if (_lisp == null)
                 {
                     _lisp = new LispInterpreter { Variable = LispVariable };
+                    LispDrawing.Register(_lisp, this);
                 }
 
                 _lisp.SupportFolders = Document.SupportFolders;
@@ -56,11 +57,18 @@ namespace GeometryHelper.Cad
         /// <summary>
         /// Gets whether text typed at the command line is AutoLISP: a line of it waits for more, or the text starts with
         /// <c>(</c>, a form, or <c>!</c>, the value of a variable. A bare word or number at the Command prompt is a command.
+        /// While a routine waits for an answer, or for a command it started, nothing is AutoLISP: AutoCAD does not run LISP
+        /// inside LISP, and the text goes to the prompt as typed.
         /// </summary>
         /// <param name="line">The text typed.</param>
         /// <returns>True when <see cref="Feed(string)"/> takes it as AutoLISP.</returns>
         public bool IsLispInput(string line)
         {
+            if (IsLispWaiting)
+            {
+                return false;
+            }
+
             if (_lispText != null)
             {
                 return true;
@@ -92,13 +100,17 @@ namespace GeometryHelper.Cad
                 throw new ArgumentNullException(nameof(path));
             }
 
-            LispResult result = Lisp.Load(path);
-            WriteLisp(result.Output);
-
-            if (!result.Failed)
-            {
-                Write(Path.GetFileName(path) + " successfully loaded.");
-            }
+            // Where the file waits for the user the line comes when it is done; a load asked while a routine waits is refused.
+            LispResult result = RunHosted(
+                () => Lisp.Load(path),
+                done =>
+                {
+                    if (!done.Failed)
+                    {
+                        Write(Path.GetFileName(path) + " successfully loaded.");
+                    }
+                }
+            );
 
             Changed();
             return !result.Failed;
@@ -119,12 +131,30 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>The command a <c>defun c:name</c> made: its body runs the function on the interpreter and writes what it wrote.</summary>
-        private CadCommand LispCommand(string name) => new CadCommand(name, c => RunLispCommand(name));
-
-        private IEnumerable<CadPrompt> RunLispCommand(string name)
+        private CadCommand LispCommand(string name)
         {
-            WriteLisp(Lisp.RunCommand(name).Output);
-            yield break;
+            _lispCommand = new CadCommand(name, c => RunLispCommand(c, name));
+            return _lispCommand;
+        }
+
+        /// <summary>The body of a <c>c:</c> command: it runs the function, and where the routine waits for the user its prompts are this command's, until the routine ends.</summary>
+        private IEnumerable<CadPrompt> RunLispCommand(CadCommandContext c, string name)
+        {
+            _lispStep = false;
+            _lispStepName = name.ToUpperInvariant();
+            LispResult result = Lisp.RunCommand(name);
+            WriteLisp(result.Output);
+
+            if (!result.IsWaiting)
+            {
+                CloseLispStep();
+                yield break;
+            }
+
+            foreach (CadPrompt prompt in LispWait(c, null))
+            {
+                yield return prompt;
+            }
         }
 
         /// <summary>
@@ -153,8 +183,19 @@ namespace GeometryHelper.Cad
 
             _lispText = null;
             _lispPrompt = null;
+            _lispStep = false;
+            _lispStepName = null;
             LispResult result = Lisp.Run(source[0] == '!' ? source.Substring(1) : source);
             WriteLisp(result.Output);
+
+            // A routine that waits for the user is asked as a command of its own; the line is over when it is.
+            if (result.IsWaiting)
+            {
+                StartLispWait(null);
+                return true;
+            }
+
+            CloseLispStep();
             Changed();
 
             if (Prompt == null)
@@ -227,7 +268,7 @@ namespace GeometryHelper.Cad
             }
             else
             {
-                WriteLisp(Lisp.Run("(progn (*error* \"Function cancelled\") (princ))").Output);
+                RunHosted(() => Lisp.Run("(progn (*error* \"Function cancelled\") (princ))"));
             }
 
             Changed();
