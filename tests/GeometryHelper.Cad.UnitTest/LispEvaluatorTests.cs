@@ -409,6 +409,33 @@ namespace GeometryHelper.Cad.UnitTest
             Assert.Equal(output, Out(expression));
         }
 
+        [Theory]
+        [InlineData("(vl-symbolp nil)", "nil")] // AutoCAD 2021: nil
+        [InlineData("(vl-symbolp t)", "T")] // AutoCAD 2021: T
+        [InlineData("(boole 1 12 10)", "8")] // AutoCAD 2021: 8
+        [InlineData("(boole 7 12 10)", "14")] // AutoCAD 2021: 14
+        [InlineData("(boole 6 5 3 1)", "7")] // AutoCAD 2021: 7
+        [InlineData("(boole 2 12)", "12")] // AutoCAD 2021: 12
+        [InlineData("(boole 1)", "; error: too few arguments")] // AutoCAD 2021: ; error: too few arguments
+        [InlineData("(boole 16 1 2)", "; error: boole arg1 < 0 or > 15: 16")] // AutoCAD 2021: ; error: boole arg1 < 0 or > 15: 16
+        [InlineData("(boole 1.0 1 2)", "; error: bad argument type: fixnump: 1.0")] // AutoCAD 2021: ; error: bad argument type: fixnump: 1.0
+        [InlineData("(defun-q-list-set 'gq2 5)", "; error: bad argument type: listp 5")] // AutoCAD 2021: ; error: bad argument type: listp 5
+        [InlineData("(defun-q-list-set \"gq3\" '((x) x))", "; error: bad argument type: symbolp \"gq3\"")] // AutoCAD 2021: ; error: bad argument type: symbolp "gq3"
+        public void BooleAndVlSymbolpGiveWhatAutoCadGives(string expression, string output)
+        {
+            Assert.Equal(output, Out(expression));
+        }
+
+        [Fact]
+        public void DefunQListSet_MakesAFunctionOfAList()
+        {
+            // AutoCAD 2021: (defun-q-list-set 'gq '((x) (* x 5))) GQ, then (gq 2) 10
+            var lisp = new LispInterpreter();
+
+            Expect(lisp, "(defun-q-list-set 'gq '((x) (* x 5)))", "GQ");
+            Expect(lisp, "(gq 2)", "10");
+        }
+
         [Fact]
         public void AWhileGivesTheLastValueOfItsBody()
         {

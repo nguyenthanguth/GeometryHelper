@@ -18,7 +18,13 @@ namespace GeometryHelper.Cad.Lisp
             Define("ATOMS-FAMILY", 1, 2, AtomsFamily);
             Define("DEFUN-Q-LIST-REF", 1, 1, a => a[0] is LispSymbol s ? s.Value as LispCons : null);
             Define("VL-SYMBOL-VALUE", 1, 1, a => a[0] is LispSymbol s ? s.Value : throw TypeError("symbolp", a[0]));
-            Define("VL-SYMBOLP", 1, 1, a => Bool(a[0] == null || a[0] is LispSymbol));
+            Define("VL-SYMBOLP", 1, 1, a => Bool(a[0] is LispSymbol));
+            Define("DEFUN-Q-LIST-SET", 2, 2, a =>
+            {
+                LispSymbol symbol = a[0] as LispSymbol ?? throw TypeError("symbolp", a[0]);
+                symbol.Value = a[1] as LispCons ?? throw TypeError("listp", a[1]);
+                return symbol;
+            });
             Define("VL-LOAD-COM", 0, 0, a => _empty);
             Define("LOAD", 1, 2, a => LoadFile(Str(a[0]), a.Length > 1, a.Length > 1 ? a[1] : null));
         }

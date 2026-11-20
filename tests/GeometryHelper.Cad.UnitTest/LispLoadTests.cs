@@ -207,6 +207,10 @@ namespace GeometryHelper.Cad.UnitTest
 
             Assert.Equal(42, found.Value);
             Assert.False(found.Failed);
+
+            // The method is what APPLOAD and the startup files use: the file's value is given back, not written; APPLOAD
+            // writes its own "successfully loaded" line instead.
+            Assert.Equal(string.Empty, found.Output);
             Assert.True(missing.Failed);
             Assert.Equal("LOAD failed: \"nosuch\"", missing.Error);
             Assert.Equal("fb", fallback.Value);

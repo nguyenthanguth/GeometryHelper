@@ -147,7 +147,9 @@ namespace GeometryHelper.Cad.Lisp
         /// </summary>
         /// <param name="path">The file name as the program writes it.</param>
         /// <param name="onFailure">What to return when the file is not found; null for none, which makes it an error: <c>LOAD failed: "name"</c>.</param>
-        /// <returns>The value of the last form in the file, and what the forms wrote. A <c>.fas</c> or <c>.vlx</c> file is refused.</returns>
+        /// <returns>The value of the last form in the file, and what the forms wrote; the value is not written after it, as
+        /// <c>(load)</c> typed at the command line writes it, since the caller (APPLOAD, the startup files) writes its own
+        /// line. A <c>.fas</c> or <c>.vlx</c> file is refused.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
         public LispResult Load(string path, object onFailure = null)
         {
@@ -156,7 +158,7 @@ namespace GeometryHelper.Cad.Lisp
                 throw new ArgumentNullException(nameof(path));
             }
 
-            return Execute(() => LoadFile(path, onFailure != null, onFailure));
+            return Execute(() => LoadFile(path, onFailure != null, onFailure), echo: false);
         }
 
         /// <summary>Reads the first form of the text, as <c>(read text)</c> does.</summary>
@@ -758,7 +760,7 @@ namespace GeometryHelper.Cad.Lisp
         /// waits, with the output collected, an error reported the way AutoCAD does, and the value of the work written after
         /// what it wrote.
         /// </summary>
-        private LispResult Execute(Func<object> work)
+        private LispResult Execute(Func<object> work, bool echo = true)
         {
             return OnWorker(() =>
             {
@@ -780,7 +782,7 @@ namespace GeometryHelper.Cad.Lisp
                 {
                     value = work();
 
-                    if (!(value is LispSymbol symbol) || symbol.Name.Length != 0)
+                    if (echo && (!(value is LispSymbol symbol) || symbol.Name.Length != 0))
                     {
                         _output.Append(LispPrinter.Print(value, true, display: true));
                     }

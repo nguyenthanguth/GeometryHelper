@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Numerics;
 
 namespace GeometryHelper.Cad.Lisp
@@ -31,6 +32,7 @@ namespace GeometryHelper.Cad.Lisp
             Define("LOGIOR", 0, -1, a => Fold(a, 0, (x, y) => (int)x | (int)y, single: Whole));
             Define("LSH", 0, 2, Lsh);
             Define("~", 1, 1, a => ~Bits(a[0]));
+            Define("BOOLE", 2, -1, Boole);
             Define("=", 1, -1, a => Chain(a, (x, y) => EqualsNumbers(x, y)));
             Define("/=", 1, -1, a => Chain(a, (x, y) => !EqualsNumbers(x, y)));
             Define("<", 1, -1, a => Chain(a, (x, y) => Compare(x, y) < 0));
@@ -69,6 +71,32 @@ namespace GeometryHelper.Cad.Lisp
 
         private static object Whole(object value) =>
             value is int ? value : throw TypeError("fixnump", value, colon: true);
+
+        // (boole operator i1 i2 ...): bit 1 of the operator keeps a bit set in both, 2 one set only in the first, 4 one set
+        // only in the second, 8 one set in neither (AutoCAD 2021: (boole 1 12 10) 8, (boole 6 5 3 1) 7, (boole 2 12) 12).
+        private static object Boole(object[] a)
+        {
+            int op = Int(a[0]);
+
+            if (op < 0 || op > 15)
+            {
+                throw new LispException("boole arg1 < 0 or > 15: " + op.ToString(CultureInfo.InvariantCulture));
+            }
+
+            int result = Int(a[1]);
+
+            for (int k = 2; k < a.Length; k++)
+            {
+                int b = Int(a[k]);
+                result =
+                    ((op & 1) != 0 ? result & b : 0)
+                    | ((op & 2) != 0 ? result & ~b : 0)
+                    | ((op & 4) != 0 ? ~result & b : 0)
+                    | ((op & 8) != 0 ? ~result & ~b : 0);
+            }
+
+            return result;
+        }
 
         private static int Bits(object value) => value is int i ? i : throw TypeError("INT", value);
 
