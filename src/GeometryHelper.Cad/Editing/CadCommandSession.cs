@@ -573,6 +573,12 @@ namespace GeometryHelper.Cad
                     {
                         WritePick();
 
+                        // entsel gives nil at once for a pick on nothing: the routine goes on, the prompt is not asked again.
+                        if (Prompt.Kind == CadPromptKind.Entity && ReferenceEquals(Prompt, _lispAskPrompt))
+                        {
+                            return Answer(CadInput.Nothing, null, null);
+                        }
+
                         if (!Prompt.QuietMiss)
                         {
                             Write(
@@ -653,6 +659,12 @@ namespace GeometryHelper.Cad
                 return true;
             }
 
+            // A routine of AutoLISP waits for an answer: what looks like AutoLISP there is plain input, and a space may end it.
+            if (!_refeeding && FeedLispAsk(text, out bool asked))
+            {
+                return asked;
+            }
+
             // AutoLISP: a line that starts with ( or !, or goes on one that waited for its closing parenthesis, but at a prompt for text.
             if (!_refeeding && IsLispInput(text) && Prompt?.Kind != CadPromptKind.String)
             {
@@ -676,7 +688,7 @@ namespace GeometryHelper.Cad
             }
 
             string typed = Prompt.Kind == CadPromptKind.String ? text : text.Trim();
-            string echo = _refeeding ? null : Prompt.Text + " " + typed;
+            string echo = _refeeding ? null : Prompt.Echo(typed);
 
             if (Prompt.Kind != CadPromptKind.String)
             {
@@ -722,6 +734,16 @@ namespace GeometryHelper.Cad
                         {
                             return SelectOption(option, echo);
                         }
+                    }
+
+                    // entsel takes L for the object made last.
+                    if (
+                        Prompt.Kind == CadPromptKind.Entity
+                        && ReferenceEquals(Prompt, _lispAskPrompt)
+                        && string.Equals(typed, "L", StringComparison.OrdinalIgnoreCase)
+                    )
+                    {
+                        return AnswerLispLast(echo);
                     }
 
                     if (
@@ -841,6 +863,11 @@ namespace GeometryHelper.Cad
                         return StartSecondPoint(first, echo);
                     }
 
+                    if (Prompt.AcceptsText)
+                    {
+                        return Answer(new CadInput(CadInputKind.Text, default, 0.0, typed, null), echo, null);
+                    }
+
                     return Invalid(Refused(Prompt), echo);
                 case CadPromptKind.Angle:
                     if (TryAngle(typed, Prompt, out double radians))
@@ -861,6 +888,11 @@ namespace GeometryHelper.Cad
                     if (Prompt.BasePoint == null && TryPoint(typed, out GeoPoint2 from2))
                     {
                         return StartSecondPoint(from2, echo);
+                    }
+
+                    if (Prompt.AcceptsText)
+                    {
+                        return Answer(new CadInput(CadInputKind.Text, default, 0.0, typed, null), echo, null);
                     }
 
                     // AutoCAD 2021's words: an angle asked with no base point is given by a number or two points.
@@ -1052,7 +1084,8 @@ namespace GeometryHelper.Cad
 
         /// <summary>
         /// Esc: ends the command running, keeping what it made, with "*Cancel*" in the history; while a line of AutoLISP waits for
-        /// its closing parenthesis it drops that line alone and the command goes on asking, as AutoCAD does.
+        /// its closing parenthesis it drops that line alone and the command goes on asking, as AutoCAD does; at a question of an
+        /// AutoLISP routine (<c>getpoint</c>, <c>entsel</c>) the routine gets <c>Function cancelled</c>, as it would in AutoCAD.
         /// </summary>
         public void Escape()
         {
@@ -1067,7 +1100,7 @@ namespace GeometryHelper.Cad
                 return;
             }
 
-            Write(Prompt != null ? Prompt.Text + " *Cancel*" : "*Cancel*");
+            Write(Prompt != null ? Prompt.Echo("*Cancel*") : "*Cancel*");
             Finish(CadCommandOutcome.Cancelled);
         }
 
@@ -1289,6 +1322,12 @@ namespace GeometryHelper.Cad
         /// </summary>
         private bool Gather(List<string> handles, bool remove)
         {
+            // An interactive ssget with a filter counts only the objects that match it.
+            if (!remove && _lispAsk?.Accepts != null)
+            {
+                handles = handles.FindAll(h => _lispAsk.Accepts(h));
+            }
+
             int before = _gathered.Count;
             int duplicates = 0;
             var changed = new List<string>();
@@ -1505,8 +1544,8 @@ namespace GeometryHelper.Cad
                 ?? throw new InvalidOperationException("The command " + Current.Name + " asked a null prompt.");
             _repeatAsked = true;
 
-            // A transparent command's prompts are written after ">>", as AutoCAD's.
-            if (_suspended.Count > 0)
+            // A transparent command's prompts are written after ">>", as AutoCAD's; a form of AutoLISP typed at a prompt asks without them.
+            if (_suspended.Count > 0 && !_suspended.Peek().ForLisp)
             {
                 Prompt.Transparently();
             }
@@ -1514,6 +1553,9 @@ namespace GeometryHelper.Cad
             if (Prompt.Kind == CadPromptKind.Selection)
             {
                 ResetOptions();
+
+                // ssget with ":S": one pick or one window ends the selection.
+                _single = ReferenceEquals(Prompt, _lispAskPrompt) && _lispAsk.Single;
             }
 
             Changed();
