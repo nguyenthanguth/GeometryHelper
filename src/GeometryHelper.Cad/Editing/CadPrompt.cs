@@ -350,7 +350,23 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>The line the history gets for an answer typed or a key pressed at this prompt: the text, a space, and the answer; a raw message has no space added.</summary>
-        internal string Echo(string typed) => _raw ? Text + typed : Text + " " + typed;
+        internal string Echo(string typed) =>
+            Unwritten ? typed
+            : _raw ? Text + typed
+            : Text + " " + typed;
+
+        /// <summary>
+        /// Whether the prompt is not written: a prompt a routine's <c>command</c> waits at with CMDECHO 0 shows no words, so the
+        /// answer is echoed alone, as AutoCAD writes the <c>5,5</c> typed at a <c>PAUSE</c> with nothing before it.
+        /// </summary>
+        internal bool Unwritten { get; private set; }
+
+        /// <summary>Makes the prompt one that is not written (<see cref="Unwritten"/>).</summary>
+        internal CadPrompt WithoutWords()
+        {
+            Unwritten = true;
+            return this;
+        }
 
         /// <summary>Makes the prompt take any text where it is not a point or a number, as <c>(initget 128)</c> does.</summary>
         internal CadPrompt AcceptingText()

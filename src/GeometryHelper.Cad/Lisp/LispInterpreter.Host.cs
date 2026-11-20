@@ -257,6 +257,19 @@ namespace GeometryHelper.Cad.Lisp
             return ask;
         }
 
+        /// <summary>
+        /// Takes the text the evaluation has written since the host last took it, so that the host can write it before a line
+        /// of its own that comes later in the evaluation (the name of a command <c>command</c> starts), and the lines come in
+        /// the order they were made. Called on the owner thread, where the worker waits.
+        /// </summary>
+        /// <returns>The text; empty where there is none.</returns>
+        internal string TakeOutput()
+        {
+            string text = _output.ToString(_chunkStart, _output.Length - _chunkStart);
+            _chunkStart = _output.Length;
+            return text;
+        }
+
         /// <summary>Keeps what <c>initget</c> said for the next ask.</summary>
         /// <param name="bits">The bits.</param>
         /// <param name="keywords">The keywords, as written.</param>

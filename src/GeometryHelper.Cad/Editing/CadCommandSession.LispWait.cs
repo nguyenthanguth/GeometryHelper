@@ -18,14 +18,25 @@ namespace GeometryHelper.Cad
         private LispAsk _lispAsk;
         private CadPrompt _lispAskPrompt;
 
-        // The command that carries the evaluation (a c: command, or the wait of a form typed), so that a change made by the
-        // routine is told from one made by a command it started; and the undo step the evaluation opened for itself.
+        // The command that carries the wait of the evaluation while a get function asks, so that a change made by the routine
+        // is told from one made by a command it started; the carrier gives up its place when the routine starts a command
+        // (RetireLispCarrier), and the body it gave up is told apart in Advance. The undo step the evaluation opened for itself.
         private CadCommand _lispCommand;
+        private LispCarrier _lispCarrier;
+        private IEnumerator<CadPrompt> _retiredBody;
         private bool _lispStep;
         private string _lispStepName;
 
-        // The value a form typed at a prompt ended with, which answers the prompt it interrupted.
+        // The value a form typed at a prompt ended with, which answers the prompt it interrupted; whether the evaluation began
+        // at a command's prompt, so that its value is to answer it.
         private object _lispValue;
+        private bool _lispAnswers;
+
+        /// <summary>Whether the carrier of a wait has given its place to a command of the routine.</summary>
+        private sealed class LispCarrier
+        {
+            internal bool Retired { get; set; }
+        }
 
         /// <summary>Gets whether an evaluation of AutoLISP waits for the user.</summary>
         internal bool IsLispWaiting => _lisp != null && _lisp.IsWaiting;
@@ -72,19 +83,41 @@ namespace GeometryHelper.Cad
         /// <returns>The first result: the evaluation may not be over where it <c>IsWaiting</c>.</returns>
         internal LispResult RunHosted(Func<LispResult> run, Action<LispResult> finished = null)
         {
+            _lispAnswers = false;
+            _lispPrefix = null;
             LispResult result = run();
+            LispContinue(result, finished);
+            return result;
+        }
+
+        /// <summary>
+        /// Goes on after the evaluation returned to the session: writes what it wrote, then, where it waits for the user, asks
+        /// what it asks (a get function's prompt, as a command of its own; or the prompt of the command it started, for a
+        /// <c>PAUSE</c>), and where it is over, ends its undo step and calls <paramref name="finished"/>.
+        /// </summary>
+        /// <param name="result">What the evaluation gave: the first, or one after an answer.</param>
+        /// <param name="finished">Called with the last result of the evaluation; null for none.</param>
+        private void LispContinue(LispResult result, Action<LispResult> finished)
+        {
             WriteLisp(result.Output);
 
             if (result.IsWaiting)
             {
-                StartLispWait(finished);
-            }
-            else
-            {
-                finished?.Invoke(result);
+                if (Lisp.Waiting.Kind == LispAskKind.Pause)
+                {
+                    BeginPause(finished);
+                }
+                else
+                {
+                    StartLispWait(finished);
+                }
+
+                return;
             }
 
-            return result;
+            _lispTyped = false;
+            finished?.Invoke(result);
+            CloseLispStep();
         }
 
         /// <summary>
@@ -94,8 +127,10 @@ namespace GeometryHelper.Cad
         /// </summary>
         private void StartLispWait(Action<LispResult> finished)
         {
-            var command = new CadCommand("LISP", c => LispWait(c, finished));
+            var carrier = new LispCarrier();
+            var command = new CadCommand("LISP", c => LispWait(c, finished, carrier));
             _lispCommand = command;
+            _lispCarrier = carrier;
 
             if (Current == null)
             {
@@ -126,9 +161,14 @@ namespace GeometryHelper.Cad
         /// and the body ends when the routine does. Ending early (Esc, an error) gives the routine <c>Function cancelled</c> until
         /// it ends.
         /// </summary>
-        private IEnumerable<CadPrompt> LispWait(CadCommandContext c, Action<LispResult> finished)
+        private IEnumerable<CadPrompt> LispWait(CadCommandContext c, Action<LispResult> finished, LispCarrier carrier)
         {
             LispResult result;
+
+            // A get function leaves LASTPOINT as it was, base point and answer alike; the base point stands in for it only while
+            // the prompt is up, so that @ measures from it (q3, q10).
+            GeoPoint2 lastPoint = LastPoint;
+            bool ended = false;
 
             try
             {
@@ -137,6 +177,7 @@ namespace GeometryHelper.Cad
                     LispAsk ask = Lisp.Waiting;
                     object answer = null;
                     bool first = true;
+                    lastPoint = LastPoint;
 
                     while (ask.Kind != LispAskKind.Pause)
                     {
@@ -154,11 +195,22 @@ namespace GeometryHelper.Cad
                         }
                     }
 
+                    LastPoint = lastPoint;
                     result = Lisp.Resume(answer);
+
+                    // The routine ran a command meanwhile, which took this command's place: the rest of the evaluation goes on
+                    // in the session, not in this body.
+                    if (carrier.Retired)
+                    {
+                        LispContinue(result, finished);
+                        yield break;
+                    }
+
                     WriteLisp(result.Output);
                 } while (result.IsWaiting);
 
-                _lispValue = result.Failed ? null : result.Value;
+                ended = true;
+                _lispValue = !_lispAnswers || result.Failed ? null : result.Value;
                 finished?.Invoke(result);
             }
             finally
@@ -166,13 +218,22 @@ namespace GeometryHelper.Cad
                 _lispAsk = null;
                 _lispAskPrompt = null;
 
-                // The wait ended before the routine did: it is told Function cancelled, as often as it asks again.
-                while (Lisp.IsWaiting)
+                if (!carrier.Retired)
                 {
-                    WriteLisp(Lisp.CancelWait().Output);
-                }
+                    // Esc or an error ended the wait with a base point still the last point.
+                    if (!ended)
+                    {
+                        LastPoint = lastPoint;
+                    }
 
-                CloseLispStep();
+                    // The wait ended before the routine did: it is told Function cancelled, as often as it asks again.
+                    while (Lisp.IsWaiting)
+                    {
+                        WriteLisp(Lisp.CancelWait().Output);
+                    }
+
+                    CloseLispStep();
+                }
             }
         }
 
