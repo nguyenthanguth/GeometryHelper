@@ -68,12 +68,12 @@ compared by their values and by eye.
 - [x] L1. The interpreter: AutoLISP's reader, evaluator and data types (lists, symbols, reals, integers, strings, entity
       names, selection sets), `defun` and `c:` commands, error handling with `*error*`, APPLOAD, `(load)`, `acad.lsp`,
       `acaddoc.lsp` and `S::STARTUP`; LISP expressions typed at the command line
-- [ ] L1b. APPLOAD dialog (design first): the Load/Unload Applications dialog with the Startup Suite, designed in the
+- [x] L1b. APPLOAD dialog (design first): the Load/Unload Applications dialog with the Startup Suite, designed in the
       Design artifact before it is built
 - [ ] L1 parked: a test of a nested `Run` (a built-in that runs LISP again); guesses not measured (`*error*` on Esc at
       a prompt of L2, `(rtos 1 2.0)`, NaN and infinity in rtos modes 3 to 5, acad.lsp/acaddoc.lsp order in AutoCAD,
       Unicode strings typed at the console); the harness's Enter-repeat echo and U naming `L` for LINE
-- [ ] L2. Drawing functions: `command` and `vl-cmdf` driving the presenter's commands with their prompts; `ssget` with
+- [ ] L2. (running) Drawing functions: `command` and `vl-cmdf` driving the presenter's commands with their prompts; `ssget` with
       its modes and filters, `ssname`, `sslength`, `ssadd`; `entsel`, `nentsel`, `entget`, `entmod`, `entmake`,
       `entdel`, `entnext`, `tblsearch`; `getpoint`, `getcorner`, `getdist`, `getangle`, `getreal`, `getint`,
       `getstring`, `getkword`, `initget`; `getvar`, `setvar`, `trans`, `polar`, `inters`, `osnap`; `princ` and `prompt`

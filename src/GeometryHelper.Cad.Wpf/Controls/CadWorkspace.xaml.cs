@@ -797,7 +797,7 @@ namespace GeometryHelper.Cad.Wpf
                 _model.AskMTextSize = dialog => MTextSizeWindow.Ask(Window.GetWindow(this), dialog);
                 _model.ShowMTextFindReplace = editor => MTextFindReplaceWindow.Open(Window.GetWindow(this), editor);
                 _model.AskImportTextFile = AskImportTextFile;
-                _model.AskApplicationFile = AskApplicationFile;
+                _model.ShowAppLoad = dialog => AppLoadWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowCharacterMap = dialog => CharacterMapWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowDictionaries = dialog => SpellDictionariesWindow.Show(Window.GetWindow(this), dialog);
                 _model.InPlaceEditChanged += OnInPlaceEditChanged;
@@ -1626,18 +1626,6 @@ namespace GeometryHelper.Cad.Wpf
                 CheckFileExists = true,
                 Filter =
                     "Text files (*.txt;*.rtf)|*.txt;*.rtf|Text files (*.txt)|*.txt|Rich text files (*.rtf)|*.rtf|All files (*.*)|*.*",
-            };
-            return dialog.ShowDialog(Window.GetWindow(this)) == true ? dialog.FileName : null;
-        }
-
-        /// <summary>APPLOAD's Load/Unload Applications: an AutoLISP file or a plugin of the user's choosing; null where none is picked.</summary>
-        private string AskApplicationFile()
-        {
-            var dialog = new OpenFileDialog
-            {
-                Title = "Load/Unload Applications",
-                CheckFileExists = true,
-                Filter = "AutoLISP files (*.lsp)|*.lsp|Plugins (*.dll)|*.dll|All files (*.*)|*.*",
             };
             return dialog.ShowDialog(Window.GetWindow(this)) == true ? dialog.FileName : null;
         }

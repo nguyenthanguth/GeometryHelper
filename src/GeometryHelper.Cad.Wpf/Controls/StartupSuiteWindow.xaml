@@ -1,0 +1,187 @@
+<Window
+    x:Class="GeometryHelper.Cad.Wpf.StartupSuiteWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Cad.Wpf"
+    Title="Startup Suite"
+    Width="460"
+    Height="360"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Cad.Wpf;component/Themes/StyleDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <!-- Design StartupSuite: the list of the AutoLISP files loaded into every drawing opened, Add… and Remove. -->
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        CornerRadius="6"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                CornerRadius="6,6,0,0"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnClose"
+                        ToolTip="Close"
+                    />
+                    <TextBlock Text="Startup Suite" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border
+                DockPanel.Dock="Bottom"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                CornerRadius="0,0,6,6"
+            >
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button
+                        Style="{StaticResource GhCloseButton}"
+                        Content="Close"
+                        Margin="0,0,8,0"
+                        IsCancel="True"
+                        IsDefault="True"
+                        Click="OnClose"
+                    />
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Help"
+                        Padding="14,5"
+                        AutomationProperties.Name="Help"
+                        Click="OnHelp"
+                    />
+                </StackPanel>
+            </Border>
+
+            <Grid Margin="16,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="96" />
+                </Grid.ColumnDefinitions>
+
+                <DockPanel Margin="0,0,12,0">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                        <local:IconView
+                            DockPanel.Dock="Left"
+                            Size="16"
+                            StrokeThickness="2"
+                            Margin="0,0,8,0"
+                            Stroke="{StaticResource GhWarn}"
+                            Data="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM9 6V4h6v2M3 13h18"
+                        />
+                        <TextBlock Text="List of applications:" Foreground="{StaticResource GhTextMuted}" />
+                    </DockPanel>
+                    <TextBlock
+                        DockPanel.Dock="Bottom"
+                        Text="Loaded in this order into every drawing opened, after acad.lsp and acaddoc.lsp, before S::STARTUP."
+                        Foreground="{StaticResource GhTextMuted}"
+                        TextWrapping="Wrap"
+                        Margin="0,8,0,0"
+                    />
+                    <TextBlock
+                        DockPanel.Dock="Bottom"
+                        Text="{Binding Message}"
+                        Foreground="{StaticResource GhWarn}"
+                        TextWrapping="Wrap"
+                        Margin="0,6,0,0"
+                    >
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Message}" Value="">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <Grid>
+                        <ListBox
+                            Background="{StaticResource GhCommandInput}"
+                            BorderBrush="{StaticResource GhBorder}"
+                            Foreground="{StaticResource GhText}"
+                            FontFamily="{StaticResource GhMonoFont}"
+                            SelectionMode="Single"
+                            ItemsSource="{Binding Files}"
+                            SelectedItem="{Binding Selected, Mode=TwoWay}"
+                            ItemContainerStyle="{StaticResource StyleListItem}"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            AutomationProperties.Name="List of applications"
+                        >
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" ToolTip="{Binding}" TextTrimming="CharacterEllipsis" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <TextBlock
+                            Text="No file yet. Add… one, or drop an AutoLISP file on the briefcase of Load/Unload Applications."
+                            Foreground="{StaticResource GhTextMuted}"
+                            TextWrapping="Wrap"
+                            TextAlignment="Center"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Margin="24"
+                            IsHitTestVisible="False"
+                        >
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsEmpty}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+                </DockPanel>
+
+                <StackPanel Grid.Column="1" Margin="0,22,0,0">
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Add…"
+                        Margin="0,0,0,8"
+                        ToolTip="Add an AutoLISP file (*.lsp)"
+                        AutomationProperties.Name="Add"
+                        Click="OnAdd"
+                    />
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Remove"
+                        IsEnabled="{Binding CanRemove}"
+                        ToolTip="Take the chosen file out of the suite; the file stays on the disk"
+                        AutomationProperties.Name="Remove"
+                        Click="OnRemove"
+                    />
+                </StackPanel>
+            </Grid>
+        </DockPanel>
+    </Border>
+</Window>

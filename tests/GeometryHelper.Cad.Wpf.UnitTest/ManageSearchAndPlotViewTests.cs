@@ -198,7 +198,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 
                 Assert.True(ribbon.CanLoadApplication);
 
-                // A window that cannot ask for a file (no AskApplicationFile) still shows its Plugin manager.
+                // A window that cannot ask for a file (no ShowAppLoad) still shows its Plugin manager.
                 model.StartCommand("APPLOAD");
                 Assert.Equal(1, raised);
             }
