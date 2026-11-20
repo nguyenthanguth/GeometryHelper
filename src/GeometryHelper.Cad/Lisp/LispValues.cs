@@ -151,6 +151,7 @@ namespace GeometryHelper.Cad.Lisp
     public sealed class LispSelectionSet
     {
         private static int s_nextNumber;
+        private readonly List<string> _handles;
 
         /// <summary>Makes a selection set.</summary>
         /// <param name="handles">The handles of the entities in it.</param>
@@ -161,15 +162,51 @@ namespace GeometryHelper.Cad.Lisp
                 throw new ArgumentNullException(nameof(handles));
             }
 
-            Handles = new List<string>(handles);
+            _handles = new List<string>(handles);
             Number = Interlocked.Increment(ref s_nextNumber);
         }
 
         /// <summary>The handles of the entities in the set, in the order they were added.</summary>
-        public IReadOnlyList<string> Handles { get; }
+        public IReadOnlyList<string> Handles => _handles;
 
         /// <summary>The made-up number the set prints with.</summary>
         internal int Number { get; }
+
+        /// <summary>Adds an entity to the set in place, as <c>ssadd</c> does; one already in it (a handle is compared without regard to case) stays where it was.</summary>
+        /// <param name="handle">The handle of the entity.</param>
+        /// <returns>True when the entity was added, false when the set held it.</returns>
+        internal bool Add(string handle)
+        {
+            if (Contains(handle))
+            {
+                return false;
+            }
+
+            _handles.Add(handle);
+            return true;
+        }
+
+        /// <summary>Takes an entity out of the set in place, as <c>ssdel</c> does.</summary>
+        /// <param name="handle">The handle of the entity.</param>
+        /// <returns>True when the set held it.</returns>
+        internal bool Remove(string handle)
+        {
+            int at = _handles.FindIndex(h => string.Equals(h, handle, StringComparison.OrdinalIgnoreCase));
+
+            if (at < 0)
+            {
+                return false;
+            }
+
+            _handles.RemoveAt(at);
+            return true;
+        }
+
+        /// <summary>Whether the set holds an entity.</summary>
+        /// <param name="handle">The handle of the entity.</param>
+        /// <returns>True when it does.</returns>
+        internal bool Contains(string handle) =>
+            _handles.Exists(h => string.Equals(h, handle, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>
