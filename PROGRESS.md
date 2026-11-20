@@ -55,8 +55,12 @@ stages: they are read where they are and never copied into the repository, and t
 
 ### AutoLISP
 
-A stage is done when the maintainer's routines that need only what it adds run in `GeometryHelper.Cad.App` as they run in
-AutoCAD 2021.
+The goal is one routine for both programs: a `.lsp` (and its `.dcl`) written once runs in AutoCAD 2021 and in
+`GeometryHelper.Cad.App` with the same result. A stage is done when the maintainer's routines that need only what it adds
+run in both alike. Each test runs the same routine in AutoCAD (accoreconsole, hidden) and in the presenter, and compares
+the two drawings written as DXF (entities, layers, coordinates within the tolerance), the values returned and the
+command-line output. What AutoCAD alone can do (COM to other programs, ARX and .NET loading) is refused with a message
+naming it, never ignored; `(getvar "PRODUCT")` tells a routine which program runs it.
 
 - [ ] L1. The interpreter: AutoLISP's reader, evaluator and data types (lists, symbols, reals, integers, strings, entity
       names, selection sets), defun and c: commands, error handling with *error*, APPLOAD, (load), acad.lsp,
