@@ -18,7 +18,7 @@ namespace GeometryHelper.Cad.UnitTest
     public sealed class LispEntityTests
     {
         // The drawing of probe q5: a LINE on layer GHA, a CIRCLE, a TEXT, a polyline and a linear dimension, in that order.
-        private static CadCommandSession Q5()
+        internal static CadCommandSession Q5()
         {
             CadDocument document = Blank();
             document.Database.LayerTable.Add(new DxfLayerTableRecord { Name = "GHA", ColorIndex = 1 });
@@ -32,7 +32,7 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         // What a form gives, as the line after it: handles and entity names written *.
-        private static string Value(CadCommandSession session, string form)
+        internal static string Value(CadCommandSession session, string form)
         {
             int before = session.History.Count;
             session.Feed(form);

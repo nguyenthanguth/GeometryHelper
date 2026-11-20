@@ -87,13 +87,13 @@ namespace GeometryHelper.Cad.Lisp
 
             DxfDatabase database = document.Database;
 
-            foreach (DxfSymbolTable table in Tables(database))
+            foreach (string[] names in TableNames)
             {
-                foreach (DxfSymbolTableRecord record in table)
+                foreach (DxfItem record in database.File.TableItems(names[1]))
                 {
-                    if (record.Item != null && SameHandle(record.Handle, handle))
+                    if (!record.IsRemoved && SameHandle(record.Handle, handle))
                     {
-                        return record.Item;
+                        return record;
                     }
                 }
             }
@@ -125,19 +125,6 @@ namespace GeometryHelper.Cad.Lisp
         }
 
         private static bool SameHandle(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
-
-        /// <summary>The tables of a drawing that hold records: layers, linetypes, text styles, dimension styles, blocks, UCSs, views and viewports.</summary>
-        internal static IEnumerable<DxfSymbolTable> Tables(DxfDatabase database)
-        {
-            yield return database.LayerTable;
-            yield return database.LinetypeTable;
-            yield return database.TextStyleTable;
-            yield return database.DimStyleTable;
-            yield return database.BlockTable;
-            yield return database.UcsTable;
-            yield return database.ViewTable;
-            yield return database.ViewportTable;
-        }
 
         /// <summary>The records of the entities of a block, in the order they were made, those erased left out.</summary>
         internal static IEnumerable<DxfItem> Items(DxfBlockTableRecord block)
@@ -194,18 +181,30 @@ namespace GeometryHelper.Cad.Lisp
             IReadOnlyList<DxfTypedValue> groups = item.Groups;
             List<KeyValuePair<int, object>> pairs = LispEntityData.Read(groups, item.Type);
 
-            if (DxfEntity.Of(item) is DxfEntity entity && !(item.Parent != null))
+            if (item.Parent == null && item.Space != null)
             {
-                CadSpace space = session.Document.FindSpace(entity.Handle);
+                CadSpace space = session.Document.FindSpace(item.Handle);
                 string layer = pairs.Find(p => p.Key == 8).Value as string;
                 pairs = LispEntityData.Complete(
                     item.Type,
                     pairs,
-                    entity.OwnerHandle,
+                    item.File.OwnerOf(item),
                     space?.Name ?? "Model",
                     space != null && !space.IsModel,
                     layer
                 );
+            }
+            else
+            {
+                // A record of a table has the owner before the handle, as an entity does in AutoCAD's list.
+                int handleAt = pairs.FindIndex(p => p.Key == 5);
+
+                if (handleAt >= 0 && handleAt + 1 < pairs.Count && pairs[handleAt + 1].Key == 330)
+                {
+                    KeyValuePair<int, object> owner = pairs[handleAt + 1];
+                    pairs[handleAt + 1] = pairs[handleAt];
+                    pairs[handleAt] = owner;
+                }
             }
 
             List<KeyValuePair<string, List<KeyValuePair<int, object>>>> extended = null;
@@ -282,7 +281,7 @@ namespace GeometryHelper.Cad.Lisp
             }
 
             DxfItem main = found.Parent ?? found;
-            DxfDBObject owner = DxfEntity.Of(main)?.Owner;
+            DxfDBObject owner = main.Space == null ? null : DxfEntity.Of(main)?.Owner;
             DxfBlockTableRecord block = owner as DxfBlockTableRecord ?? document.FindSpace(main.Handle)?.Block;
 
             if (block == null)
@@ -485,7 +484,7 @@ namespace GeometryHelper.Cad.Lisp
             CadDocument document = session.Document;
             string handle = state.Resolve(name.Handle);
             DxfItem item = FindItem(document, handle);
-            DxfEntity entity = item == null ? null : DxfEntity.Of(item) as DxfEntity;
+            DxfEntity entity = item == null || item.Space == null ? null : DxfEntity.Of(item) as DxfEntity;
 
             if (entity == null || item.Parent != null)
             {

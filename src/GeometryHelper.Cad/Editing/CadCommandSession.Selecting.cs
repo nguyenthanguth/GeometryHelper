@@ -63,6 +63,9 @@ namespace GeometryHelper.Cad
         private readonly List<KeyValuePair<List<string>, List<string>>> _steps =
             new List<KeyValuePair<List<string>, List<string>>>();
         private IReadOnlyList<string> _previous = Array.Empty<string>();
+
+        /// <summary>Gets the objects the last selection took, the Previous selection that <c>(ssget "P")</c> gives again.</summary>
+        internal IReadOnlyList<string> PreviousSelection => _previous;
         private CadPrompt _asked;
         private string _option;
         private bool _removing;
