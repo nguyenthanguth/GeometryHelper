@@ -561,10 +561,12 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>
         /// Gets whether the prompt waiting takes text with spaces in it, so that Space types a space rather than ending the
-        /// line: a prompt for text, and a line of AutoLISP, typed starting with <c>(</c> or <c>!</c> or waiting for its closing parenthesis.
+        /// line: a prompt for text (<see cref="CadPrompt.TakesSpaces"/>, which <c>getstring</c> without its first argument is
+        /// not: there Space ends the text as Enter does), and a line of AutoLISP, typed starting with <c>(</c> or <c>!</c> or
+        /// waiting for its closing parenthesis.
         /// </summary>
         public bool PromptTakesSpaces =>
-            Session?.Prompt?.Kind == CadPromptKind.String || (Session?.IsLispInput(CommandText) ?? false);
+            (Session?.Prompt?.TakesSpaces ?? false) || (Session?.IsLispInput(CommandText) ?? false);
 
         /// <summary>Gets or sets the text typed in the command line; emptied, it closes the AutoComplete list.</summary>
         public string CommandText
@@ -1947,10 +1949,25 @@ namespace GeometryHelper.Cad.Wpf
             AnswerPendingOption();
         }
 
+        /// <summary>
+        /// Gets or sets how the window shows the text of AutoLISP's <c>alert</c>: a message box with an OK button, which
+        /// returns when it is closed. Null, as it is until set, leaves the request to the session, which writes the text into
+        /// the command history.
+        /// </summary>
+        public Action<string> ShowAlert { get; set; }
+
         private void OnUiRequested(object sender, CadUiRequestEventArgs e)
         {
             switch (e.Name)
             {
+                case "ALERT":
+                    if (ShowAlert != null)
+                    {
+                        ShowAlert(e.Payload as string ?? string.Empty);
+                        e.Handled = true;
+                    }
+
+                    break;
                 case "PROPERTIES":
                     IsPropertiesPanelShown = true;
                     PropertiesRequested?.Invoke(this, EventArgs.Empty);
