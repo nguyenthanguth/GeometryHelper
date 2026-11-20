@@ -144,6 +144,7 @@ namespace GeometryHelper.Cad
         private string _replacementFont = CadFonts.BuiltInName;
         private string _fontMapFile = string.Empty;
         private List<string> _supportFolders = new List<string>(CadSupportFiles.DefaultFolders);
+        private List<string> _lispStartupSuite = new List<string>();
         private string _plotStyleFolder = string.Empty;
         private SortedDictionary<string, string> _fontSubstitutions = new SortedDictionary<string, string>(
             StringComparer.OrdinalIgnoreCase
@@ -755,6 +756,22 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>
+        /// Gets or sets the Startup Suite: the AutoLISP files loaded, in this order, each time a drawing is opened, after
+        /// <c>acad.lsp</c> and <c>acaddoc.lsp</c> and before <c>S::STARTUP</c> runs; empty by default. Blank entries are left
+        /// out and a file given twice is kept once. Saved in the settings file.
+        /// </summary>
+        public IReadOnlyList<string> LispStartupSuite
+        {
+            get => _lispStartupSuite.AsReadOnly();
+            set =>
+                _lispStartupSuite = (value ?? Array.Empty<string>())
+                    .Where(f => !string.IsNullOrWhiteSpace(f))
+                    .Select(f => f.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+        }
+
+        /// <summary>
         /// Gets or sets the folder of plot style tables (.ctb and .stb) the Plot and Page Setup dialogs list and a plot reads,
         /// as AutoCAD's Plot Styles folder in its Files options: empty, the default, for the folder the presenter makes
         /// (<see cref="CadPlotStyleFolder.DefaultPath"/>), holding its own tables (<see cref="CadPlotStyleFolder.BuiltIn"/>);
@@ -976,6 +993,7 @@ namespace GeometryHelper.Cad
             copy._layers = new List<GlobalLayer>(_layers);
             copy._fontFolders = new List<string>(_fontFolders);
             copy._supportFolders = new List<string>(_supportFolders);
+            copy._lispStartupSuite = new List<string>(_lispStartupSuite);
             copy._fontSubstitutions = Copy(_fontSubstitutions);
             copy._aliases = Copy(_aliases);
             copy._keys = Copy(_keys);
@@ -1176,6 +1194,14 @@ namespace GeometryHelper.Cad
             foreach (string folder in _supportFolders)
             {
                 w.Value(null, folder);
+            }
+
+            w.CloseList();
+            w.OpenList("lispStartupSuite");
+
+            foreach (string file in _lispStartupSuite)
+            {
+                w.Value(null, file);
             }
 
             w.CloseList();
@@ -1409,6 +1435,9 @@ namespace GeometryHelper.Cad
                 Take("fonts", "substitutions", e => _s.SetFontSubstitutions(Pairs(e)));
                 Take("support", "searchFolders", e =>
                     _s.SupportSearchFolders = e.Elements().Select(f => f.Value).ToList()
+                );
+                Take("support", "lispStartupSuite", e =>
+                    _s.LispStartupSuite = e.Elements().Select(f => f.Value).ToList()
                 );
                 Text("support", "plotStyleFolder", v => _s.PlotStyleFolder = v);
                 Flag("dataSources", "checkForModelChanges", v => _s.CheckForModelChanges = v);

@@ -32,6 +32,7 @@ namespace GeometryHelper.Cad.UnitTest
         [InlineData("1E5", "100000.0")] // AutoCAD 2021: 100000.0
         [InlineData("10.0e-2", "0.1")] // AutoCAD 2021: 0.1
         [InlineData("a.b", "A")] // AutoCAD 2021: A
+        [InlineData("(a.b c)", "(A C)")] // AutoCAD 2021: (read "(a.b c)") (A C): the dot and what follows it in a symbol are dropped
         [InlineData("|a b|", "|A")] // AutoCAD 2021: |A
         [InlineData("nil", "nil")] // AutoCAD 2021: nil
         [InlineData("T", "T")] // AutoCAD 2021: T

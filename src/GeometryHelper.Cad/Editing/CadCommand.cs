@@ -467,6 +467,14 @@ namespace GeometryHelper.Cad
                 : null;
         }
 
+        /// <summary>Finds the command a typed text names, letters of either case the same, and no alias: AutoLISP's <c>c:</c> commands come after the names and before the aliases.</summary>
+        /// <param name="typed">The name typed.</param>
+        /// <returns>The command, or null.</returns>
+        internal CadCommand FindByName(string typed) =>
+            string.IsNullOrWhiteSpace(typed) || !_commands.TryGetValue(typed.Trim(), out CadCommand command)
+                ? null
+                : command;
+
         /// <summary>
         /// Gets the system variables SETVAR knows, and a name typed alone reaches where no command has it, in ordinal order of
         /// their names: those of <see cref="CreateDefault"/>, kept in the drawing or by the session, and those a window adds.
