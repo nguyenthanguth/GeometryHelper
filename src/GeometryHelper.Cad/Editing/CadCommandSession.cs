@@ -45,7 +45,7 @@ namespace GeometryHelper.Cad
         /// Gets what is asked: PROPERTIES, LAYER, OPTIONS, QSAVE, RECOVER, PLOT, PREVIEW, PAGESETUP, -PLOT to write a plot to a
         /// file, PNGOUT, JPGOUT or BMPOUT for the file of an image, IMAGEOUT to draw the image and write it, EXPORT or -EXPORT
         /// for the file of an export, or MATCHPROP for its Property Settings dialog, which sets the session's
-        /// <see cref="CadCommandSession.MatchProperties"/>.
+        /// <see cref="CadCommandSession.MatchProperties"/>; or ALERT, a message AutoLISP's <c>alert</c> asks the window to show with an OK button, its text the <see cref="Payload"/>: a window that shows it sets <see cref="Handled"/>, and a command line with no window writes the text as lines.
         /// </summary>
         public string Name { get; }
 
@@ -61,7 +61,7 @@ namespace GeometryHelper.Cad
         /// <see cref="CadPurgeRequest"/> for PURGE and <see cref="CadGroupManagerRequest"/> for CLASSICGROUP; for REDEFINE,
         /// which INSERT asks when the block chosen from another drawing has a namesake in this one, the name of the block, "Yes"
         /// in <see cref="Answer"/> redefining it; for PURGEITEM, which PURGE asks before each object it purges, the question,
-        /// "Yes" or "No" in <see cref="Answer"/>, null stopping the purge; null for the other requests.
+        /// "Yes" or "No" in <see cref="Answer"/>, null stopping the purge; for ALERT the text of the message; null for the other requests.
         /// </summary>
         public object Payload { get; }
 

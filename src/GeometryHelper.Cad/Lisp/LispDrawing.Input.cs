@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Cad.Lisp
@@ -23,8 +24,128 @@ namespace GeometryHelper.Cad.Lisp
             lisp.Define("GETREAL", 0, 1, a => lisp.Ask(WithMessage(lisp, LispAskKind.Real, a)));
             lisp.Define("GETKWORD", 0, 1, a => lisp.Ask(WithMessage(lisp, LispAskKind.Keyword, a)));
             lisp.Define("ENTSEL", 0, 1, a => lisp.Ask(WithMessage(lisp, LispAskKind.Entity, a)));
-            lisp.Define("NENTSEL", 0, 1, a => lisp.Ask(WithMessage(lisp, LispAskKind.NestedEntity, a)));
+            lisp.Define("NENTSEL", 0, 1, a =>
+                NestedAnswer(lisp, session, lisp.Ask(WithMessage(lisp, LispAskKind.NestedEntity, a)))
+            );
             lisp.Define("GETSTRING", 0, 2, a => lisp.Ask(WithText(lisp, a)));
+        }
+
+        /// <summary>
+        /// What <c>nentsel</c> gives for an object picked: where it is a block reference with an object under the point inside it,
+        /// <c>(ename pt matrix (insert ...))</c> of that object (reference, as AutoCAD 2021's documentation words it, not measured):
+        /// its name, the point picked, the 4 by 3 matrix that carries the block's coordinates into the world (the world images
+        /// of the three axes, then the origin) and the names of the references it is in, the innermost first. Anything else is as
+        /// <c>entsel</c> gives it.
+        /// </summary>
+        private static object NestedAnswer(LispInterpreter lisp, CadCommandSession session, object answer)
+        {
+            if (!(answer is LispCons))
+            {
+                return answer;
+            }
+
+            return lisp.OnOwner(() => Nested(session, (LispCons)answer));
+        }
+
+        private static object Nested(CadCommandSession session, LispCons answer)
+        {
+            List<object> items = LispInterpreter.ItemsOf(answer);
+            GeoPoint3? at = items.Count > 1 ? PointOf(items[1]) : null;
+
+            if (!(items[0] is LispEntityName name) || !at.HasValue)
+            {
+                return answer;
+            }
+
+            if (!(session.Document.FindEntity(name.Handle) is DxfBlockReference top))
+            {
+                return answer;
+            }
+
+            GeoPoint2 world = session.Ucs.ToWorld(new GeoPoint2(at.Value.X, at.Value.Y));
+            DxfEntity inner = CadDocument.FindNestedPick(top, world, session.PickAperture, true);
+            var chain = new List<DxfBlockReference>();
+
+            if (inner == null || ReferenceEquals(inner, top) || !PathTo(top, inner, chain, 0))
+            {
+                return answer;
+            }
+
+            GeoTransform3 placing = chain[0].BlockTransform;
+
+            for (int i = 1; i < chain.Count; i++)
+            {
+                placing = placing.Multiply(chain[i].BlockTransform);
+            }
+
+            GeoPoint3 origin = placing.Transform(GeoPoint3.Origin);
+            var matrix = new List<object>();
+
+            foreach (GeoPoint3 axis in new[] { new GeoPoint3(1, 0, 0), new GeoPoint3(0, 1, 0), new GeoPoint3(0, 0, 1) })
+            {
+                GeoPoint3 moved = placing.Transform(axis);
+                matrix.Add(
+                    LispInterpreter.ListOf(new object[] { moved.X - origin.X, moved.Y - origin.Y, moved.Z - origin.Z })
+                );
+            }
+
+            matrix.Add(LispInterpreter.ListOf(new object[] { origin.X, origin.Y, origin.Z }));
+
+            var inserts = new List<object>();
+
+            for (int i = chain.Count - 1; i >= 0; i--)
+            {
+                inserts.Add(new LispEntityName(chain[i].Handle));
+            }
+
+            return LispInterpreter.ListOf(
+                new object[]
+                {
+                    new LispEntityName(inner.Handle),
+                    items[1],
+                    LispInterpreter.ListOf(matrix),
+                    LispInterpreter.ListOf(inserts),
+                }
+            );
+        }
+
+        /// <summary>The references from one to the object inside, outermost first; false where the object is in none of them.</summary>
+        private static bool PathTo(DxfBlockReference current, DxfEntity inner, List<DxfBlockReference> chain, int depth)
+        {
+            chain.Add(current);
+            DxfBlockTableRecord block = current.BlockTableRecord;
+
+            if (block != null)
+            {
+                foreach (DxfEntity entity in block)
+                {
+                    if (
+                        !entity.IsErased
+                        && string.Equals(entity.Handle, inner.Handle, StringComparison.OrdinalIgnoreCase)
+                    )
+                    {
+                        return true;
+                    }
+                }
+
+                if (depth < 8)
+                {
+                    foreach (DxfEntity entity in block)
+                    {
+                        if (
+                            !entity.IsErased
+                            && entity is DxfBlockReference reference
+                            && PathTo(reference, inner, chain, depth + 1)
+                        )
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            chain.RemoveAt(chain.Count - 1);
+            return false;
         }
 
         /// <summary>

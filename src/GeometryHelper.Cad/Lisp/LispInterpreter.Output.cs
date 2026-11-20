@@ -36,6 +36,15 @@ namespace GeometryHelper.Cad.Lisp
             return a[0];
         }
 
+        /// <summary>Starts a new line where the output of the evaluation so far does not end with one.</summary>
+        internal void FreshLine()
+        {
+            if (_output.Length > 0 && _output[_output.Length - 1] != '\n')
+            {
+                _output.Append('\n');
+            }
+        }
+
         private object Prompt(object[] a)
         {
             Write(LispPrinter.Display(Str(a[0])));
