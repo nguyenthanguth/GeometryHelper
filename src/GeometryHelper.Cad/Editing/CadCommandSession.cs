@@ -297,7 +297,8 @@ namespace GeometryHelper.Cad
 
             if (command == null)
             {
-                Write(string.Format(CultureInfo.InvariantCulture, Unknown, name));
+                // AutoCAD 2021 names the command in capitals, as typed in any case: Unknown command "WORLD" (q3, runs/tca).
+                Write(string.Format(CultureInfo.InvariantCulture, Unknown, name.ToUpperInvariant()));
                 Changed();
                 return false;
             }

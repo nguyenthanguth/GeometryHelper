@@ -89,13 +89,13 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Theory]
-        [InlineData("(angle 5 6)", "; error: bad argument type: 2D/3D point: 5")] // a guess: AutoCAD's wording not measured
-        [InlineData("(angle '(1) '(1 2))", "; error: bad argument type: 2D/3D point: (1)")] // a guess
-        [InlineData("(distance '(1 2 3 4) '(1 2))", "; error: bad argument type: 2D/3D point: (1 2 3 4)")] // a guess
-        [InlineData("(polar '(0 0) \"a\" 1)", "; error: bad argument type: numberp: \"a\"")] // a guess
-        [InlineData("(inters '(0 0) '(1 1) \"x\" '(1 1))", "; error: bad argument type: 2D/3D point: \"x\"")] // a guess
-        [InlineData("(cvunit \"a\" \"in\" \"mm\")", "; error: bad argument type: numberp: \"a\"")] // a guess
-        [InlineData("(cvunit 1 5 \"mm\")", "; error: bad argument type: stringp 5")] // a guess
+        [InlineData("(angle 5 6)", "; error: bad argument type: 2D/3D point: 5")] // AutoCAD 2021 (L2 q10)
+        [InlineData("(angle '(1) '(1 2))", "; error: bad argument type: 2D/3D point: (1)")] // AutoCAD 2021 (L2 q10)
+        [InlineData("(distance '(1 2 3 4) '(1 2))", "; error: bad argument type: 2D/3D point: (1 2 3 4)")] // AutoCAD 2021 (L2 q10)
+        [InlineData("(polar '(0 0) \"a\" 1)", "; error: bad argument type: numberp: \"a\"")] // AutoCAD 2021 (L2 q10)
+        [InlineData("(inters '(0 0) '(1 1) \"x\" '(1 1))", "; error: bad argument type: 2D/3D point: \"x\"")] // AutoCAD 2021 (L2 q10)
+        [InlineData("(cvunit \"a\" \"in\" \"mm\")", "; error: bad argument type: numberp: \"a\"")] // AutoCAD 2021 (L2 q10)
+        [InlineData("(cvunit 1 5 \"mm\")", "; error: bad argument type: stringp 5")] // AutoCAD 2021 (L2 q10)
         [InlineData("(angle '(0 0))", "; error: too few arguments")]
         [InlineData("(inters '(0 0) '(1 1) '(0 1))", "; error: too few arguments")]
         [InlineData("(polar '(0 0) 0 1 2)", "; error: too many arguments")]

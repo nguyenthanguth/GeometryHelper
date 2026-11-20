@@ -790,7 +790,8 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void EntselGivenL_TakesTheLastObject()
         {
-            // spec D47 (runs/dch, runs/sd: L at an entsel): a list of the name and a point; the point is not measured
+            // spec D47 (runs/dch, runs/sd: L at an entsel): a list of the name and a point; the point is not measured.
+            // With no message the prompt is the default "Select object: ", so the echo is that prompt and the L (D43).
             CadCommandSession session = WithALine();
             int before = session.History.Count;
 
@@ -798,7 +799,7 @@ namespace GeometryHelper.Cad.UnitTest
 
             string[] lines = session.History.Skip(before).Select(l => l.TrimEnd()).ToArray();
 
-            Assert.Equal("L", lines[1]);
+            Assert.Equal("Select object: L", lines[1]);
             Assert.Matches(@"^\(<Entity name: [0-9a-f]+> \(.*\)\)$", lines[2]);
         }
 

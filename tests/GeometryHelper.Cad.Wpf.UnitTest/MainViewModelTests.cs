@@ -219,7 +219,8 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 
                 model.Execute("foo");
 
-                Assert.Equal("Unknown command \"foo\".  Press F1 for help.", model.History.Last());
+                // AutoCAD 2021 writes the name in capitals (L2 spec D38, q3).
+                Assert.Equal("Unknown command \"FOO\".  Press F1 for help.", model.History.Last());
 
                 model.Execute("re");
                 model.Execute(string.Empty);
