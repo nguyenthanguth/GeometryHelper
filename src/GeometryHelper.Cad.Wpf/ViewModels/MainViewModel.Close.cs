@@ -71,10 +71,7 @@ namespace GeometryHelper.Cad.Wpf
                 return false;
             }
 
-            if (file.Session.IsRunning)
-            {
-                file.Session.Escape();
-            }
+            EndCommands(file.Session);
 
             if (file.Document.IsModified)
             {
@@ -147,9 +144,9 @@ namespace GeometryHelper.Cad.Wpf
                 return open.Count == 1 && CloseDocument(open[0].Document);
             }
 
-            foreach (KnownFile file in open.Where(f => f.Session.IsRunning))
+            foreach (KnownFile file in open)
             {
-                file.Session.Escape();
+                EndCommands(file.Session);
             }
 
             List<KnownFile> unsaved = open.Where(f => f.Document.IsModified).ToList();
@@ -169,6 +166,22 @@ namespace GeometryHelper.Cad.Wpf
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Ends what a document's session is doing before the document is let go: Esc is pressed until nothing runs and no
+        /// routine of AutoLISP waits. One Esc is not always enough: a form typed at the prompt of LINE suspends LINE, and Esc at
+        /// the routine's question ends the wait and lets LINE ask again. A routine that waits is told <c>Function cancelled</c>
+        /// and its thread ends, so a drawing closed leaves none behind.
+        /// </summary>
+        /// <param name="session">The session of the document.</param>
+        private static void EndCommands(CadCommandSession session)
+        {
+            // A few presses at most: each ends one command, and the commands suspended are few.
+            for (int press = 0; press < 32 && (session.IsRunning || session.IsLispWaiting); press++)
+            {
+                session.Escape();
+            }
         }
 
         private void CloseFile(FileRowViewModel row)

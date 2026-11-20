@@ -75,10 +75,7 @@ namespace GeometryHelper.Cad.Wpf
                 return false;
             }
 
-            if (file.Session.IsRunning)
-            {
-                file.Session.Escape();
-            }
+            EndCommands(file.Session);
 
             // The views the user moved, by the name of their space: the spaces of the new document are other objects.
             Dictionary<string, ViewState> moved = file

@@ -98,6 +98,98 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
+        public void GetStringWithoutCr_SpaceEndsTheText_AndWithCrItIsTyped()
+        {
+            // AutoCAD 2021 (q3): (getstring "Str: ") ends at a space; (getstring T "Str: ") takes "hello world".
+            MainViewModel model = Opened();
+
+            model.Execute("(getstring \"Str: \")");
+            model.CommandText = "hel";
+            Assert.False(model.PromptTakesSpaces);
+            model.CommandText = string.Empty;
+            model.Execute("hello");
+            Assert.Equal("\"hello\"", model.History.Last());
+
+            model.Execute("(getstring T \"Str: \")");
+            model.CommandText = "hel";
+            Assert.True(model.PromptTakesSpaces);
+            model.CommandText = string.Empty;
+            model.Execute("hello world");
+            Assert.Equal("\"hello world\"", model.History.Last());
+        }
+
+        [Fact]
+        public void AGetPointWaiting_TakesATypedFormAsTextAndSpaceIsEnterAtThePointPrompt()
+        {
+            MainViewModel model = Opened();
+
+            model.Execute("(getpoint)");
+            model.CommandText = "(setq";
+            Assert.False(model.PromptTakesSpaces);
+            model.CommandText = "3,4";
+            Assert.False(model.PromptTakesSpaces);
+            model.CommandText = string.Empty;
+            model.Execute("3,4");
+
+            Assert.Equal("(3.0 4.0 0.0)", model.History.Last());
+            Assert.False(model.Session.IsLispWaiting);
+        }
+
+        [Fact]
+        public void AlertOfAForm_IsShownByTheWindowWithItsText()
+        {
+            MainViewModel model = Opened();
+            var shown = new System.Collections.Generic.List<string>();
+            model.ShowAlert = shown.Add;
+
+            CadUiRequestEventArgs request = model.Session.Ask("ALERT", null, "Xong\nlan hai");
+
+            Assert.True(request.Handled);
+            Assert.Equal(new[] { "Xong\nlan hai" }, shown);
+        }
+
+        [Fact]
+        public void AlertWithNoWindowToShowIt_IsLeftUnhandledForTheSessionToWrite()
+        {
+            MainViewModel model = Opened();
+
+            CadUiRequestEventArgs request = model.Session.Ask("ALERT", null, "Xong");
+
+            Assert.False(request.Handled);
+        }
+
+        [Fact]
+        public void ClosingADocumentWhoseRoutineWaits_LeavesNoEvaluationWaiting()
+        {
+            MainViewModel model = Opened();
+            CadCommandSession session = model.Session;
+            model.Execute("(getpoint \"P: \")");
+            Assert.True(session.IsLispWaiting);
+
+            Assert.True(model.CloseDocument());
+
+            Assert.False(session.IsLispWaiting);
+            Assert.False(session.IsRunning);
+        }
+
+        [Fact]
+        public void ClosingADocumentWhoseRoutineWaitsInsideACommand_LeavesNothingRunning()
+        {
+            // The form typed at the prompt of LINE suspends it; one Esc ends the wait and LINE asks again, so closing goes on
+            // until the session is idle.
+            MainViewModel model = Opened();
+            CadCommandSession session = model.Session;
+            model.StartCommand("LINE");
+            model.Execute("(getpoint \"P: \")");
+            Assert.True(session.IsLispWaiting);
+
+            Assert.True(model.CloseDocument());
+
+            Assert.False(session.IsLispWaiting);
+            Assert.False(session.IsRunning);
+        }
+
+        [Fact]
         public void ACommandDefinedWithDefun_IsOfferedByAutoCompleteFromItsFirstLetters()
         {
             MainViewModel model = Opened();
