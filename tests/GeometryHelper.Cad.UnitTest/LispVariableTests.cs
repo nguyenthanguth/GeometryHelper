@@ -128,5 +128,30 @@ namespace GeometryHelper.Cad.UnitTest
             // ours (D42): a change made outside any command is an undo step of its own
             Assert.Equal(4, document.Database.Luprec);
         }
+
+        [Fact]
+        public void ASessionWithNoWindow_HasAnOsmodeOf167_ThatSetvarChangesAndPutsBack()
+        {
+            CadCommandSession session = Session(Blank());
+
+            // AutoCAD 2021 (q6): (getvar "OSMODE") 167 in the blank drawing; ours: a session with no window keeps one, as ZZ saves it,
+            // sets it and puts it back
+            Assert.Equal("167", Value(session, "(getvar \"OSMODE\")"));
+            Assert.Equal("0", Value(session, "(setvar \"OSMODE\" 0)"));
+            Assert.Equal("0", Value(session, "(getvar \"OSMODE\")"));
+            Assert.Equal("167", Value(session, "(setvar \"OSMODE\" 167)"));
+            Assert.Equal("167", Value(session, "(getvar \"osmode\")"));
+        }
+
+        [Fact]
+        public void AnAliasOfAVariable_IsNoNameToGetvarAndSetvar()
+        {
+            CadCommandSession session = Session(Blank());
+
+            // SETVAR takes LTS for LTSCALE typed at the prompt; AutoLISP's getvar takes the full name only
+            Assert.Equal("nil", Value(session, "(getvar \"LTS\")"));
+            Assert.Equal("; error: AutoCAD variable setting rejected: \"LTS\" 2.0", Value(session, "(setvar \"LTS\" 2.0)"));
+            Assert.Equal("1.0", Value(session, "(getvar \"LTSCALE\")"));
+        }
     }
 }

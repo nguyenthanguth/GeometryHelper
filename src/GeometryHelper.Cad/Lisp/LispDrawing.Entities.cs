@@ -100,13 +100,23 @@ namespace GeometryHelper.Cad.Lisp
 
             foreach (DxfBlockTableRecord block in database.BlockTable)
             {
+                if (IndexOf(block).Map.TryGetValue(handle, out KeyValuePair<int, int> at))
+                {
+                    DxfItem main = IndexOf(block).Items[at.Key];
+                    DxfItem found = at.Value == 0 ? main : main.File.FollowerOf(main, at.Value);
+
+                    if (!found.IsRemoved && SameHandle(found.Handle, handle))
+                    {
+                        return found;
+                    }
+                }
+            }
+
+            // A record that follows an entity and was added since the index of its block was made.
+            foreach (DxfBlockTableRecord block in database.BlockTable)
+            {
                 foreach (DxfItem item in Items(block))
                 {
-                    if (SameHandle(item.Handle, handle))
-                    {
-                        return item;
-                    }
-
                     DxfFile file = item.File;
 
                     for (int i = 1; i < file.RecordCount(item); i++)
@@ -125,6 +135,88 @@ namespace GeometryHelper.Cad.Lisp
         }
 
         private static bool SameHandle(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>Where the entities of a block are: its records in order, and for each handle (of an entity or a record that follows one) the entity's place and which of its records it is.</summary>
+        internal sealed class BlockIndex
+        {
+            internal DxfSpace Space { get; set; }
+
+            internal int Version { get; set; }
+
+            internal IReadOnlyList<DxfItem> Items { get; set; }
+
+            internal int Count { get; set; }
+
+            internal bool HasColumns { get; set; }
+
+            internal Dictionary<string, KeyValuePair<int, int>> Map { get; set; }
+        }
+
+        private static readonly ConditionalWeakTable<DxfBlockTableRecord, BlockIndex> Indexes =
+            new ConditionalWeakTable<DxfBlockTableRecord, BlockIndex>();
+
+        /// <summary>
+        /// The index of a block, made again where entities were added to it or taken out since: a walk of the entities of a
+        /// block of 20 000, one <c>entnext</c> after another, would search the block from its start each time otherwise.
+        /// </summary>
+        internal static BlockIndex IndexOf(DxfBlockTableRecord block)
+        {
+            // The walk of a block looks through it for the columns of an MTEXT: the list of its entities, and its version, are asked first.
+            DxfSpace now = block.EntitySpace;
+
+            if (
+                now != null
+                && Indexes.TryGetValue(block, out BlockIndex current)
+                && ReferenceEquals(current.Space, now)
+                && current.Version == now.Version
+                && current.Count == now.Count
+                && !current.HasColumns
+            )
+            {
+                return current;
+            }
+
+            IReadOnlyList<DxfItem> items = block.WalkedItems(out DxfSpace space, out int version, out bool hasColumns);
+
+            var map = new Dictionary<string, KeyValuePair<int, int>>(items.Count, StringComparer.OrdinalIgnoreCase);
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                DxfItem item = items[i];
+
+                if (item.IsRemoved || string.IsNullOrEmpty(item.Handle))
+                {
+                    continue;
+                }
+
+                map[item.Handle] = new KeyValuePair<int, int>(i, 0);
+                DxfFile file = item.File;
+                int records = file.RecordCount(item);
+
+                for (int r = 1; r < records; r++)
+                {
+                    string followed = file.FollowerOf(item, r).Handle;
+
+                    if (!string.IsNullOrEmpty(followed))
+                    {
+                        map[followed] = new KeyValuePair<int, int>(i, r);
+                    }
+                }
+            }
+
+            var made = new BlockIndex
+            {
+                Space = space,
+                Version = version,
+                Items = items,
+                Count = hasColumns ? -1 : items.Count,
+                HasColumns = hasColumns,
+                Map = map,
+            };
+            Indexes.Remove(block);
+            Indexes.Add(block, made);
+            return made;
+        }
 
         /// <summary>The records of the entities of a block, in the order they were made, those erased left out.</summary>
         internal static IEnumerable<DxfItem> Items(DxfBlockTableRecord block)
@@ -237,14 +329,17 @@ namespace GeometryHelper.Cad.Lisp
         /// <summary>The name of the last entity made of the current space, nil for none.</summary>
         private static object EntLast(CadCommandSession session)
         {
-            DxfItem last = null;
+            IReadOnlyList<DxfItem> items = IndexOf(session.Document.WorkingSpace.Block).Items;
 
-            foreach (DxfItem item in Items(session.Document.WorkingSpace.Block))
+            for (int i = items.Count - 1; i >= 0; i--)
             {
-                last = item;
+                if (!items[i].IsRemoved && !string.IsNullOrEmpty(items[i].Handle))
+                {
+                    return new LispEntityName(items[i].Handle);
+                }
             }
 
-            return last == null ? null : new LispEntityName(last.Handle);
+            return null;
         }
 
         private static object EntNext(LispInterpreter lisp, CadCommandSession session, DrawingState state, object[] a)
@@ -281,31 +376,38 @@ namespace GeometryHelper.Cad.Lisp
             }
 
             DxfItem main = found.Parent ?? found;
-            DxfDBObject owner = main.Space == null ? null : DxfEntity.Of(main)?.Owner;
-            DxfBlockTableRecord block = owner as DxfBlockTableRecord ?? document.FindSpace(main.Handle)?.Block;
+            DxfBlockTableRecord block =
+                document.FindSpace(main.Handle)?.Block
+                ?? (main.Space == null ? null : DxfEntity.Of(main)?.Owner as DxfBlockTableRecord);
 
             if (block == null)
             {
                 return null;
             }
 
-            bool seen = false;
+            BlockIndex index = IndexOf(block);
 
-            foreach (DxfItem item in Items(block))
+            if (!index.Map.TryGetValue(main.Handle, out KeyValuePair<int, int> at))
             {
-                DxfFile file = item.File;
-                int records = file.RecordCount(item);
+                return null;
+            }
 
-                for (int i = 0; i < records; i++)
+            // The records that follow the entity come first, then the next entity of the block.
+            DxfFile file = main.File;
+            int record = found.Parent == null ? 0 : found.Index;
+
+            if (record + 1 < file.RecordCount(main))
+            {
+                return new LispEntityName(file.FollowerOf(main, record + 1).Handle);
+            }
+
+            for (int i = at.Key + 1; i < index.Items.Count; i++)
+            {
+                DxfItem item = index.Items[i];
+
+                if (!item.IsRemoved && !string.IsNullOrEmpty(item.Handle))
                 {
-                    DxfItem current = i == 0 ? item : file.FollowerOf(item, i);
-
-                    if (seen)
-                    {
-                        return new LispEntityName(current.Handle);
-                    }
-
-                    seen = SameHandle(current.Handle, handle);
+                    return new LispEntityName(item.Handle);
                 }
             }
 

@@ -458,5 +458,135 @@ namespace GeometryHelper.Cad.UnitTest
 
             Assert.Equal(1, document.EntityCount);
         }
+
+        [Fact]
+        public void EntgetWithAnApplication_AddsTheExtendedDataOfThatApplicationOnly()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Run(session, "LINE", "0,0", "10,0", Enter);
+            Value(session, "(setq e (entlast))");
+
+            // AutoCAD 2021 (spec D50): (-3 ("APP" ...)) only for the applications named, '("*") every one
+            Value(session, "(entmod (list (cons -1 e) (list -3 (list \"GHAPP\" (cons 1000 \"hi\") (cons 1040 2.5)))))");
+
+            Assert.Equal("((\"GHAPP\" (1000 . \"hi\") (1040 . 2.5)))", Value(session, "(cdr (assoc -3 (entget e '(\"GHAPP\"))))"));
+            Assert.Equal("((\"GHAPP\" (1000 . \"hi\") (1040 . 2.5)))", Value(session, "(cdr (assoc -3 (entget e '(\"*\"))))"));
+            Assert.Equal("nil", Value(session, "(assoc -3 (entget e))"));
+            Assert.Equal("nil", Value(session, "(assoc -3 (entget e '(\"OTHER\")))"));
+        }
+
+        [Fact]
+        public void EntmakeOfABlockReference_MakesItAndEntgetGivesItsScalesAndTurn()
+        {
+            CadDocument document = Blank();
+            var block = new DxfBlockTableRecord { Name = "B" };
+            document.Database.BlockTable.Add(block);
+            block.AppendEntity(new DxfLine(new GeometryHelper.Geometry.GeoPoint3(0, 0, 0), new GeometryHelper.Geometry.GeoPoint3(10, 0, 0)));
+            CadCommandSession session = Session(document);
+
+            // reference (AutoCAD documentation, not measured): INSERT (100 . "AcDbBlockReference") (2 . name) (10 pt) (41 42 43)
+            // (50 . angle) (70 . 0) (71 . 0) (44 . 0.0) (45 . 0.0) (210 ...)
+            Value(session, "(entmake '((0 . \"INSERT\") (2 . \"B\") (10 5.0 5.0 0.0) (41 . 2.0) (42 . 2.0) (43 . 2.0) (50 . 1.5)))");
+
+            Assert.Equal("\"B\"", Value(session, "(cdr (assoc 2 (entget (entlast))))"));
+            Assert.Equal("(5.0 5.0 0.0)", Value(session, "(cdr (assoc 10 (entget (entlast))))"));
+            Assert.Equal("2.0", Value(session, "(cdr (assoc 41 (entget (entlast))))"));
+            Assert.Equal("1.5", Value(session, "(cdr (assoc 50 (entget (entlast))))"));
+            Assert.Equal("nil", Value(session, "(entmake '((0 . \"INSERT\") (2 . \"NOSUCH\") (10 5.0 5.0 0.0)))"));
+        }
+
+        [Fact]
+        public void EntgetOfAnObjectInsideABlock_IsFoundByItsName_AndEntnextWalksTheBlock()
+        {
+            CadDocument document = Blank();
+            var block = new DxfBlockTableRecord { Name = "B" };
+            document.Database.BlockTable.Add(block);
+            block.AppendEntity(new DxfLine(new GeometryHelper.Geometry.GeoPoint3(0, 0, 0), new GeometryHelper.Geometry.GeoPoint3(10, 0, 0)));
+            block.AppendEntity(new DxfLine(new GeometryHelper.Geometry.GeoPoint3(0, 5, 0), new GeometryHelper.Geometry.GeoPoint3(10, 5, 0)));
+            CadCommandSession session = Session(document);
+
+            Value(session, "(setq first (cdr (assoc -2 (tblsearch \"BLOCK\" \"B\"))))");
+
+            Assert.Equal("\"LINE\"", Value(session, "(cdr (assoc 0 (entget first)))"));
+            Assert.Equal("(0.0 0.0 0.0)", Value(session, "(cdr (assoc 10 (entget first)))"));
+            Assert.Equal("(0.0 5.0 0.0)", Value(session, "(cdr (assoc 10 (entget (entnext first))))"));
+            Assert.Equal("nil", Value(session, "(entnext (entnext first))"));
+        }
+
+        [Fact]
+        public void EntnextOfAPolyline_GivesItsVerticesAndItsEndBeforeTheNextObject()
+        {
+            string drawing =
+                "0\nSECTION\n2\nENTITIES\n"
+                + "0\nPOLYLINE\n5\nA1\n8\n0\n66\n1\n10\n0\n20\n0\n30\n0\n70\n0\n"
+                + "0\nVERTEX\n5\nA2\n8\n0\n10\n0\n20\n0\n30\n0\n"
+                + "0\nVERTEX\n5\nA3\n8\n0\n10\n10\n20\n0\n30\n0\n"
+                + "0\nSEQEND\n5\nA4\n8\n0\n"
+                + "0\nLINE\n5\nA5\n8\n0\n10\n0\n20\n0\n30\n0\n11\n1\n21\n1\n31\n0\n"
+                + "0\nENDSEC\n0\nEOF\n";
+            CadCommandSession session = Session(CadDocument.From(DxfDatabase.Parse(drawing), "poly.dxf"));
+
+            // AutoCAD 2021 (spec D53): the vertices and the end of a polyline follow it, then the next object
+            Assert.Equal("\"POLYLINE\"", Value(session, "(cdr (assoc 0 (entget (setq e (entnext)))))"));
+            Assert.Equal("\"VERTEX\"", Value(session, "(cdr (assoc 0 (entget (setq e (entnext e)))))"));
+            Assert.Equal("\"VERTEX\"", Value(session, "(cdr (assoc 0 (entget (setq e (entnext e)))))"));
+            Assert.Equal("\"SEQEND\"", Value(session, "(cdr (assoc 0 (entget (setq e (entnext e)))))"));
+            Assert.Equal("\"LINE\"", Value(session, "(cdr (assoc 0 (entget (setq e (entnext e)))))"));
+            Assert.Equal("nil", Value(session, "(entnext e)"));
+            Assert.Equal("\"LINE\"", Value(session, "(cdr (assoc 0 (entget (entlast))))")); // entlast is a main object
+        }
+
+        [Fact]
+        public void AnEntityOfALayout_HasThePaperSpaceFlagAndTheLayoutsName()
+        {
+            CadDocument document = Blank();
+            document.CurrentSpace = document.Spaces[1];
+            CadCommandSession session = Session(document);
+
+            Value(session, "(entmake '((0 . \"LINE\") (10 0.0 0.0 0.0) (11 1.0 1.0 0.0)))");
+
+            string list = Value(session, "(entget (entlast))");
+            Assert.Contains("(67 . 1) (410 . \"Layout1\")", list);
+            Assert.Equal("1", Value(session, "(sslength (ssget \"X\" '((410 . \"Layout1\"))))"));
+            Assert.Equal("nil", Value(session, "(ssget \"X\" '((410 . \"Model\")))"));
+        }
+
+        [Fact]
+        public void ACommandThatMakesTwoEntitiesAndChangesOne_IsOneUndoStep()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Value(
+                session,
+                "(defun c:ghx () (entmake '((0 . \"LINE\") (10 0.0 0.0 0.0) (11 1.0 1.0 0.0))) (entmake '((0 . \"LINE\") (10 0.0 0.0 0.0) (11 2.0 2.0 0.0))) (entmod (list (cons -1 (entlast)) '(8 . \"MOVED\"))) (princ))"
+            );
+
+            Run(session, "GHX");
+
+            Assert.Equal(2, document.EntityCount);
+
+            // ours (D42): the changes made outside any command during one evaluation are one undo step, named after the c: command
+            Run(session, "U");
+
+            Assert.Equal(0, document.EntityCount);
+        }
+
+        [Fact]
+        public void EntdelInsideACommandsEvaluation_IsUndoneWithTheRest()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Run(session, "LINE", "0,0", "10,0", Enter);
+            Value(session, "(defun c:ghx () (entdel (entlast)) (princ))");
+
+            Run(session, "GHX");
+
+            Assert.Equal(0, document.EntityCount);
+
+            Run(session, "U");
+
+            Assert.Equal(1, document.EntityCount);
+        }
     }
 }

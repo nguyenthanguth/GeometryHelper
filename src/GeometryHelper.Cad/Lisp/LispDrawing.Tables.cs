@@ -163,8 +163,12 @@ namespace GeometryHelper.Cad.Lisp
             return table;
         }
 
-        /// <summary>The records of a table that <c>tblnext</c> walks, in the order of the table: the blocks of model space and paper space are not among them.</summary>
-        private static List<DxfItem> RecordsOf(CadDocument document, string table)
+        /// <summary>
+        /// The records of a table, in the order of the table: the blocks of model space and paper space are not among them, and
+        /// for <c>tblnext</c> (<paramref name="walking"/>) neither are the linetypes ByBlock and ByLayer, which AutoCAD 2021's
+        /// walk of the linetypes leaves out (the dump of every routine run lists Continuous alone).
+        /// </summary>
+        private static List<DxfItem> RecordsOf(CadDocument document, string table, bool walking = false)
         {
             var records = new List<DxfItem>();
 
@@ -182,6 +186,18 @@ namespace GeometryHelper.Cad.Lisp
                     && (
                         string.Equals(name, "*Model_Space", StringComparison.OrdinalIgnoreCase)
                         || string.Equals(name, "*Paper_Space", StringComparison.OrdinalIgnoreCase)
+                    )
+                )
+                {
+                    continue;
+                }
+
+                if (
+                    walking
+                    && table == "LTYPE"
+                    && (
+                        string.Equals(name, "ByBlock", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(name, "ByLayer", StringComparison.OrdinalIgnoreCase)
                     )
                 )
                 {
@@ -239,7 +255,8 @@ namespace GeometryHelper.Cad.Lisp
 
             if (setNext)
             {
-                walk.Next[table] = at + 1;
+                // The next record is the one after it in the walk of the table.
+                walk.Next[table] = IndexOfRecord(RecordsOf(session.Document, table, walking: true), name) + 1;
             }
 
             return RecordList(session.Document, table, records[at]);
@@ -258,7 +275,7 @@ namespace GeometryHelper.Cad.Lisp
                 walk.Next[table] = 0;
             }
 
-            List<DxfItem> records = RecordsOf(session.Document, table);
+            List<DxfItem> records = RecordsOf(session.Document, table, walking: true);
             walk.Next.TryGetValue(table, out int next);
 
             if (next >= records.Count)

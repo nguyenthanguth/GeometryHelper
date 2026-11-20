@@ -269,5 +269,16 @@ namespace GeometryHelper.Cad.UnitTest
             Assert.Equal("nil", Value(session, "(tblsearch \"UCS\" \"A\")"));
             Assert.Equal("nil", Value(session, "(tblsearch \"VIEW\" \"A\")"));
         }
+
+        [Fact]
+        public void TheWalkOfTheLinetypes_LeavesOutByBlockAndByLayer_ButTblsearchFindsThem()
+        {
+            CadCommandSession session = Start();
+
+            // AutoCAD 2021 (the dump of every routine run): the walk of LTYPE lists Continuous alone
+            Assert.Equal("\"Continuous\"", Value(session, "(cdr (assoc 2 (tblnext \"LTYPE\" T)))"));
+            Assert.Equal("nil", Value(session, "(tblnext \"LTYPE\")"));
+            Assert.Equal("\"ByLayer\"", Value(session, "(cdr (assoc 2 (tblsearch \"LTYPE\" \"bylayer\")))"));
+        }
     }
 }

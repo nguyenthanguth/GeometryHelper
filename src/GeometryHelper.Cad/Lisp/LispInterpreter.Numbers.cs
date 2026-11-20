@@ -365,14 +365,25 @@ namespace GeometryHelper.Cad.Lisp
             return count >= 0 ? (int)((uint)value << (count & 31)) : (int)((uint)value >> (-count & 31));
         }
 
+        // Within an eighth of a turn of nought the framework's own function is exact, and the other of the pair is not asked for.
         private static double Sine(double x)
         {
+            if (Math.Abs(x) < Math.PI / 4.0)
+            {
+                return Math.Sin(x);
+            }
+
             SineAndCosine(x, out double sine, out _);
             return sine;
         }
 
         private static double Cosine(double x)
         {
+            if (Math.Abs(x) < Math.PI / 4.0)
+            {
+                return Math.Cos(x);
+            }
+
             SineAndCosine(x, out _, out double cosine);
             return cosine;
         }
