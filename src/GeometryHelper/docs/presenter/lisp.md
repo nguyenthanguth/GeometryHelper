@@ -101,11 +101,46 @@ second argument where there is one; an error inside the file ends the load and l
 A file is read as UTF-8, or as the machine's ANSI code page where it is not UTF-8. Compiled files (`.fas` and `.vlx`) are
 refused.
 
-**APPLOAD** (Manage tab, Applications, Load Application) shows a file dialog titled Load/Unload Applications with the
-filters AutoLISP files, Plugins and All files. A `.lsp` is loaded into the drawing shown, and writes what the file wrote and
-then `name.lsp successfully loaded.`; a `.dll` goes to the [plugin manager](plugins.md), as PLUGINLOAD does; any other
-file is refused with `name.txt is not an AutoLISP file or a plugin.` Cancelling the dialog does nothing. The Plugin manager
-itself is on the Plugins tab; a window that gives APPLOAD no file dialog (`MainViewModel.AskApplicationFile` null) shows the Plugin manager, as APPLOAD did before. From code, `CadCommandSession.LoadLisp(path)` does what APPLOAD does for an AutoLISP file.
+### APPLOAD
+
+APPLOAD (Manage tab, Applications, Load Application) shows Load/Unload Applications, a window of 720 by 600 that waits over
+the presenter until Close, as AutoCAD 2021's dialog does but modal; what a file writes goes to the command line as it
+loads. Its top half is a folder browser of its own: Look in, with Back and Up, over the folders and then the files of the
+type chosen (AutoLISP Files, Plugins or All files, AutoLISP Files at the start), each group by name in ordinal order with
+the case ignored. It opens in the folder it loaded from last, else the first support folder, else Documents. Choose a file,
+or several with Ctrl or Shift, and press Load; or type a name, a file of the folder shown or a full path (several, each in
+quotes), and press Enter. A double-click opens a folder, and loads a file.
+
+Load takes each file in the order of the list, and the footer shows the line of the last:
+
+| File | What Load does | Footer |
+|---|---|---|
+| `tools.lsp` | loads it into the drawing shown, as `CadCommandSession.LoadLisp` does: what the file wrote, then `tools.lsp successfully loaded.` | green: `tools.lsp successfully loaded.` |
+| a `.lsp` with an error | runs up to the error and writes the `; error:` line; the file is not listed under Loaded Applications | red: `tools.lsp was not loaded: ; error: bad argument type: consp 1` |
+| `CircleTools.dll` | goes to the [plugin manager](plugins.md), as PLUGINLOAD does | green or red, the manager's own line |
+| `.arx`, `.dbx`, `.dvb`, `.fas`, `.vlx` | refused | amber: `tools.fas cannot be loaded: .arx, .dbx, .dvb, .fas and .vlx files are not supported.`, written to the command line too |
+| any other file | refused | amber: `readme.txt is not an AutoLISP file or a plugin.` |
+
+Under the browser are two tabs and the Startup Suite. **Loaded Applications** lists the AutoLISP files loaded into the
+drawing shown, whether by Load, by `(load)` or as a startup file (a file read to its end, once each, in the order they
+finished: `CadCommandSession.LoadedLispFiles`, or `LispInterpreter.LoadedFiles` of one interpreter), then the plugins
+loaded now, with the columns File, Kind (AutoLISP in green, Plugin in blue) and Path; each drawing has its own list. The
+**History list** has the files Load was given, newest first, at most 50 (a 51st pushes the oldest out), whether they
+loaded or not, as long as Add to History is ticked, which it is at the start; it lasts across runs of the program. Load on
+that tab loads the rows chosen.
+
+One button beside the tabs follows the tab. **Unload** is for plugin rows, and does what the Plugin manager's Unload does:
+on .NET Framework it switches the plugin off, its code stays until the presenter restarts, the footer shows the manager's
+line, and the row stays, dimmed. It is greyed on an AutoLISP row, with the tooltip "AutoLISP files cannot be unloaded: what
+they defined stays in the drawing until it is closed", as in AutoCAD. **Remove**, on the History list, takes the rows
+chosen out of the list and never off the disk. The briefcase of the Startup Suite takes an AutoLISP file dragged from the
+list or from Explorer, and Contents… shows the [Startup Suite](#the-startup-suite). Close, Esc and the cross close the
+window and there is nothing to undo; Help opens this page.
+
+The History list, the folder last used and Add to History are kept in the settings file, under `support`: `appLoadHistory`
+(full paths, newest first), `appLoadFolder` and `appLoadAddToHistory`. The Plugin manager stays on the Plugins tab, and a
+window that shows no such dialog (`MainViewModel.ShowAppLoad` null) shows the Plugin manager for APPLOAD, as APPLOAD did
+before it loaded AutoLISP.
 
 ### When a drawing opens
 
@@ -123,13 +158,20 @@ not found is no line for `acad.lsp` and `acaddoc.lsp`, which most machines do no
 for a file of the Startup Suite. [`LispStartup`](xref:GeometryHelper.Cad.Lisp.LispStartup) does this for one run of the
 program; the window gives it each drawing it opens, and each time it fills the Startup Suite from the settings.
 
-The Startup Suite is kept in the settings file, under `support`, next to the search folders. There is no page for it yet:
-edit the JSON.
+### The Startup Suite
+
+The Startup Suite is the list of AutoLISP files loaded into every drawing that opens, in the order of the list: Contents…
+on Load/Unload Applications shows it in a window of its own, 460 by 360. Add… asks for one or more `.lsp` files and puts
+them at the end; Remove takes the file chosen out of the list and never off the disk. Each change is saved to the settings
+file at once and applies to the drawings opened afterwards, not to those open now. The suite holds AutoLISP files only: a
+`.dll` dropped on the briefcase is refused with "Plugins load at start from the Plugin manager (At start).", and any other
+file with a line that says so. The list is kept in the settings file, under `support`, next to the search folders, and the
+file can still be edited there.
 
 ```json
 "support": {
-  "searchFolders": [ "D:\\Lisp" ],
-  "lispStartupSuite": [ "D:\\Lisp\\layers.lsp", "D:\\Lisp\\dims.lsp" ]
+  "searchFolders": [ "D:\Lisp" ],
+  "lispStartupSuite": [ "D:\Lisp\layers.lsp", "D:\Lisp\dims.lsp" ]
 }
 ```
 

@@ -33,6 +33,15 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             return model;
         }
 
+        /// <summary>A Load/Unload Applications that loads one file, as a drafter does by typing its path and pressing Load, and closes.</summary>
+        private static Func<AppLoadViewModel, bool> Loading(string path) =>
+            dialog =>
+            {
+                dialog.FileName = path;
+                dialog.Load();
+                return true;
+            };
+
         [Fact]
         public void AFormWithSpaces_GoesToTheSessionWholeAndItsValueEndsTheHistory()
         {
@@ -121,7 +130,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                 "ghload.lsp",
                 "(defun c:ghload () (princ \"loaded\") (princ))\n(princ \"hello\")"
             );
-            model.AskApplicationFile = () => path;
+            model.ShowAppLoad = Loading(path);
 
             model.StartCommand("APPLOAD");
 
@@ -138,7 +147,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         {
             MainViewModel model = Opened();
             string path = _folder.WriteText("notes.txt", "hello");
-            model.AskApplicationFile = () => path;
+            model.ShowAppLoad = Loading(path);
 
             model.StartCommand("APPLOAD");
 
@@ -150,7 +159,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         public void AppLoad_Cancelled_WritesNothing()
         {
             MainViewModel model = Opened();
-            model.AskApplicationFile = () => null;
+            model.ShowAppLoad = dialog => false;
             int before = model.History.Count;
 
             model.StartCommand("APPLOAD");
@@ -164,7 +173,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         {
             MainViewModel model = Opened();
             string path = _folder.WriteText("tool.dll", "x");
-            model.AskApplicationFile = () => path;
+            model.ShowAppLoad = Loading(path);
 
             model.StartCommand("APPLOAD");
 
@@ -178,7 +187,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             var ribbon = (ManageRibbonViewModel)model.ManageTab.TabContent;
             Assert.False(ribbon.CanLoadApplication);
 
-            model.AskApplicationFile = () => null;
+            model.ShowAppLoad = dialog => false;
 
             Assert.True(ribbon.CanLoadApplication);
         }

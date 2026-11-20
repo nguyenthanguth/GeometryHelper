@@ -48,6 +48,7 @@ namespace GeometryHelper.Cad.Lisp
         private readonly LispSymbol _error;
         private LispBuiltin _quoteFunction;
         private IReadOnlyList<string> _supportFolders = Array.Empty<string>();
+        private readonly List<string> _loadedFiles = new List<string>();
         private Thread _worker;
         private int _depth;
 
@@ -88,6 +89,14 @@ namespace GeometryHelper.Cad.Lisp
             get => _supportFolders;
             set => _supportFolders = value ?? Array.Empty<string>();
         }
+
+        /// <summary>
+        /// Gets the files this interpreter has loaded, as full paths in the order they were first loaded: the files of
+        /// <see cref="Load"/> and of <c>(load)</c> that were read to their end, which includes the startup files and what
+        /// one file loads from another. A file whose load failed, from a missing file to an error inside it, is not in the
+        /// list, and a file loaded twice is listed once. Empty until a file has been loaded.
+        /// </summary>
+        public IReadOnlyList<string> LoadedFiles => _loadedFiles.AsReadOnly();
 
         /// <summary>
         /// Reads a setting of the drawing by its name (<c>LUNITS</c>, <c>LUPREC</c>, <c>AUNITS</c>, <c>AUPREC</c>,
@@ -979,6 +988,13 @@ namespace GeometryHelper.Cad.Lisp
             while (reader.TryRead(out object form))
             {
                 last = Eval(form);
+            }
+
+            string full = Path.GetFullPath(path);
+
+            if (!_loadedFiles.Exists(f => string.Equals(f, full, StringComparison.OrdinalIgnoreCase)))
+            {
+                _loadedFiles.Add(full);
             }
 
             return last;

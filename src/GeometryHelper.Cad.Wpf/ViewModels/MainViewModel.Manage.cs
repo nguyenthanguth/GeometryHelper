@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using GeometryHelper.Cad.Plugins;
 
 namespace GeometryHelper.Cad.Wpf
 {
     /// <summary>
     /// The Manage ribbon tab, as AutoCAD 2021's for what the presenter has: Customization (User Interface and Edit Aliases open Global settings on Shortcuts, Tool Palettes shows the tool palettes), Applications
-    /// (Load Application, which loads an AutoLISP file or a plugin, greyed where the window can neither ask for a file nor has a plugin manager; Run Script), CAD Standards
+    /// (Load Application, which loads an AutoLISP file or a plugin, greyed where the window can neither show Load/Unload Applications nor has a plugin manager; Run Script), CAD Standards
     /// (parked, greyed) and Cleanup (Purge, Overkill, Audit, Recover). A button starts its command through
     /// <see cref="MainViewModel.StartCommandCommand"/>, as the buttons of Home do.
     /// </summary>
@@ -19,7 +21,7 @@ namespace GeometryHelper.Cad.Wpf
                 if (
                     e.PropertyName == nameof(MainViewModel.HasDocument)
                     || e.PropertyName == nameof(MainViewModel.Plugins)
-                    || e.PropertyName == nameof(MainViewModel.AskApplicationFile)
+                    || e.PropertyName == nameof(MainViewModel.ShowAppLoad)
                 )
                 {
                     Raise(nameof(CanLoadApplication));
@@ -30,19 +32,21 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets the window's view model, whose commands the buttons run.</summary>
         public MainViewModel Model { get; }
 
-        /// <summary>Gets whether Load Application can be pressed: a drawing is open and the window can ask for a file or has a plugin manager.</summary>
-        public bool CanLoadApplication =>
-            Model.HasDocument && (Model.AskApplicationFile != null || Model.Plugins != null);
+        /// <summary>Gets whether Load Application can be pressed: a drawing is open and the window can show Load/Unload Applications or has a plugin manager.</summary>
+        public bool CanLoadApplication => Model.HasDocument && (Model.ShowAppLoad != null || Model.Plugins != null);
     }
 
     /// <summary>
     /// The Manage ribbon tab and the commands CUI, ALIASEDIT and APPLOAD, which open the window's own pages where AutoCAD opens
-    /// its dialogs: Global settings on Shortcuts for the first two, a file to load for the third.
+    /// its dialogs: Global settings on Shortcuts for the first two, Load/Unload Applications for the third.
     /// </summary>
     public sealed partial class MainViewModel
     {
         private CadBuiltInTab _manageTab;
-        private Func<string> _askApplicationFile;
+        private Func<AppLoadViewModel, bool> _showAppLoad;
+
+        // What APPLOAD refuses to load: AutoCAD's other kinds of application, which the presenter cannot run.
+        private static readonly string[] RefusedApplicationTypes = { ".arx", ".dbx", ".dvb", ".fas", ".vlx" };
 
         /// <summary>Gets the Manage ribbon tab, always shown, after View and before Output.</summary>
         public CadWorkspaceExtension ManageTab
@@ -71,25 +75,25 @@ namespace GeometryHelper.Cad.Wpf
         }
 
         /// <summary>
-        /// Gets or sets what asks for the file APPLOAD loads, an AutoLISP file (.lsp) or a plugin (.dll), and gives its path; null
-        /// for none picked, or where no window asks. The Plugin manager stays on the Plugins tab.
+        /// Gets or sets how the window shows Load/Unload Applications, over the view model it is given, until the dialog is
+        /// closed; the window is modal. Null where no window does, when APPLOAD shows the Plugin manager instead. The Plugin
+        /// manager stays on the Plugins tab.
         /// </summary>
-        public Func<string> AskApplicationFile
+        public Func<AppLoadViewModel, bool> ShowAppLoad
         {
-            get => _askApplicationFile;
-            set => Set(ref _askApplicationFile, value);
+            get => _showAppLoad;
+            set => Set(ref _showAppLoad, value);
         }
 
         /// <summary>
-        /// APPLOAD: asks for a file with <see cref="AskApplicationFile"/> and loads it, an AutoLISP file into the document's
-        /// interpreter and a plugin into the plugin manager; any other file gets a line saying it is neither. Nothing happens
-        /// where none is picked. A window with no picker shows its Plugin manager, and with neither says that applications
-        /// cannot be loaded.
+        /// APPLOAD: shows Load/Unload Applications with <see cref="ShowAppLoad"/>, which loads an AutoLISP file into the
+        /// document's interpreter and a plugin into the plugin manager as its Load button is pressed. A window with no such
+        /// dialog shows its Plugin manager, and with neither says that applications cannot be loaded.
         /// </summary>
         private void LoadApplications()
         {
-            // A window that cannot ask for a file shows its Plugin manager, as APPLOAD did before it loaded AutoLISP.
-            if (AskApplicationFile == null)
+            // A window with no dialog shows its Plugin manager, as APPLOAD did before it loaded AutoLISP.
+            if (ShowAppLoad == null)
             {
                 if (_plugins == null)
                 {
@@ -103,34 +107,90 @@ namespace GeometryHelper.Cad.Wpf
                 return;
             }
 
-            string path = AskApplicationFile();
+            ShowAppLoad(new AppLoadViewModel(this));
+        }
 
-            if (string.IsNullOrWhiteSpace(path))
+        /// <summary>
+        /// Loads one application as the Load button of Load/Unload Applications does, and says what came of it on the command
+        /// line: an AutoLISP file into the document's interpreter (what it wrote, then <c>name.lsp successfully loaded.</c>, or
+        /// the <c>; error:</c> line), a .dll into the plugin manager; <c>.arx</c>, <c>.dbx</c>, <c>.dvb</c>, <c>.fas</c> and
+        /// <c>.vlx</c> files are refused, and any other type is said to be neither an AutoLISP file nor a plugin.
+        /// </summary>
+        /// <param name="path">The full path.</param>
+        /// <returns>The kind of outcome and the line the footer shows.</returns>
+        internal AppLoadResult LoadApplication(string path)
+        {
+            string name = System.IO.Path.GetFileName(path);
+            string extension = System.IO.Path.GetExtension(path).ToLowerInvariant();
+
+            if (extension == ".lsp")
             {
-                return;
-            }
-
-            string extension = System.IO.Path.GetExtension(path);
-
-            if (string.Equals(extension, ".lsp", StringComparison.OrdinalIgnoreCase))
-            {
-                _current.Session.LoadLisp(path);
+                int before = _current.Session.History.Count;
+                bool loaded = _current.Session.LoadLisp(path);
                 SyncHistory();
+
+                if (loaded)
+                {
+                    return new AppLoadResult(AppLoadStatusKind.Loaded, name + " successfully loaded.");
+                }
+
+                string error = _current
+                    .Session.History.Skip(before)
+                    .LastOrDefault(l => l.StartsWith("; error:", StringComparison.Ordinal))
+                    ?? string.Empty;
+                return new AppLoadResult(AppLoadStatusKind.Failed, (name + " was not loaded: " + error).TrimEnd());
             }
-            else if (string.Equals(extension, ".dll", StringComparison.OrdinalIgnoreCase))
+
+            if (extension == ".dll")
             {
                 if (_plugins == null)
                 {
-                    Say("No plugin manager is in use: applications cannot be loaded.");
+                    const string none = "No plugin manager is in use: applications cannot be loaded.";
+                    Say(none);
+                    return new AppLoadResult(AppLoadStatusKind.Failed, none);
                 }
-                else
-                {
-                    LoadPlugin(path);
-                }
+
+                CadPluginResult result = LoadPlugin(path);
+                return new AppLoadResult(
+                    result.Succeeded ? AppLoadStatusKind.Loaded : AppLoadStatusKind.Failed,
+                    result.ToString()
+                );
             }
-            else
+
+            string refused =
+                Array.IndexOf(RefusedApplicationTypes, extension) >= 0
+                    ? name + " cannot be loaded: .arx, .dbx, .dvb, .fas and .vlx files are not supported."
+                    : name + " is not an AutoLISP file or a plugin.";
+            Say(refused);
+            return new AppLoadResult(AppLoadStatusKind.Refused, refused);
+        }
+
+        /// <summary>Gets the AutoLISP files loaded into the document shown, as full paths in the order they loaded; empty with no document.</summary>
+        internal IReadOnlyList<string> LoadedLispFiles =>
+            _current?.Session.LoadedLispFiles ?? (IReadOnlyList<string>)Array.Empty<string>();
+
+        /// <summary>
+        /// Changes the settings in use in place and saves them to <see cref="SettingsPath"/>, as the dialogs that keep a choice
+        /// of their own do (Do not show again); a file that cannot be written is logged and the change stays for this run.
+        /// </summary>
+        /// <param name="change">What to change.</param>
+        /// <param name="what">What was changed, for the log line.</param>
+        internal void ChangeSettings(Action<GlobalSettings> change, string what)
+        {
+            change(_settings);
+
+            try
             {
-                Say(System.IO.Path.GetFileName(path) + " is not an AutoLISP file or a plugin.");
+                _settings.Save(SettingsPath);
+            }
+            catch (Exception ex)
+                when (ex is System.IO.IOException
+                    || ex is UnauthorizedAccessException
+                    || ex is ArgumentException
+                    || ex is NotSupportedException
+                )
+            {
+                GeometryHelperLog.Warn("MainViewModel: Global settings were not saved after " + what + ".", ex);
             }
         }
     }
