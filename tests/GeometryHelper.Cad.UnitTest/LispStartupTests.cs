@@ -127,6 +127,18 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
+        public void AStartupMadeWithDefunQ_IsCalledToo()
+        {
+            File("acaddoc.lsp", "(defun-q s::startup () (princ \"[startup]\") 5)");
+            var startup = new LispStartup();
+            startup.StartupSuite.Add(File("suite.lsp", "(princ \"[suite]\")"));
+
+            CadCommandSession session = Opened(startup);
+
+            Assert.Equal(new[] { "[suite]", "[startup]" }, session.History);
+        }
+
+        [Fact]
         public void WithNoFilesAndNoFunction_NothingIsWritten()
         {
             CadCommandSession session = Opened(new LispStartup());

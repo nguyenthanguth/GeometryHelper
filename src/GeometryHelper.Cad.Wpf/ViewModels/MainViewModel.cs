@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Windows.Input;
+using GeometryHelper.Cad.Lisp;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -88,6 +89,9 @@ namespace GeometryHelper.Cad.Wpf
         );
         private readonly List<string> _inputs = new List<string>();
         private readonly List<CadWorkspaceExtension> _extensions = new List<CadWorkspaceExtension>();
+
+        // One for the run of the program: it remembers that acad.lsp was loaded, so that the second drawing opened does not load it again.
+        private readonly LispStartup _lispStartup = new LispStartup();
         private KnownFile _current;
         private int _revision;
         private string _searchText = string.Empty;
@@ -555,8 +559,12 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets whether a command is running.</summary>
         public bool IsCommandRunning => Session?.IsRunning ?? false;
 
-        /// <summary>Gets whether the prompt waiting takes text with spaces in it, so that Space types a space rather than ending the line.</summary>
-        public bool PromptTakesSpaces => Session?.Prompt?.Kind == CadPromptKind.String;
+        /// <summary>
+        /// Gets whether the prompt waiting takes text with spaces in it, so that Space types a space rather than ending the
+        /// line: a prompt for text, and a line of AutoLISP, typed starting with <c>(</c> or <c>!</c> or waiting for its closing parenthesis.
+        /// </summary>
+        public bool PromptTakesSpaces =>
+            Session?.Prompt?.Kind == CadPromptKind.String || (Session?.IsLispInput(CommandText) ?? false);
 
         /// <summary>Gets or sets the text typed in the command line; emptied, it closes the AutoComplete list.</summary>
         public string CommandText
@@ -1181,7 +1189,8 @@ namespace GeometryHelper.Cad.Wpf
             }
             else
             {
-                if (PromptTakesSpaces)
+                // A line of AutoLISP goes in whole: its spaces are its own, and no word of it is an object snap.
+                if (session.Prompt?.Kind == CadPromptKind.String || session.IsLispInput(line))
                 {
                     session.Feed(line);
                 }
@@ -1830,6 +1839,16 @@ namespace GeometryHelper.Cad.Wpf
             document.ActiveViewportChanged += OnActiveViewportChanged;
             document.LayerFilterChanged += OnLayerFilterChanged;
             WatchReferences(document);
+
+            // acad.lsp, acaddoc.lsp, the Startup Suite of the settings and S::STARTUP; what they write waits in the history until the drawing is shown.
+            _lispStartup.StartupSuite.Clear();
+
+            foreach (string startupFile in _settings.LispStartupSuite)
+            {
+                _lispStartup.StartupSuite.Add(startupFile);
+            }
+
+            _lispStartup.OnDocumentOpened(file.Session);
         }
 
         internal void Say(string line)
