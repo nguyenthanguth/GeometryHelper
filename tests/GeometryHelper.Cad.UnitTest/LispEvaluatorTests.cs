@@ -214,8 +214,8 @@ namespace GeometryHelper.Cad.UnitTest
         [InlineData("(ascii \"a\")", "97")] // AutoCAD 2021: 97
         [InlineData("(chr 65)", "\"A\"")] // AutoCAD 2021: "A"
         [InlineData("(chr 0)", "\"\"")] // AutoCAD 2021: ""
-        [InlineData("(chr 256)", "\"\"")] // AutoCAD 2021: ""
-        [InlineData("(chr 273)", "\"\"")] // AutoCAD 2021: ""
+        [InlineData("(chr 256)", "\"Ā\"")] // AutoCAD 2021: the character 256 (r5: (strlen (chr 256)) is 1); the console draws it empty
+        [InlineData("(chr 273)", "\"đ\"")] // AutoCAD 2021: the character 273 (r2: (ascii (chr 273)) is 273); the console draws it empty
         [InlineData("(atoi \"x\")", "0")] // AutoCAD 2021: 0
         [InlineData("(atoi \"12abc\")", "12")] // AutoCAD 2021: 12
         [InlineData("(atoi \"  -3\")", "-3")] // AutoCAD 2021: -3
