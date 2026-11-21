@@ -92,7 +92,11 @@ namespace GeometryHelper.Cad.Lisp
             State = state;
             RegisterDocumentMembers();
             RegisterEntityMembers();
+            RegisterTypeMembers();
         }
+
+        /// <summary>Registers the members of each kind of entity (a line's StartPoint, a text's TextString); implemented where they are.</summary>
+        partial void RegisterTypeMembers();
 
         /// <summary>Gets the interpreter.</summary>
         internal LispInterpreter Lisp { get; }

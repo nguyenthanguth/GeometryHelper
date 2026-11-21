@@ -189,7 +189,7 @@ namespace GeometryHelper.Cad.Lisp
         /// of the drawing that the canvas redraws. An entity on a locked layer is refused (D217). A change the entity does not
         /// take is the error <c>Automation Error. </c> and the reason.
         /// </summary>
-        private void ChangeEntity(LispVlaObject target, string property, Action<DxfEntity> change)
+        internal void ChangeEntity(LispVlaObject target, string property, Action<DxfEntity> change)
         {
             DxfItem item = ItemOf(target);
             RefuseLocked(item);
