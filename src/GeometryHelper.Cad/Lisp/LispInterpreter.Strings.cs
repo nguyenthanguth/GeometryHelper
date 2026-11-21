@@ -23,6 +23,8 @@ namespace GeometryHelper.Cad.Lisp
             Define("VL-PRINC-TO-STRING", 1, 1, a => Print(a[0], false));
             Define("VL-PRIN1-TO-STRING", 1, 1, a => Print(a[0], true));
             Define("WCMATCH", 2, 2, a => Bool(WildcardMatch(Str(a[0]), Str(a[1]))));
+            RegisterVlLists();
+            RegisterVlStrings();
         }
 
         /// <summary>
@@ -275,8 +277,8 @@ namespace GeometryHelper.Cad.Lisp
 
         private static object Ascii(string text) => text.Length == 0 ? 0 : (int)text[0];
 
-        /// <summary>The character with a code from 1 to 255; any other code gives the empty string.</summary>
-        private static object Chr(int code) => code >= 1 && code <= 255 ? ((char)code).ToString() : "";
+        /// <summary>The character with a code from 1 to 65535 (a .NET character, as strings are); any other code gives the empty string.</summary>
+        private static object Chr(int code) => code >= 1 && code <= char.MaxValue ? ((char)code).ToString() : "";
 
         /// <summary>
         /// <c>atoi</c> as C's does: leading spaces, a sign, and the digits up to the first other character. A number past 32 bits
