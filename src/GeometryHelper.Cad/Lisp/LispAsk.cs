@@ -34,6 +34,12 @@ namespace GeometryHelper.Cad.Lisp
         /// <summary><c>getkword</c>: one of the keywords <c>initget</c> gave.</summary>
         Keyword,
 
+        /// <summary>
+        /// <c>read-line</c> and <c>read-char</c> with no file: a whole line from the keyboard, with no prompt text, taken as typed
+        /// (spaces kept, a line that starts with a parenthesis is text), answered as the string typed.
+        /// </summary>
+        Line,
+
         /// <summary><c>entsel</c>: one object picked, answered as <c>(ename (x y z))</c>.</summary>
         Entity,
 

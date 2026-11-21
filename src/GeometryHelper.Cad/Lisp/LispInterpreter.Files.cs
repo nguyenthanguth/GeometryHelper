@@ -13,6 +13,9 @@ namespace GeometryHelper.Cad.Lisp
         private readonly LispTextCursor _keyboard = new LispTextCursor("");
         private int _tempCounter = 1;
 
+        // The files a routine opened and has not closed, in the order it opened them.
+        private readonly List<LispFile> _openFiles = new List<LispFile>();
+
         /// <summary>
         /// Gets or sets the folder a file name with no folder is taken from, for <c>open</c>, <c>findfile</c>, <c>vl-file-*</c>,
         /// <c>vl-directory-files</c> and <c>vl-mkdir</c>: the process's current folder by default, which is where AutoCAD
@@ -128,13 +131,37 @@ namespace GeometryHelper.Cad.Lisp
                 }
             }
 
-            return mode.Length > 1 ? null : LispFile.Open(name, Resolve(name), letter, encoding);
+            LispFile file = mode.Length > 1 ? null : LispFile.Open(name, Resolve(name), letter, encoding);
+
+            if (file != null)
+            {
+                _openFiles.Add(file);
+            }
+
+            return file;
         }
 
-        private static object Close(object[] a)
+        private object Close(object[] a)
         {
-            (a[0] as LispFile ?? throw TypeError("streamp", a[0])).Close();
+            LispFile file = a[0] as LispFile ?? throw TypeError("streamp", a[0]);
+            file.Close();
+            _openFiles.Remove(file);
             return null;
+        }
+
+        /// <summary>
+        /// Closes every file a routine opened and did not close, as AutoCAD does when the drawing closes: a file left open keeps
+        /// its name locked, so a routine's temporary file could not be deleted, until the garbage collector let it go. A host
+        /// calls this where it lets the document go, with no evaluation running or waiting.
+        /// </summary>
+        internal void CloseFiles()
+        {
+            foreach (LispFile file in _openFiles.ToArray())
+            {
+                file.Close();
+            }
+
+            _openFiles.Clear();
         }
 
         #endregion
