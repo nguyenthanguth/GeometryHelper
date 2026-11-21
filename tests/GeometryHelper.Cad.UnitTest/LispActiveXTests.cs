@@ -48,7 +48,6 @@ namespace GeometryHelper.Cad.UnitTest
         {
             CadCommandSession session = Session(document ?? Drawing());
             Value(session, "(vl-load-com)");
-            StandIns(session);
             Value(session, "(entmake '((0 . \"LINE\") (8 . \"Steel\") (10 0.0 0.0 0.0) (11 100.0 0.0 0.0)))");
             Value(session, "(setq a1 (entlast))");
             Value(session, "(entmake '((0 . \"LINE\") (8 . \"0\") (10 0.0 0.0 0.0) (11 0.0 50.0 0.0)))");
@@ -83,73 +82,6 @@ namespace GeometryHelper.Cad.UnitTest
             string text = string.Join("\n", session.History.Skip(before + 1).Select(l => l.TrimEnd()));
             text = Regex.Replace(text, @"(#<VLA-OBJECT \w+) [0-9a-f]{16}>", "$1 @>");
             return Regex.Replace(text, @"<Entity name: [0-9A-Fa-f]+>", "<Entity name: *>");
-        }
-
-        // The variant and safearray functions are part V's; where they are not defined yet (this part is built on its own) the
-        // few the tests of objects need are defined here, as small stand-ins, so that the tests run before and after the merge.
-        private static void StandIns(CadCommandSession session)
-        {
-            LispInterpreter lisp = session.Lisp;
-
-            void Define(string name, int min, int max, Func<object[], object> body)
-            {
-                if (lisp.GetValue(name) == null)
-                {
-                    lisp.Define(name, min, max, body);
-                }
-            }
-
-            double Real(object value) => value is int whole ? whole : (double)value;
-
-            object Plain(object item) => item is LispVariant variant ? variant.Value : item;
-
-            Define("VLAX-3D-POINT", 2, 3, a =>
-                LispVariant.Point(Real(a[0]), Real(a[1]), a.Length > 2 ? Real(a[2]) : 0.0)
-            );
-            Define("VLAX-VARIANT-VALUE", 1, 1, a => ((LispVariant)a[0]).Value);
-            Define("VLAX-MAKE-VARIANT", 1, 1, a => a[0] is LispSafeArray array ? LispVariant.OfArray(array) : a[0]);
-            Define("VLAX-SAFEARRAY->LIST", 1, 1, a =>
-            {
-                var array = (LispSafeArray)Plain(a[0]);
-                return LispInterpreter.ListOf(array.Items.Select(Plain).ToList());
-            });
-            Define("VLAX-MAKE-SAFEARRAY", 2, 2, a =>
-            {
-                var bounds = (LispCons)a[1];
-                return new LispSafeArray((int)a[0], new[] { (int)bounds.Car }, new[] { (int)bounds.Cdr });
-            });
-            Define("VLAX-SAFEARRAY-FILL", 2, 2, a =>
-            {
-                var array = (LispSafeArray)a[0];
-                var items = LispInterpreter.ItemsOf(a[1]);
-
-                for (int i = 0; i < items.Count; i++)
-                {
-                    object item = items[i];
-                    array.Items[i] =
-                        array.ElementType == 12 && item is string text ? new LispVariant(8, text, text)
-                        : array.ElementType == 5 ? (object)Real(item)
-                        : item;
-                }
-
-                return array;
-            });
-
-            foreach (
-                var constant in new[]
-                {
-                    ("VLAX-VBINTEGER", 2),
-                    ("VLAX-VBDOUBLE", 5),
-                    ("VLAX-VBOBJECT", 9),
-                    ("VLAX-VBVARIANT", 12),
-                }
-            )
-            {
-                if (lisp.GetValue(constant.Item1) == null)
-                {
-                    lisp.SetValue(constant.Item1, constant.Item2);
-                }
-            }
         }
 
         // The handle of an entity, as entget's group 5 gives it.
