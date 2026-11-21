@@ -6,6 +6,7 @@
         <Project Path="src/GeometryHelper.IfcConvert/GeometryHelper.IfcConvert.csproj" />
         <Project Path="src/GeometryHelper.Cad.Remote/GeometryHelper.Cad.Remote.csproj" />
         <Project Path="src/GeometryHelper.Cad/GeometryHelper.Cad.csproj" />
+        <Project Path="src/GeometryHelper.Cad.Python/GeometryHelper.Cad.Python.csproj" />
         <Project Path="src/GeometryHelper.Cad.Wpf/GeometryHelper.Cad.Wpf.csproj" />
         <Project Path="src/GeometryHelper.Cad.App/GeometryHelper.Cad.App.csproj" />
     </Folder>
