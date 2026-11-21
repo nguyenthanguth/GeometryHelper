@@ -26,6 +26,7 @@ namespace GeometryHelper.Cad
         private IEnumerator<CadPrompt> _retiredBody;
         private bool _lispStep;
         private string _lispStepName;
+        private bool _lispHold;
 
         // The value a form typed at a prompt ended with, which answers the prompt it interrupted; whether the evaluation began
         // at a command's prompt, so that its value is to answer it.
@@ -90,8 +91,32 @@ namespace GeometryHelper.Cad
                 CloseGroup();
             }
 
+            _lispHold = false;
             _lispStep = false;
             _lispStepName = null;
+        }
+
+        /// <summary>
+        /// Keeps the undo step <see cref="OpenLispStep"/> opened open after a typed form is over, as AutoCAD does for what the
+        /// object functions of AutoLISP change (<c>vla-put-Color</c>, <c>vla-Delete</c>): the changes of the forms typed one
+        /// after the other at the Command prompt are one step, which the next command closes (AutoCAD 2021, probe g3: two typed
+        /// <c>vla-put-Color</c> forms, one <c>U</c> takes both). Does nothing inside a command or a <c>c:</c> routine.
+        /// </summary>
+        internal void HoldLispStep()
+        {
+            if (_lispStep && _grouped && _lispStepName == null && !IsRunning)
+            {
+                _lispHold = true;
+            }
+        }
+
+        /// <summary>Closes the undo step <see cref="HoldLispStep"/> kept open, as a command starting does.</summary>
+        internal void ReleaseLispHold()
+        {
+            if (_lispHold)
+            {
+                CloseLispStep();
+            }
         }
 
         /// <summary>
@@ -147,7 +172,11 @@ namespace GeometryHelper.Cad
 
             _lispTyped = false;
             finished?.Invoke(result);
-            CloseLispStep();
+            // What the object functions changed stays one step until a command starts (HoldLispStep).
+            if (!_lispHold)
+            {
+                CloseLispStep();
+            }
         }
 
         /// <summary>

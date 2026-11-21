@@ -446,7 +446,7 @@ namespace GeometryHelper.Cad.Lisp
         }
 
         /// <summary>Erases the entity; where it is erased already and was erased by this function, brings it back.</summary>
-        private static object EntDel(CadCommandSession session, DrawingState state, LispEntityName name)
+        internal static object EntDel(CadCommandSession session, DrawingState state, LispEntityName name)
         {
             CadDocument document = session.Document;
             string handle = state.Resolve(name.Handle);

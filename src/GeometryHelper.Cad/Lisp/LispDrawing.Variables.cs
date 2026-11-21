@@ -28,7 +28,7 @@ namespace GeometryHelper.Cad.Lisp
         }
 
         /// <summary>The variable of a name, in any case; an alias (LTS for LTSCALE) is no name to AutoLISP.</summary>
-        private static CadSystemVariable Named(CadCommandSession session, string name)
+        internal static CadSystemVariable Named(CadCommandSession session, string name)
         {
             CadSystemVariable variable = session.Registry.FindVariable(name);
             return
