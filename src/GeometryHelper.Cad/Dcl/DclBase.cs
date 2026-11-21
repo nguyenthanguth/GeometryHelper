@@ -4,7 +4,8 @@ namespace GeometryHelper.Cad.Dcl
     /// The predefined tiles (D306): a DCL text written for this project from what the AutoCAD DCL reference says the standard
     /// tiles are, never Autodesk's <c>base.dcl</c>. <see cref="DclParser"/> reads it once and puts every definition in front of
     /// the definitions of each file it parses, so a dialog can name <c>ok_cancel</c> or <c>edit_box</c> without including
-    /// anything and a file can still define a tile of the same name of its own.
+    /// anything. A file that defines one of these names again is refused, as AutoCAD refuses a file that defines a name of its
+    /// own <c>base.dcl</c> (<c>warning: redefining object.</c>, D338).
     /// </summary>
     internal static class DclBase
     {

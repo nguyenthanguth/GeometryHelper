@@ -7,11 +7,13 @@ using Xunit;
 namespace GeometryHelper.Cad.UnitTest
 {
     /// <summary>
-    /// The layout of a dialog's tiles (L5 part P, D310-D313) with the provisional headless numbers: a character 6 by 13, a
-    /// button's padding 12 and height 23, a tile's margin 4 and 3, a dialog margin of 12, a list line of 15 with a border of 2,
-    /// a label gap of 6, a boxed cluster's border of 8. Every row is the spec's choice (<c>ours: D311</c>, <c>ours: D312</c>);
-    /// the reference gives the units (widths in character widths, heights in character heights) and not the pixels, and the
-    /// console cannot show a dialog, so no row is measured.
+    /// The layout of a dialog's tiles (L5 part P, D310-D313) with the headless numbers of D337 and D345: a character 6 by 13,
+    /// a button 22 high with 8 of padding each side of its label (at least its <c>width</c> times 6 plus 1), an edit box 19,
+    /// a popup list 21, a toggle 15, a radio button 19, a slider 17, a list line of 13, a label gap of 0, a tile's margin of 4
+    /// on every side (a spacer's too), a dialog margin of 3, a boxed cluster's border of 8. Rows marked <c>AutoCAD 2021 (GUI
+    /// g1)</c> are measured in the full AutoCAD (sizes and the gaps between tiles); the margins and the boxed cluster are
+    /// fitted to the differences of the window coordinates and the rest is the spec's choice (<c>ours: D311</c>,
+    /// <c>ours: D312</c>).
     /// </summary>
     public class DclLayoutTests
     {
@@ -25,6 +27,12 @@ namespace GeometryHelper.Cad.UnitTest
         {
             Assert.Equal(x, actual.X, 6);
             Assert.Equal(y, actual.Y, 6);
+            Assert.Equal(width, actual.Width, 6);
+            Assert.Equal(height, actual.Height, 6);
+        }
+
+        private static void AssertSize(double width, double height, DclRect actual)
+        {
             Assert.Equal(width, actual.Width, 6);
             Assert.Equal(height, actual.Height, 6);
         }
@@ -44,13 +52,13 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void ADialogOfOneText_IsTheTextPlusItsMarginsAndTheDialogsMargin()
         {
-            // ours: D311 (a text is its label's width by one line), D312 (margins 4 and 3, the dialog's 12)
+            // ours: D311 (a text is its label's width by one line), D312 (a margin of 4 on each side, the dialog's 3)
             DclTile dialog = Dialog(": text { key = \"t\"; label = \"Hello\"; }");
 
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
 
-            AssertRect(0, 0, 62, 43, placed[dialog]);
-            AssertRect(16, 15, 30, 13, placed[dialog.Find("t")]);
+            AssertRect(0, 0, 44, 27, placed[dialog]);
+            AssertRect(7, 7, 30, 13, placed[dialog.Find("t")]);
         }
 
         [Fact]
@@ -76,92 +84,177 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void AButton_IsItsLabelPlusPaddingAndAtLeastItsWidth()
+        public void AButton_IsItsLabelPlusPaddingAndAtLeastItsWidthTimesSixPlusOne()
         {
-            // ours: D311
-            Assert.Equal(42, Alone(": button { key = \"t\"; label = \"Apply\"; }").Width);
-            Assert.Equal(23, Alone(": button { key = \"t\"; label = \"Apply\"; }").Height);
-            Assert.Equal(48, Alone(": button { key = \"t\"; label = \"Apply\"; width = 8; }").Width);
+            // AutoCAD 2021 (GUI g1): a button is 22 high, its label plus 16 wide and at least width x 6 + 1 (D345, D346)
+            Assert.Equal(46, Alone(": button { key = \"t\"; label = \"Apply\"; }").Width);
+            Assert.Equal(22, Alone(": button { key = \"t\"; label = \"Apply\"; }").Height);
+            Assert.Equal(49, Alone(": button { key = \"t\"; label = \"Apply\"; width = 8; }").Width);
+            Assert.Equal(121, Alone(": button { key = \"t\"; label = \"Apply\"; width = 20; }").Width);
             Assert.Equal(26, Alone(": button { key = \"t\"; label = \"Apply\"; height = 2; }").Height);
+        }
+
+        [Fact]
+        public void TheExitButtons_WithTheMeasuredTextWidths_AreFortyNineAndFiftyFiveWide_AndTwentyEightApart()
+        {
+            // AutoCAD 2021 (GUI g1): OK 49 x 22 and Cancel 55 x 22, Cancel's left 28 after OK's right (E1: 200 and 228; ok_cancel
+            // alone: 65 and 93); the text widths are the ones the layout is given: "  OK  " 30 (under the 33 that would
+            // pass 49) and "Cancel" 39 (39 + 16 = 55)
+            var metrics = new DclMetrics
+            {
+                TextWidth = text =>
+                    text == "Cancel" ? 39
+                    : text == "  OK  " ? 30
+                    : 6 * text.Length,
+            };
+            DclTile dialog = Dialog("ok_cancel;");
+
+            IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog, metrics);
+
+            DclRect ok = Of(placed, dialog, "accept");
+            DclRect cancel = Of(placed, dialog, "cancel");
+            Assert.Equal(49, ok.Width, 6);
+            Assert.Equal(22, ok.Height, 6);
+            Assert.Equal(55, cancel.Width, 6);
+            Assert.Equal(22, cancel.Height, 6);
+            Assert.Equal(28, cancel.X - (ok.X + ok.Width), 6);
+            Assert.Equal(ok.Y, cancel.Y, 6);
         }
 
         [Fact]
         public void TheAccessMarkOfALabel_TakesNoRoom()
         {
             // ours: D311 and D334 (& marks the access key and is not shown)
-            Assert.Equal(36, Alone(": button { key = \"t\"; label = \"&Help\"; }").Width);
+            Assert.Equal(40, Alone(": button { key = \"t\"; label = \"&Help\"; }").Width);
             Assert.Equal(24, Alone(": text { key = \"t\"; label = \"A&&B&C\"; }").Width);
         }
 
         [Fact]
-        public void AnEditBox_IsItsLabelAGapAndEditWidthCharacters()
+        public void AnEditBox_IsItsLabelNoGapAndEditWidthCharactersPlusTwelve()
         {
-            // ours: D311
+            // AutoCAD 2021 (GUI g1): the box is edit_width x 6 + 12 wide (20: 132, 60: 372) and 19 high, and starts where its
+            // label ends; with the label "&Text:" 31 wide the tile of edit_width 20 is 163 by 19 (D337)
             DclRect labelled = Alone(": edit_box { key = \"t\"; label = \"Name:\"; edit_width = 20; }");
             DclRect bare = Alone(": edit_box { key = \"t\"; edit_width = 20; }");
+            DclRect sixty = Alone(": edit_box { key = \"t\"; edit_width = 60; }");
+            var measured = new DclMetrics { TextWidth = text => text == "Text:" ? 31 : 6 * text.Length };
+            DclTile dialog = Dialog(": edit_box { key = \"t\"; label = \"&Text:\"; edit_width = 20; }");
+            DclRect text = Of(Arrange(dialog, measured), dialog, "t");
 
-            Assert.Equal(156, labelled.Width);
-            Assert.Equal(23, labelled.Height);
-            Assert.Equal(120, bare.Width);
+            Assert.Equal(162, labelled.Width);
+            Assert.Equal(19, labelled.Height);
+            Assert.Equal(132, bare.Width);
+            Assert.Equal(372, sixty.Width);
+            Assert.Equal(163, text.Width, 6);
+            Assert.Equal(19, text.Height, 6);
+            Assert.Equal(31, DclLayout.LabelWidth(dialog.Find("t"), measured), 6);
         }
 
         [Fact]
         public void AnEditBoxWithNoEditWidth_NeedsAtLeastTenCharacters()
         {
-            // ours: D311 (none: the box takes what is left, at least 10)
-            Assert.Equal(96, Alone(": edit_box { key = \"t\"; label = \"Name:\"; }").Width);
-            Assert.Equal(96, Alone(": edit_box { key = \"t\"; label = \"Name:\"; edit_width = 0; }").Width);
-            Assert.Equal(60, Alone(": edit_box { key = \"t\"; }").Width);
+            // ours: D311 (none: the box takes what is left, at least 10 characters and the 12 of the box's frame)
+            Assert.Equal(102, Alone(": edit_box { key = \"t\"; label = \"Name:\"; }").Width);
+            Assert.Equal(102, Alone(": edit_box { key = \"t\"; label = \"Name:\"; edit_width = 0; }").Width);
+            Assert.Equal(72, Alone(": edit_box { key = \"t\"; }").Width);
         }
 
         [Fact]
-        public void APopupList_IsSizedLikeAnEditBox()
+        public void APopupList_IsSizedLikeAnEditBox_ButTwentyOneHigh()
         {
-            // ours: D311
+            // AutoCAD 2021 (GUI g1): a popup list is 21 high (D345); the width as an edit box's is ours: D311
             DclRect popup = Alone(": popup_list { key = \"t\"; label = \"Style:\"; edit_width = 15; }");
 
-            Assert.Equal(36 + 6 + 90, popup.Width);
-            Assert.Equal(23, popup.Height);
+            Assert.Equal(36 + 0 + 102, popup.Width);
+            Assert.Equal(21, popup.Height);
         }
 
         [Fact]
         public void AListBox_IsWidthByHeightLines_TenByTenWhereAbsent()
         {
-            // ours: D311 (width default 10, height default 10 lines; a line is 15 and the border 2 on each side)
+            // AutoCAD 2021 (GUI g1): a list box width = 20 is 120 wide with no border (D337) and the tile height h is h x 13 - 10
+            // (D345: h = 6 gives 68, h = 4 gives 41 where this gives 42); width and height default 10 is ours: D311
             DclRect standard = Alone(": list_box { key = \"t\"; }");
             DclRect sized = Alone(": list_box { key = \"t\"; width = 20; height = 5; }");
 
-            Assert.Equal(64, standard.Width);
-            Assert.Equal(154, standard.Height);
-            Assert.Equal(124, sized.Width);
-            Assert.Equal(79, sized.Height);
+            Assert.Equal(60, standard.Width);
+            Assert.Equal(120, standard.Height);
+            Assert.Equal(120, sized.Width);
+            Assert.Equal(55, sized.Height);
+        }
+
+        [Fact]
+        public void TheLabelOfAListBox_CountsInItsHeight()
+        {
+            // AutoCAD 2021 (GUI g1): a list box width = 20, height = 6 with the label "List:" is a tile of 68 (the label's line
+            // of 13 above a list of 54), no taller than the same list without a label (D345; D337 gives 120 x 68)
+            DclRect labelled = Alone(": list_box { key = \"t\"; label = \"List:\"; width = 20; height = 6; }");
+            DclRect bare = Alone(": list_box { key = \"t\"; width = 20; height = 6; }");
+            DclRect four = Alone(": list_box { key = \"t\"; width = 20; height = 4; }");
+
+            Assert.Equal(120, labelled.Width);
+            Assert.Equal(68, labelled.Height);
+            Assert.Equal(68, bare.Height);
+            Assert.Equal(42, four.Height);
         }
 
         [Theory]
-        [InlineData("toggle")]
-        [InlineData("radio_button")]
-        public void AToggleAndARadioButton_AreABoxAndTheLabel(string kind)
+        [InlineData("toggle", 15)]
+        [InlineData("radio_button", 19)]
+        public void AToggleAndARadioButton_AreABoxAndTheLabel(string kind, int height)
         {
-            // ours: D311
+            // AutoCAD 2021 (GUI g1): a toggle is 15 high and a radio button 19 (D345); the box and the label ours: D311
             DclRect rect = Alone(": " + kind + " { key = \"t\"; label = \"Snap\"; }");
 
             Assert.Equal(44, rect.Width);
-            Assert.Equal(18, rect.Height);
+            Assert.Equal(height, rect.Height);
         }
 
         [Fact]
         public void ASlider_IsWidthLongAlongItsDirection_TenWhereAbsent()
         {
-            // ours: D311 (a vertical one is height long)
+            // AutoCAD 2021 (GUI g1): a slider is 17 thick (D345); ours: D311 (a vertical one is height long)
             DclRect horizontal = Alone(": slider { key = \"t\"; }");
             DclRect wide = Alone(": slider { key = \"t\"; width = 30; }");
             DclRect vertical = Alone(": slider { key = \"t\"; layout = vertical; height = 8; }");
 
             Assert.Equal(60, horizontal.Width);
-            Assert.Equal(21, horizontal.Height);
+            Assert.Equal(17, horizontal.Height);
             Assert.Equal(180, wide.Width);
-            Assert.Equal(21, vertical.Width);
+            Assert.Equal(17, vertical.Width);
             Assert.Equal(104, vertical.Height);
+        }
+
+        [Fact]
+        public void ATextIsThirteenHigh_AndTheTilesOfAColumnAreEightApart()
+        {
+            // AutoCAD 2021 (GUI g1): in one column an edit box (19), a popup list (21), a toggle (15), a slider (17) and a text
+            // (13) each follow the one before with 8 between (the pitches 27, 29, 23, 25 and 21 of the all-kinds dialog)
+            DclTile dialog = Dialog(
+                ": edit_box { key = \"a\"; edit_width = 5; } : popup_list { key = \"b\"; edit_width = 5; }"
+                    + ": toggle { key = \"c\"; label = \"c\"; } : slider { key = \"d\"; } : text { key = \"e\"; label = \"e\"; }"
+            );
+
+            IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
+
+            Assert.Equal(27, Of(placed, dialog, "b").Y - Of(placed, dialog, "a").Y, 6);
+            Assert.Equal(29, Of(placed, dialog, "c").Y - Of(placed, dialog, "b").Y, 6);
+            Assert.Equal(23, Of(placed, dialog, "d").Y - Of(placed, dialog, "c").Y, 6);
+            Assert.Equal(25, Of(placed, dialog, "e").Y - Of(placed, dialog, "d").Y, 6);
+            Assert.Equal(13, Of(placed, dialog, "e").Height, 6);
+        }
+
+        [Fact]
+        public void TheButtonsOfARowOfRadioButtons_AreEightApart()
+        {
+            // AutoCAD 2021 (GUI g1): the radio buttons One and Two of the all-kinds dialog are 8 apart (93 to 101)
+            DclTile dialog = Dialog(
+                ": radio_row { : radio_button { key = \"a\"; label = \"One\"; } : radio_button { key = \"b\"; label = \"Two\"; } }"
+            );
+
+            IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
+
+            Assert.Equal(8, Of(placed, dialog, "b").X - (Of(placed, dialog, "a").X + Of(placed, dialog, "a").Width), 6);
         }
 
         [Theory]
@@ -169,15 +262,16 @@ namespace GeometryHelper.Cad.UnitTest
         [InlineData("image_button")]
         public void AnImage_IsWidthByHeight_OneFromTheOtherThroughTheAspectRatio(string kind)
         {
-            // ours: D311 (aspect_ratio is width over height, in pixels); D313 (the width 10 gives dimx 60)
+            // AutoCAD 2021 (GUI g1): width x 6 by height x 13, and aspect_ratio r gives height = width x r (width 10, r 0.5: 60 x 30,
+            // D337); the height from the width through r and one from the other are ours: D311; D313 (the width 10 gives dimx 60)
             DclRect both = Alone(": " + kind + " { key = \"t\"; width = 10; height = 5; }");
-            DclRect fromWidth = Alone(": " + kind + " { key = \"t\"; width = 10; aspect_ratio = 2; }");
-            DclRect fromHeight = Alone(": " + kind + " { key = \"t\"; height = 5; aspect_ratio = 2; }");
+            DclRect fromWidth = Alone(": " + kind + " { key = \"t\"; width = 10; aspect_ratio = 0.5; }");
+            DclRect fromHeight = Alone(": " + kind + " { key = \"t\"; height = 5; aspect_ratio = 0.5; }");
             DclRect widthOnly = Alone(": " + kind + " { key = \"t\"; width = 10; }");
             DclRect neither = Alone(": " + kind + " { key = \"t\"; }");
             DclRect bothAndAspect = Alone(": " + kind + " { key = \"t\"; width = 10; height = 5; aspect_ratio = 3; }");
 
-            AssertRect(16, 15, 60, 65, both);
+            AssertRect(7, 7, 60, 65, both);
             Assert.Equal(60, fromWidth.Width);
             Assert.Equal(30, fromWidth.Height);
             Assert.Equal(130, fromHeight.Width);
@@ -192,29 +286,28 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void ASpacer_IsItsWidthAndHeightWithNoMargin_OneByOneWhereAbsent()
+        public void ASpacer_IsItsWidthAndHeightWithTheMargin_OneByOneWhereAbsent()
         {
-            // ours: D311 and D306
+            // ours: D311 and D306; AutoCAD 2021 (GUI g1): the spacer of width 2 between OK and Cancel leaves 28 between them,
+            // 12 and the margin of 4 on each side of the spacer and of each button (D345)
             DclTile one = Dialog("spacer;");
             DclTile zero = Dialog("spacer_0;");
             DclTile two = Dialog(": spacer_0 { width = 2; }");
             DclTile lone = Dialog("spacer_1;");
 
-            AssertRect(0, 0, 6 + 24, 13 + 24, Arrange(one)[one]);
-            AssertRect(0, 0, 24, 24, Arrange(zero)[zero]);
-            AssertRect(0, 0, 12 + 24, 24, Arrange(two)[two]);
-            AssertRect(0, 0, 30, 37, Arrange(lone)[lone]);
+            AssertRect(0, 0, 6 + 14, 13 + 14, Arrange(one)[one]);
+            AssertRect(0, 0, 14, 14, Arrange(zero)[zero]);
+            AssertRect(0, 0, 12 + 14, 14, Arrange(two)[two]);
+            AssertRect(0, 0, 20, 27, Arrange(lone)[lone]);
         }
 
         [Fact]
-        public void ASpacerThatSaysItsMargin_HasIt()
+        public void ASpacerThatSaysItsMarginIsNone_HasNone()
         {
             // ours: D312
-            DclTile dialog = Dialog(
-                ": spacer { key = \"t\"; horizontal_margin = default; vertical_margin = default; }"
-            );
+            DclTile dialog = Dialog(": spacer { key = \"t\"; horizontal_margin = none; vertical_margin = none; }");
 
-            AssertRect(16, 15, 6, 13, Of(Arrange(dialog), dialog, "t"));
+            AssertRect(3, 3, 6, 13, Of(Arrange(dialog), dialog, "t"));
         }
 
         [Fact]
@@ -222,7 +315,7 @@ namespace GeometryHelper.Cad.UnitTest
         {
             DclTile dialog = Dialog("");
 
-            AssertRect(0, 0, 24, 24, Arrange(dialog)[dialog]);
+            AssertRect(0, 0, 6, 6, Arrange(dialog)[dialog]);
         }
 
         [Fact]
@@ -231,7 +324,7 @@ namespace GeometryHelper.Cad.UnitTest
             // ours: D312 (a row has no margin of its own)
             DclTile dialog = Dialog("row;");
 
-            AssertRect(0, 0, 24, 24, Arrange(dialog)[dialog]);
+            AssertRect(0, 0, 6, 6, Arrange(dialog)[dialog]);
         }
 
         [Fact]
@@ -243,7 +336,7 @@ namespace GeometryHelper.Cad.UnitTest
 
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
 
-            AssertRect(16, 15, 6, 13, placed[odd]);
+            AssertRect(7, 7, 6, 13, placed[odd]);
         }
 
         // ---- Rows and columns (D312) ----
@@ -251,17 +344,17 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void ARow_LaysItsChildrenLeftToRight()
         {
-            // ours: D312 (two buttons of 24 and 48 with margins of 4 and 3: slots of 32 and 56)
+            // ours: D312 (two buttons of 28 and 52 with a margin of 4 on each side: slots of 36 and 60)
             DclTile dialog = Dialog(
                 ": row { : button { key = \"a\"; label = \"Ok\"; } : button { key = \"b\"; label = \"Cancel\"; } }"
             );
 
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
 
-            AssertRect(0, 0, 112, 53, placed[dialog]);
-            AssertRect(12, 12, 88, 29, placed[dialog.Children[0]]);
-            AssertRect(16, 15, 24, 23, Of(placed, dialog, "a"));
-            AssertRect(48, 15, 48, 23, Of(placed, dialog, "b"));
+            AssertRect(0, 0, 102, 36, placed[dialog]);
+            AssertRect(3, 3, 96, 30, placed[dialog.Children[0]]);
+            AssertRect(7, 7, 28, 22, Of(placed, dialog, "a"));
+            AssertRect(43, 7, 52, 22, Of(placed, dialog, "b"));
         }
 
         [Fact]
@@ -274,9 +367,9 @@ namespace GeometryHelper.Cad.UnitTest
 
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
 
-            AssertRect(0, 0, 26 + 24, 38 + 24, placed[dialog]);
-            AssertRect(16, 15, 18, 13, Of(placed, dialog, "a"));
-            AssertRect(16, 34, 18, 13, Of(placed, dialog, "b"));
+            AssertRect(0, 0, 26 + 6, 42 + 6, placed[dialog]);
+            AssertRect(7, 7, 18, 13, Of(placed, dialog, "a"));
+            AssertRect(7, 28, 18, 13, Of(placed, dialog, "b"));
         }
 
         [Fact]
@@ -287,23 +380,23 @@ namespace GeometryHelper.Cad.UnitTest
 
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
 
-            AssertRect(16, 15, 18, 13, Of(placed, dialog, "a"));
-            AssertRect(16, 34, 18, 13, Of(placed, dialog, "b"));
+            AssertRect(7, 7, 18, 13, Of(placed, dialog, "a"));
+            AssertRect(7, 28, 18, 13, Of(placed, dialog, "b"));
         }
 
         [Fact]
         public void RoomToSpare_IsSharedEquallyByTheChildrenThatAreNotFixed()
         {
-            // ours: D312 (a list of 244 makes the row 252 wide; the buttons' slots of 32 and 56 leave 164, 82 each)
+            // ours: D312 (a list of 240 makes the row 248 wide; the buttons' slots of 36 and 60 leave 152, 76 each)
             DclTile dialog = Dialog(
                 ": list_box { key = \"l\"; width = 40; height = 2; } : row { : button { key = \"a\"; label = \"Ok\"; } : button { key = \"b\"; label = \"Cancel\"; } }"
             );
 
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
 
-            AssertRect(12, 52, 252, 29, placed[dialog.Children[1]]);
-            AssertRect(16, 55, 106, 23, Of(placed, dialog, "a"));
-            AssertRect(130, 55, 130, 23, Of(placed, dialog, "b"));
+            AssertRect(3, 27, 248, 30, placed[dialog.Children[1]]);
+            AssertRect(7, 31, 104, 22, Of(placed, dialog, "a"));
+            AssertRect(119, 31, 128, 22, Of(placed, dialog, "b"));
         }
 
         [Fact]
@@ -317,16 +410,16 @@ namespace GeometryHelper.Cad.UnitTest
 
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
 
-            // the button's slot is 32 and fixed, the spacer's 6 and the text's 14: used 52 of 252, spare 200, 100 each
-            AssertRect(16, 40, 24, 23, Of(placed, dialog, "a"));
-            AssertRect(44, 37, 106, 29, Of(placed, dialog, "s"));
-            AssertRect(154, 40, 106, 23, Of(placed, dialog, "x"));
+            // the button's slot is 36 and fixed, the spacer's 14 and the text's 14: used 64 of 248, spare 184, 92 each
+            AssertRect(7, 18, 28, 22, Of(placed, dialog, "a"));
+            AssertRect(43, 18, 98, 22, Of(placed, dialog, "s"));
+            AssertRect(149, 18, 98, 22, Of(placed, dialog, "x"));
         }
 
         [Fact]
         public void AFixedWidthChildOfAColumn_IsPlacedByItsAlignment()
         {
-            // ours: D312 (children of a column are at the left unless they say otherwise; the room is 252 - 32 = 220)
+            // ours: D312 (children of a column are at the left unless they say otherwise; the room is 248 - 36 = 212)
             string wide = ": list_box { key = \"l\"; width = 40; height = 1; }";
             DclTile left = Dialog(wide + ": button { key = \"t\"; label = \"Ok\"; fixed_width = true; }");
             DclTile centered = Dialog(
@@ -337,13 +430,13 @@ namespace GeometryHelper.Cad.UnitTest
             );
             DclTile stretched = Dialog(wide + ": button { key = \"t\"; label = \"Ok\"; }");
 
-            Assert.Equal(16, Of(Arrange(left), left, "t").X);
-            Assert.Equal(24, Of(Arrange(left), left, "t").Width);
-            Assert.Equal(126, Of(Arrange(centered), centered, "t").X);
-            Assert.Equal(236, Of(Arrange(right), right, "t").X);
-            Assert.Equal(24, Of(Arrange(right), right, "t").Width);
-            Assert.Equal(16, Of(Arrange(stretched), stretched, "t").X);
-            Assert.Equal(244, Of(Arrange(stretched), stretched, "t").Width);
+            Assert.Equal(7, Of(Arrange(left), left, "t").X);
+            Assert.Equal(28, Of(Arrange(left), left, "t").Width);
+            Assert.Equal(113, Of(Arrange(centered), centered, "t").X);
+            Assert.Equal(219, Of(Arrange(right), right, "t").X);
+            Assert.Equal(28, Of(Arrange(right), right, "t").Width);
+            Assert.Equal(7, Of(Arrange(stretched), stretched, "t").X);
+            Assert.Equal(240, Of(Arrange(stretched), stretched, "t").Width);
         }
 
         [Fact]
@@ -359,18 +452,18 @@ namespace GeometryHelper.Cad.UnitTest
 
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
 
-            Assert.Equal(236, Of(placed, dialog, "a").X);
-            Assert.Equal(24, Of(placed, dialog, "a").Width);
-            Assert.Equal(212, Of(placed, dialog, "b").X);
-            Assert.Equal(48, Of(placed, dialog, "b").Width);
-            Assert.Equal(16, Of(placed, dialog, "c").X);
-            Assert.Equal(244, Of(placed, dialog, "c").Width);
+            Assert.Equal(219, Of(placed, dialog, "a").X);
+            Assert.Equal(28, Of(placed, dialog, "a").Width);
+            Assert.Equal(195, Of(placed, dialog, "b").X);
+            Assert.Equal(52, Of(placed, dialog, "b").Width);
+            Assert.Equal(7, Of(placed, dialog, "c").X);
+            Assert.Equal(240, Of(placed, dialog, "c").Width);
         }
 
         [Fact]
         public void AFixedHeightChildOfARow_IsCentredUnlessItSaysTopOrBottom()
         {
-            // ours: D312 (the row is 70 high, the button's slot 29: room 41)
+            // ours: D312 (the row is 50 high, the button's slot 30: room 20)
             string tall = ": list_box { key = \"l\"; height = 4; width = 5; }";
             DclTile centered = Dialog(
                 ": row { " + tall + ": button { key = \"t\"; label = \"Ok\"; fixed_height = true; } }"
@@ -385,12 +478,12 @@ namespace GeometryHelper.Cad.UnitTest
             );
             DclTile stretched = Dialog(": row { " + tall + ": button { key = \"t\"; label = \"Ok\"; } }");
 
-            Assert.Equal(12 + 20.5 + 3, Of(Arrange(centered), centered, "t").Y, 6);
-            Assert.Equal(23, Of(Arrange(centered), centered, "t").Height, 6);
-            Assert.Equal(12 + 0 + 3, Of(Arrange(top), top, "t").Y, 6);
-            Assert.Equal(12 + 41 + 3, Of(Arrange(bottom), bottom, "t").Y, 6);
-            Assert.Equal(15, Of(Arrange(stretched), stretched, "t").Y, 6);
-            Assert.Equal(64, Of(Arrange(stretched), stretched, "t").Height, 6);
+            Assert.Equal(3 + 10 + 4, Of(Arrange(centered), centered, "t").Y, 6);
+            Assert.Equal(22, Of(Arrange(centered), centered, "t").Height, 6);
+            Assert.Equal(3 + 0 + 4, Of(Arrange(top), top, "t").Y, 6);
+            Assert.Equal(3 + 20 + 4, Of(Arrange(bottom), bottom, "t").Y, 6);
+            Assert.Equal(7, Of(Arrange(stretched), stretched, "t").Y, 6);
+            Assert.Equal(42, Of(Arrange(stretched), stretched, "t").Height, 6);
         }
 
         [Fact]
@@ -420,9 +513,9 @@ namespace GeometryHelper.Cad.UnitTest
 
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
 
-            Assert.Equal(15, Of(placed, dialog, "a").Y, 6);
-            Assert.Equal(15 + 18 + 6, Of(placed, dialog, "b").Y, 6);
-            Assert.Equal(12, Of(placed, dialog, "r").X, 6);
+            Assert.Equal(7, Of(placed, dialog, "a").Y, 6);
+            Assert.Equal(7 + 19 + 8, Of(placed, dialog, "b").Y, 6);
+            Assert.Equal(3, Of(placed, dialog, "r").X, 6);
         }
 
         [Fact]
@@ -433,7 +526,7 @@ namespace GeometryHelper.Cad.UnitTest
             DclTile wide = Dialog("width = 40; : text { label = \"x\"; }");
 
             Assert.Equal(180, Of(Arrange(dialog), dialog, "r").Width, 6);
-            AssertRect(0, 0, 240, 24 + 19, Arrange(wide)[wide]);
+            AssertRect(0, 0, 240, 6 + 21, Arrange(wide)[wide]);
         }
 
         // ---- Margins (D312) ----
@@ -447,9 +540,9 @@ namespace GeometryHelper.Cad.UnitTest
             );
             DclTile horizontal = Dialog(": button { key = \"t\"; label = \"Apply\"; horizontal_margin = none; }");
 
-            AssertRect(12, 12, 42, 23, Of(Arrange(both), both, "t"));
-            AssertRect(0, 0, 66, 47, Arrange(both)[both]);
-            AssertRect(12, 15, 42, 23, Of(Arrange(horizontal), horizontal, "t"));
+            AssertRect(3, 3, 46, 22, Of(Arrange(both), both, "t"));
+            AssertRect(0, 0, 52, 28, Arrange(both)[both]);
+            AssertRect(3, 7, 46, 22, Of(Arrange(horizontal), horizontal, "t"));
         }
 
         [Fact]
@@ -462,10 +555,10 @@ namespace GeometryHelper.Cad.UnitTest
 
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
 
-            Assert.Equal(12, Of(placed, dialog, "r").X, 6);
-            Assert.Equal(12, Of(placed, dialog, "r").Y, 6);
-            Assert.Equal(12, Of(placed, dialog, "c").X, 6);
-            Assert.Equal(16, Of(placed, dialog, "b").X, 6);
+            Assert.Equal(3, Of(placed, dialog, "r").X, 6);
+            Assert.Equal(3, Of(placed, dialog, "r").Y, 6);
+            Assert.Equal(3, Of(placed, dialog, "c").X, 6);
+            Assert.Equal(7, Of(placed, dialog, "b").X, 6);
         }
 
         // ---- Boxed clusters (D312) ----
@@ -473,16 +566,17 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void ABoxedCluster_AddsABorderAndItsLabelAbove()
         {
-            // ours: D312 (border 8 at the sides and below, the label's line of 13 and 4 above)
+            // ours: D312 (border 8 at the sides and below, the label's line of 13 and 4 above; not fitted to the insets of 5,
+            // 19 and 2 that the all-kinds dialog's radio box shows)
             DclTile dialog = Dialog(
                 ": boxed_column { key = \"b\"; label = \"Group\"; : text { key = \"t\"; label = \"Hello\"; } }"
             );
 
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
 
-            AssertRect(16, 15, 54, 44, Of(placed, dialog, "b"));
-            AssertRect(28, 35, 30, 13, Of(placed, dialog, "t"));
-            AssertRect(0, 0, 86, 74, placed[dialog]);
+            AssertRect(7, 7, 54, 46, Of(placed, dialog, "b"));
+            AssertRect(19, 28, 30, 13, Of(placed, dialog, "t"));
+            AssertRect(0, 0, 68, 60, placed[dialog]);
         }
 
         [Fact]
@@ -515,7 +609,7 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void AnOkCancelRow_IsCentredInAWiderDialog()
         {
-            // ours: D306 and D312 (the row is 124 wide: two buttons of 48 with margins and a gap of two characters)
+            // ours: D306 and D312 (the row is 140 wide: two buttons of 52, the spacer of two characters and the margins)
             DclTile dialog = Dialog(": list_box { key = \"l\"; width = 40; height = 1; } ok_cancel;");
 
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
@@ -523,10 +617,10 @@ namespace GeometryHelper.Cad.UnitTest
             DclRect row = placed[dialog.Children[1]];
             DclRect ok = Of(placed, dialog, "accept");
             DclRect cancel = Of(placed, dialog, "cancel");
-            AssertRect(76, 37, 124, 29, row);
-            AssertRect(80, 40, 48, 23, ok);
-            AssertRect(148, 40, 48, 23, cancel);
-            Assert.Equal(row.X - 12, 12 + 252 - (row.X + row.Width), 6);
+            AssertRect(57, 14, 140, 30, row);
+            AssertRect(61, 18, 52, 22, ok);
+            AssertRect(141, 18, 52, 22, cancel);
+            Assert.Equal(row.X - 3, 3 + 248 - (row.X + row.Width), 6);
         }
 
         [Theory]
@@ -551,14 +645,14 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void AnErrorTile_IsThirtyFiveCharactersWide_AndTheButtonsBelowItAreCentred()
         {
-            // ours: D306 (35 characters is 210, the column is 218 wide, the row of 124 has room 94: 47 each side)
+            // ours: D306 (35 characters is 210, the column is 218 wide, the row of 140 has room 78: 39 each side)
             DclTile dialog = Dialog("ok_cancel_err;");
 
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
 
             Assert.Equal(210, Of(placed, dialog, "error").Width, 6);
-            Assert.Equal(12 + 47 + 4, Of(placed, dialog, "accept").X, 6);
-            Assert.Equal(218 + 24, placed[dialog].Width, 6);
+            Assert.Equal(3 + 39 + 4, Of(placed, dialog, "accept").X, 6);
+            Assert.Equal(218 + 6, placed[dialog].Width, 6);
         }
 
         // ---- The whole result (D310, D313) ----
@@ -614,7 +708,7 @@ namespace GeometryHelper.Cad.UnitTest
             var metrics = new DclMetrics { CharWidth = 7, CharHeight = 14 };
             DclTile dialog = Dialog(": text { key = \"t\"; label = \"Hello\"; }");
 
-            AssertRect(16, 15, 35, 14, Of(Arrange(dialog, metrics), dialog, "t"));
+            AssertRect(7, 7, 35, 14, Of(Arrange(dialog, metrics), dialog, "t"));
         }
 
         [Fact]
@@ -628,21 +722,61 @@ namespace GeometryHelper.Cad.UnitTest
 
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog, metrics);
 
-            // the text 5 characters of 10; the button 2 of 10 and 12 of padding; the edit box 2 of 10, a gap of 6, 5 of 6
+            // the text 5 characters of 10; the button 2 of 10 and 16 of padding; the edit box 2 of 10, no gap, 5 of 6 and 12
             Assert.Equal(50, Of(placed, dialog, "t").Width, 6);
-            Assert.Equal(32, Of(placed, dialog, "b").Width, 6);
-            Assert.Equal(56, Of(placed, dialog, "e").Width, 6);
+            Assert.Equal(36, Of(placed, dialog, "b").Width, 6);
+            Assert.Equal(62, Of(placed, dialog, "e").Width, 6);
         }
 
         [Fact]
         public void TheDefaultMetrics_AreSixByThirteen()
         {
+            // AutoCAD 2021 (GUI g1): a list box width = 20 is 120 px and an image height = 4 is 52 px (D337)
             DclMetrics metrics = DclMetrics.Default;
 
             Assert.Equal(6, metrics.CharWidth);
             Assert.Equal(13, metrics.CharHeight);
             Assert.Equal(30, metrics.TextWidth("Hello"));
             Assert.Equal(0, metrics.TextWidth(null));
+        }
+
+        [Fact]
+        public void TheDefaultMetrics_HoldTheMeasuredSizesOfTheControls()
+        {
+            // AutoCAD 2021 (GUI g1, D345): button 22, edit box 19, popup list 21, toggle 15, radio button 19, slider 17, list
+            // line 13, label gap 0, the room a button adds to its label 16 and an edit box's frame 12
+            DclMetrics metrics = DclMetrics.Default;
+
+            Assert.Equal(22, metrics.ButtonHeight);
+            Assert.Equal(19, metrics.EditHeight);
+            Assert.Equal(21, metrics.PopupHeight);
+            Assert.Equal(15, metrics.ToggleHeight);
+            Assert.Equal(19, metrics.RadioHeight);
+            Assert.Equal(17, metrics.SliderThickness);
+            Assert.Equal(13, metrics.ListLineHeight);
+            Assert.Equal(0, metrics.LabelGap);
+            Assert.Equal(16, metrics.ButtonPaddingX);
+            Assert.Equal(12, metrics.EditBoxPadding);
+        }
+
+        [Fact]
+        public void TheTilesThatAreNotFixed_StretchAcrossTheirColumn()
+        {
+            // AutoCAD 2021 (GUI g1): in the column of a list box of width 20 (120) the image 10 by 4 is 120 x 52, the image with
+            // aspect_ratio 0.5 on width 10 is 120 x 30, the image button 6 by 2 is 120 x 26 and a button is 120 x 22 (D337, D345)
+            DclTile dialog = Dialog(
+                ": list_box { key = \"l\"; width = 20; height = 4; } : image { key = \"i\"; width = 10; height = 4; }"
+                    + ": image { key = \"a\"; width = 10; aspect_ratio = 0.5; } : image_button { key = \"b\"; width = 6; height = 2; }"
+                    + ": button { key = \"c\"; label = \"&Button\"; }"
+            );
+
+            IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
+
+            AssertSize(120, 52, Of(placed, dialog, "i"));
+            AssertSize(120, 30, Of(placed, dialog, "a"));
+            AssertSize(120, 26, Of(placed, dialog, "b"));
+            AssertSize(120, 22, Of(placed, dialog, "c"));
+            AssertSize(120, 42, Of(placed, dialog, "l"));
         }
 
         // ---- Helpers of the layout ----
@@ -670,8 +804,8 @@ namespace GeometryHelper.Cad.UnitTest
                 ": edit_box { key = \"a\"; label = \"Name:\"; } : edit_box { key = \"b\"; label = \"&Name\"; } : edit_box { key = \"c\"; }"
             );
 
-            Assert.Equal(36, DclLayout.LabelWidth(labelled.Find("a"), DclMetrics.Default), 6);
-            Assert.Equal(30, DclLayout.LabelWidth(labelled.Find("b"), DclMetrics.Default), 6);
+            Assert.Equal(30, DclLayout.LabelWidth(labelled.Find("a"), DclMetrics.Default), 6);
+            Assert.Equal(24, DclLayout.LabelWidth(labelled.Find("b"), DclMetrics.Default), 6);
             Assert.Equal(0, DclLayout.LabelWidth(labelled.Find("c"), DclMetrics.Default), 6);
         }
 
@@ -750,17 +884,17 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void TheEditDialog_HasTheEditBoxAtItsWidth_AndTheButtonsCentred()
         {
-            // ours: D311 and D312 (label 5 characters, a gap of 6, 60 characters: 396 wide)
+            // AutoCAD 2021 (GUI g1): the box of 60 characters is 372 and starts at its label (D337); label 5 characters 30: 402 wide
             DclTile dialog = DclParser.Parse(EditDialog, @"C:\dcl\x.dcl", null).NewDialog("EDIT");
 
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
 
             DclRect box = Of(placed, dialog, "txt");
-            Assert.Equal(396, box.Width, 6);
-            Assert.Equal(396 + 8 + 24, placed[dialog].Width, 6);
+            Assert.Equal(402, box.Width, 6);
+            Assert.Equal(402 + 8 + 6, placed[dialog].Width, 6);
             Assert.Equal(
-                Of(placed, dialog, "accept").X - 12,
-                placed[dialog].Width - 12 - (Of(placed, dialog, "cancel").X + Of(placed, dialog, "cancel").Width),
+                Of(placed, dialog, "accept").X - 3,
+                placed[dialog].Width - 3 - (Of(placed, dialog, "cancel").X + Of(placed, dialog, "cancel").Width),
                 6
             );
         }

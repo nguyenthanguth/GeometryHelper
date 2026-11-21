@@ -40,7 +40,7 @@ namespace GeometryHelper.Cad.Dcl
         /// <param name="include">Finds a file an <c>@include</c> names, given the name as written and the including file's
         /// path: its full path and text, or null when it is not found.</param>
         /// <returns>The file's definitions.</returns>
-        /// <exception cref="DclException">Thrown for a syntax error, a tile not defined, an include not found or one that loops.</exception>
+        /// <exception cref="DclException">Thrown for a syntax error, a tile not defined, a predefined tile defined again, an include not found or one that loops.</exception>
         internal static DclFile Parse(
             string text,
             string path,
@@ -66,7 +66,7 @@ namespace GeometryHelper.Cad.Dcl
 
             IReadOnlyList<DclTile> loaded = Load(text, path, include, new[] { path }, predefined);
 
-            // The predefined tiles first, then the included files' and the file's own: the later one wins a name.
+            // The predefined tiles first, then the included files' and the file's own; none of those may share a predefined name.
             return new DclFile(path, Predefined.Value.Select(tile => tile.Copy()).Concat(loaded));
         }
 
@@ -105,13 +105,29 @@ namespace GeometryHelper.Cad.Dcl
                     }
 
                     DclToken name = reader.Expect(DclTokenKind.String);
-                    reader.Expect(DclTokenKind.Semicolon);
+                    reader.ExpectSemicolon();
                     included.AddRange(Include(name.Text, token.Line, path, include, chain, predefined));
                 }
                 else if (token.Kind == DclTokenKind.Name)
                 {
                     reader.Expect(DclTokenKind.Colon);
                     DclToken parent = reader.Expect(DclTokenKind.Name);
+
+                    // A file may not define a name of the predefined set again (AutoCAD: "warning: redefining object.").
+                    if (predefined.ContainsKey(token.Text))
+                    {
+                        throw new DclException(
+                            path,
+                            token.Line,
+                            string.Format(
+                                CultureInfo.InvariantCulture,
+                                "warning: redefining object.\nSymbol: \"{0}\".",
+                                token.Text
+                            ),
+                            token.Text
+                        );
+                    }
+
                     var raw = new RawTile(token.Text, parent.Text, token.Line);
                     reader.ReadBody(raw);
                     definitions.Add(raw);
@@ -222,15 +238,28 @@ namespace GeometryHelper.Cad.Dcl
                 return token;
             }
 
+            /// <summary>
+            /// Reads the <c>;</c> that ends an entry. A tile or a closing brace where it should be is a missing semicolon, on the
+            /// line of that token (AutoCAD gives no symbol for it); any other token is a syntax error at that token.
+            /// </summary>
+            internal void ExpectSemicolon()
+            {
+                DclToken token = Take();
+
+                if (token.Kind == DclTokenKind.Colon || token.Kind == DclTokenKind.CloseBrace)
+                {
+                    throw DclException.MissingSemicolon(_path, token.Line);
+                }
+
+                if (token.Kind != DclTokenKind.Semicolon)
+                {
+                    throw Error(token);
+                }
+            }
+
             internal DclException Error(DclToken token) => Error(token.Raw, token.Line);
 
-            internal DclException Error(string symbol, int line) =>
-                new DclException(
-                    _path,
-                    line,
-                    string.Format(CultureInfo.InvariantCulture, "syntax error. Symbol: \"{0}\".", symbol),
-                    symbol
-                );
+            internal DclException Error(string symbol, int line) => DclException.SyntaxError(_path, line, symbol);
 
             /// <summary>Reads <c>{ entry* }</c> and the optional <c>;</c> after it into a tile.</summary>
             internal void ReadBody(RawTile tile)
@@ -280,12 +309,16 @@ namespace GeometryHelper.Cad.Dcl
                                     throw Error(value);
                             }
 
-                            Expect(DclTokenKind.Semicolon);
+                            ExpectSemicolon();
                             tile.Attributes.Add(new DclAttribute(token.Text, kind, value.Text, token.Line));
                         }
                         else if (next.Kind == DclTokenKind.Semicolon)
                         {
                             tile.Children.Add(new RawTile(token.Text, token.Text, token.Line));
+                        }
+                        else if (next.Kind == DclTokenKind.Colon || next.Kind == DclTokenKind.CloseBrace)
+                        {
+                            throw DclException.MissingSemicolon(_path, next.Line);
                         }
                         else
                         {
@@ -413,7 +446,8 @@ namespace GeometryHelper.Cad.Dcl
                     throw new DclException(
                         _path,
                         raw.Line,
-                        string.Format(CultureInfo.InvariantCulture, "Tile \"{0}\" is not defined.", raw.Parent)
+                        string.Format(CultureInfo.InvariantCulture, "Tile \"{0}\" is not defined.", raw.Parent),
+                        semantic: true
                     );
                 }
 

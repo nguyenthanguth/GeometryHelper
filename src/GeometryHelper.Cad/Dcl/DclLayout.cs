@@ -38,13 +38,13 @@ namespace GeometryHelper.Cad.Dcl
         /// does the same with heights; across its direction a child that is not fixed fills the cluster and a fixed one keeps
         /// its natural size, placed by its <c>alignment</c>. A tile has a margin on each side (<see cref="DclMetrics.TileMarginX"/>
         /// and <see cref="DclMetrics.TileMarginY"/>, or none for <c>horizontal_margin = none</c> and <c>vertical_margin =
-        /// none</c>, and always for a spacer unless it says otherwise); the rectangle of a tile is what is left inside its margin.
+        /// none</c>; a spacer's too); the rectangle of a tile is what is left inside its margin.
         /// </summary>
         /// <param name="dialog">The dialog's top tile.</param>
         /// <param name="metrics">The character size, the text widths and the paddings.</param>
         /// <returns>
-        /// Each tile's rectangle, looked up by the tile. A dialog of one button 48 by 23 is 80 by 53:
-        /// the button's margins of 4 and 3 on each side and the dialog's of 12.
+        /// Each tile's rectangle, looked up by the tile. A dialog of one button 49 by 22 is 63 by 36:
+        /// the button's margin of 4 on each side and the dialog's of 3.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the dialog or the metrics are null.</exception>
         internal static IReadOnlyDictionary<DclTile, DclRect> Arrange(DclTile dialog, DclMetrics metrics)
@@ -67,7 +67,7 @@ namespace GeometryHelper.Cad.Dcl
 
         /// <summary>
         /// Gives the width a label takes in front of an edit box or a popup list: the label's text without its access mark and
-        /// the gap after it; 0 for a tile with no label. A window uses it to split the tile's rectangle into the label and the
+        /// the gap after it (none: the box starts where the label ends); 0 for a tile with no label. A window uses it to split the tile's rectangle into the label and the
         /// box.
         /// </summary>
         /// <param name="tile">The tile.</param>
@@ -169,30 +169,33 @@ namespace GeometryHelper.Cad.Dcl
                         break;
                     }
                     case "button":
+                        // At least width x 6 + 1 where a width is given (a button of width 8 is 49).
                         size = new Size(
                             Math.Max(
                                 _metrics.TextWidth(StripAccess(tile.Get("label"))) + _metrics.ButtonPaddingX,
-                                minWidth
+                                tile.GetReal("width").HasValue ? minWidth + 1 : 0
                             ),
-                            Math.Max(_metrics.ControlHeight, minHeight)
+                            Math.Max(_metrics.ButtonHeight, minHeight)
                         );
                         break;
                     case "edit_box":
                     case "popup_list":
                     {
-                        // The box is edit_width characters, or at least ten where the tile says none (or 0).
+                        // The box is edit_width characters and its frame, or at least ten characters where the tile says none (or
+                        // 0); it follows its label with no gap.
                         double editWidth = tile.GetReal("edit_width") ?? 0;
-                        double box = (editWidth > 0 ? editWidth : 10) * _metrics.CharWidth;
+                        double box = (editWidth > 0 ? editWidth : 10) * _metrics.CharWidth + _metrics.EditBoxPadding;
                         size = new Size(
                             Math.Max(LabelWidth(tile, _metrics) + box, minWidth),
-                            Math.Max(_metrics.ControlHeight, minHeight)
+                            Math.Max(tile.Kind == "edit_box" ? _metrics.EditHeight : _metrics.PopupHeight, minHeight)
                         );
                         break;
                     }
                     case "list_box":
+                        // Its label is inside its height: a list of height 6 with a label is a tile of 68, as without one.
                         size = new Size(
-                            (tile.GetReal("width") ?? 10) * _metrics.CharWidth + 2 * _metrics.ListBorder,
-                            (tile.GetReal("height") ?? 10) * _metrics.ListLineHeight + 2 * _metrics.ListBorder
+                            (tile.GetReal("width") ?? 10) * _metrics.CharWidth,
+                            Math.Max(0, (tile.GetReal("height") ?? 10) * _metrics.ListLineHeight - _metrics.ListTrim)
                         );
                         break;
                     case "toggle":
@@ -202,7 +205,7 @@ namespace GeometryHelper.Cad.Dcl
                                 _metrics.CheckBoxWidth + _metrics.TextWidth(StripAccess(tile.Get("label"))),
                                 minWidth
                             ),
-                            Math.Max(_metrics.CheckHeight, minHeight)
+                            Math.Max(tile.Kind == "toggle" ? _metrics.ToggleHeight : _metrics.RadioHeight, minHeight)
                         );
                         break;
                     case "slider":
@@ -342,19 +345,19 @@ namespace GeometryHelper.Cad.Dcl
                 double widthPixels;
                 double heightPixels;
 
-                // Width and height as given; one missing comes from the other through aspect_ratio (width over height, in
-                // pixels), and with neither the width is one character.
+                // Width and height as given; one missing comes from the other through aspect_ratio, the height over the width
+                // (width 10 and aspect_ratio 0.5 is 60 by 30, as AutoCAD 2021 draws it), and with neither the width is one character.
                 if (height.HasValue && !width.HasValue)
                 {
                     heightPixels = height.Value * _metrics.CharHeight;
-                    widthPixels = aspect > 0 ? heightPixels * aspect : _metrics.CharWidth;
+                    widthPixels = aspect > 0 ? heightPixels / aspect : _metrics.CharWidth;
                 }
                 else
                 {
                     widthPixels = (width ?? 1) * _metrics.CharWidth;
                     heightPixels =
                         height.HasValue ? height.Value * _metrics.CharHeight
-                        : aspect > 0 ? widthPixels / aspect
+                        : aspect > 0 ? widthPixels * aspect
                         : _metrics.CharHeight;
                 }
 
@@ -373,14 +376,7 @@ namespace GeometryHelper.Cad.Dcl
 
             private static double Margin(DclTile tile, string attribute, double standard)
             {
-                string written = tile.Get(attribute);
-
-                if (written == null)
-                {
-                    return string.Equals(tile.Kind, "spacer", StringComparison.Ordinal) ? 0 : standard;
-                }
-
-                return string.Equals(written, "none", StringComparison.Ordinal) ? 0 : standard;
+                return string.Equals(tile.Get(attribute), "none", StringComparison.Ordinal) ? 0 : standard;
             }
 
             private static bool IsCluster(DclTile tile) =>

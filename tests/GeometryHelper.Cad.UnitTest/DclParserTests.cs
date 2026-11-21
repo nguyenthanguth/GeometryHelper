@@ -10,7 +10,8 @@ namespace GeometryHelper.Cad.UnitTest
     /// The DCL parser (L5 part P, D301-D309): the grammar, the values, comments, prototypes, includes, the errors of D307 and
     /// the predefined tiles of D306. The language is written from the AutoCAD 2021 DCL reference (rows marked
     /// <c>reference</c>); where the reference is silent the spec's own choice is marked <c>ours: D3nn</c>. The console
-    /// measured nothing of the language (it cannot open a dialog), so no row is marked <c>AutoCAD 2021</c>.
+    /// measured nothing of the language (it cannot open a dialog); the load messages and the refusal of a predefined name
+    /// are measured in the full AutoCAD (rows marked <c>AutoCAD 2021 (GUI g1)</c>, D338).
     /// </summary>
     public class DclParserTests
     {
@@ -276,22 +277,20 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void ANameBeginningWithADigit_IsASyntaxError()
         {
-            // ours: D301
+            // ours: D301; AutoCAD 2021 (GUI g1): the message is "syntax error." and the Symbol on a line of its own
             DclException error = Fail("1d : dialog { }");
 
             Assert.Equal("1d", error.Symbol);
-            Assert.Equal("syntax error. Symbol: \"1d\".", error.What);
+            Assert.Equal("syntax error.\nSymbol: \"1d\".", error.What);
             Assert.Equal(1, error.Line);
         }
 
         [Theory]
-        [InlineData("d : dialog { label = \"a\" }", "}", 1)]
         [InlineData("d : dialog {\n  label = \"a\";\n  key = ;\n}", ";", 3)]
         [InlineData("d : dialog {\n  label \"a\";\n}", "\"a\"", 2)]
         [InlineData("d : dialog { label = a b; }", "b", 1)]
         [InlineData("d : dialog { ) }", ")", 1)]
         [InlineData("d : dialog { # }", "#", 1)]
-        [InlineData("d : dialog { a : b { } }", ":", 1)]
         [InlineData("d : dialog { width = 10px; }", "10px", 1)]
         [InlineData("d : dialog { width = 1.2.3; }", "1.2.3", 1)]
         [InlineData("d : dialog { width = -; }", "-", 1)]
@@ -305,17 +304,61 @@ namespace GeometryHelper.Cad.UnitTest
         [InlineData("@include \"x\" d : dialog { }", "d", 1)]
         public void ASyntaxError_NamesTheSymbolAndTheLine(string text, string symbol, int line)
         {
-            // ours: D307 (the message of AutoCAD's alert is not measured)
+            // AutoCAD 2021 (GUI g1): "Error in dialog file", the path and line, "syntax error." and the Symbol, a line each
+            // (the symbols and lines of these rows are ours: D307)
             DclException error = Fail(text);
 
             Assert.Equal(symbol, error.Symbol);
             Assert.Equal(line, error.Line);
-            Assert.Equal("syntax error. Symbol: \"" + symbol + "\".", error.What);
+            Assert.Equal("syntax error.\nSymbol: \"" + symbol + "\".", error.What);
             Assert.Equal(Path, error.File);
+            Assert.False(error.Semantic);
             Assert.Equal(
-                "Error in dialog file \"" + Path + "\", line " + line + ":\nsyntax error. Symbol: \"" + symbol + "\".",
+                "Error in dialog file\n\""
+                    + Path
+                    + "\", line "
+                    + line
+                    + ":\nsyntax error.\nSymbol: \""
+                    + symbol
+                    + "\".",
                 error.Message
             );
+        }
+
+        [Theory]
+        [InlineData("d : dialog {\n  label = \"a\"\n  : button { key = \"b\"; }\n}", 3)]
+        [InlineData("d : dialog { label = \"a\" }", 1)]
+        [InlineData("d : dialog {\n  ok_cancel\n}", 3)]
+        [InlineData("d : dialog {\n  ok_cancel\n  : text { }\n}", 3)]
+        [InlineData("d : dialog { a : b { } }", 1)]
+        [InlineData("@include \"x\"\n: row { }", 2)]
+        public void ATileOrAClosingBraceWhereASemicolonIsDue_IsAMissingSemicolon(string text, int line)
+        {
+            // AutoCAD 2021 (GUI g1): "missing semicolon." on the line of the next entry, no Symbol line (a label with no ";"
+            // before a ": button" on line 3 gave line 3); a "}" in its place is the same by the lead's reading (g1 gave only the tile)
+            DclException error = Fail(text);
+
+            Assert.Equal("missing semicolon.", error.What);
+            Assert.Null(error.Symbol);
+            Assert.Equal(line, error.Line);
+            Assert.False(error.Semantic);
+            Assert.Equal(
+                "Error in dialog file\n\"" + Path + "\", line " + line + ":\nmissing semicolon.",
+                error.Message
+            );
+        }
+
+        [Theory]
+        [InlineData("d : dialog { label = \"a\" key = \"k\"; }", "key")]
+        [InlineData("d : dialog { ok_cancel width; }", "width")]
+        [InlineData("d : dialog { label = \"a\" 5; }", "5")]
+        public void AnythingElseWhereASemicolonIsDue_IsASyntaxErrorAtThatToken(string text, string symbol)
+        {
+            // ours: D338 (only a tile or a "}" is read as a missing semicolon; anything else names its token)
+            DclException error = Fail(text);
+
+            Assert.Equal(symbol, error.Symbol);
+            Assert.Equal("syntax error.\nSymbol: \"" + symbol + "\".", error.What);
         }
 
         [Theory]
@@ -332,7 +375,7 @@ namespace GeometryHelper.Cad.UnitTest
             DclException error = Fail(text);
 
             Assert.Equal("end of file", error.Symbol);
-            Assert.Equal("syntax error. Symbol: \"end of file\".", error.What);
+            Assert.Equal("syntax error.\nSymbol: \"end of file\".", error.What);
             Assert.Equal(line, error.Line);
         }
 
@@ -452,27 +495,54 @@ namespace GeometryHelper.Cad.UnitTest
             Assert.Equal("2", file.Definitions["x"].Get("label"));
         }
 
-        [Fact]
-        public void AFileMayDefineAPredefinedNameOfItsOwn_AndItsOwnWins()
+        [Theory]
+        [InlineData("ok_button", "ok_button : button { label = \"Yes\"; key = \"accept\"; is_default = true; }")]
+        [InlineData("row", "row : cluster { layout = horizontal; }")]
+        [InlineData("ok_cancel", "ok_cancel : row { ok_button; }")]
+        [InlineData("spacer_1", "spacer_1 : spacer { }")]
+        [InlineData("errtile", "errtile : text { key = \"error\"; }")]
+        public void AFileThatDefinesAPredefinedName_IsRefused(string name, string definition)
         {
-            // ours: D306
-            DclFile file = Parse("ok_button : button { label = \"Yes\"; key = \"accept\"; is_default = true; }\n");
+            // AutoCAD 2021 (GUI g1): loading base.dcl itself gave "Error in dialog file", the path and line, "warning: redefining
+            // object." and Symbol: "row", and load_dialog gave -1; D304 and D306 ("the file's own wins") are withdrawn
+            DclException error = Fail("// one\n\n" + definition + "\nd : dialog { " + name + "; }");
 
-            Assert.Equal("Yes", file.Definitions["ok_button"].Get("label"));
-            DclTile dialog = Parse("ok_button : button { label = \"Yes\"; }\nd : dialog { ok_button; }").NewDialog("d");
-            Assert.Equal("Yes", dialog.Children.Single().Get("label"));
+            Assert.Equal("warning: redefining object.\nSymbol: \"" + name + "\".", error.What);
+            Assert.Equal(name, error.Symbol);
+            Assert.Equal(3, error.Line);
+            Assert.Equal(Path, error.File);
+            Assert.False(error.Semantic);
+            Assert.Equal(
+                "Error in dialog file\n\""
+                    + Path
+                    + "\", line 3:\nwarning: redefining object.\nSymbol: \""
+                    + name
+                    + "\".",
+                error.Message
+            );
         }
 
         [Fact]
-        public void APredefinedTileThatWasRedefined_StillUsesItsOwnPartsInTheOtherPredefinedTiles()
+        public void AnIncludedFileThatDefinesAPredefinedName_IsRefusedWithThatFileAndLine()
         {
-            // ours: D304 (the chain is followed at definition: ok_cancel's own ok_button is the predefined one)
-            DclTile dialog = Parse("ok_button : button { label = \"Yes\"; }\nd : dialog { ok_cancel; ok_button; }")
-                .NewDialog("d");
+            // ours: D338 (the same refusal for an included file, reported at its own file and line)
+            var files = new Dictionary<string, string> { ["lib.dcl"] = "x : text { }\n\nok_cancel : row { }" };
 
-            DclTile row = dialog.Children[0];
-            Assert.Equal("  OK  ", row.Children[0].Get("label"));
-            Assert.Equal("Yes", dialog.Children[1].Get("label"));
+            DclException error = Fail("@include \"lib.dcl\";", files);
+
+            Assert.Equal("warning: redefining object.\nSymbol: \"ok_cancel\".", error.What);
+            Assert.Equal(@"C:\dcl\lib.dcl", error.File);
+            Assert.Equal(3, error.Line);
+        }
+
+        [Fact]
+        public void ADefinitionOfANameThatOnlyLooksLikeAPredefinedOne_IsAccepted()
+        {
+            // ours: D338 (names are case-sensitive, D303: Ok_Button is not ok_button)
+            DclFile file = Parse("Ok_Button : button { label = \"Yes\"; }\nd : dialog { Ok_Button; ok_cancel; }");
+
+            Assert.Equal("Yes", file.NewDialog("d").Children[0].Get("label"));
+            Assert.Equal("  OK  ", file.Definitions["ok_button"].Get("label"));
         }
 
         [Fact]
@@ -501,7 +571,8 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void AParentThatIsNotDefined_IsAnErrorAtItsLine()
         {
-            // ours: D307 ("Tile \"<name>\" is not defined.")
+            // AutoCAD 2021 (GUI g1): an undefined tile is a semantic error, "Semantic error(s) in DCL file <path>."; the second
+            // line AutoCAD gives is "See file acad.dce for details." and ours names the tile (no acad.dce is written)
             DclException top = Fail("\n\nx : nothing_like_it { }");
             DclException inner = Fail("d : dialog {\n  : row {\n    : missing_tile { }\n  }\n}");
             DclException bare = Fail("d : dialog {\n  missing_bare;\n}");
@@ -513,6 +584,27 @@ namespace GeometryHelper.Cad.UnitTest
             Assert.Equal("Tile \"missing_bare\" is not defined.", bare.What);
             Assert.Equal(2, bare.Line);
             Assert.Null(top.Symbol);
+            Assert.True(top.Semantic);
+            Assert.Equal(
+                "Semantic error(s) in DCL file " + Path + ".\nTile \"nothing_like_it\" is not defined.",
+                top.Message
+            );
+        }
+
+        [Fact]
+        public void TheOtherErrors_AreNotSemantic()
+        {
+            // ours: D307 (a cycle and an include that is not found stay "Error in dialog file" at their line)
+            DclException cycle = Fail("a : b { }\nb : a { }\n");
+            DclException include = Fail("\n@include \"none.dcl\";");
+
+            Assert.False(cycle.Semantic);
+            Assert.Equal("Error in dialog file\n\"" + Path + "\", line 1:\nTile \"a\" loops.", cycle.Message);
+            Assert.False(include.Semantic);
+            Assert.Equal(
+                "Error in dialog file\n\"" + Path + "\", line 2:\nInclude file \"none.dcl\" not found.",
+                include.Message
+            );
         }
 
         [Fact]

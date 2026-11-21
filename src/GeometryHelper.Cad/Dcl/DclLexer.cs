@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 using System.Text;
 
 namespace GeometryHelper.Cad.Dcl
@@ -291,21 +290,10 @@ namespace GeometryHelper.Cad.Dcl
 
             // Left open: the end of the text is the bad symbol, on the line the text ends on.
             int last = _text.Length > 0 && _text[_text.Length - 1] == '\n' && _line > 1 ? _line - 1 : _line;
-            throw new DclException(
-                _path,
-                Math.Max(last, line),
-                "syntax error. Symbol: \"end of file\".",
-                "end of file"
-            );
+            throw DclException.SyntaxError(_path, Math.Max(last, line), "end of file");
         }
 
-        private DclException Error(string symbol, int line) =>
-            new DclException(
-                _path,
-                line,
-                string.Format(CultureInfo.InvariantCulture, "syntax error. Symbol: \"{0}\".", symbol),
-                symbol
-            );
+        private DclException Error(string symbol, int line) => DclException.SyntaxError(_path, line, symbol);
 
         private static bool IsNameStart(char c) => c == '_' || (c < 128 && char.IsLetter(c));
 
