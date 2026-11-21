@@ -27,6 +27,12 @@ namespace GeometryHelper.Cad.Lisp
         /// </summary>
         private static object Command(LispInterpreter lisp, CadCommandSession session, object[] a, bool vl)
         {
+            // A dialog on the screen takes no commands: the evaluation ends (D343).
+            if (lisp.RunningDialogs > 0)
+            {
+                throw lisp.EndEvaluation("AutoCAD rejected function");
+            }
+
             if (a.Length == 0)
             {
                 lisp.OnOwner(() =>
