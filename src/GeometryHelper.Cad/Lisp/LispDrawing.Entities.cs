@@ -476,6 +476,7 @@ namespace GeometryHelper.Cad.Lisp
             }
 
             session.OpenLispStep();
+            session.HoldLispStep();
             CadEditResult result = session.Apply(
                 "ERASE",
                 new[] { new CadEditRecord(CadEditRecordKind.Erased, handle) },
@@ -522,6 +523,7 @@ namespace GeometryHelper.Cad.Lisp
 
             string made = null;
             session.OpenLispStep();
+            session.HoldLispStep();
             CadEditResult result = session.Apply("ERASE", null, s =>
             {
                 foreach (DxfEntity copy in fragment.WblockCloneObjects(held, space.Block))
@@ -670,7 +672,7 @@ namespace GeometryHelper.Cad.Lisp
 
                     if (target is DxfDBText text)
                     {
-                        AlignText(text);
+                        AlignText(s.Document, text);
                     }
                     else if (target is DxfDimension changed && !CadCommands.Redraw(changed))
                     {
@@ -828,8 +830,12 @@ namespace GeometryHelper.Cad.Lisp
         /// the top (all of it), the middle (half of it) and the bottom (the depth of the ink below the baseline). A text held by
         /// both ends (aligned, fitted) keeps its first point. A text 2.5 high held at (50, 0) by its middle and left has its
         /// first point at (50, -1.25); the width comes from the drawing's fonts, nought where they do not measure the words.
+        /// Where the fonts of the drawing, and the Fonts folder of Windows, do measure them, the text is placed by the DXF layer's
+        /// own realignment, the routine the object functions' setters run too (<c>vla-put-TextString</c>, <c>vla-put-Alignment</c>),
+        /// so that both give the same shift (AutoCAD 2021, feed undo: two centred texts "ab" changed to "a much longer text" move
+        /// back by the same 21.4583 whether the object or <c>entmod</c> changed them).
         /// </summary>
-        private static void AlignText(DxfDBText text)
+        private static void AlignText(CadDocument document, DxfDBText text)
         {
             int across = (int)text.HorizontalMode;
             int up = (int)text.VerticalMode;
@@ -837,6 +843,15 @@ namespace GeometryHelper.Cad.Lisp
             if ((across == 0 && up == 0) || ((across == 3 || across == 5) && up == 0))
             {
                 return;
+            }
+
+            using (new LispActiveX.MeasuringScope(document))
+            {
+                if (text.IsMeasured)
+                {
+                    text.Realign();
+                    return;
+                }
             }
 
             double height = text.Height;
@@ -980,6 +995,7 @@ namespace GeometryHelper.Cad.Lisp
 
             List<KeyValuePair<int, object>> groups = ChangesOf(given);
             CompletePoints(type, groups);
+            TakeLinetypeAndColour(session.Document.Database, groups);
 
             // A text left on its baseline has no second point: AutoCAD keeps group 11 of its list at 0,0,0 whatever the list gave.
             if (
@@ -1010,6 +1026,7 @@ namespace GeometryHelper.Cad.Lisp
             groups.RemoveAll(p => p.Key == 8);
             CadSpace space = document.WorkingSpace;
             session.OpenLispStep();
+            session.HoldLispStep();
 
             if (type == "INSERT")
             {
@@ -1058,13 +1075,50 @@ namespace GeometryHelper.Cad.Lisp
                             )
                         )
                         {
-                            AlignText(text);
+                            AlignText(s.Document, text);
                         }
                     }
                 }
             });
 
             return result.Succeeded && added ? list : null;
+        }
+
+        /// <summary>
+        /// Settles the linetype and colour groups of a list <c>entmake</c> is given as AutoCAD does (feeds ft, dcd and undo): a list
+        /// with no group 6 takes the drawing's CELTYPE (<c>(6 . "Continuous")</c> on a blank drawing, nothing where it is ByLayer),
+        /// and a <c>ByLayer</c> linetype or a colour 256 that is given is dropped, with CELTYPE not put in its place: an entity
+        /// that is ByLayer has no group for it.
+        /// </summary>
+        private static void TakeLinetypeAndColour(DxfDatabase database, List<KeyValuePair<int, object>> groups)
+        {
+            bool linetypeGiven = groups.Exists(p => p.Key == 6);
+            groups.RemoveAll(p =>
+                (
+                    p.Key == 6
+                    && p.Value is string name
+                    && string.Equals(name, "ByLayer", StringComparison.OrdinalIgnoreCase)
+                ) || (p.Key == 62 && p.Value is int color && color == 256)
+            );
+
+            if (linetypeGiven)
+            {
+                return;
+            }
+
+            string celtype = database.Celtype;
+
+            if (
+                !string.IsNullOrEmpty(celtype)
+                && !string.Equals(celtype, "ByLayer", StringComparison.OrdinalIgnoreCase)
+                && (
+                    string.Equals(celtype, "ByBlock", StringComparison.OrdinalIgnoreCase)
+                    || database.LinetypeTable.Has(celtype)
+                )
+            )
+            {
+                groups.Insert(0, new KeyValuePair<int, object>(6, celtype));
+            }
         }
 
         /// <summary>A point of two coordinates gets the Z of 0, as AutoCAD keeps every point of an entity in three but the vertices of an LWPOLYLINE (<c>(10 0.0 20.0)</c> of a TEXT is <c>(10 0.0 20.0 0.0)</c> in its list).</summary>
@@ -1087,7 +1141,9 @@ namespace GeometryHelper.Cad.Lisp
         /// <summary>The text of a DXF holding one entity, with the groups of a list, for the drawing to take as it takes any entity pasted.</summary>
         private static string Fragment(string type, string layer, List<KeyValuePair<int, object>> groups)
         {
-            var body = new List<KeyValuePair<int, object>>(groups);
+            // The groups of the look (linetype, colour ...) go where AutoCAD writes them, after the layer and before the subclass.
+            List<KeyValuePair<int, object>> look = groups.FindAll(p => LispEntityData.IsHeadCode(p.Key));
+            var body = groups.FindAll(p => !LispEntityData.IsHeadCode(p.Key));
             List<KeyValuePair<int, object>> placed = LispEntityData.Marked(type, body);
             var text = new StringBuilder();
 
@@ -1107,6 +1163,11 @@ namespace GeometryHelper.Cad.Lisp
             Group(0, type);
             Group(100, "AcDbEntity");
             Group(8, layer);
+
+            foreach (KeyValuePair<int, string> group in LispEntityData.ToGroups(type, look))
+            {
+                Group(group.Key, group.Value);
+            }
 
             foreach (KeyValuePair<int, string> group in LispEntityData.ToGroups(type, placed))
             {

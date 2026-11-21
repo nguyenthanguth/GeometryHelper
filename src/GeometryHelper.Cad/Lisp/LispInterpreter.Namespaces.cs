@@ -79,7 +79,7 @@ namespace GeometryHelper.Cad.Lisp
         {
             if (value is LispSymbol symbol)
             {
-                return symbol.Name;
+                return symbol.Name.ToUpperInvariant();
             }
 
             return value is string text ? text.ToUpperInvariant() : throw TypeError("symbolp", value);
@@ -182,7 +182,7 @@ namespace GeometryHelper.Cad.Lisp
                     }
 
                     // The one symbol that is not upper case is the lower-case quote of a function value's wrapper.
-                    return symbol.Name == "quote" ? _quoteLower : Intern(symbol.Name);
+                    return symbol.Name == "quote" ? _quoteLower : Intern(symbol.Name.ToUpperInvariant());
 
                 case LispCons cons:
                     CheckStack();

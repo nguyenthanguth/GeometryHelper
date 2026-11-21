@@ -119,7 +119,9 @@ namespace GeometryHelper.Cad.Lisp
         /// <summary>
         /// <c>(vlax-for symbol collection expression...)</c>: the symbol is each member of the collection in <c>Item</c> order
         /// while the expressions are evaluated, and has its old value after. The collection is a collection, a block or a
-        /// selection set; anything else is <c>bad argument type: VLA-object collection:</c>. Gives nil.
+        /// selection set; anything else is <c>bad argument type: VLA-object collection:</c>. Gives the value of the last
+        /// expression of the last member, nil for an empty collection or no expression (AutoCAD 2021, feed fdval:
+        /// <c>(vlax-for b (vla-get-Blocks doc) 5)</c> gives 5).
         /// </summary>
         private static object VlaxFor(LispInterpreter lisp, LispActiveX ax, object forms)
         {
@@ -134,16 +136,18 @@ namespace GeometryHelper.Cad.Lisp
             var items = (List<LispVlaObject>)lisp.OnOwner(() => CollectionItems(ax, target));
             var symbols = new[] { variable };
             var saved = new[] { variable.Value };
+            object value = null;
 
             try
             {
                 foreach (LispVlaObject item in items)
                 {
                     variable.Value = item;
+                    value = null;
 
                     for (object cell = rest.Cdr; cell is LispCons body; cell = body.Cdr)
                     {
-                        lisp.Eval(body.Car);
+                        value = lisp.Eval(body.Car);
                     }
                 }
             }
@@ -153,7 +157,7 @@ namespace GeometryHelper.Cad.Lisp
             }
 
             variable.Value = saved[0];
-            return null;
+            return value;
         }
 
         private static List<LispVlaObject> CollectionItems(LispActiveX ax, LispVlaObject target)
@@ -300,9 +304,9 @@ namespace GeometryHelper.Cad.Lisp
             }
         }
 
-        /// <summary>Defines a function under a name that prints as given (<c>vla-get-Name</c>, as in AutoCAD 2021) while the symbol is the upper-case one the reader finds.</summary>
+        /// <summary>Defines a function under a name that prints as given (<c>vla-get-Name</c>, as in AutoCAD 2021) while the symbol is the one the reader finds in any case.</summary>
         private static void DefineNamed(LispInterpreter lisp, string printName, Func<object[], object> body) =>
-            lisp.Intern(printName.ToUpperInvariant()).Value = new LispBuiltin(printName, 1, -1, body);
+            lisp.Registered(printName).Value = new LispBuiltin(printName, 1, -1, body);
 
         #endregion
 

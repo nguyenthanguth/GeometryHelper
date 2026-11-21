@@ -33,6 +33,9 @@ namespace GeometryHelper.Cad
         private CadUndoStep _lispTypedStep;
         private bool _lispStepJoins;
 
+        // The step that was the last when the command running now started: the command made a step of its own where it is another now.
+        private CadUndoStep _stepBeforeCommand;
+
         // The value a form typed at a prompt ended with, which answers the prompt it interrupted; whether the evaluation began
         // at a command's prompt, so that its value is to answer it.
         private object _lispValue;
@@ -137,6 +140,26 @@ namespace GeometryHelper.Cad
 
         /// <summary>Forgets the step of the last typed form, as a command starting does: the next typed form's step is a step of its own.</summary>
         internal void ReleaseLispHold() => _lispTypedStep = null;
+
+        /// <summary>
+        /// Called as a command ends: the forms typed after it make their changes part of its step, as AutoCAD 2021 does (feed undo G:
+        /// REGEN, entmake, LINE, entmake, then U takes the LINE and the entmake after it, and the second U the entmake before it). A
+        /// command that made a step is the last step the next typed form joins; one that made none (REGEN) leaves the form a step
+        /// of its own, which is its own step in AutoCAD; U, UNDO and REDO leave the step that is last again, so the forms typed
+        /// after them join it (feed undo, sections B to G: the third U of G took five entities at once). The carrier of a routine's
+        /// question is no command of the user's and leaves the chain as it was.
+        /// </summary>
+        private void JoinTypedFormsToCommand()
+        {
+            if (Current == null || ReferenceEquals(Current, _lispCommand))
+            {
+                return;
+            }
+
+            bool undoes = Current.Name == "U" || Current.Name == "UNDO" || Current.Name == "REDO";
+            CadUndoStep last = Document.LastStep;
+            _lispTypedStep = undoes || !ReferenceEquals(last, _stepBeforeCommand) ? last : null;
+        }
 
         /// <summary>
         /// Runs what a host asks of the interpreter (APPLOAD, a startup file) and writes what it wrote; where the routine waits

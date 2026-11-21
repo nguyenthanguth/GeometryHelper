@@ -538,13 +538,15 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void VlaxFor_GivesTheSymbolItsOldValueAfterAndNil()
+        public void VlaxFor_GivesTheSymbolItsOldValueAfter_AndTheValueOfItsLastForm()
         {
             CadCommandSession session = Loaded();
             Value(session, "(setq x 'before)");
 
-            // ours: D213 (the variable is bound for the loop only; the value of the form is nil).
-            Assert.Equal("nil", Value(session, "(vlax-for x (vla-get-Layers doc) (princ))"));
+            // ours: D213 (the variable is bound for the loop only). AutoCAD 2021 (feed fdval; D247 said nil): the value of the form is
+            // that of its last body form, here the empty symbol of (princ), which writes nothing.
+            Assert.Equal("", Value(session, "(vlax-for x (vla-get-Layers doc) (princ))"));
+            Assert.Equal("3", Value(session, "(vlax-for x (vla-get-Layers doc) (+ 1 2))"));
             Assert.Equal("BEFORE", Value(session, "x"));
         }
 
@@ -1288,6 +1290,7 @@ namespace GeometryHelper.Cad.UnitTest
         {
             CadCommandSession session = Loaded();
             Object(session, "o", "A2");
+            Run(session, "REGEN"); // the typed entmakes of Loaded would be one U with the puts (feed undo A)
 
             // AutoCAD 2021 (GUI g3 A): (vla-put-Color OU 3) and (vla-put-Color OU 4) typed one after the other, one U takes both.
             Value(session, "(vla-put-Color o 3)");
@@ -1330,6 +1333,7 @@ namespace GeometryHelper.Cad.UnitTest
         {
             CadCommandSession session = Loaded();
             Object(session, "o", "A2");
+            Run(session, "REGEN"); // the typed entmakes of Loaded would be one U with the puts (feed undo A)
 
             // AutoCAD 2021 (GUI g2): (progn (vla-put-Color OU 5) (vla-put-Color OU 6)) then U goes back to the first color.
             Value(session, "(progn (vla-put-Color o 5) (vla-put-Color o 6))");
