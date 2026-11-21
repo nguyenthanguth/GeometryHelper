@@ -323,6 +323,9 @@ namespace GeometryHelper.Cad
         /// <summary>
         /// Opens a DWG or DXF file: a DWG of AutoCAD 2000 to 2018 read by <see cref="GeometryHelper.Dwg.DwgReader"/>, as
         /// <see cref="CadDrawingFile.Open(string)"/> reads it, so that <see cref="Save"/> writes it back as a DWG of AutoCAD 2018.
+        /// A DXF whose header leaves out MEASUREMENT, the dimension variables, DIMSTYLE or CELTYPE reads them as AutoCAD does
+        /// (MEASUREMENT 0, the dimension style Standard with DIMASZ 0.18, CELTYPE <c>Continuous</c>), and writes them into its
+        /// header; a drawing made by <see cref="From"/> keeps the library's own.
         /// </summary>
         /// <param name="path">The path of the file.</param>
         /// <returns>The document.</returns>
@@ -373,6 +376,12 @@ namespace GeometryHelper.Cad
 
             DxfDatabase database = CadDrawingFile.Open(path, progress, cancellationToken);
 
+            // A DXF's header values left out read as AutoCAD's own drawing has them; a DWG's header is whole.
+            if (!CadDrawingFile.IsDwg(path))
+            {
+                CadHeaderDefaults.Apply(database);
+            }
+
             // The two passes over the records that come next, the scan of the handles WithHandles asks for and the entities of
             // model space the document lists, made here where they can be stopped.
             if (!database.File.IsDetached)
@@ -384,7 +393,7 @@ namespace GeometryHelper.Cad
             return new CadDocument(WithHandles(database), Path.GetFullPath(path)) { _hasPath = true };
         }
 
-        /// <summary>Opens a DXF from a stream.</summary>
+        /// <summary>Opens a DXF from a stream, reading the header values it leaves out as <see cref="Open(string)"/> does.</summary>
         /// <param name="stream">The stream of the bytes of the file.</param>
         /// <param name="name">A name to show for it; null for none.</param>
         /// <returns>The document.</returns>
@@ -396,7 +405,9 @@ namespace GeometryHelper.Cad
                 throw new ArgumentNullException(nameof(stream));
             }
 
-            return new CadDocument(WithHandles(DxfDatabase.Open(stream)), name);
+            DxfDatabase database = DxfDatabase.Open(stream);
+            CadHeaderDefaults.Apply(database);
+            return new CadDocument(WithHandles(database), name);
         }
 
         /// <summary>

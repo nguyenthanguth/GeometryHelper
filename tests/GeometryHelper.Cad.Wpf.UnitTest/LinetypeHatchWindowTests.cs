@@ -52,7 +52,8 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                         new[] { "ByLayer", "ByBlock", "Continuous" },
                         manager.Rows.Select(r => r.Name).ToArray()
                     );
-                    Assert.Equal("Current Linetype: ByLayer", manager.CurrentText);
+                    // The room's header has no CELTYPE, which a DXF read reads as AutoCAD does: Continuous.
+                    Assert.Equal("Current Linetype: Continuous", manager.CurrentText);
 
                     var load = new LoadLinetypesViewModel(manager.Document) { File = CadLinetypeFile.BuiltInName };
                     Assert.Equal(39, load.Rows.Count);
@@ -87,7 +88,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 
                 model.Document.Undo();
                 Assert.False(model.Document.Database.LinetypeTable.Has("DASHED"));
-                Assert.Equal("ByLayer", model.Document.Database.Celtype);
+                Assert.Equal("Continuous", model.Document.Database.Celtype);
             }
         }
 
