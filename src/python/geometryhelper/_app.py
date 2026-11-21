@@ -1,22 +1,23 @@
 """What the Python host of GeometryHelper CAD runs inside the interpreter: output into lines, input, and the guards that
 turn an error, a stop or an exit into a result the host reads. Not for users: ``geometryhelper.cad`` is their module.
 
-Every guard returns a list of three strings, ``[status, summary, traceback]``, where status is ``completed``, ``cancelled``
-or ``failed``, summary is the last line of the traceback (``ZeroDivisionError: division by zero (tool.py, line 3)``), and
-traceback is the whole of it without the host's own frames.
+Every guard returns a list of four strings, ``[status, summary, traceback, error]``, where status is ``completed``,
+``cancelled`` or ``failed``, summary is the one line for the command line (``ZeroDivisionError: division by zero (tool.py,
+line 3)``), traceback is the whole of it without the host's own frames, and error is the summary without the file and line.
 """
 
 from __future__ import annotations
 
 import builtins
 import codeop
+import gc
 import importlib.util
 import io
 import sys
 import traceback
 from collections.abc import Callable
 from types import CodeType, TracebackType
-from typing import Any
+from typing import Any, cast
 
 from geometryhelper import cad
 
@@ -24,6 +25,7 @@ _THIS_FILE = __file__
 _compiler = codeop.CommandCompiler()
 _compiled: CodeType | None = None
 _real_input = builtins.input
+_installed: list[io.TextIOBase] = []
 
 
 class _Out(io.TextIOBase):
@@ -67,8 +69,10 @@ class _In(io.TextIOBase):
 
 def install(emit: Callable[[str, bool], None]) -> None:
     """Replaces stdout, stderr, stdin and ``input`` for the runs of the app."""
-    sys.stdout = _Out(emit, False)
-    sys.stderr = _Out(emit, True)
+    out, err = _Out(emit, False), _Out(emit, True)
+    _installed[:] = [out, err]
+    sys.stdout = out
+    sys.stderr = err
     sys.stdin = _In()
 
     def ask(prompt: object = "") -> str:
@@ -90,10 +94,23 @@ def _is_net(error: BaseException) -> bool:
     return type(error).__module__.split(".")[0] in ("System", "Python", "GeometryHelper")
 
 
-def _describe(error: BaseException, show_file: bool) -> tuple[str, str]:
-    """Returns the summary line and the traceback of an error, the host's frames left out.
+def _one_line(error: BaseException) -> str:
+    """Returns ``Type: message`` as one line: the stack trace pythonnet appends to a .NET exception's text is cut off, and every
+    line end left in the message becomes a space (.NET Framework words ``ArgumentNullException`` over two lines)."""
+    lines = traceback.format_exception_only(type(error), error)[-1].replace("\r\n", "\n").split("\n")
+    if _is_net(error):
+        for i, line in enumerate(lines):
+            if line.startswith("   at "):
+                lines = lines[:i]
+                break
+    return " ".join(part for part in (line.strip() for line in lines) if part)
+
+
+def _describe(error: BaseException, show_file: bool) -> tuple[str, str, str]:
+    """Returns the summary line, the traceback and the error line of an error, the host's frames left out.
 
     A .NET exception that pythonnet chained to an error as its cause is left out of the traceback: it repeats the error.
+    The summary and the error line are one line each, whatever the message holds.
     """
     link: BaseException | None = error
     while link is not None:
@@ -109,14 +126,15 @@ def _describe(error: BaseException, show_file: bool) -> tuple[str, str]:
     while last is not None and last.tb_next is not None:
         last = last.tb_next
     text = "".join(traceback.format_exception(type(error), error, tb)).rstrip("\n")
-    summary = traceback.format_exception_only(type(error), error)[-1].strip()
+    line = _one_line(error)
+    summary = line
     if show_file:
         if isinstance(error, SyntaxError) and error.filename:
             summary += f" ({error.filename.replace(chr(92), '/').rsplit('/', 1)[-1]}, line {error.lineno})"
         elif last is not None:
             name = last.tb_frame.f_code.co_filename.replace("\\", "/").rsplit("/", 1)[-1]
             summary += f" ({name}, line {last.tb_lineno})"
-    return summary, text
+    return summary, text, line
 
 
 def _guard(action: Callable[[], object], show_file: bool) -> list[str]:
@@ -124,19 +142,20 @@ def _guard(action: Callable[[], object], show_file: bool) -> list[str]:
         action()
     except SystemExit as exit_:
         if exit_.code is None or exit_.code == 0:
-            return ["completed", "", ""]
-        summary, text = _describe(exit_, show_file)
-        return ["failed", summary, text]
+            return ["completed", "", "", ""]
+        summary, text, line = _describe(exit_, show_file)
+        return ["failed", summary, text, line]
     except KeyboardInterrupt as stopped:
-        summary, text = _describe(stopped, False)
-        return ["cancelled", "KeyboardInterrupt", text]
+        summary, text, line = _describe(stopped, False)
+        return ["cancelled", "KeyboardInterrupt", text, line]
     except BaseException as error:
-        summary, text = _describe(error, show_file)
-        return ["failed", summary, text]
+        summary, text, line = _describe(error, show_file)
+        return ["failed", summary, text, line]
     finally:
-        sys.stdout.flush()
-        sys.stderr.flush()
-    return ["completed", "", ""]
+        # The host's own writers, not sys.stdout and sys.stderr: a script may have set those to None or to a closed file.
+        for stream in _installed:
+            stream.flush()
+    return ["completed", "", "", ""]
 
 
 def run_file(source: str, path: str, folder: str) -> list[str]:
@@ -198,12 +217,12 @@ def console_compile(text: str) -> list[str]:
     try:
         code = _compiler(text, "<console>", "single")
     except (SyntaxError, ValueError, OverflowError) as error:
-        summary, trace = _describe(error, False)
-        return ["error", summary, trace]
+        summary, trace, line = _describe(error, False)
+        return ["error", summary, trace, line]
     if code is None:
-        return ["incomplete", "", ""]
+        return ["incomplete", "", "", ""]
     _compiled = code
-    return ["ok", "", ""]
+    return ["ok", "", "", ""]
 
 
 def console_run(namespace: dict[str, Any]) -> list[str]:
@@ -219,3 +238,14 @@ def uninstall() -> None:
     sys.stderr = sys.__stderr__
     sys.stdin = sys.__stdin__
     builtins.input = _real_input
+    _installed.clear()
+    # A function of a script and a delegate made from it, kept in the globals the function reads, hold each other through
+    # .NET, where Python's collector cannot see: only emptying the globals lets go of the delegate. Without that,
+    # pythonnet's shutdown on .NET Framework (inside an AppDomain that is not the default) cannot serialise it and throws.
+    for name in [name for name in sys.modules if name.startswith("geometryhelper_user_")]:
+        sys.modules[name].__dict__.clear()
+    for candidate in gc.get_objects():
+        if isinstance(candidate, dict):
+            namespace = cast("dict[str, Any]", candidate)
+            if namespace.get("__name__") in ("__main__", "__console__"):
+                namespace.clear()

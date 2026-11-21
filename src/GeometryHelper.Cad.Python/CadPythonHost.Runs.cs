@@ -17,6 +17,7 @@ namespace GeometryHelper.Cad.Python
             internal string Status = "completed";
             internal string Summary = string.Empty;
             internal string Trace = string.Empty;
+            internal string Line = string.Empty;
 
             internal static Result Of(PyObject list)
             {
@@ -25,10 +26,12 @@ namespace GeometryHelper.Cad.Python
                 using (PyObject status = list.GetItem(0))
                 using (PyObject summary = list.GetItem(1))
                 using (PyObject trace = list.GetItem(2))
+                using (PyObject line = list.GetItem(3))
                 {
                     result.Status = status.As<string>();
                     result.Summary = summary.As<string>();
                     result.Trace = trace.As<string>();
+                    result.Line = line.As<string>();
                 }
 
                 return result;
@@ -452,7 +455,7 @@ namespace GeometryHelper.Cad.Python
             }
             else if (outcome == CadPythonOutcome.Failed)
             {
-                error = LastLine(result.Trace) ?? result.Summary;
+                error = result.Line.Length > 0 ? result.Line : result.Summary;
                 EmitErrors(result.Trace);
                 session.Write("Python error: " + result.Summary);
             }
@@ -487,18 +490,6 @@ namespace GeometryHelper.Cad.Python
                 sys.SetAttr("stderr", _stderr);
                 sys.SetAttr("stdin", _stdin);
             }
-        }
-
-        /// <summary>The last line of a traceback, <c>ZeroDivisionError: division by zero</c>, as <see cref="CadPythonRunEventArgs.Error"/> gives it; null for none.</summary>
-        private static string LastLine(string trace)
-        {
-            if (string.IsNullOrWhiteSpace(trace))
-            {
-                return null;
-            }
-
-            string[] lines = trace.Replace("\r\n", "\n").TrimEnd('\n', ' ').Split('\n');
-            return lines[lines.Length - 1].Trim();
         }
 
         /// <summary>Asks a question of the script as the prompts of a small command, and waits on the owner for the answer.</summary>

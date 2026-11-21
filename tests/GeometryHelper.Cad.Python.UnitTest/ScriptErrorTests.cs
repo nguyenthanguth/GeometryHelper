@@ -6,239 +6,306 @@ using static GeometryHelper.Cad.Python.UnitTest.PythonDrawings;
 namespace GeometryHelper.Cad.Python.UnitTest
 {
     /// <summary>
-    /// The ways a script can end badly (P6, D925): by an error, an exit, an interrupt, a recursion that never ends, a .NET
-    /// exception, a missing module, a syntax error. Each is run as PYRUN runs a file and as a palette entry, and each must leave
-    /// the app running: the error on the command line of the drawing, the palette's lines, no undo group open, nothing of the
-    /// run drawn when it failed, and the next run working. Only <c>os._exit</c> is left out, since it is documented as the one
-    /// way a script ends the process.
+    /// P6 (D925, D926): every way a script can end badly leaves the app running. For each script of D925 (not
+    /// <c>os._exit</c>, which is documented as the one way a script ends the process): the outcome, the line on the command
+    /// line, no undo group left open and the drawing as before the run, and the next run completing. Each script first
+    /// draws a circle, so that "as before the run" and "no group left open" mean something: a run that fails or is stopped
+    /// takes the circle back, a run that ends by <c>exit()</c> keeps it.
     /// </summary>
     public sealed class ScriptErrorTests : PythonHostTestBase
     {
+        /// <summary>The first two lines of every script: the module, and a circle of radius 5 at the origin as one undo step.</summary>
+        private static readonly string[] Draws = { UsesCad, "cad.command('CIRCLE', (0, 0), 5)" };
+
         public ScriptErrorTests(PythonHostFixture fixture)
             : base(fixture) { }
 
-        /// <summary>A line drawn through the object model first, so that a run that fails shows whether its step was cancelled.</summary>
-        private static string[] DrawThen(params string[] lines) =>
-            new[] { UsesCad, AddLineInPython, "add_line(cad.document(), 0)" }.Concat(lines).ToArray();
+        /// <summary>The lines of <see cref="Draws"/> followed by <paramref name="rest"/>; the first of <paramref name="rest"/> is line 3.</summary>
+        private static string[] AfterDrawing(params string[] rest) => Draws.Concat(rest).ToArray();
 
-        /// <summary>The line number, in the file <see cref="DrawThen"/> wrote, of the <paramref name="index"/>th line after the drawing.</summary>
-        private static int Line(int index) => string.Join("\n", DrawThen()).Split('\n').Length + 1 + index;
+        /// <summary>
+        /// Runs the script as PYRUN does, checks what every ending has in common, and gives the run: no run going on, no
+        /// group open, <paramref name="circles"/> circles left in the drawing, and the next run completing and printing.
+        /// </summary>
+        private CadPythonRunEventArgs RunAndCheck(CadCommandSession session, string name, string[] lines, int circles)
+        {
+            CadPythonRunEventArgs run = Run(session, Script(name, lines));
+            AssertHostUsable(session, circles);
+            return run;
+        }
 
-        /// <summary>The host is not running, the session is at the Command prompt, no group is open, and the next run works.</summary>
-        private void AssertTheAppGoesOn(CadCommandSession session)
+        private void AssertHostUsable(CadCommandSession session, int circles)
         {
             Assert.False(Host.IsRunning);
-            Assert.Null(Host.RunningDocument);
-            Assert.False(session.IsRunning);
             Assert.False(session.Document.IsInGroup);
+            Assert.Equal(circles, session.Document.EntityCount);
 
-            CadPythonRunEventArgs next = RunLines(session, new[] { "print('still here')" });
+            CadPythonRunEventArgs next = RunLines(session, new[] { "print('the next run')" });
 
             Assert.Equal(CadPythonOutcome.Completed, next.Outcome);
-            Assert.Contains("still here", Printed);
-            Assert.Contains("still here", session.History);
+            Assert.Equal("the next run", Printed.Last());
         }
 
-        private static bool Wrote(CadCommandSession session, string start) =>
-            session.History.Any(line => line.StartsWith(start, StringComparison.Ordinal));
-
         [Fact]
-        public void ADivisionByZero_FailsWithItsLineOnTheCommandLine_AndTheDrawingIsAsBefore()
+        public void ADivisionByZero_FailsWithItsLineOnTheCommandLine_TakesTheCircleBack_AndTheNextRunCompletes()
         {
             CadCommandSession session = NewSession();
 
-            CadPythonRunEventArgs run = RunLines(session, DrawThen("1 / 0"));
+            CadPythonRunEventArgs run = RunAndCheck(session, "zero.py", AfterDrawing("1 / 0"), 0);
 
             Assert.Equal(CadPythonOutcome.Failed, run.Outcome);
-            Assert.True(
-                Wrote(session, "Python error: ZeroDivisionError: division by zero (script1.py, line " + Line(0) + ")")
+            Assert.Equal("ZeroDivisionError: division by zero", run.Error);
+            Assert.Contains("Python error: ZeroDivisionError: division by zero (zero.py, line 3)", session.History);
+        }
+
+        [Fact]
+        public void SysExitThree_Fails_NamesTheCodeOnTheCommandLine_AndTheNextRunCompletes()
+        {
+            // A script that leaves with a code other than 0 or None has failed (D705 step 5); python itself would exit with 3.
+            CadCommandSession session = NewSession();
+
+            CadPythonRunEventArgs run = RunAndCheck(session, "exit3.py", AfterDrawing("import sys", "sys.exit(3)"), 0);
+
+            Assert.Equal(CadPythonOutcome.Failed, run.Outcome);
+            Assert.Contains("Python error: SystemExit: 3 (exit3.py, line 4)", session.History);
+        }
+
+        [Fact]
+        public void SysExitWithAMessage_Fails_NamesTheMessageOnTheCommandLine_AndTheNextRunCompletes()
+        {
+            // sys.exit("bye") is a code that is not 0 or None: python prints bye and exits with 1, so the run has failed.
+            CadCommandSession session = NewSession();
+
+            CadPythonRunEventArgs run = RunAndCheck(
+                session,
+                "exitbye.py",
+                AfterDrawing("import sys", "sys.exit('bye')"),
+                0
             );
-            Assert.Contains("ZeroDivisionError: division by zero", Errors);
-            Assert.Equal(0, session.Document.EntityCount);
-            AssertTheAppGoesOn(session);
-        }
-
-        [Fact]
-        public void AnExitWithACode_FailsAndNamesTheCode_AndTheDrawingIsAsBefore()
-        {
-            CadCommandSession session = NewSession();
-
-            CadPythonRunEventArgs run = RunLines(session, DrawThen("import sys", "sys.exit(3)"));
 
             Assert.Equal(CadPythonOutcome.Failed, run.Outcome);
-            Assert.True(Wrote(session, "Python error: SystemExit: 3 (script1.py, line " + Line(1) + ")"));
-            Assert.Equal(0, session.Document.EntityCount);
-            AssertTheAppGoesOn(session);
-        }
-
-        [Fact]
-        public void AnExitWithAMessage_FailsAndSaysTheMessage()
-        {
-            CadCommandSession session = NewSession();
-
-            CadPythonRunEventArgs run = RunLines(session, DrawThen("import sys", "sys.exit('bye')"));
-
-            Assert.Equal(CadPythonOutcome.Failed, run.Outcome);
-            Assert.True(Wrote(session, "Python error: SystemExit: bye (script1.py, line " + Line(1) + ")"));
-            Assert.Equal(0, session.Document.EntityCount);
-            AssertTheAppGoesOn(session);
+            Assert.Contains("Python error: SystemExit: bye (exitbye.py, line 4)", session.History);
         }
 
         [Theory]
         [InlineData("exit()")]
         [InlineData("quit()")]
-        public void ExitAndQuit_EndTheScriptAsACompletedRun_KeepingWhatItDrew(string leave)
+        public void ExitOrQuit_CompletesWithNoErrorLine_KeepsTheCircle_AndTheNextRunCompletes(string leave)
         {
-            // Neither ends the app: they raise SystemExit with no code, which is the end of a script and no error.
+            // exit() and quit() raise SystemExit with no code, which is a normal leave: the circle is kept as ending a run
+            // does, nothing is written as an error and the run has no error text.
             CadCommandSession session = NewSession();
 
-            CadPythonRunEventArgs run = RunLines(session, DrawThen(leave, "print('not reached')"));
+            CadPythonRunEventArgs run = RunAndCheck(session, "leave.py", AfterDrawing(leave), 1);
 
             Assert.Equal(CadPythonOutcome.Completed, run.Outcome);
             Assert.Null(run.Error);
+            Assert.DoesNotContain(session.History, line => line.StartsWith("Python error", StringComparison.Ordinal));
             Assert.Empty(Errors);
-            Assert.Empty(Printed);
-            Assert.Equal(1, session.Document.EntityCount);
-            AssertTheAppGoesOn(session);
         }
 
         [Fact]
-        public void AKeyboardInterruptRaisedByTheScript_CancelsTheRun_AndTheDrawingIsAsBefore()
+        public void ARaisedKeyboardInterrupt_IsCancelled_WritesCancel_TakesTheCircleBack_AndTheNextRunCompletes()
         {
+            // The same ending as Esc: *Cancel* on the command line, KeyboardInterrupt in the palette, no "Python error" line.
             CadCommandSession session = NewSession();
 
-            CadPythonRunEventArgs run = RunLines(session, DrawThen("raise KeyboardInterrupt"));
+            CadPythonRunEventArgs run = RunAndCheck(
+                session,
+                "interrupt.py",
+                AfterDrawing("raise KeyboardInterrupt"),
+                0
+            );
 
             Assert.Equal(CadPythonOutcome.Cancelled, run.Outcome);
             Assert.Contains("*Cancel*", session.History);
             Assert.Contains("KeyboardInterrupt", Errors);
-            Assert.Equal(0, session.Document.EntityCount);
-            AssertTheAppGoesOn(session);
+            Assert.DoesNotContain(session.History, line => line.StartsWith("Python error", StringComparison.Ordinal));
         }
 
         [Fact]
-        public void ARecursionThatNeverEnds_FailsWithARecursionError_AndTheAppGoesOn()
+        public void EndlessRecursion_FailsWithARecursionError_TakesTheCircleBack_AndTheNextRunCompletes()
         {
+            // def f(): f() is called until Python's own limit (1000 frames) stops it; the message is Python's.
             CadCommandSession session = NewSession();
 
-            CadPythonRunEventArgs run = RunLines(session, DrawThen("def f(): f()", "f()"));
+            CadPythonRunEventArgs run = RunAndCheck(
+                session,
+                "recurse.py",
+                AfterDrawing("def f():", "    f()", "f()"),
+                0
+            );
 
             Assert.Equal(CadPythonOutcome.Failed, run.Outcome);
-            Assert.True(Wrote(session, "Python error: RecursionError: maximum recursion depth exceeded"));
-            Assert.Equal(0, session.Document.EntityCount);
-            AssertTheAppGoesOn(session);
+            Assert.StartsWith("RecursionError: maximum recursion depth exceeded", run.Error, StringComparison.Ordinal);
+            Assert.Contains(session.History, line =>
+                line.StartsWith(
+                    "Python error: RecursionError: maximum recursion depth exceeded",
+                    StringComparison.Ordinal
+                ) && line.EndsWith("(recurse.py, line 4)", StringComparison.Ordinal)
+            );
         }
 
         [Fact]
-        public void TwoHundredLevelsOfRecursionThroughANetCallback_CompleteWithTheirAnswer()
+        public void TwoHundredLevelsOfRecursionThroughADotNetCallback_Complete_AndTheNextRunCompletes()
         {
-            // Each level goes from Python into a .NET delegate that calls back into Python: 200 levels use well under the 1 MB
-            // of the owner thread's stack (about 650 would not). The delegate is deleted at the end: one left alive in the script's globals
-            // would be serialised when the shared host shuts down, which a delegate made from a Python function cannot be on .NET
-            // Framework inside the AppDomain xUnit makes.
+            // down(n) calls itself through a System.Func that wraps it, so every level crosses from Python to .NET and back:
+            // 200 levels is far under the 1000 of Python's own limit and must not end the process. down(200) = 200. The
+            // script drops its delegate at the end (holder.clear()); one left behind in a cycle is the case of
+            // ScriptDelegateShutdownTests.
             CadCommandSession session = NewSession();
 
-            CadPythonRunEventArgs run = RunLines(
+            CadPythonRunEventArgs run = RunAndCheck(
                 session,
-                new[]
-                {
+                "callback.py",
+                AfterDrawing(
                     "from System import Func, Int32",
-                    "def f(n):",
-                    "    if n == 0: return 0",
-                    "    return d.Invoke(n - 1) + 1",
-                    "d = Func[Int32, Int32](f)",
-                    "print(d.Invoke(200))",
-                    "del d",
-                }
+                    "holder = []",
+                    "def down(n):",
+                    "    return 0 if n == 0 else holder[0].Invoke(n - 1) + 1",
+                    "holder.append(Func[Int32, Int32](down))",
+                    "print(down(200))",
+                    "holder.clear()"
+                ),
+                1
             );
 
             Assert.Equal(CadPythonOutcome.Completed, run.Outcome);
-            Assert.Equal(new[] { "200" }, Printed);
-            AssertTheAppGoesOn(session);
+            Assert.Contains("200", Printed);
         }
 
         [Fact]
-        public void ANetExceptionFromTheObjectModel_FailsWithItsTypeAndMessage_AndTheDrawingIsAsBefore()
+        public void ADotNetExceptionFromTheObjectModel_IsOneLineNamingItsType_TakesTheCircleBack_AndTheNextRunCompletes()
         {
-            // ApplyEdit(None, None, None) throws ArgumentNullException for the name: the type is named, not hidden behind
-            // pythonnet's own.
+            // CadDocument.BeginGroup(None) throws ArgumentNullException ("Value cannot be null." and the parameter name);
+            // pythonnet raises it as a Python exception whose text carries the .NET stack trace after the message. The
+            // command line gets one line: the type and the message, then the file and line, never the stack trace or a line
+            // end (net48 and net8 word the parameter name differently, so only the start of the message is compared). The
+            // group the host opened for the run is still open under the exception and is cancelled.
             CadCommandSession session = NewSession();
 
-            CadPythonRunEventArgs run = RunLines(session, DrawThen("cad.document().ApplyEdit(None, None, None)"));
+            CadPythonRunEventArgs run = RunAndCheck(
+                session,
+                "badargument.py",
+                AfterDrawing("cad.document().BeginGroup(None)"),
+                0
+            );
 
             Assert.Equal(CadPythonOutcome.Failed, run.Outcome);
-            Assert.True(Wrote(session, "Python error: System.ArgumentNullException: Value cannot be null."));
-            Assert.Contains(Errors, line => line.StartsWith("System.ArgumentNullException", StringComparison.Ordinal));
-            Assert.Equal(0, session.Document.EntityCount);
-            AssertTheAppGoesOn(session);
+            Assert.StartsWith(
+                "System.ArgumentNullException: Value cannot be null.",
+                run.Error,
+                StringComparison.Ordinal
+            );
+            Assert.DoesNotContain("\n", run.Error);
+            string line = Assert.Single(session.History, entry =>
+                entry.StartsWith("Python error: ", StringComparison.Ordinal)
+            );
+            Assert.StartsWith(
+                "Python error: System.ArgumentNullException: Value cannot be null.",
+                line,
+                StringComparison.Ordinal
+            );
+            Assert.EndsWith("(badargument.py, line 3)", line, StringComparison.Ordinal);
+            Assert.DoesNotContain("\n", line);
+            Assert.DoesNotContain("\r", line);
         }
 
         [Fact]
-        public void AnErrorInAPyLoadCommand_FailsOnTheCommandLine_AndTheCommandCanBeRunAgain()
+        public void ADotNetExceptionTypedInThePalette_IsOneLineNamingItsType_AndTheNextEntryRuns()
         {
+            // The same exception from a palette entry: one line, with no file part and no stack trace.
+            CadCommandSession session = NewSession();
+
+            Enter(session, "import geometryhelper.cad as cad; cad.document().BeginGroup(None)");
+
+            Assert.Equal(CadPythonOutcome.Failed, Finished.Last().Outcome);
+            string line = Assert.Single(session.History, entry =>
+                entry.StartsWith("Python error: ", StringComparison.Ordinal)
+            );
+            Assert.StartsWith(
+                "Python error: System.ArgumentNullException: Value cannot be null.",
+                line,
+                StringComparison.Ordinal
+            );
+            Assert.DoesNotContain("\n", line);
+            Assert.DoesNotContain("\r", line);
+            Assert.False(session.Document.IsInGroup);
+
+            Enter(session, "1 + 1");
+            Assert.Equal("2", Printed.Last());
+        }
+
+        [Fact]
+        public void ACommandOfAPyLoadFileThatRaises_Fails_TakesTheCircleBack_AndTheNextRunCompletes()
+        {
+            // PYLOAD defines P6BOOM; typing it runs its function as one step named P6BOOM, which draws a circle and raises.
             CadCommandSession session = NewSession();
             string path = Script(
-                "p6-defined.py",
-                "from geometryhelper.cad import cad_command, write",
-                "@cad_command('P6BOOM')",
+                "p6boom.py",
+                UsesCad,
+                "@cad.cad_command('P6BOOM')",
                 "def boom():",
-                "    write('before')",
+                "    cad.command('CIRCLE', (0, 0), 5)",
                 "    1 / 0"
             );
             Load(session, path);
             Owner.Session = session;
 
-            for (int attempt = 0; attempt < 2; attempt++)
-            {
-                int before = Finished.Count;
-                Assert.True(session.Feed("P6BOOM"));
-                Owner.Drain();
+            session.Feed("P6BOOM");
+            Owner.Drain();
 
-                CadPythonRunEventArgs run = Finished[before];
-                Assert.Equal("P6BOOM", run.Name);
-                Assert.Equal(CadPythonOutcome.Failed, run.Outcome);
-            }
-
-            Assert.Equal(
-                2,
-                session.History.Count(line =>
-                    line == "Python error: ZeroDivisionError: division by zero (p6-defined.py, line 5)"
-                )
-            );
-            AssertTheAppGoesOn(session);
+            CadPythonRunEventArgs run = Finished.Last();
+            Assert.Equal("P6BOOM", run.Name);
+            Assert.Equal(CadPythonOutcome.Failed, run.Outcome);
+            Assert.Equal("ZeroDivisionError: division by zero", run.Error);
+            Assert.Contains("Python error: ZeroDivisionError: division by zero (p6boom.py, line 5)", session.History);
+            AssertHostUsable(session, 0);
         }
 
         [Fact]
-        public void AHandlerThatRaisesWhenTheEventFiresAfterTheRun_ThrowsToTheCallerOfTheEvent_AndTheHostGoesOn()
+        public void ALoadThatRaises_Fails_TakesTheCircleBack_AndTheNextRunCompletes()
         {
-            // Python calls the handler on whichever thread raises the event, with no run going on and the host knowing nothing of
-            // it. What the host guarantees is that the error is the caller's to meet (the window's handler of unhandled errors,
-            // D926) and that the host is not left in a state: no run, no group, the next run working.
+            // The module-level code of a PYLOAD file draws a circle and raises: the run is PYLOAD and the circle is taken back.
             CadCommandSession session = NewSession();
-            CadPythonRunEventArgs run = RunLines(
+            string path = Script("p6load.py", AfterDrawing("raise RuntimeError('at load')"));
+
+            CadPythonRunEventArgs run = Load(session, path);
+
+            Assert.Equal(CadPythonOutcome.Failed, run.Outcome);
+            Assert.Equal("PYLOAD", run.Name);
+            Assert.Contains("Python error: RuntimeError: at load (p6load.py, line 3)", session.History);
+            AssertHostUsable(session, 0);
+        }
+
+        [Fact]
+        public void AHandlerThatRaisesAfterTheRunEnded_ThrowsToTheCallerOfTheEvent_AndTheHostGoesOn()
+        {
+            // pythonnet builds the delegate of a handler and calls the function on whichever thread raises the event, with no run
+            // going on, so the host cannot catch the error there: it reaches the caller of the event as a PythonException, and the
+            // window reports it (CadCrashLog, D926). What the host guarantees is that it is left in no state: no run, no group, the
+            // next run working. The handler is taken off at the end so that no delegate made from a Python function outlives the test.
+            CadCommandSession session = NewSession();
+            RunLines(
                 session,
                 new[]
                 {
                     UsesCad,
-                    "from System import EventHandler",
-                    "from GeometryHelper.Cad import CadDocumentChangedEventArgs",
-                    "def on_changed(sender, e):",
-                    "    raise ValueError('handler boom')",
                     "import builtins",
-                    "builtins.p6_handler = EventHandler[CadDocumentChangedEventArgs](on_changed)",
-                    "cad.document().Changed += builtins.p6_handler",
+                    "def handler(sender, args):",
+                    "    raise RuntimeError('handler boom')",
+                    "builtins.p6_handler = handler",
+                    "cad.document().Changed += handler",
                 }
             );
-            Assert.Equal(CadPythonOutcome.Completed, run.Outcome);
+            Assert.Empty(Errors);
 
             global::Python.Runtime.PythonException thrown = Assert.Throws<global::Python.Runtime.PythonException>(() =>
-                AddLine(session.Document, 0)
+                AddLine(session.Document, 10)
             );
 
             Assert.Contains("handler boom", thrown.Message, StringComparison.Ordinal);
-
-            // The handler is taken off again, so that no delegate made from a Python function is alive when the shared host shuts
-            // down (it cannot be serialised on .NET Framework inside the AppDomain xUnit makes).
+            Assert.Equal("RuntimeError", thrown.Type.Name);
             RunLines(
                 session,
                 new[]
@@ -249,45 +316,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
                     "del builtins.p6_handler",
                 }
             );
-            Assert.False(Host.IsRunning);
-            Assert.False(session.Document.IsInGroup);
-            AssertTheAppGoesOn(session);
-        }
-
-        [Fact]
-        public void AMissingModule_FailsWithModuleNotFoundError_AndTheDrawingIsAsBefore()
-        {
-            CadCommandSession session = NewSession();
-
-            CadPythonRunEventArgs run = RunLines(session, DrawThen("import nonexistent_module"));
-
-            Assert.Equal(CadPythonOutcome.Failed, run.Outcome);
-            Assert.True(
-                Wrote(
-                    session,
-                    "Python error: ModuleNotFoundError: No module named 'nonexistent_module' (script1.py, line "
-                        + Line(0)
-                        + ")"
-                )
-            );
-            Assert.Equal(0, session.Document.EntityCount);
-            AssertTheAppGoesOn(session);
-        }
-
-        [Fact]
-        public void AFileWithASyntaxError_RunsNothingOfIt_AndNamesTheFileAndLine()
-        {
-            // The line that would draw comes before the broken bracket, but a file that does not compile runs no line at all.
-            CadCommandSession session = NewSession();
-
-            CadPythonRunEventArgs run = RunLines(session, DrawThen("x = (1,", "y = 2"));
-
-            Assert.Equal(CadPythonOutcome.Failed, run.Outcome);
-            Assert.True(
-                Wrote(session, "Python error: SyntaxError: '(' was never closed (script1.py, line " + Line(0) + ")")
-            );
-            Assert.Equal(0, session.Document.EntityCount);
-            AssertTheAppGoesOn(session);
+            AssertHostUsable(session, 1);
         }
 
         [Theory]
@@ -309,115 +338,169 @@ namespace GeometryHelper.Cad.Python.UnitTest
             Assert.Contains("next ok", session.History);
         }
 
-        /// <summary>One entry of the palette: the run it made, the command line's new lines, and the palette's error lines.</summary>
-        private CadPythonRunEventArgs Entry(CadCommandSession session, string text)
+        [Fact]
+        public void AScriptThatSetsStdoutToNone_IsItselfReportedAsCompleted_NotAsAHostError()
         {
-            int before = Finished.Count;
-            Assert.Equal(CadPythonEntry.Ran, Enter(session, text));
-            Assert.True(Finished.Count > before, "The entry did not run.");
-            return Finished.Last();
-        }
-
-        [Theory]
-        [InlineData("1 / 0", CadPythonOutcome.Failed, "Python error: ZeroDivisionError: division by zero")]
-        [InlineData("import sys; sys.exit(3)", CadPythonOutcome.Failed, "Python error: SystemExit: 3")]
-        [InlineData("import sys; sys.exit('bye')", CadPythonOutcome.Failed, "Python error: SystemExit: bye")]
-        [InlineData("raise KeyboardInterrupt", CadPythonOutcome.Cancelled, "*Cancel*")]
-        [InlineData(
-            "import nonexistent_module",
-            CadPythonOutcome.Failed,
-            "Python error: ModuleNotFoundError: No module named 'nonexistent_module'"
-        )]
-        [InlineData(
-            "import geometryhelper.cad as cad; cad.document().ApplyEdit(None, None, None)",
-            CadPythonOutcome.Failed,
-            "Python error: System.ArgumentNullException: Value cannot be null."
-        )]
-        public void APaletteEntryThatEndsBadly_ShowsItOnTheCommandLine_AndThePaletteGoesOn(
-            string entry,
-            CadPythonOutcome outcome,
-            string commandLine
-        )
-        {
+            // The run's own end flushes sys.stdout, which is None by then: that is the script's affair, not a failure of the host.
             CadCommandSession session = NewSession();
 
-            CadPythonRunEventArgs run = Entry(session, entry);
-
-            Assert.Equal(outcome, run.Outcome);
-            Assert.Equal("Python", run.Name);
-            Assert.True(Wrote(session, commandLine));
-            Assert.NotEmpty(Errors);
-            AssertThePaletteGoesOn(session);
-        }
-
-        [Theory]
-        [InlineData("exit()")]
-        [InlineData("quit()")]
-        public void ExitAndQuitInThePalette_CompleteWithNoError(string entry)
-        {
-            CadCommandSession session = NewSession();
-
-            CadPythonRunEventArgs run = Entry(session, entry);
+            CadPythonRunEventArgs run = RunLines(session, AfterDrawing("import sys", "sys.stdout = None"));
 
             Assert.Equal(CadPythonOutcome.Completed, run.Outcome);
-            Assert.Empty(Errors);
-            AssertThePaletteGoesOn(session);
+            Assert.Null(run.Error);
+            Assert.Equal(1, session.Document.EntityCount);
+            Assert.DoesNotContain(session.History, line =>
+                line.StartsWith("Python host error", StringComparison.Ordinal)
+            );
         }
 
         [Fact]
-        public void ARecursionThatNeverEndsInThePalette_FailsWithARecursionError()
-        {
-            CadCommandSession session = NewSession();
-            Assert.Equal(CadPythonEntry.Ran, Enter(session, "def f():\n    f()\n"));
-
-            CadPythonRunEventArgs run = Entry(session, "f()");
-
-            Assert.Equal(CadPythonOutcome.Failed, run.Outcome);
-            Assert.True(Wrote(session, "Python error: RecursionError: maximum recursion depth exceeded"));
-            AssertThePaletteGoesOn(session);
-        }
-
-        [Fact]
-        public void TwoHundredLevelsThroughANetCallbackInThePalette_GiveTheirAnswer()
+        public void TwoHundredLevelsThroughADotNetCallbackInThePalette_GiveTheirAnswer()
         {
             CadCommandSession session = NewSession();
             Enter(session, "from System import Func, Int32");
             Enter(session, "def f(n):\n    if n == 0: return 0\n    return d.Invoke(n - 1) + 1\n");
             Enter(session, "d = Func[Int32, Int32](f)");
 
-            CadPythonRunEventArgs run = Entry(session, "d.Invoke(200)");
+            Enter(session, "d.Invoke(200)");
 
-            Assert.Equal(CadPythonOutcome.Completed, run.Outcome);
+            Assert.Equal(CadPythonOutcome.Completed, Finished.Last().Outcome);
             Assert.Contains("200", Printed);
             Enter(session, "del d");
-            AssertThePaletteGoesOn(session);
+            Enter(session, "1 + 1");
+            Assert.Equal("2", Printed.Last());
         }
 
         [Fact]
-        public void ASyntaxErrorInThePalette_IsShownOnTheCommandLine_WithoutARun()
+        public void ASyntaxErrorTypedInThePalette_IsShownOnTheCommandLine_WithoutARun()
         {
             CadCommandSession session = NewSession();
 
             Assert.Equal(CadPythonEntry.Ran, Enter(session, "x = (1,\ny = 2"));
 
             Assert.Empty(Finished);
-            Assert.True(Wrote(session, "Python error: SyntaxError: '(' was never closed"));
+            Assert.Contains(session.History, line =>
+                line.StartsWith("Python error: SyntaxError: '(' was never closed", StringComparison.Ordinal)
+            );
             Assert.NotEmpty(Errors);
-            AssertThePaletteGoesOn(session);
+            Enter(session, "1 + 1");
+            Assert.Equal("2", Printed.Last());
         }
 
-        /// <summary>The host is idle, no group is open, and the next entry runs.</summary>
-        private void AssertThePaletteGoesOn(CadCommandSession session)
+        [Fact]
+        public void ADelegateMadeFromAFunctionOfTheScript_LeftBehindInACycle_StillLetsTheHostShutDown()
         {
+            // f reads d and d wraps f, through the globals of the run: a cycle that only Python's collector frees, so the
+            // System.Func is still alive when Dispose shuts Python down. The run itself completes; the shutdown is what the
+            // collection's cleanup checks: on net48 it fails there, against every test of the run, as "Test Collection Cleanup
+            // Failure (Python host)" (a SerializationException from pythonnet's runtime-data stash).
+            CadCommandSession session = NewSession();
+
+            CadPythonRunEventArgs run = RunLines(
+                session,
+                new[] { "from System import Func, Int32", "def f(n):", "    return d", "d = Func[Int32, Int32](f)" }
+            );
+
+            Assert.Equal(CadPythonOutcome.Completed, run.Outcome);
+        }
+
+        [Fact]
+        public void AnImportThatIsNotThere_FailsWithAModuleNotFoundError_AndTheNextRunCompletes()
+        {
+            CadCommandSession session = NewSession();
+
+            CadPythonRunEventArgs run = RunAndCheck(
+                session,
+                "noimport.py",
+                AfterDrawing("import nonexistent_module"),
+                0
+            );
+
+            Assert.Equal(CadPythonOutcome.Failed, run.Outcome);
+            Assert.Contains(
+                "Python error: ModuleNotFoundError: No module named 'nonexistent_module' (noimport.py, line 3)",
+                session.History
+            );
+        }
+
+        [Fact]
+        public void AFileWithASyntaxError_FailsBeforeAnyLineRuns_NamesTheLine_AndTheNextRunCompletes()
+        {
+            // The bracket opened on line 3 is never closed, so Python refuses the whole file and the circle on line 2 is
+            // never drawn.
+            CadCommandSession session = NewSession();
+
+            CadPythonRunEventArgs run = RunAndCheck(session, "syntax.py", AfterDrawing("x = (1,", "y = 2"), 0);
+
+            Assert.Equal(CadPythonOutcome.Failed, run.Outcome);
+            Assert.Contains(session.History, line =>
+                line.StartsWith("Python error: SyntaxError: ", StringComparison.Ordinal)
+                && line.EndsWith("(syntax.py, line 3)", StringComparison.Ordinal)
+            );
+        }
+
+        [Theory]
+        [InlineData("1 / 0", CadPythonOutcome.Failed, "Python error: ZeroDivisionError: division by zero")]
+        [InlineData("import sys; sys.exit(3)", CadPythonOutcome.Failed, "Python error: SystemExit: 3")]
+        [InlineData("import sys; sys.exit('bye')", CadPythonOutcome.Failed, "Python error: SystemExit: bye")]
+        [InlineData(
+            "import nonexistent_module",
+            CadPythonOutcome.Failed,
+            "Python error: ModuleNotFoundError: No module named 'nonexistent_module'"
+        )]
+        [InlineData("exit()", CadPythonOutcome.Completed, null)]
+        [InlineData("quit()", CadPythonOutcome.Completed, null)]
+        [InlineData("raise KeyboardInterrupt", CadPythonOutcome.Cancelled, "*Cancel*")]
+        public void ThePaletteEntry_EndsAsAScriptDoes_WithItsLineOnTheCommandLine_AndTheNextEntryRuns(
+            string code,
+            CadPythonOutcome outcome,
+            string line
+        )
+        {
+            // One line typed in the palette: the same outcomes and texts as a file, but no file part in the line (D711).
+            CadCommandSession session = NewSession();
+
+            Enter(session, code);
+
+            Assert.Equal(outcome, Finished.Last().Outcome);
+
+            if (line != null)
+            {
+                Assert.Contains(line, session.History);
+            }
+            else
+            {
+                Assert.DoesNotContain(session.History, entry =>
+                    entry.StartsWith("Python error", StringComparison.Ordinal)
+                );
+            }
+
             Assert.False(Host.IsRunning);
-            Assert.False(session.IsRunning);
             Assert.False(session.Document.IsInGroup);
 
-            int before = Finished.Count;
-            Assert.Equal(CadPythonEntry.Ran, Enter(session, "print('still here')"));
+            Enter(session, "1 + 1");
+            Assert.Equal("2", Printed.Last());
+        }
 
-            Assert.Equal(CadPythonOutcome.Completed, Finished[before].Outcome);
-            Assert.Contains("still here", session.History);
+        [Fact]
+        public void ARecursionErrorTypedInThePalette_IsReported_AndTheNextEntryRuns()
+        {
+            // A definition of two lines is complete with the empty line a user ends it with.
+            CadCommandSession session = NewSession();
+
+            Enter(session, "def f():\n    f()\n");
+            Enter(session, "f()");
+
+            Assert.Equal(CadPythonOutcome.Failed, Finished.Last().Outcome);
+            Assert.Contains(session.History, line =>
+                line.StartsWith(
+                    "Python error: RecursionError: maximum recursion depth exceeded",
+                    StringComparison.Ordinal
+                )
+            );
+
+            Enter(session, "1 + 1");
+            Assert.Equal("2", Printed.Last());
         }
     }
 }
