@@ -97,12 +97,15 @@ compared by their values and by eye.
       `read-line`, `write-line`, `findfile`, `getfiled`
 - [x] L4. vla- and vlax- objects: the members the maintainer's routines use (about 40), on the presenter's own object
       model; COM to other programs (Excel) refused with a message
-- [ ] L4 parked: NOMUTT (TE stops at it), `_`/`.` prefixes of typed command names (`_.REGEN`, `.U`), ssget W/C/typed
-      window/P newest first and W/C only within the view, -BLOCK keeping the selection order of its objects, ZOOM Object,
-      drawing commands giving `(6 . CELTYPE)`, entmake of INSERT taking 6/62, ObjectID as AutoCAD's small numbers,
-      typed forms after a `c:` routine joining its undo step (unmeasured)
-- [ ] L5. (running) DCL dialogs: the DCL parser and its tiles drawn as WPF, with action_tile, get_tile and set_tile (designed in
-      the Design artifact first)
+- [ ] L4 parked: ObjectID as AutoCAD's small numbers, typed forms after a `c:` routine joining its undo step
+      (unmeasured), NOMUTT 1 muting `command` prompts, a fence's objects in the order along the fence, a crossing wholly
+      outside the view finding a long line (probe p4, unexplained), ZOOM's 5 % margin against AutoCAD's about 1 % and
+      ZOOM n alone keeping the centre
+- [x] L5. DCL dialogs: the DCL parser and its tiles drawn as WPF, with action_tile, get_tile and set_tile (designed in
+      the Design artifact first). Accepted 2026-11-21: E1 and FDVAL run in the full AutoCAD and the presenter with the
+      same dialog values and E1 transcript
+- [ ] L5 parked: a dialog of ok_cancel alone (162 x 93, a minimum body height), AutoCAD's narrower dialog text (FDVAL
+      219 against Segoe's 242), list double click, slider drag, Ctrl-click and getpoint in an action unmeasured
 - [ ] L6. Trusted folders and SECURELOAD, as AutoCAD 2021, shared with the Python stages
 
 ### Python
