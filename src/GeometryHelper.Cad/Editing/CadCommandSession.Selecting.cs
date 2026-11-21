@@ -116,6 +116,9 @@ namespace GeometryHelper.Cad
                         }
                     }
 
+                    // The object made last comes first in the set, as AutoCAD counts the set of ALL (runs/hhh, runs/nnn).
+                    all = NewestFirst(all);
+
                     if (!_removing)
                     {
                         ReplaceWithPickAdd0();

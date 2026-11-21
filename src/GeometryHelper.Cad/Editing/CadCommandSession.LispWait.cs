@@ -390,6 +390,25 @@ namespace GeometryHelper.Cad
             }
         }
 
+        /// <summary>
+        /// The handles in the order of their numbers, the newest first, ties by the text: the order AutoCAD counts the set of ALL in
+        /// (runs/hhh and runs/nnn: a routine that walks the set meets the line made last before the text made first).
+        /// </summary>
+        private static List<string> NewestFirst(IEnumerable<string> handles)
+        {
+            var sorted = new List<string>(handles);
+            sorted.Sort(
+                (a, b) =>
+                {
+                    ulong.TryParse(a, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong x);
+                    ulong.TryParse(b, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong y);
+                    int order = y.CompareTo(x);
+                    return order != 0 ? order : string.CompareOrdinal(a, b);
+                }
+            );
+            return sorted;
+        }
+
         /// <summary>getint and getreal: the text typed read as a number, with the refusals of AutoCAD 2021 for text, for an integer out of range and for the bits of <c>initget</c>.</summary>
         private bool TakeLispNumber(LispAsk ask, CadPrompt prompt, CadInput input, out object answer)
         {

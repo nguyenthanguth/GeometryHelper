@@ -18,7 +18,9 @@ namespace GeometryHelper.Cad.Lisp
             if (session.Registry.FindVariable("OSMODE") == null)
             {
                 int modes = 167;
-                session.Registry.AddVariable(CadSystemVariable.Integer("OSMODE", 0, 32767, () => modes, v => modes = v));
+                session.Registry.AddVariable(
+                    CadSystemVariable.Integer("OSMODE", 0, 32767, () => modes, v => modes = v)
+                );
             }
 
             lisp.Define("GETVAR", 1, 1, a => GetVar(lisp, session, VariableName(a[0])));
@@ -29,7 +31,8 @@ namespace GeometryHelper.Cad.Lisp
         private static CadSystemVariable Named(CadCommandSession session, string name)
         {
             CadSystemVariable variable = session.Registry.FindVariable(name);
-            return variable != null && string.Equals(variable.Name, name.Trim(), System.StringComparison.OrdinalIgnoreCase)
+            return
+                variable != null && string.Equals(variable.Name, name.Trim(), System.StringComparison.OrdinalIgnoreCase)
                 ? variable
                 : null;
         }

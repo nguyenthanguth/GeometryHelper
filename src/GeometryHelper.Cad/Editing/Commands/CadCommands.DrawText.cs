@@ -362,6 +362,12 @@ namespace GeometryHelper.Cad
                 c.Remember("text.next.y2", second.Y);
                 c.Remember("text.next.height", height);
                 c.Remember("text.next.angle", angle);
+
+                // Run by a routine's command, AutoCAD takes the one line and ends: no in-place editor opens for a second.
+                if (c.Session.RunsForLisp)
+                {
+                    yield break;
+                }
             }
         }
 

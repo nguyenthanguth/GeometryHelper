@@ -303,6 +303,20 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
+        public void SsgetOfAllAtTheSelectPrompt_GivesTheNewestObjectFirst_AsSsgetXDoes()
+        {
+            CadCommandSession session = Q5();
+
+            // AutoCAD 2021 (runs/hhh, runs/nnn): a routine that walks the set of ALL met the object made last first
+            Value(session, "(setq s2 (ssget))");
+            Run(session, "ALL", Enter);
+
+            Assert.Equal("5", Value(session, "(sslength s2)"));
+            Assert.Equal("\"DIMENSION\"", Value(session, "(cdr (assoc 0 (entget (ssname s2 0))))"));
+            Assert.Equal("\"LINE\"", Value(session, "(cdr (assoc 0 (entget (ssname s2 4))))"));
+        }
+
+        [Fact]
         public void SsgetWithAFilterAndNoMode_CountsOnlyTheObjectsThatMatch()
         {
             CadCommandSession session = Q5();

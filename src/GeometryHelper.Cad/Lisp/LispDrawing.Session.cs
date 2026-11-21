@@ -327,14 +327,11 @@ namespace GeometryHelper.Cad.Lisp
         /// </summary>
         private static object Alert(LispInterpreter lisp, CadCommandSession session, string text)
         {
-            bool shown = (bool)lisp.OnOwner(() => session.Request("ALERT", null, text));
-
-            if (!shown)
+            lisp.OnOwner(() =>
             {
-                lisp.FreshLine();
-                lisp.Write(LispPrinter.Display(text) + "\n");
-            }
-
+                session.ShowAlert(text);
+                return null;
+            });
             return null;
         }
 

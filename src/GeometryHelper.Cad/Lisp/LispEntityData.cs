@@ -783,7 +783,9 @@ namespace GeometryHelper.Cad.Lisp
                 }
 
                 record.InsertRange(where, vertices);
-                changes = changes.FindAll(p => !(p.Key == 10 || p.Key == 40 || p.Key == 41 || p.Key == 42 || p.Key == 91 || p.Key == 90));
+                changes = changes.FindAll(p =>
+                    !(p.Key == 10 || p.Key == 40 || p.Key == 41 || p.Key == 42 || p.Key == 91 || p.Key == 90)
+                );
                 int counted = record.FindIndex(p => p.Key == 90);
 
                 if (counted >= 0)

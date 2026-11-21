@@ -198,10 +198,20 @@ namespace GeometryHelper.Cad.Lisp
             }
             else if (a.Length > 0)
             {
-                // A message in front of a second argument is read as the point it should have been.
-                if (a[0] is string && a.Length > 1)
+                // A message in front of a second argument that is a point is the message of that base point, as AutoCAD 2021 takes
+                // (getpoint "\nNext: " pt) (the routines' feeds); in front of anything else the second is the point that was wrong.
+                if (a[0] is string first && a.Length > 1)
                 {
-                    throw LispInterpreter.TypeError("point", a[1], colon: true);
+                    GeoPoint3? given = PointOf(a[1]);
+
+                    if (given == null)
+                    {
+                        throw LispInterpreter.TypeError("point", a[1], colon: true);
+                    }
+
+                    LispAsk swapped = lisp.NewAsk(kind, first);
+                    swapped.BasePoint = given;
+                    return swapped;
                 }
 
                 basePoint = PointOf(a[0]);

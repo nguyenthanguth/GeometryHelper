@@ -48,6 +48,14 @@ namespace GeometryHelper.Cad
         /// <summary>Whether CMDECHO is on, as it is until a routine or the user sets it to 0.</summary>
         private bool CommandEchoOn => !(Remembered.TryGetValue("cmdecho", out double echo) && echo == 0.0);
 
+        /// <summary>
+        /// Whether the command running is one a routine started with <c>command</c>: TEXT takes the one line it is given and
+        /// COPY makes one copy, and each ends then (AutoCAD 2021, q2: <c>(command "TEXT" '(0 0) 2.5 0 "Hello")</c> ends the
+        /// command; runs/hhh: COPY does not wait for a second copy), as the in-place editor that would take a second line is
+        /// not there.
+        /// </summary>
+        internal bool RunsForLisp => _lispStarted != null && ReferenceEquals(Current, _lispStarted);
+
         /// <summary>Whether a command of a routine runs, as <c>command</c> feeds it: one with a prompt up that is not the wait of a get function.</summary>
         private bool HasLispCommand => Current != null && Prompt != null && !ReferenceEquals(Current, _lispCommand);
 
@@ -127,6 +135,31 @@ namespace GeometryHelper.Cad
             {
                 WriteLisp(written);
             }
+        }
+
+        /// <summary>
+        /// <c>(alert text)</c>: asks the window for the message box; where nobody shows it (a session with no window) the lines of
+        /// the text are written on lines of their own, after what the routine wrote before, and the Command prompt that waits to
+        /// open the routine's next text stays for it (AutoCAD 2021, runs/tca: <c>Xong</c>, then <c>Command: nil</c>).
+        /// </summary>
+        /// <param name="text">The text of the message.</param>
+        internal void ShowAlert(string text)
+        {
+            if (Request("ALERT", null, text))
+            {
+                return;
+            }
+
+            WriteLispBefore();
+            string open = _lispPrefix;
+            _lispPrefix = null;
+
+            foreach (string line in text.Split('\n'))
+            {
+                Write(line);
+            }
+
+            _lispPrefix = open;
         }
 
         /// <summary>An argument for the prompt of the command running.</summary>

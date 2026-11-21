@@ -125,7 +125,13 @@ namespace GeometryHelper.Cad.UnitTest
             Assert.Equal("<Entity name: *>", Value(session, "(entnext)"));
             Assert.Equal("T", Value(session, "(eq (entnext) (cadr (list nil (entnext))))"));
             Assert.Equal("nil", Value(session, "(entnext (entlast))"));
-            Assert.Equal("5", Value(session, "(length (list (entnext) (entnext (entnext)) (entnext (entnext (entnext))) (entnext (entnext (entnext (entnext)))) (entlast)))"));
+            Assert.Equal(
+                "5",
+                Value(
+                    session,
+                    "(length (list (entnext) (entnext (entnext)) (entnext (entnext (entnext))) (entnext (entnext (entnext (entnext)))) (entlast)))"
+                )
+            );
             Assert.Equal("\"LINE\"", Value(session, "(cdr (assoc 0 (entget (entnext))))"));
             Assert.Equal("\"DIMENSION\"", Value(session, "(cdr (assoc 0 (entget (entlast))))"));
         }
@@ -207,7 +213,10 @@ namespace GeometryHelper.Cad.UnitTest
             // AutoCAD 2021 (q5, for entmake): a layer named in 8 that does not exist is made, colour 7, Continuous
             Value(session, "(entmod (list (cons -1 (entlast)) '(8 . \"NEWLAYER\")))");
 
-            Assert.Equal(7, document.Database.LayerTable["NEWLAYER"] is DxfLayerTableRecord layer ? layer.ColorIndex : -1);
+            Assert.Equal(
+                7,
+                document.Database.LayerTable["NEWLAYER"] is DxfLayerTableRecord layer ? layer.ColorIndex : -1
+            );
             Assert.Equal("\"NEWLAYER\"", Value(session, "(cdr (assoc 8 (entget (entlast))))"));
         }
 
@@ -232,7 +241,13 @@ namespace GeometryHelper.Cad.UnitTest
             Value(session, "(setq e1 (entnext))");
 
             Assert.Equal("nil", Value(session, "(entmod (list (cons -1 e1) '(6 . \"NoSuchType\")))"));
-            Assert.Equal("\"CONTINUOUS\"", Value(session, "(strcase (cdr (assoc 6 (progn (entmod (list (cons -1 e1) '(6 . \"Continuous\"))) (entget e1)))))"));
+            Assert.Equal(
+                "\"CONTINUOUS\"",
+                Value(
+                    session,
+                    "(strcase (cdr (assoc 6 (progn (entmod (list (cons -1 e1) '(6 . \"Continuous\"))) (entget e1)))))"
+                )
+            );
         }
 
         [Fact]
@@ -241,7 +256,10 @@ namespace GeometryHelper.Cad.UnitTest
             CadCommandSession session = Q5();
             Value(session, "(setq e (entnext (entnext (entnext (entnext)))))");
 
-            Value(session, "(entmod (list (cons -1 e) '(10 0.0 0.0) '(10 5.0 0.0) '(10 5.0 5.0) '(10 0.0 5.0) '(70 . 1)))");
+            Value(
+                session,
+                "(entmod (list (cons -1 e) '(10 0.0 0.0) '(10 5.0 0.0) '(10 5.0 5.0) '(10 0.0 5.0) '(70 . 1)))"
+            );
 
             Assert.Equal("4", Value(session, "(cdr (assoc 90 (entget e)))"));
             Assert.Equal("1", Value(session, "(cdr (assoc 70 (entget e)))"));
@@ -257,7 +275,10 @@ namespace GeometryHelper.Cad.UnitTest
             Run(session, "TEXT", "0,0", "2.5", "0", "short", Enter);
 
             // AutoCAD 2021 (runs/jl, JL): 72 0, 73 2 (middle) and 11 at (50 0 0) give 10 at (50.0 -1.25 0.0)
-            Value(session, "(entmod (list (cons -1 (entlast)) (quote (72 . 0)) (quote (73 . 2)) (quote (11 50.0 0.0 0.0))))");
+            Value(
+                session,
+                "(entmod (list (cons -1 (entlast)) (quote (72 . 0)) (quote (73 . 2)) (quote (11 50.0 0.0 0.0))))"
+            );
 
             Assert.Equal("(50.0 -1.25 0.0)", Value(session, "(cdr (assoc 10 (entget (entlast))))"));
             Assert.Equal("2", Value(session, "(cdr (assoc 73 (entget (entlast))))"));
@@ -283,6 +304,7 @@ namespace GeometryHelper.Cad.UnitTest
                 Assert.Equal("(97.4 0.0 0.0)", Value(session, "(cdr (assoc 10 (entget (entlast))))"));
             }
         }
+
         [Fact]
         public void EntmodOfADimensionsDefiningPoints_DrawsItsPictureAgain()
         {
@@ -297,9 +319,8 @@ namespace GeometryHelper.Cad.UnitTest
             Assert.Equal("(0.0 -30.0 0.0)", Value(session, "(cdr (assoc 13 (entget e)))"));
             Assert.Equal("(100.0 -30.0 0.0)", Value(session, "(cdr (assoc 14 (entget e)))"));
 
-            DxfDimension dimension = (DxfDimension)document.FindEntity(
-                document.ModelSpace.Block.OfType<DxfDimension>().Last().Handle
-            );
+            DxfDimension dimension = (DxfDimension)
+                document.FindEntity(document.ModelSpace.Block.OfType<DxfDimension>().Last().Handle);
             double lowest = double.MaxValue;
 
             foreach (DxfEntity part in dimension.DimBlock)
@@ -345,7 +366,10 @@ namespace GeometryHelper.Cad.UnitTest
         {
             CadCommandSession session = Q5();
 
-            Assert.Equal("nil", Value(session, "(entdel (handent \"FFFF\"))").Replace("; error: bad argument type: lentityp nil", "nil"));
+            Assert.Equal(
+                "nil",
+                Value(session, "(entdel (handent \"FFFF\"))").Replace("; error: bad argument type: lentityp nil", "nil")
+            );
         }
 
         [Fact]
@@ -405,9 +429,46 @@ namespace GeometryHelper.Cad.UnitTest
             // runs/hhh copies an entity by entmake of its entget list: -1, 5 and 330 are ignored
             Value(session, "(entmake (cdr (entget (entnext))))");
 
-            Assert.Equal("6", Value(session, "(length (list (entnext) (entnext (entnext)) (entnext (entnext (entnext))) (entnext (entnext (entnext (entnext)))) (entnext (entnext (entnext (entnext (entnext))))) (entlast)))"));
+            Assert.Equal(
+                "6",
+                Value(
+                    session,
+                    "(length (list (entnext) (entnext (entnext)) (entnext (entnext (entnext))) (entnext (entnext (entnext (entnext)))) (entnext (entnext (entnext (entnext (entnext))))) (entlast)))"
+                )
+            );
             Assert.Equal("\"LINE\"", Value(session, "(cdr (assoc 0 (entget (entlast))))"));
             Assert.Equal("(10.0 0.0 0.0)", Value(session, "(cdr (assoc 11 (entget (entlast))))"));
+        }
+
+        [Fact]
+        public void EntmakeOfTheWholeEntgetListOfAText_WithItsNameFirstAndPointsOfTwoCoordinates_MakesACopy()
+        {
+            CadCommandSession session = Q5();
+            Value(session, "(setq d (entget (entnext (entnext (entnext)))))");
+            Assert.Equal("\"TEXT\"", Value(session, "(cdr (assoc 0 d))"));
+
+            // AutoCAD 2021 (runs/hhh): the routine changes group 1 and gives 10 and 11 as points of two coordinates, and the list
+            // it makes the copy from starts with (-1 . ename), as entget gives it
+            string made = Value(
+                session,
+                "(entmake (subst (cons 11 (list 0.0 10.0)) (assoc 11 d) (subst (cons 10 (list 0.0 20.0)) (assoc 10 d) (subst (cons 1 \"T2\") (assoc 1 d) d))))"
+            );
+
+            Assert.NotEqual("nil", made);
+            Assert.Equal("\"T2\"", Value(session, "(cdr (assoc 1 (entget (entlast))))"));
+            Assert.Equal("(0.0 20.0 0.0)", Value(session, "(cdr (assoc 10 (entget (entlast))))"));
+            // a text left on its baseline has no second point: AutoCAD keeps the 11 of its list as (0.0 0.0 0.0) whatever it was given
+            Assert.Equal("(0.0 0.0 0.0)", Value(session, "(cdr (assoc 11 (entget (entlast))))"));
+
+            // one held by its centre keeps it
+            Assert.NotEqual(
+                "nil",
+                Value(
+                    session,
+                    "(entmake (list (quote (0 . \"TEXT\")) (quote (10 0.0 30.0 0.0)) (quote (40 . 2.5)) (quote (1 . \"T3\")) (quote (72 . 1)) (quote (11 5.0 30.0 0.0))))"
+                )
+            );
+            Assert.Equal("(5.0 30.0 0.0)", Value(session, "(cdr (assoc 11 (entget (entlast))))"));
         }
 
         [Theory]
@@ -416,8 +477,14 @@ namespace GeometryHelper.Cad.UnitTest
         [InlineData("(entmake '((0 . \"ARC\") (10 3.0 4.0 0.0) (40 . 2.0) (50 . 0.0) (51 . 1.5708)))", "ARC")]
         [InlineData("(entmake '((0 . \"LWPOLYLINE\") (90 . 2) (70 . 0) (10 0.0 0.0) (10 5.0 5.0)))", "LWPOLYLINE")]
         [InlineData("(entmake '((0 . \"MTEXT\") (10 1.0 1.0 0.0) (40 . 2.5) (1 . \"words\")))", "MTEXT")]
-        [InlineData("(entmake '((0 . \"ELLIPSE\") (10 0.0 0.0 0.0) (11 5.0 0.0 0.0) (40 . 0.5) (41 . 0.0) (42 . 6.283185307179586)))", "ELLIPSE")]
-        [InlineData("(entmake '((0 . \"SOLID\") (10 0.0 0.0 0.0) (11 1.0 0.0 0.0) (12 0.0 1.0 0.0) (13 1.0 1.0 0.0)))", "SOLID")]
+        [InlineData(
+            "(entmake '((0 . \"ELLIPSE\") (10 0.0 0.0 0.0) (11 5.0 0.0 0.0) (40 . 0.5) (41 . 0.0) (42 . 6.283185307179586)))",
+            "ELLIPSE"
+        )]
+        [InlineData(
+            "(entmake '((0 . \"SOLID\") (10 0.0 0.0 0.0) (11 1.0 0.0 0.0) (12 0.0 1.0 0.0) (13 1.0 1.0 0.0)))",
+            "SOLID"
+        )]
         [InlineData("(entmake '((0 . \"3DFACE\") (10 0.0 0.0 0.0) (11 1.0 0.0 0.0) (12 0.0 1.0 1.0)))", "3DFACE")]
         [InlineData("(entmake '((0 . \"RAY\") (10 0.0 0.0 0.0) (11 1.0 0.0 0.0)))", "RAY")]
         [InlineData("(entmake '((0 . \"XLINE\") (10 0.0 0.0 0.0) (11 1.0 1.0 0.0)))", "XLINE")]
@@ -470,8 +537,14 @@ namespace GeometryHelper.Cad.UnitTest
             // AutoCAD 2021 (spec D50): (-3 ("APP" ...)) only for the applications named, '("*") every one
             Value(session, "(entmod (list (cons -1 e) (list -3 (list \"GHAPP\" (cons 1000 \"hi\") (cons 1040 2.5)))))");
 
-            Assert.Equal("((\"GHAPP\" (1000 . \"hi\") (1040 . 2.5)))", Value(session, "(cdr (assoc -3 (entget e '(\"GHAPP\"))))"));
-            Assert.Equal("((\"GHAPP\" (1000 . \"hi\") (1040 . 2.5)))", Value(session, "(cdr (assoc -3 (entget e '(\"*\"))))"));
+            Assert.Equal(
+                "((\"GHAPP\" (1000 . \"hi\") (1040 . 2.5)))",
+                Value(session, "(cdr (assoc -3 (entget e '(\"GHAPP\"))))")
+            );
+            Assert.Equal(
+                "((\"GHAPP\" (1000 . \"hi\") (1040 . 2.5)))",
+                Value(session, "(cdr (assoc -3 (entget e '(\"*\"))))")
+            );
             Assert.Equal("nil", Value(session, "(assoc -3 (entget e))"));
             Assert.Equal("nil", Value(session, "(assoc -3 (entget e '(\"OTHER\")))"));
         }
@@ -482,12 +555,20 @@ namespace GeometryHelper.Cad.UnitTest
             CadDocument document = Blank();
             var block = new DxfBlockTableRecord { Name = "B" };
             document.Database.BlockTable.Add(block);
-            block.AppendEntity(new DxfLine(new GeometryHelper.Geometry.GeoPoint3(0, 0, 0), new GeometryHelper.Geometry.GeoPoint3(10, 0, 0)));
+            block.AppendEntity(
+                new DxfLine(
+                    new GeometryHelper.Geometry.GeoPoint3(0, 0, 0),
+                    new GeometryHelper.Geometry.GeoPoint3(10, 0, 0)
+                )
+            );
             CadCommandSession session = Session(document);
 
             // reference (AutoCAD documentation, not measured): INSERT (100 . "AcDbBlockReference") (2 . name) (10 pt) (41 42 43)
             // (50 . angle) (70 . 0) (71 . 0) (44 . 0.0) (45 . 0.0) (210 ...)
-            Value(session, "(entmake '((0 . \"INSERT\") (2 . \"B\") (10 5.0 5.0 0.0) (41 . 2.0) (42 . 2.0) (43 . 2.0) (50 . 1.5)))");
+            Value(
+                session,
+                "(entmake '((0 . \"INSERT\") (2 . \"B\") (10 5.0 5.0 0.0) (41 . 2.0) (42 . 2.0) (43 . 2.0) (50 . 1.5)))"
+            );
 
             Assert.Equal("\"B\"", Value(session, "(cdr (assoc 2 (entget (entlast))))"));
             Assert.Equal("(5.0 5.0 0.0)", Value(session, "(cdr (assoc 10 (entget (entlast))))"));
@@ -502,8 +583,18 @@ namespace GeometryHelper.Cad.UnitTest
             CadDocument document = Blank();
             var block = new DxfBlockTableRecord { Name = "B" };
             document.Database.BlockTable.Add(block);
-            block.AppendEntity(new DxfLine(new GeometryHelper.Geometry.GeoPoint3(0, 0, 0), new GeometryHelper.Geometry.GeoPoint3(10, 0, 0)));
-            block.AppendEntity(new DxfLine(new GeometryHelper.Geometry.GeoPoint3(0, 5, 0), new GeometryHelper.Geometry.GeoPoint3(10, 5, 0)));
+            block.AppendEntity(
+                new DxfLine(
+                    new GeometryHelper.Geometry.GeoPoint3(0, 0, 0),
+                    new GeometryHelper.Geometry.GeoPoint3(10, 0, 0)
+                )
+            );
+            block.AppendEntity(
+                new DxfLine(
+                    new GeometryHelper.Geometry.GeoPoint3(0, 5, 0),
+                    new GeometryHelper.Geometry.GeoPoint3(10, 5, 0)
+                )
+            );
             CadCommandSession session = Session(document);
 
             Value(session, "(setq first (cdr (assoc -2 (tblsearch \"BLOCK\" \"B\"))))");

@@ -161,6 +161,17 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
+        public void AlertAfterACommandOfTheRoutine_WritesItsTextOnALineOfItsOwn_AndTheValueAfterTheCommandPrompt()
+        {
+            CadCommandSession session = Session(Blank());
+            Run(session, "(defun c:gha () (command \"CIRCLE\" '(0 0) 3) (alert \"Xong\"))", "GHA");
+
+            // AutoCAD 2021 (runs/tca, the message box block normalised): Xong on a line of its own, then Command: nil
+            string[] lines = session.History.Select(l => l.TrimEnd()).ToArray();
+            Assert.Equal(new[] { "Xong", "Command: nil" }, lines.Skip(lines.Length - 2).ToArray());
+        }
+
+        [Fact]
         public void Alert_OfWhatIsNoString_IsAnError()
         {
             CadCommandSession session = Session(Blank());

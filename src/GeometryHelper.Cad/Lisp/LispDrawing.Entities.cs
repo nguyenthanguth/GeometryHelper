@@ -376,8 +376,7 @@ namespace GeometryHelper.Cad.Lisp
             }
 
             DxfItem main = found.Parent ?? found;
-            DxfBlockTableRecord block =
-                document.FindSpace(main.Handle)?.Block
+            DxfBlockTableRecord block = document.FindSpace(main.Handle)?.Block
                 ?? (main.Space == null ? null : DxfEntity.Of(main)?.Owner as DxfBlockTableRecord);
 
             if (block == null)
@@ -928,7 +927,10 @@ namespace GeometryHelper.Cad.Lisp
                 return null;
             }
 
-            if (!(given[0].Key == 0 && given[0].Value is string typed))
+            // The name of an entity may come first, as it does in the list entget gives (runs/hhh makes a copy of one from its list).
+            int typeAt = given.FindIndex(p => p.Key != -1);
+
+            if (!(typeAt >= 0 && given[typeAt].Key == 0 && given[typeAt].Value is string typed))
             {
                 return null;
             }
@@ -941,6 +943,16 @@ namespace GeometryHelper.Cad.Lisp
             }
 
             List<KeyValuePair<int, object>> groups = ChangesOf(given);
+            CompletePoints(type, groups);
+
+            // A text left on its baseline has no second point: AutoCAD keeps group 11 of its list at 0,0,0 whatever the list gave.
+            if (
+                type == "TEXT"
+                && !groups.Exists(p => (p.Key == 72 || p.Key == 73) && p.Value is int justified && justified != 0)
+            )
+            {
+                groups.RemoveAll(p => p.Key == 11);
+            }
 
             foreach (int required in RequiredOf(type))
             {
@@ -1017,6 +1029,23 @@ namespace GeometryHelper.Cad.Lisp
             });
 
             return result.Succeeded && added ? list : null;
+        }
+
+        /// <summary>A point of two coordinates gets the Z of 0, as AutoCAD keeps every point of an entity in three but the vertices of an LWPOLYLINE (<c>(10 0.0 20.0)</c> of a TEXT is <c>(10 0.0 20.0 0.0)</c> in its list).</summary>
+        private static void CompletePoints(string type, List<KeyValuePair<int, object>> groups)
+        {
+            if (type == "LWPOLYLINE")
+            {
+                return;
+            }
+
+            for (int i = 0; i < groups.Count; i++)
+            {
+                if (groups[i].Value is double[] point && point.Length == 2)
+                {
+                    groups[i] = new KeyValuePair<int, object>(groups[i].Key, new[] { point[0], point[1], 0.0 });
+                }
+            }
         }
 
         /// <summary>The text of a DXF holding one entity, with the groups of a list, for the drawing to take as it takes any entity pasted.</summary>

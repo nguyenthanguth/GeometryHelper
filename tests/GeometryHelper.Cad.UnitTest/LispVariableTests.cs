@@ -150,7 +150,10 @@ namespace GeometryHelper.Cad.UnitTest
 
             // SETVAR takes LTS for LTSCALE typed at the prompt; AutoLISP's getvar takes the full name only
             Assert.Equal("nil", Value(session, "(getvar \"LTS\")"));
-            Assert.Equal("; error: AutoCAD variable setting rejected: \"LTS\" 2.0", Value(session, "(setvar \"LTS\" 2.0)"));
+            Assert.Equal(
+                "; error: AutoCAD variable setting rejected: \"LTS\" 2.0",
+                Value(session, "(setvar \"LTS\" 2.0)")
+            );
             Assert.Equal("1.0", Value(session, "(getvar \"LTSCALE\")"));
         }
     }
