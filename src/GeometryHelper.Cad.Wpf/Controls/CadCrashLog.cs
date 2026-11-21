@@ -6,13 +6,15 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using Python.Runtime;
 
 namespace GeometryHelper.Cad.Wpf
 {
     /// <summary>
     /// The crash log of the apps: what an exception nobody caught leaves in <c>%AppData%\GeometryHelper\Drawing\crash.log</c>,
     /// and the handlers that write it. An exception of the window's thread is written, shown in a message box and marked
-    /// handled, so the app and its drawings stay; an exception of another thread, or one nobody observed in a task, is written
+    /// handled, so the app and its drawings stay (a Python handler that raised after its run is written on the command line
+    /// instead: <see cref="TryReportPython"/>); an exception of another thread, or one nobody observed in a task, is written
     /// and left to run its course. Out of memory and the faults of native code (an access violation) are written too but
     /// end the app, as the process cannot go on after them; a stack overflow ends it before any handler runs and is not
     /// written at all.
@@ -23,6 +25,8 @@ namespace GeometryHelper.Cad.Wpf
         internal const long MaxBytes = 256 * 1024;
 
         private static readonly object Gate = new object();
+
+        private static readonly char[] Separators = { (char)13, (char)10 };
 
         /// <summary>Gets the file the log is kept in: %AppData%\GeometryHelper\Drawing\crash.log.</summary>
         internal static string DefaultPath =>
@@ -144,6 +148,41 @@ namespace GeometryHelper.Cad.Wpf
         }
 
         /// <summary>
+        /// Writes the error of a Python function that .NET called outside a run, a handler a script hung on an event, which reached the
+        /// window's thread as a <see cref="PythonException"/>: one line, <c>Python error: RuntimeError: handler boom</c>, to <paramref name="write"/>
+        /// (the command line of the drawing shown), and a Warn in the log. The host cannot catch it where it is raised, since pythonnet
+        /// builds the delegate (D926).
+        /// </summary>
+        /// <param name="exception">What the dispatcher caught.</param>
+        /// <param name="write">Where the line goes.</param>
+        /// <returns>Whether it was a Python error and has been dealt with; false for any other exception.</returns>
+        internal static bool TryReportPython(Exception exception, Action<string> write)
+        {
+            if (!(exception is PythonException python))
+            {
+                return false;
+            }
+
+            string line;
+
+            using (Py.GIL())
+            {
+                string message = string.Join(
+                    " ",
+                    python.Message.Split(Separators, StringSplitOptions.RemoveEmptyEntries)
+                );
+                line = "Python error: " + python.Type.Name + ": " + message.Trim();
+            }
+
+            GeometryHelperLog.Warn(
+                "CadCrashLog: a Python function called by .NET raised outside a run: " + line,
+                python
+            );
+            write(line);
+            return true;
+        }
+
+        /// <summary>
         /// Puts the handlers in: the window's thread (written, shown, handled), any other thread (written) and a task whose
         /// exception nobody observed (written and observed).
         /// </summary>
@@ -162,6 +201,15 @@ namespace GeometryHelper.Cad.Wpf
 
             application.DispatcherUnhandledException += (s, e) =>
             {
+                // A script's handler of a .NET event that raised after its run ended: the error of the script, not a crash of the app.
+                var model = application.MainWindow?.DataContext as MainViewModel;
+
+                if (TryReportPython(e.Exception, text => model?.WriteCommandLine(text)))
+                {
+                    e.Handled = true;
+                    return;
+                }
+
                 string written = Record(path, e.Exception, "Application.DispatcherUnhandledException", lastCommand);
 
                 try

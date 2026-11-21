@@ -17,6 +17,7 @@ namespace GeometryHelper.Cad.Python
             internal string Status = "completed";
             internal string Summary = string.Empty;
             internal string Trace = string.Empty;
+            internal string Line = string.Empty;
 
             internal static Result Of(PyObject list)
             {
@@ -25,10 +26,12 @@ namespace GeometryHelper.Cad.Python
                 using (PyObject status = list.GetItem(0))
                 using (PyObject summary = list.GetItem(1))
                 using (PyObject trace = list.GetItem(2))
+                using (PyObject line = list.GetItem(3))
                 {
                     result.Status = status.As<string>();
                     result.Summary = summary.As<string>();
                     result.Trace = trace.As<string>();
+                    result.Line = line.As<string>();
                 }
 
                 return result;
@@ -377,6 +380,7 @@ namespace GeometryHelper.Cad.Python
                 using (Py.GIL())
                 {
                     run.ThreadId = PythonEngine.GetPythonThreadID();
+                    RestoreStreams();
                     CadPythonScript.SetCurrent(new CadPythonScript(this, run));
                     run.Computing = true;
 
@@ -451,7 +455,7 @@ namespace GeometryHelper.Cad.Python
             }
             else if (outcome == CadPythonOutcome.Failed)
             {
-                error = LastLine(result.Trace) ?? result.Summary;
+                error = result.Line.Length > 0 ? result.Line : result.Summary;
                 EmitErrors(result.Trace);
                 session.Write("Python error: " + result.Summary);
             }
@@ -473,16 +477,19 @@ namespace GeometryHelper.Cad.Python
             return outcome;
         }
 
-        /// <summary>The last line of a traceback, <c>ZeroDivisionError: division by zero</c>, as <see cref="CadPythonRunEventArgs.Error"/> gives it; null for none.</summary>
-        private static string LastLine(string trace)
+        /// <summary>
+        /// Puts the host's writers back as <c>sys.stdout</c>, <c>sys.stderr</c> and <c>sys.stdin</c>: a script that left one as None, as a
+        /// closed file or as a file of its own would otherwise fail every later run, or take its output away from the command line.
+        /// Called with the GIL held.
+        /// </summary>
+        private void RestoreStreams()
         {
-            if (string.IsNullOrWhiteSpace(trace))
+            using (PyObject sys = Py.Import("sys"))
             {
-                return null;
+                sys.SetAttr("stdout", _stdout);
+                sys.SetAttr("stderr", _stderr);
+                sys.SetAttr("stdin", _stdin);
             }
-
-            string[] lines = trace.Replace("\r\n", "\n").TrimEnd('\n', ' ').Split('\n');
-            return lines[lines.Length - 1].Trim();
         }
 
         /// <summary>Asks a question of the script as the prompts of a small command, and waits on the owner for the answer.</summary>
