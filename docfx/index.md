@@ -27,6 +27,7 @@ dotnet add package GeometryHelper
 | [Tekla Structures](../src/GeometryHelper.TeklaConvert/README.md) | both ways with Tekla, and IFC reference models |
 | [IFC](../src/GeometryHelper.IfcConvert/README.md) | IFC models into solids, through xBIM |
 | [API Reference](xref:GeometryHelper.Geometry) | every type and member of all four, from the XML documentation |
+| [Python API](python-api/index.md) | every type of the Python package as a script sees it, with links to the .NET reference |
 
 ## A first look
 
