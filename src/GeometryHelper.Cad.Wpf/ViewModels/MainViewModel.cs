@@ -146,6 +146,7 @@ namespace GeometryHelper.Cad.Wpf
             DynamicInput = new StatusToggleViewModel("DYN", _settings.DynamicInput);
             DynamicInput.PropertyChanged += OnDynamicInputChanged;
             PropertyChanged += OnInputSourceChanged;
+            StartLoadSecurity();
             ZoomExtentsCommand = new DelegateCommand(_ => Execute("ZOOM E"));
             PanCommand = new DelegateCommand(_ => StartCommand("PAN"));
             OpenCommand = new DelegateCommand(_ => OpenRequested?.Invoke(this, EventArgs.Empty));
@@ -1834,6 +1835,7 @@ namespace GeometryHelper.Cad.Wpf
             file.Session.PromptChanged += OnPromptChanged;
             file.Session.UiRequested += OnUiRequested;
             file.Session.DclHost = _dclHost;
+            file.Session.LoadSecurity = _loadSecurity;
             file.Session.SelectionFilter.FilePath = FilterListsPath;
             file.Session.Clipboard = _clipboard;
             file.Session.SpellDictionaryPath = _spellDictionaryPath;

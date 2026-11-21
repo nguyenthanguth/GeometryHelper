@@ -10,6 +10,16 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>The label of the button that gives a question up, as every task dialog of AutoCAD's has it.</summary>
         public const string Cancel = "Cancel";
 
+        /// <summary>The title of the question over a writable folder added to the trusted folders, AutoCAD's "Trusted File Search Path - Security Concern".</summary>
+        public const string WritableFolderTitle = "Trusted File Search Path - Security Concern";
+
+        /// <summary>The two lines of that question, as AutoCAD words them, two spaces after the first sentence.</summary>
+        public const string WritableFolderQuestion =
+            "The location specified is not read-only.  What do you want to do?\nSpecifying a writable folder can leave your computer vulnerable to malicious code.";
+
+        /// <summary>The label of the button that adds the writable folder all the same.</summary>
+        public const string Continue = "Continue";
+
         /// <summary>The title of Purge's question over an item, AutoCAD's "Purge - Confirm Purge".</summary>
         public const string PurgeTitle = "Purge - Confirm Purge";
 

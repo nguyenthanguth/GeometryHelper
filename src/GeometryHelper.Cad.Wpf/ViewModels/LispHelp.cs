@@ -1,8 +1,8 @@
 namespace GeometryHelper.Cad.Wpf
 {
     /// <summary>
-    /// The Help button of Load/Unload Applications and of the Startup Suite: each opens the page of the guide that tells about
-    /// it, on the documentation site, in the browser. The page is <c>presenter/lisp.md</c> of the guides, and the heading each
+    /// The Help button of Load/Unload Applications and of the Startup Suite, and the link under the load warning: each opens
+    /// the page of the guide that tells about it, on the documentation site, in the browser. The page is <c>presenter/lisp.md</c> of the guides, and the heading each
     /// dialog belongs under.
     /// </summary>
     internal static class LispHelp
@@ -14,5 +14,8 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>The guide's page at the heading "The Startup Suite": the list of files loaded into every drawing opened.</summary>
         internal static string StartupSuite => Page + "#the-startup-suite";
+
+        /// <summary>The guide's page at the heading "Trusted folders and SECURELOAD": which files may load, and the warning that asks about the others.</summary>
+        internal static string TrustedFolders => Page + "#trusted-folders-and-secureload";
     }
 }

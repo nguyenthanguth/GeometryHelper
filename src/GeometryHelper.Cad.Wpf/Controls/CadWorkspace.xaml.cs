@@ -824,6 +824,7 @@ namespace GeometryHelper.Cad.Wpf
                     );
                 _model.AskGetFile = request => CadGetFileDialog.Show(Window.GetWindow(this), request);
                 _model.DclHost = new DclWindowHost(() => Window.GetWindow(this));
+                _model.LoadSecurity.Ask = AskLoadSecurity;
                 _model.ShowCharacterMap = dialog => CharacterMapWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowDictionaries = dialog => SpellDictionariesWindow.Show(Window.GetWindow(this), dialog);
                 _model.InPlaceEditChanged += OnInPlaceEditChanged;
@@ -1647,6 +1648,15 @@ namespace GeometryHelper.Cad.Wpf
 
             AppMenu.DataContext = null;
         }
+
+        /// <summary>
+        /// The warning of SECURELOAD 1, shown over the window on the window's thread: a load asked for from another thread (a
+        /// Python script's) waits here for the answer.
+        /// </summary>
+        private CadLoadAnswer AskLoadSecurity(string path) =>
+            Dispatcher.CheckAccess()
+                ? LoadSecurityWindow.Ask(Window.GetWindow(this), path)
+                : Dispatcher.Invoke(() => LoadSecurityWindow.Ask(Window.GetWindow(this), path));
 
         /// <summary>Import Text's Select File: a .txt or .rtf file of the user's choosing; null where none is picked.</summary>
         private string AskImportTextFile()

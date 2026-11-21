@@ -252,11 +252,15 @@ namespace GeometryHelper.Cad.Wpf
     /// <summary>A category of the list at the left: its name and the line on top of its page.</summary>
     public sealed class GlobalSettingCategory
     {
-        internal GlobalSettingCategory(string name, string intro)
+        internal GlobalSettingCategory(string name, string intro, bool isNew = false)
         {
             Name = name;
             Intro = intro;
+            IsNew = isNew;
         }
+
+        /// <summary>Gets whether the list marks the category with a NEW chip: one of a release not long past.</summary>
+        public bool IsNew { get; }
 
         /// <summary>Gets the name.</summary>
         public string Name { get; }
@@ -603,7 +607,7 @@ namespace GeometryHelper.Cad.Wpf
     /// A value the settings refuse is said under its row and not taken; a key or an alias given to two commands is drawn red
     /// with whom it clashes; Apply and OK wait until every one is put right.
     /// </remarks>
-    public sealed class GlobalSettingsViewModel : ObservableObject
+    public sealed partial class GlobalSettingsViewModel : ObservableObject
     {
         private static readonly string[] Toggles = { "OSNAP", "GRID", "ORTHO", "SNAP", "POLAR", "OTRACK", "DYN" };
 
@@ -1111,6 +1115,11 @@ namespace GeometryHelper.Cad.Wpf
                     "Where the files a drawing names are looked for, as AutoCAD's support file search path. The folders listed here are looked in first, in order, then the default folders beside GeometryHelper.Cad.dll, then the built-in fonts, patterns and linetypes; the folder of the drawing and AutoCAD's own folders are not looked in unless listed."
                 ),
                 new GlobalSettingCategory(
+                    "Security",
+                    "Where AutoLISP and Python code may be loaded from, as AutoCAD’s Security Options.",
+                    true
+                ),
+                new GlobalSettingCategory(
                     "Shortcuts",
                     "Commands, aliases and keys default to AutoCAD's. Click a Keys cell and press the keys (Backspace or Delete clears it, Esc gives the old ones back); type aliases parted by commas. Import acad.pgp… takes the aliases of an acad.pgp you pick. A key or an alias used twice is shown in red."
                 ),
@@ -1134,6 +1143,7 @@ namespace GeometryHelper.Cad.Wpf
                     PythonPath = path;
                 }
             });
+            MakeSecurityCommands();
             ResetShortcutsCommand = new DelegateCommand(_ => FillShortcuts(true));
             ImportPgpCommand = new DelegateCommand(_ =>
             {
@@ -1486,6 +1496,8 @@ namespace GeometryHelper.Cad.Wpf
         {
             var defaults = new GlobalSettings();
             defaults.CopyRecordsFrom(_working);
+            // The files answered Always Load are the user's answers, as the records are: Forget is the way to take them back.
+            defaults.AlwaysLoadedFiles = _working.AlwaysLoadedFiles;
             Load(defaults);
             Notice = "Every category is back to its defaults; Apply or OK takes them.";
         }
@@ -1521,6 +1533,7 @@ namespace GeometryHelper.Cad.Wpf
                 SupportFolders.Add(new FontFolderRow(folder));
             }
 
+            LoadTrustedFolders();
             FillShortcuts(false);
             RaisePage();
         }
@@ -2227,6 +2240,7 @@ namespace GeometryHelper.Cad.Wpf
             Raise(nameof(IsShortcutsPage));
             Raise(nameof(IsTextAndFontsPage));
             Raise(nameof(IsFolderPreferencePage));
+            RaiseSecurity();
             Raise(nameof(IsPythonUsed));
             Raise(nameof(PythonPath));
             _python = null;

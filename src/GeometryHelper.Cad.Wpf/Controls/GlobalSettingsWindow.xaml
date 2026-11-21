@@ -73,6 +73,122 @@
                 <Setter Property="Padding" Value="6,3" />
             </Style>
 
+            <!-- A round button with its words, which wrap: a ring, the accent dot inside when chosen. -->
+            <Style x:Key="SecurityRadio" TargetType="RadioButton">
+                <Setter Property="Foreground" Value="{StaticResource GhText}" />
+                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="Margin" Value="0,0,0,6" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RadioButton">
+                            <Grid Background="Transparent">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid Width="13" Height="13" Margin="0,2,6,0" VerticalAlignment="Top">
+                                    <Ellipse
+                                        x:Name="Ring"
+                                        Stroke="{StaticResource GhTextMuted}"
+                                        StrokeThickness="1"
+                                        Fill="{StaticResource GhInput}"
+                                    />
+                                    <Ellipse
+                                        x:Name="Dot"
+                                        Width="7"
+                                        Height="7"
+                                        Fill="{StaticResource GhAccent}"
+                                        Visibility="Collapsed"
+                                    />
+                                </Grid>
+                                <ContentPresenter Grid.Column="1" VerticalAlignment="Top" />
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Ring" Property="Stroke" Value="{StaticResource GhAccent}" />
+                                    <Setter TargetName="Dot" Property="Visibility" Value="Visible" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- A row of the trusted folders: its entry in mono, the program's muted with a lock, the selected one on the selection colour. -->
+            <Style x:Key="TrustedRow" TargetType="ListBoxItem">
+                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                            <Border
+                                x:Name="Row"
+                                Background="Transparent"
+                                BorderBrush="{StaticResource GhHeader}"
+                                BorderThickness="0,1,0,0"
+                                Padding="8,5"
+                            >
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock
+                                        x:Name="Entry"
+                                        FontSize="12"
+                                        TextTrimming="CharacterEllipsis"
+                                        VerticalAlignment="Center"
+                                        ToolTip="{Binding Entry}"
+                                    >
+                                        <Run
+                                            FontFamily="{StaticResource GhMonoFont}"
+                                            Text="{Binding Entry, Mode=OneWay}"
+                                        />
+                                        <Run
+                                            FontStyle="Italic"
+                                            Foreground="{StaticResource GhTextMuted}"
+                                            Text="{Binding ProgramMark, Mode=OneWay}"
+                                        />
+                                        <Run
+                                            FontStyle="Italic"
+                                            Foreground="#FF8A7A"
+                                            Text="{Binding MissingMark, Mode=OneWay}"
+                                        />
+                                    </TextBlock>
+                                    <local:IconView
+                                        x:Name="Lock"
+                                        Grid.Column="1"
+                                        Size="12"
+                                        StrokeThickness="2"
+                                        Stroke="{StaticResource GhTextMuted}"
+                                        Data="{StaticResource GhIconLock}"
+                                        VerticalAlignment="Center"
+                                        Margin="8,0,0,0"
+                                        Visibility="{Binding IsProgramFolder, Converter={StaticResource Shown}}"
+                                        ToolTip="Always trusted"
+                                    />
+                                </Grid>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsProgramFolder}" Value="True">
+                                    <Setter
+                                        TargetName="Entry"
+                                        Property="Foreground"
+                                        Value="{StaticResource GhTextMuted}"
+                                    />
+                                </DataTrigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter
+                                        TargetName="Row"
+                                        Property="Background"
+                                        Value="{StaticResource GhSelected}"
+                                    />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <Style x:Key="Head" TargetType="TextBlock">
                 <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
                 <Setter Property="FontSize" Value="11" />
@@ -390,6 +506,21 @@
                                                     Text="{Binding Name}"
                                                     Foreground="{StaticResource GhTextMuted}"
                                                 />
+                                                <Border
+                                                    Margin="8,0,0,0"
+                                                    Padding="5,0"
+                                                    CornerRadius="3"
+                                                    Background="{StaticResource GhSelected}"
+                                                    VerticalAlignment="Center"
+                                                    Visibility="{Binding IsNew, Converter={StaticResource Shown}}"
+                                                >
+                                                    <TextBlock
+                                                        Text="NEW"
+                                                        FontSize="9"
+                                                        FontWeight="SemiBold"
+                                                        Foreground="{StaticResource GhText}"
+                                                    />
+                                                </Border>
                                             </StackPanel>
                                         </Border>
                                         <ControlTemplate.Triggers>
@@ -970,6 +1101,246 @@
                                     />
                                 </Border>
                             </StackPanel>
+                        </StackPanel>
+
+                        <!-- Security: SECURELOAD, the trusted folders, LEGACYCODESEARCH and the files always loaded. -->
+                        <StackPanel
+                            Visibility="{Binding IsSecurityPage, Converter={StaticResource Shown}}"
+                            Margin="0,0,0,0"
+                        >
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,2">
+                                <local:IconView
+                                    Size="12"
+                                    StrokeThickness="2.5"
+                                    Stroke="{StaticResource GhTextMuted}"
+                                    Data="{StaticResource GhIconChevron}"
+                                    VerticalAlignment="Center"
+                                />
+                                <TextBlock
+                                    Text="Security Options"
+                                    FontSize="13"
+                                    FontWeight="SemiBold"
+                                    Margin="6,0,0,0"
+                                />
+                                <TextBlock
+                                    Text="SECURELOAD"
+                                    FontFamily="{StaticResource GhMonoFont}"
+                                    FontSize="11"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    VerticalAlignment="Center"
+                                    Margin="6,0,0,0"
+                                />
+                            </StackPanel>
+                            <StackPanel Margin="18,0,0,0">
+                                <TextBlock
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    TextWrapping="Wrap"
+                                    Margin="0,2,0,6"
+                                    Text="These settings restrict the locations from where executable files are loaded.  This helps protect against malicious code in executable files."
+                                />
+                                <RadioButton
+                                    GroupName="SecureLoad"
+                                    Style="{StaticResource SecurityRadio}"
+                                    IsChecked="{Binding IsSecureLoadLeast, Mode=TwoWay}"
+                                    Content="Least secure setting- Load executable files from all locations without displaying a warning."
+                                >
+                                    <RadioButton.ContentTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                                        </DataTemplate>
+                                    </RadioButton.ContentTemplate>
+                                </RadioButton>
+                                <RadioButton
+                                    GroupName="SecureLoad"
+                                    Style="{StaticResource SecurityRadio}"
+                                    IsChecked="{Binding IsSecureLoadWarn, Mode=TwoWay}"
+                                    Content="Load executable files from Trusted locations, and display a warning for other locations."
+                                >
+                                    <RadioButton.ContentTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                                        </DataTemplate>
+                                    </RadioButton.ContentTemplate>
+                                </RadioButton>
+                                <RadioButton
+                                    GroupName="SecureLoad"
+                                    Style="{StaticResource SecurityRadio}"
+                                    IsChecked="{Binding IsSecureLoadMost, Mode=TwoWay}"
+                                    Content="Most secure setting-- Load executable files from Trusted locations only.  All other executable files will be ignored."
+                                >
+                                    <RadioButton.ContentTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                                        </DataTemplate>
+                                    </RadioButton.ContentTemplate>
+                                </RadioButton>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,2">
+                                <local:IconView
+                                    Size="12"
+                                    StrokeThickness="2.5"
+                                    Stroke="{StaticResource GhTextMuted}"
+                                    Data="{StaticResource GhIconChevron}"
+                                    VerticalAlignment="Center"
+                                />
+                                <TextBlock
+                                    Text="Trusted folders for executable files:"
+                                    FontSize="13"
+                                    FontWeight="SemiBold"
+                                    Margin="6,0,0,0"
+                                />
+                                <TextBlock
+                                    Text="TRUSTEDPATHS"
+                                    FontFamily="{StaticResource GhMonoFont}"
+                                    FontSize="11"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    VerticalAlignment="Center"
+                                    Margin="6,0,0,0"
+                                />
+                            </StackPanel>
+                            <StackPanel Margin="18,0,0,0">
+                                <Border
+                                    BorderBrush="{StaticResource GhBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    ToolTip="Specifies which folders have permission to load and execute files that contain code. The program files folders and their subfolders are always trusted."
+                                >
+                                    <StackPanel>
+                                        <Grid Background="{StaticResource GhHeader}">
+                                            <TextBlock
+                                                Style="{StaticResource Head}"
+                                                Text="Folder, in order (\... at the end: its subfolders too)"
+                                            />
+                                        </Grid>
+                                        <ListBox
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Padding="0"
+                                            ItemsSource="{Binding TrustedFolders}"
+                                            SelectedItem="{Binding SelectedTrustedFolder, Mode=TwoWay}"
+                                            ItemContainerStyle="{StaticResource TrustedRow}"
+                                            ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                        />
+                                    </StackPanel>
+                                </Border>
+                                <DockPanel Margin="0,8,0,0">
+                                    <CheckBox
+                                        DockPanel.Dock="Right"
+                                        Style="{StaticResource GhCheckBox}"
+                                        Content="Include subfolders"
+                                        VerticalAlignment="Center"
+                                        IsChecked="{Binding IncludeSubfolders, Mode=TwoWay}"
+                                        IsEnabled="{Binding CanChangeTrustedFolder}"
+                                    />
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button
+                                            Style="{StaticResource Secondary}"
+                                            Margin="0"
+                                            Padding="12,3"
+                                            Content="Add folder..."
+                                            Command="{Binding AddTrustedFolderCommand}"
+                                        />
+                                        <Button
+                                            Style="{StaticResource Secondary}"
+                                            Padding="12,3"
+                                            Content="Remove"
+                                            Command="{Binding RemoveTrustedFolderCommand}"
+                                        />
+                                        <Button
+                                            Style="{StaticResource Secondary}"
+                                            Padding="12,3"
+                                            Content="Move up"
+                                            Command="{Binding MoveTrustedFolderUpCommand}"
+                                        />
+                                        <Button
+                                            Style="{StaticResource Secondary}"
+                                            Padding="12,3"
+                                            Content="Move down"
+                                            Command="{Binding MoveTrustedFolderDownCommand}"
+                                        />
+                                    </StackPanel>
+                                </DockPanel>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,2">
+                                <local:IconView
+                                    Size="12"
+                                    StrokeThickness="2.5"
+                                    Stroke="{StaticResource GhTextMuted}"
+                                    Data="{StaticResource GhIconChevron}"
+                                    VerticalAlignment="Center"
+                                />
+                                <TextBlock
+                                    Text="When searching for executable files:"
+                                    FontSize="13"
+                                    FontWeight="SemiBold"
+                                    Margin="6,0,0,0"
+                                />
+                                <TextBlock
+                                    Text="LEGACYCODESEARCH"
+                                    FontFamily="{StaticResource GhMonoFont}"
+                                    FontSize="11"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    VerticalAlignment="Center"
+                                    Margin="6,0,0,0"
+                                />
+                            </StackPanel>
+                            <StackPanel Margin="18,2,0,0">
+                                <RadioButton
+                                    GroupName="LegacyCodeSearch"
+                                    Style="{StaticResource SecurityRadio}"
+                                    IsChecked="{Binding LegacyCodeSearchExcluded, Mode=TwoWay}"
+                                    Content="Exclude the Start In or drawing folders (recommended)"
+                                />
+                                <RadioButton
+                                    GroupName="LegacyCodeSearch"
+                                    Style="{StaticResource SecurityRadio}"
+                                    IsChecked="{Binding LegacyCodeSearch, Mode=TwoWay}"
+                                    Content="Include the Start In and drawing folders"
+                                />
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,2">
+                                <local:IconView
+                                    Size="12"
+                                    StrokeThickness="2.5"
+                                    Stroke="{StaticResource GhTextMuted}"
+                                    Data="{StaticResource GhIconChevron}"
+                                    VerticalAlignment="Center"
+                                />
+                                <TextBlock
+                                    Text="Files always loaded"
+                                    FontSize="13"
+                                    FontWeight="SemiBold"
+                                    Margin="6,0,0,0"
+                                />
+                            </StackPanel>
+                            <Grid Margin="18,4,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding AlwaysLoadedText}" VerticalAlignment="Center" />
+                                <Button
+                                    Grid.Column="1"
+                                    Style="{StaticResource Secondary}"
+                                    Margin="12,0,0,0"
+                                    Padding="12,3"
+                                    Content="Forget"
+                                    Command="{Binding ForgetAlwaysLoadedCommand}"
+                                />
+                                <TextBlock
+                                    Grid.Column="2"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    TextWrapping="Wrap"
+                                    VerticalAlignment="Center"
+                                    Margin="12,0,0,0"
+                                    Text="Answered Always Load: each loads with no question until it is edited."
+                                />
+                            </Grid>
                         </StackPanel>
 
                         <!-- Shortcuts: a search, then the commands with their aliases and keys. -->
