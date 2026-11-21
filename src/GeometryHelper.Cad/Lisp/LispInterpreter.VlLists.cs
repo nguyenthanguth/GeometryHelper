@@ -24,8 +24,8 @@ namespace GeometryHelper.Cad.Lisp
         /// <c>(vl-sort list f)</c> and <c>(vl-sort-i list f)</c>: a stable merge sort that takes the right item before the
         /// left one only when <c>(f right left)</c> is not nil, so <c>'&lt;</c> sorts up and <c>'&gt;</c> down. The list is
         /// cut with the left half <c>n/2</c> long. <c>vl-sort</c> then drops each integer or symbol that is the same as the
-        /// one before it, as AutoCAD does, so <c>(vl-sort '(3 1 2 3 1) '&lt;)</c> is <c>(1 2 3)</c>; reals, strings and lists
-        /// are kept. <c>vl-sort-i</c> gives the places the items came from, sorting the list read from its end, so equal
+        /// one before it, and each zero real after a zero real, as AutoCAD does, so <c>(vl-sort '(3 1 2 3 1) '&lt;)</c> is
+        /// <c>(1 2 3)</c> and <c>(vl-sort '(0.0 0.0) '&lt;)</c> is <c>(0.0)</c>; other reals, strings and lists are kept. <c>vl-sort-i</c> gives the places the items came from, sorting the list read from its end, so equal
         /// items come out last one first: <c>(vl-sort-i '(3 1 2 3 1) '&lt;)</c> is <c>(4 1 2 3 0)</c>.
         /// </summary>
         private object VlSort(object list, object function, bool indices)
@@ -72,9 +72,21 @@ namespace GeometryHelper.Cad.Lisp
             return ListOf(result);
         }
 
-        /// <summary>Whether <c>vl-sort</c> drops an item for the one before it: two equal integers, or one symbol twice.</summary>
-        private static bool IsDuplicate(object before, object item) =>
-            before is int a ? item is int b && a == b : before is LispSymbol && ReferenceEquals(before, item);
+        /// <summary>
+        /// Whether <c>vl-sort</c> drops an item for the one before it: two equal integers, one symbol twice, or a zero real
+        /// after a zero real (0.0 and -0.0 alike). AutoCAD shares one 0.0 object, so its test of "the same object" sees every
+        /// zero real as the one before; no other real is shared, and an integer 0 beside a 0.0 is a different kind.
+        /// </summary>
+        private static bool IsDuplicate(object before, object item)
+        {
+            if (before is double x)
+            {
+                // Zero is exactly zero here: this is the identity of one object, not a closeness of two lengths.
+                return x == 0.0 && item is double y && y == 0.0;
+            }
+
+            return before is int a ? item is int b && a == b : before is LispSymbol && ReferenceEquals(before, item);
+        }
 
         private void MergeSort(
             List<object> items,

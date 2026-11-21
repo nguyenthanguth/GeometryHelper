@@ -53,6 +53,23 @@ namespace GeometryHelper.Cad.UnitTest
             Assert.Equal(output, Out(expression));
         }
 
+        [Theory]
+        [InlineData("(vl-sort '(0.0 0.0) '<)", "(0.0)")] // AutoCAD 2021: (0.0) (te)
+        [InlineData("(vl-sort '(100.0 0.0 200.0 100.0 0.0 200.0) '<)", "(0.0 100.0 100.0 200.0 200.0)")] // AutoCAD 2021: (0.0 100.0 100.0 200.0 200.0) (te)
+        [InlineData("(vl-sort '(100.0 0.0 200.0 100.0 0.0 200.0) '>)", "(200.0 200.0 100.0 100.0 0.0)")] // AutoCAD 2021: (200.0 200.0 100.0 100.0 0.0) (te)
+        [InlineData("(vl-sort '(0.0 0.0 0) '<)", "(0.0 0)")] // AutoCAD 2021: (0.0 0), an integer 0 after 0.0 is kept (te)
+        [InlineData("(vl-sort '(2.5 2.5) '<)", "(2.5 2.5)")] // AutoCAD 2021: (2.5 2.5), only a zero real is dropped (te)
+        [InlineData("(vl-sort '(0.0 0.0 0.0 1.0 0.0) '<)", "(0.0 1.0)")] // AutoCAD 2021: (0.0 1.0) (te)
+        [InlineData("(vl-sort (list 0.0 (- 0.0) (* 0.0 5)) '<)", "(0.0)")] // AutoCAD 2021: (0.0), -0.0 and 0.0 alike (te)
+        [InlineData("(vl-sort '(0 0.0 1) '<)", "(0 0.0 1)")] // AutoCAD 2021: (0 0.0 1) (te)
+        [InlineData("(vl-sort '(0.0 0 1) '<)", "(0.0 0 1)")] // AutoCAD 2021: (0.0 0 1) (te)
+        [InlineData("(vl-sort (list 0.0 (- 0.0 0.0) 0.001) '<)", "(0.0 0.001)")] // AutoCAD 2021: (0.0 0.001) (te)
+        [InlineData("(vl-sort '(-5.5 12.25 0.0 12.25 -5.5 7.0) '<)", "(-5.5 -5.5 0.0 7.0 12.25 12.25)")] // AutoCAD 2021: (-5.5 -5.5 0.0 7.0 12.25 12.25) (te)
+        public void VlSort_AlsoDropsARepeatedZeroReal(string expression, string output)
+        {
+            Assert.Equal(output, Out(expression));
+        }
+
         [Fact]
         public void VlSort_LeavesTheListItWasGivenAlone()
         {
