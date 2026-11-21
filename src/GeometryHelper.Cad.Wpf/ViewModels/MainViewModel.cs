@@ -545,8 +545,9 @@ namespace GeometryHelper.Cad.Wpf
         public ObservableCollection<string> History { get; } = new ObservableCollection<string>();
 
         /// <summary>
-        /// Gets the last three lines of <see cref="History"/>, those the command line shows above its input; before any,
-        /// the welcome line of <see cref="NewDocumentOffer"/> where an extension offers one and <see cref="NewDrawingWelcomeText"/> where none does.
+        /// Gets the last three lines of <see cref="History"/>; before any, the welcome line of <see cref="NewDocumentOffer"/>
+        /// where an extension offers one and <see cref="NewDrawingWelcomeText"/> where none does. The command line shows
+        /// as many lines as <see cref="GlobalSettings.CommandLineHistoryLines"/> says, and takes only the welcome line from here.
         /// </summary>
         public IReadOnlyList<string> RecentHistory =>
             History.Count == 0

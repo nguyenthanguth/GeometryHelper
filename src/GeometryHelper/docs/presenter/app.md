@@ -462,6 +462,21 @@ ATTDEF, ALIGN, AREA and ARRAY, the others below.
 AutoComplete works at the Command prompt only. AutoCAD 2021's help (Input Search Options, the command line suggestion
 list, Searching for Named Objects) describes no completion at the prompts of a running command, so none is offered there.
 
+The history above the input shows three lines by default, the newest at the bottom, as AutoCAD 2021's command line does.
+Drag the top edge of the command line (the pointer turns to the up-down arrow, and the edge lights blue with a short
+handle) to show more or fewer lines: the history follows the pointer in whole lines, a tip beside it says "5 lines", and
+the count is kept in the settings file (`input` › `historyLines`, 3 by default, 0 to 50) when the button is let go. At
+0 lines the history goes and the input stands alone, the cross moved to its left; the top edge stays, so a drag up brings
+the lines back. The history shows at most the lines that fit in half the height of the drawing area, the canvas and the
+command line together, counted again when the window is resized: a count kept larger than fits shows as many as fit, and
+the kept count is not changed. The wheel scrolls it three lines a notch and a thin bar at its right shows when there are
+more lines than fit; a new line scrolls it to the end only where it was at the end, so a reader who scrolled up is not
+moved. The lines are not cut with an ellipsis: a long one runs past the right edge. Drag to select across lines (Shift+click
+extends, a double click takes a word, Ctrl+A takes all) and press Ctrl+C or choose Copy of the right-click menu, which is
+the input's menu; Esc with lines selected lets them go. The history takes the keyboard only when clicked, and a key typed
+there (a letter, Enter, Space, Esc with nothing selected) goes back to the input and is typed or run there. F2, the text
+window, still shows the whole history.
+
 A right click on the command line gives its menu: **Recent Commands** (the last 20 run, the newest first, each runs again,
 kept in the settings file from one session to the next),
 **Input Settings** (AutoComplete, AutoCorrect, Search System Variables, Search Content and Mid-string Search, ticked when

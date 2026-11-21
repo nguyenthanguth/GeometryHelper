@@ -114,6 +114,7 @@ namespace GeometryHelper.Cad.Wpf
         {
             InitializeComponent();
             AllowDrop = true;
+            StartHistory();
             DataContextChanged += OnDataContextChanged;
             CanvasView.CursorMoved += (s, e) =>
             {
@@ -347,6 +348,19 @@ namespace GeometryHelper.Cad.Wpf
                 return;
             }
 
+            // A key of the input pressed with the history holding the keyboard goes to the input, which the window then treats as
+            // it does any key of the input.
+            bool toInput = TakeHistoryKey(e);
+            KeyOfTheWindow(e);
+
+            if (toInput && !e.Handled)
+            {
+                OnCommandKeyDown(CommandBox, e);
+            }
+        }
+
+        private void KeyOfTheWindow(KeyEventArgs e)
+        {
             Key key = e.Key == Key.System ? e.SystemKey : e.Key;
 
             if (key == Key.LeftShift || key == Key.RightShift)
@@ -702,12 +716,14 @@ namespace GeometryHelper.Cad.Wpf
                 _model.TableLiveChanged -= OnTableLiveChanged;
                 _model.TableCellChanged -= OnTableCellChanged;
                 _model.PropertyChanged -= OnModelPropertyChanged;
+                ForgetHistory();
             }
 
             _model = e.NewValue as MainViewModel;
 
             if (_model != null)
             {
+                FollowHistory();
                 _model.OpenRequested += OnOpenRequested;
                 _model.SaveAsRequested += OnSaveAsRequested;
                 _model.LayerManagerRequested += OnLayerManagerRequested;
@@ -1126,6 +1142,7 @@ namespace GeometryHelper.Cad.Wpf
         {
             GlobalSettings settings = _model.Settings;
             ApplyPanelLayout();
+            ApplyHistoryLines();
             CanvasView.Options.Background = settings.CanvasBackground;
             CanvasView.Options.Paper = settings.Paper;
             CanvasView.Options.BlockEditorBackground = settings.BlockEditorBackground;
@@ -1538,6 +1555,10 @@ namespace GeometryHelper.Cad.Wpf
                         }),
                         System.Windows.Threading.DispatcherPriority.Loaded
                     );
+                    return;
+                case nameof(MainViewModel.RecentHistory):
+                    // Before the first line, the welcome line stands for the history.
+                    ShowWelcome();
                     return;
                 case nameof(MainViewModel.ShowLineWeights):
                     // The drawing shown draws its own LWDISPLAY.

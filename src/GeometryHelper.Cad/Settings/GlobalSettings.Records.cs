@@ -126,6 +126,7 @@ namespace GeometryHelper.Cad
 
         private int _autoCompleteDelay = 300;
         private int _autoCorrectMistypes = AutoCorrectAfter;
+        private int _commandLineHistoryLines = 3;
         private GlobalContentType[] _contentTypes = ContentTypeNames
             .Select(n => new GlobalContentType(n, true))
             .ToArray();
@@ -180,6 +181,21 @@ namespace GeometryHelper.Cad
         {
             get => _autoCorrectMistypes;
             set => _autoCorrectMistypes = (int)Range(value, 1, 50, nameof(AutoCorrectMistypes));
+        }
+
+        /// <summary>Gets the most lines of history <see cref="CommandLineHistoryLines"/> keeps: 50.</summary>
+        public const int CommandLineHistoryLinesMost = 50;
+
+        /// <summary>
+        /// Gets or sets how many lines of the history the command line shows above its input, as the height of AutoCAD 2021's
+        /// command line, which the user drags by its top edge: 3 by default, 0 for the input alone, at most
+        /// <see cref="CommandLineHistoryLinesMost"/>. A value outside that is brought to the nearest end, since a drag gives
+        /// any number; the window then shows no more than half the drawing area holds, and keeps this number.
+        /// </summary>
+        public int CommandLineHistoryLines
+        {
+            get => _commandLineHistoryLines;
+            set => _commandLineHistoryLines = Math.Max(0, Math.Min(CommandLineHistoryLinesMost, value));
         }
 
         /// <summary>
@@ -534,6 +550,7 @@ namespace GeometryHelper.Cad
             w.Value("searchSystemVariables", SearchSystemVariables);
             w.Value("searchContent", SearchContent);
             w.Value("midStringSearch", MidStringSearch);
+            w.Value("historyLines", _commandLineHistoryLines);
             w.Value("delayMilliseconds", _autoCompleteDelay);
             w.Value("sortAlphabetically", SortAlphabetically);
             w.Value("separateSystemVariables", SeparateSystemVariables);

@@ -309,6 +309,30 @@ namespace GeometryHelper.Cad.Wpf
         public Action<string> WriteClipboardText { get; set; }
 
         /// <summary>
+        /// Copies the text selected in the history above the command line to the clipboard, as Ctrl+C there and the menu's Copy
+        /// do, through <see cref="WriteClipboardText"/>, which waits for another program that holds the clipboard.
+        /// </summary>
+        /// <param name="selectedText">The text selected; null or empty for none.</param>
+        /// <returns>Whether text was copied; false with nothing selected or no way to write the clipboard.</returns>
+        internal bool CopyHistorySelection(string selectedText)
+        {
+            if (string.IsNullOrEmpty(selectedText) || WriteClipboardText == null)
+            {
+                return false;
+            }
+
+            WriteClipboardText(selectedText);
+            return true;
+        }
+
+        /// <summary>
+        /// Keeps how many lines of history the user dragged the command line to, in the settings in use, which the window saves
+        /// (<see cref="SettingsChanged"/>) and shows again; one call when the drag ends, not one for each step of it.
+        /// </summary>
+        /// <param name="lines">The lines, 0 for the input alone; held between 0 and <see cref="GlobalSettings.CommandLineHistoryLinesMost"/>.</param>
+        internal void KeepHistoryLines(int lines) => ChangeSettings(s => s.CommandLineHistoryLines = lines);
+
+        /// <summary>
         /// Lists the commands and variables that match what is typed, the first row chosen, as the window does once the delay
         /// has gone by; closes the list where nothing is typed, nothing matches, AutoComplete is off, no drawing is open or a
         /// command is running.

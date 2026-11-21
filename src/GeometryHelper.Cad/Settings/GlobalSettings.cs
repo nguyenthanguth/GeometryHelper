@@ -1510,6 +1510,7 @@ namespace GeometryHelper.Cad
                 Flag("input", "searchSystemVariables", v => _s.SearchSystemVariables = v);
                 Flag("input", "searchContent", v => _s.SearchContent = v);
                 Flag("input", "midStringSearch", v => _s.MidStringSearch = v);
+                Number("input", "historyLines", v => _s.CommandLineHistoryLines = Whole(v));
                 Number("input", "delayMilliseconds", v => _s.AutoCompleteDelay = Whole(v));
                 Flag("input", "sortAlphabetically", v => _s.SortAlphabetically = v);
                 Flag("input", "separateSystemVariables", v => _s.SeparateSystemVariables = v);

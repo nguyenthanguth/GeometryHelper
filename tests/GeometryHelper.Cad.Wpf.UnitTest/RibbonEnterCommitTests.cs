@@ -440,7 +440,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         /// Every box of the ribbon that holds a value must commit at Enter: a box whose text is bound to its source at the
         /// loss of the keyboard and does not say so (<see cref="CommitOnEnter"/>) is found here, so that a new box cannot
         /// bring the fault back. A box that writes at each keystroke (a search box, the command line) and the box of the text
-        /// edited in place are the ones that need no more.
+        /// edited in place are the ones that need no more, and a read-only box (the history of the command line) holds no value.
         /// </summary>
         [Fact]
         public void EveryEditableBoxOfTheRibbonAndItsTabs_CommitsAtEnter()
@@ -537,7 +537,12 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         /// <summary>Whether a box sets its value at Enter: it says so, writes at each keystroke, or is the box of text edited in place.</summary>
         private static bool CommitsAtEnter(TextBox box)
         {
-            if (CommitOnEnter.GetEnabled(box) || box.AcceptsReturn || "InPlaceTextBox".Equals(box.Name))
+            if (
+                CommitOnEnter.GetEnabled(box)
+                || box.AcceptsReturn
+                || box.IsReadOnly
+                || "InPlaceTextBox".Equals(box.Name)
+            )
             {
                 return true;
             }

@@ -6095,7 +6095,7 @@
 
                 <Grid>
                     <!-- Centre: the canvas, then the command line under it only. -->
-                    <Grid Grid.Column="0">
+                    <Grid x:Name="DrawingArea" Grid.Column="0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*" />
                             <RowDefinition Height="Auto" />
@@ -6703,7 +6703,7 @@
                             Visibility="{Binding IsCommandLineShown, Converter={StaticResource Shown}}"
                         >
                             <StackPanel>
-                                <DockPanel Margin="12,6,12,4">
+                                <DockPanel x:Name="HistoryRow" Margin="12,6,12,4">
                                     <local:IconView
                                         Size="14"
                                         StrokeThickness="2"
@@ -6712,17 +6712,110 @@
                                         VerticalAlignment="Top"
                                         Margin="0,1,8,0"
                                     />
-                                    <ItemsControl
-                                        ItemsSource="{Binding RecentHistory}"
+                                    <!-- The history as a read-only text box: drag to select across lines, Shift+click, double-click a word, Ctrl+A, the wheel. It is filled line by line (CadWorkspace.CommandHistory.cs), so that a new line keeps the selection and the place scrolled to; its height is a whole number of lines. The thin bar shows only when there are more lines than fit. -->
+                                    <TextBox
+                                        x:Name="HistoryBox"
+                                        IsReadOnly="True"
+                                        IsReadOnlyCaretVisible="False"
+                                        TextWrapping="NoWrap"
+                                        HorizontalScrollBarVisibility="Hidden"
+                                        VerticalScrollBarVisibility="Auto"
+                                        VerticalContentAlignment="Bottom"
+                                        BorderThickness="0"
+                                        Padding="0"
+                                        Background="Transparent"
                                         Foreground="{StaticResource GhTextMuted}"
-                                        Focusable="False"
+                                        SelectionBrush="#1F4E79"
+                                        SelectionOpacity="1"
+                                        IsInactiveSelectionHighlightEnabled="True"
+                                        FocusVisualStyle="{x:Null}"
+                                        ContextMenu="{x:Null}"
+                                        PreviewKeyDown="OnHistoryKeyDown"
+                                        PreviewTextInput="OnHistoryTextInput"
+                                        PreviewMouseRightButtonUp="OnHistoryRightUp"
                                     >
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" />
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
+                                        <TextBox.Resources>
+                                            <!-- The lines selected stay blue while the menu is open and the keyboard is elsewhere, as the design draws them. -->
+                                            <SolidColorBrush
+                                                x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}"
+                                                Color="#1F4E79"
+                                            />
+                                        </TextBox.Resources>
+                                        <TextBox.Template>
+                                            <ControlTemplate TargetType="TextBox">
+                                                <Border Background="{TemplateBinding Background}">
+                                                    <ScrollViewer
+                                                        x:Name="PART_ContentHost"
+                                                        Focusable="False"
+                                                        HorizontalScrollBarVisibility="Hidden"
+                                                        VerticalScrollBarVisibility="{TemplateBinding VerticalScrollBarVisibility}"
+                                                    >
+                                                        <ScrollViewer.Resources>
+                                                            <!-- The thin bar: 8 wide, its thumb 4 px of #5B6573, 8 px with the pointer over the bar. -->
+                                                            <Style
+                                                                TargetType="ScrollBar"
+                                                                BasedOn="{StaticResource GhScrollBar}"
+                                                            >
+                                                                <Setter Property="Width" Value="8" />
+                                                                <Setter Property="MinWidth" Value="8" />
+                                                                <Setter Property="Template">
+                                                                    <Setter.Value>
+                                                                        <ControlTemplate TargetType="ScrollBar">
+                                                                            <Grid Background="Transparent">
+                                                                                <Track
+                                                                                    x:Name="PART_Track"
+                                                                                    IsDirectionReversed="True"
+                                                                                >
+                                                                                    <Track.DecreaseRepeatButton>
+                                                                                        <RepeatButton
+                                                                                            Style="{StaticResource GhScrollPage}"
+                                                                                            Command="ScrollBar.PageUpCommand"
+                                                                                        />
+                                                                                    </Track.DecreaseRepeatButton>
+                                                                                    <Track.IncreaseRepeatButton>
+                                                                                        <RepeatButton
+                                                                                            Style="{StaticResource GhScrollPage}"
+                                                                                            Command="ScrollBar.PageDownCommand"
+                                                                                        />
+                                                                                    </Track.IncreaseRepeatButton>
+                                                                                    <Track.Thumb>
+                                                                                        <Thumb MinHeight="16">
+                                                                                            <Thumb.Template>
+                                                                                                <ControlTemplate TargetType="Thumb">
+                                                                                                    <Border
+                                                                                                        x:Name="Pill"
+                                                                                                        Background="#5B6573"
+                                                                                                        CornerRadius="2"
+                                                                                                        Margin="2,0"
+                                                                                                    />
+                                                                                                    <ControlTemplate.Triggers>
+                                                                                                        <DataTrigger
+                                                                                                            Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ScrollBar}}"
+                                                                                                            Value="True"
+                                                                                                        >
+                                                                                                            <Setter
+                                                                                                                TargetName="Pill"
+                                                                                                                Property="Margin"
+                                                                                                                Value="0"
+                                                                                                            />
+                                                                                                        </DataTrigger>
+                                                                                                    </ControlTemplate.Triggers>
+                                                                                                </ControlTemplate>
+                                                                                            </Thumb.Template>
+                                                                                        </Thumb>
+                                                                                    </Track.Thumb>
+                                                                                </Track>
+                                                                            </Grid>
+                                                                        </ControlTemplate>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                            </Style>
+                                                        </ScrollViewer.Resources>
+                                                    </ScrollViewer>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </TextBox.Template>
+                                    </TextBox>
                                 </DockPanel>
                                 <!-- The input: right-click for its menu (Recent Commands, Input Settings, Copy, Paste, Options…); AutoComplete pops up above it. -->
                                 <Border
@@ -6757,6 +6850,17 @@
                                                 </local:CommandSuggestionList.Effect>
                                             </local:CommandSuggestionList>
                                         </Popup>
+                                        <!-- With no lines of history (dragged to 0) the history row is gone and the cross stands here, before the prompt mark. -->
+                                        <local:IconView
+                                            x:Name="InputClose"
+                                            Size="14"
+                                            StrokeThickness="2"
+                                            Stroke="{StaticResource GhTextMuted}"
+                                            Data="{StaticResource GhIconClose}"
+                                            VerticalAlignment="Center"
+                                            Margin="0,0,8,0"
+                                            Visibility="Collapsed"
+                                        />
                                         <local:IconView
                                             Size="14"
                                             StrokeThickness="2"
@@ -6783,6 +6887,79 @@
                                 </Border>
                             </StackPanel>
                         </Border>
+                        <!-- The top edge of the command line, 6 px across the line of its border: dragged up or down to show more or fewer lines of history, in whole lines. Over it, or dragged, the edge lights as a 2 px blue line with a short handle, as the design draws it. -->
+                        <Thumb
+                            x:Name="HistoryGrip"
+                            Grid.Row="1"
+                            Height="6"
+                            VerticalAlignment="Top"
+                            Margin="0,-3,0,0"
+                            Cursor="SizeNS"
+                            Focusable="False"
+                            Visibility="{Binding IsCommandLineShown, Converter={StaticResource Shown}}"
+                            DragStarted="OnHistoryGripStarted"
+                            DragDelta="OnHistoryGripDelta"
+                            DragCompleted="OnHistoryGripCompleted"
+                        >
+                            <Thumb.Template>
+                                <ControlTemplate TargetType="Thumb">
+                                    <Grid Background="Transparent">
+                                        <Border
+                                            x:Name="Edge"
+                                            Height="2"
+                                            VerticalAlignment="Center"
+                                            Background="{StaticResource GhAccent}"
+                                            Visibility="Collapsed"
+                                        />
+                                        <Border
+                                            x:Name="Handle"
+                                            Width="32"
+                                            Height="6"
+                                            CornerRadius="3"
+                                            HorizontalAlignment="Center"
+                                            Background="{StaticResource GhAccent}"
+                                            Visibility="Collapsed"
+                                        />
+                                    </Grid>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Edge" Property="Visibility" Value="Visible" />
+                                            <Setter TargetName="Handle" Property="Visibility" Value="Visible" />
+                                        </Trigger>
+                                        <Trigger Property="IsDragging" Value="True">
+                                            <Setter TargetName="Edge" Property="Visibility" Value="Visible" />
+                                            <Setter TargetName="Handle" Property="Visibility" Value="Visible" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Thumb.Template>
+                        </Thumb>
+                        <!-- The count by the pointer while the edge is dragged: "5 lines". -->
+                        <Popup
+                            x:Name="HistoryTip"
+                            PlacementTarget="{Binding ElementName=DrawingArea}"
+                            Placement="Relative"
+                            AllowsTransparency="True"
+                            StaysOpen="True"
+                            Focusable="False"
+                            IsHitTestVisible="False"
+                        >
+                            <Border
+                                Background="#262B33"
+                                BorderBrush="{StaticResource GhBorder}"
+                                BorderThickness="1"
+                                CornerRadius="3"
+                                Padding="6,2"
+                            >
+                                <TextBlock
+                                    x:Name="HistoryTipText"
+                                    FontFamily="{StaticResource GhFont}"
+                                    FontSize="11"
+                                    FontWeight="Medium"
+                                    Foreground="{StaticResource GhText}"
+                                />
+                            </Border>
+                        </Popup>
                     </Grid>
                 </Grid>
             </DockPanel>
