@@ -23,6 +23,9 @@ namespace GeometryHelper.Cad.Python
         private readonly ICadPythonOwner _owner;
         private readonly Dictionary<CadDocument, PyObject> _consoles = new Dictionary<CadDocument, PyObject>();
         private PyObject _app;
+        private PyObject _stdout;
+        private PyObject _stderr;
+        private PyObject _stdin;
         private IntPtr _threadState;
         private int _ownerThread;
         private string _startProblem;
@@ -188,6 +191,9 @@ namespace GeometryHelper.Cad.Python
                     _consoles.Clear();
                     DisposeDefined();
                     using (_app.InvokeMethod("uninstall")) { }
+                    _stdout.Dispose();
+                    _stderr.Dispose();
+                    _stdin.Dispose();
                     _app.Dispose();
                 }
             }
@@ -259,6 +265,13 @@ namespace GeometryHelper.Cad.Python
 
                     using (PyObject delegateObject = emit.ToPython())
                     using (_app.InvokeMethod("install", delegateObject)) { }
+
+                    using (PyObject sys = Py.Import("sys"))
+                    {
+                        _stdout = sys.GetAttr("stdout");
+                        _stderr = sys.GetAttr("stderr");
+                        _stdin = sys.GetAttr("stdin");
+                    }
                 }
 
                 _threadState = PythonEngine.BeginAllowThreads();

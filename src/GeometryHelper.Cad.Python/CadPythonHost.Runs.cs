@@ -377,6 +377,7 @@ namespace GeometryHelper.Cad.Python
                 using (Py.GIL())
                 {
                     run.ThreadId = PythonEngine.GetPythonThreadID();
+                    RestoreStreams();
                     CadPythonScript.SetCurrent(new CadPythonScript(this, run));
                     run.Computing = true;
 
@@ -471,6 +472,21 @@ namespace GeometryHelper.Cad.Python
             _current = null;
             RaiseFinished(step, document, outcome, error, path);
             return outcome;
+        }
+
+        /// <summary>
+        /// Puts the host's writers back as <c>sys.stdout</c>, <c>sys.stderr</c> and <c>sys.stdin</c>: a script that left one as None, as a
+        /// closed file or as a file of its own would otherwise fail every later run, or take its output away from the command line.
+        /// Called with the GIL held.
+        /// </summary>
+        private void RestoreStreams()
+        {
+            using (PyObject sys = Py.Import("sys"))
+            {
+                sys.SetAttr("stdout", _stdout);
+                sys.SetAttr("stderr", _stderr);
+                sys.SetAttr("stdin", _stdin);
+            }
         }
 
         /// <summary>The last line of a traceback, <c>ZeroDivisionError: division by zero</c>, as <see cref="CadPythonRunEventArgs.Error"/> gives it; null for none.</summary>
