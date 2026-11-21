@@ -95,12 +95,16 @@ def undo_group(document: CadDocument, name: str) -> Generator[CadDocument, None,
 
     ``BeginGroup(name)`` runs on entry. ``EndGroup()`` runs when the block ends normally; ``CancelGroup()`` runs when
     it raises, and the exception goes on. A group left open by a forgotten ``EndGroup`` makes ``SaveAs`` throw.
+    Groups nest, and a cancel takes back every open group: after an inner block that raised, the outer block has no
+    group left to end or cancel, and does neither.
     """
     document.BeginGroup(name)
     try:
         yield document
     except BaseException:
-        document.CancelGroup()
+        if document.IsInGroup:
+            document.CancelGroup()
         raise
     else:
-        document.EndGroup()
+        if document.IsInGroup:
+            document.EndGroup()

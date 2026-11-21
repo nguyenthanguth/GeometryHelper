@@ -19,6 +19,7 @@ from geometryhelper import _DISTRIBUTION  # pyright: ignore[reportPrivateUsage]
 if TYPE_CHECKING:
     from GeometryHelper.Geometry import GeoPoint2, GeoPoint3
     from System import Array
+    from System.Collections.Generic import IEnumerable
 
 try:
     import numpy as np
@@ -56,7 +57,7 @@ def _kind_of(net_type: Any) -> str | None:
     return None
 
 
-def to_numpy(values: Any) -> NDArray[np.float64]:
+def to_numpy(values: IEnumerable[float] | IEnumerable[GeoPoint2] | IEnumerable[GeoPoint3]) -> NDArray[np.float64]:
     """Copy a .NET array of Double, GeoPoint2 or GeoPoint3 into a new numpy array that the caller owns.
 
     Double gives shape ``(n,)``, GeoPoint2 ``(n, 2)`` and GeoPoint3 ``(n, 3)``, always float64. A .NET array is
@@ -64,11 +65,13 @@ def to_numpy(values: Any) -> NDArray[np.float64]:
     List) first goes through one ``Enumerable.ToArray`` call. Another element type, or a Python list, raises a
     TypeError.
     """
-    kind = _kind_of(values.GetType()) if hasattr(values, "GetType") else None
+    # The parameter type is for the caller's type checker; a Python list still reaches here at run time.
+    net_type: Any = values.GetType() if hasattr(values, "GetType") else None
+    kind = _kind_of(net_type) if hasattr(values, "GetType") else None
     if kind is None:
         raise TypeError(f"to_numpy takes {_ACCEPTED}, not {type(values).__name__}.")
     element, width = _KINDS[kind]
-    net_array = values if values.GetType().IsArray else _linq.Enumerable.ToArray[element](values)
+    net_array = values if net_type.IsArray else _linq.Enumerable.ToArray[element](values)
     count = _linq.Enumerable.Count[element](net_array)
     result = np.empty(count if width == 1 else (count, width), dtype=np.float64)
     if count:
