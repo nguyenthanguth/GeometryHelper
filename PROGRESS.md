@@ -136,8 +136,12 @@ scripts inside the app, and a script outside that drives a running app.
       CLAUDE.md verify line for the Cad.Python suite; a Wpf test of CadAppRemoteHost.IsOwnerThread; the ribbon layer box
       blank after U; EntityCount cached inside an open group and a failed ApplyEdit taking back a run's whole group
       silently (the maintainer to decide); output flushed only when the window is next idle during a long run
-- [ ] P4. Driving a running app from outside: a Python client over `GeometryHelper.Cad.Remote`'s named pipe (open,
-      draw, select, run commands, read the drawing)
+- [x] P4. Driving a running app from outside: a Python client over `GeometryHelper.Cad.Remote`'s named pipe (open,
+      draw, select, run commands, read the drawing). Done 2026-11-21: the .NET CadApplication through pythonnet in a
+      `with` block, no protocol change; a headless test server and 63 pytest tests on both runtimes; checked on the
+      real app (100 lines committed in 207 ms, one U takes the commit back)
+- [ ] P4 parked: CadObjectFilter's Layer, Layout and Kind typed `| None` in the stubs; a CadApplication used after
+      Dispose reconnects silently (documented); the app's announced title empty just after it starts
 - [ ] P5. Examples and the guide: a script per common task, and the API reference for Python from the XML docs
 - [ ] P6. Scripts in the trusted folders of L6 only, and a script's errors shown without closing the app
 
