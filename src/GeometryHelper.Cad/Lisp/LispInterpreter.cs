@@ -74,6 +74,7 @@ namespace GeometryHelper.Cad.Lisp
             RegisterUnits();
             RegisterNamespaces();
             RegisterRegistry();
+            RegisterCom();
             LispApplication.Register(this);
         }
 

@@ -25,7 +25,6 @@ namespace GeometryHelper.Cad.Lisp
                 symbol.Value = a[1] as LispCons ?? throw TypeError("listp", a[1]);
                 return symbol;
             });
-            Define("VL-LOAD-COM", 0, 0, a => _empty);
             Define("LOAD", 1, 2, a => LoadFile(Str(a[0]), a.Length > 1, a.Length > 1 ? a[1] : null));
         }
 
@@ -145,6 +144,12 @@ namespace GeometryHelper.Cad.Lisp
                     return Intern("ENAME");
                 case LispCatchAllError _:
                     return Intern("VL-CATCH-ALL-APPLY-ERROR");
+                case LispVariant _:
+                    return Intern("VARIANT");
+                case LispSafeArray _:
+                    return Intern("SAFEARRAY");
+                case LispVlaObject _:
+                    return Intern("VLA-OBJECT");
                 default:
                     return null;
             }

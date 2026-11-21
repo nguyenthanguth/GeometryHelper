@@ -173,6 +173,15 @@ namespace GeometryHelper.Cad.Lisp
                 case LispCatchAllError _:
                     builder.Append("#<%catch-all-apply-error%>");
                     break;
+                case LispVariant variant:
+                    builder.Append(variant.PrintForm);
+                    break;
+                case LispSafeArray _:
+                    builder.Append("#<safearray...>");
+                    break;
+                case LispVlaObject vla:
+                    builder.Append(vla.PrintForm);
+                    break;
                 default:
                     builder.Append(Convert.ToString(value, CultureInfo.InvariantCulture));
                     break;
