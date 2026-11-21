@@ -45,16 +45,16 @@ python -m venv .venv
 .venv\Scripts\python -m pip install "artifacts\python\geometryhelper-13.12.0-py3-none-win_amd64.whl[numpy]"
 ```
 
-The wheel is 10 193 657 bytes. It holds the three assemblies (`GeometryHelper.dll`, `GeometryHelper.Cad.dll` and
+The wheel is 10 200 681 bytes. It holds the three assemblies (`GeometryHelper.dll`, `GeometryHelper.Cad.dll` and
 `GeometryHelper.Cad.Remote.dll`) with the `Fonts`, `Hatches` and `Linetypes` folders the presenter finds beside them (8
-files, 15 722 955 bytes unpacked), the Python module (4 files, 10 505 bytes), and the stubs (18 files, 4 448 540 bytes
+files, 15 723 467 bytes unpacked), the Python module (6 files, 30 652 bytes), and the stubs (18 files, 4 449 463 bytes
 for `GeometryHelper`, 8 files, 8 930 bytes for `System`). It holds no XML documentation and no PDB: the XML is read once,
 when the stubs are written.
 
 `bash tools/python/verify-python.sh` does all of it, then makes a fresh virtual environment, installs the wheel there and
 runs `tests/python` against it, once on each runtime; the `python` job of `.github/workflows/build.yml` runs the same
-script on Python 3.11 and 3.14. On the test machine, 152 tests pass on .NET 8 (24.3 s) and 152 on .NET Framework
-4.8 (24.1 s).
+script on Python 3.11 and 3.14, and then the tests of the Python inside the app on both runtimes (`GH_PYTHON` names
+the Python to start). On the test machine, 158 tests pass on .NET 8 (27.2 s) and 158 on .NET Framework 4.8 (27.8 s).
 
 ## A first script
 
@@ -356,6 +356,14 @@ receives the document itself (`with undo_group(document, "name") as target:`).
 Groups nest, and the whole stack is one undo step. A cancel takes back every open group, so after an inner block that
 raised, the outer block finds none left and neither ends nor cancels one: the first exception is the one that arrives.
 
+## Inside GeometryHelper CAD
+
+The same library runs inside the app. GeometryHelper CAD has a PYTHON palette for typing Python, PYRUN for running a file and
+PYLOAD for loading a file whose decorated functions become commands, and a script there asks the user for points,
+distances and objects through `geometryhelper.cad`, with one undo step for the whole run. It starts a CPython 3.11 to 3.15 of
+your own, which Global settings can name; the wheel is not used there, as the app brings its own copy of the package.
+[Python in the app](presenter/python.md) is the guide.
+
 ## Stubs and an editor
 
 The wheel carries the stubs of the library, so an editor completes the .NET names and checks a script that uses them. They
@@ -413,7 +421,8 @@ tuple from [mcneel/pythonstubs](https://github.com/mcneel/pythonstubs), and the 
 - Installing from PyPI, until the package is published under a name of its own.
 - A frozen application (PyInstaller and the like): the package gives no hook, so the assemblies would have to be added
   by hand.
-- A module of its own for the presenter (there is no `geometryhelper.cad`): `GeometryHelper.Cad` is imported as any other
+- A module for the presenter outside the app: `geometryhelper.cad` works inside GeometryHelper CAD only (see
+  [Inside GeometryHelper CAD](#inside-geometryhelper-cad)), and from outside `GeometryHelper.Cad` is imported as any other
   namespace.
 
 ## Where to go next
