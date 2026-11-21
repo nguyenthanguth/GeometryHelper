@@ -342,6 +342,7 @@ the same app through CadApplication: use geometryhelper.cad, which reaches the d
 ## See also
 
 - [Python](../python.md): the library and the presenter from outside the app, the stubs, numpy in blocks and undo groups.
+- [Python examples](../python-examples.md): three scripts for PYRUN and PYLOAD, with what each prints, and ten more for outside the app.
 - [AutoLISP](lisp.md): the other language of the command line; `command`, the prompts and Esc as it does them.
 - [Command plugins](plugins.md): a command written in a .NET assembly.
 - [Settings, autosave and the window](app.md#the-python-palette): the palette and the Python setting.

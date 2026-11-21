@@ -438,5 +438,6 @@ inside the app is refused a connection to that app (it uses `geometryhelper.cad`
 | Page | What it covers |
 |---|---|
 | [How do I](howto.md) | a task, the call that does it, and the page that tells the rest: the calls are the ones a script makes |
+| [Python examples](python-examples.md) | thirteen scripts, on the library, in the app and driving a running app, each shown with what it prints |
 | [DXF](dxf/index.md), [Reading and writing DWG files](dxf/dwg.md) | the drawing, its tables and entities, read and written |
 | [The 2D presenter](presenter/index.md), [Editing as AutoCAD does](presenter/editing.md) | `CadDocument`, its command session and undo |
