@@ -61,6 +61,26 @@ namespace GeometryHelper.Fixture
             return true;
         }
 
+        public bool TryScale(string key, out int index, double tolerance)
+        {
+            index = 0;
+            return true;
+        }
+
+        public bool TryScale(string key, out int index, double tolerance, out string note)
+        {
+            index = 0;
+            note = "";
+            return true;
+        }
+
+        public bool TryDivide(int number, out int quotient, out int remainder, double tolerance, double limit)
+        {
+            quotient = 0;
+            remainder = 0;
+            return true;
+        }
+
         public void Fill(int count = 3, string name = "n") { }
 
         public int Sum(params int[] values) => values.Length;

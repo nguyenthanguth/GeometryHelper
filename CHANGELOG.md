@@ -49,6 +49,29 @@ exception with a message box; it is now `Python error: <Type>: <message>` on the
 tests run each way a script can end badly by PYRUN and in the palette; a recursion past about 650 levels through .NET
 callbacks still overflows the stack and ends the process, and is parked.
 
+**NEW.** Thirteen Python examples in `src/python/examples`, one per common task, and a guide page, "Python examples", that
+shows each file's own text with what it prints. Seven run outside the app on the libraries (the layers of a drawing with
+their objects and closed areas, polyline vertices into numpy, a drawing made on a command line with no window and saved as
+DXF or DWG, union, difference and offset of regions, a box with a hole measured, a CSV report of a folder, DXF to DWG and
+back), three inside GeometryHelper CAD (numbers at picked points with PYRUN, the commands RECTC and LAYERCOUNT with
+PYLOAD, the length and closed area of a selection) and three drive a running app (a grid drawn and read back, a pick, the
+open drawings). Every file is run by a test on a drawing the test builds, so none can drift from the library: the
+outside ones by pytest on .NET 8 and .NET Framework 4.8, the in-app ones by the Python host's suite on both runtimes, the
+remote ones against the headless test server, and all of them type-check with no error in pyright. On the test drawing,
+four layers and six objects, the layer list gives `Slabs 2 12282743.339` (a closed polyline 4 000 by 3 000 and a circle of
+radius 300), and the box 1 000 by 500 by 200 with a hole of 100 by 100 through it gives a volume of 98 000 000 and an area
+of 1 660 000. A further test fails when an example has no test, no row in the folder's README or no section on the page.
+
+**NEW.** A Python API on the docs site: a page for each of the 806 types of the `geometryhelper` package, with its import
+line, every member as a script sees it (each overload, `self`, out parameters in the returned tuple, Python types) and its
+summary, and a link from each member to its page in the .NET reference, where the remarks and examples are. The pages are
+written from the stubs an editor reads, by `tools/python/make-api-pages.py`, and the docs build now runs `docfx metadata`,
+the page writer and `docfx build` in turn, so a link is written only to a .NET page that exists and a wrong one fails the
+build. Of the 10 272 member groups, 9 907 link to a .NET page; the other 365 have none to link to (members pythonnet adds,
+such as `__enter__`, `__iter__` and the flags operators, and the implicit constructors). On the test machine the whole docs
+build takes 119 s in its three steps (35 s, 2 s and 82 s) against 120 s for the one step before, and the site grows from
+173.0 MB to 188.8 MB: 11.1 MB of Python pages (825 Markdown pages written, 827 HTML pages more) and 4.4 MB more search index.
+
 **NEW.** A Python script outside the app drives a running GeometryHelper CAD over the named pipe of
 `GeometryHelper.Cad.Remote`, with the .NET client the `geometryhelper` wheel already holds and loads:
 `with CadApplication() as app:` connects (pythonnet makes every `IDisposable` a context manager, so `Dispose` runs at the
@@ -119,6 +142,8 @@ is not one is refused in the presenter's words before the setter is called: "Dia
 a public constructor, `CadSnapKind.Custom` and `CadSnapResult.CustomSnap` report a plugin's snap.
 
 **NEW.** The system variable NOMUTT, 0 or 1, kept for the session and 0 at first, as AutoCAD 2021 gives it (`(getvar "NOMUTT")` is 0, `(setvar "NOMUTT" 1)` is taken, 2 and `"1"` are rejected, 5 typed says `Requires 0 or 1 only.`). AutoCAD's 1 mutes the prompts a routine's `command` writes (ZOOM Extents then writes `_.ZOOM _E nil` alone); the presenter keeps the value and mutes nothing, so the maintainer's TE, which stops at its first `(setvar 'nomutt 1)`, runs on. `Nomutt_IsNoughtAtFirst_TakesNoughtAndOne_AndKeepsWhatItWasGiven` (red before).
+
+**FIXED.** The Python stubs gave a call that pythonnet refuses for 876 members whose `out` parameter is followed by another parameter: `GeoSolid3.TrySubtract(tool, out result, tolerance)` was written `TrySubtract(tool, tolerance)`, and `plate.TrySubtract(cutter, tolerance)` is a `TypeError: No method matches given arguments` on .NET 8 and on .NET Framework 4.8 alike, while `plate.TrySubtract(cutter, None, tolerance)` ran and the editor flagged it. pythonnet leaves out a trailing `out` argument, and one before a parameter only when that parameter is a keyword argument, so the stubs now write the parameters after the first such `out` keyword-only: `TrySubtract(tool, *, tolerance)`, called `plate.TrySubtract(cutter, tolerance=tolerance)`, with the same tuple back. 864 of the 876 are followed by a `tolerance`, 9 by `options`, 2 by `options` and `closing`, 1 by `tolerance` and `maxGap`; none is a `ref` parameter, a params array or a Python keyword. Every other member of the stubs is as it was (a diff of the generated stubs shows only the added `*`, and 23 signatures wrapped onto several lines for its three columns). `AnOutParameterInTheMiddle_LeavesTheParametersAfterItKeywordOnly` (red before), seven pythonnet pins in `test_a11_what_the_stubs_rest_on.py` on both runtimes, and a typecheck pair, `ok_outparams.py` and the three lines of `bad_flags_and_outparams.py` that were accepted before.
 
 **FIXED.** A command typed with the `_` or `.` AutoCAD takes off the front is run: `_REGEN`, `.REGEN`, `_.REGEN`, `_U`, `.U` and `_L` gave `Unknown command`, where AutoCAD 2021 writes `Regenerating model.` for each REGEN, undoes with `_U` and `.U`, and starts LINE with `_L`. An unknown name is refused without them, as AutoCAD says it (`_.FOO` is `Unknown command "FOO"`, `_.-FOO` is `"-FOO"`). `command` from a routine took them off already. `L4ParkedFixTests` (red before).
 

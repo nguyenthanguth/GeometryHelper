@@ -1,7 +1,8 @@
 name: Docs
 
 # The documentation site: the guides under src/GeometryHelper/docs, the README of each bridge, and an
-# API reference generated from the XML comments of all four projects. DocFX has to build a project to
+# API reference generated from the XML comments of all four projects, and one for Python written from the
+# stubs of the Python package. DocFX has to build a project to
 # read its comments, so this job compiles them the way the build workflow does. The vendor assemblies
 # the bridges need are committed under Lib and Lib{year}, so nothing has to be installed. Tekla ships
 # one package per version from the same source, and 2026 stands for all three: they differ in the
@@ -42,6 +43,24 @@ jobs:
       - name: Install DocFX
         run: dotnet tool install -g docfx --version 2.80.1
 
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: Build the libraries the Python API is read from
+        # The Python API pages are written from the stubs of the Python package, and the stubs from the Release
+        # libraries and their XML documentation: GeometryHelper.Cad brings the core and the remote client with it.
+        # The stub generator is built beside them, the way the build workflow builds it for its Python job.
+        run: |
+          dotnet build src/GeometryHelper.Cad/GeometryHelper.Cad.csproj -c Release
+          dotnet build tools/GeometryHelper.PyStubs/GeometryHelper.PyStubs.csproj -c Release
+
+      - name: Write the Python stubs
+        # The script a developer runs. It needs bash, which the Windows runner has, and writes
+        # src/python/GeometryHelper-stubs (git-ignored) in about a second.
+        shell: bash
+        run: bash tools/python/make-stubs.sh
+
       - name: Restore TeklaConvert for the version being documented
         # TeklaConvert keeps a separate obj folder per Tekla version, because it is built once for each
         # of them (see BaseIntermediateOutputPath in Directory.Build.props). DocFX passes TeklaVersion to
@@ -51,11 +70,22 @@ jobs:
         # property puts the assets where the compilation will look.
         run: dotnet restore src/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj -p:TeklaVersion=2026
 
+      - name: Extract the API metadata
+        # docfx reads docfx.json at the root and extracts the API metadata into docfx/api. The Python API
+        # pages need the uids it writes there, so the extraction runs on its own, before they are made.
+        # Warnings are failures here for the same reason they are in the build: a link that does not
+        # resolve is a page a reader will land on and find nothing.
+        run: docfx metadata docfx.json --warningsAsErrors
+
+      - name: Write the Python API pages
+        # One Markdown page per type of the stubs into docfx/python-api (git-ignored), each member linked to
+        # its .NET page by a uid read from docfx/api, so a link is written only to a page that exists.
+        run: python tools/python/make-api-pages.py --stubs src/python/GeometryHelper-stubs --api docfx/api --out docfx/python-api
+
       - name: Build the site
-        # docfx reads docfx.json at the root: it extracts the API metadata into docfx/api and writes the
-        # site into _site. Warnings are failures here for the same reason they are in the build: a link
-        # that does not resolve is a page a reader will land on and find nothing.
-        run: docfx docfx.json --warningsAsErrors
+        # docfx writes the site into _site from the guides, the .NET reference docfx/api and the Python API
+        # pages. A link that does not resolve fails it, in a guide, in a page of either reference.
+        run: docfx build docfx.json --warningsAsErrors
 
       - name: Drop the source maps
         # The template ships source maps for its own JavaScript, which come to more than a third of the

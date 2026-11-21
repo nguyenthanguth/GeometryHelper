@@ -11,13 +11,15 @@ from System import Exception as NetException
 from System.Collections.Generic import List
 
 import geometryhelper  # noqa: F401  (boots .NET and loads the assemblies)
-from GeometryHelper import GeometryHelperLog, Tolerance
+from GeometryHelper import GeometryHelperLog, SolidBooleanOptions, Tolerance
 from GeometryHelper.Cad import CadCommandSession, CadDocument, CadSystemVariable, CadTrueTypeFonts
+from GeometryHelper.Core import Boolean3, Intersection2, Splition2
 from GeometryHelper.Dxf import DxfBlockLookupRow, DxfBlockReference, DxfBlockTableRecord, DxfDatabase, DxfEraseFlags
 from GeometryHelper.Dxf import DxfReadOptions, DxfWriter
-from GeometryHelper.Enums import GeometryHelperLogLevel
+from GeometryHelper.Enums import BooleanOutcome, GeometryHelperLogLevel
 from GeometryHelper.Extension import GeoPointEnumerableExtension
-from GeometryHelper.Geometry import GeoPoint2, GeoPoint3, GeoPolygon2, GeoPolygon3, GeoRectangle2, GeoXLine2
+from GeometryHelper.Geometry import GeoLine2, GeoObb3, GeoPoint2, GeoPoint3, GeoPolygon2, GeoPolygon3, GeoRectangle2
+from GeometryHelper.Geometry import GeoSolid3, GeoXLine2
 from GeometryHelper.Geometry import GeoVector2
 from GeometryHelper.Takeoff import VolumeItem, VolumeTakeoff
 
@@ -227,3 +229,76 @@ def test_a_parameter_named_from_is_given_by_position_or_through_a_dictionary() -
     expected = line.ToLine(0.0, 10.0)
     assert str(line.ToLine(0.0, to=10.0)) == str(expected)
     assert str(line.ToLine(**{"from": 0.0, "to": 10.0})) == str(expected)
+
+
+# Out parameters (stub rule R8): a trailing one is left out of the call, one with a parameter after it is left out only
+# when that parameter is given by keyword, and the stubs write the parameters after it keyword-only
+
+
+def _plate_and_cutter() -> tuple[GeoSolid3, GeoSolid3]:
+    # a plate 100 by 100 by 10 and a cutter 20 by 20 by 30 through its middle
+    return GeoObb3(GeoPoint3(0, 0, 0), 100, 100, 10).ToSolid(), GeoObb3(GeoPoint3(0, 0, 0), 20, 20, 30).ToSolid()
+
+
+def test_a_trailing_out_parameter_is_left_out_and_comes_back_in_the_tuple() -> None:
+    plate, cutter = _plate_and_cutter()
+    made, left = plate.TrySubtract(cutter)
+    assert made
+    assert left.GetVolume(TOLERANCE) == pytest.approx(96000.0)  # 100 * 100 * 10 less 20 * 20 * 10
+
+
+def test_an_out_parameter_before_the_tolerance_is_left_out_when_the_tolerance_is_a_keyword() -> None:
+    plate, cutter = _plate_and_cutter()
+    made, left = plate.TrySubtract(cutter, tolerance=TOLERANCE)
+    assert made
+    assert left.GetVolume(TOLERANCE) == pytest.approx(96000.0)
+    # a static one, and one after the arguments in front of it
+    assert Boolean3.TrySubtract(plate, cutter, tolerance=TOLERANCE)[0]
+    line, other = GeoLine2(GeoPoint2(0, 0), GeoPoint2(10, 10)), GeoLine2(GeoPoint2(0, 10), GeoPoint2(10, 0))
+    found, crossing = Intersection2.TryIntersectWith(line, other, tolerance=TOLERANCE)
+    assert found
+    assert crossing.X == pytest.approx(5.0)
+    assert crossing.Y == pytest.approx(5.0)
+
+
+def test_an_out_parameter_before_the_tolerance_is_refused_when_the_tolerance_is_positional() -> None:
+    plate, cutter = _plate_and_cutter()
+    with pytest.raises(TypeError):
+        plate.TrySubtract(cutter, TOLERANCE)
+    with pytest.raises(TypeError):
+        plate.TryGetVolume(TOLERANCE)
+
+
+def test_every_out_parameter_before_the_tolerance_is_left_out_with_the_keyword_too() -> None:
+    # Splition2.TrySplitBy(line, point, out GeoLine2, out GeoLine2, tolerance)
+    line = GeoLine2(GeoPoint2(0, 0), GeoPoint2(10, 10))
+    split, first, second = Splition2.TrySplitBy(line, GeoPoint2(5, 5), tolerance=TOLERANCE)
+    assert split
+    assert first.Length == pytest.approx(second.Length)
+
+
+def test_an_out_parameter_of_a_value_type_is_left_out_with_the_keyword_too() -> None:
+    plate, _ = _plate_and_cutter()
+    assert plate.TryGetVolume(tolerance=TOLERANCE) == (True, 100000.0)  # a double comes back in the tuple
+
+
+def test_an_out_parameter_followed_by_a_parameter_takes_a_placeholder_where_the_keyword_is_not_used() -> None:
+    # what the stubs do not promise but pythonnet allows: None for a class, a value of the type for a struct or a double
+    plate, cutter = _plate_and_cutter()
+    assert plate.TrySubtract(cutter, None, TOLERANCE)[0]
+    line, other = GeoLine2(GeoPoint2(0, 0), GeoPoint2(10, 10)), GeoLine2(GeoPoint2(0, 10), GeoPoint2(10, 0))
+    assert Intersection2.TryIntersectWith(line, other, GeoPoint2(), TOLERANCE)[0]
+    assert plate.TryGetVolume(0.0, TOLERANCE)[0]
+    with pytest.raises(TypeError):
+        Intersection2.TryIntersectWith(line, other, None, TOLERANCE)
+    with pytest.raises(TypeError):
+        plate.TryGetVolume(None, TOLERANCE)
+
+
+def test_the_overload_with_one_more_out_parameter_is_reached_with_the_tolerance_and_the_options_by_keyword() -> None:
+    # TrySubtract(tool, out result, SolidBooleanOptions, out outcome) comes back as a three-item tuple
+    plate, cutter = _plate_and_cutter()
+    made, left, outcome = plate.TrySubtract(cutter, options=SolidBooleanOptions.Default)
+    assert made
+    assert outcome == BooleanOutcome.Made
+    assert left.GetVolume(TOLERANCE) == pytest.approx(96000.0)

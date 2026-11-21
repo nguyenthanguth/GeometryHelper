@@ -384,6 +384,9 @@ itself, for good. The app refuses such a connection before anything is sent, wit
 reaches the drawing directly.` Inside the app, use `geometryhelper.cad` ([Python in the app](python.md));
 `CadApplication` is for a script that runs outside it.
 
+Three scripts that drive the app, one that draws a grid and reads it back, one that waits for a pick and one that lists the
+open drawings, are in [Python examples](../python-examples.md#driving-a-running-app).
+
 ## See also
 
 - [The 2D presenter](index.md) for the projects and the command line the channel types on.

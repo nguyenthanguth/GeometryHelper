@@ -100,6 +100,9 @@
       href: presenter/remote.md
 - name: Python
   href: python.md
+  items:
+    - name: Python examples
+      href: python-examples.md
 - name: Meshing
   href: meshing.md
   items:

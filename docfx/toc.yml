@@ -10,3 +10,5 @@
       href: ../src/GeometryHelper.IfcConvert/README.md
 - name: API Reference
   href: api/
+- name: Python API
+  href: python-api/
