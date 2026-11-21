@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <!--
+    A small assembly of hand-made types, one for each rule of the stub generator, that the tests of GeometryHelper.PyStubs
+    read the way the tool reads the real ones: as netstandard 2.0 with its XML docs. Many members have no summary on
+    purpose, and some members are never used.
+  -->
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <RootNamespace>GeometryHelper.Fixture</RootNamespace>
+        <AssemblyName>GeometryHelper.Fixture</AssemblyName>
+        <IsPackable>false</IsPackable>
+        <!-- One folder whatever the configuration: the fixture is not in the solution, which builds it as Debug. -->
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <OutputPath>bin\out\</OutputPath>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591;CS0067;CS0649;CS0169;CS0660;CS0661</NoWarn>
+    </PropertyGroup>
+</Project>
