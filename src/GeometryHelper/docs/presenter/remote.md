@@ -377,9 +377,12 @@ What it costs, on this machine with the app in another process, and a drawing of
 Most of the 10 000-line read is the app's, which writes the drawing as DXF text: a client that took only that text, with no
 Python or .NET types made from it, waited 260 to 281 ms for it.
 
-**A script that runs inside the app does not connect to that app.** The Python of the PYRUN command and the PYTHON palette runs
-on the app's own UI thread, and a request from it to the same app would wait for that thread, which is the script itself,
-for good. Inside the app, use `geometryhelper.cad`; `CadApplication` is for a script that runs outside it.
+**A script that runs inside the app does not connect to that app.** The Python of PYRUN, PYLOAD and the PYTHON palette
+runs on the app's own UI thread, and a request from it to the same app would wait for that thread, which is the script
+itself, for good. The app refuses such a connection before anything is sent, with a `CadRemoteException`:
+`A script inside GeometryHelper CAD cannot drive the same app through CadApplication: use geometryhelper.cad, which
+reaches the drawing directly.` Inside the app, use `geometryhelper.cad` ([Python in the app](python.md));
+`CadApplication` is for a script that runs outside it.
 
 ## See also
 

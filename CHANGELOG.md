@@ -22,6 +22,36 @@ to 348 ms on .NET 8 and 298 to 304 ms on .NET Framework 4.8, a small request 26 
 `__enter__` and `__exit__`, a `System.Type` parameter or property setter also takes a Python class
 (`System.Type | type[Any]`), and `TimeSpan.FromSeconds` and `FromMilliseconds` are known. No .NET API changes.
 
+**NEW.** GeometryHelper CAD runs Python inside the app, on the user's own CPython 3.11 to 3.15 (64-bit). The PYTHON
+palette, docked under the canvas (PYTHONCLOSE hides it), takes Python an entry at a time as `python -i` does: an entry
+that is not complete opens a `...` line, each drawing keeps its own names and transcript, Up and Down walk the entries,
+and Run file, Load, Stop, Clear and Reset console sit on its toolbar. PYRUN runs a `.py` file as `python file.py` does;
+PYLOAD loads a file whose functions decorated with `@cad_command("NAME")` become commands of every drawing, which Enter
+repeats. A script works on the drawing it was started in through the .NET object model and through the module
+`geometryhelper.cad`: `document()`, `session()`, `selection()`, `write()`, `command("CIRCLE", (0, 0), 50)` to run a
+command with its answers, and `get_point`, `get_distance`, `get_angle`, `get_integer`, `get_real`, `get_string`,
+`get_keyword`, `get_entity` and `get_selection`, which ask as a command's prompts do (object snaps, typed coordinates,
+keywords, Enter, Esc). A run is one undo step, named for the file, the command or `Python`: a script that draws ten
+circles with `command` and a line through the object model is taken away by one U, and one that fails or is stopped
+leaves the drawing as it was. Esc raises `Cancelled`, a `KeyboardInterrupt`, at a prompt, and stops a script that
+computes: a loop of Python ended 19 to 20 ms after the stop on .NET 8 and 25 to 28 ms on .NET Framework 4.8 (what is
+inside `time.sleep` or a blocking .NET call ends when that call returns, 4 725 ms and 1 693 ms in two probes). An error
+shows its traceback in the palette and one line on the command line, `Python error: ZeroDivisionError: division by zero
+(boom.py, line 4)`, and never closes the app. The Python is named in Global settings > Folder preference > Python
+(`GlobalSettings.PythonPath`), else found from `PYTHONNET_PYDLL`, else from the launcher's registry entries, newest first
+and checked against the disk; with none the app works as before and says what to install or set. Scripts run on the
+thread that owns the drawings, so a .NET call from Python costs 3.1 to 3.5 microseconds on .NET 8 (2.1 to 2.2 on .NET
+Framework 4.8), and the window does not repaint while a script computes. A script in the app that opens a
+`CadApplication` to the same app, which would wait for itself, is refused with a `CadRemoteException`. Public additions:
+the library `GeometryHelper.Cad.Python` (pythonnet 3.2.1, not packed yet: `CadPythonHost`, `CadPythonEnvironment`,
+`ICadPythonOwner`, `CadPythonScript`, `CadPythonEntry`, `CadPythonOutcome`, `CadPythonOutputEventArgs`,
+`CadPythonRunEventArgs`, `CadPythonCancelledException`); `CadCommandSession.Start(CadCommand)`, which starts a command
+that is not in the registry and leaves `LastCommandName` as it was; `GlobalSettings.PythonPath`; `CadAppHost.EnablePython`,
+which GeometryHelper CAD sets and a presenter inside another program leaves off; and the app's copy of the Python package
+`geometryhelper`, whose `__version__` falls back to the assembly's where no distribution is installed. The names PYTHON,
+PYTHONCLOSE, PYRUN, PYLOAD, the `get_*` functions and `cad_command` are the first choice and may change before the
+release. See [Python in the app](src/GeometryHelper/docs/presenter/python.md).
+
 **NEW.** The library and the presenter run from Python, as a wheel named `geometryhelper` built from the repository: geometry, DXF and DWG read and written, and a `CadDocument` edited through its `CadCommandSession` and saved, with no window. It is the .NET library run by pythonnet 3.2.1, on CPython 3.11 to 3.15 (64-bit Windows, a wheel tagged `py3-none-win_amd64`), on .NET 8 or later or on .NET Framework 4.8, and the .NET names stay as they are: `from GeometryHelper.Geometry import GeoPoint3`. `import geometryhelper` starts the runtime and loads the three assemblies (498 to 512 ms on .NET 8, 562 to 589 ms on .NET Framework 4.8, whole process); the environment variable `GEOMETRYHELPER_RUNTIME` (`auto`, `coreclr` or `netfx`) picks the runtime, and a runtime already started by the host is used as it is. The package adds four things to what pythonnet gives: `geometryhelper.__version__` (the library's version) and `geometryhelper.runtime()`; `undo_group(document, name)`, a `with` block that makes its edits one undo step, ends the group when the block ends and cancels it when it raises, nested groups included; and `geometryhelper.arrays` (the `numpy` extra), `to_numpy`, `to_doubles`, `to_points2` and `to_points3`, which copy whole arrays between numpy and .NET arrays of `Double`, `GeoPoint2` and `GeoPoint3` in one block (100 000 points in 0.4 to 0.8 ms to numpy and 3.1 to 4.3 ms back, against 202 to 283 ms reading `X`, `Y` and `Z` one point at a time). The wheel carries type stubs, so pyright and Pylance complete and check every name: `GeometryHelper-stubs` (806 types, 18 559 members, the XML summaries as docstrings) and `System-stubs`, written by the new tool `tools/GeometryHelper.PyStubs`, which reads the assemblies without running them and writes the same bytes on a rerun. The stubs say what pythonnet does and a Python reader does not expect: out parameters come back in a tuple, a Python list is taken only for `T[]` and `params T[]`, a delegate is built as `Action[...](f)` while an event takes a plain function, `len` is missing from the interface-typed lists, the 33 members named `None`, `True` or `False` are read with `getattr`, and `|`, `&`, `^` and `~` exist on the 14 `[Flags]` enums only. `tools/python/verify-python.sh` builds the stubs and the wheel (10 193 657 bytes), installs it in a fresh virtual environment and runs `tests/python` on both runtimes (152 tests each), and a `python` job of the build workflow runs it on Python 3.11 and 3.14. The wheel is not on PyPI: the name `geometryhelper` is taken there by an unrelated project, so the name to publish under is still to be chosen (`import geometryhelper` stays). See [Python](src/GeometryHelper/docs/python.md).
 
 **NEW.** A command plugin adds to the window what AutoCAD's plugins add to theirs, described without WPF so that the same

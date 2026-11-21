@@ -26,7 +26,10 @@ namespace GeometryHelper.Cad.App
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
             string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var host = new CadAppHost("GeometryHelper CAD", Path.Combine(appData, "GeometryHelper", "Dxf"));
+            var host = new CadAppHost("GeometryHelper CAD", Path.Combine(appData, "GeometryHelper", "Dxf"))
+            {
+                EnablePython = true,
+            };
 
             // The window's icon, every size of app.ico, the taskbar taking the one it needs.
             using (Stream icon = typeof(Program).Assembly.GetManifestResourceStream("GeometryHelper.Cad.App.app.ico"))

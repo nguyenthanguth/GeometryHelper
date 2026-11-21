@@ -128,9 +128,14 @@ scripts inside the app, and a script outside that drives a running app.
       maintainer's word; the CLAUDE.md verify line; a Pylance look in VS Code; Linux, macOS and ARM64; a PyInstaller
       hook; delegate properties typed `| None` and enums made from an int in the stubs; one `<summary>` per partial
       class so hovers stay short (CadDocument)
-- [ ] P3. Python inside `GeometryHelper.Cad.App`: a PYTHON console palette and the commands PYLOAD and PYRUN, with the
+- [x] P3. Python inside `GeometryHelper.Cad.App`: a PYTHON console palette and the commands PYLOAD and PYRUN, with the
       active document, the selection, the command line, prompts (get point, get selection) and undo of a script as one
-      step
+      step. Done 2026-11-21: GeometryHelper.Cad.Python embeds CPython 3.11-3.15 on the window thread, Esc stops Python
+      code in about 20 ms, one undo step per run, PYLOAD with `@cad_command`, a script connecting to its own app refused
+- [ ] P3 parked: the command and function names (PYTHON, PYRUN, PYLOAD, get_point...) await the maintainer's word; the
+      CLAUDE.md verify line for the Cad.Python suite; a Wpf test of CadAppRemoteHost.IsOwnerThread; the ribbon layer box
+      blank after U; EntityCount cached inside an open group and a failed ApplyEdit taking back a run's whole group
+      silently (the maintainer to decide); output flushed only when the window is next idle during a long run
 - [ ] P4. Driving a running app from outside: a Python client over `GeometryHelper.Cad.Remote`'s named pipe (open,
       draw, select, run commands, read the drawing)
 - [ ] P5. Examples and the guide: a script per common task, and the API reference for Python from the XML docs

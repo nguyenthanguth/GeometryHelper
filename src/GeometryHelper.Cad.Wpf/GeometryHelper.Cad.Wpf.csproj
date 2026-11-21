@@ -13,6 +13,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\GeometryHelper.Cad\GeometryHelper.Cad.csproj" />
+        <ProjectReference Include="..\GeometryHelper.Cad.Python\GeometryHelper.Cad.Python.csproj" />
         <ProjectReference Include="..\GeometryHelper\GeometryHelper.csproj" />
     </ItemGroup>
 

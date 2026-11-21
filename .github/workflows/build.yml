@@ -130,10 +130,12 @@ jobs:
           python-version: ${{ matrix.python }}
           architecture: x64
 
-      - name: Build the libraries and the stub generator
+      - name: Build the libraries, the stub generator and the remote test server
+        # The test server is the headless app that tests/python/remote drives over the pipe.
         run: |
           dotnet build src/GeometryHelper.Cad/GeometryHelper.Cad.csproj -c Release -warnaserror
           dotnet build tools/GeometryHelper.PyStubs/GeometryHelper.PyStubs.csproj -c Release -warnaserror
+          dotnet build tests/GeometryHelper.Cad.Remote.TestServer/GeometryHelper.Cad.Remote.TestServer.csproj -c Release -warnaserror
 
       - name: Stubs, wheel, fresh venv and tests on both runtimes
         # find-python.sh uses GH_PYTHON when it is set, so the matrix entry is the Python that builds the wheel and
@@ -141,3 +143,15 @@ jobs:
         env:
           GH_PYTHON: ${{ steps.python.outputs.python-path }}
         run: bash tools/python/verify-python.sh
+
+      - name: Build the Python host of GeometryHelper CAD and its tests
+        run: dotnet build tests/GeometryHelper.Cad.Python.UnitTest/GeometryHelper.Cad.Python.UnitTest.csproj -c Release -warnaserror
+
+      - name: Test the Python host of GeometryHelper CAD on both runtimes
+        # The host starts the matrix entry's Python (the tests read GH_PYTHON, as find-python.sh does) once per test
+        # process, so each target framework is a run of its own: .NET 8, then .NET Framework 4.8.
+        env:
+          GH_PYTHON: ${{ steps.python.outputs.python-path }}
+        run: |
+          dotnet test tests/GeometryHelper.Cad.Python.UnitTest/GeometryHelper.Cad.Python.UnitTest.csproj -c Release --no-build -f net8.0
+          dotnet test tests/GeometryHelper.Cad.Python.UnitTest/GeometryHelper.Cad.Python.UnitTest.csproj -c Release --no-build -f net48

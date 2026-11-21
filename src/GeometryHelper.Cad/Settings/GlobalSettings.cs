@@ -148,6 +148,7 @@ namespace GeometryHelper.Cad
         private List<string> _appLoadHistory = new List<string>();
         private List<string> _pluginSnaps = new List<string>();
         private string _appLoadFolder = string.Empty;
+        private string _pythonPath = string.Empty;
         private string _plotStyleFolder = string.Empty;
         private SortedDictionary<string, string> _fontSubstitutions = new SortedDictionary<string, string>(
             StringComparer.OrdinalIgnoreCase
@@ -817,6 +818,18 @@ namespace GeometryHelper.Cad
             set => _appLoadFolder = (value ?? string.Empty).Trim();
         }
 
+        /// <summary>
+        /// Gets or sets the Python the app runs scripts with: the <c>python.exe</c> of a virtual environment or of an
+        /// installation, or the folder that holds it. Empty by default, which finds the newest 64-bit CPython 3.11 to 3.15
+        /// registered on the machine (PEP 514). It takes effect at the next start of the app once Python has started. Saved in
+        /// the settings file.
+        /// </summary>
+        public string PythonPath
+        {
+            get => _pythonPath;
+            set => _pythonPath = value ?? string.Empty;
+        }
+
         /// <summary>Gets or sets whether Load/Unload Applications (APPLOAD) puts each file it is given in <see cref="AppLoadHistory"/>: on by default. Saved in the settings file.</summary>
         public bool AppLoadAddToHistory { get; set; } = true;
 
@@ -1273,6 +1286,7 @@ namespace GeometryHelper.Cad
 
             w.CloseList();
             w.Value("appLoadFolder", _appLoadFolder);
+            w.Value("pythonPath", _pythonPath);
             w.Value("appLoadAddToHistory", AppLoadAddToHistory);
             w.Value("plotStyleFolder", _plotStyleFolder);
             w.Close();
@@ -1511,6 +1525,7 @@ namespace GeometryHelper.Cad
                 );
                 Take("support", "appLoadHistory", e => _s.AppLoadHistory = e.Elements().Select(f => f.Value).ToList());
                 Text("support", "appLoadFolder", v => _s.AppLoadFolder = v);
+                Text("support", "pythonPath", v => _s.PythonPath = v);
                 Flag("support", "appLoadAddToHistory", v => _s.AppLoadAddToHistory = v);
                 Text("support", "plotStyleFolder", v => _s.PlotStyleFolder = v);
                 Flag("dataSources", "checkForModelChanges", v => _s.CheckForModelChanges = v);

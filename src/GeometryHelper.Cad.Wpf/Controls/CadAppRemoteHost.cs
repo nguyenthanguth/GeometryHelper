@@ -8,7 +8,7 @@ namespace GeometryHelper.Cad.Wpf
     /// The app's drawings for the remote channel: a <see cref="CadRemoteServer"/> reads the window's view model through this,
     /// and runs its work on the window's thread through <see cref="Dispatcher"/>.
     /// </summary>
-    internal sealed class CadAppRemoteHost : ICadRemoteHost, ICadRemoteDispatcher
+    internal sealed class CadAppRemoteHost : ICadRemoteHost, ICadRemoteDispatcher, ICadRemoteOwnerThread
     {
         private readonly MainViewModel _model;
         private readonly Func<string> _title;
@@ -47,5 +47,7 @@ namespace GeometryHelper.Cad.Wpf
             _model.SaveAsForRemote(document, path, version);
 
         public void Invoke(Action action) => _dispatcher.Invoke(action, DispatcherPriority.Normal);
+
+        public bool IsOwnerThread() => _dispatcher.CheckAccess();
     }
 }

@@ -40,7 +40,7 @@ width factor of drawing text. A file that holds them keeps them, and OK writes t
 | Units and rounding | decimals of coordinates and angles; the separators | 2 and 1 decimals; thousands parted by a space, decimals by a point |
 | Layers, colours and lines | the layer table written to new drawings, with each layer's colour, linetype, lineweight and plot flag; NEW (Ctrl+N) adds it to the new drawing | Visible, Hidden, Centre, Hatch, Dimension, Mark, Symbol, Sheet, Viewport (not plotted) |
 | Text and fonts | the UI font, chosen from the font families installed on Windows (each shown in its own face) or typed; what Esc in the MTEXT editor with changes does (Hidden messages); the replacement font of a font not found (FONTALT), whether the Missing Fonts dialog is shown on opening a drawing, the font mapping file (FONTMAP) and the fonts drawn in others | UI font Inter, Esc asks, `ghsimplex`, the dialog on, no mapping file, no substitutions |
-| Folder preference | the font search folders and the support file search folders (linetypes and hatch patterns), each in order, with the default Fonts, Hatches and Linetypes folders next to the dll shown read-only under them | none |
+| Folder preference | the font search folders and the support file search folders (linetypes and hatch patterns), each in order, with the default Fonts, Hatches and Linetypes folders next to the dll shown read-only under them; the Python the PYTHON palette, PYRUN and PYLOAD run scripts with (a `python.exe` or its folder, with the Python found beside it; see [Python in the app](python.md#finding-python)) | none; Python found automatically |
 | Shortcuts | the aliases and the keys | AutoCAD's (see [Editing](editing.md#aliases-and-keys)) |
 | Save and export | the save folder, autosave (how often, and its format, DXF or DWG); Template settings: the template folder and the default template for QNEW (see [Drawing templates](#drawing-templates)); Other programs: whether other programs may connect and drive the app (see [Driving the app from another program](remote.md#the-setting)) | empty, which is the user's Documents, 10 minutes, DXF; template folder empty, which is `%AppData%\GeometryHelper\Drawing\Template`, no default template for QNEW, which is the built-in metric one; other programs allowed to connect |
 | Drawing text (file only) | the font a style's missing font is drawn in where the replacement is not found either, the heights and the width factor of drawing text: TEXT and MTEXT start from the text height and write the width factor, and DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER and DIMANGULAR write their text at the text height | drawing font Arial, text 2.5, titles 5, width factor 0.8 |
@@ -690,6 +690,18 @@ work on the bars of the working space directly. The constraint bars are drawn by
 shown) are shown through functions the workspace sets, as the other dialogs are; the screenshot mode shows them with
 `--dialog constraints[:0|1|2]` and `--dialog parameters`, and the tab with `--tab Parametric`. The commands behind it are in
 [Parametric constraints](editing.md#parametric-constraints).
+
+### The PYTHON palette
+
+PYTHON shows a palette under the canvas, as wide as the canvas and with the command line below it, and PYTHONCLOSE or the ×
+in its header hides it. It is a Python console for the drawing shown: a transcript above, an input box below, a toolbar
+(Run file for PYRUN, Load for PYLOAD, Stop, Clear, Reset console) and a status line with the Python it uses. Enter runs a
+complete entry and Shift+Enter adds a line; each drawing keeps its own transcript and names, and the palette switches
+with the drawing shown. Its top edge is dragged to change its height, as the command line's is, from 3 lines to half the
+drawing area, and the height is kept for the session only. A host that embeds the presenter in a program of its own gets
+neither the palette nor Python unless it sets `CadAppHost.EnablePython`, which GeometryHelper CAD itself does. Where no Python can be found the palette says what to install or set, with a
+button to Global settings, and nothing else changes. [Python in the app](python.md) has the rest: finding Python, the
+module a script imports, the undo step, Esc and the errors.
 
 ### The start screen
 

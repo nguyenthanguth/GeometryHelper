@@ -1741,6 +1741,7 @@ namespace GeometryHelper.Cad.Wpf
             AddCloseAllWindowCommands(registry);
             AddWindowCommands(registry);
             AddWindowVariables(registry);
+            AddPythonCommands(registry);
             AttachPlugins(registry);
 
             foreach (CadWorkspaceExtension extension in _extensions)
@@ -2499,6 +2500,7 @@ namespace GeometryHelper.Cad.Wpf
             }
 
             _current = file;
+            FollowPython(file);
             LoadDrafting();
             SpaceTabs.Clear();
 

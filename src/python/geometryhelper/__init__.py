@@ -27,8 +27,6 @@ if TYPE_CHECKING:
 
 _DISTRIBUTION = "geometryhelper"
 
-__version__: str = importlib.metadata.version(_DISTRIBUTION)
-
 _FOLDER = Path(__file__).resolve().parent
 _ASSEMBLIES = ("GeometryHelper", "GeometryHelper.Cad.Remote", "GeometryHelper.Cad")
 
@@ -76,8 +74,21 @@ def _load_assemblies() -> None:
             clr.AddReference(str(_FOLDER / "lib" / (name + ".dll")))
 
 
+def _version() -> str:
+    """Return the installed distribution's version, or inside the app, where there is none, that of the GeometryHelper assembly."""
+    try:
+        return importlib.metadata.version(_DISTRIBUTION)
+    except importlib.metadata.PackageNotFoundError:
+        for assembly in importlib.import_module("System").AppDomain.CurrentDomain.GetAssemblies():
+            if assembly.GetName().Name == "GeometryHelper":
+                version = assembly.GetName().Version
+                return f"{version.Major}.{version.Minor}.{version.Build}"
+        raise
+
+
 _start_runtime()
 _load_assemblies()
+__version__: str = _version()
 
 
 def runtime() -> Literal["coreclr", "netfx"]:
