@@ -37,6 +37,14 @@
         "dest": "api"
       },
       {
+        "src": "docfx/python-api",
+        "files": [
+          "**.md",
+          "toc.yml"
+        ],
+        "dest": "python-api"
+      },
+      {
         "src": "docfx",
         "files": [
           "index.md",
