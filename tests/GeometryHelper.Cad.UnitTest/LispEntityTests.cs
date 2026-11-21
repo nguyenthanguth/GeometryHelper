@@ -15,8 +15,11 @@ namespace GeometryHelper.Cad.UnitTest
     /// whose CELTYPE is Continuous), the test says so. An entity name and a handle are written <c>*</c>, as the harness
     /// normalises them.
     /// </summary>
-    public sealed class LispEntityTests
+    public sealed class LispEntityTests : IDisposable
     {
+        // Ends the routine a test left waiting, so no worker thread outlives its test.
+        public void Dispose() => WaitingRoutines.EndAll();
+
         // The drawing of probe q5: a LINE on layer GHA, a CIRCLE, a TEXT, a polyline and a linear dimension, in that order.
         internal static CadCommandSession Q5()
         {
