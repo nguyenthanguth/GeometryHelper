@@ -109,7 +109,13 @@ compared by their values and by eye.
       same dialog values and E1 transcript
 - [ ] L5 parked: a dialog of ok_cancel alone (162 x 93, a minimum body height), AutoCAD's narrower dialog text (FDVAL
       219 against Segoe's 242), list double click, slider drag, Ctrl-click and getpoint in an action unmeasured
-- [ ] L6. Trusted folders and SECURELOAD, as AutoCAD 2021, shared with the Python stages
+- [x] L6. Trusted folders and SECURELOAD, as AutoCAD 2021, shared with the Python stages. Done 2026-11-22:
+      SECURELOAD, TRUSTEDPATHS (`\...` for subfolders) and LEGACYCODESEARCH as measured in AutoCAD 2021, the warning
+      "Security - Unsigned Executable File" (Always Load by file content), a Security page in Global settings; the four
+      harness feeds and the L2/L5 routines give the same transcripts as before
+- [ ] L6 parked: the plugin manager's trusted folders kept apart from TRUSTEDPATHS and the app defaulting to SECURELOAD 1
+      (the maintainer to confirm); `load "./x.lsp"` resolving `.` against the process folder; the Security page's Add
+      folder and writable-folder warning checked by screenshot and tests only, not by hand
 
 ### Python
 
@@ -150,7 +156,11 @@ scripts inside the app, and a script outside that drives a running app.
       `src/python` row in CLAUDE.md's layout table; 365 member groups with no .NET page to link (enum `__int__`, flags
       operators, delegates' `__call__`); stub overloads that differ only by a trailing out promise a 3-tuple pythonnet
       does not return
-- [ ] P6. Scripts in the trusted folders of L6 only, and a script's errors shown without closing the app
+- [x] P6. Scripts in the trusted folders of L6 only, and a script's errors shown without closing the app. Done
+      2026-11-22: PYRUN, PYLOAD and the palette go through the same gate; every kind of script error leaves the app
+      running with one line on the command line (a .NET error too), the streams put back before each run
+- [ ] P6 parked: a list of Python startup scripts; recursion through .NET callbacks past about 650 levels overflows the
+      stack
 
 ## Release
 
