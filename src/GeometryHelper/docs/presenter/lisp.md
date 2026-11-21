@@ -6,14 +6,16 @@ presenter's own, one for each open drawing: [`LispInterpreter`](xref:GeometryHel
 [`CadCommandSession`](xref:GeometryHelper.Cad.CadCommandSession) makes the first time it is asked for. The values, the
 printing and the error messages were measured against AutoCAD 2021, so a routine that runs there writes the same text here.
 
-This covers three stages. The first is the core of the language: the data, the control forms, `defun` and the `c:` commands,
+This covers four stages. The first is the core of the language: the data, the control forms, `defun` and the `c:` commands,
 errors, and the functions for numbers, lists, strings and units. The second is the drawing: a routine can run the
 presenter's commands with `command`, ask the user for points, distances and words, pick objects, select, read and change
 entities and the tables, read and set system variables, and convert between coordinate systems. The third is Visual LISP's
 library of [lists, strings and files](#strings-lists-and-files): `vl-sort`, the `vl-string-` functions, `open`, `read-line`
 and `write-line`, `findfile`, the `vl-file-` functions, a store for `vl-registry-write`, the blackboard shared by the open
-drawings, `getfiled`, and the pick-first selection. The rest of the language's library comes in later stages and is listed
-[at the end](#what-is-not-there-yet).
+drawings, `getfiled`, and the pick-first selection. The fourth is Visual LISP's [ActiveX functions](#activex-objects):
+`vl-load-com`, variants and safearrays, the `vlax-curve-` functions, and the objects of the drawing, which `vla-` and `vlax-`
+names read and write: the document, its blocks and layers, the entities, their attributes and selection sets. The rest of the
+language's library comes in later stages and is listed [at the end](#what-is-not-there-yet).
 
 The drawing stage was checked on seventeen routines written for AutoCAD by one user, each run in AutoCAD 2021's console and
 in the presenter on the same blank drawing with the same typed answers: nine wrote the same command line and left the same
@@ -30,6 +32,11 @@ typed into both. For three of the five the command line and the drawing came out
 matters of the drawing stage (-LAYER's Lock of a backquoted name, `(setvar 'errno 0)`, the wording of -ATTDEF, -BLOCK and
 -INSERT, and the groups of ATTRIB and MTEXT that `entget` lacks). A sixth feed, of the pick-first functions, differs in one
 row, [described below](#pick-first-and-nentselp).
+
+The ActiveX stage was measured in five probe files typed into AutoCAD 2021's console and in two runs of the full AutoCAD
+2021, which has the object model the console lacks, and the 668 tests of the stage take their expected values from them or
+from the ActiveX reference, as [described below](#activex-objects). The differences that are left are listed
+[at the end of that section](#what-is-parked-in-the-activex-stage).
 
 ```csharp
 var session = new CadCommandSession(document);
@@ -60,26 +67,30 @@ session.Feed("(command \"CIRCLE\" '(0 0) 5)");              // Command: (command
 | Errors | `*error*`, `vl-catch-all-apply`, `vl-catch-all-error-p`, `vl-catch-all-error-message`, `exit`, `quit` |
 | Units | `rtos`, `angtos`, `distof`, `angtof`, which read the drawing's LUNITS, LUPREC, AUNITS, AUPREC and DIMZIN; `cvunit`, which converts between units |
 | Geometry | `angle`, `distance`, `polar`, `inters` |
-| The rest | `type`, `eval`, `read`, `set`, `boundp`, `eq`, `equal`, `load`, `defun-q-list-ref`, `defun-q-list-set`, `vl-symbol-value`, `vl-symbolp`, `vl-consp`, `vl-load-com` (which does nothing, so that a routine that starts with it loads) |
+| The rest | `type`, `eval`, `read`, `set`, `boundp`, `eq`, `equal`, `load`, `defun-q-list-ref`, `defun-q-list-set`, `vl-symbol-value`, `vl-symbolp`, `vl-consp`, `vl-load-com` (which defines the [ActiveX functions](#activex-objects)) |
 | Visual LISP lists | `vl-sort`, `vl-sort-i`, `vl-position`, `vl-remove`, `vl-remove-if`, `vl-remove-if-not`, `vl-member-if`, `vl-member-if-not`, `vl-some`, `vl-every`, `vl-list*`, `vl-list-length` |
 | Visual LISP strings | `vl-string-search`, `vl-string-subst`, `vl-string-position`, `vl-string-mismatch`, `vl-string-elt`, `vl-string-translate`, `vl-string-trim`, `vl-string-left-trim`, `vl-string-right-trim`, `vl-string->list`, `vl-list->string` |
 | Files | `open`, `close`, `read-line`, `read-char`, `write-line`, `write-char`, `findfile`, `vl-filename-base`, `vl-filename-directory`, `vl-filename-extension`, `vl-filename-mktemp`, `vl-file-size`, `vl-file-systime`, `vl-file-directory-p`, `vl-file-copy`, `vl-file-rename`, `vl-file-delete`, `vl-mkdir`, `vl-directory-files` |
 | Registry, blackboard, drawings | `vl-registry-read`, `vl-registry-write`, `vl-registry-delete`, `vl-registry-descendents`, `vl-bb-set`, `vl-bb-ref`, `vl-propagate`, `vl-load-all`, `vl-doc-ref`, `vl-doc-set`, and the VLX group (`vl-doc-export`, `vl-doc-import`, `vl-list-exported-functions`, `vl-vlx-loaded-p`, `vl-unload-vlx`, `vl-list-loaded-vlx`, `vl-get-resource`) |
+| ActiveX variants and safearrays | after `vl-load-com`: `vlax-make-variant`, `vlax-variant-type`, `vlax-variant-value`, `vlax-variant-change-type`, `vlax-make-safearray`, `vlax-safearray-fill`, `vlax-safearray->list`, `vlax-safearray-get-element`, `vlax-safearray-put-element`, `vlax-safearray-get-dim`, `vlax-safearray-get-l-bound`, `vlax-safearray-get-u-bound`, `vlax-safearray-type`, `vlax-3d-point`, `vlax-tmatrix`, `variant-value`, `safearray-value`, and the constants `vlax-vbEmpty` to `vlax-vbArray`; `:vlax-true` and `:vlax-false` always |
 | Commands | `command`, `vl-cmdf`, and the symbol `PAUSE` |
 | Asking | `getpoint`, `getcorner`, `getdist`, `getangle`, `getorient`, `getint`, `getreal`, `getstring`, `getkword`, `initget`, `entsel`, `nentsel`, `nentselp`, `getfiled` |
 | Selection sets | `ssget`, `sslength`, `ssname`, `ssadd`, `ssdel`, `ssmemb`, `sssetfirst`, `ssgetfirst` |
 | Entities | `entget`, `entmod`, `entmake`, `entdel`, `entupd`, `entnext`, `entlast`, `handent` |
 | Tables | `tblsearch`, `tblnext`, `tblobjname` |
 | Variables | `getvar`, `setvar` |
-| The session | `trans`, `osnap`, `alert`, `grtext`, `redraw` |
+| The session | `trans`, `osnap`, `alert`, `grtext`, `redraw`, `textbox` |
+| ActiveX curves | after `vl-load-com`: the eighteen `vlax-curve-` functions, `getStartParam` to `isPlanar` |
+| ActiveX objects | after `vl-load-com`: `vlax-get-acad-object`, `vlax-ename->vla-object`, `vlax-vla-object->ename`, `vlax-get-property`, `vlax-put-property`, `vlax-invoke-method`, `vlax-get`, `vlax-put`, `vlax-invoke`, `vlax-for` (before it too), `vlax-map-collection`, `vlax-property-available-p`, `vlax-method-applicable-p`, `vlax-object-released-p`, `vlax-release-object`, `vlax-erased-p`, `vlax-read-enabled-p`, `vlax-write-enabled-p`, `vlax-typeinfo-available-p`; refused with a message: `vlax-create-object`, `vlax-get-object`, `vlax-get-or-create-object`, `vlax-import-type-library` |
+| ActiveX members | after `vl-load-com`: 143 `vla-get-`, `vla-put-` and method functions of the objects of the drawing |
 
-The functions of the last seven rows read or change the drawing, so they exist in the interpreter of a drawing and not in a bare
+The functions of the last ten rows read or change the drawing, so they exist in the interpreter of a drawing and not in a bare
 [`LispInterpreter`](xref:GeometryHelper.Cad.Lisp.LispInterpreter): `(getvar "OSMODE")` there is `; error: no function
 definition: GETVAR`. The pure ones, `angle`, `distance`, `polar`, `inters` and `cvunit`, need no drawing and are in both, and
-so are the four Visual LISP rows above them: lists, strings, files and the registry, blackboard and drawings. What a bare
-interpreter lacks of those is what comes from a drawing: `getfiled`, `sssetfirst`, `ssgetfirst` and `nentselp`, the
-folder of the drawing that `findfile` searches, and the line typed at the command line that `read-line` and `read-char` read
-when they are given no file (they give `nil` there).
+so are the Visual LISP rows of lists, strings, files and the registry, blackboard and drawings, and the ActiveX variants and
+safearrays. What a bare interpreter lacks of those is what comes from a drawing: `getfiled`, `sssetfirst`, `ssgetfirst` and
+`nentselp`, the folder of the drawing that `findfile` searches, and the line typed at the command line that `read-line` and
+`read-char` read when they are given no file (they give `nil` there).
 
 ### Numbers
 
@@ -486,9 +497,8 @@ still finds. `(tblobjname table name)` is the record's entity name, and `entget`
 ## System variables
 
 `(getvar name)` takes a string or a symbol, in any case, and gives the value: an integer, a real (angles in radians), a
-string, or a point as a list of reals (three for LASTPOINT and UCSORG). A name the presenter has no variable of gives `nil`:
-the ones AutoCAD has and the presenter lacks, PROGRAM, PLATFORM, VIEWCTR, UNDOCTL and ERRNO among them. `(getvar 5)` is
-`bad argument type: (or stringp symbolp): 5`.
+string, or a point as a list of reals (three for LASTPOINT, UCSORG and VIEWCTR). A name the presenter has no variable of gives
+`nil`: the ones AutoCAD has and the presenter lacks. `(getvar 5)` is `bad argument type: (or stringp symbolp): 5`.
 
 `(setvar name value)` takes the value by the variable's own rules, as SETVAR does, and gives the value as it was given:
 `(setvar "TEXTSIZE" 3)` gives `3` and `(getvar "TEXTSIZE")` then `3.0`. A value refused is the error `AutoCAD variable
@@ -882,6 +892,894 @@ object: ` or the message, and Enter gives `nil`; for an object inside a block re
 One case differs from AutoCAD: a point exactly on the insertion corner of a TEXT picks the text, where AutoCAD 2021 gave
 `nil` in the one measurement made. The pick is the selection engine's, shared with `entsel`.
 
+## ActiveX objects
+
+Visual LISP's ActiveX functions: the `vlax-` names, the `vla-` names that read and write the members of an object, and the
+`vlax-curve-` functions. In AutoCAD they reach the drawing through COM; here they reach the presenter's own objects, so a
+routine reads and changes the drawing the commands change, and nothing outside the process is started. What an object
+can do, the values it gives, and the text of its errors were measured in two ways. Five probe files of 469 forms were
+typed into AutoCAD 2021's console, which has no object model (`(vlax-get-acad-object)` is `nil` there, and every object
+function of it says `bad argument type: VLA-OBJECT nil`), so they measured the variants and safearrays, the constants, the
+curve functions, and the errors for a value that is no object. The objects themselves were measured in two runs of the full
+AutoCAD 2021, 523 forms each written with its value to a file. The 668 tests of the stage say beside each expected value
+whether AutoCAD gave it, the ActiveX reference gives it, or it is the presenter's own choice.
+
+There are 143 `vla-` functions (84 `vla-get-`, 42 `vla-put-` and 17 for methods), 56 `vlax-` functions (18 of them
+`vlax-curve-`), the 11 `vlax-vb` constants and the two old names `variant-value` and `safearray-value`. Everything is
+headless: a routine that runs here in a session with no window reads the same objects.
+
+### vl-load-com and what exists before it
+
+AutoCAD 2021 has one ActiveX name before `(vl-load-com)`, `vlax-for`, and the presenter has the same one: `(type
+vlax-make-variant)` is `nil` and `(type vlax-for)` is `SUBR`. The symbols `:vlax-true` and `:vlax-false` evaluate to
+themselves always. `(vl-load-com)` defines the rest, once for each drawing (a second call does nothing more) and writes
+nothing. The constants it sets are ordinary symbols: `(setq vlax-vbDouble 99)` changes one. `textbox`, which belongs to the
+drawing stage and is described [below](#text-boxes), exists before it, as it does in AutoCAD.
+
+```text
+Command: (type vlax-make-variant)
+nil
+Command: (type vlax-for)
+SUBR
+Command: !:vlax-true
+:vlax-true
+Command: (vl-load-com)
+Command: (type vlax-make-variant)
+SUBR
+```
+
+### Variants and safearrays
+
+A variant is a value with a type, a safearray an array with bounds; the ActiveX functions take and give a point as a variant
+that holds a safearray of three doubles. `(type v)` of either is the symbol `VARIANT` or `SAFEARRAY`, printed in lower case
+as AutoCAD prints it, and a value prints as `#<variant 3 5>` (the type number, then the value), as `#<variant 8197 ...>` for
+an array and `#<safearray...>` for a safearray. `equal` compares type and value, `eq` the value itself. The types are
+numbers, and `vlax-vbArray`, 8192, is added to the type of an element: 8197 is an array of doubles.
+
+| Constant | Type | Constant | Type |
+|---|---|---|---|
+| `vlax-vbEmpty` | 0 | `vlax-vbString` | 8 |
+| `vlax-vbNull` | 1 | `vlax-vbObject` | 9 |
+| `vlax-vbInteger` | 2 | `vlax-vbBoolean` | 11 |
+| `vlax-vbLong` | 3 | `vlax-vbVariant` | 12 |
+| `vlax-vbSingle` | 4 | `vlax-vbArray` | 8192 |
+| `vlax-vbDouble` | 5 | | |
+
+`(vlax-make-variant [value [type]])` gives a variant of the value's own type, an integer 3, a real 5, a string 8, `nil` 0 and
+`T` or `:vlax-true` 11 (`:vlax-false` is 11 too, with 0), and an array 8192 plus the type of its elements; given a type it
+converts the value to it. A symbol, an entity name or a list is `lisp value has no coercion to VARIANT with this type:`
+and the value, with two spaces after the colon. `(vlax-variant-change-type v type)` converts: a real to 2 or 3 rounds half to
+even, so 2.5 is 2 and 3.5 is 4; a string is read as a number; a number to 8 is its text, with the exponent as AutoCAD
+writes it; a string that is no number, and an array to a scalar type, give `nil`. `vlax-variant-type` is the type and
+`vlax-variant-value` the value as LISP: integers and reals, strings, `:vlax-true` and `:vlax-false` for a Boolean, `nil` for
+an empty variant, and the safearray for an array.
+
+```text
+Command: (setq p (vlax-3d-point 1 2 3))
+#<variant 8197 ...>
+Command: (type p)
+variant
+Command: (vlax-variant-type p)
+8197
+Command: (vlax-safearray->list (vlax-variant-value p))
+(1.0 2.0 3.0)
+Command: (vlax-safearray->list (vlax-variant-value (vlax-3d-point '(4 5))))
+(4.0 5.0 0.0)
+Command: (vlax-make-variant 5)
+#<variant 3 5>
+Command: (vlax-make-variant 1.5)
+#<variant 5 1.5>
+Command: (vlax-make-variant "abc")
+#<variant 8 abc>
+Command: (vlax-make-variant nil)
+#<variant 0 >
+Command: (vlax-variant-value (vlax-make-variant T))
+:vlax-true
+Command: (vlax-variant-value (vlax-make-variant 7 5))
+7.0
+Command: (vlax-variant-value (vlax-variant-change-type (vlax-make-variant 7) 8))
+"7"
+Command: (vlax-variant-value (vlax-variant-change-type (vlax-make-variant 2.5) vlax-vbInteger))
+2
+Command: (vlax-variant-value (vlax-variant-change-type (vlax-make-variant 3.5) vlax-vbLong))
+4
+Command: (vlax-variant-change-type (vlax-make-variant "abc") vlax-vbInteger)
+nil
+Command: (vlax-variant-value (vlax-variant-change-type (vlax-make-variant 1e20) vlax-vbString))
+"1E+20"
+Command: (vlax-make-variant 'abc)
+; error: lisp value has no coercion to VARIANT with this type:  ABC
+Command: (vlax-variant-type 5)
+; error: bad argument type: variantp 5
+Command: (equal (vlax-3d-point 1 2 3) (vlax-3d-point 1 2 3))
+T
+Command: (princ (vlax-make-variant "a b"))
+#<variant 8 a b>#<variant 8 a b>
+```
+
+`(vlax-3d-point x y [z])`, or a list of two or three numbers, is a variant of three doubles, with Z 0.0 when it is left out.
+`(vlax-3d-point 1)` is `bad 3D point: 1` and `'(1 2 3 4)` is `bad 3D point list: (1 2 3 4)`. `(vlax-tmatrix list)` takes four
+lists of four numbers and gives a variant of a 4 by 4 array of doubles; anything else is `bad transform matrix list:` and
+the list.
+
+`(vlax-make-safearray type '(lower . upper) ...)` makes an array of that element type, with one pair of bounds for each
+dimension. Its elements start as 0.0 for doubles, 0 for the integer types, `""` for strings, `:vlax-false` for Booleans, an
+empty variant for variants and `nil` for objects. `(vlax-safearray-fill a list)` takes exactly one value for each element,
+nested by dimension, and converts each to the element type: a 1 given to an array of strings is `"1"`, a 1.6 given to
+integers is 2, a `"a"` given to doubles is the coercion error above. `vlax-safearray->list` gives the elements, nested by
+dimension. `vlax-safearray-get-element` and `-put-element` take one index for each dimension; `-get-dim`, `-get-l-bound`,
+`-get-u-bound` (the dimension counts from 1) and `-type` tell its shape. `variant-value` and `safearray-value` are the old
+names of `vlax-variant-value` and `vlax-safearray->list`.
+
+```text
+Command: (setq a (vlax-make-safearray vlax-vbDouble '(0 . 2)))
+#<safearray...>
+Command: (vlax-safearray-fill a '(1 2 3))
+#<safearray...>
+Command: (vlax-safearray-put-element a 1 9.5)
+9.5
+Command: (vlax-safearray->list a)
+(1.0 9.5 3.0)
+Command: (vlax-safearray-get-u-bound a 1)
+2
+Command: (vlax-safearray-type a)
+5
+Command: (vlax-safearray-get-element a 5)
+; error: ActiveX Server returned an error: Invalid index
+Command: (vlax-safearray-fill a '(1 2))
+; error: vlax-safearray-fill failed.  Invalid initialization list. #<safearray...> (1 2)
+Command: (setq g (vlax-make-safearray vlax-vbDouble '(1 . 2) '(0 . 2)))
+#<safearray...>
+Command: (vlax-safearray-put-element g 2 1 7)
+7
+Command: (vlax-safearray->list g)
+((0.0 0.0 0.0) (0.0 7.0 0.0))
+Command: (vlax-safearray-get-element g 2)
+; error: safearray-get-element failed. Wrong count of indexes: 1
+Command: (vlax-make-safearray vlax-vbDouble '(2 . 1))
+; error: Upper bound in SAFEARRAYBOUND occurred to be less than lower.
+Command: (vlax-make-safearray vlax-vbDouble 5)
+; error: Array specification (bounds) is not a dotted pair.
+Command: (vlax-safearray->list (vlax-safearray-fill (vlax-make-safearray vlax-vbVariant '(0 . 1)) '(1 "a")))
+(#<variant 3 1> #<variant 8 a>)
+Command: (vlax-safearray->list (vlax-safearray-fill (vlax-make-safearray vlax-vbString '(0 . 1)) '("a" 1)))
+("a" "1")
+Command: (vlax-safearray->list (vlax-safearray-fill (vlax-make-safearray vlax-vbDouble '(0 . 1)) '("a" 1)))
+; error: lisp value has no coercion to VARIANT with this type:  "a"
+Command: (vlax-3d-point 1)
+; error: bad 3D point: 1
+Command: (vlax-tmatrix '((1 0 0 5) (0 1 0 0) (0 0 1 0) (0 0 0 1)))
+#<variant 8197 ...>
+Command: (vlax-safearray->list (vlax-variant-value (vlax-tmatrix '((1 0 0 5) (0 1 0 0) (0 0 1 0) (0 0 0 1)))))
+((1.0 0.0 0.0 5.0) (0.0 1.0 0.0 0.0) (0.0 0.0 1.0 0.0) (0.0 0.0 0.0 1.0))
+```
+
+Every line above is what AutoCAD 2021's console wrote for the same form.
+
+### The curve functions
+
+The eighteen `vlax-curve-` functions take an entity name or the VLA-OBJECT of an entity: `getStartParam`, `getEndParam`,
+`getStartPoint`, `getEndPoint`, `getPointAtParam`, `getParamAtPoint`, `getDistAtParam`, `getParamAtDist`, `getDistAtPoint`,
+`getPointAtDist`, `getClosestPointTo`, `getClosestPointToProjection`, `getFirstDeriv`, `getSecondDeriv`, `getArea`,
+`isClosed`, `isPeriodic` and `isPlanar`. A curve is a LINE, ARC, CIRCLE, ELLIPSE, LWPOLYLINE, POLYLINE (two- and
+three-dimensional, not a mesh), SPLINE, XLINE or RAY. Any other entity, a TEXT or a POINT or an INSERT, or an erased one, is
+`bad argument value: AcDbCurve 261`. The number is AutoCAD's own counter there (48 to 51 in the console's runs) and the
+decimal value of the entity's handle here. A value that is no entity is `unable to get ObjectID:` and the value. Points
+are in the WCS, in and out, whatever the UCS; a two-dimensional point takes a Z of 0.
+
+The parameter is where the curves differ:
+
+| Curve | The parameter runs |
+|---|---|
+| LINE | from 0 to its length: the parameter is the distance |
+| CIRCLE | from 0 to 2π, and it is periodic: the parameter 7.0 on a circle of radius 10 is the point at angle 7.0, at distance 70.0 |
+| ARC | from its start angle to its end angle in absolute radians: an arc from 90 to 180 degrees runs from 1.5708 to 3.14159 |
+| ELLIPSE | the ellipse's own parameter (groups 41 and 42): an arc from 45 to 135 degrees of an ellipse with semi-axes 10 and 4 runs from 1.19029 to 1.9513 |
+| LWPOLYLINE, POLYLINE | the number of the vertex, linear in the length on a straight segment and in the angle on a bulge, so 1.5 on a bulged segment is its middle; a closed one ends at the number of its vertices |
+| SPLINE | its knot parameter: a fit spline through four points a few units apart runs to 42.4264 and is 44.2385 long |
+| XLINE | no start and no end (`nil`), and the parameter is the distance from its base point: the parameter 2 on the line through 0,0 and 10,10 is `(1.41421 1.41421 0.0)` |
+| RAY | from 0, with no end |
+
+A parameter or distance past an end gives `nil`, except `getDistAtParam` of a LINE, which gives the parameter it was given
+(-0.5 for -0.5). `getParamAtPoint` and `getDistAtPoint` give `nil` for a point that is off the curve: AutoCAD 2021 already
+did for a point 0.0001 off, and the presenter takes a point as on the curve when it is within 1E-9 times one more than the
+curve's size. `getClosestPointTo pt [extend]` extends a line, an arc and the ends of an open polyline when `extend` is
+true. `getClosestPointToProjection pt normal [extend]` projects the point along `normal` first. `getFirstDeriv` and
+`getSecondDeriv` are per unit of the parameter of the segment, and at a vertex the next segment's. `getArea` is the area
+the curve and its chord close: 50.0 for an open L of two segments of 10, 7.13495 for a quarter circle of radius 5, 0.0 for
+a line, and the width of a polyline does not count.
+
+```text
+Command: (vlax-curve-getEndParam ci)
+6.28319
+Command: (vlax-curve-getDistAtParam ci pi)
+15.708
+Command: (vlax-curve-getPointAtParam ci (/ pi 2))
+(20.0 5.0 0.0)
+Command: (vlax-curve-getParamAtPoint ci '(15 0 0))
+3.14159
+Command: (vlax-curve-getClosestPointTo ci '(30 0 0))
+(25.0 0.0 0.0)
+Command: (vlax-curve-getArea ci)
+78.5398
+Command: (vlax-curve-isPeriodic ci)
+T
+Command: (vlax-curve-getFirstDeriv ci 0)
+(0.0 5.0 0.0)
+Command: (vlax-curve-getSecondDeriv ci 0)
+(-5.0 0.0 0.0)
+Command: (vlax-curve-getEndParam ar)
+1.5708
+Command: (vlax-curve-getArea ar)
+7.13495
+Command: (vlax-curve-getEndParam pl)
+2.0
+Command: (vlax-curve-getPointAtParam pl 1.5)
+(10.0 25.0 0.0)
+Command: (vlax-curve-getParamAtDist pl 15)
+1.5
+Command: (vlax-curve-getClosestPointTo pl '(12 35 0) T)
+(10.0 30.0 0.0)
+Command: (vlax-curve-getArea pl)
+50.0
+Command: (vlax-curve-getEndParam cp)
+3.0
+Command: (vlax-curve-getDistAtParam cp 3)
+34.1421
+Command: (vlax-curve-getDistAtParam cp 3.5)
+nil
+Command: (vlax-curve-getParamAtPoint l1 '(5 1 0))
+nil
+Command: (vlax-curve-getClosestPointTo l1 '(15 1 0))
+(10.0 0.0 0.0)
+Command: (vlax-curve-getClosestPointTo l1 '(15 1 0) T)
+(15.0 0.0 0.0)
+Command: (vlax-curve-getClosestPointToProjection l1 '(5 1 7) '(0 0 1))
+(5.0 0.0 0.0)
+Command: (vlax-curve-getStartParam el)
+1.19029
+Command: (vlax-curve-getEndParam el)
+1.9513
+Command: (vlax-curve-getEndParam sp)
+42.4264
+Command: (vlax-curve-getPointAtParam xl 2)
+(1.41421 1.41421 0.0)
+Command: (vlax-curve-getStartPoint tx)
+; error: bad argument value: AcDbCurve 261
+Command: (vlax-curve-getStartPoint 5)
+; error: unable to get ObjectID: 5
+Command: (vlax-curve-getPointAtParam l1 "a")
+; error: bad argument type: numberp: "a"
+Command: (vlax-curve-getPointAtParam l1)
+; error: too few arguments
+Command: (vlax-curve-getClosestPointTo l1 5)
+; error: bad argument type: 2D/3D point: 5
+```
+
+The drawing of these examples has a line `l1` from 0,0 to 10,0, a circle `ci` of radius 5 at 20,0, an arc `ar` of radius 5 at
+40,0 from 0 to 90 degrees, an open polyline `pl` through 0,20, 10,20 and 10,30, a closed one `cp` through 20,20, 30,20 and
+30,30, a text `tx`, an elliptical arc `el`, a spline `sp` and an xline `xl`. Each value above is what AutoCAD 2021's console
+gave for the same shape in its probes, except the number after `AcDbCurve`.
+
+### The object model
+
+A VLA-OBJECT stands for an object of the drawing: `(type o)` is `VLA-OBJECT`, and it prints as `#<VLA-OBJECT IAcadLine
+000001e4a7f3c720>`, the name of its interface and an address that stands for nothing. These examples use one drawing: the
+layers Off (green, switched off) and Locked (red, locked) beside layer 0, a block `Tag` of an attribute definition `TAG1`
+(prompt `Prompt`, default `dflt`), a constant one `CTAG` and a line, a block `Dot` of a circle, and in model space the lines
+`l1`, `l2` and `l3` at 0, 10 and 12, a line `lk` on Locked at 14, a text `tx` `abc` at 0,20, an MTEXT `mt`, a circle `ci`
+of radius 5 at 50,0, an arc `ar` of radius 5 at 70,0 from 90 to 180 degrees, a polyline `pl` through 0,40, 10,40 and 10,50,
+and the references `bi` of `Tag`, at 100,0 at scale 2 with the attribute value `v30`, and `bi2` of `Dot` at 120,0. Each of
+those names holds the entity name of its object. What AutoCAD 2021 gave for the same forms is what is written here, except
+where the [list at the end](#what-is-parked-in-the-activex-stage) says otherwise.
+
+#### Reaching the objects
+
+`(vlax-get-acad-object)` is the application and its `ActiveDocument` the document of the session; `vlax-ename->vla-object`
+gives the object of an entity name, and `vlax-vla-object->ename` the name of an entity's object back.
+
+```text
+Command: (setq app (vlax-get-acad-object))
+#<VLA-OBJECT IAcadApplication 000001e4a7f3c060>
+Command: (setq doc (vla-get-ActiveDocument app))
+#<VLA-OBJECT IAcadDocument 000001e4a7f3c0c0>
+Command: (vla-get-ActiveSpace doc)
+1
+Command: (setq ms (vla-get-ModelSpace doc))
+#<VLA-OBJECT IAcadModelSpace 000001e4a7f3c120>
+Command: (vla-get-Name ms)
+"*Model_Space"
+Command: (vla-get-Count ms)
+11
+Command: (setq o (vlax-ename->vla-object l1))
+#<VLA-OBJECT IAcadLine 000001e4a7f3c180>
+Command: (vla-get-ObjectName o)
+"AcDbLine"
+Command: (equal (vlax-vla-object->ename o) l1)
+T
+Command: (vlax-ename->vla-object 5)
+; error: bad argument type: lentityp 5
+Command: (vla-get-Name 5)
+; error: bad argument type: VLA-OBJECT 5
+```
+
+The document's `ActiveSpace` is 1 in model space and 0 in a layout, and `PaperSpace` is the block of the current layout.
+Its `Name` is the file name with its extension, `FullName` the path with the name, and `Path` the folder with no
+separator at its end. Setting `ActiveLayer` to a layer's object makes it the current layer, as SETVAR of CLAYER does.
+
+#### Collections
+
+`Blocks`, `Layers`, `TextStyles`, `Linetypes` and `DimStyles` of the document are collections, and so is `SelectionSets`. A
+collection has `Count`, and `Item` takes an index from 0, as an integer, a real or a variant, or a name in any case. An
+index out of range is `Automation Error. Description was not provided.` and a name that is not there `Automation Error. Key
+not found`. `vlax-for` and `vlax-map-collection` go through the items in order: the blocks in the order of the block table,
+`*Model_Space` and `*Paper_Space` first and then the definitions as they were made, the layers and the other tables in the
+order of their table. A model space or a block definition is a collection of its entities too, in the order `entnext` walks
+them, with the attribute definitions of a block among them.
+
+```text
+Command: (setq blks (vla-get-Blocks doc))
+#<VLA-OBJECT IAcadBlocks 000001e4a7f3c1e0>
+Command: (vla-get-Count blks)
+4
+Command: (progn (vlax-for b blks (princ (vla-get-Name b)) (princ " ")) (princ))
+*Model_Space *Paper_Space Tag Dot 
+Command: (vla-get-IsLayout (vla-Item blks 0))
+:vlax-true
+Command: (vla-get-Name (vla-Item blks "tag"))
+"Tag"
+Command: (vla-Item blks "NoSuch")
+; error: Automation Error. Key not found
+Command: (vla-Item blks 99)
+; error: Automation Error. Description was not provided.
+Command: (setq lays (vla-get-Layers doc))
+#<VLA-OBJECT IAcadLayers 000001e4a7f3c480>
+Command: (progn (vlax-for l lays (princ (vla-get-Name l)) (princ " ")) (princ))
+0 Off Locked 
+Command: (vla-get-Color (vla-Item lays "Off"))
+3
+Command: (vla-get-LayerOn (vla-Item lays "Off"))
+:vlax-false
+Command: (vla-get-Lock (vla-Item lays "Locked"))
+:vlax-true
+Command: (vla-get-ObjectName (vla-Item lays "0"))
+"AcDbLayerTableRecord"
+Command: (vla-get-ObjectName lays)
+"AcDbLayerTable"
+Command: (vla-get-Name lays)
+; error: ActiveX Server returned the error: unknown name: Name
+Command: (progn (vlax-for e (vla-Item blks "Tag") (princ (vla-get-ObjectName e)) (princ " ")) (princ))
+AcDbAttributeDefinition AcDbAttributeDefinition AcDbLine 
+Command: (vlax-for x o (princ x))
+; error: bad argument type: VLA-object collection: #<VLA-OBJECT IAcadLine 000001e4a7f3c180>
+Command: (vlax-map-collection o 'princ)
+; error: not a collection: #<VLA-OBJECT IAcadLine 000001e4a7f3c180>
+```
+
+#### The members
+
+A function is defined for each member a routine can use, and it is named as the reference writes the member: `vla-get-Color`,
+`vla-put-Color`, `vla-GetBoundingBox`. The name space is shared, so `vla-get-Name` works on any object that has a `Name`
+and an object that has none gives `ActiveX Server returned the error: unknown name: Name`, with the name as the function or
+the argument gives it (`Name` for `vla-get-Name`, `NAME` for `(vlax-get-property o 'name)`, a string as it is written). The
+older `vlax-get-property`, `vlax-put-property` and `vlax-invoke-method`, and the oldest `vlax-get`, `vlax-put` and
+`vlax-invoke`, take the member as a symbol or a string in any case. `vlax-property-available-p`,
+`vlax-method-applicable-p` and `vlax-typeinfo-available-p` ask whether an object has a member. Too many arguments to a
+`vla-` function is `Too many actual parameters`, too few `too few actual parameters`.
+
+| Object | Properties | Methods |
+|---|---|---|
+| application | `ActiveDocument`, `Application` | |
+| document | `Application`, `ActiveSpace`, `ActiveLayer` (writable), `ModelSpace`, `PaperSpace`, `Blocks`, `Layers`, `TextStyles`, `Linetypes`, `DimStyles`, `SelectionSets`, `ActiveSelectionSet`, `PickfirstSelectionSet`, `Name`, `FullName`, `Path` | `StartUndoMark`, `EndUndoMark` |
+| a collection | `Count`, `Application`, `ObjectName` and `Handle` of a table | `Item`; `Add` of `SelectionSets` |
+| a selection set | `Name`, `Count`, `Application` | `Item`, `Clear`, `Delete`, `AddItems`, `RemoveItems`, `Select`, `SelectAtPoint`, `Highlight` |
+| a block, model space, a layout | `Name`, `Count`, `IsLayout`, `IsXRef`, `IsDynamicBlock`, `Origin`, and what every object has | `Item` |
+| every record, block and entity | `Application`, `Document`, `Handle`, `ObjectName`, `ObjectID`, `OwnerID` | |
+| a layer | `Name`, `Color`, `TrueColor`, `Linetype`, `Lineweight`, `LayerOn`, `Freeze`, `Lock`, `Plottable`, `Description` | |
+| a text style, a linetype, a dimension style | `Name`; `FontFile`, `Height`, `Width`, `ObliqueAngle` of a text style; `Description` of a linetype | |
+| a colour | `ColorIndex`, `ColorMethod` and `EntityColor` (writable), `Red`, `Green`, `Blue` | `SetRGB` |
+| every entity | `Layer`, `Color`, `Linetype`, `LinetypeScale`, `Lineweight`, `Visible`, `TrueColor` (all writable) | `Delete`, `GetBoundingBox`, `Update`, `Highlight` |
+| a line | `StartPoint`, `EndPoint`, `Thickness` (writable), `Length`, `Angle`, `Delta` | |
+| a circle | `Center`, `Radius`, `Diameter`, `Circumference`, `Area` (all writable) | |
+| an arc | `Center`, `Radius`, `StartAngle`, `EndAngle` (writable), `StartPoint`, `EndPoint`, `ArcLength`, `TotalAngle`, `Area` | |
+| a light-weight polyline | `Coordinates`, `Closed`, `Elevation` (writable), `Length`, `Area` | |
+| a text | `TextString`, `Height`, `Rotation`, `StyleName`, `InsertionPoint`, `TextAlignmentPoint`, `Alignment`, `ScaleFactor`, `ObliqueAngle` (all writable) | `FieldCode` |
+| an MText | `TextString`, `Height`, `Rotation`, `StyleName`, `InsertionPoint`, `Width`, `AttachmentPoint` (all writable) | `FieldCode` |
+| a block reference | `Name`, `InsertionPoint`, `Rotation`, `XScaleFactor`, `YScaleFactor`, `ZScaleFactor` (all writable), `EffectiveName`, `HasAttributes`, `IsDynamicBlock` | `GetAttributes`, `GetConstantAttributes` |
+| an attribute of a reference | `TagString`, `TextString`, `Height`, `Rotation`, `InsertionPoint`, `StyleName`, `Invisible` (all writable), `Constant` | |
+| an attribute definition | the same, and `PromptString` (writable) | |
+
+The properties of a layer, a text style, a linetype and a dimension style are read only. `vla-put-Color` of a layer is
+`vla-put-Color: changing a table record is not supported by GeometryHelper.Cad yet`, and the setters that only a layer has
+(`LayerOn`, `Freeze`, `Lock`) are not defined; the layer commands change them. A member the table does not list is not
+defined as a `vla-` function. `vlax-dump-object` is not there either.
+
+```text
+Command: (setq ly (vla-Item lays "Off"))
+#<VLA-OBJECT IAcadLayer 000001e4a7f3c180>
+Command: (vla-put-Color ly 2)
+; error: vla-put-Color: changing a table record is not supported by GeometryHelper.Cad yet
+Command: (vla-put-LayerOn ly :vlax-true)
+; error: no function definition: VLA-PUT-LAYERON
+Command: (vla-get-Description (vla-Item (vla-get-Linetypes doc) "Continuous"))
+"Solid line"
+```
+
+#### Reading and writing
+
+A property gives the value of its type: a Double a real, an integer property and an enumeration an integer, a String a string,
+a Boolean `:vlax-true` or `:vlax-false`, a point or an array a variant, and an object a VLA-OBJECT. `GetAttributes` gives a
+variant of type 8201, an array of objects. The old `vlax-get` and `vlax-invoke` give a variant or a safearray as a list and
+a Boolean as -1 or 0.
+
+```text
+Command: (vla-get-Length o)
+10.0
+Command: (vla-get-StartPoint o)
+#<variant 8197 ...>
+Command: (vlax-safearray->list (vlax-variant-value (vla-get-StartPoint o)))
+(0.0 0.0 0.0)
+Command: (vlax-get o 'StartPoint)
+(0.0 0.0 0.0)
+Command: (vla-get-Visible o)
+:vlax-true
+Command: (vlax-get o 'Visible)
+-1
+Command: (vlax-get-property o "visible")
+:vlax-true
+Command: (vla-get-Name o)
+; error: ActiveX Server returned the error: unknown name: Name
+```
+
+What a property takes depends on its type. A Double takes an integer or a real. An integer property takes a real or a
+number in a string too and converts it as `vlax-variant-change-type` does, so `(vla-put-Color o 1.5)` sets 2, and a value
+out of range is `Automation Error. Invalid argument color in IAcadEntity::put_Color`. A Boolean takes `:vlax-true` or `T` or
+-1 for true and `:vlax-false` or 0 for false, and `nil` is `ActiveX Server returned an error: Parameter not optional`. A
+point takes a variant or a safearray of three doubles; a list is `lisp value has no coercion to VARIANT with this type:` and
+the list, and a safearray of two numbers is `Automation Error. Incorrect number of elements in SafeArray`. `vlax-put` of a
+point is `Exception occurred` as it is in AutoCAD 2021, while `vlax-put` of a number or a Boolean works. A read-only
+property written is `ActiveX Server returned an error: Type mismatch`. A layer, linetype, text style or block that is not
+in the drawing is `Automation Error. Key not found`, where `entmod` would make the layer, and a layer is found by its name
+in any case.
+
+```text
+Command: (vla-put-Color o 1)
+nil
+Command: (cdr (assoc 62 (entget l1)))
+1
+Command: (vla-put-Color o 256)
+nil
+Command: (assoc 62 (entget l1))
+nil
+Command: (vla-put-Color o 1.5)
+nil
+Command: (vla-get-Color o)
+2
+Command: (vla-put-Color o 300)
+; error: Automation Error. Invalid argument color in IAcadEntity::put_Color
+Command: (vla-put-Layer o "NoSuch")
+; error: Automation Error. Key not found
+Command: (vla-put-Layer o "off")
+nil
+Command: (vla-get-Layer o)
+"Off"
+Command: (vla-put-Layer o "0")
+nil
+Command: (vla-put-Visible o nil)
+; error: ActiveX Server returned an error: Parameter not optional
+Command: (vla-put-Visible o 0)
+nil
+Command: (vla-get-Visible o)
+:vlax-false
+Command: (vla-put-Visible o :vlax-true)
+nil
+Command: (vla-put-StartPoint o '(1 2 3))
+; error: lisp value has no coercion to VARIANT with this type:  (1 2 3)
+Command: (vla-put-StartPoint o (vlax-3d-point 1 2 0))
+nil
+Command: (cdr (assoc 10 (entget l1)))
+(1.0 2.0 0.0)
+Command: (vla-put-StartPoint o (vlax-make-safearray vlax-vbDouble '(0 . 2)))
+nil
+Command: (cdr (assoc 10 (entget l1)))
+(0.0 0.0 0.0)
+Command: (vla-put-StartPoint o (vlax-safearray-fill (vlax-make-safearray vlax-vbDouble '(0 . 1)) '(3 4)))
+; error: Automation Error. Incorrect number of elements in SafeArray
+Command: (vlax-put o 'StartPoint '(0 0 0))
+; error: Exception occurred
+Command: (vlax-put o 'Color 3)
+nil
+Command: (vlax-put-property o 'Length 5.0)
+; error: ActiveX Server returned an error: Type mismatch
+Command: (vla-put-Color o)
+; error: too few actual parameters
+Command: (vla-get-Color o o)
+; error: Too many actual parameters
+```
+
+An entity's `TrueColor` is a copy of its colour, a new colour object at each read. `ColorMethod` is 192 for ByLayer, 193 for
+ByBlock, 195 for an index and 194 for an RGB colour (with `Red`, `Green` and `Blue`), and `EntityColor` of a ByLayer colour
+is -1073741824. `(vla-SetRGB tc 10 20 30)` makes the copy an RGB colour, and `Red`, `Green` and `Blue` read it. Changing
+the copy changes nothing until it is put back with `vla-put-TrueColor`.
+
+```text
+Command: (vla-put-Color o 256)
+nil
+Command: (setq tc (vla-get-TrueColor o))
+#<VLA-OBJECT IAcadAcCmColor 000001e4a7f3c900>
+Command: (vla-get-ColorMethod tc)
+192
+Command: (vla-get-EntityColor tc)
+-1073741824
+Command: (vla-put-ColorIndex tc 5)
+nil
+Command: (vla-get-Color o)
+256
+Command: (vla-put-TrueColor o tc)
+nil
+Command: (vla-get-Color o)
+5
+```
+
+`(vla-GetBoundingBox o 'lo 'hi)` sets the two quoted symbols to safearrays of three doubles, the lower and upper corners of
+the entity's extents in the WCS, and gives `nil`; `vlax-invoke-method o 'GetBoundingBox 'lo 'hi` does the same. The old
+`vlax-invoke` gives `nil` and sets nothing, and an argument that is no symbol sets nothing and is no error.
+
+```text
+Command: (vla-GetBoundingBox o 'lo 'hi)
+nil
+Command: (vlax-safearray->list lo)
+(0.0 0.0 0.0)
+Command: (vlax-safearray->list hi)
+(10.0 0.0 0.0)
+```
+
+#### Identity, erased and released objects
+
+Every read gives a new VLA-OBJECT, as AutoCAD 2021 does: `(eq o (vlax-ename->vla-object l1))` is `nil`, also for the
+application, the document and the collections, and `equal` of two values of one object is `T`. A value stands for its
+object, not for what the object was: `vla-Delete` erases the entity and the value then gives `Automation Error. Object was
+erased`, `vlax-erased-p` is `T` and `vlax-vla-object->ename` is `nil`, while `entdel` of the name brings the object back and
+the same value works again. `vlax-ename->vla-object` of an erased entity gives `nil`.
+
+`vlax-release-object` gives 0 and the value is released: it prints as `#<VLA-OBJECT 0000000000000000>`,
+`vlax-object-released-p` is `T`, and a read through it is `null interface pointer:` and that print. On a locked layer
+`vlax-write-enabled-p` is `nil` and `vlax-read-enabled-p` `T`; a put or a `Delete` is `Automation Error. On locked layer`.
+
+```text
+Command: (eq o (vlax-ename->vla-object l1))
+nil
+Command: (equal o (vlax-ename->vla-object l1))
+T
+Command: (setq o2 (vlax-ename->vla-object l2))
+#<VLA-OBJECT IAcadLine 000001e4a7f3ca20>
+Command: (vla-Delete o2)
+nil
+Command: (vlax-erased-p o2)
+T
+Command: (vla-get-Layer o2)
+; error: Automation Error. Object was erased
+Command: (vlax-vla-object->ename o2)
+nil
+Command: (vlax-ename->vla-object l2)
+nil
+Command: (entdel l2)
+<Entity name: 111>
+Command: (vla-get-Layer o2)
+"0"
+Command: (setq o3 (vlax-ename->vla-object l3))
+#<VLA-OBJECT IAcadLine 000001e4a7f3ca80>
+Command: (vlax-release-object o3)
+0
+Command: (vlax-object-released-p o3)
+T
+Command: (vla-get-Layer o3)
+; error: null interface pointer: #<VLA-OBJECT 0000000000000000>
+Command: (setq ok (vlax-ename->vla-object lk))
+#<VLA-OBJECT IAcadLine 000001e4a7f3cae0>
+Command: (list (vlax-write-enabled-p ok) (vlax-read-enabled-p ok))
+(nil T)
+Command: (vla-put-Color ok 2)
+; error: Automation Error. On locked layer
+Command: (vla-Delete ok)
+; error: Automation Error. On locked layer
+Command: (vlax-curve-getEndPoint ok)
+(10.0 14.0 0.0)
+```
+
+`ObjectID` and `OwnerID` are the value of the object's handle and of its owner's, so they are unique and stay as they are in
+the drawing; AutoCAD's are small numbers it hands out as the drawing is opened.
+
+#### Text, blocks and attributes
+
+A TEXT is changed through its own fields and realigned as `entmod` does; a TextString that holds a field code makes a field,
+and `FieldCode` gives the text with its codes, or the text itself where it has none. An MTEXT's `TextString` keeps its
+format codes. A circle's `Area` is writable (the radius follows), a light-weight polyline's `Coordinates` takes a variant of
+2n doubles and sets the vertices, and the `StartPoint` and `EndPoint` of an arc are read only.
+
+```text
+Command: (setq t1 (vlax-ename->vla-object tx))
+#<VLA-OBJECT IAcadText 000001e4a7f3cb40>
+Command: (vla-get-TextString t1)
+"abc"
+Command: (vla-FieldCode t1)
+"abc"
+Command: (vla-put-TextString t1 "abcd")
+nil
+Command: (cdr (assoc 1 (entget tx)))
+"abcd"
+Command: (vla-put-Height t1 5)
+nil
+Command: (cdr (assoc 40 (entget tx)))
+5.0
+Command: (vla-put-StyleName t1 "NoSuch")
+; error: Automation Error. Key not found
+Command: (vla-put-TextAlignmentPoint t1 (vlax-3d-point 9 20 0))
+; error: Automation Error. Not applicable
+Command: (setq c1 (vlax-ename->vla-object ci))
+#<VLA-OBJECT IAcadCircle 000001e4a7f3cba0>
+Command: (list (vla-get-Diameter c1) (vla-get-Circumference c1) (vla-get-Area c1))
+(10.0 31.4159 78.5398)
+Command: (vla-put-Area c1 100.0)
+nil
+Command: (vla-get-Radius c1)
+5.6419
+Command: (setq a1 (vlax-ename->vla-object ar))
+#<VLA-OBJECT IAcadArc 000001e4a7f3cc00>
+Command: (list (vla-get-TotalAngle a1) (vla-get-ArcLength a1) (vla-get-Area a1))
+(1.5708 7.85398 7.13495)
+Command: (vlax-get a1 'StartPoint)
+(70.0 5.0 0.0)
+Command: (vla-put-StartPoint a1 (vlax-3d-point 0 0 0))
+; error: ActiveX Server returned an error: Type mismatch
+Command: (setq p1 (vlax-ename->vla-object pl))
+#<VLA-OBJECT IAcadLWPolyline 000001e4a7f3cc60>
+Command: (vlax-get p1 'Coordinates)
+(0.0 40.0 10.0 40.0 10.0 50.0)
+Command: (vla-put-Closed p1 :vlax-true)
+nil
+Command: (vla-get-Length p1)
+34.1421
+```
+
+A block reference gives `Name`, and `EffectiveName`, which is the name of a dynamic block's definition where `Name` is its
+anonymous block (and `Name` otherwise). `GetAttributes` gives the reference's attributes as a variant of an array of objects;
+`vlax-safearray->list` of its value is the list, and `vlax-invoke` gives the list at once. A reference with none gives an
+array with upper bound -1, which `vlax-safearray->list` refuses with `Invalid index` while `vlax-invoke` gives `nil`.
+`GetConstantAttributes` gives the constant attribute definitions of its block, as attribute objects. Writing an
+attribute's `TextString` changes the ATTRIB of its reference, as the Properties palette does, and moving a reference
+(`InsertionPoint`) moves its attributes. `vlax-ename->vla-object` of the name of an ATTRIB gives its object; `entmod` of an
+ATTRIB stays refused, and this is the way a routine writes one.
+
+```text
+Command: (setq bo (vlax-ename->vla-object bi))
+#<VLA-OBJECT IAcadBlockReference 000001e4a7f3ccc0>
+Command: (vla-get-ObjectName bo)
+"AcDbBlockReference"
+Command: (list (vla-get-Name bo) (vla-get-EffectiveName bo) (vla-get-HasAttributes bo) (vla-get-XScaleFactor bo))
+("Tag" "Tag" :vlax-true 2.0)
+Command: (setq at (vla-GetAttributes bo))
+#<variant 8201 ...>
+Command: (setq atl (vlax-safearray->list (vlax-variant-value at)))
+(#<VLA-OBJECT IAcadAttributeReference 000001e4a7f3cd20>)
+Command: (vlax-invoke bo 'GetAttributes)
+(#<VLA-OBJECT IAcadAttributeReference 000001e4a7f3cd80>)
+Command: (setq a (car atl))
+#<VLA-OBJECT IAcadAttributeReference 000001e4a7f3cd20>
+Command: (list (vla-get-ObjectName a) (vla-get-TagString a) (vla-get-TextString a) (vla-get-Height a))
+("AcDbAttribute" "TAG1" "v30" 5.0)
+Command: (vla-put-TextString a "NEW")
+nil
+Command: (cdr (assoc 1 (entget (entnext bi))))
+"NEW"
+Command: (setq ca (vlax-safearray->list (vlax-variant-value (vla-GetConstantAttributes bo))))
+(#<VLA-OBJECT IAcadAttribute 000001e4a7f3ce40>)
+Command: (list (vla-get-TagString (car ca)) (vla-get-Constant (car ca)))
+("CTAG" :vlax-true)
+Command: (setq bo2 (vlax-ename->vla-object bi2))
+#<VLA-OBJECT IAcadBlockReference 000001e4a7f3cea0>
+Command: (vla-get-HasAttributes bo2)
+:vlax-false
+Command: (vlax-safearray-get-u-bound (vlax-variant-value (vla-GetAttributes bo2)) 1)
+-1
+Command: (vlax-safearray->list (vlax-variant-value (vla-GetAttributes bo2)))
+; error: ActiveX Server returned an error: Invalid index
+Command: (vlax-invoke bo2 'GetAttributes)
+nil
+Command: (vla-put-Name bo "NoSuch")
+; error: Automation Error. Key not found
+```
+
+#### Text boxes
+
+`(textbox elist)` is the box of the words of a TEXT or MTEXT as though it stood unturned at its insertion point: the lower
+left and upper right corners, relative to that point. AutoCAD 2021 gives `((0.0 0.0 0.0) (6.66667 2.5 0.0))` for `abc` 2.5
+high in the font `txt`. The presenter measures the words in the fonts of the drawing, its support folders and Windows'
+Fonts folder, so the same text in Arial 2.5 high gives `((0.0 -0.0409277 0.0) (5.63097 2.5 0.0))`; it gives `nil` for words
+whose font it cannot find, and for something that is no text. `vla-GetBoundingBox` of a TEXT or MTEXT is that box moved to
+the insertion point, and where no font is found it is the insertion point alone.
+
+#### Selection sets
+
+The `SelectionSets` of the document are sets that a routine names, kept apart from the sets of `ssget` and from the drawing.
+`(vla-Add sets name)` makes an empty one (a name already there is `Automation Error. The named selection set exists`, and
+names are case-sensitive: `"ghss"` is another set than `"GHSS"`), and `Item` takes the name or an index. `Count`, `Item` and
+`vlax-for` read the set. `Clear` empties it, and `Delete` takes it out of the collection, after which its value is `Automation
+Error. Selection Set was deleted`. `AddItems` takes a variant and `RemoveItems` a safearray of objects.
+`SelectAtPoint pt [types data]` adds the object a pick at the point finds, once however often it is called; the point is a
+variant or a safearray, a list being the coercion error. `Select mode [p1 [p2 [types data]]]` takes 0 for a window, 1 for a
+crossing, 3 for the previous selection, 4 for the last and 5 for all, with the filter as a safearray of integer codes and
+one of values; the fence and polygon modes are not there. The names `acSelectionSetAll` and the like are not defined
+here: write the number.
+
+```text
+Command: (setq sss (vla-get-SelectionSets doc))
+#<VLA-OBJECT IAcadSelectionSets 000001e4a7f3cf00>
+Command: (setq ss (vla-Add sss "GHSS"))
+#<VLA-OBJECT IAcadSelectionSet 000001e4a7f3cf60>
+Command: (vla-Add sss "GHSS")
+; error: Automation Error. The named selection set exists
+Command: (vla-SelectAtPoint ss (vlax-3d-point 5 0 0))
+nil
+Command: (vla-SelectAtPoint ss (vlax-3d-point 5 0 0))
+nil
+Command: (vla-get-Count ss)
+1
+Command: (vla-Item ss 0)
+#<VLA-OBJECT IAcadLine 000001e4a7f3cfc0>
+Command: (vla-SelectAtPoint ss '(5 0 0))
+; error: lisp value has no coercion to VARIANT with this type:  (5 0 0)
+Command: (vla-Clear ss)
+nil
+Command: (vla-Select ss 5)
+nil
+Command: (vla-get-Count ss)
+11
+Command: (vla-Clear ss)
+nil
+Command: (vla-Select ss 0 (vlax-3d-point -1 -1 0) (vlax-3d-point 11 3 0))
+nil
+Command: (vla-get-Count ss)
+1
+Command: (vla-Clear ss)
+nil
+Command: (vla-Select ss 5 nil nil (vlax-safearray-fill (vlax-make-safearray vlax-vbInteger '(0 . 0)) '(0)) (vlax-safearray-fill (vlax-make-safearray vlax-vbVariant '(0 . 0)) '("LINE")))
+nil
+Command: (vla-get-Count ss)
+4
+Command: (vla-Delete ss)
+nil
+Command: (vla-get-Count ss)
+; error: Automation Error. Selection Set was deleted
+Command: (vla-Item sss "GHSS")
+; error: Automation Error. Key not found
+```
+
+`ActiveSelectionSet` of the document is a set named `"CURRENT"` that holds the last selection `ssget` or a command made, a new
+value at each read: FDVAL's iteration after an `ssget` reads it. `PickfirstSelectionSet` is `"PICKFIRST"` and holds the
+pick-first selection. Reading either adds it to `SelectionSets`. `vla-Delete` of the active set does no harm: the next read
+holds the previous selection again.
+
+```text
+Command: (setq gx (ssget "_X"))
+<Selection set: 2>
+Command: (setq ass (vla-get-ActiveSelectionSet doc))
+#<VLA-OBJECT IAcadSelectionSet 000001e4a7f3d020>
+Command: (list (vla-get-Name ass) (vla-get-Count ass))
+("CURRENT" 11)
+Command: (setq gw (ssget "_W" '(-1 -1) '(11 3)))
+<Selection set: 3>
+Command: (vla-get-Count (vla-get-ActiveSelectionSet doc))
+1
+Command: (vla-get-Name (vla-get-PickfirstSelectionSet doc))
+"PICKFIRST"
+```
+
+#### The current layer and the undo marks
+
+`ActiveLayer` put with a layer's object sets CLAYER. `StartUndoMark` and `EndUndoMark` are UNDO Begin and End: the steps
+between them are one `U`, and an `EndUndoMark` with none open does nothing.
+
+```text
+Command: (vla-put-ActiveLayer doc (vla-Item (vla-get-Layers doc) "Off"))
+nil
+Command: (getvar "CLAYER")
+"Off"
+Command: (vla-put-ActiveLayer doc (vla-Item (vla-get-Layers doc) "0"))
+nil
+Command: (vla-EndUndoMark doc)
+nil
+```
+
+### Undo of typed forms
+
+The changes an object function makes join the undo step of the evaluation, as `entmod` does: the changes of one typed form
+are one step, and a `c:` command is one step. AutoCAD 2021 goes further, and so does the presenter: forms typed one after the
+other at the Command prompt, with no command between them, are **one** step. Two `vla-put-Color` forms typed in turn are
+taken back by one `U`; a command typed between them, a drawing command or `REGEN` or any other, ends the step, and the
+forms after it are a step of their own. The next command, `U` and `REDO` included, closes the run. `StartUndoMark` and
+`EndUndoMark` around forms make one step of those too. A form that changes nothing between two forms does not separate them.
+
+```text
+Command: (setq o (vlax-ename->vla-object l1))
+#<VLA-OBJECT IAcadLine 000001e4a7f3c060>
+Command: (vla-get-Color o)
+256
+Command: (vla-put-Color o 3)
+nil
+Command: (vla-put-Color o 4)
+nil
+Command: U
+(Lisp Expression)
+Command: (vla-get-Color o)
+256
+Command: (vla-put-Color o 5)
+nil
+Command: REGEN
+Regenerating model.
+Command: (vla-put-Color o 6)
+nil
+Command: U
+(Lisp Expression)
+Command: (vla-get-Color o)
+5
+Command: U
+(Lisp Expression)
+Command: (vla-get-Color o)
+256
+```
+
+`entmod` typed at the Command prompt joins in the same way, as AutoCAD 2021 gave it for two `entmod`s typed in turn: where
+each was a step of its own before, one `U` now takes both, and a `vla-put-` form and an `entmod` form typed one after the
+other are one step. `entmake`, `entdel` and `setvar` are still a step each (AutoCAD was not measured for these three). No
+undo group stays open between the forms, so autosave, the remote server and the block editor see a drawing at rest, and an
+edit of the Properties palette made between two forms is a step of its own.
+
+### COM to other programs is refused
+
+`vlax-get-or-create-object`, `vlax-create-object` and `vlax-get-object` start or reach another program, Excel for one, and
+the presenter does not. Each is an error that says so, with the function's name and the program given:
+
+```text
+Command: (vlax-get-or-create-object "Excel.Application")
+; error: vlax-get-or-create-object: COM to other programs is not supported by GeometryHelper.Cad: "Excel.Application"
+Command: (vl-catch-all-error-message (vl-catch-all-apply 'vlax-create-object '("Excel.Application")))
+"vlax-create-object: COM to other programs is not supported by GeometryHelper.Cad: \"Excel.Application\""
+Command: (vlax-import-type-library :tlb-filename "x.tlb")
+; error: vlax-import-type-library: type libraries are not supported by GeometryHelper.Cad
+Command: (vlax-get-or-create-object 5)
+; error: bad argument type: (or stringp symbolp): 5
+```
+
+It is an error and not `nil` for every program, where AutoCAD gives `nil` for one it cannot find, so that a routine's
+`*error*` runs and says why; a routine that tests the result for `nil` and carries on without Excel needs
+`vl-catch-all-apply`. The `vlax-put-property`, `vlax-invoke-method` and `vla-put-Visible` calls such a routine makes on
+Excel's objects are never reached.
+
+### What is parked in the ActiveX stage
+
+These are not defined, and a call is `; error: no function definition: NAME`: `vlax-dump-object`, `vlax-ldata-get`,
+`-put`, `-list`, `-delete` and `-test`, `vlax-add-cmd` and `vlax-remove-cmd`, the product keys (`vlax-product-key` and
+the two with it) and every `vlr-` function, with `vl-load-reactors`; there are no reactors. The `Layouts` and `Documents`
+collections, the `Add...` methods of a space and `InsertBlock`, `Layers.Add` and `Blocks.Add`, writes to a table record,
+`Copy`, `Move`, `Rotate`, `Mirror`, `ScaleEntity`, `Explode`, `IntersectWith`, `Offset`, `GetXData` and `SetXData`,
+`SelectOnScreen`, a selection by fence or polygon, `Utility` and `Preferences` are not there either: a `vla-` function of
+one of them is not defined, or where its name is defined for another object, it is `unknown name`. The `ac` enumeration
+constants (`acSelectionSetAll`, `acModelSpace`) are not defined: write the number.
+
+Where the presenter differs from the full AutoCAD 2021 that measured it:
+
+- `vlax-for` gives `nil`; AutoCAD gives the value of the last form of its last pass.
+- `vla-put-Length` and its like are defined for the writable members of the objects listed above only; AutoCAD defines a
+  `vla-put-` name once any object has a writable member of it, so `(type vla-put-Length)` is `SUBR` there and `nil` here.
+- A quoted `vla-` or `vlax-` name prints in upper case, `(VLA-GET-NAME X)`, where AutoCAD prints it in the case it was
+  defined in, `(vla-get-Name X)`.
+- `U` typed right after a `REGEN` that follows a change takes back only the `REGEN` in AutoCAD, which counts it as a step,
+  and the change here, where `REGEN` is no step.
+- `Item` of a model space or a block takes an integer; AutoCAD also takes a handle in a string.
+- `ObjectID` and `OwnerID` are handle values, and a TEXT of a font the presenter cannot find has no box.
+- A ProgID that does not exist is `nil` in AutoCAD and an error here, as above.
+
 ## While a routine waits
 
 A routine that asks the user is suspended, and the presenter goes on: the window never blocks, and a headless session returns
@@ -915,11 +1813,14 @@ writes for a name it does not know, `; error: no function definition: NAME`, so 
 above runs, and one that reaches for a later stage stops at its first such call. A routine that defines its commands loads
 whole, and their names are offered by AutoComplete, whatever their bodies need.
 
-The drawing and the library are built, with these left out. In `entmake`: the POLYLINE sequences, an INSERT with attributes,
-block definitions and the records of a table. A few variables AutoCAD has, PROGRAM, PLATFORM, VIEWCTR, UNDOCTL and ERRNO,
-read as `nil`. Of the library, `acad_strlsort`, `getenv` and `setenv` (they come with the registry store, when a routine needs
-them), `findtrustedfile` (with L6), `vl-load-reactors` (with the reactors of L4), and `vl-exit-with-error` and
-`vl-exit-with-value`, which belong to VLX applications, are not defined. A `vl-sort` function that is no ordering can give
+The drawing, the library and the ActiveX functions are built, with these left out. In `entmake`: the POLYLINE sequences, an
+INSERT with attributes, block definitions and the records of a table. Of the library, `acad_strlsort`, `getenv` and `setenv`
+(they come with the registry store, when a routine needs them), `findtrustedfile` (with L6), `vl-load-reactors` (with the
+`vlr-` functions, which the ActiveX stage leaves out: there are no reactors), and `vl-exit-with-error` and
+`vl-exit-with-value`, which belong to VLX applications, are not defined. Of the ActiveX functions, `vlax-dump-object`,
+`vlax-ldata-get` and its family, `vlax-add-cmd`, the product keys, the `Add` methods and the editing methods of the spaces
+and a few more are parked, and a few measured differences remain; both lists are
+[at the end of that section](#what-is-parked-in-the-activex-stage). A `vl-sort` function that is no ordering can give
 another list than AutoCAD's: for `'(2 1 2 1)` and a function that always answers `nil` AutoCAD gave `(1 2 1)` and the presenter
 gives `(2 1 2 1)`, and for `'(1 2 3 2 1)` and one that always answers `T`, `(1 2 3 1)` and `(1 2 3 2 1)`. `vl-list->string` leaves out the codes
 outside 1 to 65535 where AutoCAD printed other text, a `vl-filename-mktemp` counter does not go past 999, and Unicode typed
@@ -927,8 +1828,7 @@ at the command line reaches `read-line` through the ANSI code page.
 
 | Stage | What it brings |
 |---|---|
-| L4 | the ActiveX functions, `vla-` and `vlax-` |
 | L5 | dialogs, DCL: `load_dialog`, `new_dialog`, `start_dialog` |
 | L6 | trusted folders and the secure-load check; for now `load` reads any file it is given |
 
-A routine that opens with `(vl-load-com)` loads today: that call is defined and does nothing.
+A routine that opens with `(vl-load-com)` loads, and has the [ActiveX functions](#activex-objects) after it.
