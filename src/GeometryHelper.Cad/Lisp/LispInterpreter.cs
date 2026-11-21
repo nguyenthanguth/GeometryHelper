@@ -95,6 +95,19 @@ namespace GeometryHelper.Cad.Lisp
         }
 
         /// <summary>
+        /// Says whether a file found for <c>load</c> may be loaded (<see cref="CadLoadSecurity.MayLoad"/>); it gets the file's full
+        /// path. Null, as it is until set, lets every file load. A file it refuses is the error <c>File load canceled: name</c>
+        /// where the name given had a folder, and is passed over in a search where it had none.
+        /// </summary>
+        internal Func<string, bool> MayLoad { get; set; }
+
+        /// <summary>
+        /// Says whether a search for a file of code looks in the current folder and the folder of the drawing too
+        /// (<see cref="CadLoadSecurity.LegacyCodeSearch"/>). Null, as it is until set, is no.
+        /// </summary>
+        internal Func<bool> LegacyCodeSearch { get; set; }
+
+        /// <summary>
         /// Gets the files this interpreter has loaded, as full paths in the order they were first loaded: the files of
         /// <see cref="Load"/> and of <c>(load)</c> that were read to their end, which includes the startup files and what
         /// one file loads from another. A file whose load failed, from a missing file to an error inside it, is not in the
@@ -933,9 +946,20 @@ namespace GeometryHelper.Cad.Lisp
 
         #region Load
 
-        private object LoadFile(string name, bool hasFallback, object fallback)
+        private object LoadFile(string name, bool hasFallback, object fallback) =>
+            LoadFile(name, hasFallback, fallback, out _);
+
+        private object LoadFile(string name, bool hasFallback, object fallback, out string loaded)
         {
+            loaded = null;
             string extension = ExtensionOf(name);
+            string path = FindFile(name, out bool canceled);
+
+            // The check comes before the refusal of compiled files: an untrusted .fas is cancelled, a trusted one is not supported.
+            if (canceled)
+            {
+                throw new LispException("File load canceled: " + name);
+            }
 
             if (extension == ".fas" || extension == ".vlx")
             {
@@ -947,7 +971,6 @@ namespace GeometryHelper.Cad.Lisp
                 throw new LispException("LOAD failed: " + Print(name, true) + " (compiled AutoLISP is not supported)");
             }
 
-            string path = FindFile(name);
             string text = path == null ? null : ReadText(path);
 
             if (text == null)
@@ -975,6 +998,7 @@ namespace GeometryHelper.Cad.Lisp
                 _loadedFiles.Add(full);
             }
 
+            loaded = full;
             return last;
         }
 
@@ -990,18 +1014,35 @@ namespace GeometryHelper.Cad.Lisp
             }
         }
 
-        private string FindFile(string name)
+        /// <summary>
+        /// Finds the file <c>load</c> reads and has <see cref="MayLoad"/> agree to it. A name with a folder is that file; any
+        /// other is looked for in the folders of <see cref="LoadFolders"/> in order, and a file found there that is refused is
+        /// passed over for the next.
+        /// </summary>
+        /// <param name="name">The name as given to <c>load</c>.</param>
+        /// <param name="canceled">True when the file a name with a folder points at exists and is refused.</param>
+        /// <returns>The file, or null where there is none to load.</returns>
+        private string FindFile(string name, out bool canceled)
         {
+            canceled = false;
+
             try
             {
                 string withExtension = Path.HasExtension(name) ? name : name + ".lsp";
 
                 if (name.IndexOfAny(new[] { '/', '\\' }) >= 0 || Path.IsPathRooted(name))
                 {
-                    return File.Exists(withExtension) ? Path.GetFullPath(withExtension) : null;
+                    if (!File.Exists(withExtension))
+                    {
+                        return null;
+                    }
+
+                    string full = Path.GetFullPath(withExtension);
+                    canceled = MayLoad != null && !MayLoad(full);
+                    return canceled ? null : full;
                 }
 
-                foreach (string folder in _supportFolders)
+                foreach (string folder in LoadFolders())
                 {
                     if (string.IsNullOrEmpty(folder))
                     {
@@ -1010,7 +1051,7 @@ namespace GeometryHelper.Cad.Lisp
 
                     string candidate = Path.Combine(folder, withExtension);
 
-                    if (File.Exists(candidate))
+                    if (File.Exists(candidate) && (MayLoad == null || MayLoad(Path.GetFullPath(candidate))))
                     {
                         return candidate;
                     }
@@ -1020,6 +1061,21 @@ namespace GeometryHelper.Cad.Lisp
             catch (NotSupportedException) { }
 
             return null;
+        }
+
+        /// <summary>The folders <c>load</c> looks in for a name with no folder: the support folders, and before them the current folder and the drawing's where <see cref="LegacyCodeSearch"/> says so.</summary>
+        private IEnumerable<string> LoadFolders()
+        {
+            if (LegacyCodeSearch != null && LegacyCodeSearch())
+            {
+                yield return CurrentFolder?.Invoke();
+                yield return DrawingFolder?.Invoke();
+            }
+
+            foreach (string folder in _supportFolders)
+            {
+                yield return folder;
+            }
         }
 
         /// <summary>Reads a file as UTF-8 when its bytes are UTF-8 (or begin with its byte order mark), and as the system's ANSI code page when not.</summary>

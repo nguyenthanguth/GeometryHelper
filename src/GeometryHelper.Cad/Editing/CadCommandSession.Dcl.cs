@@ -18,12 +18,17 @@ namespace GeometryHelper.Cad
         /// <summary>Gets the DCL files this document's routines loaded, by the ids <c>load_dialog</c> gave.</summary>
         internal DclLibrary DclLibrary => _dclLibrary ?? (_dclLibrary = new DclLibrary(DclSearchFolders));
 
-        // Where load_dialog looks for a bare name, as findfile does: the current folder, the drawing's folder, the support folders.
+        // Where load_dialog looks for a bare name, as findfile does for a file of code: the support folders, and before them the
+        // current folder and the drawing's while LEGACYCODESEARCH is on.
         private IEnumerable<string> DclSearchFolders()
         {
             LispInterpreter lisp = Lisp;
-            yield return lisp.CurrentFolder?.Invoke();
-            yield return lisp.DrawingFolder?.Invoke();
+
+            if (LoadSecurity.LegacyCodeSearch)
+            {
+                yield return lisp.CurrentFolder?.Invoke();
+                yield return lisp.DrawingFolder?.Invoke();
+            }
 
             foreach (string folder in lisp.SupportFolders)
             {

@@ -26,13 +26,34 @@ namespace GeometryHelper.Cad
             {
                 if (_lisp == null)
                 {
-                    _lisp = new LispInterpreter { Variable = LispVariable };
+                    _lisp = new LispInterpreter
+                    {
+                        Variable = LispVariable,
+                        MayLoad = path => LoadSecurity.MayLoad(path),
+                        LegacyCodeSearch = () => LoadSecurity.LegacyCodeSearch,
+                    };
                     LispDrawing.Register(_lisp, this);
                 }
 
                 _lisp.SupportFolders = Document.SupportFolders;
                 return _lisp;
             }
+        }
+
+        private CadLoadSecurity _loadSecurity = new CadLoadSecurity { SecureLoad = 0 };
+
+        /// <summary>
+        /// Gets or sets the gate every file of code this session loads goes through: SECURELOAD, TRUSTEDPATHS and
+        /// LEGACYCODESEARCH, which the variables of those names read and set. A session of the library has an instance of its
+        /// own at SECURELOAD 0, so what it loads is as it was before the gate; the window gives all its sessions one shared
+        /// instance made from the Global settings. <c>load</c> and what is built on it (APPLOAD, the startup files) ask it for
+        /// each file, and <c>findfile</c> and <c>load_dialog</c> ask it where to look.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when set to null.</exception>
+        public CadLoadSecurity LoadSecurity
+        {
+            get => _loadSecurity;
+            set => _loadSecurity = value ?? throw new ArgumentNullException(nameof(value));
         }
 
         private object LispVariable(string name)

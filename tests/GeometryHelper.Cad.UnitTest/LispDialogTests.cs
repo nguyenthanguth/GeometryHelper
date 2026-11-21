@@ -398,8 +398,10 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void ABareName_IsLookedForInTheCurrentFolderWithDclAdded()
         {
-            // reference: load_dialog searches the support path for a bare name; ours: D315 (as findfile)
+            // reference: load_dialog searches the support path for a bare name; ours: D315 (as findfile). The current folder
+            // is searched for a .dcl only with LEGACYCODESEARCH 1 (L6 D909; AutoCAD 2021's findfile, research M5).
             CadCommandSession session = Session(Blank());
+            session.LoadSecurity.LegacyCodeSearch = true;
             session.Lisp.CurrentFolder = () => _folder;
 
             Assert.Equal("1", Eval(session, "(load_dialog \"kit\")"));
