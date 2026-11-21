@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <!--
+    A drawing app with no window, serving the remote pipe, for the Python tests (tests/python/remote): a script in
+    another process drives it as it would drive the real app. Started by the pytest fixture, never packed.
+  -->
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <PlatformTarget>x64</PlatformTarget>
+        <RootNamespace>GeometryHelper.Cad.Remote.TestServer</RootNamespace>
+        <AssemblyName>GeometryHelper.Cad.Remote.TestServer</AssemblyName>
+        <IsPackable>false</IsPackable>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" />
+        <ProjectReference Include="..\..\src\GeometryHelper.Cad\GeometryHelper.Cad.csproj" />
+    </ItemGroup>
+</Project>

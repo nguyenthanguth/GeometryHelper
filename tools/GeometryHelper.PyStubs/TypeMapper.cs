@@ -85,11 +85,21 @@ namespace GeometryHelper.PyStubs
         /// Python list is refused for <c>IEnumerable&lt;T&gt;</c>, <c>IReadOnlyList&lt;T&gt;</c> and the others, measured);
         /// a return or a property gives the .NET class itself. A by-reference type is taken as the type it points to.
         /// </summary>
-        public string Map(Type type, bool asParameter, ModuleContext module)
+        public string Map(Type type, bool asParameter, ModuleContext module) => Map(type, asParameter, false, module);
+
+        private string Map(Type type, bool asParameter, bool nested, ModuleContext module)
         {
             if (type.IsByRef)
             {
                 type = type.GetElementType();
+            }
+
+            // pythonnet hands a Python class of a .NET type over as its System.Type, so where a Type is taken the class is
+            // taken too. Only where the argument is the Type itself: inside an array or a generic argument pythonnet
+            // converts nothing, so the element stays a System.Type.
+            if (asParameter && !nested && type.FullName == "System.Type")
+            {
+                return module.Bcl("System", "Type") + " | type[" + module.Typing("Any") + "]";
             }
 
             if (type.IsGenericParameter)
@@ -104,7 +114,7 @@ namespace GeometryHelper.PyStubs
                     return AnyOf(type.FullName, module);
                 }
 
-                string element = Map(type.GetElementType(), asParameter, module);
+                string element = Map(type.GetElementType(), asParameter, true, module);
                 string array = module.Bcl("System", "Array") + "[" + element + "]";
                 return asParameter ? module.Typing("Sequence") + "[" + element + "] | " + array : array;
             }
@@ -193,7 +203,7 @@ namespace GeometryHelper.PyStubs
             {
                 return module.Bcl(definition.Namespace, name)
                     + "["
-                    + string.Join(", ", arguments.Select(a => Map(a, asParameter, module)))
+                    + string.Join(", ", arguments.Select(a => Map(a, asParameter, true, module)))
                     + "]";
             }
 
