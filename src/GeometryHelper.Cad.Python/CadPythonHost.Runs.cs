@@ -104,13 +104,7 @@ namespace GeometryHelper.Cad.Python
                 return CadPythonEntry.Incomplete;
             }
 
-            string[] lines = text.Replace("\r\n", "\n").TrimEnd('\n').Split('\n');
-
-            for (int i = 0; i < lines.Length; i++)
-            {
-                Emit((i == 0 ? ">>> " : "... ") + lines[i], false, false);
-            }
-
+            // The palette echoes the entry itself, in its own colour (D727): nothing of it goes through Output.
             if (compiled.Status == "error")
             {
                 EmitErrors(compiled.Trace);
@@ -455,7 +449,7 @@ namespace GeometryHelper.Cad.Python
             }
             else if (outcome == CadPythonOutcome.Failed)
             {
-                error = result.Summary;
+                error = LastLine(result.Trace) ?? result.Summary;
                 EmitErrors(result.Trace);
                 session.Write("Python error: " + result.Summary);
             }
@@ -475,6 +469,18 @@ namespace GeometryHelper.Cad.Python
             _current = null;
             RaiseFinished(step, document, outcome, error);
             return outcome;
+        }
+
+        /// <summary>The last line of a traceback, <c>ZeroDivisionError: division by zero</c>, as <see cref="CadPythonRunEventArgs.Error"/> gives it; null for none.</summary>
+        private static string LastLine(string trace)
+        {
+            if (string.IsNullOrWhiteSpace(trace))
+            {
+                return null;
+            }
+
+            string[] lines = trace.Replace("\r\n", "\n").TrimEnd('\n', ' ').Split('\n');
+            return lines[lines.Length - 1].Trim();
         }
 
         /// <summary>Asks a question of the script as the prompts of a small command, and waits on the owner for the answer.</summary>

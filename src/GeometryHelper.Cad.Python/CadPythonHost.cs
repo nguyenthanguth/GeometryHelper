@@ -39,9 +39,10 @@ namespace GeometryHelper.Cad.Python
             Environment = environment ?? throw new ArgumentNullException(nameof(environment));
             _owner = owner ?? throw new ArgumentNullException(nameof(owner));
 
+            // A host on a Python that is not there never starts the engine, so it may be made whatever ran before (D719).
             lock (StartLock)
             {
-                if (_engineStarted)
+                if (_engineStarted && environment.IsUsable)
                 {
                     throw new InvalidOperationException("Python is started once per process.");
                 }
@@ -272,14 +273,36 @@ namespace GeometryHelper.Cad.Python
                     + first
                     + ". Fix Global settings > Python and restart GeometryHelper CAD.";
                 GeometryHelperLog.Warn("CadPythonHost: Python could not start.", exception);
+
+                // Started but not set up (the package not found): the engine holds the GIL on this thread since Initialize,
+                // and cannot be started again (research M2b), so it is shut down here rather than left for the exit.
+                if (PythonEngine.IsInitialized && _threadState == IntPtr.Zero)
+                {
+                    try
+                    {
+                        PythonEngine.Shutdown();
+                    }
+                    catch (Exception shutdown)
+                    {
+                        GeometryHelperLog.Warn("CadPythonHost: Shutdown after a failed start failed.", shutdown);
+                    }
+                }
+
                 return false;
             }
         }
 
+        /// <summary>
+        /// The folder whose <c>python</c> holds the app's copy of the package: beside this assembly, or, where the host copies
+        /// assemblies elsewhere before loading them (a shadow copy, as xUnit does on .NET Framework), the application's base.
+        /// </summary>
         private static string AppFolder()
         {
             string location = typeof(CadPythonHost).Assembly.Location;
-            return string.IsNullOrEmpty(location) ? AppContext.BaseDirectory : Path.GetDirectoryName(location);
+            string beside = string.IsNullOrEmpty(location) ? null : Path.GetDirectoryName(location);
+            return beside != null && Directory.Exists(Path.Combine(beside, "python", "geometryhelper"))
+                ? beside
+                : AppDomain.CurrentDomain.BaseDirectory;
         }
 
         /// <summary>A whole line from the script's stdout or stderr, which any thread may write: the owner thread takes it from there.</summary>

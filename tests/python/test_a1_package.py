@@ -66,7 +66,9 @@ def test_the_wheel_holds_the_files_of_the_list_and_nothing_else() -> None:
     own = [f for f in files if f.startswith("geometryhelper/")]
     assert [f for f in own if not f.startswith("geometryhelper/lib/")] == [
         "geometryhelper/__init__.py",
+        "geometryhelper/_app.py",
         "geometryhelper/arrays.py",
+        "geometryhelper/cad.py",
         "geometryhelper/geometryhelper.runtimeconfig.json",
         "geometryhelper/py.typed",
     ]
