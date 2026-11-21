@@ -142,7 +142,14 @@ scripts inside the app, and a script outside that drives a running app.
       real app (100 lines committed in 207 ms, one U takes the commit back)
 - [ ] P4 parked: CadObjectFilter's Layer, Layout and Kind typed `| None` in the stubs; a CadApplication used after
       Dispose reconnects silently (documented); the app's announced title empty just after it starts
-- [ ] P5. Examples and the guide: a script per common task, and the API reference for Python from the XML docs
+- [x] P5. Examples and the guide: a script per common task, and the API reference for Python from the XML docs.
+      Done 2026-11-22: 13 examples in src/python/examples (library, in the app, remote), each run by a test on both
+      runtimes; a Python API section of the docs site, one page per type (806), generated from the stubs with links to
+      the .NET pages
+- [ ] P5 parked: the place of the examples and the docs build needing Python (the maintainer to confirm); a
+      `src/python` row in CLAUDE.md's layout table; 365 member groups with no .NET page to link (enum `__int__`, flags
+      operators, delegates' `__call__`); stub overloads that differ only by a trailing out promise a 3-tuple pythonnet
+      does not return
 - [ ] P6. Scripts in the trusted folders of L6 only, and a script's errors shown without closing the app
 
 ## Release
