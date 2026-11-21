@@ -627,6 +627,7 @@ namespace GeometryHelper.Cad.Lisp
 
             string failure = null;
             session.OpenLispStep();
+            session.HoldLispStep();
             CadEditResult result = session.Apply(
                 "ENTMOD",
                 new[] { new CadEditRecord(CadEditRecordKind.Reshaped, handle) },

@@ -187,7 +187,7 @@ namespace GeometryHelper.Cad
 
             _lispText = null;
             _lispPrompt = null;
-            _lispStep = _lispHold;
+            _lispStep = false;
             _lispStepName = null;
             _lispPrefix = null;
 
