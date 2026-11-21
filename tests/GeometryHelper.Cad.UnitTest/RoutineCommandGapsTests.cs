@@ -210,6 +210,26 @@ namespace GeometryHelper.Cad.UnitTest
             Assert.Equal("Command: nil", session.History.Last());
         }
 
+        [Fact]
+        public void LayerThawAndUnlockOfAStar_TakeEveryLayer()
+        {
+            // The routine LL's LUF and LU (runs/ll): (command "_.LAYER" "_THAW" "*" "") and (command "-Layer" "Unlock" "*" "")
+            // thaw and unlock every layer; the presenter wrote Cannot find layer "*" and left them as they were (L2 spec D80).
+            CadDocument document = Plan();
+            CadCommandSession session = Typed(
+                document,
+                "(command \"-LAYER\" \"M\" \"A\" \"M\" \"B\" \"S\" \"0\" \"F\" \"A,B\" \"LO\" \"A,B\" \"\")",
+                "(command \"_.LAYER\" \"_THAW\" \"*\" \"\")",
+                "(command \"-Layer\" \"Unlock\" \"*\" \"\")"
+            );
+
+            Assert.DoesNotContain(session.History, l => l.StartsWith("Cannot find layer", StringComparison.Ordinal));
+            Assert.False(document.Database.LayerTable["A"].IsFrozen);
+            Assert.False(document.Database.LayerTable["B"].IsFrozen);
+            Assert.False(document.Database.LayerTable["A"].IsLocked);
+            Assert.False(document.Database.LayerTable["B"].IsLocked);
+        }
+
         #endregion
 
         #region UCS (run ee)

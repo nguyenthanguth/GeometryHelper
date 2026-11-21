@@ -12,6 +12,13 @@ presenter's commands with `command`, ask the user for points, distances and word
 entities and the tables, read and set system variables, and convert between coordinate systems. The rest of the language's
 library comes in later stages and is listed [at the end](#what-is-not-there-yet).
 
+The drawing stage was checked on seventeen routines written for AutoCAD by one user, each run in AutoCAD 2021's console and
+in the presenter on the same blank drawing with the same typed answers: nine wrote the same command line and left the same
+drawing, compared object by object and table by table, and the other eight differ only in the wording of a few prompts,
+UNDO's settings line, AUDIT's report, the patterns of the linetypes and the boundary form of the hatches the presenter makes
+with its own files, a dimension style's arrowhead stored as `_None` where AutoCAD stores `None`, and quirks of AutoCAD's console (a
+prompt written over two lines or twice, a pick it misses outside its view, an arc length it kept from an earlier run).
+
 ```csharp
 var session = new CadCommandSession(document);
 
@@ -286,9 +293,15 @@ for a form typed. AutoCAD 2021 folds them into the step before; a step of their 
 run by `command` group what lies between them as when typed. Esc at a routine's wait ends the routine's step; what `*error*`
 then changes is a step of its own, and U undoes it first.
 
-<!-- TODO (lead, at the merge of parts F1 and F2): describe here what the routines needed of the presenter's own commands:
-the header defaults of a blank drawing (F1), -LAYER Make, UCS E, -PURGE's prompts, -HATCH, REVCLOUD _A and DIMLINEAR's
-lines (F2). -->
+**The commands themselves.** A routine runs the presenter's commands, so it gets what they do. Its routines asked for some
+of AutoCAD's command-line forms the presenter did not have, and they were added as AutoCAD 2021's console asks them:
+-LAYER's Make, Color, Ltype, LWeight and Rename (`layer "m" "T1" "c" "3" "" ""` makes the layer, colours it green and makes
+it current), UCS's hidden `E`, which aligns the UCS to an object, -PURGE's prompts and its line for each kind of object,
+REVCLOUD's Arc length with its minimum and maximum, and DIMLINEAR's `Non-associative dimension created.` A drawing whose
+DXF header leaves out the dimension variables, DIMSTYLE or CELTYPE, as AutoCAD's own blank drawing does, is read with the
+values AutoCAD reads for it (DIMASZ 0.18, DIMSTYLE Standard, CELTYPE Continuous), so that a routine sees the same settings
+in both programs. UNDO keeps the settings of AutoCAD's window (`Combine = Yes, Layer = Yes`), where the console reads
+`Combine = No, Layer = No`: UNDO's settings line is the one place a routine's transcript differs there.
 
 ## Asking the user
 

@@ -1072,15 +1072,8 @@ namespace GeometryHelper.Cad
 
                 c.OpenUndoStep();
 
-                foreach (string piece in names.Split(','))
+                foreach (string name in LayerNameList(c.Database, names, option != "New"))
                 {
-                    string name = piece.Trim();
-
-                    if (name.Length == 0)
-                    {
-                        continue;
-                    }
-
                     CadEditResult result;
 
                     switch (option)
@@ -1126,6 +1119,52 @@ namespace GeometryHelper.Cad
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// The names of a -LAYER name list, split at commas: a name with a wildcard (<c>*</c>, <c>?</c>, <c>#</c>, <c>@</c>,
+        /// <c>.</c>, <c>~</c>, <c>[</c>) stands for every layer whose name matches it, in any case, in the order of the table,
+        /// as AutoCAD's Thaw <c>*</c> thaws them all; one that matches none is kept as typed, so that it is said not to be found.
+        /// </summary>
+        private static List<string> LayerNameList(DxfDatabase database, string names, bool wildcards)
+        {
+            var list = new List<string>();
+
+            foreach (string piece in names.Split(','))
+            {
+                string name = piece.Trim();
+
+                if (name.Length == 0)
+                {
+                    continue;
+                }
+
+                if (!wildcards || name.IndexOfAny(new[] { '*', '?', '#', '@', '.', '~', '[' }) < 0)
+                {
+                    list.Add(name);
+                    continue;
+                }
+
+                int before = list.Count;
+
+                foreach (DxfLayerTableRecord layer in database.LayerTable)
+                {
+                    if (
+                        Lisp.LispInterpreter.WildcardMatch(layer.Name.ToUpperInvariant(), name.ToUpperInvariant())
+                        && !list.Contains(layer.Name)
+                    )
+                    {
+                        list.Add(layer.Name);
+                    }
+                }
+
+                if (list.Count == before)
+                {
+                    list.Add(name);
+                }
+            }
+
+            return list;
         }
 
         /// <summary>"Current settings: Auto = On, Control = All, Combine = Yes, Layer = Yes", written by UNDO before it asks.</summary>
