@@ -31,6 +31,8 @@ namespace GeometryHelper.Cad.UnitTest
 
         public void Dispose()
         {
+            WaitingRoutines.EndAll();
+
             try
             {
                 Directory.Delete(_folder, true);
@@ -77,10 +79,13 @@ namespace GeometryHelper.Cad.UnitTest
 
         private static T Owned<T>(Func<T> work) => Owned(work, out _);
 
+        // A bare interpreter whose wait Dispose cancels, where the test leaves it waiting.
+        private static LispInterpreter Interpreter() => WaitingRoutines.Track(new LispInterpreter());
+
         // ask-point and the like: a built-in that waits for the user, asking as a get function would.
         private static LispInterpreter Asking()
         {
-            var lisp = new LispInterpreter();
+            var lisp = Interpreter();
             lisp.Define("ASK", 0, 1, a =>
                 lisp.Ask(
                     new LispAsk { Kind = a.Length == 0 ? LispAskKind.Point : (LispAskKind)(int)a[0], Message = "P: " }
@@ -95,7 +100,7 @@ namespace GeometryHelper.Cad.UnitTest
         public void AWorkHandedToTheOwner_RunsOnTheThreadThatCalledRun()
         {
             // spec D34: the owner (the caller of Run) does the document's work
-            var lisp = new LispInterpreter();
+            var lisp = Interpreter();
             lisp.Define("OWNER-ID", 0, 0, a => lisp.OnOwner(() => Thread.CurrentThread.ManagedThreadId));
 
             LispResult result = Owned(() => lisp.Run("(owner-id)"), out int ownerId);
@@ -107,7 +112,7 @@ namespace GeometryHelper.Cad.UnitTest
         public void TheBuiltinsOfAnEvaluation_RunOnAThreadOfTheirOwn()
         {
             // L1 decision 3, which D34 keeps: the worker evaluates, so a deep recursion has a stack of its own
-            var lisp = new LispInterpreter();
+            var lisp = Interpreter();
             lisp.Define("WORKER-ID", 0, 0, a => Thread.CurrentThread.ManagedThreadId);
 
             LispResult result = Owned(() => lisp.Run("(worker-id)"), out int callerId);
@@ -119,7 +124,7 @@ namespace GeometryHelper.Cad.UnitTest
         public void TheWorkerThread_IsABackgroundThread_SoAnEvaluationLeftWaitingDoesNotKeepTheProcessAlive()
         {
             // spec D34: worker threads are background threads (a drawing closed while a routine waits must not hold the process)
-            var lisp = new LispInterpreter();
+            var lisp = Interpreter();
             lisp.Define("BACKGROUND", 0, 0, a => lisp.Bool(Thread.CurrentThread.IsBackground));
 
             LispResult result = Owned(() => lisp.Run("(background)"));
@@ -130,7 +135,7 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void AWorkHandedToTheOwner_GivesItsValueBackToTheRoutine()
         {
-            var lisp = new LispInterpreter();
+            var lisp = Interpreter();
             lisp.Define("OWNER-DOUBLE", 1, 1, a => lisp.OnOwner(() => (int)a[0] * 2));
 
             LispResult result = Owned(() => lisp.Run("(+ 1 (owner-double 21))"));
@@ -142,7 +147,7 @@ namespace GeometryHelper.Cad.UnitTest
         public void AWorkHandedToTheOwnerThatThrowsALispException_IsAnErrorOfTheRoutine()
         {
             // spec D34: the owner hands the result, or the LispException, back
-            var lisp = new LispInterpreter();
+            var lisp = Interpreter();
             lisp.Define("OWNER-FAILS", 0, 0, a => lisp.OnOwner(() => throw new LispException("owner failed")));
 
             LispResult result = Owned(() => lisp.Run("(owner-fails)"));
@@ -156,7 +161,7 @@ namespace GeometryHelper.Cad.UnitTest
         public void AWorkOnTheOwnerThatHandsAnotherWorkToTheOwner_RunsItAtOnce()
         {
             // spec section 3: OnOwner on the owner itself runs at once, so a session function may call another that asks
-            var lisp = new LispInterpreter();
+            var lisp = Interpreter();
             lisp.Define("NESTED", 0, 0, a => lisp.OnOwner(() => lisp.OnOwner(() => 5)));
 
             LispResult result = Owned(() => lisp.Run("(nested)"));
@@ -168,7 +173,7 @@ namespace GeometryHelper.Cad.UnitTest
         public void TwoHundredHandOffs_NeverRunTheWorkerAndTheOwnerAtOnce()
         {
             // spec D34: exactly one of the two threads runs at any time, so session code needs no locks
-            var lisp = new LispInterpreter();
+            var lisp = Interpreter();
             int active = 0;
             int most = 0;
             int ran = 0;
@@ -208,7 +213,7 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void TwoThousandHandOffs_AreWellUnderTwoSeconds()
         {
-            var lisp = new LispInterpreter();
+            var lisp = Interpreter();
             lisp.Define("OWNER-ADD", 2, 2, a => lisp.OnOwner(() => (int)a[0] + (int)a[1]));
             LispResult result = null;
 
@@ -441,7 +446,7 @@ namespace GeometryHelper.Cad.UnitTest
         public void TheFieldsOfAnAsk_AreWhatTheSessionReads()
         {
             // spec section 3: Waiting is the LispAsk the built-in made, with its message, base point, flags and keywords
-            var lisp = new LispInterpreter();
+            var lisp = Interpreter();
             var made = new LispAsk
             {
                 Kind = LispAskKind.Distance,

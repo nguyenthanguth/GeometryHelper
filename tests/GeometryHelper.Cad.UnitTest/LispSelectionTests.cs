@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Xunit;
 using static GeometryHelper.Cad.UnitTest.EditingDrawings;
@@ -10,8 +11,11 @@ namespace GeometryHelper.Cad.UnitTest
     /// typed at the command line, with what AutoCAD 2021's accoreconsole gave for the drawing of probe q5 (a LINE on layer GHA from
     /// 0,0 to 10,0, a CIRCLE at 20,0 of radius 5, a TEXT, a polyline and a linear dimension, in that order) and probe q8.
     /// </summary>
-    public sealed class LispSelectionTests
+    public sealed class LispSelectionTests : IDisposable
     {
+        // Ends the routine a test left waiting, so no worker thread outlives its test.
+        public void Dispose() => WaitingRoutines.EndAll();
+
         [Fact]
         public void SsgetX_TakesEveryObjectOfTheDrawing_TheNewestFirst()
         {

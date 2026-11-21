@@ -31,6 +31,8 @@ namespace GeometryHelper.Cad.UnitTest
 
         public void Dispose()
         {
+            WaitingRoutines.EndAll();
+
             try
             {
                 Directory.Delete(_folder, true);
@@ -167,10 +169,18 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void ATransparentWaitThatMadeAnEditAndIsCancelled_EndsItsUndoStepOnce()
         {
+            // The logger is the process's, and the test classes run side by side: only what this thread writes is the session's
+            // (the owner thread ends the undo step), so another test's line is neither added to the list nor read as a Warn.
             var logs = new List<string>();
+            int owner = Thread.CurrentThread.ManagedThreadId;
             GeometryHelperLog.Enable = true;
             GeometryHelperLog.Writer = (level, message, error) =>
-                logs.Add(level + " " + message + " " + error?.Message);
+            {
+                if (Thread.CurrentThread.ManagedThreadId == owner)
+                {
+                    logs.Add(level + " " + message + " " + error?.Message);
+                }
+            };
 
             try
             {
