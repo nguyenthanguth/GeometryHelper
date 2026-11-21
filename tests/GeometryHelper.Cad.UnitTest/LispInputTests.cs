@@ -31,6 +31,8 @@ namespace GeometryHelper.Cad.UnitTest
 
         public void Dispose()
         {
+            WaitingRoutines.EndAll();
+
             try
             {
                 Directory.Delete(_folder, true);

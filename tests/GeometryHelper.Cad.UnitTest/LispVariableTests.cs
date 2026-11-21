@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Xunit;
 using static GeometryHelper.Cad.UnitTest.EditingDrawings;
@@ -8,8 +9,11 @@ namespace GeometryHelper.Cad.UnitTest
     /// <c>getvar</c> and <c>setvar</c> typed at the command line, with the values and the refusals of AutoCAD 2021's
     /// accoreconsole (probe q6 of the L2 spec, a blank drawing).
     /// </summary>
-    public sealed class LispVariableTests
+    public sealed class LispVariableTests : IDisposable
     {
+        // Ends the routine a test left waiting, so no worker thread outlives its test.
+        public void Dispose() => WaitingRoutines.EndAll();
+
         // What a form gives, as the line after it.
         private static string Value(CadCommandSession session, string form)
         {

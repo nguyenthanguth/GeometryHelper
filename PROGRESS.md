@@ -26,6 +26,12 @@ The maintainer judged Part A done on 2026-11-17. What it covers, in short:
 - The app: ribbon, command line with AutoComplete, Properties with the selection box, palettes, managers and dialogs,
   Global settings, shortcuts and acad.pgp aliases, plugins.
 
+### Asked for since
+
+- [x] A1. Command line history as AutoCAD's (maintainer 2026-11-21; design first): drag the top edge to show more or
+      fewer lines (kept in the settings), scroll back with the wheel, select lines and copy them (Ctrl+C, right-click
+      Copy and Copy History); F2's text window stays as it is
+
 ### Parked follow-ups
 
 Small parity and speed follow-ups left by finished items. They stay parked under "features first" unless the
@@ -70,14 +76,18 @@ compared by their values and by eye.
       `acaddoc.lsp` and `S::STARTUP`; LISP expressions typed at the command line
 - [x] L1b. APPLOAD dialog (design first): the Load/Unload Applications dialog with the Startup Suite, designed in the
       Design artifact before it is built
-- [ ] L1 parked: a test of a nested `Run` (a built-in that runs LISP again); guesses not measured (`*error*` on Esc at
-      a prompt of L2, `(rtos 1 2.0)`, NaN and infinity in rtos modes 3 to 5, acad.lsp/acaddoc.lsp order in AutoCAD,
-      Unicode strings typed at the console); the harness's Enter-repeat echo and U naming `L` for LINE
-- [ ] L2. (running) Drawing functions: `command` and `vl-cmdf` driving the presenter's commands with their prompts; `ssget` with
+- [ ] L1 parked: acad.lsp/acaddoc.lsp order in AutoCAD and Unicode strings typed at the console (the console cannot
+      show them); the harness's Enter-repeat echo and U naming `L` for LINE
+- [x] L2. Drawing functions: `command` and `vl-cmdf` driving the presenter's commands with their prompts; `ssget` with
       its modes and filters, `ssname`, `sslength`, `ssadd`; `entsel`, `nentsel`, `entget`, `entmod`, `entmake`,
       `entdel`, `entnext`, `tblsearch`; `getpoint`, `getcorner`, `getdist`, `getangle`, `getreal`, `getint`,
       `getstring`, `getkword`, `initget`; `getvar`, `setvar`, `trans`, `polar`, `inters`, `osnap`; `princ` and `prompt`
-- [ ] L3. vl- functions and files: `vl-string-*`, `vl-sort`, `vl-remove`, `vl-position`, `vl-file-*`, `open`, `close`,
+- [ ] L2 parked: entmake of POLYLINE with VERTEX/SEQEND, INSERT with attributes, block definitions and table records,
+      and the ATTRIB/SEQEND/MTEXT/BLOCK groups entget leaves out; -LAYER LOCK of a backquoted name; `(setvar 'errno 0)`
+      and getvar PROGRAM/PLATFORM/VIEWCTR/UNDOCTL/ERRNO; -HATCH boundaries as line edges, island style 75, seed 98;
+      DIMBLK `None` against `_None`; prompt wording of -STYLE, -ATTDEF/-BLOCK/-INSERT, `New color [...] :`, AUDIT's
+      last line; nentsel's block matrix measured; our linetype dashes against acad.lin
+- [ ] L3. (running) vl- functions and files: `vl-string-*`, `vl-sort`, `vl-remove`, `vl-position`, `vl-file-*`, `open`, `close`,
       `read-line`, `write-line`, `findfile`, `getfiled`
 - [ ] L4. vla- and vlax- objects: the members the maintainer's routines use (about 40), on the presenter's own object
       model; COM to other programs (Excel) refused with a message

@@ -39,14 +39,24 @@ namespace GeometryHelper.Cad
             string[] types = { "Freehand", "Rectangular", "Polygonal" };
             bool header = true;
 
+            // Run by a routine's command, AutoCAD 2021 asks its older way: freehand only, the minimum and the maximum arc length.
+            bool older = c.Session.RunsForLisp;
+
             while (true)
             {
                 double approximate = RevCloudLength(c);
                 bool varies = c.Remembered("revcloud.variance", 1.0) != 0.0;
                 double least = varies ? approximate * 2.0 / 3.0 : approximate;
                 double most = varies ? approximate * 4.0 / 3.0 : approximate;
+
+                if (older)
+                {
+                    RevCloudOlderLengths(c, out least, out most);
+                    approximate = least;
+                }
+
                 bool calligraphy = c.Session.RevCloudArcStyle == "Calligraphy";
-                int type = (int)c.Remembered("revcloud.type", 1.0);
+                int type = older ? 0 : (int)c.Remembered("revcloud.type", 1.0);
 
                 // AutoCAD says the lengths, style and type when the command starts and again when the type is changed, not after
                 // Arc length or Style.
@@ -66,14 +76,19 @@ namespace GeometryHelper.Cad
                 }
 
                 string ask =
-                    type == 1 ? "Specify first corner point"
+                    older ? "Specify start point"
+                    : type == 1 ? "Specify first corner point"
                     : type == 2 ? "Specify start point"
                     : "Specify first point";
-                yield return CadPrompt.ForPoint(ask, null, RevCloudOptions, "Object");
+                yield return CadPrompt.ForPoint(ask, null, older ? RevCloudOlderOptions : RevCloudOptions, "Object");
 
                 if (c.Input.Is("Arc length"))
                 {
-                    foreach (CadPrompt prompt in RevCloudArcLength(c, approximate))
+                    foreach (
+                        CadPrompt prompt in older
+                            ? RevCloudOlderArcLength(c, least, most)
+                            : RevCloudArcLength(c, approximate)
+                    )
                     {
                         yield return prompt;
                     }
@@ -196,6 +211,59 @@ namespace GeometryHelper.Cad
                 new DxfTypedValue(1070, "0"),
                 new DxfTypedValue(1040, approximate.ToString("R", CultureInfo.InvariantCulture)),
             };
+        }
+
+        /// <summary>The options of REVCLOUD run by a routine's command, AutoCAD 2021's older prompt: a freehand cloud, one of an object, or the style.</summary>
+        private static readonly string[] RevCloudOlderOptions = { "Arc length", "Object", "Style" };
+
+        /// <summary>
+        /// The shortest and longest arc of a cloud REVCLOUD takes when a routine's command runs it, REVCLOUDMINARCLENGTH and
+        /// REVCLOUDMAXARCLENGTH as Arc length last set them; 15 in a metric drawing and 0.5 in an imperial one (AutoCAD 2021's
+        /// 0.5000 and 0.5000 in the console's blank drawing) while neither is set.
+        /// </summary>
+        private static void RevCloudOlderLengths(CadCommandContext c, out double least, out double most)
+        {
+            least = c.Remembered("revcloud.least", 0.0);
+            most = c.Remembered("revcloud.most", 0.0);
+
+            if (!(least > 0.0))
+            {
+                least = c.Database.Measurement == DxfMeasurementValue.Metric ? 15.0 : 0.5;
+            }
+
+            if (!(most >= least))
+            {
+                most = least;
+            }
+        }
+
+        /// <summary>
+        /// Arc length under a routine's command, as AutoCAD 2021 asks it: "Specify minimum length of arc &lt;0.5000&gt;:", then
+        /// "Specify maximum length of arc &lt;10.0000&gt;:" offering the longer of the new minimum and the maximum it had; a maximum
+        /// shorter than the minimum is taken as the minimum.
+        /// </summary>
+        private static IEnumerable<CadPrompt> RevCloudOlderArcLength(CadCommandContext c, double least, double most)
+        {
+            double minimum;
+
+            while (true)
+            {
+                yield return CadPrompt.ForDistance("Specify minimum length of arc", null, null, Length(least));
+                minimum = c.Input.Kind == CadInputKind.Number ? c.Input.Number : least;
+
+                if (minimum > 0.0)
+                {
+                    break;
+                }
+
+                c.Write("Value must be positive and nonzero.");
+            }
+
+            double offered = Math.Max(minimum, most);
+            yield return CadPrompt.ForDistance("Specify maximum length of arc", null, null, Length(offered));
+            double maximum = c.Input.Kind == CadInputKind.Number ? c.Input.Number : offered;
+            c.Remember("revcloud.least", minimum);
+            c.Remember("revcloud.most", maximum >= minimum ? maximum : minimum);
         }
 
         /// <summary>Arc length: "Specify approximate length of arc", above nought, kept as REVCLOUDAPPROXARCLEN, as AutoCAD 2021 asks it.</summary>

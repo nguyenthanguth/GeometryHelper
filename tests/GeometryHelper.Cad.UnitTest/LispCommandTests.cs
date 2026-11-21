@@ -15,8 +15,11 @@ namespace GeometryHelper.Cad.UnitTest
     /// selection set, the Command prompt that starts the next text of the routine, and the undo step of each command
     /// (decisions D38 to D42, D60). A line of a transcript is compared as the harness does, without its trailing spaces.
     /// </summary>
-    public sealed class LispCommandTests
+    public sealed class LispCommandTests : IDisposable
     {
+        // Ends the routine a test left waiting, so no worker thread outlives its test.
+        public void Dispose() => WaitingRoutines.EndAll();
+
         private static CadCommandSession Typed(params object[] inputs) => Run(Session(Blank()), inputs);
 
         // The history without the trailing spaces of each line.
