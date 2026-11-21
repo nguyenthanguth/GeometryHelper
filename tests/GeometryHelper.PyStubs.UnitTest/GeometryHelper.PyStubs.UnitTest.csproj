@@ -1,0 +1,91 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <!--
+    Tests of the stub generator (tools/GeometryHelper.PyStubs), which is a net8.0 program, so the tests are net8.0 too.
+    They run it on the fixture assembly in Fixture\ (one type for each rule) and on the real assemblies. Both are built
+    first and never referenced: they are copied beside the tests, the fixture to fixture\ and the real ones to lib\, the
+    way the tool is given them, as DLLs and XML docs in a folder.
+  -->
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <IsPackable>false</IsPackable>
+        <LangVersion>latest</LangVersion>
+        <Deterministic>true</Deterministic>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Remove="Fixture\**" />
+        <EmbeddedResource Remove="Fixture\**" />
+        <None Remove="Fixture\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+        <PackageReference Include="xunit" Version="2.9.2" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\tools\GeometryHelper.PyStubs\GeometryHelper.PyStubs.csproj" />
+        <ProjectReference Include="Fixture\GeometryHelper.Fixture.csproj" ReferenceOutputAssembly="false" />
+        <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" ReferenceOutputAssembly="false" />
+        <ProjectReference
+            Include="..\..\src\GeometryHelper.Cad\GeometryHelper.Cad.csproj"
+            ReferenceOutputAssembly="false"
+        />
+        <ProjectReference
+            Include="..\..\src\GeometryHelper.Cad.Remote\GeometryHelper.Cad.Remote.csproj"
+            ReferenceOutputAssembly="false"
+        />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None
+            Include="Fixture\bin\out\GeometryHelper.Fixture.dll"
+            Link="fixture\GeometryHelper.Fixture.dll"
+            CopyToOutputDirectory="PreserveNewest"
+            Visible="false"
+        />
+        <None
+            Include="Fixture\bin\out\GeometryHelper.Fixture.xml"
+            Link="fixture\GeometryHelper.Fixture.xml"
+            CopyToOutputDirectory="PreserveNewest"
+            Visible="false"
+        />
+        <None
+            Include="..\..\src\GeometryHelper\bin\$(Configuration)\netstandard2.0\GeometryHelper.dll"
+            Link="lib\GeometryHelper.dll"
+            CopyToOutputDirectory="PreserveNewest"
+            Visible="false"
+        />
+        <None
+            Include="..\..\src\GeometryHelper\bin\$(Configuration)\netstandard2.0\GeometryHelper.xml"
+            Link="lib\GeometryHelper.xml"
+            CopyToOutputDirectory="PreserveNewest"
+            Visible="false"
+        />
+        <None
+            Include="..\..\src\GeometryHelper.Cad\bin\$(Configuration)\netstandard2.0\GeometryHelper.Cad.dll"
+            Link="lib\GeometryHelper.Cad.dll"
+            CopyToOutputDirectory="PreserveNewest"
+            Visible="false"
+        />
+        <None
+            Include="..\..\src\GeometryHelper.Cad\bin\$(Configuration)\netstandard2.0\GeometryHelper.Cad.xml"
+            Link="lib\GeometryHelper.Cad.xml"
+            CopyToOutputDirectory="PreserveNewest"
+            Visible="false"
+        />
+        <None
+            Include="..\..\src\GeometryHelper.Cad.Remote\bin\$(Configuration)\netstandard2.0\GeometryHelper.Cad.Remote.dll"
+            Link="lib\GeometryHelper.Cad.Remote.dll"
+            CopyToOutputDirectory="PreserveNewest"
+            Visible="false"
+        />
+        <None
+            Include="..\..\src\GeometryHelper.Cad.Remote\bin\$(Configuration)\netstandard2.0\GeometryHelper.Cad.Remote.xml"
+            Link="lib\GeometryHelper.Cad.Remote.xml"
+            CopyToOutputDirectory="PreserveNewest"
+            Visible="false"
+        />
+    </ItemGroup>
+</Project>

@@ -21,6 +21,10 @@
         <Project Path="tests/GeometryHelper.Cad.Plugins.Net8Runner/GeometryHelper.Cad.Plugins.Net8Runner.csproj" />
         <Project Path="tests/GeometryHelper.Cad.SamplePlugin/GeometryHelper.Cad.SamplePlugin.csproj" />
         <Project Path="tests/GeometryHelper.Cad.SampleUiPlugin/GeometryHelper.Cad.SampleUiPlugin.csproj" />
+        <Project Path="tests/GeometryHelper.PyStubs.UnitTest/GeometryHelper.PyStubs.UnitTest.csproj" />
+    </Folder>
+    <Folder Name="/tools/">
+        <Project Path="tools/GeometryHelper.PyStubs/GeometryHelper.PyStubs.csproj" />
     </Folder>
     <Folder Name="/benchmarks/">
         <Project Path="benchmarks/GeometryHelper.Benchmarks/GeometryHelper.Benchmarks.csproj" />
