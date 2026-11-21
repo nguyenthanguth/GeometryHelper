@@ -87,9 +87,9 @@ compared by their values and by eye.
       and getvar PROGRAM/PLATFORM/VIEWCTR/UNDOCTL/ERRNO; -HATCH boundaries as line edges, island style 75, seed 98;
       DIMBLK `None` against `_None`; prompt wording of -STYLE, -ATTDEF/-BLOCK/-INSERT, `New color [...] :`, AUDIT's
       last line; nentsel's block matrix measured; our linetype dashes against acad.lin
-- [ ] L3. (running) vl- functions and files: `vl-string-*`, `vl-sort`, `vl-remove`, `vl-position`, `vl-file-*`, `open`, `close`,
+- [x] L3. vl- functions and files: `vl-string-*`, `vl-sort`, `vl-remove`, `vl-position`, `vl-file-*`, `open`, `close`,
       `read-line`, `write-line`, `findfile`, `getfiled`
-- [ ] L4. vla- and vlax- objects: the members the maintainer's routines use (about 40), on the presenter's own object
+- [ ] L4. (running) vla- and vlax- objects: the members the maintainer's routines use (about 40), on the presenter's own object
       model; COM to other programs (Excel) refused with a message
 - [ ] L5. DCL dialogs: the DCL parser and its tiles drawn as WPF, with action_tile, get_tile and set_tile (designed in
       the Design artifact first)
