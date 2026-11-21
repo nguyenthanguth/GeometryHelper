@@ -139,7 +139,8 @@ namespace GeometryHelper.Cad.Python
                         return Result.Of(answer);
                     }
                 },
-                result => Register(file, full)
+                result => Register(file, full),
+                full
             );
         }
 

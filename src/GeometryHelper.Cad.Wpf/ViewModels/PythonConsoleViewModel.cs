@@ -66,7 +66,7 @@ namespace GeometryHelper.Cad.Wpf
         event Action<string, bool> Output;
 
         /// <summary>A run began (step name, drawing): <c>PYRUN</c>, the name of a command PYLOAD defined, or <c>Python</c> for a palette entry.</summary>
-        event Action<string, CadDocument> RunStarted;
+        event Action<string, CadDocument, string> RunStarted;
 
         /// <summary>A run ended or was refused (step name, drawing, outcome, the last line of the traceback or the refusal text).</summary>
         event Action<string, CadDocument, CadPythonOutcome, string> RunFinished;
@@ -614,12 +614,13 @@ namespace GeometryHelper.Cad.Wpf
             }
         }
 
-        private void OnRunStarted(string name, CadDocument document)
+        private void OnRunStarted(string name, CadDocument document, string path)
         {
             ConsoleState console = ConsoleOf(document, null);
             _running = console;
             _runName = name;
-            _runFile = _pendingFile;
+            // The host names the file of a PYRUN or PYLOAD however it was started (typed, dropped, the toolbar).
+            _runFile = path != null ? Path.GetFileName(path) : _pendingFile;
             _pendingFile = null;
             console.Result = null;
 

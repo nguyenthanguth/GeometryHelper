@@ -5,9 +5,16 @@ namespace GeometryHelper.Cad.Python
     /// <summary>A run of Python that started or ended.</summary>
     public sealed class CadPythonRunEventArgs : EventArgs
     {
-        internal CadPythonRunEventArgs(string name, CadDocument document, CadPythonOutcome? outcome, string error)
+        internal CadPythonRunEventArgs(
+            string name,
+            CadDocument document,
+            CadPythonOutcome? outcome,
+            string error,
+            string path
+        )
         {
             Name = name;
+            Path = path;
             Document = document;
             Outcome = outcome;
             Error = error;
@@ -15,6 +22,9 @@ namespace GeometryHelper.Cad.Python
 
         /// <summary>Gets the name of the undo step the run makes: <c>PYRUN</c>, the name of a command PYLOAD defined, <c>PYLOAD</c> or <c>Python</c>.</summary>
         public string Name { get; }
+
+        /// <summary>Gets the full path of the file a PYRUN or PYLOAD run reads, so that a window can name it (<c>PYRUN circles.py</c>); null for a palette entry, a command PYLOAD defined, and a run refused before its file was read.</summary>
+        public string Path { get; }
 
         /// <summary>Gets the drawing the run works on.</summary>
         public CadDocument Document { get; }

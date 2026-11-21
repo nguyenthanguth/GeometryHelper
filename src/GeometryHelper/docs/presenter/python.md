@@ -80,14 +80,14 @@ It has, from the top:
 - the input box, where Enter runs a complete entry, Shift+Enter adds a line, and Up and Down walk the entries typed, 200
   kept for the session;
 - a status line, `Python 3.14.4 (venv314)` and a dot, green when Python is ready, amber while a script runs or waits at a
-  prompt, red with no Python.
+  prompt, red with `No Python found` when none was found, or `Python is not available` when the one found cannot be used.
 
 The input is disabled while a run goes on, with the reason in it, and so are Run file, Load and Reset console. A script that
 asks a question asks it on the command line, so there is one place to answer; Stop, or Esc, ends the question.
 
 Each drawing has a console of its own: its own transcript and its own names, made at its first entry, with nothing imported.
 The palette follows the drawing shown, so switching drawings shows that drawing's transcript and names. Reset console drops
-the names of the drawing shown.
+the names of the drawing shown and writes `Console reset.` in the app's muted colour.
 
 ```text
 >>> x = 2 + 3
@@ -324,9 +324,11 @@ marshalled between threads: a .NET call from Python took 3.1 to 3.5 microseconds
 (100 000 calls, 309 to 353 ms and 207 to 218 ms). The price is that the window does not repaint while a script computes,
 as AutoCAD's does not during a loop of AutoLISP; what the script writes appears at the next prompt or at its end. A script
 may start threads of its own, but one that leaves a thread running at exit makes the app skip Python's shutdown, which would
-wait for it for ever, and log it. A script that runs inside the app must not open a
+wait for it for ever, and log it. A script that runs inside the app cannot open a
 [`CadApplication`](xref:GeometryHelper.Cad.Remote.CadApplication) to that same app: the app answers it on the thread the
-script holds, so it would wait for itself.
+script holds, so it would wait for itself. Such a connection is refused before anything is sent, with a
+[`CadRemoteException`](xref:GeometryHelper.Cad.Remote.CadRemoteException): `A script inside GeometryHelper CAD cannot drive
+the same app through CadApplication: use geometryhelper.cad, which reaches the drawing directly.`
 
 ## What is not there yet
 

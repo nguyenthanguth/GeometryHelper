@@ -15,7 +15,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
     {
         public event Action<string, bool> Output;
 
-        public event Action<string, CadDocument> RunStarted;
+        public event Action<string, CadDocument, string> RunStarted;
 
         public event Action<string, CadDocument, CadPythonOutcome, string> RunFinished;
 
@@ -62,8 +62,9 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         /// <summary>The host writes a line of stderr, of a traceback, or one it reports itself (a refusal).</summary>
         public void PrintError(string text) => Output?.Invoke(text, true);
 
-        /// <summary>A run begins: the step name (<c>PYRUN</c>, a command's name, <c>Python</c> for a palette entry) and its drawing.</summary>
-        public void Start(string name, CadDocument document) => RunStarted?.Invoke(name, document);
+        /// <summary>A run begins: the step name (<c>PYRUN</c>, a command's name, <c>Python</c> for a palette entry), its drawing, and the file a PYRUN or PYLOAD reads.</summary>
+        public void Start(string name, CadDocument document, string path = null) =>
+            RunStarted?.Invoke(name, document, path);
 
         /// <summary>A run ends, or is refused.</summary>
         public void Finish(

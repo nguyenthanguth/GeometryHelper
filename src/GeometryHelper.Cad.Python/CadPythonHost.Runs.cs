@@ -311,7 +311,8 @@ namespace GeometryHelper.Cad.Python
                         return Result.Of(answer);
                     }
                 },
-                null
+                null,
+                full
             );
         }
 
@@ -358,11 +359,12 @@ namespace GeometryHelper.Cad.Python
             CadCommandSession session,
             string step,
             Func<Result> work,
-            Action<Result> afterwards
+            Action<Result> afterwards,
+            string path = null
         )
         {
             CadDocument document = session.Document;
-            var run = new CadPythonRun(step, session);
+            var run = new CadPythonRun(step, session, path);
             Result result = new Result { Status = "failed" };
             string hostError = null;
             _current = run;
@@ -467,7 +469,7 @@ namespace GeometryHelper.Cad.Python
 
             CadPythonScript.SetCurrent(null);
             _current = null;
-            RaiseFinished(step, document, outcome, error);
+            RaiseFinished(step, document, outcome, error, path);
             return outcome;
         }
 

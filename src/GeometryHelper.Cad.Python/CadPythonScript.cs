@@ -62,13 +62,17 @@ namespace GeometryHelper.Cad.Python
     /// <summary>The state of the run going on, which the host keeps and the script reads.</summary>
     internal sealed class CadPythonRun
     {
-        internal CadPythonRun(string name, CadCommandSession session)
+        internal CadPythonRun(string name, CadCommandSession session, string path)
         {
             Name = name;
             Session = session;
+            Path = path;
         }
 
         internal string Name { get; }
+
+        /// <summary>The full path of the file the run reads; null for an entry or a defined command.</summary>
+        internal string Path { get; }
 
         internal CadCommandSession Session { get; }
 

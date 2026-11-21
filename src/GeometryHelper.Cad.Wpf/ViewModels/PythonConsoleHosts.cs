@@ -13,7 +13,7 @@ namespace GeometryHelper.Cad.Wpf
         public event Action<string, bool> Output;
 
         /// <inheritdoc />
-        public event Action<string, CadDocument> RunStarted;
+        public event Action<string, CadDocument, string> RunStarted;
 
         /// <inheritdoc />
         public event Action<string, CadDocument, CadPythonOutcome, string> RunFinished;
@@ -61,7 +61,8 @@ namespace GeometryHelper.Cad.Wpf
 
         private void OnOutput(object sender, CadPythonOutputEventArgs e) => Output?.Invoke(e.Text, e.IsError);
 
-        private void OnStarted(object sender, CadPythonRunEventArgs e) => RunStarted?.Invoke(e.Name, e.Document);
+        private void OnStarted(object sender, CadPythonRunEventArgs e) =>
+            RunStarted?.Invoke(e.Name, e.Document, e.Path);
 
         private void OnFinished(object sender, CadPythonRunEventArgs e) =>
             RunFinished?.Invoke(e.Name, e.Document, e.Outcome ?? CadPythonOutcome.Completed, e.Error);
@@ -92,7 +93,7 @@ namespace GeometryHelper.Cad.Wpf
         public event Action<string, bool> Output;
 
         /// <inheritdoc />
-        public event Action<string, CadDocument> RunStarted;
+        public event Action<string, CadDocument, string> RunStarted;
 
         /// <inheritdoc />
         public event Action<string, CadDocument, CadPythonOutcome, string> RunFinished;
@@ -126,7 +127,7 @@ namespace GeometryHelper.Cad.Wpf
         /// <inheritdoc />
         public void RunFile(CadCommandSession session, string path)
         {
-            RunStarted?.Invoke("PYRUN", session.Document);
+            RunStarted?.Invoke("PYRUN", session.Document, path);
             Output?.Invoke("Ten circles and ten lines from one point.", false);
         }
 
@@ -176,7 +177,7 @@ namespace GeometryHelper.Cad.Wpf
 
         private void RunFinish(string name, CadDocument document, string line)
         {
-            RunStarted?.Invoke(name, document);
+            RunStarted?.Invoke(name, document, null);
             Output?.Invoke(line, false);
             RunFinished?.Invoke(name, document, CadPythonOutcome.Completed, null);
         }

@@ -93,6 +93,21 @@ namespace GeometryHelper.Cad.Python.UnitTest
         }
 
         [Fact]
+        public void AFileRun_CarriesTheFullPathOfItsFile_AndAPaletteEntryNone()
+        {
+            // So that a window can write "PYRUN circles.py" for a PYRUN typed on the command line (D737).
+            CadCommandSession session = NewSession();
+            string path = Script("named.py", "pass");
+
+            CadPythonRunEventArgs run = Run(session, path);
+            Enter(session, "1 + 1");
+
+            Assert.Equal(Path.GetFullPath(path), Started[0].Path);
+            Assert.Equal(Path.GetFullPath(path), run.Path);
+            Assert.Null(Started[1].Path);
+        }
+
+        [Fact]
         public void WhileAScriptAsks_TheHostIsRunningInThatDrawing()
         {
             CadCommandSession session = NewSession("first.dxf");

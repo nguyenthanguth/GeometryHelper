@@ -239,6 +239,15 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             Assert.False(_console.HistoryUp());
         }
 
+        [Fact]
+        public void APyRunTypedOnTheCommandLine_IsAnnouncedWithItsFileName()
+        {
+            // The palette did not start this run, so only the host's path can name the file (D737).
+            _host.Start("PYRUN", _session.Document, @"D:\Scripts\circles.py");
+
+            Assert.Equal(new[] { "Host||PYRUN circles.py" }, Shown());
+        }
+
         // ---- The four kinds of line
 
         [Fact]

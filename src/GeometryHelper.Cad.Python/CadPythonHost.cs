@@ -348,9 +348,14 @@ namespace GeometryHelper.Cad.Python
         }
 
         private void RaiseStarted(CadPythonRun run) =>
-            RunStarted?.Invoke(this, new CadPythonRunEventArgs(run.Name, run.Session.Document, null, null));
+            RunStarted?.Invoke(this, new CadPythonRunEventArgs(run.Name, run.Session.Document, null, null, run.Path));
 
-        private void RaiseFinished(string name, CadDocument document, CadPythonOutcome outcome, string error) =>
-            RunFinished?.Invoke(this, new CadPythonRunEventArgs(name, document, outcome, error));
+        private void RaiseFinished(
+            string name,
+            CadDocument document,
+            CadPythonOutcome outcome,
+            string error,
+            string path = null
+        ) => RunFinished?.Invoke(this, new CadPythonRunEventArgs(name, document, outcome, error, path));
     }
 }
