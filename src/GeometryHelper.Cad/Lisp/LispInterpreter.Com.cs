@@ -18,9 +18,9 @@ namespace GeometryHelper.Cad.Lisp
         /// <summary>Defines <c>:vlax-true</c>, <c>:vlax-false</c> and <c>vl-load-com</c>; called by the constructor.</summary>
         private void RegisterCom()
         {
-            LispSymbol yes = Intern(":VLAX-TRUE");
+            LispSymbol yes = InternPrinted(":vlax-true");
             yes.Value = yes;
-            LispSymbol no = Intern(":VLAX-FALSE");
+            LispSymbol no = InternPrinted(":vlax-false");
             no.Value = no;
             InternPrinted("variant");
             InternPrinted("safearray");
