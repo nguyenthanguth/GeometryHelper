@@ -157,16 +157,17 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void SsgetfirstWithSeveralObjects_GivesThemByTheirHandleNumbers()
+        public void SsgetfirstWithSeveralObjects_GivesThemInTheOrderOfTheSetItWasGiven()
         {
             CadCommandSession session = WithALine();
             Run(session, "CIRCLE", "20,0", "5");
             Value(session, "(setq c (entlast))");
             Value(session, "(sssetfirst nil (ssadd e (ssadd c)))");
 
-            // ours: D125 (the order of (ssget "I"), not the order the set was given in): the line, made first, then the circle
-            Assert.Equal("T", Value(session, "(equal (ssname (cadr (ssgetfirst)) 0) e)"));
-            Assert.Equal("T", Value(session, "(equal (ssname (cadr (ssgetfirst)) 1) c)"));
+            // AutoCAD 2021 (feed fdval-full of the L5 acceptance, replacing the order of (ssget "I") of D125): the set is kept as it was made,
+            // here the circle, added first, and then the line
+            Assert.Equal("T", Value(session, "(equal (ssname (cadr (ssgetfirst)) 0) c)"));
+            Assert.Equal("T", Value(session, "(equal (ssname (cadr (ssgetfirst)) 1) e)"));
         }
 
         [Fact]
@@ -343,11 +344,15 @@ namespace GeometryHelper.Cad.UnitTest
 
             Value(session, "(setq n (nentselp '(100 50)))");
 
-            // the form of nentsel (L2 D66): the line inside, the point, the matrix, the reference
+            // AutoCAD 2021 (GUI, X2 pick2): the line inside, the point, the 4 by 4 matrix row by row with the translation in the fourth
+            // column, and the references it is in (L2 D66 gave the 4 by 3 form of the documentation, which the window did not)
             Assert.Equal("4", Value(session, "(length n)"));
             Assert.Equal("\"LINE\"", Value(session, "(cdr (assoc 0 (entget (car n))))"));
             Assert.Equal("(100.0 50.0 0.0)", Value(session, "(cadr n)"));
-            Assert.Equal("((1.0 0.0 0.0) (0.0 1.0 0.0) (0.0 0.0 1.0) (100.0 50.0 0.0))", Value(session, "(caddr n)"));
+            Assert.Equal(
+                "((1.0 0.0 0.0 100.0) (0.0 1.0 0.0 50.0) (0.0 0.0 1.0 0.0) (0.0 0.0 0.0 1.0))",
+                Value(session, "(caddr n)")
+            );
             Assert.Equal("\"INSERT\"", Value(session, "(cdr (assoc 0 (entget (car (cadddr n)))))"));
             Assert.False(session.IsRunning);
         }

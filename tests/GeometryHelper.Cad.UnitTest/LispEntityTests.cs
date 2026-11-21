@@ -300,11 +300,13 @@ namespace GeometryHelper.Cad.UnitTest
                 CadCommandSession session = Session(document);
                 Run(session, "TEXT", "0,0", "4", "0", "IOI", Enter);
 
-                // ours: the width of "IOI" 4 high of the Unifont is 5.2 (DimensionWordsOfEachDocumentTests), so a text centred on
-                // (100, 0) starts 2.6 before it
+                // ours: entmod and the object functions place a centred text by one routine, the DXF layer's AdjustAlignment
+                // (AutoCAD 2021, feed undo: the shift is the same both ways), which centres the box of the ink: that of "IOI" 4 high
+                // in the Unifont is 6 wide (its advance, 5.2, is what this row held before), so a text centred on (100, 0) starts 3
+                // before it
                 Value(session, "(entmod (list (cons -1 (entlast)) (quote (72 . 1)) (quote (11 100.0 0.0 0.0))))");
 
-                Assert.Equal("(97.4 0.0 0.0)", Value(session, "(cdr (assoc 10 (entget (entlast))))"));
+                Assert.Equal("(97.0 0.0 0.0)", Value(session, "(cdr (assoc 10 (entget (entlast))))"));
             }
         }
 
@@ -514,7 +516,7 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void EntmakeAndEntmod_AreOneUndoStepEachInsideACommandsEvaluation_AndTypedAtTheCommandPromptTheyAreOwn()
+        public void EntmakeAndEntmod_AreOneUndoStepInsideAnEvaluation_AndTypedAtTheCommandPromptWithNoCommandBetweenTheyAreOneToo()
         {
             CadDocument document = Blank();
             CadCommandSession session = Session(document);
@@ -523,10 +525,11 @@ namespace GeometryHelper.Cad.UnitTest
             Value(session, "(entmake '((0 . \"LINE\") (10 0.0 0.0 0.0) (11 2.0 2.0 0.0)))");
             Assert.Equal(2, document.EntityCount);
 
-            // ours (D42): the changes made outside any command during one evaluation are one undo step of their own
+            // AutoCAD 2021 (feed undo A, measured after D42 was written): the changes of forms typed one after the other, with no command
+            // between them, are one undo step, so one U takes both entmakes
             Run(session, "U");
 
-            Assert.Equal(1, document.EntityCount);
+            Assert.Equal(0, document.EntityCount);
         }
 
         [Fact]

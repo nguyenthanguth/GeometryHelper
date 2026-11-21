@@ -753,8 +753,11 @@ namespace GeometryHelper.Cad.Lisp
         /// <summary>
         /// Puts the groups of a list into the groups of a record, as <c>entmod</c> does: a group replaces the first group of its
         /// code the record has, a group the record lacks is put where AutoCAD's list has it (a header group such as the colour
-        /// after the layer, a group of the body before the first group the order of its type puts after it). An LWPOLYLINE that
-        /// is given vertices has all its vertices replaced by them, its count set to match.
+        /// after the layer, a group of the body before the first group the order of its type puts after it). A code the list gives
+        /// twice has the last value, as AutoCAD takes it (<c>(append (entget e) '((62 . 5) (62 . 6)))</c> makes the colour 6),
+        /// except a code the entity has several of (the vertices of a polyline, the knots of a spline). A colour 256 or a linetype
+        /// <c>ByLayer</c> is no group: it takes the entity's own out (AutoCAD 2021, feed dcd). An LWPOLYLINE that is given
+        /// vertices has all its vertices replaced by them, its count set to match.
         /// </summary>
         internal static void Apply(
             string type,
@@ -762,6 +765,7 @@ namespace GeometryHelper.Cad.Lisp
             List<KeyValuePair<int, object>> changes
         )
         {
+            changes = Settled(type, record, changes);
             var taken = new List<int>();
 
             if (type == "LWPOLYLINE" && changes.Exists(p => p.Key == 10))
@@ -828,6 +832,88 @@ namespace GeometryHelper.Cad.Lisp
                 }
 
                 taken.Add(placed);
+            }
+        }
+
+        /// <summary>
+        /// The groups of a list <see cref="Apply"/> puts in: a code given twice only by its last group, unless the entity has
+        /// several of that code (two or more in its record, or the chunks of an MTEXT, the points and knots of a SPLINE, the
+        /// vertices of an LWPOLYLINE); a colour 256 or a linetype ByLayer not at all, the entity's own group of that code taken out
+        /// of the record instead.
+        /// </summary>
+        private static List<KeyValuePair<int, object>> Settled(
+            string type,
+            List<KeyValuePair<int, object>> record,
+            List<KeyValuePair<int, object>> changes
+        )
+        {
+            var held = new Dictionary<int, int>();
+
+            foreach (KeyValuePair<int, object> pair in record)
+            {
+                held[pair.Key] = held.TryGetValue(pair.Key, out int count) ? count + 1 : 1;
+            }
+
+            // From the end, so that the last group of a code is the one kept; the groups come back in their order.
+            var kept = new List<KeyValuePair<int, object>>(changes.Count);
+            var seen = new HashSet<int>();
+
+            for (int i = changes.Count - 1; i >= 0; i--)
+            {
+                int code = changes[i].Key;
+
+                if (!seen.Add(code) && !Repeats(type, code, held))
+                {
+                    continue;
+                }
+
+                kept.Add(changes[i]);
+            }
+
+            kept.Reverse();
+            var result = new List<KeyValuePair<int, object>>(kept.Count);
+
+            foreach (KeyValuePair<int, object> pair in kept)
+            {
+                bool byLayer =
+                    (pair.Key == 62 && pair.Value is int color && color == 256)
+                    || (
+                        pair.Key == 6
+                        && pair.Value is string linetype
+                        && string.Equals(linetype, "ByLayer", StringComparison.OrdinalIgnoreCase)
+                    );
+
+                if (byLayer)
+                {
+                    record.RemoveAll(p => p.Key == pair.Key);
+                }
+                else
+                {
+                    result.Add(pair);
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>Whether an entity of a type has several groups of a code: its record gives two or more, or the type is one whose list repeats it.</summary>
+        private static bool Repeats(string type, int code, Dictionary<int, int> held)
+        {
+            if (held.TryGetValue(code, out int count) && count > 1)
+            {
+                return true;
+            }
+
+            switch (type)
+            {
+                case "MTEXT":
+                    return code == 3;
+                case "SPLINE":
+                    return code == 10 || code == 11 || code == 40 || code == 41;
+                case "LWPOLYLINE":
+                    return code == 10 || code == 40 || code == 41 || code == 42 || code == 91;
+                default:
+                    return false;
             }
         }
 
@@ -898,7 +984,7 @@ namespace GeometryHelper.Cad.Lisp
             return record.Count - 1;
         }
 
-        private static bool IsHeadCode(int code)
+        internal static bool IsHeadCode(int code)
         {
             switch (code)
             {

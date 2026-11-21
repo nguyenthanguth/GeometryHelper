@@ -31,6 +31,11 @@ The maintainer judged Part A done on 2026-11-17. What it covers, in short:
 - [x] A1. Command line history as AutoCAD's (maintainer 2026-11-21; design first): drag the top edge to show more or
       fewer lines (kept in the settings), scroll back with the wheel, select lines and copy them (Ctrl+C, right-click
       Copy and Copy History); F2's text window stays as it is
+- [ ] A2. (running) Plugins extend the window as in AutoCAD (maintainer 2026-11-21; design first): a plugin loaded at run
+      time (PLUGINLOAD/APPLOAD, both runtimes, unloadable) adds its own ribbon tabs and panels (large/small buttons,
+      icons, split buttons, tooltips, as AutoCAD's RibbonTab/RibbonPanel), rows of the PROPERTIES palette for its
+      objects, buttons and items of the DRAWINGS list, and custom object snap modes (as AutoCAD's CustomObjectSnapMode
+      with a glyph); described without WPF in GeometryHelper.Cad.Plugins, drawn by the window, gone when unloaded
 
 ### Parked follow-ups
 
@@ -90,10 +95,17 @@ compared by their values and by eye.
       measured; our linetype dashes against acad.lin
 - [x] L3. vl- functions and files: `vl-string-*`, `vl-sort`, `vl-remove`, `vl-position`, `vl-file-*`, `open`, `close`,
       `read-line`, `write-line`, `findfile`, `getfiled`
-- [ ] L4. (running) vla- and vlax- objects: the members the maintainer's routines use (about 40), on the presenter's own object
+- [x] L4. vla- and vlax- objects: the members the maintainer's routines use (about 40), on the presenter's own object
       model; COM to other programs (Excel) refused with a message
-- [ ] L5. (running) DCL dialogs: the DCL parser and its tiles drawn as WPF, with action_tile, get_tile and set_tile (designed in
-      the Design artifact first)
+- [ ] L4 parked: ObjectID as AutoCAD's small numbers, typed forms after a `c:` routine joining its undo step
+      (unmeasured), NOMUTT 1 muting `command` prompts, a fence's objects in the order along the fence, a crossing wholly
+      outside the view finding a long line (probe p4, unexplained), ZOOM's 5 % margin against AutoCAD's about 1 % and
+      ZOOM n alone keeping the centre
+- [x] L5. DCL dialogs: the DCL parser and its tiles drawn as WPF, with action_tile, get_tile and set_tile (designed in
+      the Design artifact first). Accepted 2026-11-21: E1 and FDVAL run in the full AutoCAD and the presenter with the
+      same dialog values and E1 transcript
+- [ ] L5 parked: a dialog of ok_cancel alone (162 x 93, a minimum body height), AutoCAD's narrower dialog text (FDVAL
+      219 against Segoe's 242), list double click, slider drag, Ctrl-click and getpoint in an action unmeasured
 - [ ] L6. Trusted folders and SECURELOAD, as AutoCAD 2021, shared with the Python stages
 
 ### Python

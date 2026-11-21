@@ -269,13 +269,7 @@ namespace GeometryHelper.Cad
             given = given.Trim();
 
             // The _ and . in front of a name, which AutoCAD takes off to find the command: _.LINE is LINE.
-            string name = given;
-
-            while (name.Length > 1 && (name[0] == '_' || name[0] == '.'))
-            {
-                name = name.Substring(1);
-            }
-
+            string name = WithoutPrefixes(given);
             name = WithoutApostrophe(name) ?? name;
             CadCommand command = Registry.FindByName(name) ?? Registry.Find(name);
 

@@ -5,9 +5,10 @@ using System.Threading;
 namespace GeometryHelper.Cad.Lisp
 {
     /// <summary>
-    /// A symbol of an AutoLISP interpreter. Its name is always upper case (<c>abc</c>, <c>AbC</c> and <c>ABC</c> are one
+    /// A symbol of an AutoLISP interpreter. Its name is upper case (<c>abc</c>, <c>AbC</c> and <c>ABC</c> are one
     /// symbol), and it has one value cell, which holds a variable's value and a function alike: AutoLISP has no separate
-    /// function slot, so <c>(setq car nil)</c> removes CAR.
+    /// function slot, so <c>(setq car nil)</c> removes CAR. The ones AutoCAD registers (<c>vla-get-Name</c>, <c>acRed</c>) print in
+    /// the case it registers them in once <c>(vl-load-com)</c> has run; the symbol is the one the reader finds in any case.
     /// </summary>
     public sealed class LispSymbol
     {
@@ -16,8 +17,8 @@ namespace GeometryHelper.Cad.Lisp
             Name = name;
         }
 
-        /// <summary>The name, upper case: a symbol read from <c>abc</c> is named <c>ABC</c>.</summary>
-        public string Name { get; }
+        /// <summary>The name as it prints: upper case for a symbol read from <c>abc</c>, which is named <c>ABC</c>, and the registered case for an ActiveX name.</summary>
+        public string Name { get; internal set; }
 
         /// <summary>The value cell: what the symbol evaluates to, null (nil) when it has none.</summary>
         internal object Value;
@@ -66,7 +67,7 @@ namespace GeometryHelper.Cad.Lisp
         }
 
         /// <summary>The name: <c>CAR</c> for a built-in, the name given to <c>defun</c>, and <c>-lambda-</c> for a lambda.</summary>
-        public string Name { get; }
+        public string Name { get; internal set; }
 
         /// <summary>The made-up address the function prints with.</summary>
         internal long Address { get; }

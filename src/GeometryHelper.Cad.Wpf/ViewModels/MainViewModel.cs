@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Windows.Input;
+using GeometryHelper.Cad.Dcl;
 using GeometryHelper.Cad.Lisp;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
@@ -1831,6 +1832,7 @@ namespace GeometryHelper.Cad.Wpf
             file.Session = new CadCommandSession(document, Commands());
             file.Session.PromptChanged += OnPromptChanged;
             file.Session.UiRequested += OnUiRequested;
+            file.Session.DclHost = _dclHost;
             file.Session.SelectionFilter.FilePath = FilterListsPath;
             file.Session.Clipboard = _clipboard;
             file.Session.SpellDictionaryPath = _spellDictionaryPath;
@@ -1976,6 +1978,27 @@ namespace GeometryHelper.Cad.Wpf
         /// is until set, leaves the request unanswered, so that <c>getfiled</c> gives nil.
         /// </summary>
         public Func<CadGetFileRequest, string> AskGetFile { get; set; }
+
+        private IDclHost _dclHost;
+
+        /// <summary>
+        /// Gets or sets what shows the DCL dialogs of AutoLISP's <c>new_dialog</c> and <c>start_dialog</c>, given to the session
+        /// of every drawing, the ones open now and the ones opened later. Null, as it is until set, makes <c>new_dialog</c> give
+        /// nil, as AutoCAD's console does.
+        /// </summary>
+        internal IDclHost DclHost
+        {
+            get => _dclHost;
+            set
+            {
+                _dclHost = value;
+
+                foreach (KnownFile file in _files.Values.Where(f => f.Session != null))
+                {
+                    file.Session.DclHost = value;
+                }
+            }
+        }
 
         private void OnUiRequested(object sender, CadUiRequestEventArgs e)
         {

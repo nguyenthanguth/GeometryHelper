@@ -142,6 +142,21 @@ namespace GeometryHelper.Cad
                 )
             );
 
+            // NOMUTT, 0 or 1, kept by the session as AutoCAD keeps it per session: AutoCAD's 1 mutes the prompts a routine's
+            // (command ...) writes (probe p3: ZOOM Extents then writes "_.ZOOM _E nil" alone). The presenter keeps the value and
+            // mutes nothing, its history being the one place those lines are written; a routine that sets it and puts it back (the
+            // maintainer's TE) runs as before.
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "NOMUTT",
+                    false,
+                    0,
+                    1,
+                    s => (int)Kept(s, "nomutt", 0.0),
+                    (c, v) => c.Remember("nomutt", v)
+                )
+            );
+
             // Fillets, chamfers and offsets.
             registry.AddVariable(
                 CadSystemVariable.Number(

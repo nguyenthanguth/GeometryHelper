@@ -66,6 +66,12 @@ namespace GeometryHelper.Cad
 
         /// <summary>Gets the objects the last selection took, the Previous selection that <c>(ssget "P")</c> gives again.</summary>
         internal IReadOnlyList<string> PreviousSelection => _previous;
+
+        /// <summary>
+        /// The order of the set <c>sssetfirst</c> made the selection of the document from, which <c>ssgetfirst</c> gives it back in
+        /// while the selection is still those objects (the document's selection is a set and keeps no order of its own).
+        /// </summary>
+        internal IReadOnlyList<string> PickFirstOrder { get; set; } = Array.Empty<string>();
         private CadPrompt _asked;
         private string _option;
         private bool _removing;
@@ -93,6 +99,38 @@ namespace GeometryHelper.Cad
             {
                 _previous = new List<string>(handles);
             }
+        }
+
+        /// <summary>
+        /// The objects a window, a crossing or a polygon took, as AutoCAD hands them to the set (accoreconsole, probes p1 and p4 of
+        /// the l2fix2 scratch): the newest first, as ALL does (five lines made at y 0, 10, 20, 30 and 40 came as 40, 30, 20, 10, 0),
+        /// and, where the session has a view, Window, Crossing and WPolygon only the objects the view shows (a view from y 8.7 to
+        /// 31.3 gave the lines at 10, 20 and 30 and not those at 0 and 40; a line across the edge of the view counts, one wholly
+        /// outside does not). CPolygon and Fence are not held to the view, and a session with no view, as a script or a test has,
+        /// takes everything.
+        /// </summary>
+        /// <param name="found">The handles the window took.</param>
+        /// <param name="inView">Whether the objects must be in the view: true for Window, Crossing and WPolygon.</param>
+        internal List<string> TakenByWindow(IEnumerable<string> found, bool inView)
+        {
+            List<string> ordered = NewestFirst(found);
+            CadView view = WorkView;
+
+            if (!inView || view == null || !(view.Width > 1.0) || !(view.Height > 1.0))
+            {
+                return ordered;
+            }
+
+            PickIndex index = Document.GetPickIndex(Document.WorkingSpace);
+            var shown = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (int i in index.IndicesIn(view.VisibleBox))
+            {
+                shown.Add(index.List.Items[i].Handle ?? string.Empty);
+            }
+
+            ordered.RemoveAll(h => !shown.Contains(h));
+            return ordered;
         }
 
         /// <summary>An option typed at "Select objects:", by its capital letters or whole.</summary>
@@ -269,7 +307,7 @@ namespace GeometryHelper.Cad
                 );
                 bool crossing = _option == "Crossing" || (_option == "BOX" && point.X < first.X);
                 PickIndex index = Document.GetPickIndex(Document.WorkingSpace);
-                List<string> found = new List<string>(crossing ? index.Crossing(box) : index.Window(box));
+                List<string> found = TakenByWindow(crossing ? index.Crossing(box) : index.Window(box), true);
                 EndOption();
                 return GatherWhole(found, box, crossing);
             }
@@ -429,7 +467,10 @@ namespace GeometryHelper.Cad
             else if ((option == "WPolygon" || option == "CPolygon") && points.Count >= 3)
             {
                 GatherWhole(
-                    new List<string>(option == "WPolygon" ? index.WindowPolygon(points) : index.CrossingPolygon(points))
+                    TakenByWindow(
+                        option == "WPolygon" ? index.WindowPolygon(points) : index.CrossingPolygon(points),
+                        option == "WPolygon"
+                    )
                 );
             }
             else

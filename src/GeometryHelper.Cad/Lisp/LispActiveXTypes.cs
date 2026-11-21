@@ -295,13 +295,13 @@ namespace GeometryHelper.Cad.Lisp
         /// <summary>The fonts the drawing measures a text in while it is measured: those of the document, and the Fonts folder of Windows, as MLEADEREDIT measures. A path the drawing has already is kept.</summary>
         private IDisposable Measuring() => new MeasuringScope(Document);
 
-        private sealed class MeasuringScope : IDisposable
+        internal sealed class MeasuringScope : IDisposable
         {
             private readonly DxfDatabase _database;
             private readonly string _searched;
             private readonly bool _set;
 
-            public MeasuringScope(CadDocument document)
+            internal MeasuringScope(CadDocument document)
             {
                 _database = document.Database;
                 _searched = _database.FontSearchPath;
