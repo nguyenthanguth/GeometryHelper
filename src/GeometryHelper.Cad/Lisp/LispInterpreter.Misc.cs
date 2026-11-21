@@ -83,7 +83,7 @@ namespace GeometryHelper.Cad.Lisp
 
         /// <summary>
         /// <c>equal</c>: lists are compared item by item, numbers by value within the fuzz (an int equals the real of the same
-        /// value), and anything else as <c>eq</c>.
+        /// value), variants and safearrays by type and elements, and anything else as <c>eq</c>.
         /// </summary>
         /// <param name="x">One value.</param>
         /// <param name="y">The other.</param>
@@ -117,6 +117,16 @@ namespace GeometryHelper.Cad.Lisp
                     double p = ToDouble(x);
                     double q = ToDouble(y);
                     return p == q || Math.Abs(p - q) <= fuzz;
+                }
+
+                if (x is LispVariant v && y is LispVariant w)
+                {
+                    return LispVariantConversion.Equal(v, w, fuzz);
+                }
+
+                if (x is LispSafeArray r && y is LispSafeArray s)
+                {
+                    return LispVariantConversion.Equal(r, s, fuzz);
                 }
 
                 return Eq(x, y);
