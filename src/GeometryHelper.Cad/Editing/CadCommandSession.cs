@@ -1689,6 +1689,9 @@ namespace GeometryHelper.Cad
             {
                 ResumePause(outcome);
             }
+
+            // The wait of a routine that this command carried ended with it: the routine is told now that nothing is left of it.
+            RunLispCancel();
         }
 
         /// <summary>

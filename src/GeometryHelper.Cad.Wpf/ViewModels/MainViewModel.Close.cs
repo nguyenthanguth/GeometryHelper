@@ -172,11 +172,14 @@ namespace GeometryHelper.Cad.Wpf
         /// Ends what a document's session is doing before the document is let go: Esc is pressed until nothing runs and no
         /// routine of AutoLISP waits. One Esc is not always enough: a form typed at the prompt of LINE suspends LINE, and Esc at
         /// the routine's question ends the wait and lets LINE ask again. A routine that waits is told <c>Function cancelled</c>
-        /// and its thread ends, so a drawing closed leaves none behind.
+        /// and its thread ends, so a drawing closed leaves none behind; a routine that catches that and asks again is aborted,
+        /// its next question a hard error that nothing in it can catch.
         /// </summary>
         /// <param name="session">The session of the document.</param>
         private static void EndCommands(CadCommandSession session)
         {
+            session.AbortLisp();
+
             // A few presses at most: each ends one command, and the commands suspended are few.
             for (int press = 0; press < 32 && (session.IsRunning || session.IsLispWaiting); press++)
             {

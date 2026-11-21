@@ -32,11 +32,25 @@ namespace GeometryHelper.Cad
         private object _lispValue;
         private bool _lispAnswers;
 
+        // The wait that Esc or an error ended while its command was being taken away: the routine is told Function cancelled once
+        // that command is gone (RunLispCancel), so that what it does then, a command of its own, an edit, another question,
+        // starts from a session with nothing left of the wait.
+        private bool _lispCancelling;
+        private Action<LispResult> _lispCancelFinished;
+
         /// <summary>Whether the carrier of a wait has given its place to a command of the routine.</summary>
         private sealed class LispCarrier
         {
             internal bool Retired { get; set; }
         }
+
+        /// <summary>
+        /// Ends the evaluation of AutoLISP for good, as closing a document must: from now on the first question the routine asks
+        /// is a hard error that neither <c>*error*</c> nor <c>vl-catch-all-apply</c> sees, so a routine that catches Esc and asks
+        /// again cannot hold the document open. Esc then ends the wait and the routine unwinds; nothing happens where no
+        /// evaluation goes on.
+        /// </summary>
+        internal void AbortLisp() => _lisp?.Abort();
 
         /// <summary>Gets whether an evaluation of AutoLISP waits for the user.</summary>
         internal bool IsLispWaiting => _lisp != null && _lisp.IsWaiting;
@@ -80,9 +94,19 @@ namespace GeometryHelper.Cad
         /// </summary>
         /// <param name="run">The call of <c>Run</c> or <c>Load</c>.</param>
         /// <param name="finished">Called with the last result of the evaluation; null for none.</param>
-        /// <returns>The first result: the evaluation may not be over where it <c>IsWaiting</c>.</returns>
+        /// <returns>The first result: the evaluation may not be over where it <c>IsWaiting</c>; a failed one with <c>Can't reenter LISP.</c> where an evaluation was going on and nothing was run.</returns>
         internal LispResult RunHosted(Func<LispResult> run, Action<LispResult> finished = null)
         {
+            // AutoCAD does not run LISP inside LISP: while an evaluation goes on or waits, the host is told so and nothing
+            // of the evaluation's state is touched, so that the answer still goes to what asked.
+            if (_lisp != null && _lisp.IsEvaluating)
+            {
+                const string reentry = "Can't reenter LISP.";
+                Write(reentry);
+                Changed();
+                return new LispResult(null, reentry, true, reentry);
+            }
+
             _lispAnswers = false;
             _lispPrefix = null;
             LispResult result = run();
@@ -226,15 +250,43 @@ namespace GeometryHelper.Cad
                         LastPoint = lastPoint;
                     }
 
-                    // The wait ended before the routine did: it is told Function cancelled, as often as it asks again.
-                    while (Lisp.IsWaiting)
-                    {
-                        WriteLisp(Lisp.CancelWait().Output);
-                    }
-
+                    // The wait ended before the routine did: it is told Function cancelled by RunLispCancel, once this command is
+                    // gone, and asks again as often as it likes, each question a wait of its own. The undo step ends here and
+                    // is opened again, under the same name, by what the routine changes after that.
+                    string stepName = _lispStepName;
                     CloseLispStep();
+
+                    if (Lisp.IsWaiting)
+                    {
+                        _lispStepName = stepName;
+                        _lispCancelling = true;
+                        _lispCancelFinished = finished;
+                    }
                 }
             }
+        }
+
+        /// <summary>
+        /// Tells the routine whose wait ended <c>Function cancelled</c>, now that the command that carried the wait is gone: the
+        /// routine goes on from there, and what it asks next is a wait of its own, what it starts a command of its own. Does
+        /// nothing where no wait was cancelled.
+        /// </summary>
+        private void RunLispCancel()
+        {
+            if (!_lispCancelling)
+            {
+                return;
+            }
+
+            Action<LispResult> finished = _lispCancelFinished;
+            _lispCancelling = false;
+            _lispCancelFinished = null;
+            _lispCommand = null;
+            _lispCarrier = null;
+            LispResult result = Lisp.CancelWait();
+
+            // A routine the cancel ended is not told so again: the command line keeps what Esc made of the command.
+            LispContinue(result, result.IsWaiting ? finished : null);
         }
 
         /// <summary>The prompt a question of a routine is asked with: its message as it wrote it, the keywords of <c>initget</c>, the base point.</summary>

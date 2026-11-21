@@ -136,7 +136,9 @@ namespace GeometryHelper.Cad.Wpf
 
                 string error = _current
                     .Session.History.Skip(before)
-                    .LastOrDefault(l => l.StartsWith("; error:", StringComparison.Ordinal))
+                    .LastOrDefault(l =>
+                        l.StartsWith("; error:", StringComparison.Ordinal) || l == "Can't reenter LISP."
+                    )
                     ?? string.Empty;
                 return new AppLoadResult(AppLoadStatusKind.Failed, (name + " was not loaded: " + error).TrimEnd());
             }

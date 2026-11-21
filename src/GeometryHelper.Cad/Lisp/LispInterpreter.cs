@@ -427,12 +427,12 @@ namespace GeometryHelper.Cad.Lisp
             {
                 if (builtin.Special != null)
                 {
-                    return builtin.Special(call.Cdr);
+                    return CallSpecial(builtin, call.Cdr);
                 }
 
                 object[] values = EvalArguments(call.Cdr);
                 CheckArity(builtin, values.Length);
-                return builtin.Implementation(values);
+                return CallBuiltin(builtin, values);
             }
 
             object[] arguments = EvalArguments(call.Cdr);
@@ -450,6 +450,36 @@ namespace GeometryHelper.Cad.Lisp
 
             return Apply(callable, arguments);
         }
+
+        // A built-in that fails with an exception of .NET gives the routine an error of its own, internal error: and the
+        // message, as the top level reported it: the variables of the functions it went out of are then given back like those
+        // of any other error, and vl-catch-all-apply and *error* see it.
+        private static object CallBuiltin(LispBuiltin builtin, object[] arguments)
+        {
+            try
+            {
+                return builtin.Implementation(arguments);
+            }
+            catch (Exception exception) when (IsForeign(exception))
+            {
+                throw new LispException("internal error: " + exception.Message);
+            }
+        }
+
+        private static object CallSpecial(LispBuiltin builtin, object forms)
+        {
+            try
+            {
+                return builtin.Special(forms);
+            }
+            catch (Exception exception) when (IsForeign(exception))
+            {
+                throw new LispException("internal error: " + exception.Message);
+            }
+        }
+
+        private static bool IsForeign(Exception exception) =>
+            !(exception is LispException) && !(exception is ThreadAbortException);
 
         private object[] EvalArguments(object list)
         {
@@ -518,11 +548,11 @@ namespace GeometryHelper.Cad.Lisp
                     values[i] = Eval(arguments[i]);
                 }
 
-                return builtin.Special(ListOf(values));
+                return CallSpecial(builtin, ListOf(values));
             }
 
             CheckArity(builtin, arguments.Length);
-            return builtin.Implementation(arguments);
+            return CallBuiltin(builtin, arguments);
         }
 
         private object CallLambda(LispLambda function, object[] arguments)
@@ -876,6 +906,12 @@ namespace GeometryHelper.Cad.Lisp
 
         private void WriteHardError()
         {
+            // An evaluation aborted by its host (a document closing) ends with nothing written.
+            if (_aborting)
+            {
+                return;
+            }
+
             if (_output.Length > 0 && _output[_output.Length - 1] != '\n')
             {
                 _output.Append('\n');
