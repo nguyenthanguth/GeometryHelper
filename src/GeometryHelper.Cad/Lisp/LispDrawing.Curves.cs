@@ -76,10 +76,11 @@ namespace GeometryHelper.Cad.Lisp
         #region The curve of an argument
 
         /// <summary>
-        /// The curve an argument names: an entity name of a LINE, an ARC, a CIRCLE, an ELLIPSE, a polyline, a SPLINE, an XLINE or a
-        /// RAY. A value that names no entity is <c>unable to get ObjectID: nil</c>, as AutoCAD words it; an entity that is no curve,
-        /// or is erased, is <c>bad argument value: AcDbCurve n</c>, where AutoCAD's <c>n</c> is a counter of its own and ours is the
-        /// decimal value of the handle. Owner thread only.
+        /// The curve an argument names: an entity name, or the VLA-OBJECT of an entity (AutoCAD takes both), of a LINE, an ARC, a
+        /// CIRCLE, an ELLIPSE, a polyline, a SPLINE, an XLINE or a RAY. A value that names no entity is <c>unable to get ObjectID:
+        /// nil</c>, as AutoCAD words it; an entity that is no curve, or is erased, is <c>bad argument value: AcDbCurve n</c>, where
+        /// AutoCAD's <c>n</c> is a counter of its own and ours is the decimal value of the handle (a block or a table record gives
+        /// it too, ours); a released value is <c>null interface pointer</c> as every use of one is. Owner thread only.
         /// </summary>
         /// <param name="session">The session whose drawing holds the entity.</param>
         /// <param name="state">What the functions of the interpreter keep: the handle an entity brought back by <c>entdel</c> has now.</param>
@@ -87,12 +88,26 @@ namespace GeometryHelper.Cad.Lisp
         /// <returns>The curve.</returns>
         internal static DxfCurve CurveOf(CadCommandSession session, DrawingState state, object value)
         {
-            if (!(value is LispEntityName name))
+            string handle;
+
+            if (value is LispEntityName name)
+            {
+                handle = state.Resolve(name.Handle);
+            }
+            else if (value is LispVlaObject target && !target.IsReleased && HasHandle(target))
+            {
+                // The value of an object stands for its handle as it is now, so an entity brought back by entdel is the curve again
+                // and one erased is not (AutoCAD 2021, GUI g2: bad argument value: AcDbCurve 45).
+                handle = state.Resolve(target.Key);
+            }
+            else if (value is LispVlaObject released && released.IsReleased)
+            {
+                throw LispActiveX.Released();
+            }
+            else
             {
                 throw new LispException("unable to get ObjectID: " + LispInterpreter.Print(value, true));
             }
-
-            string handle = state.Resolve(name.Handle);
 
             if (session.Document.FindEntity(handle) is DxfCurve curve && !(curve is DxfLeader))
             {
@@ -104,6 +119,10 @@ namespace GeometryHelper.Cad.Lisp
                 : 0;
             throw new LispException("bad argument value: AcDbCurve " + number.ToString(CultureInfo.InvariantCulture));
         }
+
+        /// <summary>Whether the value of an object stands for a handle: an entity, a block or a table record; not the application, the document, a collection, a selection set or a color.</summary>
+        private static bool HasHandle(LispVlaObject target) =>
+            target.Kind == LispVlaKind.Entity || target.Kind == LispVlaKind.Block || target.Kind == LispVlaKind.Record;
 
         /// <summary>A number argument: <c>bad argument type: numberp: "a"</c> for anything else.</summary>
         private static double NumberArgument(object value) =>
