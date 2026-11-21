@@ -806,6 +806,7 @@ namespace GeometryHelper.Cad.Wpf
                         MessageBoxButton.OK,
                         MessageBoxImage.Warning
                     );
+                _model.AskGetFile = request => CadGetFileDialog.Show(Window.GetWindow(this), request);
                 _model.ShowCharacterMap = dialog => CharacterMapWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowDictionaries = dialog => SpellDictionariesWindow.Show(Window.GetWindow(this), dialog);
                 _model.InPlaceEditChanged += OnInPlaceEditChanged;

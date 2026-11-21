@@ -52,6 +52,12 @@ namespace GeometryHelper.Cad
         /// </summary>
         internal void AbortLisp() => _lisp?.Abort();
 
+        /// <summary>
+        /// Closes the files a routine of this document left open, as AutoCAD does when the drawing closes, so that they can be
+        /// deleted and read by others. Does nothing where no AutoLISP has run: the interpreter is not made to close nothing.
+        /// </summary>
+        internal void CloseLispFiles() => _lisp?.CloseFiles();
+
         /// <summary>Gets whether an evaluation of AutoLISP waits for the user.</summary>
         internal bool IsLispWaiting => _lisp != null && _lisp.IsWaiting;
 
@@ -343,6 +349,9 @@ namespace GeometryHelper.Cad
                     return CadPrompt.ForString(text).AsRaw(endsAtSpace: true);
                 case LispAskKind.String:
                     return CadPrompt.ForString(text).AsRaw(endsAtSpace: !ask.Spaces);
+                case LispAskKind.Line:
+                    // read-line and read-char show no prompt: the line typed is echoed alone (AutoCAD 2021, r7), spaces and all.
+                    return CadPrompt.ForString(string.Empty).AsRaw();
                 case LispAskKind.Keyword:
                     CadPrompt keyword = CadPrompt.ForKeyword(text, keywords).AsRaw();
                     return anyText ? keyword.AcceptingText() : keyword;
@@ -420,6 +429,7 @@ namespace GeometryHelper.Cad
                 case LispAskKind.Real:
                     return TakeLispNumber(ask, prompt, input, out answer);
                 case LispAskKind.String:
+                case LispAskKind.Line:
                     answer = input.Kind == CadInputKind.Text ? input.Text : string.Empty;
                     return true;
                 case LispAskKind.Keyword:
@@ -626,7 +636,8 @@ namespace GeometryHelper.Cad
         {
             taken = false;
 
-            if (_lispAsk == null || Prompt == null)
+            // read-line and read-char take the line as typed: a parenthesis starts no refusal and a space ends nothing.
+            if (_lispAsk == null || Prompt == null || _lispAsk.Kind == LispAskKind.Line)
             {
                 return false;
             }

@@ -216,6 +216,9 @@ namespace GeometryHelper.Cad.Wpf
         private void LetGoOfDocument(KnownFile file)
         {
             CadDocument document = file.Document;
+
+            // The files a routine left open are closed with the drawing, so that they can be deleted and read by others.
+            file.Session.CloseLispFiles();
             DetachPlugins(file.Session.Registry);
 
             foreach (CadWorkspaceExtension extension in _extensions)

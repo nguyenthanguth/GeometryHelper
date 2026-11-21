@@ -41,11 +41,14 @@ namespace GeometryHelper.Cad
         /// <summary>Gets the file EXPORT or -EXPORT asks for, the <see cref="Payload"/> of those requests; null for every other request.</summary>
         public CadExportJob Export => Payload as CadExportJob;
 
+        /// <summary>Gets what AutoLISP's <c>getfiled</c> asks, the <see cref="Payload"/> of the GETFILED request; null for every other request.</summary>
+        public CadGetFileRequest GetFile => Payload as CadGetFileRequest;
+
         /// <summary>
         /// Gets what is asked: PROPERTIES, LAYER, OPTIONS, QSAVE, RECOVER, PLOT, PREVIEW, PAGESETUP, -PLOT to write a plot to a
         /// file, PNGOUT, JPGOUT or BMPOUT for the file of an image, IMAGEOUT to draw the image and write it, EXPORT or -EXPORT
         /// for the file of an export, or MATCHPROP for its Property Settings dialog, which sets the session's
-        /// <see cref="CadCommandSession.MatchProperties"/>; or ALERT, a message AutoLISP's <c>alert</c> asks the window to show with an OK button, its text the <see cref="Payload"/>: a window that shows it sets <see cref="Handled"/>, and a command line with no window writes the text as lines.
+        /// <see cref="CadCommandSession.MatchProperties"/>; or ALERT, a message AutoLISP's <c>alert</c> asks the window to show with an OK button, its text the <see cref="Payload"/>: a window that shows it sets <see cref="Handled"/>, and a command line with no window writes the text as lines; or GETFILED, the file dialog AutoLISP's <c>getfiled</c> asks the window to show, its <see cref="CadGetFileRequest"/> the <see cref="Payload"/> (<see cref="GetFile"/>): a window that shows it sets <see cref="Handled"/> and puts the path chosen in <see cref="Answer"/>.
         /// </summary>
         public string Name { get; }
 
@@ -71,8 +74,8 @@ namespace GeometryHelper.Cad
         /// <summary>
         /// Gets or sets what the window's dialog answered, for a command that goes on with it: for PASTESPEC the paste chosen,
         /// PASTECLIP, PASTEBLOCK, PASTEORIG or TEXT; for REDEFINE Yes or No; for QSELECT "Select objects" where Quick Select's
-        /// button of that name closed it, so that the command asks the objects and shows it again; null where it was cancelled
-        /// or asks nothing.
+        /// button of that name closed it, so that the command asks the objects and shows it again; for GETFILED the path chosen, the
+        /// value <c>getfiled</c> gives; null where it was cancelled or asks nothing.
         /// </summary>
         public string Answer { get; set; }
     }

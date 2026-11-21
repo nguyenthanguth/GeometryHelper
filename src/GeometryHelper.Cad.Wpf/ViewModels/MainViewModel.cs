@@ -1850,6 +1850,14 @@ namespace GeometryHelper.Cad.Wpf
                 _lispStartup.StartupSuite.Add(startupFile);
             }
 
+            // vl-registry-* keep the values in a file beside the settings, one for every drawing, rather than in the Windows registry.
+            file.Session.Lisp.RegistryFile = Path.Combine(
+                Path.GetDirectoryName(
+                    Path.GetFullPath(string.IsNullOrEmpty(SettingsPath) ? GlobalSettings.DefaultPath : SettingsPath)
+                ),
+                "lisp-registry.txt"
+            );
+
             _lispStartup.OnDocumentOpened(file.Session);
         }
 
@@ -1956,10 +1964,25 @@ namespace GeometryHelper.Cad.Wpf
         /// </summary>
         public Action<string> ShowAlert { get; set; }
 
+        /// <summary>
+        /// Gets or sets how the window shows the file dialog of AutoLISP's <c>getfiled</c>: an open dialog, or a save dialog
+        /// where the request's flag 1 is set, returning the path the user chose, or null when the user cancelled. Null, as it
+        /// is until set, leaves the request unanswered, so that <c>getfiled</c> gives nil.
+        /// </summary>
+        public Func<CadGetFileRequest, string> AskGetFile { get; set; }
+
         private void OnUiRequested(object sender, CadUiRequestEventArgs e)
         {
             switch (e.Name)
             {
+                case "GETFILED":
+                    if (AskGetFile != null && e.GetFile != null)
+                    {
+                        e.Answer = AskGetFile(e.GetFile);
+                        e.Handled = true;
+                    }
+
+                    break;
                 case "ALERT":
                     if (ShowAlert != null)
                     {
