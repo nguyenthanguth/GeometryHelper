@@ -40,8 +40,10 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>
-        /// -STYLE: "Enter name of text style or [?]", then the font, height, width factor, obliquing angle, backwards, upside
-        /// down and, for an SHX font, vertically; the style made or changed is current. The whole run is one undo step.
+        /// -STYLE: "Enter name of text style or [?]", then the font ("Specify font name or font filename (for SHX)", as AutoCAD 2021's
+        /// console words it for TrueType fonts too), height, width factor (shown as 1.0000), obliquing angle, backwards, upside down
+        /// and, for an SHX font, "Vertical?"; an existing style with a TrueType font is said so, "Existing style. Full font name =
+        /// Arial". The style made or changed is current. The whole run is one undo step.
         /// </summary>
         private static IEnumerable<CadPrompt> StyleTyped(CadCommandContext c)
         {
@@ -58,12 +60,17 @@ namespace GeometryHelper.Cad
             }
 
             bool exists = c.Database.TextStyleTable.Has(name);
-            c.Write(exists ? "Existing style." : "New style.");
+            string typeface = exists ? c.Database.TextStyleTable[name].Font.TypeFace : string.Empty;
+            c.Write(
+                exists
+                    ? (typeface.Length > 0 ? "Existing style. Full font name = " + typeface : "Existing style.")
+                    : "New style."
+            );
             CadTextStyleSettings settings = exists
                 ? CadTextStyleSettings.Of(c.Database.TextStyleTable[name])
                 : CadTextStyleSettings.Of(c.Database.TextStyleTable[current]);
             string font = settings.Font.TypeFace.Length > 0 ? settings.Font.TypeFace : settings.FileName;
-            yield return CadPrompt.ForString("Specify full font name or font filename (TTF or SHX)", font);
+            yield return CadPrompt.ForString("Specify font name or font filename (for SHX)", font);
 
             if (c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0)
             {
@@ -83,7 +90,12 @@ namespace GeometryHelper.Cad
                 settings.Height = c.Input.Number;
             }
 
-            yield return CadPrompt.ForDistance("Specify width factor", null, null, Number(settings.WidthFactor));
+            yield return CadPrompt.ForDistance(
+                "Specify width factor",
+                null,
+                null,
+                settings.WidthFactor.ToString("0.0000", CultureInfo.InvariantCulture)
+            );
 
             if (c.Input.Kind == CadInputKind.Number)
             {
@@ -107,7 +119,7 @@ namespace GeometryHelper.Cad
 
             if (settings.Font.TypeFace.Length == 0)
             {
-                yield return CadPrompt.ForKeyword("Vertically?", yesNo, settings.Vertical ? "Yes" : "No");
+                yield return CadPrompt.ForKeyword("Vertical?", yesNo, settings.Vertical ? "Yes" : "No");
                 settings.Vertical = c.Input.Is("Yes") || (settings.Vertical && !c.Input.Is("No"));
             }
 

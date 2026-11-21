@@ -336,7 +336,8 @@ namespace GeometryHelper.Cad
 
         /// <summary>
         /// ELLIPSE, whole or an Arc of it, by the ends of one axis or by its centre and one end, then the other axis's half or a
-        /// rotation; an arc's start and end angles are counter-clockwise from the first end of an axis given, as AutoCAD's.
+        /// rotation; the major axis runs from the centre to the first end of an axis given, and an arc's start and end angles are
+        /// counter-clockwise from it, as AutoCAD's (a longer other axis turns the major axis a quarter turn, and the angles with it).
         /// </summary>
         private static IEnumerable<CadPrompt> Ellipse(CadCommandContext c)
         {
@@ -396,11 +397,14 @@ namespace GeometryHelper.Cad
                 yield break;
             }
 
-            // The ellipse of the other axis's half, from the start angle to the end angle about the first axis given, as it is
-            // previewed and made; none where the other axis has no length.
+            // The ellipse of the other axis's half, from the start angle to the end angle about its major axis, as it is previewed
+            // and made; none where the other axis has no length. The major axis runs from the centre to the first end of an axis
+            // given, as AutoCAD takes it, or, where the other axis is the longer, a quarter turn from there.
             GeoPoint2 middle = center;
-            GeoVector2 first = half;
-            GeoVector2 given = axis;
+            GeoVector2 first = axis;
+
+            GeoVector2 MajorOf(double length) =>
+                length > first.Length ? new GeoVector2(-first.Y, first.X) / first.Length * length : first;
 
             DxfEllipse Make(double length, double from, double to, bool part)
             {
@@ -409,17 +413,9 @@ namespace GeometryHelper.Cad
                     return null;
                 }
 
-                // The longer half is the major axis; the shorter lies square to it.
-                GeoVector2 major =
-                    length > first.Length ? new GeoVector2(-first.Y, first.X) / first.Length * length : first;
+                // The longer half is the major axis; the shorter lies square to it. The ellipse measures its angles from it.
+                GeoVector2 major = MajorOf(length);
                 double ratio = Math.Min(length, first.Length) / Math.Max(length, first.Length);
-
-                // The ellipse measures its angles from its major axis.
-                if (part)
-                {
-                    from += Math.Atan2(given.Y, given.X) - Math.Atan2(major.Y, major.X);
-                    to += Math.Atan2(given.Y, given.X) - Math.Atan2(major.Y, major.X);
-                }
 
                 return Current(
                     c,
@@ -489,9 +485,11 @@ namespace GeometryHelper.Cad
 
             if (arc)
             {
-                // An angle typed is from the first axis end, clockwise with ANGDIR 1; one picked is the way to the point, made from
-                // that end too (the session gives a pick at these prompts less ANGBASE, which is put back here).
-                double fromUcs = c.Session.Ucs.AngleToUcs(Math.Atan2(axis.Y, axis.X)) - c.Database.Angbase;
+                // An angle typed is from the major axis, which is the first axis end where the other axis is the shorter, clockwise
+                // with ANGDIR 1; one picked is the way to the point, made from the major axis too (the session gives a pick at these
+                // prompts less ANGBASE, which is put back here).
+                GeoVector2 major = MajorOf(other);
+                double fromUcs = c.Session.Ucs.AngleToUcs(Math.Atan2(major.Y, major.X)) - c.Database.Angbase;
                 yield return CadPrompt
                     .ForAngle("Specify start angle", center)
                     .Turning()

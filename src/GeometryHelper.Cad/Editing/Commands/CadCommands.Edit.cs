@@ -1022,10 +1022,10 @@ namespace GeometryHelper.Cad
                         ask = "Enter name list for new layer(s)";
                         break;
                     case "ON":
-                        ask = "Enter name list of layer(s) to turn On";
+                        ask = "Enter name list of layer(s) to turn on";
                         break;
                     case "OFF":
-                        ask = "Enter name list of layer(s) to turn Off";
+                        ask = "Enter name list of layer(s) to turn off";
                         break;
                     case "TRansparency":
                         ask =
@@ -1062,7 +1062,7 @@ namespace GeometryHelper.Cad
                 yield return CadPrompt.ForString(ask, current);
                 string names =
                     c.Input.Kind == CadInputKind.Text ? c.Input.Text
-                    : c.Input.IsNone ? current
+                    : c.Input.IsNone ? EscapedLayerName(current)
                     : null;
 
                 if (names == null)
@@ -1071,8 +1071,15 @@ namespace GeometryHelper.Cad
                 }
 
                 c.OpenUndoStep();
+                List<string> listed = LayerNameList(c.Database, names, option != "New");
 
-                foreach (string name in LayerNameList(c.Database, names, option != "New"))
+                if (listed.Count == 0)
+                {
+                    c.Write("No matching layer names found.");
+                    continue;
+                }
+
+                foreach (string name in listed)
                 {
                     CadEditResult result;
 
@@ -1122,9 +1129,12 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>
-        /// The names of a -LAYER name list, split at commas: a name with a wildcard (<c>*</c>, <c>?</c>, <c>#</c>, <c>@</c>,
-        /// <c>.</c>, <c>~</c>, <c>[</c>) stands for every layer whose name matches it, in any case, in the order of the table,
-        /// as AutoCAD's Thaw <c>*</c> thaws them all; one that matches none is kept as typed, so that it is said not to be found.
+        /// The layers a -LAYER name list stands for, as AutoCAD reads it: split at commas, each name is a wild-card pattern
+        /// (<c>*</c>, <c>?</c>, <c>#</c>, <c>@</c>, <c>.</c>, <c>~</c>, <c>[</c>, a back quote before a character making it itself),
+        /// in any case, matched against every layer in the order of the table, so that <c>Pl`#1`.b`@`[2]`~</c> is the layer
+        /// <c>Pl#1.b@[2]~</c> and Thaw <c>*</c> thaws them all; a name that matches no layer gives none, and that layer typed as it
+        /// is, <c>Pl#1.b@[2]~</c>, is a pattern that matches nothing. The names of -LAYER New (<paramref name="wildcards"/> false)
+        /// are taken as typed.
         /// </summary>
         private static List<string> LayerNameList(DxfDatabase database, string names, bool wildcards)
         {
@@ -1139,13 +1149,11 @@ namespace GeometryHelper.Cad
                     continue;
                 }
 
-                if (!wildcards || name.IndexOfAny(new[] { '*', '?', '#', '@', '.', '~', '[' }) < 0)
+                if (!wildcards)
                 {
                     list.Add(name);
                     continue;
                 }
-
-                int before = list.Count;
 
                 foreach (DxfLayerTableRecord layer in database.LayerTable)
                 {
@@ -1157,14 +1165,35 @@ namespace GeometryHelper.Cad
                         list.Add(layer.Name);
                     }
                 }
-
-                if (list.Count == before)
-                {
-                    list.Add(name);
-                }
             }
 
             return list;
+        }
+
+        /// <summary>
+        /// A layer name as a pattern that matches it alone: a back quote before each character a pattern gives a meaning, for the
+        /// layer a prompt offers as its default (<c>Pl#1.b@[2]~</c> becomes <c>Pl`#1`.b`@`[2]`~</c>); null stays null.
+        /// </summary>
+        private static string EscapedLayerName(string name)
+        {
+            if (name == null)
+            {
+                return null;
+            }
+
+            var escaped = new System.Text.StringBuilder();
+
+            foreach (char ch in name)
+            {
+                if ("*?#@.~[]`,".IndexOf(ch) >= 0)
+                {
+                    escaped.Append('`');
+                }
+
+                escaped.Append(ch);
+            }
+
+            return escaped.ToString();
         }
 
         /// <summary>"Current settings: Auto = On, Control = All, Combine = Yes, Layer = Yes", written by UNDO before it asks.</summary>
