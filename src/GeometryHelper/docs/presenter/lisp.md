@@ -395,7 +395,10 @@ AutoLISP while a routine waits, APPLOAD or a startup file, are refused with the 
 point in the UCS: `0,0` on the end of a LINE gives `(<Entity name: ...> (0.0 0.0 0.0))`. `L` takes the last object. A pick
 that finds nothing gives `nil` at once and does not ask again; Enter gives `nil`; a keyword of `initget` gives its string;
 other text is `*Invalid selection*` and `Expects a point or Last`, and the prompt again. `nentsel` does the same for an object
-of a space, and for one inside a block reference gives `(ename pt matrix (insert-ename))`, with the insert's name last.
+of a space, and for one inside a block reference gives `(ename pt matrix (insert-ename))`, with the insert's name last. A pick on the
+text of a visible attribute gives the ATTRIB itself and the point only, `(<Entity name: ...> (103.0 2.5 0.0))`, with no matrix and
+no list of references after them, as AutoCAD 2021 does; `entsel` still gives the block reference for the same pick, and an
+invisible attribute cannot be picked. `(entmod ...)` of that name changes the attribute.
 
 ## Selection sets
 
@@ -459,7 +462,9 @@ made, the entity goes into the current space, and `(entlast)` is it. A list stra
 CIRCLE, ARC, ELLIPSE, TEXT, MTEXT, LWPOLYLINE, SOLID, TRACE, 3DFACE, RAY, XLINE, SPLINE and INSERT without attributes. A
 POLYLINE with its VERTEX and SEQEND, an INSERT with ATTRIB, a BLOCK definition and the records of a table give `nil`.
 
-`(entdel e)` gives the name and erases; a second `entdel` of the same entity restores it, as AutoCAD's does. `(entnext)`
+`(entdel e)` gives the name and erases; a second `entdel` of the same entity restores it, as AutoCAD's does. The ATTRIB of a
+block reference is not erased that way: `(entdel att)` gives `nil` and leaves it, as many times as it is asked, which is what
+AutoCAD 2021 does. `(entnext)`
 gives the first object of the drawing and `(entnext e)` the one after it, the sub-entities of a POLYLINE or an INSERT with
 attributes following their owner, and `nil` after the last. `(entlast)` is the last main object made, `(handent "1A")` the
 name of the object with that handle, or `nil`.

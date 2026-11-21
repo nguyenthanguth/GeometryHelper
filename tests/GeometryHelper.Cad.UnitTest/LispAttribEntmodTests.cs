@@ -223,12 +223,12 @@ namespace GeometryHelper.Cad.UnitTest
             CadCommandSession session = D5();
             Value(
                 session,
-                "(defun c:ghe1 (/ r a d) (setq r (nentselp '(10.5 10.5))) (setq a (entnext (car r))) (setq d (entget a)) (entmod (subst (cons 1 \"EDITED\") (assoc 1 d) d)) (princ))"
+                "(defun c:ghe1 (/ r a d) (setq r (nentselp '(10.5 10.5))) (setq a (car r)) (setq d (entget a)) (entmod (subst (cons 1 \"EDITED\") (assoc 1 d) d)) (princ))"
             );
 
             Run(session, "GHE1");
 
-            // ours (D332): the presenter's nentsel gives the block reference for a pick on an attribute, so the routine walks to the attribute
+            // AutoCAD 2021 (GUI, L5 X2): nentselp on an attribute's text gives the ATTRIB itself, so the routine takes it from the pick
             Assert.Equal("\"EDITED\"", Value(session, "(cdr (assoc 1 (entget att)))"));
             Assert.Equal("\"TAG\"", Value(session, "(cdr (assoc 2 (entget att)))"));
         }
