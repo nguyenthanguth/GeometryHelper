@@ -279,6 +279,10 @@ namespace GeometryHelper.Cad
             string name = (typed ?? string.Empty).Trim();
             Write("Command: " + name);
 
+            // The _ and . in front of a name, which AutoCAD takes off to find the command: _REGEN, .U and _.-BLOCK are REGEN, U and
+            // -BLOCK, and an unknown one is refused without them.
+            name = WithoutPrefixes(name);
+
             // 'PAN and 'ZOOM at the Command prompt are PAN and ZOOM.
             name = WithoutApostrophe(name) ?? name;
 
@@ -332,6 +336,17 @@ namespace GeometryHelper.Cad
             LastCommandName = command.Name;
             Run(tool == null ? command : CadToolRun.Wrap(command, tool), PreSelectedFor(command));
             return true;
+        }
+
+        /// <summary>A command name without the <c>_</c> (the international prefix) and <c>.</c> (the one that bypasses UNDEFINE) in front of it: <c>_.LINE</c> is <c>LINE</c>.</summary>
+        private static string WithoutPrefixes(string name)
+        {
+            while (name.Length > 1 && (name[0] == '_' || name[0] == '.'))
+            {
+                name = name.Substring(1);
+            }
+
+            return name;
         }
 
         /// <summary>The objects selected before a command that works on a selection, which it takes instead of asking "Select objects:".</summary>
@@ -1312,7 +1327,9 @@ namespace GeometryHelper.Cad
             );
             string echo = Prompt.Text;
             ClearGathering();
-            RememberSelection(handles);
+
+            // Previous gives the set in the order it was made, as AutoCAD's does: a window's objects newest first.
+            RememberSelection(pickOrder.Count == handles.Count ? pickOrder : handles);
             ResetOptions();
             Answer(
                 new CadInput(CadInputKind.Selection, default, 0.0, null, handles)

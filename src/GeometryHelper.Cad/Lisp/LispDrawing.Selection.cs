@@ -334,7 +334,9 @@ namespace GeometryHelper.Cad.Lisp
                         Math.Max(first.Y, second.Y)
                     );
                     PickIndex window = document.GetPickIndex(document.WorkingSpace);
-                    found.AddRange(request.Mode == "W" ? window.Window(box) : window.Crossing(box));
+                    found.AddRange(
+                        session.TakenByWindow(request.Mode == "W" ? window.Window(box) : window.Crossing(box), true)
+                    );
                     break;
                 case "WP":
                 case "CP":
@@ -349,8 +351,8 @@ namespace GeometryHelper.Cad.Lisp
                     PickIndex index = document.GetPickIndex(document.WorkingSpace);
                     found.AddRange(
                         request.Mode == "F" ? index.Fence(ring)
-                        : request.Mode == "WP" ? index.WindowPolygon(ring)
-                        : index.CrossingPolygon(ring)
+                        : request.Mode == "WP" ? session.TakenByWindow(index.WindowPolygon(ring), true)
+                        : session.TakenByWindow(index.CrossingPolygon(ring), false)
                     );
                     break;
                 case "L":

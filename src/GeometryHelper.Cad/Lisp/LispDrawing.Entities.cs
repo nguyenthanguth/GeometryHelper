@@ -1170,6 +1170,22 @@ namespace GeometryHelper.Cad.Lisp
             double Scale(int code) => groups.Find(p => p.Key == code).Value is double d ? d : 1.0;
 
             double rotation = groups.Find(p => p.Key == 50).Value is double r ? r : 0.0;
+
+            // The linetype (6) and colour (62) groups, which TakeLinetypeAndColour settled: a linetype the drawing has or ByBlock, a
+            // colour 1 to 255 or ByBlock (0).
+            string linetype = groups.Find(p => p.Key == 6).Value as string;
+
+            if (
+                linetype != null
+                && !string.Equals(linetype, "ByBlock", StringComparison.OrdinalIgnoreCase)
+                && !database.LinetypeTable.Has(linetype)
+            )
+            {
+                linetype = null;
+            }
+
+            int? colour =
+                groups.Find(p => p.Key == 62).Value is int index && index >= 0 && index <= 255 ? index : (int?)null;
             EnsureLayer(session.Document, layer);
             CadEditResult result = session.Apply("ENTMAKE", null, s =>
             {
@@ -1182,6 +1198,17 @@ namespace GeometryHelper.Cad.Lisp
                     ScaleFactors = new GeoVector3(Scale(41), Scale(42), Scale(43)),
                     Layer = layer,
                 };
+
+                if (linetype != null)
+                {
+                    insert.Linetype = linetype;
+                }
+
+                if (colour.HasValue)
+                {
+                    insert.Color = DxfColor.FromColorIndex(DxfColorMethod.ByAci, (short)colour.Value);
+                }
+
                 s.Append(space, insert);
             });
             return result.Succeeded;

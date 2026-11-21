@@ -442,7 +442,10 @@ Command: (sslength (ssget "X" '((-4 . "<OR") (0 . "TEXT") (0 . "CIRCLE") (-4 . "
 
 Every set `ssget` gives becomes the Previous selection, so `(ssget "P")` and `P` at the next command's prompt give it. Esc is
 `Function cancelled`. `ALL` at `Select objects:` of any command lists the newest object first, as `"X"` does, with the
-handle's text breaking a tie, as the selection engine of AutoCAD walks the drawing; windows and crossings keep their order.
+handle's text breaking a tie, as the selection engine of AutoCAD walks the drawing. So do `"W"`, `"C"`, `"WP"` and `"CP"`, a
+window typed at the prompt and Previous after them: five lines at y 0 to 40 give 40, 30, 20, 10, 0 (AutoCAD 2021), where a fence
+keeps the order of its points in AutoCAD and here the order of the drawing. With a view (the window has one, a script does not),
+`"W"`, `"C"` and `"WP"` find only what the view shows, `"CP"` and `"F"` everything, as AutoCAD 2021's console did.
 
 `(sslength ss)` is an integer, `(ssname ss i)` the i-th entity name (`nil` out of range, `-1` included), `(ssadd)` a new empty
 set, `(ssadd e)` a new set with `e`, `(ssadd e ss)` adds to `ss` in place and gives it, `(ssdel e ss)` takes out in place, and
@@ -531,6 +534,7 @@ Variables added for routines:
 | `UCSXDIR`, `UCSYDIR` | read-only: the axes of the UCS |
 | `LISPINIT` | read-only, 1 |
 | `BLIPMODE`, `MENUECHO` | kept and without effect |
+| `NOMUTT` | 0 or 1, kept for the session, 0 at first; AutoCAD's 1 mutes the prompts of a routine's `command`, which the presenter does not, so a routine that sets it and puts it back (`(setvar 'nomutt 1)` of TE) runs as before |
 | every dimension variable | `DIMASZ`, `DIMTXSTY`, `DIMSAH`, `DIMBLK1` and the rest, as system variables of the drawing's header, typed alone or set with SETVAR with AutoCAD's prompts (`Enter new value for DIMSAH <OFF>:` takes ON or OFF) |
 
 ## Geometry, units and the session

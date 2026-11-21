@@ -230,7 +230,8 @@ namespace GeometryHelper.Cad
                 yield return prompt;
             }
 
-            request.Objects = c.Selected;
+            // The block holds its objects in the order they were selected, as AutoCAD's -BLOCK makes it (a window gives the newest first).
+            request.Objects = c.SelectedInOrder();
             MakeBlock(c, request);
         }
 

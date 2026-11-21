@@ -395,6 +395,7 @@ namespace GeometryHelper.Cad.UnitTest
                     "MIRRTEXT",
                     "MLEADERSCALE",
                     "MSLTSCALE",
+                    "NOMUTT",
                     "OBJECTISOLATIONMODE",
                     "OFFSETDIST",
                     "OLEFRAME",

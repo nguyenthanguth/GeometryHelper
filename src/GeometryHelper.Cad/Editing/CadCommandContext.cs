@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Cad
@@ -53,6 +54,20 @@ namespace GeometryHelper.Cad
         /// <summary>The handles <see cref="SelectObjects"/> was given, before those of no entity and those on a locked layer were left out: the Block Editor's parameters and actions are among them.</summary>
         internal IReadOnlyList<string> RawSelected { get; private set; } = Array.Empty<string>();
 
+        // The objects of the last selection in the order they were picked, which RawSelected loses by being sorted.
+        private IReadOnlyList<string> _pickedInOrder = Array.Empty<string>();
+
+        /// <summary>
+        /// The objects of <see cref="Selected"/> in the order they were selected, as AutoCAD's selection set holds them (a window
+        /// takes the newest first; objects picked one by one stay in the order of the picks), where <see cref="Selected"/> is
+        /// sorted by handle. -BLOCK builds its definition in this order.
+        /// </summary>
+        internal IReadOnlyList<string> SelectedInOrder()
+        {
+            var kept = new HashSet<string>(Selected, StringComparer.OrdinalIgnoreCase);
+            return _pickedInOrder.Where(kept.Remove).ToList();
+        }
+
         /// <summary>The objects selected before the command started, which BLOCK and WBLOCK put into their dialog's objects.</summary>
         internal IReadOnlyList<string> PreSelected => _preSelected;
 
@@ -86,6 +101,7 @@ namespace GeometryHelper.Cad
             if (_preSelected.Count > 0)
             {
                 handles = _preSelected;
+                _pickedInOrder = handles;
                 Session.RememberSelection(handles);
 
                 if (echo)
@@ -97,6 +113,7 @@ namespace GeometryHelper.Cad
             {
                 yield return CadPrompt.ForSelection();
                 handles = Input.Handles;
+                _pickedInOrder = Input.PickOrder.Count == handles.Count ? Input.PickOrder : handles;
             }
 
             RawSelected = handles;

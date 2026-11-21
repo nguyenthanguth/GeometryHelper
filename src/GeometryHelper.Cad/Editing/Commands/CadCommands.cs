@@ -335,6 +335,42 @@ namespace GeometryHelper.Cad
             yield break;
         }
 
+        /// <summary>The options of ZOOM, in the order AutoCAD 2021 lists them.</summary>
+        private static readonly string[] ZoomOptions =
+        {
+            "All",
+            "Center",
+            "Dynamic",
+            "Extents",
+            "Previous",
+            "Scale",
+            "Window",
+            "Object",
+        };
+
+        private const string ZoomPaperScaleNote =
+            "nXP scales the view of a viewport to paper space, which needs a viewport's model space (MSPACE): the view is as it was.";
+
+        /// <summary>A number above nought that is not infinite, as ZOOM takes a scale factor, a height or the number of an nX.</summary>
+        private static bool TryZoomNumber(string text, out double number) =>
+            double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out number)
+            && number > 0.0
+            && !double.IsInfinity(number);
+
+        /// <summary>
+        /// Scales the view: nX scales it as it is about its centre; n alone scales the view of the extents, as AutoCAD's n scales
+        /// that of the limits.
+        /// </summary>
+        private static void ZoomScaled(CadView view, DisplayBox extents, double factor, bool relative)
+        {
+            if (!relative)
+            {
+                view.ZoomTo(extents);
+            }
+
+            view.ZoomAt(view.Width / 2.0, view.Height / 2.0, factor);
+        }
+
         private static IEnumerable<CadPrompt> Zoom(CadCommandContext c)
         {
             // Through a viewport the viewport's view is zoomed; through one whose display is locked, the paper, as AutoCAD's.
@@ -361,7 +397,7 @@ namespace GeometryHelper.Cad
             yield return CadPrompt.ForPoint(
                 "Specify corner of window, enter a scale factor (nX or nXP)",
                 null,
-                new[] { "All", "Extents", "Previous", "Window" },
+                ZoomOptions,
                 "real time",
                 true
             );
@@ -385,6 +421,114 @@ namespace GeometryHelper.Cad
             {
                 view.ZoomTo(extents);
             }
+            else if (c.Input.Is("Object"))
+            {
+                foreach (CadPrompt prompt in c.SelectObjects())
+                {
+                    yield return prompt;
+                }
+
+                // The box of what is selected, as the objects draw it; nothing selected leaves the view as it was.
+                PickIndex index = c.Document.GetPickIndex(shown);
+                DisplayBox box = DisplayBox.Empty;
+
+                foreach (string handle in c.Selected)
+                {
+                    foreach (int i in index.IndicesOf(handle))
+                    {
+                        box = box.Union(index.List.Items[i].Bounds);
+                    }
+                }
+
+                if (box.IsEmpty)
+                {
+                    yield break;
+                }
+
+                view.ZoomTo(box);
+            }
+            else if (c.Input.Is("Center"))
+            {
+                yield return CadPrompt.ForPoint("Specify center point");
+
+                if (!c.Input.IsPoint)
+                {
+                    yield break;
+                }
+
+                GeoPoint2 centre = c.Input.Point;
+                double height = view.Height / view.PixelsPerUnit;
+
+                while (true)
+                {
+                    yield return CadPrompt.ForPoint(
+                        "Enter magnification or height",
+                        null,
+                        null,
+                        height.ToString("0.0000", CultureInfo.InvariantCulture),
+                        true
+                    );
+
+                    if (c.Input.Kind != CadInputKind.Text)
+                    {
+                        break;
+                    }
+
+                    // A number is the height of the view; nX is the height now, over n (3X from 30 is 10), as AutoCAD's does.
+                    string typed = c.Input.Text.Trim();
+                    bool relative = typed.EndsWith("X", StringComparison.OrdinalIgnoreCase);
+
+                    if (TryZoomNumber(relative ? typed.Substring(0, typed.Length - 1) : typed, out double number))
+                    {
+                        height = relative ? height / number : number;
+                        break;
+                    }
+
+                    c.Write("Requires a distance (or numberX).");
+                }
+
+                view.ZoomToHeight(centre.X, centre.Y, height);
+            }
+            else if (c.Input.Is("Scale"))
+            {
+                double factor;
+                bool relative;
+
+                while (true)
+                {
+                    yield return CadPrompt.ForPoint("Enter a scale factor (nX or nXP)", null, null, null, true);
+
+                    if (c.Input.Kind != CadInputKind.Text)
+                    {
+                        yield break;
+                    }
+
+                    string typed = c.Input.Text.Trim();
+                    relative =
+                        typed.EndsWith("X", StringComparison.OrdinalIgnoreCase)
+                        && !typed.EndsWith("XP", StringComparison.OrdinalIgnoreCase);
+
+                    if (typed.EndsWith("XP", StringComparison.OrdinalIgnoreCase))
+                    {
+                        c.Write(ZoomPaperScaleNote);
+                        yield break;
+                    }
+
+                    if (TryZoomNumber(relative ? typed.Substring(0, typed.Length - 1) : typed, out factor))
+                    {
+                        break;
+                    }
+
+                    c.Write("Requires a distance (or numberX).");
+                }
+
+                ZoomScaled(view, extents, factor, relative);
+            }
+            else if (c.Input.Is("Dynamic"))
+            {
+                c.Write("Dynamic zoom is the window's rubber-band frame: use Window. The view is as it was.");
+                yield break;
+            }
             else if (c.Input.Kind == CadInputKind.Text)
             {
                 string typed = c.Input.Text.Trim();
@@ -395,29 +539,17 @@ namespace GeometryHelper.Cad
 
                 if (typed.EndsWith("XP", StringComparison.OrdinalIgnoreCase))
                 {
-                    c.Write(
-                        "nXP scales the view of a viewport to paper space, which needs a viewport's model space (MSPACE): the view is as it was."
-                    );
+                    c.Write(ZoomPaperScaleNote);
                     yield break;
                 }
 
-                if (
-                    !double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double factor)
-                    || !(factor > 0.0)
-                    || double.IsInfinity(factor)
-                )
+                if (!TryZoomNumber(number, out double factor))
                 {
                     c.Write("Requires a point, a scale factor above nought (nX or nXP), or an option keyword.");
                     yield break;
                 }
 
-                // nX scales the view as it is about its centre; n alone scales the view of the extents, as AutoCAD's n scales that of the limits.
-                if (!relative)
-                {
-                    view.ZoomTo(extents);
-                }
-
-                view.ZoomAt(view.Width / 2.0, view.Height / 2.0, factor);
+                ZoomScaled(view, extents, factor, relative);
             }
             else if (c.Input.Is("Previous"))
             {
