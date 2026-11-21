@@ -64,13 +64,13 @@ namespace GeometryHelper.Cad.Wpf
                 // access key are an AccessText, so that the key typed while the menu is open picks the item.
                 object header = item.AccessKey == '\0' ? (object)item.Header : Words(item);
 
-                if (item.Marker != CadSnapKind.None)
+                if (item.Marker != CadSnapKind.None || item.Glyph != null)
                 {
                     var row = new StackPanel { Orientation = Orientation.Horizontal };
                     row.Children.Add(
                         new Image
                         {
-                            Source = MarkerImage(item.Marker),
+                            Source = item.Glyph != null ? MarkerImage(item.Glyph) : MarkerImage(item.Marker),
                             Width = 16,
                             Height = 16,
                             Margin = new Thickness(0, 0, 8, 0),
@@ -150,7 +150,13 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets a snap kind's marker as a picture 16 pixels across, drawn as the canvas draws it on a dark background.</summary>
         /// <param name="kind">The snap kind.</param>
         /// <returns>The picture; an empty one for a kind with no marker.</returns>
-        public static ImageSource MarkerImage(CadSnapKind kind)
+        public static ImageSource MarkerImage(CadSnapKind kind) => MarkerImage(CadSnapMarker.Strokes(kind));
+
+        /// <summary>
+        /// Draws strokes in pixels about the centre of a clear box 16 across, as the canvas draws a marker on a dark background:
+        /// the glyph of a plugin's snap in a menu or in Drafting Settings.
+        /// </summary>
+        internal static ImageSource MarkerImage(IReadOnlyList<CadMarkerStroke> strokes)
         {
             var visual = new DrawingVisual();
 
@@ -158,7 +164,7 @@ namespace GeometryHelper.Cad.Wpf
             {
                 // A clear square keeps the picture 16 across whatever the marker's size.
                 dc.DrawRectangle(Brushes.Transparent, null, new Rect(0, 0, 16, 16));
-                CadCanvas.DrawMarker(dc, kind, new Point(8, 8), CadCanvas.MarkerPen(0x000000));
+                CadCanvas.DrawMarker(dc, strokes, new Point(8, 8), CadCanvas.MarkerPen(0x000000));
             }
 
             var image = new DrawingImage(visual.Drawing);

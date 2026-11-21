@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Input;
+using System.Windows.Media;
+using GeometryHelper.Cad.Plugins;
 
 namespace GeometryHelper.Cad.Wpf
 {
@@ -38,6 +40,48 @@ namespace GeometryHelper.Cad.Wpf
         {
             get => _isChecked;
             set => Set(ref _isChecked, value && IsAvailable);
+        }
+
+        /// <inheritdoc/>
+        public override string ToString() => Name + (IsChecked ? " on" : " off");
+    }
+
+    /// <summary>
+    /// A check box of the "Plugin snaps" group of the Object Snap tab: an object snap a plugin adds, with its glyph, name,
+    /// keyword and the name of the plugin; ticked as the snap is on.
+    /// </summary>
+    public sealed class PluginSnapRowViewModel : ObservableObject
+    {
+        private bool _isChecked;
+        private ImageSource _glyph;
+
+        internal PluginSnapRowViewModel(CadCustomSnap snap, string pluginName, bool isChecked)
+        {
+            Snap = snap;
+            PluginName = pluginName;
+            _isChecked = isChecked;
+        }
+
+        /// <summary>Gets the snap.</summary>
+        public CadCustomSnap Snap { get; }
+
+        /// <summary>Gets the name, as "Circle top".</summary>
+        public string Name => Snap.Name;
+
+        /// <summary>Gets the keyword typed as an override, as "CTOP".</summary>
+        public string Keyword => Snap.Keyword;
+
+        /// <summary>Gets the name of the plugin that added the snap, as "Circle tools".</summary>
+        public string PluginName { get; }
+
+        /// <summary>Gets the glyph as a picture 16 pixels across, drawn as the canvas draws a marker; the default glyph where the snap has none.</summary>
+        public ImageSource Glyph => _glyph ?? (_glyph = CadMenus.MarkerImage(CadSnapMarker.StrokesOf(Snap)));
+
+        /// <summary>Gets or sets whether the snap is ticked.</summary>
+        public bool IsChecked
+        {
+            get => _isChecked;
+            set => Set(ref _isChecked, value);
         }
 
         /// <inheritdoc/>
@@ -85,6 +129,13 @@ namespace GeometryHelper.Cad.Wpf
             model.LastDraftingTab = _tab;
             Modes = MainViewModel
                 .SnapModeTable.Select(i => new SnapModeRowViewModel(i.Kind, i.Mode, (model.SnapModes & i.Mode) != 0))
+                .ToList();
+            PluginSnaps = model
+                .PluginSnapList.Select(i => new PluginSnapRowViewModel(
+                    i.Snap,
+                    i.PluginName,
+                    model.IsPluginSnapOn(i.Snap)
+                ))
                 .ToList();
             _isSnapOn = model.Toggles.First(t => t.Name == "OSNAP").IsOn;
             _isGridSnapOn = model.Toggles.First(t => t.Name == "SNAP").IsOn;
@@ -146,6 +197,12 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>Gets the fourteen object snaps, in the order of AutoCAD's tab: Endpoint to Extension, then Insertion to Parallel.</summary>
         public IReadOnlyList<SnapModeRowViewModel> Modes { get; }
+
+        /// <summary>Gets the snaps the plugins loaded add, in the order they were loaded, shown under the fourteen as the "Plugin snaps" group.</summary>
+        public IReadOnlyList<PluginSnapRowViewModel> PluginSnaps { get; }
+
+        /// <summary>Gets whether a plugin loaded adds a snap: the "Plugin snaps" group is shown only then.</summary>
+        public bool HasPluginSnaps => PluginSnaps.Count > 0;
 
         /// <summary>Gets or sets "Object Snap On (F3)": the status bar's OSNAP.</summary>
         public bool IsSnapOn
@@ -282,6 +339,9 @@ namespace GeometryHelper.Cad.Wpf
             _model.RunAsOneStep("DSETTINGS", () =>
             {
                 _model.SnapModes = modes;
+                _model.SetPluginSnaps(
+                    PluginSnaps.Select(r => new KeyValuePair<CadCustomSnap, bool>(r.Snap, r.IsChecked))
+                );
                 _model.Toggles.First(t => t.Name == "OSNAP").IsOn = _isSnapOn;
                 _model.Toggles.First(t => t.Name == "SNAP").IsOn = _isGridSnapOn;
                 _model.Toggles.First(t => t.Name == "GRID").IsOn = _isGridOn;
@@ -311,6 +371,11 @@ namespace GeometryHelper.Cad.Wpf
         private void SetAll(bool on)
         {
             foreach (SnapModeRowViewModel row in Modes)
+            {
+                row.IsChecked = on;
+            }
+
+            foreach (PluginSnapRowViewModel row in PluginSnaps)
             {
                 row.IsChecked = on;
             }

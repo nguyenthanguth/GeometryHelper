@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Input;
+using GeometryHelper.Cad.Plugins;
 
 namespace GeometryHelper.Cad.Wpf
 {
@@ -87,6 +88,12 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>Gets the snap whose marker is drawn beside it; <see cref="CadSnapKind.None"/> for none.</summary>
         public CadSnapKind Marker { get; }
+
+        /// <summary>
+        /// The strokes of a plugin's snap drawn beside the words in the 16 pixel box of the built-in markers, as
+        /// <see cref="CadSnapMarker.Strokes"/> gives them; null for none.
+        /// </summary>
+        internal IReadOnlyList<CadMarkerStroke> Glyph { get; set; }
 
         /// <summary>
         /// The icon drawn before the words, a path on a grid of 16 as Numbered of Bullets and Numbering has; empty for the room
@@ -209,6 +216,7 @@ namespace GeometryHelper.Cad.Wpf
                 return true;
             }
 
+            ClearPluginSnapOverride();
             Snap.Override = modes;
             _current.Session.SnapOverride = modes;
             _current.Session.Write(
@@ -269,7 +277,9 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>
         /// Gets the items of the menu of the status bar's OSNAP (its arrow, or a right click on it): each object snap of
-        /// AutoCAD's ticked when on, one not built yet shown off with "Not built yet.", then "Object Snap Settings...".
+        /// AutoCAD's ticked when on, one not built yet shown off with "Not built yet."; then, behind a line, a row for each snap
+        /// a plugin loaded adds, with its marker and ticked where on, which a click switches (kept by keyword in the
+        /// settings); then "Object Snap Settings...".
         /// </summary>
         /// <returns>The items.</returns>
         public IReadOnlyList<CadMenuItemViewModel> OsnapMenu()
@@ -288,6 +298,30 @@ namespace GeometryHelper.Cad.Wpf
                         : new CadMenuItemViewModel(i.Name, () => { }, false, NotBuiltYet, false, i.Kind)
                 )
                 .ToList();
+
+            // The snaps of the plugins loaded, behind a line of their own, each ticked where on, with its own marker.
+            if (_pluginSnapList.Count > 0)
+            {
+                items.Add(CadMenuItemViewModel.Separator());
+                items.AddRange(
+                    _pluginSnapList.Select(i =>
+                    {
+                        CadCustomSnap snap = i.Snap;
+                        bool on = IsPluginSnapOn(snap);
+                        return new CadMenuItemViewModel(
+                            snap.Name,
+                            () => SetPluginSnaps(new[] { new KeyValuePair<CadCustomSnap, bool>(snap, !on) }),
+                            true,
+                            null,
+                            on
+                        )
+                        {
+                            Glyph = CadSnapMarker.StrokesOf(snap),
+                        };
+                    })
+                );
+            }
+
             items.Add(CadMenuItemViewModel.Separator());
             items.Add(new CadMenuItemViewModel("Object Snap Settings...", () => RequestDraftingSettings(null)));
             return items;
@@ -297,8 +331,9 @@ namespace GeometryHelper.Cad.Wpf
         /// Gets the items of the Shift+right-click menu while a point is asked, in AutoCAD's order: the point modifiers
         /// Temporary track point, From, Mid Between 2 Points and Point Filters (.X to .YZ), each started at the prompt as typed
         /// (<see cref="ModifyPoint"/>); then the fourteen snaps in three groups, named as AutoCAD's menu names them (Apparent
-        /// Intersect, Insert), each taken for the next point alone (<see cref="OverrideSnap"/>), None, then "Osnap
-        /// Settings...". The Command menu of the canvas opens the same items under Osnap Overrides. Empty while no point or
+        /// Intersect, Insert), each taken for the next point alone (<see cref="OverrideSnap"/>); the snaps plugins add, in a
+        /// group of their own after Nearest, each taken alone the same way (the command line says "_ctop of"); None, then
+        /// "Osnap Settings...". The Command menu of the canvas opens the same items under Osnap Overrides. Empty while no point or
         /// object is asked: AutoCAD 2021 shows the menu at "Select objects:" too, where its modifiers pick at the point they
         /// give.
         /// </summary>
@@ -362,6 +397,23 @@ namespace GeometryHelper.Cad.Wpf
                 {
                     items.Add(CadMenuItemViewModel.Separator());
                 }
+            }
+
+            // The snaps of the plugins loaded, in a group of their own between Nearest and None.
+            if (_pluginSnapList.Count > 0)
+            {
+                items.Add(CadMenuItemViewModel.Separator());
+                items.AddRange(
+                    _pluginSnapList.Select(i =>
+                    {
+                        CadCustomSnap snap = i.Snap;
+                        return new CadMenuItemViewModel(snap.Name, () => OverridePluginSnap(snap))
+                        {
+                            Glyph = CadSnapMarker.StrokesOf(snap),
+                        };
+                    })
+                );
+                items.Add(CadMenuItemViewModel.Separator());
             }
 
             items.Add(new CadMenuItemViewModel("None", () => OverrideSnap(CadSnapModes.None), accessKey: 'N'));
@@ -455,7 +507,8 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>
         /// A word typed at a point prompt, or at "Select objects:", that names an object snap, END or ENDPOINT, takes it for the
-        /// next point; one not built yet is said so. A keyword of the prompt itself wins, as in AutoCAD.
+        /// next point; one not built yet is said so. The keyword of a plugin's snap (CTOP, ctop, _CTOP), typed whole, is tried
+        /// first. A keyword of the prompt itself wins, as in AutoCAD.
         /// </summary>
         private bool TakeSnapOverride(CadCommandSession session, string word)
         {
@@ -467,6 +520,14 @@ namespace GeometryHelper.Cad.Wpf
             )
             {
                 return false;
+            }
+
+            // The keyword of a plugin's snap, whole, comes before the built-in ones.
+            PluginSnapInfo plugin = PluginSnapTyped(word);
+
+            if (plugin != null)
+            {
+                return OverridePluginSnap(plugin.Snap);
             }
 
             string typed = word.Trim().ToUpperInvariant();

@@ -126,6 +126,7 @@ namespace GeometryHelper.Cad.Wpf
         {
             _settings = (settings ?? throw new ArgumentNullException(nameof(settings))).Clone();
             Snap.Modes = _settings.Snaps;
+            SyncPluginSnaps();
             Snap.PolarAngle = _settings.PolarAngle * Math.PI / 180.0;
             ApplyPolarMode(_settings.PolarMode);
             Snap.PolarSnap = _settings.PolarSnap;

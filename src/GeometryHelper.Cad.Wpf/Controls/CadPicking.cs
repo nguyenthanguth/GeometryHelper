@@ -154,6 +154,10 @@ namespace GeometryHelper.Cad.Wpf
             // Through a viewport worked in, the layers frozen in it are not shown, and not snapped to.
             snap.HiddenLayers = space.IsModel ? CadViewportSnap.FrozenIn(document.ActiveViewport) : null;
 
+            // The snaps of plugins ask the drawing for the entity under the cursor and hand it to their finders.
+            snap.Document = document;
+            snap.EntityOf = document.FindEntity;
+
             try
             {
                 CadSnapResult own = snap.Snap(document.GetPickIndex(space), cursor, aperture, basePoint, drawnFrom);
@@ -164,6 +168,8 @@ namespace GeometryHelper.Cad.Wpf
             finally
             {
                 snap.HiddenLayers = null;
+                snap.Document = null;
+                snap.EntityOf = null;
             }
         }
 

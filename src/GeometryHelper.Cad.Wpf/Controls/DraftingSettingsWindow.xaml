@@ -67,6 +67,41 @@
                     </DataTrigger>
                 </DataTemplate.Triggers>
             </DataTemplate>
+
+            <!-- A snap of a plugin: its box, its glyph, its name, its keyword and the plugin's name. -->
+            <DataTemplate x:Key="PluginSnapTemplate" DataType="{x:Type local:PluginSnapRowViewModel}">
+                <Grid Margin="0,0,0,6" Background="Transparent">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <CheckBox
+                        Grid.Column="0"
+                        Style="{StaticResource Check}"
+                        IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                    />
+                    <Image Grid.Column="1" Source="{Binding Glyph}" Width="16" Height="16" Margin="0,0,8,0" />
+                    <TextBlock Grid.Column="2" Text="{Binding Name}" VerticalAlignment="Center" />
+                    <TextBlock
+                        Grid.Column="3"
+                        Text="{Binding Keyword}"
+                        FontFamily="{StaticResource GhMonoFont}"
+                        FontSize="{StaticResource GhSmallFontSize}"
+                        Foreground="{StaticResource GhTextMuted}"
+                        VerticalAlignment="Center"
+                        Margin="12,0,12,0"
+                    />
+                    <TextBlock
+                        Grid.Column="4"
+                        Text="{Binding PluginName}"
+                        Foreground="{StaticResource GhTextMuted}"
+                        VerticalAlignment="Center"
+                    />
+                </Grid>
+            </DataTemplate>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -739,6 +774,24 @@
                                 </ItemsControl.ItemsPanel>
                             </ItemsControl>
                         </DockPanel>
+                    </HeaderedContentControl>
+
+                    <!-- The snaps the plugins loaded add, under the fourteen: shown only while there is one; Select All and Clear All
+                         tick these too. -->
+                    <HeaderedContentControl
+                        Style="{StaticResource BlockGroup}"
+                        x:Name="PluginSnapsGroup"
+                        Header="Plugin snaps"
+                        Margin="0,10,0,0"
+                        Visibility="Collapsed"
+                    >
+                        <ScrollViewer MaxHeight="140" VerticalScrollBarVisibility="Auto" Focusable="False">
+                            <ItemsControl
+                                ItemsSource="{Binding PluginSnaps}"
+                                ItemTemplate="{StaticResource PluginSnapTemplate}"
+                                Focusable="False"
+                            />
+                        </ScrollViewer>
                     </HeaderedContentControl>
                     <TextBlock
                         Text="To track from an Osnap point, pause over the point while in a command. A tracking vector appears when you move the cursor. To stop tracking, pause over the point again."

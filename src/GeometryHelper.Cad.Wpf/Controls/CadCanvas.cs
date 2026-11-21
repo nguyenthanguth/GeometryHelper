@@ -646,7 +646,7 @@ namespace GeometryHelper.Cad.Wpf
                         || kind == CadSnapKind.Ortho
                         || kind == CadSnapKind.Polar
                         ? string.Empty
-                        : CadSnapMarker.NameOf(kind);
+                        : SnapName(_snapped);
                 }
 
                 if (tracked && !shown)
@@ -5876,6 +5876,12 @@ namespace GeometryHelper.Cad.Wpf
             dc.DrawLine(pen, new Point(at.X - 5.0, at.Y + 5.0), new Point(at.X + 5.0, at.Y - 5.0));
         }
 
+        /// <summary>The name a snap's tip says: AutoCAD's for a built-in snap, the snap's own name for one of a plugin.</summary>
+        private static string SnapName(CadSnapResult snapped) =>
+            snapped.Kind == CadSnapKind.Custom && snapped.CustomSnap != null
+                ? snapped.CustomSnap.Name
+                : CadSnapMarker.NameOf(snapped.Kind);
+
         /// <summary>The tip by the cursor, as AutoCAD's dynamic input: the snap's name, the distance and the angle from the base point, the angle counted as the drawing counts angles (from the X axis of the UCS turned by ANGBASE, clockwise with ANGDIR 1).</summary>
         private static string TipText(
             CadSnapResult snapped,
@@ -5884,7 +5890,7 @@ namespace GeometryHelper.Cad.Wpf
             CadCommandSession session
         )
         {
-            string kind = snapped == null ? string.Empty : CadSnapMarker.NameOf(snapped.Kind);
+            string kind = snapped == null ? string.Empty : SnapName(snapped);
 
             if (!basePoint.HasValue)
             {
@@ -5912,14 +5918,32 @@ namespace GeometryHelper.Cad.Wpf
                 return;
             }
 
-            DrawMarker(dc, snapped.Kind, p, MarkerPen(Options.Background));
+            // A plugin's snap draws its own glyph, or the default one where it has none.
+            DrawMarker(
+                dc,
+                snapped.Kind == CadSnapKind.Custom && snapped.CustomSnap != null
+                    ? CadSnapMarker.StrokesOf(snapped.CustomSnap)
+                    : CadSnapMarker.Strokes(snapped.Kind),
+                p,
+                MarkerPen(Options.Background)
+            );
         }
 
         /// <summary>Draws a snap kind's marker about a point with a pen, as the canvas and Drafting Settings draw it.</summary>
-        internal static void DrawMarker(DrawingContext dc, CadSnapKind kind, Point p, Pen pen)
+        internal static void DrawMarker(DrawingContext dc, CadSnapKind kind, Point p, Pen pen) =>
+            DrawMarker(dc, CadSnapMarker.Strokes(kind), p, pen);
+
+        /// <summary>Draws strokes in pixels about a point with a pen: a snap kind's marker, or the glyph of a plugin's snap.</summary>
+        internal static void DrawMarker(DrawingContext dc, IReadOnlyList<CadMarkerStroke> strokes, Point p, Pen pen)
         {
-            foreach (CadMarkerStroke stroke in CadSnapMarker.Strokes(kind))
+            foreach (CadMarkerStroke stroke in strokes)
             {
+                // A plugin's glyph may hold a null stroke or an empty one; there is nothing to draw of it.
+                if (stroke == null || stroke.Points.Count == 0)
+                {
+                    continue;
+                }
+
                 var figure = new PathFigure
                 {
                     StartPoint = new Point(p.X + stroke.Points[0].X, p.Y + stroke.Points[0].Y),

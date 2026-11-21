@@ -18,6 +18,15 @@ namespace GeometryHelper.Cad.Wpf
         {
             Model = model ?? throw new ArgumentNullException(nameof(model));
             InitializeComponent();
+
+            // The "Plugin snaps" group is shown while a plugin adds a snap, and makes the dialog taller by its rows, up to five and
+            // then it scrolls: 44 for its frame and 28 a row. Set here and not bound, so that it takes no room when it is not shown.
+            if (model.HasPluginSnaps)
+            {
+                PluginSnapsGroup.Visibility = Visibility.Visible;
+                Height += 44 + 28 * Math.Min(model.PluginSnaps.Count, 5);
+            }
+
             DataContext = model;
             model.CloseRequested += (s, ok) =>
             {
