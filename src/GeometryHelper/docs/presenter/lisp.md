@@ -893,14 +893,18 @@ The pick-first selection is the set of objects selected while no command runs. `
 AutoCAD 2021 does: the first argument, the objects with grips, is ignored, and the value is a list of two, `nil` and the
 selection set. `(sssetfirst nil (ssadd e))` gives `(nil <Selection set: 6>)`, `(sssetfirst nil nil)` gives `(nil nil)`, `(sssetfirst
 nil)` gives `(nil)`, and `(sssetfirst 5)` is `bad argument type: lselsetp 5`. `(ssgetfirst)` gives `(nil set)` of the objects
-that are selected now, a new set each time over the same objects, or `(nil nil)` where none is. A command started after
+that are selected now, a new set each time over the same objects, or `(nil nil)` where none is. A selection made by `sssetfirst` keeps the order of the set it was given, as AutoCAD 2021 does (a set of the entity at 150 and then the one at 0 gives them as 150, 0), and the order of the drawing once the selection is changed otherwise. A command started after
 `sssetfirst` takes the set as if it had been selected before the command, while PICKFIRST is not 0: with a line from 0,0
 to 10,0 selected, `(sssetfirst nil (ssadd e))` and then `(command "ERASE")` writes `1 found` and erases it.
 
 `(nentselp [msg] [pt])` is `nentsel` that can take its point from the routine. With a point, `(nentselp '(5 0))` picks
 there with no question and gives `(<Entity name: ...> (5.0 0.0 0.0))` for that line, and `(nentselp '(50 50))` gives `nil`
 where nothing is; the message and the point may come in either order. With no point it asks as `nentsel` does, `Select
-object: ` or the message, and Enter gives `nil`; for an object inside a block reference it gives `nentsel`'s longer form.
+object: ` or the message, and Enter gives `nil`; for an object inside a block reference it gives `nentsel`'s longer form. A DIMENSION
+gives it too, the primitive of the dimension's block under the point and the dimension as the container, with the identity for a
+matrix, as AutoCAD 2021 does: a DIMLINEAR from (100, 80) to (130, 80) with its line through (115, 95) gives `(4 "LINE" ("DIMENSION"))`
+by `(nentselp '(115 95 0))`, at (115 96 0) and on an extension line at (100 87 0). The text of the dimension is picked only where
+no other primitive is within the aperture (ours; a pick on the text itself was not measured).
 One case differs from AutoCAD: a point exactly on the insertion corner of a TEXT picks the text, where AutoCAD 2021 gave
 `nil` in the one measurement made. The pick is the selection engine's, shared with `entsel`.
 

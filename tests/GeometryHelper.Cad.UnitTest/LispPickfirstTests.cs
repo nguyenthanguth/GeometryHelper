@@ -157,16 +157,17 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void SsgetfirstWithSeveralObjects_GivesThemByTheirHandleNumbers()
+        public void SsgetfirstWithSeveralObjects_GivesThemInTheOrderOfTheSetItWasGiven()
         {
             CadCommandSession session = WithALine();
             Run(session, "CIRCLE", "20,0", "5");
             Value(session, "(setq c (entlast))");
             Value(session, "(sssetfirst nil (ssadd e (ssadd c)))");
 
-            // ours: D125 (the order of (ssget "I"), not the order the set was given in): the line, made first, then the circle
-            Assert.Equal("T", Value(session, "(equal (ssname (cadr (ssgetfirst)) 0) e)"));
-            Assert.Equal("T", Value(session, "(equal (ssname (cadr (ssgetfirst)) 1) c)"));
+            // AutoCAD 2021 (feed fdval-full of the L5 acceptance, replacing the order of (ssget "I") of D125): the set is kept as it was made,
+            // here the circle, added first, and then the line
+            Assert.Equal("T", Value(session, "(equal (ssname (cadr (ssgetfirst)) 0) c)"));
+            Assert.Equal("T", Value(session, "(equal (ssname (cadr (ssgetfirst)) 1) e)"));
         }
 
         [Fact]

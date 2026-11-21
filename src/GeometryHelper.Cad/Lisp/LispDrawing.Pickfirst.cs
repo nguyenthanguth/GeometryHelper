@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Cad.Lisp
@@ -50,6 +51,7 @@ namespace GeometryHelper.Cad.Lisp
                 }
 
                 session.Document.Selection.Set(live);
+                session.PickFirstOrder = live;
                 return null;
             });
 
@@ -96,6 +98,19 @@ namespace GeometryHelper.Cad.Lisp
                 foreach (KeyValuePair<ulong, string> pair in numbered)
                 {
                     handles.Add(pair.Value);
+                }
+
+                // The set sssetfirst gave, while the selection is still those objects: in the order it had (AutoCAD 2021, feed fdval-full).
+                IReadOnlyList<string> given = session.PickFirstOrder;
+
+                if (given.Count == handles.Count)
+                {
+                    var known = new HashSet<string>(handles, StringComparer.OrdinalIgnoreCase);
+
+                    if (given.All(known.Remove))
+                    {
+                        handles = new List<string>(given);
+                    }
                 }
 
                 return LispInterpreter.ListOf(new object[] { null, new LispSelectionSet(handles) });

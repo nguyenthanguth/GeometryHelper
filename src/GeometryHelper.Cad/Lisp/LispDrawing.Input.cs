@@ -57,7 +57,14 @@ namespace GeometryHelper.Cad.Lisp
                 return answer;
             }
 
-            if (!(session.Document.FindEntity(name.Handle) is DxfBlockReference top))
+            DxfEntity picked = session.Document.FindEntity(name.Handle);
+
+            if (picked is DxfDimension dimension)
+            {
+                return NestedInDimension(session, dimension, items[1], at.Value, answer);
+            }
+
+            if (!(picked is DxfBlockReference top))
             {
                 return answer;
             }
@@ -105,6 +112,116 @@ namespace GeometryHelper.Cad.Lisp
                     items[1],
                     LispInterpreter.ListOf(matrix),
                     LispInterpreter.ListOf(inserts),
+                }
+            );
+        }
+
+        /// <summary>
+        /// What <c>nentsel</c> gives for a dimension picked: the primitive of the dimension's block under the point, as AutoCAD 2021
+        /// does (feed e1 of the L5 acceptance: a DIMLINEAR picked on its line, near its text and on an extension line gave
+        /// <c>(4 "LINE" ("DIMENSION"))</c>), <c>(ename pt matrix (dimension))</c> with the identity matrix, the block being drawn
+        /// in the world's coordinates. The primitive is the one whose box is the smallest among those that hold the point, within
+        /// the aperture, a pick on the text itself taking the text (not measured), as a block reference's pick does. A dimension
+        /// with no primitive under the point is as <c>entsel</c> gives it.
+        /// </summary>
+        private static object NestedInDimension(
+            CadCommandSession session,
+            DxfDimension dimension,
+            object point,
+            GeoPoint3 at,
+            object answer
+        )
+        {
+            DxfBlockTableRecord block = dimension.DimBlock;
+
+            if (block == null)
+            {
+                return answer;
+            }
+
+            GeoPoint2 world = session.Ucs.ToWorld(new GeoPoint2(at.X, at.Y));
+            double aperture = session.PickAperture;
+            DxfEntity best = null;
+            double leastArea = double.MaxValue;
+            double leastDistance = double.MaxValue;
+            bool bestIsText = false;
+
+            foreach (DxfEntity candidate in block)
+            {
+                // The points of the dimension (its defpoints) are not picked.
+                if (candidate is DxfDBPoint)
+                {
+                    continue;
+                }
+
+                GeoAabb3 box;
+
+                try
+                {
+                    box = candidate.GeometricExtents;
+                }
+                catch (Exception exception)
+                    when (exception is ArgumentException
+                        || exception is InvalidOperationException
+                        || exception is NotSupportedException
+                    )
+                {
+                    continue;
+                }
+
+                if (
+                    box.IsEmpty
+                    || world.X < box.Min.X - aperture
+                    || world.X > box.Max.X + aperture
+                    || world.Y < box.Min.Y - aperture
+                    || world.Y > box.Max.Y + aperture
+                )
+                {
+                    continue;
+                }
+
+                double area = (box.Max.X - box.Min.X) * (box.Max.Y - box.Min.Y);
+                double dx = Math.Max(0.0, Math.Max(box.Min.X - world.X, world.X - box.Max.X));
+                double dy = Math.Max(0.0, Math.Max(box.Min.Y - world.Y, world.Y - box.Max.Y));
+                double distance = dx * dx + dy * dy;
+
+                // The text of the dimension comes last (AutoCAD gave the LINE for a pick 0.9 under the text, which is ours to follow, a
+                // pick on the text itself not being measured); then the smallest box wins, the nearer one where they are as small, the
+                // first in the block where they are as near.
+                bool isText = candidate is DxfMText || candidate is DxfDBText;
+
+                if (
+                    best == null
+                    || (bestIsText && !isText)
+                    || (bestIsText == isText && (area < leastArea || (area == leastArea && distance < leastDistance)))
+                )
+                {
+                    leastArea = area;
+                    leastDistance = distance;
+                    bestIsText = isText;
+                    best = candidate;
+                }
+            }
+
+            if (best == null || string.IsNullOrEmpty(best.Handle))
+            {
+                return answer;
+            }
+
+            var identity = new List<object>
+            {
+                LispInterpreter.ListOf(new object[] { 1.0, 0.0, 0.0 }),
+                LispInterpreter.ListOf(new object[] { 0.0, 1.0, 0.0 }),
+                LispInterpreter.ListOf(new object[] { 0.0, 0.0, 1.0 }),
+                LispInterpreter.ListOf(new object[] { 0.0, 0.0, 0.0 }),
+            };
+            return LispInterpreter.ListOf(
+                new object[]
+                {
+                    new LispEntityName(best.Handle),
+                    point,
+                    LispInterpreter.ListOf(identity),
+                    LispInterpreter.ListOf(new object[] { new LispEntityName(dimension.Handle) }),
                 }
             );
         }

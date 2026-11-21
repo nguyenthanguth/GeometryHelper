@@ -66,6 +66,12 @@ namespace GeometryHelper.Cad
 
         /// <summary>Gets the objects the last selection took, the Previous selection that <c>(ssget "P")</c> gives again.</summary>
         internal IReadOnlyList<string> PreviousSelection => _previous;
+
+        /// <summary>
+        /// The order of the set <c>sssetfirst</c> made the selection of the document from, which <c>ssgetfirst</c> gives it back in
+        /// while the selection is still those objects (the document's selection is a set and keeps no order of its own).
+        /// </summary>
+        internal IReadOnlyList<string> PickFirstOrder { get; set; } = Array.Empty<string>();
         private CadPrompt _asked;
         private string _option;
         private bool _removing;

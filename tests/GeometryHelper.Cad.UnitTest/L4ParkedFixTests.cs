@@ -523,6 +523,63 @@ namespace GeometryHelper.Cad.UnitTest
 
         #endregion
 
+        #region nentselp on a dimension (feed e1 of the L5 acceptance)
+
+        [Theory]
+        [InlineData("(115 95 0)", "(4 \"LINE\" (\"DIMENSION\"))")]
+        [InlineData("(115 95.3 0)", "(4 \"LINE\" (\"DIMENSION\"))")]
+        [InlineData("(115 96 0)", "(4 \"LINE\" (\"DIMENSION\"))")]
+        [InlineData("(100 87 0)", "(4 \"LINE\" (\"DIMENSION\"))")]
+        public void NentselpOnADimension_GivesAPrimitiveOfItsBlockAndTheDimensionAsItsContainer(
+            string point,
+            string expected
+        )
+        {
+            CadCommandSession session = Typed(Blank());
+            // The full AutoCAD ran with PICKBOX 25 pixels at 4.1 pixels to the unit (ZOOM Window 90,-20 150,110): about 6 units.
+            session.PickAperture = 6.0;
+            session.Feed("(command \"_.DIMLINEAR\" \"100,80\" \"130,80\" \"115,95\")");
+
+            // AutoCAD 2021 (feed e1, full AutoCAD): a DIMLINEAR from (100, 80) to (130, 80) with its line through (115, 95), picked by
+            // nentselp at (115 95 0), (115 95.3 0), (115 96 0) and, on an extension line, (100 87 0) gave a list of four,
+            // (ename-of-a-LINE pt matrix (dimension-ename))
+            string form =
+                "(progn (setq r (nentselp '"
+                + point
+                + ")) (list (length r) (cdr (assoc 0 (entget (car r)))) (mapcar '(lambda (e) (cdr (assoc 0 (entget e)))) (cadddr r))))";
+            Assert.Equal(expected, Value(session, form));
+            Assert.Equal("((1.0 0.0 0.0) (0.0 1.0 0.0) (0.0 0.0 1.0) (0.0 0.0 0.0))", Value(session, "(caddr r)"));
+            Assert.Equal("T", Value(session, "(equal (cadr r) (mapcar (quote float) (quote " + point + ")))"));
+        }
+
+        #endregion
+
+        #region ssgetfirst keeps the order of the set given to sssetfirst (feed fdval-full)
+
+        [Fact]
+        public void Ssgetfirst_GivesTheSetInTheOrderSssetfirstWasGiven_NotTheOrderOfTheDrawing()
+        {
+            CadCommandSession session = Typed(Blank());
+            session.Feed("(setq e0 (progn (entmake '((0 . \"LINE\") (10 0.0 0.0 0.0) (11 10.0 0.0 0.0))) (entlast)))");
+            session.Feed(
+                "(setq e150 (progn (entmake '((0 . \"LINE\") (10 150.0 0.0 0.0) (11 160.0 0.0 0.0))) (entlast)))"
+            );
+            session.Feed("(setq s2 (ssadd e150 (ssadd)))");
+            session.Feed("(ssadd e0 s2)");
+
+            // AutoCAD 2021 (feed fdval-full): (sssetfirst nil s2) with s2 built from the entity at 150 and then the one at 0, then
+            // (cadr (ssgetfirst)) holds them as (150 0), the order of the set
+            session.Feed("(sssetfirst nil s2)");
+            const string xs = "(mapcar '(lambda (i) (cadr (assoc 10 (entget (ssname (cadr (ssgetfirst)) i))))) '(0 1))";
+            Assert.Equal("(150.0 0.0)", Value(session, xs));
+
+            // A selection changed since is given in the order of the drawing again.
+            session.Document.Selection.Set(new[] { All<DxfLine>(session.Document.ModelSpace).First().Handle });
+            Assert.Equal("(0.0)", Value(session, xs.Replace("'(0 1)", "'(0)")));
+        }
+
+        #endregion
+
         #region entmake of an INSERT takes the linetype and colour groups (feed ft)
 
         [Fact]
