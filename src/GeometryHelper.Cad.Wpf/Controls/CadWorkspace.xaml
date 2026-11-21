@@ -6584,10 +6584,11 @@
                 </Grid>
 
                 <Grid>
-                    <!-- Centre: the canvas, then the command line under it only. -->
+                    <!-- Centre: the canvas, then the PYTHON palette (hidden unless shown), then the command line under it only. -->
                     <Grid x:Name="DrawingArea" Grid.Column="0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <!-- Model space in tiles (VPORTS): the other tiles drawn behind, the canvas laid over the current one. -->
@@ -7183,8 +7184,14 @@
                                 </Border>
                             </StackPanel>
                         </Grid>
-                        <Border
+                        <local:PythonConsolePalette
+                            x:Name="PythonPalette"
                             Grid.Row="1"
+                            DataContext="{Binding PythonConsole}"
+                            Visibility="{Binding IsShown, Converter={StaticResource Shown}, FallbackValue=Collapsed}"
+                        />
+                        <Border
+                            Grid.Row="2"
                             Background="{StaticResource GhInput}"
                             BorderBrush="{StaticResource GhBorder}"
                             BorderThickness="0,1,0,0"
@@ -7380,7 +7387,7 @@
                         <!-- The top edge of the command line, 6 px across the line of its border: dragged up or down to show more or fewer lines of history, in whole lines. Over it, or dragged, the edge lights as a 2 px blue line with a short handle, as the design draws it. -->
                         <Thumb
                             x:Name="HistoryGrip"
-                            Grid.Row="1"
+                            Grid.Row="2"
                             Height="6"
                             VerticalAlignment="Top"
                             Margin="0,-3,0,0"

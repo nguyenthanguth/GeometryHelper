@@ -370,7 +370,7 @@ namespace GeometryHelper.Cad.Wpf
 
             ModifierKeys modifiers = Keyboard.Modifiers;
             bool inEditor =
-                (Keyboard.FocusedElement is TextBox box && box != CommandBox)
+                (Keyboard.FocusedElement is TextBoxBase box && box != CommandBox)
                 || Keyboard.FocusedElement is CadMTextEditBox;
 
             if (!inEditor && CanvasView.TableDragKey(key))
@@ -420,7 +420,7 @@ namespace GeometryHelper.Cad.Wpf
                 // Cells of a table selected: Ctrl+X, Ctrl+C and Ctrl+V cut, copy and paste the cells, not objects.
                 e.Handled = true;
             }
-            else if (key == Key.Escape && !inEditor)
+            else if (key == Key.Escape && (!inEditor || Keyboard.FocusedElement is RichTextBox))
             {
                 if (!CanvasView.CancelGesture())
                 {
@@ -465,7 +465,7 @@ namespace GeometryHelper.Cad.Wpf
             else if (
                 modifiers == ModifierKeys.None
                 && key == Key.Delete
-                && !(Keyboard.FocusedElement is TextBox)
+                && !(Keyboard.FocusedElement is TextBoxBase)
                 && !inEditor
             )
             {
@@ -525,7 +525,7 @@ namespace GeometryHelper.Cad.Wpf
             // As in AutoCAD, typing with the focus on the canvas types into the command line; hidden (Ctrl+9), the text is kept
             // there all the same, and dynamic input shows it beside the cursor.
             if (
-                !(Keyboard.FocusedElement is TextBox)
+                !(Keyboard.FocusedElement is TextBoxBase)
                 && !(Keyboard.FocusedElement is ComboBox)
                 && !(Keyboard.FocusedElement is CadMTextEditBox)
                 && !string.IsNullOrEmpty(e.Text)
@@ -564,7 +564,7 @@ namespace GeometryHelper.Cad.Wpf
 
             if (
                 _model == null
-                || Keyboard.FocusedElement is TextBox
+                || Keyboard.FocusedElement is TextBoxBase
                 || Keyboard.FocusedElement is ButtonBase
                 || Keyboard.FocusedElement is CadMTextEditBox
             )
