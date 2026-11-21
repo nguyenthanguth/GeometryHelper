@@ -114,3 +114,14 @@ docfx/api/
 artifacts/
 # Added by code-review-graph
 .code-review-graph/
+
+# ---------------------------------------------------------------------------
+# Python package (src/python): made by tools/python/*.sh, not written by hand
+# ---------------------------------------------------------------------------
+src/python/geometryhelper/lib/
+src/python/GeometryHelper-stubs/
+src/python/LICENSE
+src/python/dist/
+__pycache__/
+.pytest_cache/
+*.egg-info/

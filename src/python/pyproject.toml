@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "geometryhelper"
+dynamic = ["version"]
+description = "GeometryHelper for Python: 2D and 3D geometry, DXF and DWG, and the CAD presenter without a window"
+readme = "README.md"
+requires-python = ">=3.11,<3.16"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = ["pythonnet>=3.2.1,<4"]
+classifiers = [
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+    "Topic :: Scientific/Engineering",
+    "Typing :: Typed",
+]
+
+[project.optional-dependencies]
+numpy = ["numpy>=1.26"]
+
+[project.urls]
+Documentation = "https://nguyenthanguth.github.io/GeometryHelper/"
+Source = "https://github.com/nguyenthanguth/GeometryHelper"
+
+[tool.hatch.metadata.hooks.custom]
+path = "hatch_build.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["geometryhelper", "GeometryHelper-stubs", "System-stubs"]
+artifacts = ["geometryhelper/lib/**", "GeometryHelper-stubs/**"]
+
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "hatch_build.py"
