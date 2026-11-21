@@ -297,6 +297,39 @@ namespace GeometryHelper.Cad.UnitTest
             Assert.Single(All<DxfCircle>(session.Document.ModelSpace));
         }
 
+        [Fact]
+        public void CopyRunByCommand_MakesOneCopyAndEnds_ForTheNextCommandOfTheRoutine()
+        {
+            // AutoCAD 2021 (runs/hhh): (command "copy" ename "" base to) twice in a row made one copy each, COPY did not wait at
+            // Specify second point or [Array/Exit/Undo] <Exit>: for the next command to be refused there
+            CadCommandSession session = Typed(
+                "(command \"LINE\" '(0 0) '(10 0) \"\")",
+                "(setq e (entlast))",
+                "(progn (command \"copy\" e \"\" '(0 0) '(0 10)) (command \"copy\" e \"\" '(0 0) '(0 20)) (princ))"
+            );
+
+            Assert.False(session.IsRunning);
+            Assert.Equal(3, All<DxfLine>(session.Document.ModelSpace).Count);
+        }
+
+        [Fact]
+        public void TextRunByCommand_TakesTheOneLineItIsGivenAndEnds()
+        {
+            // AutoCAD 2021 (q2, q5, the routine feeds): (command "TEXT" '(0 0) 2.5 0 "Hello") ends with Command: nil, no second
+            // Enter text: prompt; the next form is then AutoLISP, not a second line of the text
+            CadCommandSession session = Typed(
+                "(command \"TEXT\" '(0 0) 2.5 0 \"Hello\")",
+                "(command \"TEXT\" '(0 10) 2.5 0 \"Hello world\")"
+            );
+
+            Assert.False(session.IsRunning);
+            Assert.Equal("Command: nil", Lines(session).Last());
+            Assert.Equal(
+                new[] { "Hello", "Hello world" },
+                All<DxfDBText>(session.Document.ModelSpace).Select(t => t.TextString)
+            );
+        }
+
         #endregion
 
         #region Refusals (q1, q2)
@@ -803,6 +836,24 @@ namespace GeometryHelper.Cad.UnitTest
             Run(session, "U");
 
             Assert.Empty(All<DxfLine>(session.Document.ModelSpace));
+        }
+
+        [Fact]
+        public void UAfterARoutineThatOnlyMadeAnEntity_UndoesThatEntityAloneWhereAutoCadTakesTheStepBeforeToo()
+        {
+            // AutoCAD 2021 (q4, GHN): U after a c: that only ran entmake took the entity and the object made before it, 5 objects to
+            // 3; ours (D42): what a routine changes outside any command is one undo step of its own, so U takes the one object
+            CadCommandSession session = Typed(
+                "(command \"LINE\" '(0 0) '(10 0) \"\")",
+                "(defun c:ghn () (entmake '((0 . \"LINE\") (10 0.0 0.0 0.0) (11 5.0 5.0 0.0))) (princ))",
+                "GHN"
+            );
+            Assert.Equal(2, All<DxfLine>(session.Document.ModelSpace).Count);
+
+            Run(session, "U");
+
+            DxfLine left = Assert.Single(All<DxfLine>(session.Document.ModelSpace));
+            Near(new GeoPoint3(10, 0, 0), left.EndPoint);
         }
 
         #endregion

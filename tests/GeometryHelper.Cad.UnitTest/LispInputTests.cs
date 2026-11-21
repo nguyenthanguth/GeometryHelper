@@ -95,6 +95,23 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
+        public void GetpointWithTheMessageBeforeTheBasePoint_AsksTheMessageAndMeasuresFromThePoint()
+        {
+            // AutoCAD 2021 (runs/hhh): (getpoint "\nSelect next point: " goc) asked Select next point: and took 0,10 as a point; the
+            // base point of the rubber band is the second argument (a second argument that is no point is still point: "b", q3)
+            CadCommandSession session = Typed("(getpoint \"\\nNext: \" '(1 1))");
+
+            Assert.Equal("Next: ", session.PromptText);
+
+            Run(session, "@2,0");
+
+            Assert.Equal(
+                new[] { "Command: (getpoint \"\\nNext: \" '(1 1))", "Next: @2,0", "(3.0 1.0 0.0)" },
+                Written(session)
+            );
+        }
+
+        [Fact]
         public void GetpointAnsweredWithEnter_GivesNil()
         {
             // AutoCAD 2021 (q3): Pick: then nil

@@ -32,7 +32,7 @@ namespace GeometryHelper.Cad.Lisp
         /// a <c>~</c> at the start of a pattern means anything but it, and a reverse quote makes the next character itself.
         /// The comparison is case-sensitive.
         /// </summary>
-        private static bool WildcardMatch(string text, string patterns)
+        internal static bool WildcardMatch(string text, string patterns)
         {
             var current = new StringBuilder();
             bool inSet = false;

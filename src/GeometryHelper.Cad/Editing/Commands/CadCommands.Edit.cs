@@ -63,6 +63,10 @@ namespace GeometryHelper.Cad
             c.Write("Current settings:  Copy mode = " + (single ? "Single" : "Multiple"));
             c.Remember(CopyArrayKey, 0.0);
 
+            // Run by a routine's command, AutoCAD makes the one copy and ends (runs/hhh: the next command of the routine is not
+            // taken as an answer to Specify second point).
+            single |= c.Session.RunsForLisp;
+
             while (true)
             {
                 yield return CadPrompt.ForPoint(

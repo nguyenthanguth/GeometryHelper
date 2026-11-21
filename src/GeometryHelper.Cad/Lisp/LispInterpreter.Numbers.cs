@@ -365,9 +365,28 @@ namespace GeometryHelper.Cad.Lisp
             return count >= 0 ? (int)((uint)value << (count & 31)) : (int)((uint)value >> (-count & 31));
         }
 
-        private static double Sine(double x) => Math.Sin(Reduced(x));
+        // Within an eighth of a turn of nought the framework's own function is exact, and the other of the pair is not asked for.
+        private static double Sine(double x)
+        {
+            if (Math.Abs(x) < Math.PI / 4.0)
+            {
+                return Math.Sin(x);
+            }
 
-        private static double Cosine(double x) => Math.Cos(Reduced(x));
+            SineAndCosine(x, out double sine, out _);
+            return sine;
+        }
+
+        private static double Cosine(double x)
+        {
+            if (Math.Abs(x) < Math.PI / 4.0)
+            {
+                return Math.Cos(x);
+            }
+
+            SineAndCosine(x, out _, out double cosine);
+            return cosine;
+        }
 
         /// <summary>
         /// Brings a large angle into 0 to 2 pi before <c>sin</c> or <c>cos</c> sees it. The framework's own functions give a
