@@ -416,6 +416,14 @@ tuple from [mcneel/pythonstubs](https://github.com/mcneel/pythonstubs), and the 
 - A module of its own for the presenter (there is no `geometryhelper.cad`): `GeometryHelper.Cad` is imported as any other
   namespace.
 
+## Driving a running app
+
+A script outside the app can connect to a running GeometryHelper CAD and draw, select, run commands and ask the user to
+pick, with `CadApplication` of `GeometryHelper.Cad.Remote`, which `import geometryhelper` has already loaded;
+`with CadApplication() as app:` closes the connection at the end of the block, also when it raises. A script that runs
+inside the app must not connect to that app. [From Python](presenter/remote.md#from-python) has a full script, the points
+where Python differs from C#, and the timings.
+
 ## Where to go next
 
 | Page | What it covers |
