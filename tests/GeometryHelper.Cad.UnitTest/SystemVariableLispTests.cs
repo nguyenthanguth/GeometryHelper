@@ -15,8 +15,11 @@ namespace GeometryHelper.Cad.UnitTest
     /// the program (PRODUCT, ACADVER, CMDACTIVE, CMDNAMES, UCSXDIR). Expected values marked AutoCAD 2021 are those of the
     /// measurement q6 (accoreconsole, blank drawing).
     /// </summary>
-    public sealed class SystemVariableLispTests
+    public sealed class SystemVariableLispTests : IDisposable
     {
+        // Ends the routine a test left waiting, so no worker thread outlives its test.
+        public void Dispose() => WaitingRoutines.EndAll();
+
         private static CadCommandSession Start(CadDocument document)
         {
             CadCommandSession session = Session(document);

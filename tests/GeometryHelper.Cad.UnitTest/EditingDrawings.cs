@@ -200,7 +200,7 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         public static CadCommandSession Session(CadDocument document) =>
-            new CadCommandSession(document) { PickAperture = 1.0 };
+            WaitingRoutines.Track(new CadCommandSession(document) { PickAperture = 1.0 });
 
         /// <summary>
         /// Feeds inputs in turn: a text starts a command when none runs and answers the prompt when one does, a point is

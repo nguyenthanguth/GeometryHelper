@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 using GeometryHelper.Dxf;
@@ -11,8 +12,11 @@ namespace GeometryHelper.Cad.UnitTest
     /// accoreconsole (probe q5 of the L2 spec). The drawing has the layers of the probe, GHA of colour 1 and NEWLAYER made by
     /// <c>entmake</c>; an entity name is written <c>*</c>.
     /// </summary>
-    public sealed class LispTableTests
+    public sealed class LispTableTests : IDisposable
     {
+        // Ends the routine a test left waiting, so no worker thread outlives its test.
+        public void Dispose() => WaitingRoutines.EndAll();
+
         private static CadCommandSession Start()
         {
             CadDocument document = Blank();

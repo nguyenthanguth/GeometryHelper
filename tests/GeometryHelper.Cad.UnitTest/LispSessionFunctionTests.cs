@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper.Dxf;
@@ -12,8 +13,11 @@ namespace GeometryHelper.Cad.UnitTest
     /// <c>trans</c>, <c>osnap</c>, <c>alert</c>, <c>grtext</c>, <c>redraw</c>, <c>nentsel</c> into a block and the sine and
     /// cosine of AutoLISP, with the values of AutoCAD 2021's accoreconsole (probes q6 and q10 of the L2 spec).
     /// </summary>
-    public sealed class LispSessionFunctionTests
+    public sealed class LispSessionFunctionTests : IDisposable
     {
+        // Ends the routine a test left waiting, so no worker thread outlives its test.
+        public void Dispose() => WaitingRoutines.EndAll();
+
         private static CadCommandSession WithTheUcsAt1010()
         {
             CadCommandSession session = Session(Blank());
