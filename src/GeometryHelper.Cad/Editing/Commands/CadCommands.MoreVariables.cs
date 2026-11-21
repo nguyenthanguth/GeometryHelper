@@ -301,6 +301,38 @@ namespace GeometryHelper.Cad
                 CadSystemVariable.ReadOnly("PRODUCT", CadVariableKind.Text, s => "\"GeometryHelper.Cad\"")
             );
             registry.AddVariable(CadSystemVariable.ReadOnly("ACADVER", CadVariableKind.Text, s => "\"24.0\""));
+
+            // PROGRAM and PLATFORM read as AutoCAD 2021's console gives them (probe q6), so that a routine that tests them takes
+            // AutoCAD's path; PRODUCT is the one that tells the programs apart. ERRNO is the number AutoLISP's failing functions
+            // leave in AutoCAD, 0 at the start, here kept as set: AutoCAD takes a whole number of a short's range (probe p5: -5 and
+            // 7 taken, 40000, 2.5 and "x" refused); the bounds are ours.
+            registry.AddVariable(CadSystemVariable.ReadOnly("PROGRAM", CadVariableKind.Text, s => "\"acad\""));
+            registry.AddVariable(
+                CadSystemVariable.ReadOnly("PLATFORM", CadVariableKind.Text, s =>
+                    "\"Microsoft Windows NT Version 6.2 (x64)\""
+                )
+            );
+            registry.AddVariable(KeptWhole("ERRNO", short.MinValue, short.MaxValue, "errno", 0));
+
+            // The centre of the view in the user coordinate system (the origin where the session has no canvas, which is ours: the
+            // console's own 3.8274,0,0 is its default window), and the state of UNDO as the bits AutoCAD adds (probe p5): 1 on, 2
+            // One, 4 Auto, 8 a group open, 16 Combine, 32 Layer; None is 0.
+            registry.AddVariable(
+                CadSystemVariable.ReadOnly(
+                    "VIEWCTR",
+                    CadVariableKind.Point,
+                    s => CadSystemVariable.Show(ViewCentre(s), true),
+                    s => new[] { ViewCentre(s).X, ViewCentre(s).Y, ViewCentre(s).Z }
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.ReadOnly(
+                    "UNDOCTL",
+                    CadVariableKind.Integer,
+                    s => UndoBits(s.Document).ToString(CultureInfo.InvariantCulture),
+                    s => new double[] { UndoBits(s.Document) }
+                )
+            );
             registry.AddVariable(
                 CadSystemVariable.ReadOnly("LISPINIT", CadVariableKind.Integer, s => "1", s => new[] { 1.0 })
             );
@@ -348,6 +380,26 @@ namespace GeometryHelper.Cad
         /// </summary>
         private static int CommandsActive(CadCommandSession session) =>
             (session.IsRunning ? 1 : 0) | (session.IsRunning && session.IsTransparent ? 2 : 0);
+
+        /// <summary>VIEWCTR: the point of the drawing at the centre of the view worked in, in the user coordinate system.</summary>
+        private static GeoPoint3 ViewCentre(CadCommandSession session)
+        {
+            CadView view = session.WorkView;
+            return view == null
+                ? new GeoPoint3(0.0, 0.0, 0.0)
+                : session.Ucs.ToUcs(new GeoPoint3(view.CenterX, view.CenterY, 0.0));
+        }
+
+        /// <summary>UNDOCTL: the bits of UNDO's state, 0 where Control is None.</summary>
+        private static int UndoBits(CadDocument document) =>
+            document.UndoControl == CadUndoControl.None
+                ? 0
+                : 1
+                    | (document.UndoControl == CadUndoControl.One ? 2 : 0)
+                    | (document.UndoAuto ? 4 : 0)
+                    | (document.IsUndoGroupOpen ? 8 : 0)
+                    | (document.UndoCombine ? 16 : 0)
+                    | (document.UndoLayer ? 32 : 0);
 
         private static GeoPoint3 P3(GeoVector3 vector) => new GeoPoint3(vector.X, vector.Y, vector.Z);
 

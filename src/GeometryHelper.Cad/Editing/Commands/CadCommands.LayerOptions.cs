@@ -135,7 +135,7 @@ namespace GeometryHelper.Cad
             yield return CadPrompt.ForString("Enter name list of layers(s) for lineweight " + words, c.Database.Clayer);
             string names =
                 c.Input.Kind == CadInputKind.Text ? c.Input.Text
-                : c.Input.IsNone ? c.Database.Clayer
+                : c.Input.IsNone ? EscapedLayerName(c.Database.Clayer)
                 : null;
 
             if (names != null)
@@ -333,7 +333,7 @@ namespace GeometryHelper.Cad
             yield return CadPrompt.ForString(asked, c.Database.Clayer);
             string names =
                 c.Input.Kind == CadInputKind.Text ? c.Input.Text
-                : c.Input.IsNone ? c.Database.Clayer
+                : c.Input.IsNone ? EscapedLayerName(c.Database.Clayer)
                 : null;
 
             if (names != null)
@@ -400,7 +400,7 @@ namespace GeometryHelper.Cad
             );
             string names =
                 c.Input.Kind == CadInputKind.Text ? c.Input.Text
-                : c.Input.IsNone ? c.Database.Clayer
+                : c.Input.IsNone ? EscapedLayerName(c.Database.Clayer)
                 : null;
 
             if (names != null)
@@ -411,25 +411,17 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>
-        /// Gives each layer of a list of names (parted by commas) what <paramref name="change"/> does, as one undo step; a name
-        /// the drawing has no layer of is passed over, and where none of them is a layer AutoCAD says "No matching layer names
-        /// found.".
+        /// Gives each layer a list of names stands for (<see cref="LayerNameList"/>: patterns parted by commas, a back quote
+        /// making the character after it itself) what <paramref name="change"/> does, as one undo step; where none of the names
+        /// matches a layer AutoCAD says "No matching layer names found.".
         /// </summary>
         private static void LayersEach(CadCommandContext c, string names, Func<string, CadEditResult> change)
         {
             c.OpenUndoStep();
-            int matched = 0;
+            List<string> layers = LayerNameList(c.Database, names, true);
 
-            foreach (string piece in names.Split(','))
+            foreach (string name in layers)
             {
-                string name = piece.Trim();
-
-                if (name.Length == 0 || !c.Database.LayerTable.Has(name))
-                {
-                    continue;
-                }
-
-                matched++;
                 CadEditResult result = change(name);
 
                 if (!result.Succeeded)
@@ -438,7 +430,7 @@ namespace GeometryHelper.Cad
                 }
             }
 
-            if (matched == 0)
+            if (layers.Count == 0)
             {
                 c.Write("No matching layer names found.");
             }
