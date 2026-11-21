@@ -585,9 +585,17 @@ namespace GeometryHelper.Cad.Lisp
             CadDocument document = session.Document;
             string handle = state.Resolve(name.Handle);
             DxfItem item = FindItem(document, handle);
-            DxfEntity entity = item == null || item.Space == null ? null : DxfEntity.Of(item) as DxfEntity;
+            DxfItem owner = item?.Parent != null && item.Type == "ATTRIB" ? item.Parent : null;
+            DxfEntity entity =
+                item == null || (item.Space == null && owner == null) ? null : DxfEntity.Of(item) as DxfEntity;
 
-            if (entity == null || item.Parent != null)
+            if (
+                entity == null
+                || (
+                    item.Parent != null
+                    && (owner == null || owner.Type != "INSERT" || owner.Parent != null || owner.Space == null)
+                )
+            )
             {
                 return null;
             }
@@ -630,15 +638,23 @@ namespace GeometryHelper.Cad.Lisp
             session.HoldLispStep();
             CadEditResult result = session.Apply(
                 "ENTMOD",
-                new[] { new CadEditRecord(CadEditRecordKind.Reshaped, handle) },
+                new[] { new CadEditRecord(CadEditRecordKind.Reshaped, owner?.Handle ?? handle) },
                 s =>
                 {
-                    if (s.IsHandled(handle))
+                    if (s.IsHandled(owner?.Handle ?? handle))
                     {
                         return;
                     }
 
-                    DxfEntity target = s.Document.FindEntity(handle);
+                    // An attribute is written through its block reference, as the Properties palette writes it.
+                    DxfEntity target =
+                        owner == null ? s.Document.FindEntity(handle) : AttributeOf(s.Document, owner, handle);
+
+                    if (target == null)
+                    {
+                        failure = "The attribute is not there.";
+                        return;
+                    }
 
                     if (target is DxfDimension dimension)
                     {
@@ -664,6 +680,25 @@ namespace GeometryHelper.Cad.Lisp
             );
 
             return result.Succeeded && failure == null ? list : null;
+        }
+
+        /// <summary>The attribute of a block reference with a handle, found through the reference; null where it is not there or is erased.</summary>
+        private static DxfAttributeReference AttributeOf(CadDocument document, DxfItem owner, string handle)
+        {
+            if (!(document.FindEntity(owner.Handle) is DxfBlockReference insert))
+            {
+                return null;
+            }
+
+            foreach (DxfAttributeReference attribute in insert.AttributeCollection)
+            {
+                if (!attribute.IsErased && string.Equals(attribute.Handle, handle, StringComparison.OrdinalIgnoreCase))
+                {
+                    return attribute;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>The groups of a list that change an entity: not its name, type, handle, owner, space, subclass markers or reactors.</summary>
