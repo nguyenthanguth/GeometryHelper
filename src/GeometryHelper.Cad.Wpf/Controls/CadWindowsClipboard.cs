@@ -115,14 +115,33 @@ namespace GeometryHelper.Cad.Wpf
             }
         }
 
-        private static void Retry(Action action)
+        /// <summary>
+        /// Puts plain text on the clipboard as every other app reads it, trying again while another app holds the
+        /// clipboard; false, logged, where it stayed busy. Null is taken as empty text.
+        /// </summary>
+        internal static bool TrySetText(string text) =>
+            Retry(() => Clipboard.SetDataObject(new DataObject(DataFormats.UnicodeText, text ?? string.Empty), true));
+
+        /// <summary>The text on the clipboard, trying again while another app holds it; null where there is none or it stayed busy.</summary>
+        internal static string TryGetText()
+        {
+            string text = null;
+            Retry(() => text = Clipboard.ContainsText() ? Clipboard.GetText() : null);
+            return text;
+        }
+
+        /// <summary>
+        /// Runs a clipboard call, trying it again a few times when Windows reports the clipboard held by another app
+        /// (CLIPBRD_E_CANT_OPEN comes as a COMException); true when it went through, false, logged, when it stayed busy.
+        /// </summary>
+        internal static bool Retry(Action action)
         {
             for (int i = 1; ; i++)
             {
                 try
                 {
                     action();
-                    return;
+                    return true;
                 }
                 catch (COMException exception) when (i < Tries)
                 {
@@ -134,7 +153,7 @@ namespace GeometryHelper.Cad.Wpf
                 catch (COMException exception)
                 {
                     GeometryHelperLog.Warn("CadWindowsClipboard: the clipboard stayed busy.", exception);
-                    return;
+                    return false;
                 }
             }
         }

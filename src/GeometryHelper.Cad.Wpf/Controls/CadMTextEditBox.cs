@@ -1421,33 +1421,9 @@ namespace GeometryHelper.Cad.Wpf
             }
         }
 
-        private static void TrySetClipboard(string text)
-        {
-            try
-            {
-                Clipboard.SetText(text);
-            }
-            catch (System.Runtime.InteropServices.COMException exception)
-            {
-                GeometryHelperLog.Warn(
-                    "CadMTextEditBox: the clipboard was busy; the words were not copied.",
-                    exception
-                );
-            }
-        }
+        private static void TrySetClipboard(string text) => CadWindowsClipboard.TrySetText(text);
 
-        private static string TryGetClipboard()
-        {
-            try
-            {
-                return Clipboard.ContainsText() ? Clipboard.GetText() : null;
-            }
-            catch (System.Runtime.InteropServices.COMException exception)
-            {
-                GeometryHelperLog.Warn("CadMTextEditBox: the clipboard was busy; nothing was pasted.", exception);
-                return null;
-            }
-        }
+        private static string TryGetClipboard() => CadWindowsClipboard.TryGetText();
 
         private static Brush Freeze(Brush brush)
         {

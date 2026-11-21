@@ -259,7 +259,7 @@ namespace GeometryHelper.Cad.Wpf
             return new HashSet<int>(glyphs.CharacterToGlyphMap.Keys);
         }
 
-        private static void WindowsClipboardText(string text) => System.Windows.Clipboard.SetText(text);
+        private static void WindowsClipboardText(string text) => CadWindowsClipboard.TrySetText(text);
     }
 
     /// <summary>

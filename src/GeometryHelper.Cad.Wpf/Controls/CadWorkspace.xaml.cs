@@ -838,8 +838,8 @@ namespace GeometryHelper.Cad.Wpf
                 _model.ShowXrefBind = dialog => XrefBindWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowXrefBindRefused = box => XrefBindRefusedWindow.Show(Window.GetWindow(this), box);
                 _model.WatchReferenceFiles = true;
-                _model.ReadClipboardText = () => Clipboard.ContainsText() ? Clipboard.GetText() : null;
-                _model.WriteClipboardText = text => Clipboard.SetText(text ?? string.Empty);
+                _model.ReadClipboardText = CadWindowsClipboard.TryGetText;
+                _model.WriteClipboardText = text => CadWindowsClipboard.TrySetText(text);
                 _model.PropertyChanged += OnModelPropertyChanged;
                 ApplyPanelLayout();
 

@@ -50,8 +50,12 @@ namespace GeometryHelper.Cad.Wpf
             window.Show();
         }
 
-        /// <summary>Copies the lines chosen to the clipboard, or every line where none is chosen.</summary>
-        public void CopyLines() => Clipboard.SetText(Model.TextToCopy(History.SelectedItems.Cast<string>().ToList()));
+        /// <summary>
+        /// Copies the lines chosen to the clipboard, or every line where none is chosen; where another app keeps the
+        /// clipboard busy the copy is given up and logged, never shown as an error.
+        /// </summary>
+        public void CopyLines() =>
+            CadWindowsClipboard.TrySetText(Model.TextToCopy(History.SelectedItems.Cast<string>().ToList()));
 
         private void ScrollToEnd()
         {
