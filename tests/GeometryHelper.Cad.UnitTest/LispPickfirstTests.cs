@@ -369,9 +369,12 @@ namespace GeometryHelper.Cad.UnitTest
         {
             CadCommandSession session = WithALine();
 
-            Assert.Contains("; error: bad argument type: point: 5", Value(session, "(nentselp 5)"));
-            Assert.Contains("; error: bad argument type: point: (1)", Value(session, "(nentselp '(1))"));
-            Assert.Contains("; error: bad argument type: point: \"b\"", Value(session, "(nentselp \"a\" \"b\")"));
+            // AutoCAD 2021 (runs/wait): (nentselp 5) gives ; error: bad argument type: 2D/3D point: 5
+            Assert.Contains("; error: bad argument type: 2D/3D point: 5", Value(session, "(nentselp 5)"));
+
+            // ours: D136, the same wording for a list too short and for a second string
+            Assert.Contains("; error: bad argument type: 2D/3D point: (1)", Value(session, "(nentselp '(1))"));
+            Assert.Contains("; error: bad argument type: 2D/3D point: \"b\"", Value(session, "(nentselp \"a\" \"b\")"));
             Assert.False(session.IsRunning);
         }
 
