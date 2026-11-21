@@ -63,7 +63,11 @@ namespace GeometryHelper.Cad.Wpf
         private void UsePythonHost()
         {
             _pythonPathUsed = _settings.PythonPath;
-            var host = new CadPythonHost(CadPythonEnvironment.Find(_pythonPathUsed), _pythonOwner);
+            var host = new CadPythonHost(CadPythonEnvironment.Find(_pythonPathUsed), _pythonOwner)
+            {
+                // The same gate as AutoLISP's: a file outside the trusted folders is asked about, or refused (SECURELOAD).
+                LoadCheck = path => _loadSecurity.MayLoad(path) ? null : "File load canceled: " + path,
+            };
             _pythonOwner.Watch(host);
             _pythonHost?.Dispose();
             _pythonHost = host;

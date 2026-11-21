@@ -40,7 +40,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void TheCategoriesAreEight_DrawingDefaultsDataSourcesAndDrawingTextGone()
+        public void TheCategoriesAreNine_DrawingDefaultsDataSourcesAndDrawingTextGone()
         {
             GlobalSettingsViewModel dialog = new MainViewModel().CreateGlobalSettings("Text and fonts");
 
@@ -53,6 +53,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     "Layers, colours and lines",
                     "Text and fonts",
                     "Folder preference",
+                    "Security",
                     "Shortcuts",
                     "Save and export",
                 },

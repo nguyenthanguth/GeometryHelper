@@ -8,7 +8,7 @@ using System.Windows.Media;
 namespace GeometryHelper.Cad.Wpf
 {
     /// <summary>
-    /// Global settings, as the design draws it: 840 by 600, the eight categories at the left, the page of the one chosen at the
+    /// Global settings, as the design draws it: 840 by 600, the nine categories at the left, the page of the one chosen at the
     /// right, Reset to defaults, Cancel, Apply and OK at the foot. Its logic is <see cref="GlobalSettingsViewModel"/>.
     /// </summary>
     public partial class GlobalSettingsWindow : Window
@@ -23,6 +23,8 @@ namespace GeometryHelper.Cad.Wpf
             DataContext = model;
             model.BrowsePgpFile = PickPgpFile;
             model.BrowsePythonFile = PickPythonFile;
+            model.BrowseTrustedFolder = PickTrustedFolder;
+            model.ConfirmWritableTrustedFolder = folder => CadQuestionWindow.ConfirmWritableTrustedFolder(this, folder);
             model.OpenFolder = OpenInExplorer;
             model.CloseRequested += (s, done) =>
             {
@@ -67,6 +69,22 @@ namespace GeometryHelper.Cad.Wpf
                 Title = "Select Python",
             };
             return dialog.ShowDialog(this) == true ? dialog.FileName : null;
+        }
+
+        /// <summary>
+        /// Add folder… of the Security page: a Save dialog chooses the folder, as the Plugin manager's does, for .NET
+        /// Framework's WPF has no folder dialog; null where none was chosen.
+        /// </summary>
+        private string PickTrustedFolder()
+        {
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = "Choose a folder to trust",
+                FileName = "Trust this folder",
+                Filter = "Folders|*.folder",
+                OverwritePrompt = false,
+            };
+            return dialog.ShowDialog(this) == true ? System.IO.Path.GetDirectoryName(dialog.FileName) : null;
         }
 
         /// <summary>Open folder: the folder shown in Explorer; a folder that cannot be opened is passed over.</summary>

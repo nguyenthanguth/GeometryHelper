@@ -124,6 +124,30 @@ namespace GeometryHelper.Cad.Wpf
         }
 
         /// <summary>
+        /// Asks whether to add a folder the app can write in to the trusted folders, as AutoCAD 2021's Options does: "Trusted
+        /// File Search Path - Security Concern", "The location specified is not read-only.  What do you want to do?" and
+        /// "Specifying a writable folder can leave your computer vulnerable to malicious code.", the folder named under them,
+        /// then Cancel and Continue.
+        /// </summary>
+        /// <param name="owner">The window it is shown over; null for none.</param>
+        /// <param name="folder">The folder's full path.</param>
+        /// <returns>Whether to add it: true for Continue, false for Cancel and for the window closed.</returns>
+        public static bool ConfirmWritableTrustedFolder(Window owner, string folder) =>
+            Shown(owner, ForWritableTrustedFolder(folder)) == true;
+
+        /// <summary>Makes the question <see cref="ConfirmWritableTrustedFolder"/> shows, not shown.</summary>
+        /// <param name="folder">The folder's full path.</param>
+        /// <returns>The question.</returns>
+        internal static CadQuestionWindow ForWritableTrustedFolder(string folder) =>
+            new CadQuestionWindow(
+                CadQuestionTexts.WritableFolderTitle,
+                CadQuestionTexts.WritableFolderQuestion,
+                folder,
+                CadQuestionTexts.Continue,
+                CadQuestionTexts.Cancel
+            );
+
+        /// <summary>
         /// Asks whether a block INSERT brings from another drawing, or the Block dialog is given, redefines the drawing's own of
         /// its name, in the words of AutoCAD 2021's task dialog "Block - Redefine Block": "GB" is already defined as a block in
         /// this drawing, would you like to redefine this block reference?, then Redefine block and Don't redefine "GB".
