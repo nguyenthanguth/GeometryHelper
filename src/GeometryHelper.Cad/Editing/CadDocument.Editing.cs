@@ -644,7 +644,20 @@ namespace GeometryHelper.Cad
 
         /// <summary>Closes the group <see cref="BeginGroup"/> opened; the outermost makes its edits one undo step, if it made any.</summary>
         /// <exception cref="InvalidOperationException">Thrown when no group is open.</exception>
-        public void EndGroup()
+        public void EndGroup() => EndGroup(false);
+
+        /// <summary>Gets the step an undo takes back next, whatever the undo control allows; null where no step was made. Read to tell whether a step is still the last.</summary>
+        internal CadUndoStep LastStep => _position > 0 ? _steps[_position - 1] : null;
+
+        /// <summary>
+        /// Closes the group as <see cref="EndGroup()"/> does; with <paramref name="joinsPrevious"/> the step it makes is taken
+        /// back and put again together with the step before it (<see cref="CadUndoStep.JoinsPrevious"/>), where that step is
+        /// above the undo floor, so that the forms typed one after the other at the command line are one U.
+        /// </summary>
+        /// <param name="joinsPrevious">Whether the step joins the one before it.</param>
+        /// <returns>Whether a step was made: the outermost group closed with edits that held.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when no group is open.</exception>
+        internal bool EndGroup(bool joinsPrevious)
         {
             if (_groupDepth == 0)
             {
@@ -653,7 +666,7 @@ namespace GeometryHelper.Cad
 
             if (--_groupDepth > 0)
             {
-                return;
+                return false;
             }
 
             if (_layerSetDepth == 0)
@@ -670,13 +683,13 @@ namespace GeometryHelper.Cad
 
             if (!failed && records.Count > 0)
             {
-                Commit(name, records);
+                Commit(name, records, joinsPrevious);
+                return true;
             }
-            else
-            {
-                _layerMade = null;
-                ReadAround();
-            }
+
+            _layerMade = null;
+            ReadAround();
+            return false;
         }
 
         /// <summary>
@@ -1211,14 +1224,14 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>Makes the edits one step: the drawing after them kept, the steps undone before forgotten.</summary>
-        private void Commit(string name, List<CadEditRecord> records)
+        private void Commit(string name, List<CadEditRecord> records, bool joinsPrevious = false)
         {
             // A zoom or a pan of a space's view changes nothing in the drawing, and a setting kept in the drawing is put back by
             // its own records: such a step shares the state before it, so that no drawing is saved for it, and a real-time zoom
             // or pan straight after another joins that step.
             if (SharesState(records))
             {
-                CommitView(name, records);
+                CommitView(name, records, joinsPrevious);
                 return;
             }
 
@@ -1246,7 +1259,12 @@ namespace GeometryHelper.Cad
 
             ForgetRedo();
 
-            var step = new CadUndoStep(name, records.ToArray()) { GroupId = _undoGroup };
+            // A step that joins the one before it (see EndGroup) carries its name, as CommitView's does.
+            bool joins = joinsPrevious && _position > UndoFloor;
+            var step = new CadUndoStep(joins ? _steps[_position - 1].Name : name, records.ToArray(), joins)
+            {
+                GroupId = _undoGroup,
+            };
             TieLayerSets(step);
             _steps.Add(step);
             _states.Add(Keep());

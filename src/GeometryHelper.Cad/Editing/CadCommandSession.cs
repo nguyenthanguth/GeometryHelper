@@ -476,6 +476,7 @@ namespace GeometryHelper.Cad
         /// <summary>Runs a command's body from its first prompt.</summary>
         private void Run(CadCommand command, IReadOnlyList<string> preSelected)
         {
+            ReleaseLispHold();
             Current = command;
             _context = new CadCommandContext(this, command, preSelected);
             ClearGathering();

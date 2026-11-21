@@ -25,7 +25,6 @@ namespace GeometryHelper.Cad.Lisp
                 symbol.Value = a[1] as LispCons ?? throw TypeError("listp", a[1]);
                 return symbol;
             });
-            Define("VL-LOAD-COM", 0, 0, a => _empty);
             Define("LOAD", 1, 2, a => LoadFile(Str(a[0]), a.Length > 1, a.Length > 1 ? a[1] : null));
         }
 
@@ -84,7 +83,7 @@ namespace GeometryHelper.Cad.Lisp
 
         /// <summary>
         /// <c>equal</c>: lists are compared item by item, numbers by value within the fuzz (an int equals the real of the same
-        /// value), and anything else as <c>eq</c>.
+        /// value), variants and safearrays by type and elements, and anything else as <c>eq</c>.
         /// </summary>
         /// <param name="x">One value.</param>
         /// <param name="y">The other.</param>
@@ -94,6 +93,11 @@ namespace GeometryHelper.Cad.Lisp
         {
             while (true)
             {
+                if (x is LispVlaObject vx && y is LispVlaObject vy)
+                {
+                    return vx.Kind == vy.Kind && string.Equals(vx.Key, vy.Key, StringComparison.Ordinal);
+                }
+
                 if (x is LispCons a && y is LispCons b)
                 {
                     CheckStack();
@@ -113,6 +117,16 @@ namespace GeometryHelper.Cad.Lisp
                     double p = ToDouble(x);
                     double q = ToDouble(y);
                     return p == q || Math.Abs(p - q) <= fuzz;
+                }
+
+                if (x is LispVariant v && y is LispVariant w)
+                {
+                    return LispVariantConversion.Equal(v, w, fuzz);
+                }
+
+                if (x is LispSafeArray r && y is LispSafeArray s)
+                {
+                    return LispVariantConversion.Equal(r, s, fuzz);
                 }
 
                 return Eq(x, y);
@@ -145,6 +159,12 @@ namespace GeometryHelper.Cad.Lisp
                     return Intern("ENAME");
                 case LispCatchAllError _:
                     return Intern("VL-CATCH-ALL-APPLY-ERROR");
+                case LispVariant _:
+                    return Intern("VARIANT");
+                case LispSafeArray _:
+                    return Intern("SAFEARRAY");
+                case LispVlaObject _:
+                    return Intern("VLA-OBJECT");
                 default:
                     return null;
             }

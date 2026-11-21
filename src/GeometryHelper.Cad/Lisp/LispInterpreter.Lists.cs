@@ -313,7 +313,7 @@ namespace GeometryHelper.Cad.Lisp
         /// <param name="value">The symbol, function or list.</param>
         /// <param name="catchAll">True for <c>vl-catch-all-apply</c>.</param>
         /// <returns>The function.</returns>
-        private LispFunction Callable(object value, bool catchAll)
+        internal LispFunction Callable(object value, bool catchAll)
         {
             object resolved = value;
 
