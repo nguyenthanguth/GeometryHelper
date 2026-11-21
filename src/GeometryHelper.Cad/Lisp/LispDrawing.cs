@@ -22,6 +22,7 @@ namespace GeometryHelper.Cad.Lisp
             RegisterSession(lisp, session);
             RegisterFiles(lisp, session);
             RegisterPickfirst(lisp, session);
+            RegisterDialogs(lisp, session);
         }
 
         static partial void RegisterInput(LispInterpreter lisp, CadCommandSession session);
@@ -41,5 +42,7 @@ namespace GeometryHelper.Cad.Lisp
         static partial void RegisterFiles(LispInterpreter lisp, CadCommandSession session);
 
         static partial void RegisterPickfirst(LispInterpreter lisp, CadCommandSession session);
+
+        static partial void RegisterDialogs(LispInterpreter lisp, CadCommandSession session);
     }
 }
