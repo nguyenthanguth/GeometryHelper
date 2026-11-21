@@ -15,11 +15,13 @@ namespace GeometryHelper.Cad.Lisp
     internal sealed class LispReader
     {
         private const string Delimiters = "()\"';";
+        private const int MaxNesting = 20000;
 
         private readonly string _text;
         private readonly Func<string, LispSymbol> _intern;
         private readonly LispSymbol _quote;
         private int _position;
+        private int _nesting;
 
         /// <summary>Starts reading text.</summary>
         /// <param name="text">The text.</param>
@@ -97,6 +99,27 @@ namespace GeometryHelper.Cad.Lisp
         }
 
         private object ReadForm()
+        {
+            // Nesting past the limit is the hard error long before the stack runs out: two million open parentheses read to
+            // the end of the 256 MB stack left the process slow for every test after it (about tenfold).
+            _nesting++;
+
+            try
+            {
+                if (_nesting > MaxNesting)
+                {
+                    throw new LispException("internal stack limit reached (simulated)", isHard: true);
+                }
+
+                return ReadNested();
+            }
+            finally
+            {
+                _nesting--;
+            }
+        }
+
+        private object ReadNested()
         {
             CheckStack();
             char c = _text[_position];
