@@ -261,6 +261,25 @@ namespace GeometryHelper.PyStubs.UnitTest
         }
 
         [Fact]
+        public void AnOutParameterInTheMiddle_LeavesTheParametersAfterItKeywordOnly()
+        {
+            // pythonnet takes `TryScale(key, tolerance=t)` and refuses `TryScale(key, t)`, since the out argument that
+            // comes before the tolerance has no place in the call.
+            Assert.Contains(
+                Lines(
+                    "    def TryScale(self, key: str, *, tolerance: float) -> tuple[bool, int]: ...",
+                    "    @overload",
+                    "    def TryScale(self, key: str, *, tolerance: float) -> tuple[bool, int, str]: ..."
+                ),
+                Fixture
+            );
+            Assert.Contains(
+                "    def TryDivide(self, number: int, *, tolerance: float, limit: float) -> tuple[bool, int, int]: ...\n",
+                Fixture
+            );
+        }
+
+        [Fact]
         public void OptionalParameters_AreMarkedWithADefault_AndAParamsArrayIsTheArrayForm()
         {
             Assert.Contains("    def Fill(self, count: int = ..., name: str = ...) -> None: ...\n", Fixture);

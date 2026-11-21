@@ -161,6 +161,14 @@ ok, point = crossing.TryIntersectWith(GeoLine2(GeoPoint2(20, -5), GeoPoint2(20, 
 When the call fails the out value is the default of its type, as in C# (the point above is `(0, 0)`), so test the first
 item before using the others.
 
+An `out` parameter that a parameter of the call follows, as in `GeoSolid3.TrySubtract(tool, out result, tolerance)`, is
+left out only when the parameters after it are given by keyword: `plate.TrySubtract(cutter, tolerance=tolerance)` works,
+and `plate.TrySubtract(cutter, tolerance)` is a `TypeError` (`No method matches given arguments`), where C# has no
+choice. The stubs write those parameters after a `*`, so the editor says so. 876 members have such a parameter, 864 of
+them followed by a `tolerance`, and none has a `ref` parameter or a params array after it. Passing a placeholder in
+place of the out argument works as well (`None` for a class, `GeoPoint2()` for a struct, `0.0` for a `double`), but the
+stubs do not promise it.
+
 ### Lists: only for arrays
 
 A Python `list` or `tuple` is accepted where the .NET parameter is an array (`T[]`), and where it is a `params T[]`, which
@@ -376,6 +384,7 @@ shows its overloads and what each does. A class written in several files shows a
 What the stubs say, so that the editor and pythonnet agree:
 
 - every .NET overload is an `@overload`, and an out parameter is not a parameter but part of the returned tuple;
+- the parameters after an out parameter that is not the last are keyword-only;
 - a collection a method returns is typed as the .NET interface (`IReadOnlyList[GeoPoint2]`), without `len()` or a slice;
 - a parameter that pythonnet takes a Python list for is `Sequence[T] | System.Array[T]`, and one it does not is the .NET
   class only;

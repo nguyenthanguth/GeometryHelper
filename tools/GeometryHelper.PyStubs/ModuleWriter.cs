@@ -905,11 +905,19 @@ namespace GeometryHelper.PyStubs
         /// <summary>
         /// The parameters a caller passes: all but the <c>out</c> ones, which pythonnet returns instead. With
         /// <paramref name="varargs"/> the last one, a <c>params</c> array, is written as <c>*name: T</c>, for the call with
-        /// separate arguments.
+        /// separate arguments. pythonnet leaves out a trailing <c>out</c> argument by itself, but one that a parameter of the
+        /// call follows (<c>TrySubtract(tool, out result, tolerance)</c>) only when that parameter is given by keyword, so the
+        /// parameters from the first such <c>out</c> on are written after a <c>*</c>: keyword-only.
         /// </summary>
         private List<string> Parameters(IEnumerable<ParameterInfo> parameters, bool withSelf, bool varargs = false)
         {
-            List<ParameterInfo> list = parameters.Where(p => !p.IsOut).ToList();
+            ParameterInfo[] all = parameters.ToArray();
+            List<ParameterInfo> list = all.Where(p => !p.IsOut).ToList();
+
+            // Everything before the first out parameter is passed, so its index is where the keyword-only ones start, and
+            // it is followed by a parameter of the call when more are passed than come before it.
+            int firstOut = Array.FindIndex(all, p => p.IsOut);
+            int keywordOnly = firstOut >= 0 && firstOut < list.Count ? firstOut : -1;
             var result = new List<string>();
             if (withSelf)
             {
@@ -924,6 +932,22 @@ namespace GeometryHelper.PyStubs
             {
                 ParameterInfo p = list[i];
                 string name = PythonNames.ParameterName(p.Name ?? "arg" + i);
+                if (i == keywordOnly)
+                {
+                    // A keyword cannot be written for a Python keyword or a params array, so such a member has no stub form.
+                    if (varargs || list.Skip(i).Any(q => PythonNames.IsKeyword(q.Name)))
+                    {
+                        throw new InvalidOperationException(
+                            "A parameter after an out parameter cannot be keyword-only: "
+                                + p.Member.DeclaringType?.FullName
+                                + "."
+                                + p.Member.Name
+                        );
+                    }
+
+                    result.Add("*");
+                }
+
                 if (varargs && i == list.Count - 1)
                 {
                     result.Add("*" + name + ": " + _mapper.Map(p.ParameterType.GetElementType(), true, _module));
