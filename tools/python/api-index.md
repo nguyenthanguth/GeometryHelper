@@ -12,7 +12,8 @@ summary only. The .NET reference is the full text, this reference is the shape o
 
 - `self` is the object. A method is called without it: `p.DistanceTo(q)`.
 - A .NET `out` parameter is not a parameter. The call returns a tuple of its result and the out values, and the signature
-  says `-> tuple[bool, GeoPoint3]`. See [out parameters come back in a tuple](../../src/GeometryHelper/docs/python.md#out-parameters-come-back-in-a-tuple).
+  says `-> tuple[bool, GeoPoint3]`. A parameter that comes after an out parameter is keyword-only, after a `*`:
+  `plate.TrySubtract(cutter, tolerance=tolerance)`. See [out parameters come back in a tuple](../../src/GeometryHelper/docs/python.md#out-parameters-come-back-in-a-tuple).
 - `Sequence[T] | System.Array[T]` takes a Python list or tuple. A parameter written `System.Array[T]` alone, or a .NET
   interface such as `IReadOnlyList[T]`, does not: build an `Array[T]` or a `List[T]` first. See
   [lists: only for arrays](../../src/GeometryHelper/docs/python.md#lists-only-for-arrays).

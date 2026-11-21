@@ -20,6 +20,9 @@ def rectangle_by_centre() -> None:
     height = get_distance("Height", base=centre, default="500")
     if not isinstance(width, float) or not isinstance(height, float):
         return
+    if width <= 0 or height <= 0:
+        write("The width and the height must be more than 0.")
+        return
     corner = (centre.X - width / 2, centre.Y - height / 2)
     opposite = (centre.X + width / 2, centre.Y + height / 2)
     command("RECTANG", corner, opposite)
@@ -27,6 +30,9 @@ def rectangle_by_centre() -> None:
 
 @cad_command("LAYERCOUNT")
 def layer_count() -> None:
-    counts = Counter(entity.Layer for entity in document().Database.ModelSpace)
+    database = document().Database
+    # Counted under the layer table's spelling: an object on "walls" is on the layer the table calls "Walls".
+    spelling = {layer.Name.casefold(): layer.Name for layer in database.LayerTable}
+    counts = Counter(spelling.get(entity.Layer.casefold(), entity.Layer) for entity in database.ModelSpace)
     for name in sorted(counts, key=lambda name: (name.casefold(), name)):
         write(f"{name}: {counts[name]}")

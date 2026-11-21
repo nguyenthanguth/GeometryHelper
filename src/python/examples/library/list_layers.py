@@ -32,11 +32,15 @@ def main(argv: list[str]) -> int:
         print("usage: python list_layers.py DRAWING   (a .dxf or .dwg file)", file=sys.stderr)
         return 2
     database = open_drawing(Path(argv[0]))
-    counts: dict[str, int] = {layer.Name: 0 for layer in database.LayerTable}
+    # A layer name is one name in whatever case, but an object keeps the spelling it was written with ("walls" on a
+    # layer the table calls "Walls"), so objects are counted under the table's spelling.
+    spelling: dict[str, str] = {layer.Name.casefold(): layer.Name for layer in database.LayerTable}
+    counts: dict[str, int] = dict.fromkeys(spelling.values(), 0)
     areas: dict[str, float] = dict.fromkeys(counts, 0.0)
     for entity in database.ModelSpace:
-        counts[entity.Layer] = counts.get(entity.Layer, 0) + 1
-        areas[entity.Layer] = areas.get(entity.Layer, 0.0) + closed_area(entity)
+        layer = spelling.setdefault(entity.Layer.casefold(), entity.Layer)
+        counts[layer] = counts.get(layer, 0) + 1
+        areas[layer] = areas.get(layer, 0.0) + closed_area(entity)
     print("layer\tobjects\tarea")
     for name in sorted(counts, key=lambda name: (name.casefold(), name)):
         print(f"{name}\t{counts[name]}\t{areas[name]:.3f}")

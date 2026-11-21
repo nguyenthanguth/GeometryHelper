@@ -54,7 +54,7 @@ when the stubs are written.
 `bash tools/python/verify-python.sh` does all of it, then makes a fresh virtual environment, installs the wheel there and
 runs `tests/python` against it, once on each runtime; the `python` job of `.github/workflows/build.yml` runs the same
 script on Python 3.11 and 3.14, and then the tests of the Python inside the app on both runtimes (`GH_PYTHON` names
-the Python to start). On the test machine, 158 tests pass on .NET 8 (27.2 s) and 158 on .NET Framework 4.8 (27.8 s).
+the Python to start). On the test machine, 390 tests pass on .NET 8 (73.2 s) and 390 on .NET Framework 4.8 (77.2 s).
 
 ## A first script
 
@@ -377,9 +377,11 @@ your own, which Global settings can name; the wheel is not used there, as the ap
 The wheel carries the stubs of the library, so an editor completes the .NET names and checks a script that uses them. They
 are a PEP 561 stub package per namespace, `GeometryHelper-stubs` (an `__init__.pyi` for each of the 18 namespaces), and
 `System-stubs`, the few BCL classes the library's signatures name, as pythonnet spells them: `System.Array[T]`,
-`System.Collections.Generic.List[T]`, `System.Action[...]`. They hold 806 types and 18 559 members (a member is one stub
+`System.Collections.Generic.List[T]`, `System.Action[...]`. They hold 806 types and 18 561 members (a member is one stub
 entry, each overload once), and the summary of each type and member as its docstring, so hovering `GeoPoint3(` in Pylance
 shows its overloads and what each does. A class written in several files shows all its summaries joined in the hover.
+The same text is on the docs site as the [Python API](../../../docfx/python-api/index.md), a page for each type with
+every member as Python sees it and a link to its page in the .NET reference.
 
 What the stubs say, so that the editor and pythonnet agree:
 
@@ -448,5 +450,6 @@ inside the app is refused a connection to that app (it uses `geometryhelper.cad`
 |---|---|
 | [How do I](howto.md) | a task, the call that does it, and the page that tells the rest: the calls are the ones a script makes |
 | [Python examples](python-examples.md) | thirteen scripts, on the library, in the app and driving a running app, each shown with what it prints |
+| [Python API](../../../docfx/python-api/index.md) | every type of the package as a script sees it, generated from the stubs, linked to the .NET reference |
 | [DXF](dxf/index.md), [Reading and writing DWG files](dxf/dwg.md) | the drawing, its tables and entities, read and written |
 | [The 2D presenter](presenter/index.md), [Editing as AutoCAD does](presenter/editing.md) | `CadDocument`, its command session and undo |

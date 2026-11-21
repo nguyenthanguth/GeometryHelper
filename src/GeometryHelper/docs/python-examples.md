@@ -55,7 +55,10 @@ total	6	12282743.339
 ```
 
 The area of `Slabs` is 12 000 000 for the polyline and 282 743.339 for the circle (pi times 300 squared). The open polyline
-of `Walls` encloses nothing, and `list_layers.py` counts it as an object only. A DWG gives the same lines as the DXF.
+of `Walls` encloses nothing, and `list_layers.py` counts it as an object only. A DWG gives the same lines as the DXF. A
+layer name is one name in whatever case, while an object keeps the spelling it was written with, so a line on `Walls` and a
+circle of radius 10 on `walls` are counted together under the layer table's spelling: `Walls` with 2 objects and an area
+of 314.159.
 
 [!code-python[](../../python/examples/library/list_layers.py)]
 
@@ -126,9 +129,11 @@ centroid 500.000,250.000,100.000
 ```
 
 The volume is the box's 100 000 000 less 2 000 000 for the hole, 100 by 100 by 200. The area is the box's 1 600 000, less
-the two openings of 10 000 each, plus the four walls of the hole at 100 by 200 each, 80 000. The measures take
-`Tolerance.Default`; `TrySubtract` is called without a tolerance and reads `Tolerance.Global`, which is the same value until
-a script changes it.
+the two openings of 10 000 each, plus the four walls of the hole at 100 by 200 each, 80 000. The measures and the cut take
+`Tolerance.Default`. `TrySubtract` takes it by name, `plate.TrySubtract(cutter, tolerance=tolerance)`, because a parameter
+that comes after an out parameter is keyword-only in Python, so the script gives the same numbers whatever
+`Tolerance.Global` is: run with a global tolerance of 120, wider than the hole, a cut that read the global one would leave
+the box uncut, 100 000 000 and 1 600 000.
 
 [!code-python[](../../python/examples/library/solids.py)]
 
@@ -212,8 +217,10 @@ drawing_tools.py loaded: LAYERCOUNT, RECTC.
 ```
 
 RECTC with the centre 0,0, a width of 200 and a height of 100 draws a rectangle from -100,-50 to 100,50; with Enter at both
-questions it is 1 000 by 500 about the centre. RECTC writes nothing itself. On a drawing with one rectangle on layer `0`,
-LAYERCOUNT writes `0: 1`.
+questions it is 1 000 by 500 about the centre. RECTC writes nothing itself, except for a width or a height of 0 or less,
+which it refuses with `The width and the height must be more than 0.` and draws nothing (fed to RECTANG, a rectangle of no
+width would leave the command asking for its corner). On a drawing with one rectangle on layer `0`, LAYERCOUNT writes
+`0: 1`; an object on `walls` counts with the layer the table calls `Walls`.
 
 [!code-python[](../../python/examples/in_app/drawing_tools.py)]
 
