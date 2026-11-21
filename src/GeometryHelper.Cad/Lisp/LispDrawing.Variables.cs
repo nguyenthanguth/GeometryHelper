@@ -102,6 +102,7 @@ namespace GeometryHelper.Cad.Lisp
                     if (variable.IsInDrawing)
                     {
                         session.OpenLispStep();
+                        session.HoldLispStep();
                     }
 
                     return variable.SetFromLisp(session, neutral);

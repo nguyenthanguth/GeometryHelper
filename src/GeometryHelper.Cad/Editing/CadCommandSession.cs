@@ -477,6 +477,7 @@ namespace GeometryHelper.Cad
         private void Run(CadCommand command, IReadOnlyList<string> preSelected)
         {
             ReleaseLispHold();
+            _stepBeforeCommand = Document.LastStep;
             Current = command;
             _context = new CadCommandContext(this, command, preSelected);
             ClearGathering();
@@ -1619,6 +1620,8 @@ namespace GeometryHelper.Cad
                 Document.EndGroup();
                 _grouped = false;
             }
+
+            JoinTypedFormsToCommand();
 
             try
             {

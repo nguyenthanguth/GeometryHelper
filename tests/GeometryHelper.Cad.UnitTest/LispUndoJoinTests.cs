@@ -27,6 +27,10 @@ namespace GeometryHelper.Cad.UnitTest
             Feed(session, "(entmake '((0 . \"LINE\") (8 . \"0\") (10 0.0 0.0 0.0) (11 0.0 50.0 0.0)))");
             Feed(session, "(setq a2 (entlast))");
             Feed(session, "(setq o (vlax-ename->vla-object a2) doc (vla-get-ActiveDocument (vlax-get-acad-object)))");
+
+            // The forms typed above are one step with the puts the test types next (AutoCAD 2021, feed undo A: typed changes with no
+            // command between them are one U); a command between them parts the two.
+            Run(session, "REGEN");
             return session;
         }
 
@@ -102,16 +106,16 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void ADrawingCommandBetweenTwoTypedPuts_MakesThreeSteps()
+        public void ADrawingCommandBetweenTwoTypedPuts_TakesTheLaterPutIntoItsStep()
         {
             CadCommandSession session = Loaded();
 
-            // ours: D250, any command that made a step separates the typed forms before it from those after it.
+            // AutoCAD 2021 (feed undo G, rule 2; D250 had three steps here): a command that made a step separates the typed forms
+            // before it from those after it, and the forms after it are part of its step: the first U takes the circle and the
+            // put after it, the second the put before it.
             Put(session, 3);
             Run(session, "CIRCLE", "50,50", "5");
             Put(session, 4);
-            Run(session, "U");
-            Assert.Equal("3", Color(session));
             Run(session, "U");
             Assert.Equal("3", Color(session));
             Assert.Null(session.Document.Database.ModelSpace.OfType<DxfCircle>().FirstOrDefault());
@@ -184,19 +188,19 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void APutAfterAnUndo_IsNotJoinedToTheStepsBeforeIt()
+        public void APutAfterAnUndo_JoinsTheStepThatIsLastAgain()
         {
             CadCommandSession session = Loaded();
 
-            // ours: D250, U and REDO end the run of typed forms as any command does.
+            // AutoCAD 2021 (feed undo, sections B to G; D250 kept it apart): U makes no step of its own, so the form typed after
+            // it joins the step that is last again, and the next U takes both.
             Put(session, 3);
             Run(session, "REGEN");
             Put(session, 4);
             Run(session, "U");
             Assert.Equal("3", Color(session));
             Put(session, 5);
-            Run(session, "U");
-            Assert.Equal("3", Color(session));
+            Assert.Equal("5", Color(session));
             Run(session, "U");
             Assert.Equal("256", Color(session));
         }

@@ -320,7 +320,8 @@ get functions write their prompts whatever CMDECHO is.
 **Undo.** Each command `command` runs is an undo step of its own, as when it is typed: a routine that runs LINE and then
 CIRCLE is undone by U one command at a time. The changes a routine makes between its commands, `entmake`, `entmod`,
 `entdel` and `setvar` of a drawing variable, are one step of their own, named after the `c:` command or `(Lisp Expression)`
-for a form typed. AutoCAD 2021 folds them into the step before; a step of their own loses nothing. `UNDO BEgin` and `End`
+for a form typed; forms typed at the Command prompt join the steps of the forms and commands before them, as
+[described below](#undo-of-typed-forms). `UNDO BEgin` and `End`
 run by `command` group what lies between them as when typed. Esc at a routine's wait ends the routine's step; what `*error*`
 then changes is a step of its own, and U undoes it first.
 
@@ -457,15 +458,22 @@ type, and the `102` groups are kept. Extended data is `(-3 ("APP" ...))` for the
 `'("*")` gives every one. An erased or unknown entity gives `nil`. A group the presenter does not hold is not invented.
 
 `(entmod list)` gives the list, or `nil` for a list with no `-1`, an unknown or erased entity, a change of group `0`, or a
-value of the wrong kind. A partial list changes only the groups it has: `(entmod (list (cons -1 e) '(10 1.0 1.0 0.0)))` moves
+value of the wrong kind. A group code the list gives twice has the last value, as in AutoCAD: `(entmod (append (entget e) '((62 . 5) (62 . 6))))`
+makes the colour 6 and leaves one group `62`, which is also how `(entmod (append (entget e) '((62 . 6))))` changes the colour of an entity that
+has one; a code the entity has several of, the vertices of a polyline or the knots of a spline, is not collapsed, and a colour
+256 or a linetype ByLayer takes the entity's own group out. A partial list changes only the groups it has: `(entmod (list (cons -1 e) '(10 1.0 1.0 0.0)))` moves
 the start of a LINE and nothing else. A layer named in group `8` that does not exist is made, white and Continuous. A
-changed DIMENSION gets its picture made again, and a TEXT whose `72`, `73` or `11` change gets its `10` computed again.
+changed DIMENSION gets its picture made again, and a TEXT whose `72`, `73` or `11` change gets its `10` computed again, in the
+fonts of the drawing, by the routine `vla-put-TextString` and `vla-put-Alignment` use too, so that a text changed through the
+object and one changed by `entmod` start the same distance back from their second point.
 `(entupd e)` gives the name and redraws.
 
 `(entmake list)` gives the list, or `nil` for a type the presenter cannot make or a required group that is missing:
 `(entmake '((0 . "LINE") (10 0.0 0.0)))` is `nil`, a LINE with no end. The defaults are AutoCAD's (a TEXT is made with
 rotation 0, width factor 1, style Standard, justification left, and the normal `(0 0 1)`), a layer that is missing is
-made, the entity goes into the current space, and `(entlast)` is it. A list straight from `entget` is taken: the leading
+made, the entity goes into the current space, and `(entlast)` is it. A list with no group `6` takes the drawing's CELTYPE, so a LINE made on a blank drawing has `(6 . "Continuous")`, and
+none where CELTYPE is ByLayer; a `(6 . "ByLayer")` or `(62 . 256)` the list gives is dropped, as AutoCAD drops it, and the
+entity lists neither. A list straight from `entget` is taken: the leading
 `-1`, and the `5` and `330` groups, are ignored, and a two-dimensional point is completed. The presenter makes LINE, POINT,
 CIRCLE, ARC, ELLIPSE, TEXT, MTEXT, LWPOLYLINE, SOLID, TRACE, 3DFACE, RAY, XLINE, SPLINE and INSERT without attributes. A
 POLYLINE with its VERTEX and SEQEND, an INSERT with ATTRIB, a BLOCK definition and the records of a table give `nil`.
@@ -913,7 +921,13 @@ headless: a routine that runs here in a session with no window reads the same ob
 AutoCAD 2021 has one ActiveX name before `(vl-load-com)`, `vlax-for`, and the presenter has the same one: `(type
 vlax-make-variant)` is `nil` and `(type vlax-for)` is `SUBR`. The symbols `:vlax-true` and `:vlax-false` evaluate to
 themselves always. `(vl-load-com)` defines the rest, once for each drawing (a second call does nothing more) and writes
-nothing. The constants it sets are ordinary symbols: `(setq vlax-vbDouble 99)` changes one. `textbox`, which belongs to the
+nothing. The constants it sets are ordinary symbols: `(setq vlax-vbDouble 99)` changes one. So are the 898 constants of the
+enumerations of the ActiveX library, `acSelectionSetAll` (5), `acActiveViewport`, `acPaperSpace`, `acAttachmentPointTopLeft`,
+`acAlignmentCenter`, `acTrue` (1), `acFalse` (0), `acRed` and the rest, bound by the first `(vl-load-com)`; a symbol a
+routine gave a value before it keeps that value. The functions it defines print in the case AutoCAD registers them in, also
+for a symbol read before the load: `(vl-prin1-to-string '(vla-get-Name vlax-get-acad-object vlax-for vlax-invoke foo))` is
+`"(vla-get-Name vlax-get-acad-object VLAX-FOR vlax-invoke FOO)"`, `vlax-for` staying in capitals because it exists before the
+load, and `vlax-curve-getEndParam`, `vlax-map-Collection` and `vlax-vbDouble` carrying their capitals. `textbox`, which belongs to the
 drawing stage and is described [below](#text-boxes), exists before it, as it does in AutoCAD.
 
 ```text
@@ -1609,8 +1623,8 @@ Error. Selection Set was deleted`. `AddItems` takes a variant and `RemoveItems` 
 `SelectAtPoint pt [types data]` adds the object a pick at the point finds, once however often it is called; the point is a
 variant or a safearray, a list being the coercion error. `Select mode [p1 [p2 [types data]]]` takes 0 for a window, 1 for a
 crossing, 3 for the previous selection, 4 for the last and 5 for all, with the filter as a safearray of integer codes and
-one of values; the fence and polygon modes are not there. The names `acSelectionSetAll` and the like are not defined
-here: write the number.
+one of values; the fence and polygon modes are not there. The names `acSelectionSetAll` and the like are the constants `(vl-load-com)` binds:
+`(vla-Select ss acSelectionSetAll)` selects every entity.
 
 ```text
 Command: (setq sss (vla-get-SelectionSets doc))
@@ -1693,12 +1707,17 @@ nil
 
 ### Undo of typed forms
 
-The changes an object function makes join the undo step of the evaluation, as `entmod` does: the changes of one typed form
-are one step, and a `c:` command is one step. AutoCAD 2021 goes further, and so does the presenter: forms typed one after the
-other at the Command prompt, with no command between them, are **one** step. Two `vla-put-Color` forms typed in turn are
-taken back by one `U`; a command typed between them, a drawing command or `REGEN` or any other, ends the step, and the
-forms after it are a step of their own. The next command, `U` and `REDO` included, closes the run. `StartUndoMark` and
-`EndUndoMark` around forms make one step of those too. A form that changes nothing between two forms does not separate them.
+The changes made by forms typed one after the other at the Command prompt, with no command between them, are **one** undo
+step, as AutoCAD 2021 gave it, whatever made them: `entmake`, `entdel`, `setvar` of a drawing variable, `entmod` and the
+object functions. Two `vla-put-Color` forms typed in turn, two `entmake` forms, `setvar DIMSCALE 2` then `3`, an `entmake`
+and a `vla-put-Color` after it, or a `setvar` and an `entmod`, are each taken back by one `U`. A command between two forms
+ends the run, and what is typed after the command is part of that command's step, as AutoCAD 2021 does: REGEN, `entmake`,
+LINE, `entmake` and three `U` take the LINE and the `entmake` after it, then the first `entmake`, then everything earlier. A
+command that changes nothing, `REGEN` for one, leaves no step of its own, so the form after it is a step of its own,
+where AutoCAD counts the `REGEN` as the step the form belongs to. `U` and `REDO` make no step: the forms typed after them
+join the step that is last again, and the next `U` takes both. `StartUndoMark` and `EndUndoMark` around forms make one step
+of those too. A form that changes nothing between two forms does not separate them. A `c:` command is one step, and the forms
+typed after it are not yet part of it.
 
 ```text
 Command: (setq o (vlax-ename->vla-object l1))
@@ -1729,10 +1748,7 @@ Command: (vla-get-Color o)
 256
 ```
 
-`entmod` typed at the Command prompt joins in the same way, as AutoCAD 2021 gave it for two `entmod`s typed in turn: where
-each was a step of its own before, one `U` now takes both, and a `vla-put-` form and an `entmod` form typed one after the
-other are one step. `entmake`, `entdel` and `setvar` are still a step each (AutoCAD was not measured for these three). No
-undo group stays open between the forms, so autosave, the remote server and the block editor see a drawing at rest, and an
+No undo group stays open between the forms, so autosave, the remote server and the block editor see a drawing at rest, and an
 edit of the Properties palette made between two forms is a step of its own.
 
 ### COM to other programs is refused
@@ -1764,16 +1780,12 @@ the two with it) and every `vlr-` function, with `vl-load-reactors`; there are n
 collections, the `Add...` methods of a space and `InsertBlock`, `Layers.Add` and `Blocks.Add`, writes to a table record,
 `Copy`, `Move`, `Rotate`, `Mirror`, `ScaleEntity`, `Explode`, `IntersectWith`, `Offset`, `GetXData` and `SetXData`,
 `SelectOnScreen`, a selection by fence or polygon, `Utility` and `Preferences` are not there either: a `vla-` function of
-one of them is not defined, or where its name is defined for another object, it is `unknown name`. The `ac` enumeration
-constants (`acSelectionSetAll`, `acModelSpace`) are not defined: write the number.
+one of them is not defined, or where its name is defined for another object, it is `unknown name`.
 
 Where the presenter differs from the full AutoCAD 2021 that measured it:
 
-- `vlax-for` gives `nil`; AutoCAD gives the value of the last form of its last pass.
 - `vla-put-Length` and its like are defined for the writable members of the objects listed above only; AutoCAD defines a
   `vla-put-` name once any object has a writable member of it, so `(type vla-put-Length)` is `SUBR` there and `nil` here.
-- A quoted `vla-` or `vlax-` name prints in upper case, `(VLA-GET-NAME X)`, where AutoCAD prints it in the case it was
-  defined in, `(vla-get-Name X)`.
 - `U` typed right after a `REGEN` that follows a change takes back only the `REGEN` in AutoCAD, which counts it as a step,
   and the change here, where `REGEN` is no step.
 - `Item` of a model space or a block takes an integer; AutoCAD also takes a handle in a string.
