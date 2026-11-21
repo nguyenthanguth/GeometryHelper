@@ -810,8 +810,9 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                 }
             });
             thread.SetApartmentState(ApartmentState.STA);
+            thread.IsBackground = true;
             thread.Start();
-            thread.Join();
+            Assert.True(thread.Join(TimeSpan.FromSeconds(120)), "The test did not finish in 120 s.");
             Assert.Null(failure);
         }
 

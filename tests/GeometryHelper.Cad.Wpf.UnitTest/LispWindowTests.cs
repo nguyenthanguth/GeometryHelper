@@ -190,6 +190,43 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
+        public void ClosingADocumentWhoseRoutineCatchesEscAndAsksAgain_StillLeavesNothingWaiting()
+        {
+            // The routine takes every Esc for an error to catch and asks again, so Esc alone never ends it; closing aborts it.
+            MainViewModel model = Opened();
+            CadCommandSession session = model.Session;
+            model.Execute(
+                "(defun c:loopy (/ r) (while (vl-catch-all-error-p (setq r (vl-catch-all-apply 'getpoint '(\"P: \"))))) (princ))"
+            );
+            model.Execute("LOOPY");
+            Assert.True(session.IsLispWaiting);
+
+            bool closed = false;
+            var thread = new System.Threading.Thread(() => closed = model.CloseDocument()) { IsBackground = true };
+            thread.Start();
+
+            Assert.True(thread.Join(TimeSpan.FromSeconds(30)), "Closing did not return");
+            Assert.True(closed);
+            Assert.False(session.IsLispWaiting);
+            Assert.False(session.IsRunning);
+        }
+
+        [Fact]
+        public void LoadingAFileWhileARoutineWaits_SaysWhyItWasNotLoaded()
+        {
+            string path = Path.Combine(_folder.FullPath, "late.lsp");
+            File.WriteAllText(path, "(setq late 1)");
+            MainViewModel model = Opened();
+            model.Execute("(getpoint \"P: \")");
+
+            AppLoadResult result = model.LoadApplication(path);
+
+            Assert.Equal(AppLoadStatusKind.Failed, result.Kind);
+            Assert.Equal("late.lsp was not loaded: Can't reenter LISP.", result.Message);
+            Assert.True(model.Session.IsLispWaiting);
+        }
+
+        [Fact]
         public void ACommandDefinedWithDefun_IsOfferedByAutoCompleteFromItsFirstLetters()
         {
             MainViewModel model = Opened();

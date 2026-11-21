@@ -175,7 +175,7 @@ namespace GeometryHelper.Cad
 
             if (_grouped && !outer.Grouped)
             {
-                Document.EndGroup();
+                CloseGroup();
             }
 
             try
@@ -204,6 +204,9 @@ namespace GeometryHelper.Cad
             }
 
             Changed();
+
+            // The wait of a routine that this one carried ended with it: the routine is told once the command it interrupted is back.
+            RunLispCancel();
 
             // 'CAL's value is typed at the prompt that was waiting.
             if (result != null)

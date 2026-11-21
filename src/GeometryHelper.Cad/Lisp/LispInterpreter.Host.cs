@@ -36,6 +36,7 @@ namespace GeometryHelper.Cad.Lisp
         private LispAsk _waiting;
         private object _answer;
         private bool _cancelled;
+        private bool _aborting;
         private int _chunkStart;
         private int _initgetBits;
         private IReadOnlyList<string> _initgetKeywords = Array.Empty<string>();
@@ -99,6 +100,11 @@ namespace GeometryHelper.Cad.Lisp
                 throw new LispException("Can't reenter LISP.");
             }
 
+            if (_aborting)
+            {
+                throw new LispException("evaluation aborted", isHard: true);
+            }
+
             _waiting = ask;
             _answer = null;
             _cancelled = false;
@@ -116,6 +122,16 @@ namespace GeometryHelper.Cad.Lisp
             }
 
             return answer;
+        }
+
+        /// <summary>
+        /// Ends the evaluation that goes on for good: the next question it asks is a hard error, which <c>*error*</c> and
+        /// <c>vl-catch-all-apply</c> do not see and which writes nothing, so that a routine that catches <c>Function cancelled</c>
+        /// and asks again unwinds. Forgotten when the evaluation is over; does nothing where none goes on.
+        /// </summary>
+        internal void Abort()
+        {
+            _aborting = _worker != null;
         }
 
         /// <summary>Answers the wait: the evaluation goes on until it asks again or ends.</summary>
@@ -221,6 +237,7 @@ namespace GeometryHelper.Cad.Lisp
                         _worker.Join();
                         _worker = null;
                         _body = null;
+                        _aborting = false;
                         Exception failure = _workerFailure;
                         LispResult finished = _finished;
                         _workerFailure = null;
