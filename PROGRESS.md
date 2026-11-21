@@ -83,15 +83,16 @@ compared by their values and by eye.
       `entdel`, `entnext`, `tblsearch`; `getpoint`, `getcorner`, `getdist`, `getangle`, `getreal`, `getint`,
       `getstring`, `getkword`, `initget`; `getvar`, `setvar`, `trans`, `polar`, `inters`, `osnap`; `princ` and `prompt`
 - [ ] L2 parked: entmake of POLYLINE with VERTEX/SEQEND, INSERT with attributes, block definitions and table records,
-      and the ATTRIB/SEQEND/MTEXT/BLOCK groups entget leaves out; -LAYER LOCK of a backquoted name; `(setvar 'errno 0)`
-      and getvar PROGRAM/PLATFORM/VIEWCTR/UNDOCTL/ERRNO; -HATCH boundaries as line edges, island style 75, seed 98;
-      DIMBLK `None` against `_None`; prompt wording of -STYLE, -ATTDEF/-BLOCK/-INSERT, `New color [...] :`, AUDIT's
-      last line; nentsel's block matrix measured; our linetype dashes against acad.lin
+      and the ATTRIB/SEQEND/MTEXT/BLOCK groups entget leaves out; `ssget "_:L"` skipping locked layers; -HATCH
+      boundaries as line edges, island style 75, seed 98; DIMBLK `None` against `_None`; prompt wording of
+      -ATTDEF/-BLOCK/-INSERT, `New color [...] :`, AUDIT's last line, -LAYER `<select objects>` and Set/Rename's
+      `Invalid layer name.`; -STYLE Annotative; ELLIPSE Parameter and group 42 past 2 pi; nentsel's block matrix
+      measured; our linetype dashes against acad.lin
 - [x] L3. vl- functions and files: `vl-string-*`, `vl-sort`, `vl-remove`, `vl-position`, `vl-file-*`, `open`, `close`,
       `read-line`, `write-line`, `findfile`, `getfiled`
 - [ ] L4. (running) vla- and vlax- objects: the members the maintainer's routines use (about 40), on the presenter's own object
       model; COM to other programs (Excel) refused with a message
-- [ ] L5. DCL dialogs: the DCL parser and its tiles drawn as WPF, with action_tile, get_tile and set_tile (designed in
+- [ ] L5. (running) DCL dialogs: the DCL parser and its tiles drawn as WPF, with action_tile, get_tile and set_tile (designed in
       the Design artifact first)
 - [ ] L6. Trusted folders and SECURELOAD, as AutoCAD 2021, shared with the Python stages
 
@@ -100,8 +101,10 @@ compared by their values and by eye.
 Python works with GeometryHelper.Cad in three places: a script outside the app on the libraries alone, a console and
 scripts inside the app, and a script outside that drives a running app.
 
-- [ ] P1. Choose how: CPython through pythonnet against IronPython, on net48 and .NET 10, with numpy usable; how a
-      script finds the libraries; a short decision in the plan
+- [x] P1. Choose how: CPython through pythonnet against IronPython, on net48 and .NET 10, with numpy usable; how a
+      script finds the libraries; a short decision in the plan. Decided 2026-11-21: CPython 3.11+ through pythonnet 3.2
+      (IronPython 3.4 has no numpy and no `match`/`:=`); the netstandard2.0 libraries load unchanged on net48, .NET 8 and
+      .NET 10; a 10 000-line DXF opens in 30 ms from Python; scripts read coordinates in blocks (numpy), not one by one
 - [ ] P2. A Python package `geometryhelper` (pip) loading the core and `GeometryHelper.Cad` without a window: geometry,
       DXF and DWG read and write, a document edited and saved headless; type stubs (`.pyi`) so editors complete names
 - [ ] P3. Python inside `GeometryHelper.Cad.App`: a PYTHON console palette and the commands PYLOAD and PYRUN, with the
