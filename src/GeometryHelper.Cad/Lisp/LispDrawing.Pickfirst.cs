@@ -128,7 +128,7 @@ namespace GeometryHelper.Cad.Lisp
                 }
                 else
                 {
-                    throw LispInterpreter.TypeError("point", argument, colon: true);
+                    throw LispInterpreter.TypeError("2D/3D point", argument, colon: true);
                 }
             }
 

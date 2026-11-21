@@ -36,7 +36,8 @@ namespace GeometryHelper.Cad.Lisp
                     throw TypeError("FILE", a[1]);
                 }
 
-                OutputFile(a[1]).Write(before + LispPrinter.Print(a[0], quoted, display: false) + after);
+                OutputFile(a[1], streamTest: false)
+                    .Write(before + LispPrinter.Print(a[0], quoted, display: false) + after);
                 return a[0];
             }
 

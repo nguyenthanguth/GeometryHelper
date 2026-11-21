@@ -175,7 +175,7 @@ namespace GeometryHelper.Cad.Lisp
                 return KeyboardReady() ? _keyboard.ReadLine() : null;
             }
 
-            if (!(a[0] is LispFile file) || file.IsClosed)
+            if (!(a[0] is LispFile file))
             {
                 throw TypeError("FILE", a[0]);
             }
@@ -198,19 +198,28 @@ namespace GeometryHelper.Cad.Lisp
                     throw TypeError("FILE", a[0]);
                 }
 
-                if (file.IsClosed)
-                {
-                    throw new LispException("stream is closed: " + Print(file, true));
-                }
-
                 code = InputFile(file).ReadChar();
             }
 
             return code < 0 ? null : (object)code;
         }
 
-        private static LispFile InputFile(LispFile file) =>
-            file.CanRead ? file : throw TypeError("input-streamp", file, colon: true);
+        /// <summary>
+        /// A file to read from. A closed one is refused by the mode it was opened in, as AutoCAD does: opened to read it
+        /// says <c>stream is closed</c>, opened to write or append it is not an input file at all, a type error of FILE.
+        /// </summary>
+        private static LispFile InputFile(LispFile file)
+        {
+            if (file.IsClosed)
+            {
+                throw file.CanRead ? ClosedError(file) : TypeError("FILE", file);
+            }
+
+            return file.CanRead ? file : throw TypeError("input-streamp", file, colon: true);
+        }
+
+        private static LispException ClosedError(LispFile file) =>
+            new LispException("stream is closed: " + Print(file, true));
 
         /// <summary>Makes sure the keyboard buffer holds text, asking for a line when it is used up.</summary>
         private bool KeyboardReady()
@@ -242,22 +251,35 @@ namespace GeometryHelper.Cad.Lisp
                 return null;
             }
 
-            return OutputFile(a[index]);
+            return OutputFile(a[index], streamTest: true);
         }
 
-        private static LispFile OutputFile(object value)
+        /// <summary>
+        /// A file to write to. <c>write-line</c> and <c>write-char</c> (<paramref name="streamTest"/>) refuse anything that is
+        /// no output stream, a number or a file opened to read, closed or not, with <c>output-streamp</c>; <c>princ</c> and the
+        /// others refuse a non-file, and a closed file opened to read, as a type error of FILE. A closed file opened to write
+        /// or append says <c>stream is closed</c> to every one of them.
+        /// </summary>
+        private static LispFile OutputFile(object value, bool streamTest)
         {
             if (!(value is LispFile file))
             {
-                throw TypeError("FILE", value);
+                throw streamTest ? TypeError("output-streamp", value, colon: true) : TypeError("FILE", value);
             }
 
-            if (file.IsClosed)
+            if (file.IsClosed && !file.CanRead)
             {
-                throw new LispException("stream is closed: " + Print(file, true));
+                throw ClosedError(file);
             }
 
-            return file.CanRead ? throw TypeError("output-streamp", file, colon: true) : file;
+            if (file.CanRead)
+            {
+                throw streamTest || !file.IsClosed
+                    ? TypeError("output-streamp", file, colon: true)
+                    : TypeError("FILE", file);
+            }
+
+            return file;
         }
 
         private object WriteLine(object[] a)

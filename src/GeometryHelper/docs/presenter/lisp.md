@@ -6,11 +6,14 @@ presenter's own, one for each open drawing: [`LispInterpreter`](xref:GeometryHel
 [`CadCommandSession`](xref:GeometryHelper.Cad.CadCommandSession) makes the first time it is asked for. The values, the
 printing and the error messages were measured against AutoCAD 2021, so a routine that runs there writes the same text here.
 
-This covers two stages. The first is the core of the language: the data, the control forms, `defun` and the `c:` commands,
+This covers three stages. The first is the core of the language: the data, the control forms, `defun` and the `c:` commands,
 errors, and the functions for numbers, lists, strings and units. The second is the drawing: a routine can run the
 presenter's commands with `command`, ask the user for points, distances and words, pick objects, select, read and change
-entities and the tables, read and set system variables, and convert between coordinate systems. The rest of the language's
-library comes in later stages and is listed [at the end](#what-is-not-there-yet).
+entities and the tables, read and set system variables, and convert between coordinate systems. The third is Visual LISP's
+library of [lists, strings and files](#strings-lists-and-files): `vl-sort`, the `vl-string-` functions, `open`, `read-line`
+and `write-line`, `findfile`, the `vl-file-` functions, a store for `vl-registry-write`, the blackboard shared by the open
+drawings, `getfiled`, and the pick-first selection. The rest of the language's library comes in later stages and is listed
+[at the end](#what-is-not-there-yet).
 
 The drawing stage was checked on seventeen routines written for AutoCAD by one user, each run in AutoCAD 2021's console and
 in the presenter on the same blank drawing with the same typed answers: nine wrote the same command line and left the same
@@ -18,6 +21,15 @@ drawing, compared object by object and table by table, and the other eight diffe
 UNDO's settings line, AUDIT's report, the patterns of the linetypes and the boundary form of the hatches the presenter makes
 with its own files, a dimension style's arrowhead stored as `_None` where AutoCAD stores `None`, and quirks of AutoCAD's console (a
 prompt written over two lines or twice, a pick it misses outside its view, an arc length it kept from an earlier run).
+
+The library stage was measured in nine probe files typed into AutoCAD 2021's console, and the 420 tests of the stage take
+their expected values from them. The same routines then ran again: all 22 of the user's routines load alike in both
+programs, and for the five that call the library, forms making the same calls on the same shapes of data (numbers with
+repeats through `vl-sort`, a temporary dialog file written, read back and deleted, entity names filtered by type) were
+typed into both. For three of the five the command line and the drawing came out the same; the other two differ only in
+matters of the drawing stage (-LAYER's Lock of a backquoted name, `(setvar 'errno 0)`, the wording of -ATTDEF, -BLOCK and
+-INSERT, and the groups of ATTRIB and MTEXT that `entget` lacks). A sixth feed, of the pick-first functions, differs in one
+row, [described below](#pick-first-and-nentselp).
 
 ```csharp
 var session = new CadCommandSession(document);
@@ -49,9 +61,13 @@ session.Feed("(command \"CIRCLE\" '(0 0) 5)");              // Command: (command
 | Units | `rtos`, `angtos`, `distof`, `angtof`, which read the drawing's LUNITS, LUPREC, AUNITS, AUPREC and DIMZIN; `cvunit`, which converts between units |
 | Geometry | `angle`, `distance`, `polar`, `inters` |
 | The rest | `type`, `eval`, `read`, `set`, `boundp`, `eq`, `equal`, `load`, `defun-q-list-ref`, `defun-q-list-set`, `vl-symbol-value`, `vl-symbolp`, `vl-consp`, `vl-load-com` (which does nothing, so that a routine that starts with it loads) |
+| Visual LISP lists | `vl-sort`, `vl-sort-i`, `vl-position`, `vl-remove`, `vl-remove-if`, `vl-remove-if-not`, `vl-member-if`, `vl-member-if-not`, `vl-some`, `vl-every`, `vl-list*`, `vl-list-length` |
+| Visual LISP strings | `vl-string-search`, `vl-string-subst`, `vl-string-position`, `vl-string-mismatch`, `vl-string-elt`, `vl-string-translate`, `vl-string-trim`, `vl-string-left-trim`, `vl-string-right-trim`, `vl-string->list`, `vl-list->string` |
+| Files | `open`, `close`, `read-line`, `read-char`, `write-line`, `write-char`, `findfile`, `vl-filename-base`, `vl-filename-directory`, `vl-filename-extension`, `vl-filename-mktemp`, `vl-file-size`, `vl-file-systime`, `vl-file-directory-p`, `vl-file-copy`, `vl-file-rename`, `vl-file-delete`, `vl-mkdir`, `vl-directory-files` |
+| Registry, blackboard, drawings | `vl-registry-read`, `vl-registry-write`, `vl-registry-delete`, `vl-registry-descendents`, `vl-bb-set`, `vl-bb-ref`, `vl-propagate`, `vl-load-all`, `vl-doc-ref`, `vl-doc-set`, and the VLX group (`vl-doc-export`, `vl-doc-import`, `vl-list-exported-functions`, `vl-vlx-loaded-p`, `vl-unload-vlx`, `vl-list-loaded-vlx`, `vl-get-resource`) |
 | Commands | `command`, `vl-cmdf`, and the symbol `PAUSE` |
-| Asking | `getpoint`, `getcorner`, `getdist`, `getangle`, `getorient`, `getint`, `getreal`, `getstring`, `getkword`, `initget`, `entsel`, `nentsel` |
-| Selection sets | `ssget`, `sslength`, `ssname`, `ssadd`, `ssdel`, `ssmemb` |
+| Asking | `getpoint`, `getcorner`, `getdist`, `getangle`, `getorient`, `getint`, `getreal`, `getstring`, `getkword`, `initget`, `entsel`, `nentsel`, `nentselp`, `getfiled` |
+| Selection sets | `ssget`, `sslength`, `ssname`, `ssadd`, `ssdel`, `ssmemb`, `sssetfirst`, `ssgetfirst` |
 | Entities | `entget`, `entmod`, `entmake`, `entdel`, `entupd`, `entnext`, `entlast`, `handent` |
 | Tables | `tblsearch`, `tblnext`, `tblobjname` |
 | Variables | `getvar`, `setvar` |
@@ -59,7 +75,11 @@ session.Feed("(command \"CIRCLE\" '(0 0) 5)");              // Command: (command
 
 The functions of the last seven rows read or change the drawing, so they exist in the interpreter of a drawing and not in a bare
 [`LispInterpreter`](xref:GeometryHelper.Cad.Lisp.LispInterpreter): `(getvar "OSMODE")` there is `; error: no function
-definition: GETVAR`. The pure ones, `angle`, `distance`, `polar`, `inters` and `cvunit`, need no drawing and are in both.
+definition: GETVAR`. The pure ones, `angle`, `distance`, `polar`, `inters` and `cvunit`, need no drawing and are in both, and
+so are the four Visual LISP rows above them: lists, strings, files and the registry, blackboard and drawings. What a bare
+interpreter lacks of those is what comes from a drawing: `getfiled`, `sssetfirst`, `ssgetfirst` and `nentselp`, the
+folder of the drawing that `findfile` searches, and the line typed at the command line that `read-line` and `read-char` read
+when they are given no file (they give `nil` there).
 
 ### Numbers
 
@@ -535,6 +555,333 @@ window, and a session with no window writes the lines of the text on the command
 text, `nil` with no arguments, and has no effect. `(redraw [ename [mode]])` gives `nil`; `(redraw nil 3)` is `bad argument
 type: lentityp nil`.
 
+## Strings, lists and files
+
+Visual LISP's functions for lists, strings, files, the registry and the other open drawings, and the pick-first selection.
+Their values, and the text of their errors, were measured in AutoCAD 2021's console, and the examples below are what the
+presenter writes for them. Lists, strings, files and the registry exist in every interpreter; only `getfiled`, the
+selection functions and the line typed at the command line come from a drawing.
+
+### Lists
+
+`(vl-sort list f)` gives a new list in the order `f` says: `f` is called with two items and answers non-nil when the first
+comes before the second. The list given is not changed, and the sort is stable, so items `f` ranks alike keep the order they
+had. As in AutoCAD, it also drops an integer or a symbol that repeats the one just before it in the result, and a real zero
+that repeats a zero, where every other repeated real, and every string and list, stays:
+
+```text
+Command: (vl-sort '(3 1 2 3 1) '<)
+(1 2 3)
+Command: (vl-sort '(100.0 0.0 200.0 100.0 0.0 200.0) '<)
+(0.0 100.0 100.0 200.0 200.0)
+Command: (vl-sort '("b" "a" "c" "a") '<)
+("a" "a" "b" "c")
+Command: (vl-sort '((1 . "a") (2 . "b") (1 . "c") (2 . "d") (1 . "e")) '(lambda (a b) (< (car a) (car b))))
+((1 . "a") (1 . "c") (1 . "e") (2 . "b") (2 . "d"))
+```
+
+`(vl-sort-i list f)` gives the positions of the items in that order, and drops nothing; of items that rank alike the last
+one comes first: `(vl-sort-i '(3 1 2 3 1) '<)` is `(4 1 2 3 0)`, and for `'("b" "a" "c" "a")` it is `(3 1 0 2)`. Items the function
+cannot compare are its error: `(vl-sort '(1 "a") '<)` is `; error: bad argument type for compare: "a" 1`. A list that is no
+list is `bad argument type: listp 5`, and a function that is none is `bad function: NOSUCH`.
+
+`vl-position` and `vl-remove` compare with the type: an integer with an integer, a real with a real exactly, a string in
+its own case, a symbol by identity, a list item by item. So `(vl-position 3.0 '(1 2 3))` is `nil` where `member` takes `1.0`
+for `1` and gives `(1 2)` for `(member 1.0 '(1 2))`, as in AutoCAD. `(vl-position 3 '(1 2 3 3))` is `2`, `(vl-remove 1.0 '(1 2
+1.0 3))` is `(1 2 3)`, and `(vl-remove "a" '("a" "b" "A"))` is `("b" "A")`.
+
+| Function | Gives | Example |
+|---|---|---|
+| `(vl-remove-if f list)` | the items `f` answers nil for | `(vl-remove-if 'minusp '(1 -2 3 -4))` is `(1 3)` |
+| `(vl-remove-if-not f list)` | the items `f` answers non-nil for | `(vl-remove-if-not 'minusp '(1 -2 3 -4))` is `(-2 -4)` |
+| `(vl-member-if f list)` | the tail from the first item `f` accepts, or `nil` | `(vl-member-if 'minusp '(1 -2 3))` is `(-2 3)` |
+| `(vl-member-if-not f list)` | the tail from the first item `f` refuses | `(vl-member-if-not 'minusp '(-1 -2 3 4))` is `(3 4)` |
+| `(vl-some f list ...)` | the first value of `f` that is not nil | `(vl-some '(lambda (x) (if (> x 1) (* x 10))) '(1 2 3))` is `20` |
+| `(vl-every f list ...)` | `T` when `f` is non-nil for every item, else `nil` | `(vl-every 'numberp '(1 a))` is `nil` |
+| `(vl-list* a b ... list)` | a list of the items, the last argument as its tail | `(vl-list* 1 2 3)` is `(1 2 . 3)`, `(vl-list* 1 '(2 3))` is `(1 2 3)` |
+| `(vl-list-length list)` | the length, `nil` for a dotted list, `0` for `nil` | `(vl-list-length '(1 2 . 3))` is `nil` |
+
+`vl-some` and `vl-every` take several lists and stop at the shortest: `(vl-every '= '(1 2) '(1 2 3))` is `T`. A list that is no
+list is `bad argument type: listp 5`, and a dotted one is an error too: `(vl-position 1 '(0 . 1))` is `bad list: 1`.
+
+### Strings and Unicode
+
+Wherever one of these functions takes a string, a symbol stands for its name in capitals: `(vl-string-search "B" 'abc)` is
+`1`. Any other value is `bad argument type: (or stringp symbolp): 1`. Positions count from 0.
+
+| Function | Gives | Example |
+|---|---|---|
+| `(vl-string-search pattern string [start])` | where the pattern is first found from `start`, or `nil` | `(vl-string-search "cd" "abcdcd" 3)` is `4` |
+| `(vl-string-subst new old string [start])` | the string with the first `old` from `start` replaced | `(vl-string-subst "X" "b" "abcb" 2)` is `"abcX"` |
+| `(vl-string-position code string [start [from-end]])` | the position of the first character with that code at or after `start`, or of the last where `from-end` is not nil | `(vl-string-position 98 "abcb" 0 T)` is `3` |
+| `(vl-string-mismatch s1 s2 [p1 [p2 [ignore-case]]])` | the length of the common start of the two from `p1` and `p2` | `(vl-string-mismatch "abcd" "ABcd" 0 0 T)` is `4` |
+| `(vl-string-elt string i)` | the code of the character at `i` | `(vl-string-elt "abc" 1)` is `98` |
+| `(vl-string-translate source target string)` | the string with the i-th character of `source` made the i-th of `target`, where `target` has one | `(vl-string-translate "abc" "AB" "aabbcc")` is `"AABBcc"` |
+| `(vl-string-trim chars string)` | the string without those characters at both ends | `(vl-string-trim " " "  a b  ")` is `"a b"` |
+| `vl-string-left-trim`, `vl-string-right-trim` | the same at one end | `(vl-string-left-trim "ab" "abbacab")` is `"cab"` |
+| `(vl-string->list string)` | the codes of its characters | `(vl-string->list "abc")` is `(97 98 99)` |
+| `(vl-list->string codes)` | the string of those codes | `(vl-list->string '(97 98 99))` is `"abc"` |
+
+A search that starts past the end is `bad argument value: string position out of range 9`, one that starts below 0 is `bad
+argument value: non-negative: -1`, and a start equal to the length finds nothing and gives `nil`. `(vl-string-elt "abc" 3)`
+is `bad argument value: string position out of range 3`.
+
+Strings are Unicode. `chr` gives the character of any code from 1 to 65535: `(strlen (chr 273))` is `1` and `(ascii (chr
+273))` is `273`; a code of 65536 or more, or of 0 or less, gives `""`. (Before this stage `chr` gave `""` for 256 and up.)
+`strlen`, `substr`, `ascii`, `vl-string-elt` and `vl-string-search` count UTF-16 units, and `strcase` changes the letters
+beyond ASCII too, `(ascii (strcase (chr 273)))` is `272`. The seven characters of `\U+0111` stay seven characters, as in
+AutoCAD: `(strlen "\U+0111x")` is `8` and `(ascii "\U+0111")` is `92`, the backslash. Only `vl-string->list` reads them as one
+character, `(vl-string->list "\U+0111x")` is `(273 120)`. `vl-list->string` makes characters of the codes from 1 to 65535 and
+leaves out the others: `(strlen (vl-list->string '(97 0 98)))` is `2`, and a code that is no integer is `bad char code in
+list: 1.5`.
+
+### Files
+
+`(open name mode [encoding])` gives a file value, `nil` for a file that cannot be opened (missing to read, a folder that is
+missing, a file in use). The mode is `"r"`, `"w"` or `"a"`, in either case; any other text that starts with one of those
+letters gives `nil` (`"rw"`) and any other is `; error: unknown open mode: "x"`. The encoding is `"utf8"` or `"utf8-bom"`, in
+either case; any other is the same error with the encoding in it. `"w"` empties a file that exists. A name with no folder is
+taken from the process's current folder, the one the presenter was started in, which is not the folder of the drawing.
+
+```text
+Command: (setq f (open "C:/work/notes.txt" "w"))
+#<file "C:/work/notes.txt">
+Command: (type f)
+FILE
+Command: (write-line "line one" f)
+"line one"
+Command: (write-line (strcat "caf" (chr 233)) f)
+"café"
+Command: (write-line (chr 273) f)
+"đ"
+Command: (close f)
+nil
+Command: !f
+#<FILE internal>
+```
+
+A file prints as `#<file "name">`, the name as it was given, and as `#<FILE internal>` once it is closed. Two opens of one
+file are two values that are not `eq`, and `(close f)` of a file already closed gives `nil` again.
+
+**What is written.** Every `\n` becomes a carriage return and a line feed, so the three lines above are 25 bytes. A file is
+written in the machine's ANSI code page unless it says otherwise, and a character the code page does not have is written as
+`\U+` and four hex digits in capitals: the é is one byte, and the đ is the seven characters `\U+0111`. A string that holds
+those seven characters is written as those seven in every encoding.
+
+| Opened | Written as |
+|---|---|
+| `"w"` | ANSI, with `\U+XXXX` for what the code page lacks |
+| `"a"` to a new or empty file, or one that is not valid UTF-8 | ANSI |
+| `"a"` to a file that has text and is valid UTF-8, plain ASCII included | UTF-8 with no byte order mark: the file stays what it was |
+| `"w"` or `"a"` with `"utf8"` | UTF-8 with no byte order mark: `caféđ` and its line end are 9 bytes, and a second `đ` appended makes 13 |
+| `"w"` with `"utf8-bom"` | UTF-8 with a byte order mark: `x` and its line end are 6 bytes, and `"a"` after it adds no second mark (9 bytes with `y`) |
+
+**What is read.** A file with a UTF-8 or UTF-16 byte order mark is read as that; one without is read as UTF-8 when the whole
+of it is valid UTF-8, and otherwise in the ANSI code page. With `"utf8"` or `"utf8-bom"` a file is read as UTF-8, a byte
+order mark is skipped, and each byte that is no valid UTF-8 becomes a `?`. A line ends at a carriage return and line feed, at
+a line feed, or at a carriage return alone; the last line needs no end, and a line of 1 000 characters reads whole.
+
+```text
+Command: (setq f (open "C:/work/notes.txt" "r"))
+#<file "C:/work/notes.txt">
+Command: (read-line f)
+"line one"
+Command: (vl-string->list (read-line f))
+(99 97 102 233)
+Command: (setq s (read-line f))
+"đ"
+Command: (list (strlen s) (vl-string->list s))
+(7 (273))
+Command: (read-line f)
+nil
+```
+
+`(read-line f)` gives `nil` at the end, again and again. `(read-char f)` gives the code of the next character, `10` for a
+line end of any kind, and `nil` at the end. `(write-line string f)` gives the string, `(write-char code f)` the code, and
+`princ`, `prin1` and `print` given a file as their last argument write there and nothing on the screen (`print` writes the
+line end before and a space after, as it does on the screen). `(write-line "screen")` and `(write-char 66)`, with no file or
+with `nil`, write on the screen.
+
+**The line typed.** `(read-line)` and `(read-char)` with no file read what the user types at the command line, as AutoCAD's
+console does. The prompt is empty, the line is taken whole with its spaces, and text that starts with `(` is text and not
+AutoLISP, with no `Can't reenter LISP.`; the line is echoed on a line of its own. `(read-line)` and then `hello world` gives
+`"hello world"`, and `(setq x (read-line))` and then `(1 2)` gives `"(1 2)"`. A line typed is kept for the calls that follow:
+`(read-char)` and then `ab` gives `97`, the next `(read-char)` gives `98`, and `(read-line)` then gives `""`, the rest of
+the line, with no question. Esc is `Function cancelled`, as at every question. A bare `LispInterpreter` has no command line,
+and gives `nil`.
+
+**The errors** depend on what the file was opened for, and on whether it is open. `(read-line 5)` is `bad argument type:
+FILE 5` and `(write-line "x" 5)` is `bad argument type: output-streamp: 5`. A file opened `"r"` and written to is `bad
+argument type: output-streamp: #<file "C:/work/notes.txt">`; one opened `"w"` and read is the same with `input-streamp`.
+After `close`:
+
+| Call on a closed file | Opened `"r"` | Opened `"w"` or `"a"` |
+|---|---|---|
+| `read-line`, `read-char` | `stream is closed: #<FILE internal>` | `bad argument type: FILE #<FILE internal>` |
+| `write-line`, `write-char` | `bad argument type: output-streamp: #<FILE internal>` | `stream is closed: #<FILE internal>` |
+| `princ`, `prin1`, `print` | `bad argument type: FILE #<FILE internal>` | `stream is closed: #<FILE internal>` |
+
+`(close nil)` is `bad argument type: streamp nil`, and `(open 5 "r")` and `(open "x.txt" 5)` are `bad argument type: stringp 5`.
+
+A file a routine leaves open stays open, and locked, until the drawing is closed or reloaded, which closes it; a routine
+that opens a file should close it.
+
+### Finding and naming files
+
+`(findfile name)` gives the full path of a file or folder, with backslashes, or `nil`. A name with a folder in it, absolute or
+like `files/notes.txt`, is checked where it points, a relative one from the current folder. A bare name is looked for in the
+current folder, then in the folder of the drawing (none for a drawing that was never saved), then in the support folders in
+order, those of Global settings' Folder preference. The first place that has it wins. `(findfile "C:/work/notes.txt")` is
+`"C:\\work\\notes.txt"`, and `""`, a name that ends in a separator, and a name nothing has give `nil`. `load` looks in the
+support folders and not in the folder of the drawing, as AutoCAD does, so a routine that loads a file beside its drawing
+names the folder.
+
+The names are worked out from the text alone, with `\` and `/` both taken as separators:
+
+| Function | `"C:\\a\\b.c.txt"` | `"C:\\a.d\\b"` | `".txt"` | `"b.txt"` |
+|---|---|---|---|---|
+| `vl-filename-base` | `"b.c"` | `"b"` | `""` | `"b"` |
+| `vl-filename-directory` | `"C:\\a"` | `"C:\\a.d"` | `""` | `""` |
+| `vl-filename-extension` | `".txt"` | `nil` | `".txt"` | `".txt"` |
+
+A name that ends in a separator has the base `"."` and its folder as the directory: `(vl-filename-directory "C:\\a\\")`
+is `"C:\\a"`.
+
+`(vl-filename-mktemp [pattern [dir [ext]]])` makes up a name and creates nothing. The pattern is `"$VL~~"` where none is
+given; five letters of its name and a three-digit counter make the name, the extension is `ext` or else the pattern's, and
+the folder is `dir` or else the pattern's own or else the temporary folder. The counter starts at 1 in each interpreter, and
+a call takes the next number that has no file of that name:
+
+```text
+Command: (setq t1 (vl-filename-mktemp "EditText.dcl"))
+"C:\\Users\\you\\AppData\\Local\\Temp\\EditT001.dcl"
+Command: (vl-filename-base (vl-filename-mktemp "EditText.dcl"))
+"EditT002"
+Command: (findfile t1)
+nil
+```
+
+| Function | Gives |
+|---|---|
+| `(vl-file-size name)` | the size in bytes, `0` for a folder, `nil` for a file that is not there |
+| `(vl-file-systime name)` | `(year month weekday day hour minute second millisecond)` in local time, the weekday 0 for Sunday; `nil` for a folder or a missing file |
+| `(vl-file-directory-p name)` | `T` for a folder, a trailing separator or not |
+| `(vl-file-copy from to [append])` | the bytes copied; `nil` when `to` exists, unless `append` is not nil and the file goes on at its end, when `to` is a folder, or when `from` is missing |
+| `(vl-file-rename from to)` | `T`, replacing a file that is already `to`, as AutoCAD 2021 does; `nil` when `from` is missing |
+| `(vl-file-delete name)` | `T` for a file or an empty folder; `nil` for one that is missing, or a folder with files in it |
+| `(vl-mkdir name)` | `T`, also for a folder that is there; `nil` when its parent is missing |
+| `(vl-directory-files [dir [pattern [flag]]])` | the names in `dir` (the current folder where there is none) that match `pattern` (`*` and `?`, case ignored, `*.*` where there is none); `flag` 1 the files, -1 the folders, `nil` or 0 both |
+
+`vl-directory-files` lists `.` and `..` first wherever it lists folders, and the rest by name, case ignored and then
+ordinal. For a folder `C:/work/dir` that holds `a.lsp`, `b.txt`, `C.TXT` and a folder `sub1`:
+
+```text
+Command: (vl-directory-files "C:/work/dir")
+("." ".." "a.lsp" "b.txt" "C.TXT" "sub1")
+Command: (vl-directory-files "C:/work/dir" "*.txt")
+("b.txt" "C.TXT")
+Command: (vl-directory-files "C:/work/dir" nil 1)
+("a.lsp" "b.txt" "C.TXT")
+Command: (vl-directory-files "C:/work/dir" nil -1)
+("." ".." "sub1")
+```
+
+A missing folder or no match is `nil`. `(vl-file-copy "C:/work/dir/a.lsp" "C:/work/dir/copy.lsp")` of a file of 9 bytes is
+`9`, and the same again is `nil`; with `T` after it the file grows to 18.
+
+`(getfiled title default ext flags)` shows the window's file dialog and gives the path the user chose, or `nil` when the
+user cancelled. `title` is the dialog's title, `default` the file or folder it starts at, `ext` the kinds of file offered
+without dots (`"dwg;dxf"`, several with a semicolon; `""` for any), and `flags` is a sum: 1 a new file, which makes it a save
+dialog that asks before it replaces a file unless 32 is added, 4 any extension, 16 `default` is a folder. A session with no
+window gives `nil`, as AutoCAD's console does: `(getfiled "Select a file" "" "txt" 0)` is `nil`. FILEDIA is not read. A host
+that draws its own dialog handles the request `"GETFILED"` of [`CadCommandSession.UiRequested`](xref:GeometryHelper.Cad.CadCommandSession),
+whose [`CadUiRequestEventArgs.GetFile`](xref:GeometryHelper.Cad.CadUiRequestEventArgs.GetFile) is a
+[`CadGetFileRequest`](xref:GeometryHelper.Cad.CadGetFileRequest) with the four arguments, and puts the path in `Answer`; the
+window does it through `MainViewModel.AskGetFile`.
+
+### The registry, the blackboard and other drawings
+
+**The registry.** `vl-registry-write`, `-read`, `-delete` and `-descendents` do not touch the Windows registry. They keep
+their keys and values in a store of the presenter's own, the file `lisp-registry.txt` in the folder of the settings file
+(`%AppData%\GeometryHelper\Drawing`), which every open drawing reads before it looks and writes after it changes, so they share
+what is in it. A host sets [`LispInterpreter.RegistryFile`](xref:GeometryHelper.Cad.Lisp.LispInterpreter.RegistryFile) to
+pick the file; left null, as in a bare interpreter, the values live in memory for that interpreter alone. The file is UTF-8
+text, a line for each value, with the key, the name, `S` or `I` and the value separated by tabs.
+
+A routine that reads Windows' own keys, or AutoCAD's, gets `nil`: they are not in the store. What a routine writes first and
+then reads back works as it does in AutoCAD:
+
+```text
+Command: (vl-registry-write "HKEY_CURRENT_USER\\Software\\Demo" "Name" "text")
+"text"
+Command: (vl-registry-write "HKEY_CURRENT_USER\\Software\\Demo" "Count" 42)
+42
+Command: (vl-registry-write "HKEY_CURRENT_USER\\Software\\Demo\\Sub" "" "def")
+"def"
+Command: (vl-registry-read "HKEY_CURRENT_USER\\Software\\Demo" "Count")
+42
+Command: (vl-registry-read "HKEY_CURRENT_USER\\Software\\Demo\\Sub")
+"def"
+Command: (vl-registry-descendents "HKEY_CURRENT_USER\\Software\\Demo")
+("Sub")
+Command: (vl-registry-descendents "HKEY_CURRENT_USER\\Software\\Demo" T)
+("Count" "Name")
+Command: (vl-registry-delete "HKEY_CURRENT_USER\\Software\\Demo")
+nil
+Command: (vl-registry-delete "HKEY_CURRENT_USER\\Software\\Demo\\Sub")
+T
+Command: (vl-registry-delete "HKEY_CURRENT_USER\\Software\\Demo")
+T
+```
+
+The key starts with `HKEY_CURRENT_USER`, `HKEY_LOCAL_MACHINE`, `HKEY_CLASSES_ROOT`, `HKEY_USERS` or `HKEY_CURRENT_CONFIG`, in
+capitals; `"HKCU\\Software\\Demo"` is `; error: bad registry key name: "HKCU\\Software\\Demo"`. The names below the root
+are compared in any case, as Windows does. A value is a string or an integer: `(vl-registry-write key "Ratio" 1.5)` is
+`bad argument value: unsupported registry value: "Ratio"`. With no name, or `""`, `write` and `read` use the key's default value.
+`descendents` gives the names of the sub-keys, or with a second argument of any kind the names of the values, the values newest
+first and the sub-keys in descending order of name. `delete` of a value is `T`; of a key that has sub-keys it is `nil` and removes
+nothing; of a key without them, or a key that is not there, it is `T`.
+
+**The blackboard.** `(vl-bb-set 'cutoff 5)` stores a value under a symbol or a string and gives it back, and `(vl-bb-ref
+'cutoff)` reads it, `nil` for a name that was never set. The blackboard is one for the whole process, and no drawing's
+variable: `(boundp 'cutoff)` stays `nil` after the `vl-bb-set`. What another drawing reads is a copy: symbols again by name,
+lists deeply, a function the routine defined rebuilt from its parameters and body, and numbers, strings, entity names,
+selection sets and files as they are.
+
+**Other drawings.** Each drawing has its own variables (see [below](#each-drawing-its-own-variables)); two functions reach
+across. `(vl-propagate 'ghd)` sets `ghd` in every other open drawing to the value it has here, and in every drawing opened
+afterwards, and gives that value; `(vl-propagate 'nosuchvar)` is `nil` and sends nothing. `(vl-load-all "file.lsp")` loads
+the file here as `load` does, and in every other drawing. The other drawings take it when they next run AutoLISP, and the
+one opened later at its first form; AutoCAD reaches them at once, which a routine can see only by switching drawings.
+`(vl-doc-set 'ghd2 9)` sets a variable in the drawing and `(vl-doc-ref "ghd")` reads one, a symbol or a string, which is all
+a drawing's own namespace needs, since the presenter has no other kind.
+
+**VLX, VBA and ObjectARX.** There are no VLX applications, and the functions about them answer as AutoCAD does with none
+loaded: `vl-doc-export` gives `T` and remembers the name, `vl-list-exported-functions` lists the names in capitals (`("FOO")`
+after `(vl-doc-export 'foo)`), `vl-doc-import` and `vl-unload-vlx` are `; error: LISP Application is not found foo`,
+and `vl-vlx-loaded-p`, `vl-list-loaded-vlx` and `vl-get-resource` give `nil`. `.fas` and `.vlx` files are still refused by
+`load`. `vl-exit-with-error` and `vl-exit-with-value`, which belong to those applications, are not defined. What belongs to
+AutoCAD alone is refused, not ignored: `vl-vbaload` and `vl-vbarun` write `; error: vl-vbarun: VBA is not supported by
+GeometryHelper.Cad`, and `vl-arx-import`, `vl-acad-defun` and `vl-acad-undefun` write `; error: vl-arx-import: ObjectARX is
+not supported by GeometryHelper.Cad`, each with its own name.
+
+### Pick-first and nentselp
+
+The pick-first selection is the set of objects selected while no command runs. `(sssetfirst gripset [pickset])` sets it, as
+AutoCAD 2021 does: the first argument, the objects with grips, is ignored, and the value is a list of two, `nil` and the
+selection set. `(sssetfirst nil (ssadd e))` gives `(nil <Selection set: 6>)`, `(sssetfirst nil nil)` gives `(nil nil)`, `(sssetfirst
+nil)` gives `(nil)`, and `(sssetfirst 5)` is `bad argument type: lselsetp 5`. `(ssgetfirst)` gives `(nil set)` of the objects
+that are selected now, a new set each time over the same objects, or `(nil nil)` where none is. A command started after
+`sssetfirst` takes the set as if it had been selected before the command, while PICKFIRST is not 0: with a line from 0,0
+to 10,0 selected, `(sssetfirst nil (ssadd e))` and then `(command "ERASE")` writes `1 found` and erases it.
+
+`(nentselp [msg] [pt])` is `nentsel` that can take its point from the routine. With a point, `(nentselp '(5 0))` picks
+there with no question and gives `(<Entity name: ...> (5.0 0.0 0.0))` for that line, and `(nentselp '(50 50))` gives `nil`
+where nothing is; the message and the point may come in either order. With no point it asks as `nentsel` does, `Select
+object: ` or the message, and Enter gives `nil`; for an object inside a block reference it gives `nentsel`'s longer form.
+One case differs from AutoCAD: a point exactly on the insertion corner of a TEXT picks the text, where AutoCAD 2021 gave
+`nil` in the one measurement made. The pick is the selection engine's, shared with `entsel`.
+
 ## While a routine waits
 
 A routine that asks the user is suspended, and the presenter goes on: the window never blocks, and a headless session returns
@@ -557,7 +904,9 @@ presenter never change the drawing together. What follows is for the window and 
 A variable or function a routine defines belongs to the drawing it was loaded into, as AutoCAD's does with LISPINIT at 1:
 `(setq a 1)` in one drawing, and `!a` in another writes `nil`. A routine that serves every drawing is in a startup file,
 which loads into each as it opens. The `c:` commands of a drawing are those of its own interpreter, and the other drawing
-types them as an unknown command until it has loaded the file too.
+types them as an unknown command until it has loaded the file too. A value that must reach the other drawings is sent with
+`vl-propagate`, a file with `vl-load-all`, and a value that is shared rather than copied lives on the
+[blackboard](#the-registry-the-blackboard-and-other-drawings).
 
 ## What is not there yet
 
@@ -566,13 +915,18 @@ writes for a name it does not know, `; error: no function definition: NAME`, so 
 above runs, and one that reaches for a later stage stops at its first such call. A routine that defines its commands loads
 whole, and their names are offered by AutoComplete, whatever their bodies need.
 
-The drawing is built, with these left out: `sssetfirst`, `ssgetfirst` and `nentselp`, which come with the next stage, and in
-`entmake` the POLYLINE sequences, an INSERT with attributes, block definitions and the records of a table. A few variables
-AutoCAD has, PROGRAM, PLATFORM, VIEWCTR, UNDOCTL and ERRNO, read as `nil`.
+The drawing and the library are built, with these left out. In `entmake`: the POLYLINE sequences, an INSERT with attributes,
+block definitions and the records of a table. A few variables AutoCAD has, PROGRAM, PLATFORM, VIEWCTR, UNDOCTL and ERRNO,
+read as `nil`. Of the library, `acad_strlsort`, `getenv` and `setenv` (they come with the registry store, when a routine needs
+them), `findtrustedfile` (with L6), `vl-load-reactors` (with the reactors of L4), and `vl-exit-with-error` and
+`vl-exit-with-value`, which belong to VLX applications, are not defined. A `vl-sort` function that is no ordering can give
+another list than AutoCAD's: for `'(2 1 2 1)` and a function that always answers `nil` AutoCAD gave `(1 2 1)` and the presenter
+gives `(2 1 2 1)`, and for `'(1 2 3 2 1)` and one that always answers `T`, `(1 2 3 1)` and `(1 2 3 2 1)`. `vl-list->string` leaves out the codes
+outside 1 to 65535 where AutoCAD printed other text, a `vl-filename-mktemp` counter does not go past 999, and Unicode typed
+at the command line reaches `read-line` through the ANSI code page.
 
 | Stage | What it brings |
 |---|---|
-| L3 | the `vl-` functions of strings and files, `open` and `close`, the blackboard |
 | L4 | the ActiveX functions, `vla-` and `vlax-` |
 | L5 | dialogs, DCL: `load_dialog`, `new_dialog`, `start_dialog` |
 | L6 | trusted folders and the secure-load check; for now `load` reads any file it is given |

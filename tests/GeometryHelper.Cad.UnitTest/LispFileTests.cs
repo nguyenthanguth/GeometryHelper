@@ -553,6 +553,8 @@ namespace GeometryHelper.Cad.UnitTest
         [InlineData("(write-line 5)", "bad argument type: stringp 5")] // AutoCAD 2021: (r3)
         [InlineData("(write-char \"a\")", "bad argument type: fixnump: \"a\"")] // AutoCAD 2021: (r3)
         [InlineData("(read-line 5)", "bad argument type: FILE 5")] // AutoCAD 2021: (r3)
+        [InlineData("(write-line \"x\" 5)", "bad argument type: output-streamp: 5")] // AutoCAD 2021: (e1, D134)
+        [InlineData("(write-char 65 5)", "bad argument type: output-streamp: 5")] // ours: write-char by the rule of write-line (D134)
         [InlineData("(close nil)", "bad argument type: streamp nil")] // AutoCAD 2021: (r3)
         [InlineData("(close 5)", "bad argument type: streamp 5")] // AutoCAD 2021: (r3)
         [InlineData("(princ \"x\" nil)", "bad argument type: FILE nil")] // AutoCAD 2021: (r3, L1 D7 kept)
@@ -592,11 +594,46 @@ namespace GeometryHelper.Cad.UnitTest
             lisp.Run("(setq f (open (strcat D \"w-closed.txt\") \"w\"))");
             lisp.Run("(close f)");
 
-            // AutoCAD 2021: write-line, princ and read-char say "stream is closed"; read-line a type error (r3, r7)
+            // AutoCAD 2021: a file opened "w": write-line, write-char and princ say "stream is closed"; read-line and
+            // read-char a type error (r3, r7; e1 for read-char and write-char, D135)
             ExpectError(lisp, "(write-line \"x\" f)", "stream is closed: #<FILE internal>");
+            ExpectError(lisp, "(write-char 65 f)", "stream is closed: #<FILE internal>");
             ExpectError(lisp, "(princ \"x\" f)", "stream is closed: #<FILE internal>");
-            ExpectError(lisp, "(read-char f)", "stream is closed: #<FILE internal>");
             ExpectError(lisp, "(read-line f)", "bad argument type: FILE #<FILE internal>");
+            ExpectError(lisp, "(read-char f)", "bad argument type: FILE #<FILE internal>");
+        }
+
+        [Fact]
+        public void AClosedFileOpenedToRead_RefusesReadingAsClosed_AndWritingAsNotAnOutputStream()
+        {
+            LispInterpreter lisp = NewLisp();
+            lisp.Run("(setq f (open (strcat D \"ansi.txt\") \"r\"))");
+            lisp.Run("(close f)");
+
+            // AutoCAD 2021: ("stream is closed: #<FILE internal>" "stream is closed: #<FILE internal>"
+            // "bad argument type: output-streamp: #<FILE internal>" "bad argument type: output-streamp: #<FILE internal>"
+            // "bad argument type: FILE #<FILE internal>") for read-line read-char write-line write-char princ (e1)
+            ExpectError(lisp, "(read-line f)", "stream is closed: #<FILE internal>");
+            ExpectError(lisp, "(read-char f)", "stream is closed: #<FILE internal>");
+            ExpectError(lisp, "(write-line \"x\" f)", "bad argument type: output-streamp: #<FILE internal>");
+            ExpectError(lisp, "(write-char 65 f)", "bad argument type: output-streamp: #<FILE internal>");
+            ExpectError(lisp, "(princ \"x\" f)", "bad argument type: FILE #<FILE internal>");
+        }
+
+        [Fact]
+        public void AClosedFileOpenedToAppend_RefusesAsAClosedFileOpenedToWriteDoes()
+        {
+            LispInterpreter lisp = NewLisp();
+            lisp.Run("(setq f (open (strcat D \"a-closed.txt\") \"a\"))");
+            lisp.Run("(close f)");
+
+            // AutoCAD 2021: ("bad argument type: FILE #<FILE internal>" "stream is closed: #<FILE internal>") for
+            // read-line and write-line (e1); read-char, write-char and princ are as for "w" (e1, "w")
+            ExpectError(lisp, "(read-line f)", "bad argument type: FILE #<FILE internal>");
+            ExpectError(lisp, "(read-char f)", "bad argument type: FILE #<FILE internal>");
+            ExpectError(lisp, "(write-line \"x\" f)", "stream is closed: #<FILE internal>");
+            ExpectError(lisp, "(write-char 65 f)", "stream is closed: #<FILE internal>");
+            ExpectError(lisp, "(princ \"x\" f)", "stream is closed: #<FILE internal>");
         }
 
         [Fact]
