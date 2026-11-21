@@ -490,6 +490,30 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
+        public void AnUndefinedTile_IsASemanticErrorOfTheWholeFile()
+        {
+            // AutoCAD 2021 (GUI g1): -1 and "Semantic error(s) in DCL file <path>."; ours: the second line names the tile (D338)
+            string path = WriteFile("undef.dcl", "u : dialog { : nosuchtile { key = \"x\"; } ok_cancel; }\n");
+            CadCommandSession session = Session(Blank());
+
+            Assert.Equal("-1", Eval(session, "(load_dialog \"" + Slashed(path) + "\")"));
+            string history = string.Join("\n", session.History);
+            Assert.Contains("Semantic error(s) in DCL file", history);
+            Assert.Contains("nosuchtile", history);
+        }
+
+        [Fact]
+        public void AFileThatRedefinesAPredefinedTile_IsRefused()
+        {
+            // AutoCAD 2021 (GUI g1): loading a file that defines "row" again gives "warning: redefining object." and -1 (D338)
+            string path = WriteFile("redef.dcl", "row : cluster { }\nr : dialog { ok_cancel; }\n");
+            CadCommandSession session = Session(Blank());
+
+            Assert.Equal("-1", Eval(session, "(load_dialog \"" + Slashed(path) + "\")"));
+            Assert.Contains("redefining object", string.Join("\n", session.History));
+        }
+
+        [Fact]
         public void AnIncludeThatIsNotThere_GivesMinusOneWithItsMessage()
         {
             // AutoCAD 2021 (GUI g1): -1; ours: D307 (the include's message)
