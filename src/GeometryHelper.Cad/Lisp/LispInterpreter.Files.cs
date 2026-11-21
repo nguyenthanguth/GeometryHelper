@@ -323,7 +323,10 @@ namespace GeometryHelper.Cad.Lisp
 
         /// <summary>
         /// <c>findfile</c>: a name with a folder is looked for where it points; a bare name in the current folder, then the
-        /// folder of the drawing, then the support folders. A file or a folder is found, and the answer is its full path.
+        /// folder of the drawing, then the support folders. A file or a folder is found, and the answer is its full path. A bare
+        /// name of a file of code (<see cref="CadLoadSecurity.IsCodeFile"/>) is looked for in the support folders alone unless
+        /// <see cref="LegacyCodeSearch"/> says to look beside the drawing: <c>findfile "label.lsp"</c> does not find the file
+        /// lying next to the drawing, <c>findfile "label.txt"</c> does.
         /// </summary>
         private object FindOnPath(string name)
         {
@@ -339,7 +342,14 @@ namespace GeometryHelper.Cad.Lisp
                     return Exists(name) ? Path.GetFullPath(Resolve(name)) : null;
                 }
 
-                var folders = new List<string> { CurrentFolder?.Invoke(), DrawingFolder?.Invoke() };
+                var folders = new List<string>();
+
+                if (!CadLoadSecurity.IsCodeFile(name) || (LegacyCodeSearch != null && LegacyCodeSearch()))
+                {
+                    folders.Add(CurrentFolder?.Invoke());
+                    folders.Add(DrawingFolder?.Invoke());
+                }
+
                 folders.AddRange(_supportFolders);
 
                 foreach (string folder in folders)

@@ -110,12 +110,11 @@ namespace GeometryHelper.Cad.Lisp
         private object LoadAll(object[] a)
         {
             string name = Str(a[0]);
-            object last = LoadFile(name, false, null);
-            string path = FindFile(name);
+            object last = LoadFile(name, false, null, out string path);
 
             if (path != null)
             {
-                LispApplication.PropagateLoad(this, Path.GetFullPath(path));
+                LispApplication.PropagateLoad(this, path);
             }
 
             return last;
