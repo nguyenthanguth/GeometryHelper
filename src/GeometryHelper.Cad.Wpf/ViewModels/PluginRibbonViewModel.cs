@@ -55,6 +55,7 @@ namespace GeometryHelper.Cad.Wpf
     {
         private readonly MainViewModel _model;
         private IReadOnlyList<PluginCommandButton> _commands = Array.Empty<PluginCommandButton>();
+        private IReadOnlyList<PluginPanelViewModel> _panels = Array.Empty<PluginPanelViewModel>();
 
         internal PluginRibbonViewModel(MainViewModel model)
         {
@@ -98,6 +99,16 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets whether a plugin loaded has a command.</summary>
         public bool HasCommands => _commands.Count > 0;
 
+        /// <summary>
+        /// Gets the panels the plugins loaded add to this tab with <see cref="CadPluginHost.AddRibbonPanel"/>, between Command
+        /// plugins and Manage, plugin by plugin in the order they were loaded.
+        /// </summary>
+        public IReadOnlyList<PluginPanelViewModel> Panels
+        {
+            get => _panels;
+            private set => Set(ref _panels, value);
+        }
+
         /// <summary>Gets whether the window has a plugin manager, so that Manage works.</summary>
         public bool HasManager => _model.Plugins != null;
 
@@ -123,7 +134,12 @@ namespace GeometryHelper.Cad.Wpf
 
             if (_model.Plugins != null)
             {
-                foreach (CadLoadedPlugin plugin in _model.Plugins.Plugins.Where(p => p.IsLoaded && p.Plugin.IsEnabled))
+                // A plugin that shows its own buttons (ShowsCommandButtons false) gets none in Command plugins.
+                foreach (
+                    CadLoadedPlugin plugin in _model.Plugins.Plugins.Where(p =>
+                        p.IsLoaded && p.Plugin.IsEnabled && p.Plugin.Host.ShowsCommandButtons
+                    )
+                )
                 {
                     buttons.AddRange(plugin.Plugin.Commands.Select(c => new PluginCommandButton(c, plugin.Name)));
                 }
@@ -137,6 +153,18 @@ namespace GeometryHelper.Cad.Wpf
             )
             {
                 ((DelegateCommand)command).RaiseCanExecuteChanged();
+            }
+        }
+
+        /// <summary>Takes the panels the plugins add to this tab, made by the window when it reads what the plugins add.</summary>
+        internal void SetPanels(IReadOnlyList<PluginPanelViewModel> panels) => Panels = panels;
+
+        /// <summary>Asks the buttons of the panels again whether they are on.</summary>
+        internal void RefreshPanels(CadPluginContext context)
+        {
+            foreach (PluginPanelViewModel panel in _panels)
+            {
+                panel.Refresh(context);
             }
         }
 

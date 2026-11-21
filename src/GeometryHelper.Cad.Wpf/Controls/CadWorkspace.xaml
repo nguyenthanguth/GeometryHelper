@@ -608,7 +608,403 @@
                 <Setter Property="ToolTip" Value="Not built yet" />
             </Style>
 
-            <!-- The groups of the Plugins tab: a button per command of each plugin loaded, then Manage. -->
+            <!--
+            What plugins add to the ribbon (design A2RibbonTab, A2PluginsTab): the tooltip of a button, the icon in its room (a path
+            drawn at 26 in a large item's 32, a picture fitted into the room), a standard and a large button, a split button, the
+            columns of a panel, its panels and the tab that holds them.
+            -->
+            <Style x:Key="PluginToolTip" TargetType="ToolTip">
+                <Setter Property="Foreground" Value="{StaticResource GhText}" />
+                <Setter Property="FontFamily" Value="{StaticResource GhFont}" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToolTip">
+                            <Border
+                                Background="{StaticResource GhHeader}"
+                                BorderBrush="{StaticResource GhBorder}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="10,8"
+                                MaxWidth="300"
+                            >
+                                <ContentPresenter />
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Setter Property="ContentTemplate">
+                    <Setter.Value>
+                        <DataTemplate DataType="{x:Type local:PluginToolTipInfo}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                <TextBlock
+                                    Text="{Binding Body}"
+                                    Foreground="{StaticResource GhIcon}"
+                                    TextWrapping="Wrap"
+                                    Margin="0,6,0,0"
+                                    Visibility="{Binding HasBody, Converter={StaticResource Shown}}"
+                                />
+                                <Border
+                                    BorderBrush="{StaticResource GhBorder}"
+                                    BorderThickness="0,1,0,0"
+                                    Margin="0,6,0,0"
+                                    Padding="0,6,0,0"
+                                >
+                                    <StackPanel Orientation="Horizontal">
+                                        <local:IconView
+                                            Size="12"
+                                            StrokeThickness="2"
+                                            Stroke="{StaticResource GhTextMuted}"
+                                            Data="M9 3v5M15 3v5M6 8h12v4a6 6 0 0 1-12 0zM12 18v3"
+                                            VerticalAlignment="Center"
+                                        />
+                                        <TextBlock
+                                            Text="{Binding Plugin}"
+                                            FontSize="11"
+                                            Foreground="{StaticResource GhTextMuted}"
+                                            Margin="6,0,0,0"
+                                            VerticalAlignment="Center"
+                                        />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </DataTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- The tooltip of a plugin's button of the DRAWINGS header: its text and under it the plugin's name. -->
+            <Style x:Key="PluginButtonToolTip" TargetType="ToolTip" BasedOn="{StaticResource PluginToolTip}">
+                <Setter Property="ContentTemplate">
+                    <Setter.Value>
+                        <DataTemplate DataType="{x:Type local:CadExtensionButton}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding ToolTip}" TextWrapping="Wrap" />
+                                <TextBlock
+                                    Text="{Binding PluginName}"
+                                    FontSize="11"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    Margin="0,4,0,0"
+                                />
+                            </StackPanel>
+                        </DataTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- The icon of a plugin's item in its room: the path drawn as the presenter's own icons, or the picture fitted into the room. -->
+            <DataTemplate x:Key="PluginIcon">
+                <Grid Width="{Binding IconSlot}" Height="{Binding IconSlot}">
+                    <local:IconView
+                        Size="{Binding PathSize}"
+                        StrokeThickness="{Binding PathStroke}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Data="{Binding IconGeometry}"
+                    />
+                    <Image
+                        Source="{Binding IconImage}"
+                        Stretch="Uniform"
+                        RenderOptions.BitmapScalingMode="{Binding ImageScaling}"
+                    />
+                </Grid>
+            </DataTemplate>
+
+            <!-- A standard item's content: the icon, and the text beside it unless the plugin left it out. -->
+            <DataTemplate x:Key="PluginStandardContent">
+                <StackPanel Orientation="Horizontal">
+                    <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource PluginIcon}" />
+                    <TextBlock
+                        Text="{Binding Text}"
+                        Margin="6,0,0,0"
+                        VerticalAlignment="Center"
+                        Visibility="{Binding ShowText, Converter={StaticResource Shown}}"
+                    />
+                </StackPanel>
+            </DataTemplate>
+
+            <!-- A large item's content: the icon over the text. -->
+            <DataTemplate x:Key="PluginLargeContent">
+                <StackPanel>
+                    <ContentPresenter
+                        Content="{Binding}"
+                        ContentTemplate="{StaticResource PluginIcon}"
+                        HorizontalAlignment="Center"
+                    />
+                    <TextBlock
+                        Text="{Binding Text}"
+                        Margin="0,4,0,0"
+                        HorizontalAlignment="Center"
+                        MaxWidth="66"
+                        TextWrapping="Wrap"
+                        TextAlignment="Center"
+                        Visibility="{Binding ShowText, Converter={StaticResource Shown}}"
+                    />
+                </StackPanel>
+            </DataTemplate>
+
+            <!-- A row of a split button's list: the icon at 18 and the button's text. -->
+            <DataTemplate x:Key="PluginSplitRow">
+                <StackPanel Orientation="Horizontal">
+                    <Grid Width="18" Height="18" Margin="0,0,8,0">
+                        <local:IconView
+                            Size="18"
+                            StrokeThickness="1.8"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Data="{Binding IconGeometry}"
+                        />
+                        <Image Source="{Binding IconImage}" Stretch="Uniform" />
+                    </Grid>
+                    <TextBlock Text="{Binding Text}" VerticalAlignment="Center" />
+                </StackPanel>
+            </DataTemplate>
+
+            <Style x:Key="PluginSplitItem" TargetType="MenuItem" BasedOn="{StaticResource GhMenuItem}">
+                <Setter Property="Command" Value="{Binding RunCommand}" />
+                <Setter Property="IsEnabled" Value="{Binding IsEnabled}" />
+                <Setter Property="ToolTip" Value="{Binding ToolTipInfo.Title}" />
+            </Style>
+
+            <DataTemplate x:Key="PluginStandardButton">
+                <Button
+                    Style="{StaticResource SmallButton}"
+                    Content="{Binding}"
+                    ContentTemplate="{StaticResource PluginStandardContent}"
+                    IsEnabled="{Binding IsEnabled}"
+                    Command="{Binding RunCommand}"
+                    AutomationProperties.Name="{Binding Text}"
+                >
+                    <Button.ToolTip>
+                        <ToolTip Style="{StaticResource PluginToolTip}" Content="{Binding ToolTipInfo}" />
+                    </Button.ToolTip>
+                </Button>
+            </DataTemplate>
+
+            <DataTemplate x:Key="PluginLargeButton">
+                <Button
+                    Style="{StaticResource BigButton}"
+                    Content="{Binding}"
+                    ContentTemplate="{StaticResource PluginLargeContent}"
+                    IsEnabled="{Binding IsEnabled}"
+                    Command="{Binding RunCommand}"
+                    AutomationProperties.Name="{Binding Text}"
+                >
+                    <Button.ToolTip>
+                        <ToolTip Style="{StaticResource PluginToolTip}" Content="{Binding ToolTipInfo}" />
+                    </Button.ToolTip>
+                </Button>
+            </DataTemplate>
+
+            <!-- A standard split button: the top runs the button used last, the arrow drops the list; lit while the list is open. -->
+            <DataTemplate x:Key="PluginStandardSplit">
+                <Border CornerRadius="2" Margin="0,0,8,2" HorizontalAlignment="Left">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="Transparent" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsOpen}" Value="True">
+                                    <Setter Property="Background" Value="{StaticResource GhSelected}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel Orientation="Horizontal">
+                        <Button
+                            Style="{StaticResource SmallButton}"
+                            Margin="0"
+                            DataContext="{Binding Top}"
+                            Content="{Binding}"
+                            ContentTemplate="{StaticResource PluginStandardContent}"
+                            IsEnabled="{Binding IsEnabled}"
+                            Command="{Binding RunCommand}"
+                            AutomationProperties.Name="{Binding Text}"
+                        >
+                            <Button.ToolTip>
+                                <ToolTip Style="{StaticResource PluginToolTip}" Content="{Binding ToolTipInfo}" />
+                            </Button.ToolTip>
+                        </Button>
+                        <Button
+                            Style="{StaticResource SplitArrow}"
+                            Margin="0"
+                            Content="▾"
+                            FontSize="10"
+                            Foreground="{StaticResource GhTextMuted}"
+                            Click="OnRibbonMenu"
+                            AutomationProperties.Name="{Binding Text, StringFormat={}More of {0}}"
+                        >
+                            <Button.ToolTip>
+                                <ToolTip Style="{StaticResource PluginToolTip}" Content="{Binding ToolTipInfo}" />
+                            </Button.ToolTip>
+                            <Button.ContextMenu>
+                                <ContextMenu
+                                    Style="{StaticResource GhContextMenu}"
+                                    DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                                    ItemsSource="{Binding Buttons}"
+                                    ItemContainerStyle="{StaticResource PluginSplitItem}"
+                                    ItemTemplate="{StaticResource PluginSplitRow}"
+                                    IsOpen="{Binding IsOpen, Mode=OneWayToSource}"
+                                />
+                            </Button.ContextMenu>
+                        </Button>
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
+
+            <!-- A large split button: the icon of the button used last on top, its name and ▾ under it, in one frame. -->
+            <DataTemplate x:Key="PluginLargeSplit">
+                <Border Style="{StaticResource BigSplitFrame}">
+                    <StackPanel>
+                        <Button
+                            Style="{StaticResource BigSplitTop}"
+                            DataContext="{Binding Top}"
+                            Content="{Binding}"
+                            ContentTemplate="{StaticResource PluginIcon}"
+                            IsEnabled="{Binding IsEnabled}"
+                            Command="{Binding RunCommand}"
+                            AutomationProperties.Name="{Binding Text}"
+                        >
+                            <Button.ToolTip>
+                                <ToolTip Style="{StaticResource PluginToolTip}" Content="{Binding ToolTipInfo}" />
+                            </Button.ToolTip>
+                        </Button>
+                        <Button
+                            Style="{StaticResource BigSplitArrow}"
+                            Content="{Binding Top.Text}"
+                            ContentStringFormat="{}{0} ▾"
+                            Click="OnRibbonMenu"
+                        >
+                            <Button.ToolTip>
+                                <ToolTip Style="{StaticResource PluginToolTip}" Content="{Binding ToolTipInfo}" />
+                            </Button.ToolTip>
+                            <Button.ContextMenu>
+                                <ContextMenu
+                                    Style="{StaticResource GhContextMenu}"
+                                    DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                                    ItemsSource="{Binding Buttons}"
+                                    ItemContainerStyle="{StaticResource PluginSplitItem}"
+                                    ItemTemplate="{StaticResource PluginSplitRow}"
+                                    IsOpen="{Binding IsOpen, Mode=OneWayToSource}"
+                                />
+                            </Button.ContextMenu>
+                        </Button>
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type local:PluginButtonViewModel}">
+                <ContentControl Content="{Binding}" Focusable="False">
+                    <ContentControl.Style>
+                        <Style TargetType="ContentControl">
+                            <Setter Property="ContentTemplate" Value="{StaticResource PluginStandardButton}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsLarge}" Value="True">
+                                    <Setter Property="ContentTemplate" Value="{StaticResource PluginLargeButton}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ContentControl.Style>
+                </ContentControl>
+            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type local:PluginSplitViewModel}">
+                <ContentControl Content="{Binding}" Focusable="False">
+                    <ContentControl.Style>
+                        <Style TargetType="ContentControl">
+                            <Setter Property="ContentTemplate" Value="{StaticResource PluginStandardSplit}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsLarge}" Value="True">
+                                    <Setter Property="ContentTemplate" Value="{StaticResource PluginLargeSplit}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ContentControl.Style>
+                </ContentControl>
+            </DataTemplate>
+
+            <!-- A column of a panel: a large item alone, or up to three standard ones one under the other. -->
+            <DataTemplate DataType="{x:Type local:PluginColumnViewModel}">
+                <ItemsControl
+                    ItemsSource="{Binding Items}"
+                    Focusable="False"
+                    Margin="0,2,0,0"
+                    VerticalAlignment="Top"
+                />
+            </DataTemplate>
+
+            <!-- A panel of a plugin: its columns, its title under them. -->
+            <DataTemplate DataType="{x:Type local:PluginPanelViewModel}">
+                <Border Style="{StaticResource GroupBorder}">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="{Binding Title}" />
+                        <ItemsControl ItemsSource="{Binding Columns}" Focusable="False">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                    </DockPanel>
+                </Border>
+            </DataTemplate>
+
+            <!-- The panels of a ribbon tab a plugin added. -->
+            <DataTemplate DataType="{x:Type local:PluginTabViewModel}">
+                <ItemsControl ItemsSource="{Binding Panels}" Focusable="False">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </DataTemplate>
+
+            <!-- A button of the DRAWINGS header an extension added: 20 square, its icon at 16. -->
+            <DataTemplate x:Key="ExtensionFileListButton">
+                <Button
+                    Style="{StaticResource GhFlatButton}"
+                    Width="20"
+                    Height="20"
+                    Margin="8,0,0,0"
+                    Command="{Binding Command}"
+                    ToolTip="{Binding ToolTip}"
+                >
+                    <local:IconView
+                        Size="16"
+                        StrokeThickness="2"
+                        Stroke="{StaticResource GhTextMuted}"
+                        Data="{Binding Icon}"
+                    />
+                </Button>
+            </DataTemplate>
+
+            <!-- A button of the DRAWINGS header a plugin added: the same, its icon a path or a picture, its tooltip with the plugin's name. -->
+            <DataTemplate x:Key="PluginFileListButton">
+                <Button
+                    Style="{StaticResource GhFlatButton}"
+                    Width="20"
+                    Height="20"
+                    Margin="8,0,0,0"
+                    Command="{Binding Command}"
+                    AutomationProperties.Name="{Binding ToolTip}"
+                >
+                    <Button.ToolTip>
+                        <ToolTip Style="{StaticResource PluginButtonToolTip}" Content="{Binding}" />
+                    </Button.ToolTip>
+                    <Grid Width="16" Height="16">
+                        <local:IconView
+                            Size="16"
+                            StrokeThickness="2"
+                            Stroke="{StaticResource GhTextMuted}"
+                            Data="{Binding Icon}"
+                        />
+                        <Image Source="{Binding IconImage}" Stretch="Uniform" />
+                    </Grid>
+                </Button>
+            </DataTemplate>
+
+            <!-- The groups of the Plugins tab: a button per command of each plugin loaded, the panels plugins add, then Manage. -->
             <DataTemplate DataType="{x:Type local:PluginRibbonViewModel}">
                 <StackPanel Orientation="Horizontal">
                     <Border Style="{StaticResource GroupBorder}">
@@ -669,6 +1065,14 @@
                             </Grid>
                         </DockPanel>
                     </Border>
+                    <!-- The panels plugins add to this tab, between Command plugins and Manage (CadPluginHost.AddRibbonPanel). -->
+                    <ItemsControl ItemsSource="{Binding Panels}" Focusable="False">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
                     <Border Style="{StaticResource GroupBorder}">
                         <DockPanel>
                             <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Manage" />
@@ -3940,6 +4344,32 @@
                         CommandParameter="{Binding PluginsTab}"
                         Margin="0,0,4,0"
                     />
+                    <!-- The tabs plugins add (CadPluginHost.AddRibbonTab), in the colours of the other tabs. -->
+                    <ContentControl Content="{Binding PluginTabs}" Focusable="False">
+                        <ContentControl.ContentTemplate>
+                            <DataTemplate>
+                                <ItemsControl ItemsSource="{Binding}" Focusable="False">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type local:CadWorkspaceExtension}">
+                                            <ToggleButton
+                                                Style="{StaticResource GhRibbonTab}"
+                                                Content="{Binding TabHeader}"
+                                                IsChecked="{Binding IsTabSelected, Mode=OneWay}"
+                                                Margin="0,0,4,0"
+                                                Command="{Binding DataContext.SelectTabCommand, RelativeSource={RelativeSource AncestorType=local:CadWorkspace}}"
+                                                CommandParameter="{Binding}"
+                                            />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </DataTemplate>
+                        </ContentControl.ContentTemplate>
+                    </ContentControl>
                     <ToggleButton
                         Style="{StaticResource GhRibbonTab}"
                         Content="Settings"
@@ -4188,6 +4618,56 @@
                             </Style>
                         </ToggleButton.Style>
                     </ToggleButton>
+                    <!-- The contextual tabs plugins add (a ShowWhen), green as the built-in ones, shown while their predicate is true. -->
+                    <ContentControl Content="{Binding PluginContextTabs}" Focusable="False">
+                        <ContentControl.ContentTemplate>
+                            <DataTemplate>
+                                <ItemsControl ItemsSource="{Binding}" Focusable="False">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type local:CadWorkspaceExtension}">
+                                            <ToggleButton
+                                                Content="{Binding TabHeader}"
+                                                IsChecked="{Binding IsTabSelected, Mode=OneWay}"
+                                                Margin="4,0,0,0"
+                                                Command="{Binding DataContext.SelectTabCommand, RelativeSource={RelativeSource AncestorType=local:CadWorkspace}}"
+                                                CommandParameter="{Binding}"
+                                                Visibility="{Binding IsTabVisible, Converter={StaticResource Shown}}"
+                                            >
+                                                <ToggleButton.Style>
+                                                    <Style
+                                                        TargetType="ToggleButton"
+                                                        BasedOn="{StaticResource GhRibbonTab}"
+                                                    >
+                                                        <Setter Property="Template">
+                                                            <Setter.Value>
+                                                                <ControlTemplate TargetType="ToggleButton">
+                                                                    <Border
+                                                                        Background="#2F8F4E"
+                                                                        CornerRadius="2,2,0,0"
+                                                                        Padding="{TemplateBinding Padding}"
+                                                                    >
+                                                                        <ContentPresenter
+                                                                            TextElement.Foreground="White"
+                                                                            TextElement.FontWeight="SemiBold"
+                                                                        />
+                                                                    </Border>
+                                                                </ControlTemplate>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Style>
+                                                </ToggleButton.Style>
+                                            </ToggleButton>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </DataTemplate>
+                        </ContentControl.ContentTemplate>
+                    </ContentControl>
                 </StackPanel>
                 <Border Padding="12,6">
                     <Border.Style>
@@ -4224,6 +4704,10 @@
                                     <Setter Property="BorderThickness" Value="0,2,0,0" />
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding BlockEditorTab.IsTabSelected}" Value="True">
+                                    <Setter Property="BorderBrush" Value="#2F8F4E" />
+                                    <Setter Property="BorderThickness" Value="0,2,0,0" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsPluginContextTabSelected}" Value="True">
                                     <Setter Property="BorderBrush" Value="#2F8F4E" />
                                     <Setter Property="BorderThickness" Value="0,2,0,0" />
                                 </DataTrigger>
@@ -5469,21 +5953,27 @@
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Button
-                                                    Style="{StaticResource GhFlatButton}"
-                                                    Width="20"
-                                                    Height="20"
-                                                    Margin="8,0,0,0"
-                                                    Command="{Binding Command}"
-                                                    ToolTip="{Binding ToolTip}"
-                                                >
-                                                    <local:IconView
-                                                        Size="16"
-                                                        StrokeThickness="2"
-                                                        Stroke="{StaticResource GhTextMuted}"
-                                                        Data="{Binding Icon}"
-                                                    />
-                                                </Button>
+                                                <ContentControl Content="{Binding}" Focusable="False">
+                                                    <ContentControl.Style>
+                                                        <Style TargetType="ContentControl">
+                                                            <Setter
+                                                                Property="ContentTemplate"
+                                                                Value="{StaticResource PluginFileListButton}"
+                                                            />
+                                                            <Style.Triggers>
+                                                                <DataTrigger
+                                                                    Binding="{Binding PluginName}"
+                                                                    Value="{x:Null}"
+                                                                >
+                                                                    <Setter
+                                                                        Property="ContentTemplate"
+                                                                        Value="{StaticResource ExtensionFileListButton}"
+                                                                    />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </ContentControl.Style>
+                                                </ContentControl>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>

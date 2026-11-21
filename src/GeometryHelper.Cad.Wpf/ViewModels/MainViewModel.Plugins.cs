@@ -67,7 +67,11 @@ namespace GeometryHelper.Cad.Wpf
             }
 
             _plugins = plugins;
-            plugins.PluginsChanged += (s, e) => PluginRibbon.Refresh();
+            plugins.PluginsChanged += (s, e) =>
+            {
+                PluginRibbon.Refresh();
+                RebuildPluginUi();
+            };
 
             foreach (KnownFile file in _files.Values.Where(f => f.Session != null))
             {
@@ -84,6 +88,7 @@ namespace GeometryHelper.Cad.Wpf
             }
 
             PluginRibbon.Refresh();
+            RebuildPluginUi();
             Raise(nameof(Plugins));
             return results;
         }

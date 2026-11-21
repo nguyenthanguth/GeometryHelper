@@ -153,8 +153,9 @@ namespace GeometryHelper.Cad.Wpf
         {
             List<CadMenuItemViewModel> items = RepeatItems(session);
             List<CadMenuItemViewModel> own = ExtensionMenu();
+            own.AddRange(PluginCanvasMenu());
 
-            // What the extensions add for the objects selected comes first, as the menu of an object does.
+            // What the extensions and the plugins add for the objects selected comes first, as the menu of an object does.
             if (own.Count > 0)
             {
                 items.AddRange(own);

@@ -125,7 +125,7 @@ namespace GeometryHelper.Cad.Wpf
                 .Where(f => f?.Document != null)
                 .ToList();
             List<KnownFile> others = open.Where(f => f != file).ToList();
-            return new[]
+            var menu = new List<CadMenuItemViewModel>
             {
                 new CadMenuItemViewModel("Open", () => Activate(row), !row.IsCurrent),
                 new CadMenuItemViewModel("Close", () => CloseFiles(new[] { file }), file?.Document != null),
@@ -134,6 +134,10 @@ namespace GeometryHelper.Cad.Wpf
                 new CadMenuItemViewModel("Close All Other Drawings", () => CloseFiles(others), others.Count > 0),
                 new CadMenuItemViewModel("Close All Drawings", () => CloseFiles(open), open.Count > 0),
             };
+
+            // What the plugins add comes after the presenter's items, behind a separator.
+            menu.AddRange(PluginRowItems(row));
+            return menu;
         }
 
         /// <summary>The selection of the list kept across a rebuild of its rows: the paths still shown, selected again.</summary>

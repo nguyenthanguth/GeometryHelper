@@ -204,11 +204,15 @@ namespace GeometryHelper.Cad.Wpf
         public IReadOnlyList<CadWorkspaceExtension> Extensions => _extensions.ToList().AsReadOnly();
 
         /// <summary>
-        /// Gets the buttons the extensions add to the header of the DRAWINGS list, those of the first extension added first. Each
-        /// extension is asked for them as it is added; each read gives a new list.
+        /// Gets the buttons added to the header of the DRAWINGS list: those of the plugins loaded first (in the order they were
+        /// loaded, <see cref="GeometryHelper.Cad.Plugins.CadPluginHost.AddDrawingsButton"/>), then the extensions', those of the first extension added first.
+        /// Each extension is asked for them as it is added; each read gives a new list.
         /// </summary>
         public IReadOnlyList<CadExtensionButton> FileListButtons =>
-            _extensions.SelectMany(e => e.FileListButtons ?? Array.Empty<CadExtensionButton>()).ToList().AsReadOnly();
+            PluginFileListButtons()
+                .Concat(_extensions.SelectMany(e => e.FileListButtons ?? Array.Empty<CadExtensionButton>()))
+                .ToList()
+                .AsReadOnly();
 
         /// <summary>Gets or sets the extension whose ribbon tab is shown; null for Home. A tab hidden while shown gives Home back.</summary>
         public CadWorkspaceExtension SelectedTab
@@ -2568,6 +2572,7 @@ namespace GeometryHelper.Cad.Wpf
                 PropertyGroups = Array.Empty<PropertyGroupViewModel>();
                 PropertiesBanner = null;
                 UpdateQuickProperties();
+                RefreshPluginUi();
                 return;
             }
 
@@ -2636,6 +2641,8 @@ namespace GeometryHelper.Cad.Wpf
                 }
             }
 
+            info = DescribeByPlugins(info, shown, ref banner);
+
             // Where the box's text is not that of a row (nothing selected, an element of the Block Editor, an extension's own
             // words), the list is that one row.
             if (kindChosen == null || kindChosen.Label != info.Label)
@@ -2660,13 +2667,10 @@ namespace GeometryHelper.Cad.Wpf
 
                 foreach (CadPropertyRow row in group.Rows)
                 {
-                    // A row an extension gave a setter is changed by it, as the presenter's own rows are by the editor.
+                    // A row an extension or a plugin gave a setter is changed by it, as the presenter's own rows are by the editor.
                     if (row.Setter != null)
                     {
-                        CadPropertyRow own = row;
-                        rows.Add(
-                            new PropertyRowViewModel(row, row.Choices, (r, text) => CommitExtensionProperty(own, text))
-                        );
+                        rows.Add(SetterRow(row));
                         continue;
                     }
 
@@ -2708,6 +2712,7 @@ namespace GeometryHelper.Cad.Wpf
             Raise(nameof(IsPickAddOn));
             RaiseViewportScale();
             UpdateQuickProperties();
+            RefreshPluginUi();
         }
 
         /// <summary>The values a row's drop-down offers: the layers, the colours by name, the linetypes, AutoCAD's lineweights, a viewport's standard scales and Yes or No for its display locked.</summary>

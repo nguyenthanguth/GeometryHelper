@@ -126,8 +126,33 @@ namespace GeometryHelper.Cad.Wpf
             Command = new DelegateCommand(_ => action());
         }
 
-        /// <summary>Gets the icon.</summary>
+        /// <summary>
+        /// Makes the button a plugin adds to the header of the DRAWINGS list: a drawn icon or a picture, and the plugin's name
+        /// shown under its tooltip.
+        /// </summary>
+        internal CadExtensionButton(
+            System.Windows.Media.Geometry icon,
+            System.Windows.Media.ImageSource image,
+            string toolTip,
+            string pluginName,
+            ICommand command
+        )
+        {
+            Icon = icon;
+            IconImage = image;
+            ToolTip = toolTip;
+            PluginName = pluginName;
+            Command = command;
+        }
+
+        /// <summary>Gets the icon; null for the button of a plugin whose icon is a picture (<see cref="IconImage"/>).</summary>
         public System.Windows.Media.Geometry Icon { get; }
+
+        /// <summary>Gets the picture drawn as the icon of a plugin's button, fitted into 16 pixels; null for a drawn icon.</summary>
+        public System.Windows.Media.ImageSource IconImage { get; }
+
+        /// <summary>Gets the name of the plugin that added the button, shown under its tooltip; null for an extension's button.</summary>
+        public string PluginName { get; }
 
         /// <summary>Gets the tooltip.</summary>
         public string ToolTip { get; }
