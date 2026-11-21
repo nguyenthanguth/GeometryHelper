@@ -582,7 +582,7 @@ namespace GeometryHelper.Cad.UnitTest
         {
             CadDocument document = Grouped();
             CadCommandSession session = Run(Session(document), "-PURGE", "G", "E*", Enter);
-            Assert.Equal("Purge group \"EMPTY\"? [Yes/No] <No>:", session.PromptText);
+            Assert.Equal("Purge group \"EMPTY\"? <N>", session.PromptText);
             Run(session, Enter);
             Assert.Equal(4, GroupNames(document).Length);
 
@@ -646,9 +646,9 @@ namespace GeometryHelper.Cad.UnitTest
         {
             CadDocument document = Nested();
             CadCommandSession session = Run(Session(document), "-PURGE", "B", Enter, Enter);
-            Assert.Equal("Purge block \"OUTER\"? [Yes/No] <No>:", session.PromptText);
+            Assert.Equal("Purge block \"OUTER\"? <N>", session.PromptText);
             Run(session, "Y");
-            Assert.Equal("Purge block \"INNER\"? [Yes/No] <No>:", session.PromptText);
+            Assert.Equal("Purge block \"INNER\"? <N>", session.PromptText);
             Run(session, Enter);
 
             Assert.False(session.IsRunning);

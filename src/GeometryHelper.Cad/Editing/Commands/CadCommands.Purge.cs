@@ -19,45 +19,61 @@ namespace GeometryHelper.Cad
         private static readonly string[] PurgeOptions =
         {
             "Blocks",
+            "DEtailviewstyles",
             "Dimstyles",
             "Groups",
             "LAyers",
             "LTypes",
+            "MAterials",
             "MUltileaderstyles",
             "Plotstyles",
             "SHapes",
             "textSTyles",
+            "Mlinestyles",
+            "SEctionviewstyles",
             "Tablestyles",
             "Visualstyles",
             "Regapps",
             "Zero-length geometry",
             "Empty text objects",
+            "Orphaned data",
             "All",
         };
 
-        /// <summary>The named kinds -PURGE All purges, in the order AutoCAD's purges them, each its keyword, its name and its name of several.</summary>
+        /// <summary>
+        /// The named kinds -PURGE All goes through, in the order AutoCAD 2021 says them, each its keyword, its name and its name of
+        /// several. Mlinestyles, MAterials, DEtailviewstyles and SEctionviewstyles are asked and said, and the presenter purges
+        /// none of them; Regapps is purged by name only, and left out of All as AutoCAD leaves it.
+        /// </summary>
         private static readonly string[][] PurgeKinds =
         {
             new[] { "Blocks", "block", "blocks" },
-            new[] { "Dimstyles", "dimension style", "dimension styles" },
             new[] { "LAyers", "layer", "layers" },
             new[] { "LTypes", "linetype", "linetypes" },
-            new[] { "MUltileaderstyles", "multileader style", "multileader styles" },
-            new[] { "Plotstyles", "plot style", "plot styles" },
-            new[] { "SHapes", "shape file", "shape files" },
             new[] { "textSTyles", "text style", "text styles" },
+            new[] { "SHapes", "shape file", "shape files" },
+            new[] { "Dimstyles", "dimension style", "dimension styles" },
+            new[] { "Mlinestyles", "mlinestyle", "mlinestyles" },
+            new[] { "Plotstyles", "plotstyle", "plotstyles" },
             new[] { "Tablestyles", "table style", "table styles" },
+            new[] { "MAterials", "material", "materials" },
             new[] { "Visualstyles", "visual style", "visual styles" },
-            new[] { "Regapps", "registered application", "registered applications" },
+            new[] { "MUltileaderstyles", "multileader style", "multileader styles" },
             new[] { "Groups", "group", "groups" },
+            new[] { "DEtailviewstyles", "Detail view style", "Detail view styles" },
+            new[] { "SEctionviewstyles", "Section view style", "Section view styles" },
+            new[] { "Regapps", "registered application", "registered applications" },
         };
 
         /// <summary>
-        /// -PURGE: "Enter type of unused objects to purge [...]:", then for a named kind "Enter name(s) to purge &lt;*&gt;:" and
-        /// "Verify each name to be purged? [Yes/No] &lt;Y&gt;:", each name then asked "Purge layer "X"? [Yes/No] &lt;N&gt;:".
+        /// -PURGE, as AutoCAD 2021 asks it: "Nested items = Off    Orphaned data = Off", "Enter type of unused objects to purge
+        /// [...]:", then for a named kind "Enter name(s) to purge &lt;*&gt;:" and "Verify each name to be purged? [Yes/No] &lt;Y&gt;:",
+        /// each name then asked <c>Purge layer "X"? &lt;N&gt;</c>; at the end each kind says what it deleted, or that it found none.
+        /// Orphaned data says "No orphaned data found.".
         /// </summary>
         private static IEnumerable<CadPrompt> PurgeTyped(CadCommandContext c)
         {
+            c.Write("Nested items = Off    Orphaned data = Off");
             yield return CadPrompt.ForKeyword("Enter type of unused objects to purge", PurgeOptions);
 
             if (c.Input.Kind != CadInputKind.Keyword)
@@ -66,6 +82,12 @@ namespace GeometryHelper.Cad
             }
 
             string option = c.Input.Text;
+
+            if (option == "Orphaned data")
+            {
+                c.Write("No orphaned data found.");
+                yield break;
+            }
 
             if (option == "Zero-length geometry" || option == "Empty text objects")
             {
@@ -76,7 +98,7 @@ namespace GeometryHelper.Cad
             yield return CadPrompt.ForString("Enter name(s) to purge", "*");
             string pattern =
                 c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim() : "*";
-            yield return CadPrompt.ForKeyword("Verify each name to be purged?", new[] { "Yes", "No" }, "Yes");
+            yield return CadPrompt.ForKeyword("Verify each name to be purged?", new[] { "Yes", "No" }, "Y");
 
             if (c.Input.Kind != CadInputKind.Keyword)
             {
@@ -88,7 +110,7 @@ namespace GeometryHelper.Cad
 
             foreach (string[] kind in PurgeKinds)
             {
-                if (option == "All" || option == kind[0])
+                if (option == kind[0] || (option == "All" && kind[0] != "Regapps"))
                 {
                     kinds.Add(kind);
                 }
@@ -99,7 +121,7 @@ namespace GeometryHelper.Cad
             // only INSERT of another, until a pass purges nothing.
             var purged = new List<KeyValuePair<string[], string>>();
             var declined = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            bool first = true;
+            var found = new HashSet<string[]>();
 
             while (true)
             {
@@ -108,6 +130,11 @@ namespace GeometryHelper.Cad
                 foreach (string[] kind in kinds)
                 {
                     List<KeyValuePair<string, DxfDBObject>> unused = Unused(c, kind[0], pattern);
+
+                    if (unused.Count > 0)
+                    {
+                        found.Add(kind);
+                    }
 
                     foreach (KeyValuePair<string, DxfDBObject> item in unused)
                     {
@@ -118,11 +145,10 @@ namespace GeometryHelper.Cad
 
                         if (verify)
                         {
-                            yield return CadPrompt.ForKeyword(
-                                "Purge " + kind[1] + " \"" + item.Key + "\"?",
-                                new[] { "Yes", "No" },
-                                "No"
-                            );
+                            yield return CadPrompt
+                                .ForKeyword("Purge " + kind[1] + " \"" + item.Key + "\"?", new string[0], "N")
+                                .Hiding("Yes", "No")
+                                .WithoutColon();
 
                             if (c.Input.Kind != CadInputKind.Keyword)
                             {
@@ -138,14 +164,7 @@ namespace GeometryHelper.Cad
 
                         chosen.Add(new KeyValuePair<string[], string>(kind, item.Key));
                     }
-
-                    if (first && unused.Count == 0 && option != "All")
-                    {
-                        c.Write("No unreferenced " + kind[2] + " found.");
-                    }
                 }
-
-                first = false;
 
                 if (chosen.Count == 0 || !ErasePurged(c, chosen))
                 {
@@ -155,17 +174,7 @@ namespace GeometryHelper.Cad
                 purged.AddRange(chosen);
             }
 
-            if (purged.Count == 0)
-            {
-                if (option == "All")
-                {
-                    c.Write("No unreferenced objects found.");
-                }
-
-                yield break;
-            }
-
-            WritePurged(c, kinds, purged);
+            WritePurged(c, kinds, purged, found);
         }
 
         /// <summary>Erases named objects, each by its kind and name, as one edit; whether it was made.</summary>
@@ -189,11 +198,15 @@ namespace GeometryHelper.Cad
             }).Succeeded;
         }
 
-        /// <summary>"Deleting layer "TMP"." for each object purged, then "2 layers deleted." for each kind, in the order of the kinds.</summary>
+        /// <summary>
+        /// "Deleting layer "TMP"." for each object purged, then "2 layers deleted." for each kind, in the order of the kinds; where
+        /// <paramref name="found"/> is given, "No unreferenced layers found." for a kind none of whose objects was found unused.
+        /// </summary>
         private static void WritePurged(
             CadCommandContext c,
             IEnumerable<string[]> kinds,
-            List<KeyValuePair<string[], string>> purged
+            List<KeyValuePair<string[], string>> purged,
+            HashSet<string[]> found = null
         )
         {
             foreach (string[] kind in kinds)
@@ -217,6 +230,10 @@ namespace GeometryHelper.Cad
                             + (count == 1 ? kind[1] : kind[2])
                             + " deleted."
                     );
+                }
+                else if (found != null && !found.Contains(kind))
+                {
+                    c.Write("No unreferenced " + kind[2] + " found.");
                 }
             }
         }

@@ -84,6 +84,12 @@ namespace GeometryHelper.Cad
 
                 p2 = c.Input.Point;
                 tied[1] = CadDimAssociation.FromSnap(c.Document, 1, c.Input.Snap, p1, tied[0]);
+
+                // Points that hold on to no object make a dimension nothing follows, as AutoCAD 2021 says before it asks the place.
+                if (c.Database.DimAssoc == 2 && tied[0] == null && tied[1] == null)
+                {
+                    c.Write("Non-associative dimension created.");
+                }
             }
             else
             {

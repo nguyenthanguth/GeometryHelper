@@ -28,6 +28,28 @@ namespace GeometryHelper.Cad
             "ZAxis",
         };
 
+        /// <summary>The words UCS takes beyond its options: the older prompts' ones, and E, AutoCAD 2021's hidden Entity for OBject.</summary>
+        private static readonly HashSet<string> UcsTypedWords = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "M",
+            "MOVE",
+            "3",
+            "3POINT",
+            "S",
+            "SAVE",
+            "R",
+            "RESTORE",
+            "D",
+            "DEL",
+            "DELETE",
+            "?",
+            "G",
+            "ORTHOGRAPHIC",
+            "A",
+            "APPLY",
+            "E",
+        };
+
         private const string NotInPlan =
             "The presenter shows the drawing from above: a UCS that leaves the plan is not available here.";
 
@@ -40,8 +62,21 @@ namespace GeometryHelper.Cad
         {
             CadUcsManager systems = c.Document.Ucs;
             c.Write("Current ucs name:  " + UcsName(systems.Current));
-            yield return CadPrompt.ForPoint("Specify origin of UCS", null, UcsOptions, "World", true);
-            string typed = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim().ToUpperInvariant() : null;
+            string typed;
+
+            // A word that is none of its options is refused and the origin asked again, as AutoCAD 2021 asks it.
+            while (true)
+            {
+                yield return CadPrompt.ForPoint("Specify origin of UCS", null, UcsOptions, "World", true);
+                typed = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim().ToUpperInvariant() : null;
+
+                if (typed == null || UcsTypedWords.Contains(typed))
+                {
+                    break;
+                }
+
+                c.Write("Point or option keyword required.");
+            }
 
             if (c.Input.IsNone || c.Input.Is("World"))
             {
@@ -104,7 +139,7 @@ namespace GeometryHelper.Cad
                     yield return prompt;
                 }
             }
-            else if (c.Input.Is("OBject"))
+            else if (c.Input.Is("OBject") || typed == "E")
             {
                 yield return CadPrompt.ForEntity("Select object to align UCS");
 
@@ -183,10 +218,6 @@ namespace GeometryHelper.Cad
                 c.Write(
                     "Rotation about the X or Y axis and a UCS on a face are not available in a 2D view. " + NotInPlan
                 );
-            }
-            else if (typed != null)
-            {
-                c.Write("Point or option keyword required.");
             }
         }
 

@@ -272,15 +272,15 @@ namespace GeometryHelper.Cad.UnitTest
 
             CadCommandSession session = Run(Session(document), "-PURGE");
             Assert.StartsWith(
-                "Enter type of unused objects to purge [Blocks/Dimstyles/Groups/LAyers/LTypes/MUltileaderstyles/Plotstyles/SHapes/textSTyles/Tablestyles/Visualstyles/Regapps/Zero-length geometry/Empty text objects/All]:",
+                "Enter type of unused objects to purge [Blocks/DEtailviewstyles/Dimstyles/Groups/LAyers/LTypes/MAterials/MUltileaderstyles/Plotstyles/SHapes/textSTyles/Mlinestyles/SEctionviewstyles/Tablestyles/Visualstyles/Regapps/Zero-length geometry/Empty text objects/Orphaned data/All]:",
                 session.PromptText
             );
             Run(session, "LA", Enter);
-            Assert.Equal("Verify each name to be purged? [Yes/No] <Yes>:", session.PromptText);
+            Assert.Equal("Verify each name to be purged? [Yes/No] <Y>:", session.PromptText);
             Run(session, Enter);
-            Assert.Equal("Purge layer \"EMPTY1\"? [Yes/No] <No>:", session.PromptText);
+            Assert.Equal("Purge layer \"EMPTY1\"? <N>", session.PromptText);
             Run(session, "Y");
-            Assert.Equal("Purge layer \"EMPTY2\"? [Yes/No] <No>:", session.PromptText);
+            Assert.Equal("Purge layer \"EMPTY2\"? <N>", session.PromptText);
             Run(session, Enter);
 
             Assert.False(session.IsRunning);
