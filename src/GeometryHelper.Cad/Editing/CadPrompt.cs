@@ -557,7 +557,8 @@ namespace GeometryHelper.Cad
 
         /// <summary>
         /// Finds the keyword a typed answer names: the whole keyword or its capital letters, either case, or a longer start of
-        /// it; "D", "disp" and "Displacement" all name Displacement, and "CL" names CLose where C names Close.
+        /// it; "D", "disp" and "Displacement" all name Displacement, and "CL" names CLose where C names Close. An underscore in
+        /// front is taken off, as AutoCAD takes "_A" for A.
         /// </summary>
         /// <param name="typed">The answer typed.</param>
         /// <returns>The keyword as the prompt writes it, or null.</returns>
@@ -568,7 +569,9 @@ namespace GeometryHelper.Cad
                 return null;
             }
 
+            // The underscore AutoCAD takes in front of an option whatever the language, as a routine types "_A" and "_O".
             string answer = typed.Trim();
+            answer = answer.Length > 1 && answer[0] == '_' ? answer.Substring(1) : answer;
             string found = Match(Keywords, answer);
 
             if (found != null || _hidden.Count == 0)

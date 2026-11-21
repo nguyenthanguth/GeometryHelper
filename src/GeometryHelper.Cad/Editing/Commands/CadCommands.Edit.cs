@@ -839,7 +839,9 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>
-        /// -LAYER: AutoCAD's options on the command line, stAte among them, until Enter. A layer of an external reference
+        /// -LAYER: AutoCAD's options on the command line, stAte among them, until Enter; Make, Set, Rename, Color, Ltype and
+        /// LWeight are asked as <see cref="LayerOption"/> asks them, and ?, MATerial, rEconcile and Xref, which AutoCAD lists and
+        /// the presenter does not do, say so. A layer of an external reference
         /// (<c>grid|WALL</c>) is switched on and off, given a transparency, plotted or not, frozen, thawed, locked, unlocked
         /// and described, as AutoCAD 2021's -LAYER does, and Set refuses it in AutoCAD 2021's words: "Invalid layer name.".
         /// TRansparency and Plot ask their value first and offer the current layer, as AutoCAD 2021 asks "Enter transparency
@@ -851,11 +853,18 @@ namespace GeometryHelper.Cad
         {
             var optionList = new List<string>
             {
+                "?",
+                "Make",
                 "Set",
                 "New",
+                "Rename",
                 "ON",
                 "OFF",
+                "Color",
+                "Ltype",
+                "LWeight",
                 "TRansparency",
+                "MATerial",
                 "Plot",
                 "Freeze",
                 "Thaw",
@@ -863,6 +872,8 @@ namespace GeometryHelper.Cad
                 "Unlock",
                 "stAte",
                 "Description",
+                "rEconcile",
+                "Xref",
             };
 
             // PStyle is offered only where the drawing has named plot styles, as AutoCAD 2021 offers it.
@@ -889,6 +900,16 @@ namespace GeometryHelper.Cad
                 if (option == "stAte")
                 {
                     foreach (CadPrompt prompt in LayerStateTyped(c))
+                    {
+                        yield return prompt;
+                    }
+
+                    continue;
+                }
+
+                if (LayerOptionAsked(option))
+                {
+                    foreach (CadPrompt prompt in LayerOption(c, option))
                     {
                         yield return prompt;
                     }
@@ -997,9 +1018,6 @@ namespace GeometryHelper.Cad
 
                 switch (option)
                 {
-                    case "Set":
-                        ask = "Enter layer name to make current";
-                        break;
                     case "New":
                         ask = "Enter name list for new layer(s)";
                         break;
@@ -1067,12 +1085,6 @@ namespace GeometryHelper.Cad
 
                     switch (option)
                     {
-                        case "Set":
-                            result =
-                                c.Database.LayerTable.Has(name) && c.Database.LayerTable[name].IsDependent
-                                    ? CadEditResult.Refuse("Invalid layer name.")
-                                    : CadLayerEditor.SetCurrent(c.Document, name);
-                            break;
                         case "New":
                             result = CadLayerEditor.Add(c.Document, name);
                             break;

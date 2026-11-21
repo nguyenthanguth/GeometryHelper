@@ -364,7 +364,7 @@ namespace GeometryHelper.Cad.UnitTest
 
             Run(session, "LA");
             Assert.Equal(
-                "Enter an option [Set/New/ON/OFF/TRansparency/Plot/Freeze/Thaw/LOck/Unlock/stAte/Description]:",
+                "Enter an option [?/Make/Set/New/Rename/ON/OFF/Color/Ltype/LWeight/TRansparency/MATerial/Plot/Freeze/Thaw/LOck/Unlock/stAte/Description/rEconcile/Xref]:",
                 session.PromptText
             );
             Run(session, "N", "Walls, Doors", "S", "Walls", "OFF", "Steel", "F", "Walls", "LO", "Doors", Enter);
