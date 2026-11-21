@@ -1009,7 +1009,7 @@ namespace GeometryHelper.Cad.Lisp
             }
             catch (DecoderFallbackException)
             {
-                return Encoding.Default.GetString(bytes, skip, bytes.Length - skip);
+                return LispTextEncoding.Ansi.GetString(bytes, skip, bytes.Length - skip);
             }
         }
 
