@@ -101,3 +101,43 @@ jobs:
         with:
           name: packages
           path: artifacts/*.nupkg
+
+  python:
+    # The Python package geometryhelper (src/python): the stubs, the wheel, and tests/python run against the wheel
+    # installed in a fresh venv, once on .NET 8 and once on .NET Framework 4.8. The job builds only what the script
+    # needs, the Release libraries of GeometryHelper.Cad (with GeometryHelper and GeometryHelper.Cad.Remote) and the stub
+    # generator, then runs tools/python/verify-python.sh, the same script a developer runs, so the two cannot drift
+    # apart. Windows only: the wheel is tagged win_amd64. Python 3.11 and 3.14 are the two ends of what is tested.
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '8.0.x'
+
+      - uses: actions/setup-python@v7
+        id: python
+        with:
+          python-version: ${{ matrix.python }}
+          architecture: x64
+
+      - name: Build the libraries and the stub generator
+        run: |
+          dotnet build src/GeometryHelper.Cad/GeometryHelper.Cad.csproj -c Release -warnaserror
+          dotnet build tools/GeometryHelper.PyStubs/GeometryHelper.PyStubs.csproj -c Release -warnaserror
+
+      - name: Stubs, wheel, fresh venv and tests on both runtimes
+        # find-python.sh uses GH_PYTHON when it is set, so the matrix entry is the Python that builds the wheel and
+        # makes the venv that runs the tests.
+        env:
+          GH_PYTHON: ${{ steps.python.outputs.python-path }}
+        run: bash tools/python/verify-python.sh

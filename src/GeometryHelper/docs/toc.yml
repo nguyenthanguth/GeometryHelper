@@ -96,6 +96,8 @@
       href: presenter/app.md
     - name: Driving the app from another program
       href: presenter/remote.md
+- name: Python
+  href: python.md
 - name: Meshing
   href: meshing.md
   items:
