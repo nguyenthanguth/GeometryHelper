@@ -18,6 +18,7 @@ namespace GeometryHelper.Cad.Wpf
     internal sealed class DclWindowHost : IDclHost
     {
         private readonly Func<Window> _main;
+        private DclMetrics _metrics;
         private int _opened;
         private readonly Dictionary<DclDialog, Shown> _open = new Dictionary<DclDialog, Shown>();
 
@@ -27,6 +28,12 @@ namespace GeometryHelper.Cad.Wpf
         {
             _main = main;
         }
+
+        /// <summary>
+        /// Gets the metrics the windows draw with (<see cref="DclDialogWindow.CreateMetrics"/>), so that <c>dimx_tile</c> of OK
+        /// gives the 49 the window draws.
+        /// </summary>
+        public DclMetrics Metrics => _metrics ??= DclDialogWindow.CreateMetrics();
 
         /// <summary>Gets the windows of the dialogs open now, the oldest first.</summary>
         internal IEnumerable<DclDialogWindow> Windows =>

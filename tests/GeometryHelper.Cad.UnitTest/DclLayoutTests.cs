@@ -52,13 +52,13 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void ADialogOfOneText_IsTheTextPlusItsMarginsAndTheDialogsMargin()
         {
-            // ours: D311 (a text is its label's width by one line), D312 (a margin of 4 on each side, the dialog's 3)
+            // ours: D311 (a text is its label's width by one line), D312 (a margin of 4 at the sides, the dialog's 3), F1 (2 above the text, 6 below)
             DclTile dialog = Dialog(": text { key = \"t\"; label = \"Hello\"; }");
 
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
 
             AssertRect(0, 0, 44, 27, placed[dialog]);
-            AssertRect(7, 7, 30, 13, placed[dialog.Find("t")]);
+            AssertRect(7, 5, 30, 13, placed[dialog.Find("t")]);
         }
 
         [Fact]
@@ -226,10 +226,11 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void ATextIsThirteenHigh_AndTheTilesOfAColumnAreEightApart()
+        public void ATextIsThirteenHigh_AndTheTilesOfAColumnArePitchedAsAutoCadDrewThem()
         {
             // AutoCAD 2021 (GUI g1): in one column an edit box (19), a popup list (21), a toggle (15), a slider (17) and a text
-            // (13) each follow the one before with 8 between (the pitches 27, 29, 23, 25 and 21 of the all-kinds dialog)
+            // (13) follow one another at the pitches 27 (edit to popup), 26 (popup 120 to toggle 146), 23 and 26 (slider 270 to text 296)
+            // of the all-kinds dialog (F1 gives a toggle and a slider 1 above and 7 below, a text 2 and 6)
             DclTile dialog = Dialog(
                 ": edit_box { key = \"a\"; edit_width = 5; } : popup_list { key = \"b\"; edit_width = 5; }"
                     + ": toggle { key = \"c\"; label = \"c\"; } : slider { key = \"d\"; } : text { key = \"e\"; label = \"e\"; }"
@@ -238,9 +239,9 @@ namespace GeometryHelper.Cad.UnitTest
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
 
             Assert.Equal(27, Of(placed, dialog, "b").Y - Of(placed, dialog, "a").Y, 6);
-            Assert.Equal(29, Of(placed, dialog, "c").Y - Of(placed, dialog, "b").Y, 6);
+            Assert.Equal(26, Of(placed, dialog, "c").Y - Of(placed, dialog, "b").Y, 6);
             Assert.Equal(23, Of(placed, dialog, "d").Y - Of(placed, dialog, "c").Y, 6);
-            Assert.Equal(25, Of(placed, dialog, "e").Y - Of(placed, dialog, "d").Y, 6);
+            Assert.Equal(26, Of(placed, dialog, "e").Y - Of(placed, dialog, "d").Y, 6);
             Assert.Equal(13, Of(placed, dialog, "e").Height, 6);
         }
 
@@ -286,19 +287,20 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void ASpacer_IsItsWidthAndHeightWithTheMargin_OneByOneWhereAbsent()
+        public void ASpacer_IsItsWidthWithTheSideMargins_AndItsHeightAlone_AFourWhereAbsent()
         {
             // ours: D311 and D306; AutoCAD 2021 (GUI g1): the spacer of width 2 between OK and Cancel leaves 28 between them,
-            // 12 and the margin of 4 on each side of the spacer and of each button (D345)
+            // 12 and the margin of 4 on each side of the spacer and of each button (D345); F1: no margin above or below, its height
+            // is all it takes, 9 for a line (spacer_1) and 4 for a bare one
             DclTile one = Dialog("spacer;");
             DclTile zero = Dialog("spacer_0;");
             DclTile two = Dialog(": spacer_0 { width = 2; }");
             DclTile lone = Dialog("spacer_1;");
 
-            AssertRect(0, 0, 6 + 14, 13 + 14, Arrange(one)[one]);
-            AssertRect(0, 0, 14, 14, Arrange(zero)[zero]);
-            AssertRect(0, 0, 12 + 14, 14, Arrange(two)[two]);
-            AssertRect(0, 0, 20, 27, Arrange(lone)[lone]);
+            AssertRect(0, 0, 6 + 14, 4 + 6, Arrange(one)[one]);
+            AssertRect(0, 0, 14, 0 + 6, Arrange(zero)[zero]);
+            AssertRect(0, 0, 12 + 14, 0 + 6, Arrange(two)[two]);
+            AssertRect(0, 0, 20, 9 + 6, Arrange(lone)[lone]);
         }
 
         [Fact]
@@ -307,7 +309,7 @@ namespace GeometryHelper.Cad.UnitTest
             // ours: D312
             DclTile dialog = Dialog(": spacer { key = \"t\"; horizontal_margin = none; vertical_margin = none; }");
 
-            AssertRect(3, 3, 6, 13, Of(Arrange(dialog), dialog, "t"));
+            AssertRect(3, 3, 6, 4, Of(Arrange(dialog), dialog, "t"));
         }
 
         [Fact]
@@ -360,7 +362,7 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void AColumn_LaysItsChildrenTopToBottom_AndStretchesThemAcross()
         {
-            // ours: D312 (a child that is not fixed fills the column across it)
+            // ours: D312 (a child that is not fixed fills the column across it), F1 (a text 2 from the top of its slot, 21 high)
             DclTile dialog = Dialog(
                 ": column { : text { key = \"a\"; label = \"a\"; } : text { key = \"b\"; label = \"bbb\"; } }"
             );
@@ -368,8 +370,8 @@ namespace GeometryHelper.Cad.UnitTest
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
 
             AssertRect(0, 0, 26 + 6, 42 + 6, placed[dialog]);
-            AssertRect(7, 7, 18, 13, Of(placed, dialog, "a"));
-            AssertRect(7, 28, 18, 13, Of(placed, dialog, "b"));
+            AssertRect(7, 5, 18, 13, Of(placed, dialog, "a"));
+            AssertRect(7, 26, 18, 13, Of(placed, dialog, "b"));
         }
 
         [Fact]
@@ -380,23 +382,23 @@ namespace GeometryHelper.Cad.UnitTest
 
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
 
-            AssertRect(7, 7, 18, 13, Of(placed, dialog, "a"));
-            AssertRect(7, 28, 18, 13, Of(placed, dialog, "b"));
+            AssertRect(7, 5, 18, 13, Of(placed, dialog, "a"));
+            AssertRect(7, 26, 18, 13, Of(placed, dialog, "b"));
         }
 
         [Fact]
         public void RoomToSpare_IsSharedEquallyByTheChildrenThatAreNotFixed()
         {
-            // ours: D312 (a list of 240 makes the row 248 wide; the buttons' slots of 36 and 60 leave 152, 76 each)
+            // ours: D312 (a list of 240 makes the row 248 wide; the buttons' slots of 36 and 60 leave 152, 76 each), F1 (the list 1 above, 4 below: its slot is 21)
             DclTile dialog = Dialog(
                 ": list_box { key = \"l\"; width = 40; height = 2; } : row { : button { key = \"a\"; label = \"Ok\"; } : button { key = \"b\"; label = \"Cancel\"; } }"
             );
 
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
 
-            AssertRect(3, 27, 248, 30, placed[dialog.Children[1]]);
-            AssertRect(7, 31, 104, 22, Of(placed, dialog, "a"));
-            AssertRect(119, 31, 128, 22, Of(placed, dialog, "b"));
+            AssertRect(3, 24, 248, 30, placed[dialog.Children[1]]);
+            AssertRect(7, 28, 104, 22, Of(placed, dialog, "a"));
+            AssertRect(119, 28, 128, 22, Of(placed, dialog, "b"));
         }
 
         [Fact]
@@ -410,10 +412,11 @@ namespace GeometryHelper.Cad.UnitTest
 
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
 
-            // the button's slot is 36 and fixed, the spacer's 14 and the text's 14: used 64 of 248, spare 184, 92 each
-            AssertRect(7, 18, 28, 22, Of(placed, dialog, "a"));
-            AssertRect(43, 18, 98, 22, Of(placed, dialog, "s"));
-            AssertRect(149, 18, 98, 22, Of(placed, dialog, "x"));
+            // the button's slot is 36 and fixed, the spacer's 14 and the text's 14: used 64 of 248, spare 184, 92 each; F1: the spacer
+            // has no margin above or below, so it fills the row's 30, and the text stands 2 from the top of its slot
+            AssertRect(7, 15, 28, 22, Of(placed, dialog, "a"));
+            AssertRect(43, 11, 98, 30, Of(placed, dialog, "s"));
+            AssertRect(149, 13, 98, 22, Of(placed, dialog, "x"));
         }
 
         [Fact]
@@ -463,7 +466,7 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void AFixedHeightChildOfARow_IsCentredUnlessItSaysTopOrBottom()
         {
-            // ours: D312 (the row is 50 high, the button's slot 30: room 20)
+            // ours: D312 (the row is 47 high, the list's slot being 1 + 42 + 4, the button's slot 30: room 17; F1 for the list's 1)
             string tall = ": list_box { key = \"l\"; height = 4; width = 5; }";
             DclTile centered = Dialog(
                 ": row { " + tall + ": button { key = \"t\"; label = \"Ok\"; fixed_height = true; } }"
@@ -478,12 +481,12 @@ namespace GeometryHelper.Cad.UnitTest
             );
             DclTile stretched = Dialog(": row { " + tall + ": button { key = \"t\"; label = \"Ok\"; } }");
 
-            Assert.Equal(3 + 10 + 4, Of(Arrange(centered), centered, "t").Y, 6);
+            Assert.Equal(3 + 8.5 + 4, Of(Arrange(centered), centered, "t").Y, 6);
             Assert.Equal(22, Of(Arrange(centered), centered, "t").Height, 6);
             Assert.Equal(3 + 0 + 4, Of(Arrange(top), top, "t").Y, 6);
-            Assert.Equal(3 + 20 + 4, Of(Arrange(bottom), bottom, "t").Y, 6);
+            Assert.Equal(3 + 17 + 4, Of(Arrange(bottom), bottom, "t").Y, 6);
             Assert.Equal(7, Of(Arrange(stretched), stretched, "t").Y, 6);
-            Assert.Equal(42, Of(Arrange(stretched), stretched, "t").Height, 6);
+            Assert.Equal(39, Of(Arrange(stretched), stretched, "t").Height, 6);
         }
 
         [Fact]
@@ -566,17 +569,17 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void ABoxedCluster_AddsABorderAndItsLabelAbove()
         {
-            // ours: D312 (border 8 at the sides and below, the label's line of 13 and 4 above; not fitted to the insets of 5,
-            // 19 and 2 that the all-kinds dialog's radio box shows)
+            // ours: D312 (border 8 at the sides); AutoCAD 2021 (GUI g1, F1): 19 above the children and 2 below, the radio box of the
+            // all-kinds dialog being 48 high, and the box 1 under the dialog's margin (a column starting at 34)
             DclTile dialog = Dialog(
                 ": boxed_column { key = \"b\"; label = \"Group\"; : text { key = \"t\"; label = \"Hello\"; } }"
             );
 
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
 
-            AssertRect(7, 7, 54, 46, Of(placed, dialog, "b"));
-            AssertRect(19, 28, 30, 13, Of(placed, dialog, "t"));
-            AssertRect(0, 0, 68, 60, placed[dialog]);
+            AssertRect(7, 4, 54, 42, Of(placed, dialog, "b"));
+            AssertRect(19, 25, 30, 13, Of(placed, dialog, "t"));
+            AssertRect(0, 0, 68, 53, placed[dialog]);
         }
 
         [Fact]
@@ -609,7 +612,8 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void AnOkCancelRow_IsCentredInAWiderDialog()
         {
-            // ours: D306 and D312 (the row is 140 wide: two buttons of 52, the spacer of two characters and the margins)
+            // ours: D306 and D312 (the row is 140 wide: two buttons of 52, the spacer of two characters and the margins); the list of one line
+            // is 3 high with 1 above and 4 below (F1)
             DclTile dialog = Dialog(": list_box { key = \"l\"; width = 40; height = 1; } ok_cancel;");
 
             IReadOnlyDictionary<DclTile, DclRect> placed = Arrange(dialog);
@@ -617,9 +621,9 @@ namespace GeometryHelper.Cad.UnitTest
             DclRect row = placed[dialog.Children[1]];
             DclRect ok = Of(placed, dialog, "accept");
             DclRect cancel = Of(placed, dialog, "cancel");
-            AssertRect(57, 14, 140, 30, row);
-            AssertRect(61, 18, 52, 22, ok);
-            AssertRect(141, 18, 52, 22, cancel);
+            AssertRect(57, 11, 140, 30, row);
+            AssertRect(61, 15, 52, 22, ok);
+            AssertRect(141, 15, 52, 22, cancel);
             Assert.Equal(row.X - 3, 3 + 248 - (row.X + row.Width), 6);
         }
 
@@ -708,7 +712,7 @@ namespace GeometryHelper.Cad.UnitTest
             var metrics = new DclMetrics { CharWidth = 7, CharHeight = 14 };
             DclTile dialog = Dialog(": text { key = \"t\"; label = \"Hello\"; }");
 
-            AssertRect(7, 7, 35, 14, Of(Arrange(dialog, metrics), dialog, "t"));
+            AssertRect(7, 5, 35, 14, Of(Arrange(dialog, metrics), dialog, "t"));
         }
 
         [Fact]

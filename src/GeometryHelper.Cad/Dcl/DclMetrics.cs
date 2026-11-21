@@ -70,10 +70,19 @@ namespace GeometryHelper.Cad.Dcl
         internal double SliderThickness { get; set; } = 17;
 
         /// <summary>
-        /// Gets or sets the room between the frame of a boxed cluster and its children, at the sides and the bottom; above, the
-        /// label's line of <see cref="CharHeight"/> and half of this are added.
+        /// Gets or sets the room between the frame of a boxed cluster and its children at the sides (5 in AutoCAD 2021 where the
+        /// window sets it, g1).
         /// </summary>
         internal double BoxBorder { get; set; } = 8;
+
+        /// <summary>
+        /// Gets or sets the room above the children of a boxed cluster: the frame, its label and the gap under it, 19 as g1
+        /// measured (a boxed radio row with one radio button is 48 high with <see cref="BoxBottomInset"/>).
+        /// </summary>
+        internal double BoxTopInset { get; set; } = 19;
+
+        /// <summary>Gets or sets the room under the children of a boxed cluster, 2 as g1 measured.</summary>
+        internal double BoxBottomInset { get; set; } = 2;
 
         /// <summary>Gets or sets the margin of the dialog, on each of its four sides.</summary>
         internal double DialogMargin { get; set; } = 3;
@@ -89,5 +98,41 @@ namespace GeometryHelper.Cad.Dcl
         /// other are twice this apart.
         /// </summary>
         internal double TileMarginY { get; set; } = 4;
+
+        /// <summary>
+        /// Gets or sets the room above a text, which sits higher in its slot than the other tiles: FDVAL's first text is at 35 in
+        /// AutoCAD's window where an edit box starts at 37 (F1). With <see cref="TextMarginBottom"/> it keeps the two together
+        /// the usual 8, so that two texts one over the other are 21 apart.
+        /// </summary>
+        internal double TextMarginTop { get; set; } = 2;
+
+        /// <summary>Gets or sets the room below a text; see <see cref="TextMarginTop"/>.</summary>
+        internal double TextMarginBottom { get; set; } = 6;
+
+        /// <summary>
+        /// Gets or sets the room above a toggle or a slider: 1, so that a toggle stands 5 under a popup list and a slider 5
+        /// under a boxed cluster as in AutoCAD's every-kind dialog (g1); two toggles are still 8 apart with
+        /// <see cref="CheckMarginBottom"/>.
+        /// </summary>
+        internal double CheckMarginTop { get; set; } = 1;
+
+        /// <summary>Gets or sets the room below a toggle or a slider; see <see cref="CheckMarginTop"/>.</summary>
+        internal double CheckMarginBottom { get; set; } = 7;
+
+        /// <summary>
+        /// Gets or sets the room above a list box or a boxed cluster, less than the usual: AutoCAD's boxed column starts at 34,
+        /// 3 below the dialog's margin, and FDVAL's list stands 59 down after a text and a bare spacer (F1); below them is the
+        /// usual <see cref="TileMarginY"/>.
+        /// </summary>
+        internal double FrameMarginTop { get; set; } = 1;
+
+        /// <summary>
+        /// Gets or sets the height of one line of a spacer: a spacer of <c>height = 1</c> is this high, <c>spacer_1</c> in E1
+        /// standing 17 between the edit box and OK beside their margins of 4. A spacer has no margin above or below.
+        /// </summary>
+        internal double SpacerLineHeight { get; set; } = 9;
+
+        /// <summary>Gets or sets the height of a spacer that names none, as FDVAL's bare ones (F1).</summary>
+        internal double SpacerHeight { get; set; } = 4;
     }
 }

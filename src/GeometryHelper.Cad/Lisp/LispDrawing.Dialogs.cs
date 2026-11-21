@@ -581,9 +581,16 @@ namespace GeometryHelper.Cad.Lisp
                 return tile == null ? 0 : Size(dialog, tile, width);
             }
 
-            private static int Size(DclDialog dialog, DclTile tile, bool width)
+            // Laid out with the host's metrics, so that the size is what its window draws; on the owner thread, where the host's
+            // calls come. With no host, or one that draws nothing, the headless defaults.
+            private int Size(DclDialog dialog, DclTile tile, bool width)
             {
-                IReadOnlyDictionary<DclTile, DclRect> placed = DclLayout.Arrange(dialog.Root, DclMetrics.Default);
+                IDclHost host = _session.DclHost;
+                var placed =
+                    host == null
+                        ? DclLayout.Arrange(dialog.Root, DclMetrics.Default)
+                        : (IReadOnlyDictionary<DclTile, DclRect>)
+                            _lisp.OnOwner(() => DclLayout.Arrange(dialog.Root, host.Metrics));
 
                 if (!placed.TryGetValue(tile, out DclRect rect))
                 {

@@ -58,6 +58,13 @@ namespace GeometryHelper.Cad.Dcl
     /// <summary>What shows dialogs to the user: the window, or a test's script. Every call comes on the owner thread, one at a time.</summary>
     internal interface IDclHost
     {
+        /// <summary>
+        /// Gets the metrics the host draws its dialogs with, so that <c>dimx_tile</c> and <c>dimy_tile</c> give the size of what
+        /// is drawn: a window with its font's text widths makes OK 49 wide where the headless character count makes it 52. A
+        /// host that draws nothing gives <see cref="DclMetrics.Default"/>.
+        /// </summary>
+        DclMetrics Metrics { get; }
+
         /// <summary>Shows a dialog, a child over its <see cref="DclDialog.Parent"/>, without waiting.</summary>
         /// <param name="dialog">The dialog.</param>
         void Open(DclDialog dialog);

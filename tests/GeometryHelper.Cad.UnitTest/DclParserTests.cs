@@ -1025,15 +1025,15 @@ namespace GeometryHelper.Cad.UnitTest
         [Theory]
         [InlineData("ok_cancel_help_errtile", "ok_cancel_help")]
         [InlineData("ok_cancel_err", "ok_cancel")]
-        public void TheRowsWithAnErrorTile_AreAColumnOfTheErrorTileAndTheRow(string name, string row)
+        public void TheRowsWithAnErrorTile_AreAColumnOfTheRowAndTheErrorTileUnderIt(string name, string row)
         {
-            // ours: D306
+            // AutoCAD 2021 (GUI g1, all.png): the error tile is under the buttons (OK at 383, the tile at 411); ours: D306 for the rest
             DclTile tile = Parse("").Definitions[name];
 
             Assert.Equal("cluster", tile.Kind);
             Assert.Equal("vertical", tile.Get("layout"));
-            Assert.Equal(new[] { "errtile", row }, tile.Children.Select(child => child.Name).ToArray());
-            Assert.Equal("error", tile.Children[0].Key);
+            Assert.Equal(new[] { row, "errtile" }, tile.Children.Select(child => child.Name).ToArray());
+            Assert.Equal("error", tile.Children[1].Key);
             Assert.Equal("accept", tile.Find("accept").Key);
         }
 

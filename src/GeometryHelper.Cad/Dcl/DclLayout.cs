@@ -38,7 +38,11 @@ namespace GeometryHelper.Cad.Dcl
         /// does the same with heights; across its direction a child that is not fixed fills the cluster and a fixed one keeps
         /// its natural size, placed by its <c>alignment</c>. A tile has a margin on each side (<see cref="DclMetrics.TileMarginX"/>
         /// and <see cref="DclMetrics.TileMarginY"/>, or none for <c>horizontal_margin = none</c> and <c>vertical_margin =
-        /// none</c>; a spacer's too); the rectangle of a tile is what is left inside its margin.
+        /// none</c>); the rectangle of a tile is what is left inside its margin. Three kinds keep their own room above and
+        /// below, as AutoCAD 2021's windows for E1 and FDVAL show (F1): a text 2 above and 6 below, a list box 1 above, and a
+        /// spacer none above or below (its height, <see cref="DclMetrics.SpacerLineHeight"/> a line or
+        /// <see cref="DclMetrics.SpacerHeight"/> where it names none, is all it takes), so that E1's dialog is 433 by 109
+        /// with its boxes and buttons where AutoCAD puts them.
         /// </summary>
         /// <param name="dialog">The dialog's top tile.</param>
         /// <param name="metrics">The character size, the text widths and the paddings.</param>
@@ -223,8 +227,18 @@ namespace GeometryHelper.Cad.Dcl
                     case "image_button":
                         size = ImageSize(tile);
                         break;
+                    case "spacer":
+                        // A character wide where no width is given; a line (SpacerLineHeight) high for each unit of height, a bare
+                        // spacer SpacerHeight.
+                        size = new Size(
+                            (tile.GetReal("width") ?? 1) * _metrics.CharWidth,
+                            tile.GetReal("height") is double lines
+                                ? lines * _metrics.SpacerLineHeight
+                                : _metrics.SpacerHeight
+                        );
+                        break;
                     default:
-                        // A spacer, and a tile of a kind a hand-built dialog made up: its width and height, 1 by 1 where absent.
+                        // A tile of a kind a hand-built dialog made up: its width and height, 1 by 1 where absent.
                         size = new Size(
                             (tile.GetReal("width") ?? 1) * _metrics.CharWidth,
                             (tile.GetReal("height") ?? 1) * _metrics.CharHeight
@@ -293,15 +307,16 @@ namespace GeometryHelper.Cad.Dcl
                     double width = vertical ? cross : main;
                     double height = vertical ? main : cross;
                     double marginX = MarginX(child);
-                    double marginY = MarginY(child);
+                    double marginTop = MarginTop(child);
+                    double marginBottom = MarginBottom(child);
 
                     Place(
                         child,
                         new DclRect(
                             x + marginX,
-                            y + marginY,
+                            y + marginTop,
                             Math.Max(0, width - 2 * marginX),
-                            Math.Max(0, height - 2 * marginY)
+                            Math.Max(0, height - marginTop - marginBottom)
                         )
                     );
                     position += main;
@@ -367,12 +382,34 @@ namespace GeometryHelper.Cad.Dcl
             private Size SlotOf(DclTile tile)
             {
                 Size natural = Natural(tile);
-                return new Size(natural.Width + 2 * MarginX(tile), natural.Height + 2 * MarginY(tile));
+                return new Size(
+                    natural.Width + 2 * MarginX(tile),
+                    natural.Height + MarginTop(tile) + MarginBottom(tile)
+                );
             }
 
             private double MarginX(DclTile tile) => Margin(tile, "horizontal_margin", _metrics.TileMarginX);
 
-            private double MarginY(DclTile tile) => Margin(tile, "vertical_margin", _metrics.TileMarginY);
+            /// <summary>
+            /// The room above a tile: the usual, except for the kinds AutoCAD 2021's windows give their own (F1): a text stands
+            /// higher (<see cref="DclMetrics.TextMarginTop"/>), a toggle or a slider and a list box or a boxed cluster a little
+            /// higher still, and a spacer has none, its height being all it takes.
+            /// </summary>
+            private double MarginTop(DclTile tile) =>
+                tile.Kind == "spacer" ? 0
+                : tile.Kind == "text" ? Margin(tile, "vertical_margin", _metrics.TextMarginTop)
+                : tile.Kind == "toggle" || tile.Kind == "slider"
+                    ? Margin(tile, "vertical_margin", _metrics.CheckMarginTop)
+                : tile.Kind == "list_box" || IsBoxed(tile) ? Margin(tile, "vertical_margin", _metrics.FrameMarginTop)
+                : Margin(tile, "vertical_margin", _metrics.TileMarginY);
+
+            /// <summary>The room below a tile: the usual, a text's and a toggle's or slider's own, none for a spacer.</summary>
+            private double MarginBottom(DclTile tile) =>
+                tile.Kind == "spacer" ? 0
+                : tile.Kind == "text" ? Margin(tile, "vertical_margin", _metrics.TextMarginBottom)
+                : tile.Kind == "toggle" || tile.Kind == "slider"
+                    ? Margin(tile, "vertical_margin", _metrics.CheckMarginBottom)
+                : Margin(tile, "vertical_margin", _metrics.TileMarginY);
 
             private static double Margin(DclTile tile, string attribute, double standard)
             {
@@ -403,9 +440,9 @@ namespace GeometryHelper.Cad.Dcl
                 {
                     return new Insets(
                         _metrics.BoxBorder,
-                        _metrics.CharHeight + _metrics.BoxBorder / 2,
+                        _metrics.BoxTopInset,
                         _metrics.BoxBorder,
-                        _metrics.BoxBorder
+                        _metrics.BoxBottomInset
                     );
                 }
 

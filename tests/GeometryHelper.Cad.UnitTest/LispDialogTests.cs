@@ -129,6 +129,8 @@ namespace GeometryHelper.Cad.UnitTest
                 _script = new DclScriptHost(steps);
             }
 
+            public DclMetrics Metrics => _script.Metrics;
+
             internal List<DclDialog> Dialogs { get; } = new List<DclDialog>();
 
             internal IReadOnlyList<string> Log => _script.Log;

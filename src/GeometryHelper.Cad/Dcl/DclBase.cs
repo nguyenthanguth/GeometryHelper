@@ -60,10 +60,10 @@ namespace GeometryHelper.Cad.Dcl
                 : spacer_0 { width = 2; } info_button;
             }
 
-            // The error line and the exit rows that carry one under it.
+            // The exit rows that carry the error line under them (AutoCAD 2021 draws it below the buttons, g1).
             errtile : text { key = "error"; width = 35; value = ""; }
-            ok_cancel_help_errtile : column { errtile; ok_cancel_help; }
-            ok_cancel_err : column { errtile; ok_cancel; }
+            ok_cancel_help_errtile : column { ok_cancel_help; errtile; }
+            ok_cancel_err : column { ok_cancel; errtile; }
 
             // Images and edit boxes of a usual size.
             image_block : image { width = 10; aspect_ratio = 1; }

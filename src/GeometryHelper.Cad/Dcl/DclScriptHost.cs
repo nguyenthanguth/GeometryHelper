@@ -41,6 +41,9 @@ namespace GeometryHelper.Cad.Dcl
             _steps = new Queue<string>(steps ?? Enumerable.Empty<string>());
         }
 
+        /// <summary>Gets the metrics of a host that draws nothing: <see cref="DclMetrics.Default"/>.</summary>
+        public DclMetrics Metrics { get; } = DclMetrics.Default;
+
         /// <summary>Gets the log: what the host did and saw, one line each, in order.</summary>
         internal IReadOnlyList<string> Log => _log;
 
@@ -350,12 +353,12 @@ namespace GeometryHelper.Cad.Dcl
 
         private static bool IsPoint(DclTile tile) => tile.Kind == "button" || tile.Kind == "image_button";
 
-        private static void Centre(DclDialog dialog, DclTile tile, out int x, out int y)
+        private void Centre(DclDialog dialog, DclTile tile, out int x, out int y)
         {
             x = 0;
             y = 0;
 
-            if (DclLayout.Arrange(dialog.Root, DclMetrics.Default).TryGetValue(tile, out DclRect rect))
+            if (DclLayout.Arrange(dialog.Root, Metrics).TryGetValue(tile, out DclRect rect))
             {
                 x = (int)Math.Floor(rect.Width / 2);
                 y = (int)Math.Floor(rect.Height / 2);
