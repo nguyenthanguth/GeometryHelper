@@ -26,7 +26,12 @@ namespace GeometryHelper.Cad
         private IEnumerator<CadPrompt> _retiredBody;
         private bool _lispStep;
         private string _lispStepName;
-        private bool _lispHold;
+
+        // The step the last form typed at the Command prompt made that joins (HoldLispStep), while no command has run since: the next
+        // such form's step joins it (D250), so that the forms typed one after the other are one U, as AutoCAD's are; and whether the
+        // step now open is to join.
+        private CadUndoStep _lispTypedStep;
+        private bool _lispStepJoins;
 
         // The value a form typed at a prompt ended with, which answers the prompt it interrupted; whether the evaluation began
         // at a command's prompt, so that its value is to answer it.
@@ -80,44 +85,58 @@ namespace GeometryHelper.Cad
                 Document.BeginGroup(_lispStepName ?? "(Lisp Expression)");
                 _grouped = true;
                 _lispStep = true;
+                _lispStepJoins = false;
             }
         }
 
-        /// <summary>Closes the undo step <see cref="OpenLispStep"/> opened, so that the edits that follow are steps of their own.</summary>
+        /// <summary>
+        /// Closes the undo step <see cref="OpenLispStep"/> opened, so that the edits that follow are steps of their own. The step
+        /// of a form typed at the Command prompt that <see cref="HoldLispStep"/> marked (an object function or <c>entmod</c>) is
+        /// closed joined to the step of the form marked before it, where no command ran between them (AutoCAD 2021, probe g3:
+        /// two typed <c>vla-put-Color</c> forms, or two <c>entmod</c>, and one <c>U</c> takes both); no undo group stays open,
+        /// so autosave, the remote server and the block editor see a drawing at rest (D250).
+        /// </summary>
         internal void CloseLispStep()
         {
-            if (_lispStep && _grouped)
+            if (_lispStep && _grouped && _lispStepName == null && _lispStepJoins)
+            {
+                // Joined only to the step that is still the last: an edit of the Properties palette or an entmake in between made
+                // another, which this step then follows as a step of its own.
+                bool joins = _lispTypedStep != null && ReferenceEquals(Document.LastStep, _lispTypedStep);
+
+                if (Document.EndGroup(joins))
+                {
+                    _lispTypedStep = Document.LastStep;
+                }
+
+                _grouped = false;
+            }
+            else if (_lispStep && _grouped)
             {
                 CloseGroup();
             }
 
-            _lispHold = false;
             _lispStep = false;
+            _lispStepJoins = false;
             _lispStepName = null;
         }
 
         /// <summary>
-        /// Keeps the undo step <see cref="OpenLispStep"/> opened open after a typed form is over, as AutoCAD does for what the
-        /// object functions of AutoLISP change (<c>vla-put-Color</c>, <c>vla-Delete</c>): the changes of the forms typed one
-        /// after the other at the Command prompt are one step, which the next command closes (AutoCAD 2021, probe g3: two typed
-        /// <c>vla-put-Color</c> forms, one <c>U</c> takes both). Does nothing inside a command or a <c>c:</c> routine.
+        /// Marks the undo step <see cref="OpenLispStep"/> opened as one that joins the step of the form typed before it, as
+        /// AutoCAD does for what the object functions of AutoLISP and <c>entmod</c> change: the forms typed one after the other
+        /// at the Command prompt are one <c>U</c> (<see cref="CloseLispStep"/>). Does nothing inside a command or a <c>c:</c>
+        /// routine, whose step is its own.
         /// </summary>
         internal void HoldLispStep()
         {
-            if (_lispStep && _grouped && _lispStepName == null && !IsRunning)
+            if (_lispStep && _grouped && _lispStepName == null)
             {
-                _lispHold = true;
+                _lispStepJoins = true;
             }
         }
 
-        /// <summary>Closes the undo step <see cref="HoldLispStep"/> kept open, as a command starting does.</summary>
-        internal void ReleaseLispHold()
-        {
-            if (_lispHold)
-            {
-                CloseLispStep();
-            }
-        }
+        /// <summary>Forgets the step of the last typed form, as a command starting does: the next typed form's step is a step of its own.</summary>
+        internal void ReleaseLispHold() => _lispTypedStep = null;
 
         /// <summary>
         /// Runs what a host asks of the interpreter (APPLOAD, a startup file) and writes what it wrote; where the routine waits
@@ -172,11 +191,7 @@ namespace GeometryHelper.Cad
 
             _lispTyped = false;
             finished?.Invoke(result);
-            // What the object functions changed stays one step until a command starts (HoldLispStep).
-            if (!_lispHold)
-            {
-                CloseLispStep();
-            }
+            CloseLispStep();
         }
 
         /// <summary>
@@ -193,7 +208,10 @@ namespace GeometryHelper.Cad
 
             if (Current == null)
             {
+                // The question is no command of the user's: the forms typed before it and after it are still one run.
+                CadUndoStep typed = _lispTypedStep;
                 Run(command, Array.Empty<string>());
+                _lispTypedStep = typed;
                 return;
             }
 
