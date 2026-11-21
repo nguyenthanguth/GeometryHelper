@@ -157,5 +157,32 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             viewport = frame.Handle;
             return db;
         }
+
+        #region Plugin window
+
+        /// <summary>
+        /// Two columns and a wall in millimetres, for the tests of what plugins add to the window: a circle on COLUMNS of radius
+        /// 100 (diameter 200) about (2 000, 1 500), a circle on COLUMNS of radius 50 (diameter 100) about (3 000, 1 500), and a line
+        /// on WALLS from (0, 0) to (4 000, 0). The layers are 0, WALLS, COLUMNS and Mark (the layer the sample marks on).
+        /// </summary>
+        public static DxfDatabase Columns(out string first, out string second, out string wall)
+        {
+            var db = new DxfDatabase("AC1027");
+            db.LayerTable.Add(new DxfLayerTableRecord { Name = "WALLS", ColorIndex = 7 });
+            db.LayerTable.Add(new DxfLayerTableRecord { Name = "COLUMNS", ColorIndex = 1 });
+            db.LayerTable.Add(new DxfLayerTableRecord { Name = "Mark", ColorIndex = 3 });
+            var big = new DxfCircle(new GeoPoint3(2000, 1500, 0), new GeoVector3(0, 0, 1), 100) { Layer = "COLUMNS" };
+            var small = new DxfCircle(new GeoPoint3(3000, 1500, 0), new GeoVector3(0, 0, 1), 50) { Layer = "COLUMNS" };
+            var line = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(4000, 0, 0)) { Layer = "WALLS" };
+            db.ModelSpace.AppendEntity(big);
+            db.ModelSpace.AppendEntity(small);
+            db.ModelSpace.AppendEntity(line);
+            first = big.Handle;
+            second = small.Handle;
+            wall = line.Handle;
+            return db;
+        }
+
+        #endregion
     }
 }

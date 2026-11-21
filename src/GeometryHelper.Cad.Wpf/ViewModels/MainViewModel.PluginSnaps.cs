@@ -37,6 +37,7 @@ namespace GeometryHelper.Cad.Wpf
 
             _pluginSnapList = snaps;
             Snap.CustomFailed = OnPluginSnapFailed;
+            Snap.KeepFailuresOf(snaps.Select(i => i.Snap).ToList());
 
             if (Snap.CustomOverride != null && !snaps.Exists(i => i.Snap == Snap.CustomOverride))
             {
@@ -94,6 +95,24 @@ namespace GeometryHelper.Cad.Wpf
                 string keyword = choice.Key.Keyword;
                 string entry = keyword + (choice.Value ? "=1" : "=0");
                 List<string> kept = _settings.PluginSnaps;
+
+                // A snap chosen on gets another try where its finder had thrown.
+                if (choice.Value)
+                {
+                    Snap.ForgetFailure(choice.Key);
+                }
+
+                // A snap left as its default, and never chosen, writes nothing.
+                if (
+                    choice.Value == choice.Key.IsOnByDefault
+                    && !kept.Exists(e =>
+                        (e ?? string.Empty).Trim().StartsWith(keyword + "=", StringComparison.OrdinalIgnoreCase)
+                    )
+                )
+                {
+                    continue;
+                }
+
                 int same = kept.Count(e =>
                     string.Equals((e ?? string.Empty).Trim(), entry, StringComparison.OrdinalIgnoreCase)
                 );
@@ -175,16 +194,8 @@ namespace GeometryHelper.Cad.Wpf
 
             Snap.Override = null;
             session.SnapOverride = null;
+            // Any change of the prompt ends it (OnPromptChanged), as it ends the override of a built-in snap.
             Snap.CustomOverride = snap;
-
-            // Any change of the prompt ends it, as it ends the override of a built-in snap.
-            EventHandler end = null;
-            end = (s, e) =>
-            {
-                session.PromptChanged -= end;
-                Snap.CustomOverride = null;
-            };
-            session.PromptChanged += end;
             session.Write(session.Prompt.Text + " " + word + " of");
             SyncHistory();
             return true;

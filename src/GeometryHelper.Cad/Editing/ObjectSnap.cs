@@ -764,6 +764,17 @@ namespace GeometryHelper.Cad
         private readonly List<CadCustomSnap> _failed = new List<CadCustomSnap>();
 
         /// <summary>
+        /// Forgets the failures of snaps that are not in <paramref name="loaded"/>, so that nothing here holds a snap, or its
+        /// finder, of a plugin unloaded; the window calls it whenever the plugins change.
+        /// </summary>
+        internal void KeepFailuresOf(ICollection<CadCustomSnap> loaded) =>
+            _failed.RemoveAll(snap => loaded == null || !loaded.Contains(snap));
+
+        /// <summary>Gives a snap switched off after its finder threw another try, as ticking it on again does.</summary>
+        /// <returns>Whether it had failed.</returns>
+        internal bool ForgetFailure(CadCustomSnap snap) => _failed.Remove(snap);
+
+        /// <summary>
         /// The object snaps of plugins that are on, in the order they were loaded, which compete with the built-in snaps by
         /// distance while snaps are on (<see cref="IsOn"/>) and no override is set; none until set; null sets none. Set by the
         /// window.

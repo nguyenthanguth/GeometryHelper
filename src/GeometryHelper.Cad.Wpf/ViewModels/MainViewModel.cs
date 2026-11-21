@@ -1914,6 +1914,7 @@ namespace GeometryHelper.Cad.Wpf
             // so do the points acquired for tracking and the object clicked first for an apparent intersection.
             // The temporary track points (TT) given for the point asked stay acquired until it is given.
             Snap.Override = null;
+            Snap.CustomOverride = null;
             _current.Session.SnapOverride = null;
             Snap.ClearAcquired();
 

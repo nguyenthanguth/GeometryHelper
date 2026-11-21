@@ -5,13 +5,17 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 using System.Text;
+using System.Threading;
 using GeometryHelper.Cad;
 using GeometryHelper.Cad.Plugins;
+using GeometryHelper.Cad.Wpf;
 using GeometryHelper.Cad.Wpf.Plugins;
 using GeometryHelper.Dxf;
+using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Cad.Plugins.Net8Runner
 {
@@ -22,6 +26,7 @@ namespace GeometryHelper.Cad.Plugins.Net8Runner
     internal static class Program
     {
         private const string Sample = "GeometryHelper.Cad.SamplePlugin";
+        private const string SampleUi = "GeometryHelper.Cad.SampleUiPlugin";
         private const string FirstDone = "Numbered {0} circles.";
         private const string SecondDone = "Second build: numbered {0} circles.";
 
@@ -54,6 +59,20 @@ namespace GeometryHelper.Cad.Plugins.Net8Runner
                 Check(
                     "the load context of the package installed is collected after uninstalling",
                     Collected(installed)
+                );
+
+                string uiBuilt = Path.Combine(AppContext.BaseDirectory, "SampleUiPlugin", SampleUi + ".dll");
+                Check(
+                    "the plugin that adds to the window, its tab, Properties, menus and snap shown, is collected after unloading",
+                    UiPluginIsCollected(root, uiBuilt, "plain", finderThrows: false)
+                );
+                string failing = BuildFailingFinder(
+                    Path.Combine(AppContext.BaseDirectory, "SampleUiPlugin", "CircleUi.cs.txt"),
+                    Path.Combine(root, "failing")
+                );
+                Check(
+                    "the same, where the finder of its snap threw before the unload, is collected after unloading",
+                    UiPluginIsCollected(root, failing, "failing", finderThrows: true)
                 );
             }
             catch (Exception exception)
@@ -219,6 +238,198 @@ namespace GeometryHelper.Cad.Plugins.Net8Runner
             }
 
             return Distinct(contexts);
+        }
+
+        /// <summary>
+        /// Shows what the plugin that adds to the window adds, in a headless window model that stays alive as the window does in
+        /// a running presenter, unloads the plugin, and tells whether its load context is collected while the model lives on.
+        /// Runs on an STA thread, as the window's own code does.
+        /// </summary>
+        private static bool UiPluginIsCollected(string root, string built, string label, bool finderThrows)
+        {
+            bool collected = false;
+            Exception failure = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    collected = ShowAndUnloadUiPlugin(root, built, label, finderThrows);
+                }
+                catch (Exception exception)
+                {
+                    failure = exception;
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+
+            if (failure != null)
+            {
+                Check(label + ": the run ends without an exception: " + failure, false);
+            }
+
+            return collected;
+        }
+
+        private static bool ShowAndUnloadUiPlugin(string root, string built, string label, bool finderThrows)
+        {
+            string dev = Path.Combine(root, "ui-" + label);
+            Directory.CreateDirectory(dev);
+            string path = Path.Combine(dev, SampleUi + ".dll");
+            File.Copy(built, path);
+            string drawing = Path.Combine(dev, "circles.dxf");
+            Circles().Database.Save(drawing);
+
+            using (
+                var manager = new CadPluginManager(
+                    new CadPluginAssemblyLoader(),
+                    Path.Combine(dev, "plugins"),
+                    Path.Combine(dev, "plugins.json"),
+                    Path.Combine(dev, "copies")
+                )
+            )
+            {
+                manager.ConfirmUntrusted = p => true;
+                var model = new MainViewModel();
+                model.UsePlugins(manager, loadAtStart: false);
+                Check(label + ": the drawing opens", model.Open(drawing));
+
+                WeakReference[] contexts = ShowUiPlugin(model, path, label, finderThrows);
+                CadPluginResult unloaded = model.UnloadPlugin(SampleUi);
+                Check(label + ": the plugin unloads: " + unloaded.Message, unloaded.Succeeded);
+                Check(label + ": nothing of it is left in the window", NothingOfTheUiPluginIsLeft(model));
+
+                // The model, with its snaps, Properties and menus, is alive here, as the window is while the user works on.
+                bool collected = Collected(contexts);
+                GC.KeepAlive(model);
+                return collected;
+            }
+        }
+
+        /// <summary>
+        /// Loads the plugin, selects its tab, selects a circle, reads the Properties, canvas, DRAWINGS and OSNAP menus, turns
+        /// its snap on and asks it twice at the top of a circle; gives its load context.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static WeakReference[] ShowUiPlugin(MainViewModel model, string path, string label, bool finderThrows)
+        {
+            // Load contexts of earlier checks, held here so that only the one this load makes is told apart.
+            var known = new List<object>();
+
+            foreach (WeakReference context in Contexts())
+            {
+                known.Add(context.Target);
+            }
+
+            CadPluginResult loaded = model.LoadPlugin(path);
+            Check(label + ": the plugin loads: " + loaded, loaded.Succeeded);
+            WeakReference[] contexts = Contexts().Where(c => !known.Contains(c.Target)).ToArray();
+            Check(label + ": it has a collectible load context of its own", contexts.Length == 1);
+
+            Check(
+                label + ": its tab Circles is after Plugins",
+                model.PluginTabs.Count == 1 && model.PluginTabs[0].TabHeader == "Circles"
+            );
+            model.SelectedTab = model.PluginTabs[0];
+            model.Document.Selection.Set(new[] { "C1" });
+            Check(label + ": its tab Circle is shown for a circle", model.IsPluginContextTabSelected);
+            Check(
+                label + ": Properties shows its group Circle tools",
+                model.PropertyGroups.Any(g => g.Title == "Circle tools")
+            );
+            FileRowViewModel row = model.FileRows.First(r => !r.IsHeader);
+            Check(
+                label + ": its DRAWINGS button, row items, canvas items and snap are listed",
+                model.FileListButtons.Count == 1
+                    && model.FileRowMenu(row).Any(i => i.Header == "Circle report")
+                    && model.CanvasMenu().Any(i => i.Header == "Number these")
+                    && model.OsnapMenu().Any(i => i.Header == "Circle top")
+            );
+
+            // The snap on, with no built-in snap, asked 0.5 right of and 0.2 over the top of the circle C1 about (0, 0) of radius 10.
+            model.OsnapMenu().First(i => i.Header == "Circle top").Command.Execute(null);
+            model.SnapModes = CadSnapModes.None;
+            int lines = model.History.Count;
+            CadSnapResult first = SnapAt(model, new GeoPoint2(0.5, 10.2), 3.0);
+            SnapAt(model, new GeoPoint2(0.5, 10.2), 3.0);
+            int said = model.History.Skip(lines).Count(l => l.Contains("failed and is off"));
+
+            if (finderThrows)
+            {
+                Check(
+                    label + ": the finder threw once, the window said so once, and the snap gave no point",
+                    said == 1 && first.Kind != CadSnapKind.Custom
+                );
+            }
+            else
+            {
+                Check(
+                    label + ": the snap gives the top of the circle",
+                    said == 0 && first.Kind == CadSnapKind.Custom && first.CustomSnap.Name == "Circle top"
+                );
+            }
+
+            return contexts;
+        }
+
+        /// <summary>Whether the window shows nothing of the plugin: no tab, no Properties group, no button, no menu item, no snap.</summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool NothingOfTheUiPluginIsLeft(MainViewModel model)
+        {
+            FileRowViewModel row = model.FileRows.First(r => !r.IsHeader);
+            return model.PluginTabs.Count == 0
+                && model.PluginContextTabs.Count == 0
+                && model.IsHomeTabSelected
+                && model.FileListButtons.Count == 0
+                && !model.PropertyGroups.Any(g => g.Title == "Circle tools")
+                && !model.FileRowMenu(row).Any(i => i.Header == "Circle report")
+                && !model.CanvasMenu().Any(i => i.Header == "Number these")
+                && !model.OsnapMenu().Any(i => i.Header == "Circle top");
+        }
+
+        /// <summary>
+        /// What the canvas asks when the cursor moves: <c>CadPicking.Snap</c>, which the window keeps to itself, found by
+        /// reflection so that the runner needs no access to its internals.
+        /// </summary>
+        private static CadSnapResult SnapAt(MainViewModel model, GeoPoint2 cursor, double aperture)
+        {
+            MethodInfo snap = typeof(MainViewModel)
+                .Assembly.GetType("GeometryHelper.Cad.Wpf.CadPicking", true)
+                .GetMethod("Snap", BindingFlags.Public | BindingFlags.Static);
+            return (CadSnapResult)
+                snap.Invoke(
+                    null,
+                    new object[] { model.Document, model.Document.ModelSpace, model.Snap, cursor, aperture, null, null }
+                );
+        }
+
+        /// <summary>
+        /// Builds the sample that adds to the window with the finder of its snap changed to throw, and its icon drawn from a path
+        /// where it was an embedded picture the build here does not carry; the path of the .dll.
+        /// </summary>
+        private static string BuildFailingFinder(string source, string folder)
+        {
+            const string picture = "CadPluginIcon.FromResource(typeof(CircleUi).Assembly, IconResource)";
+            string text = File.ReadAllText(source);
+
+            if (!text.Contains(picture, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("The sample no longer reads its icon with " + picture + ".");
+            }
+
+            Directory.CreateDirectory(folder);
+            string edited = Path.Combine(folder, "CircleUi.cs.txt");
+            File.WriteAllText(edited, text.Replace(picture, "CadPluginIcon.FromPathData(\"M3 3 H13 V13 H3 Z\")"));
+            return BuildSecondVersion(
+                edited,
+                Path.Combine(folder, "build"),
+                SampleUi,
+                "yield return new GeoPoint2(circle.Center.X, circle.Center.Y + circle.Radius);",
+                "throw new InvalidOperationException(\"The finder fails on purpose.\"); yield break;",
+                typeof(CadPlugin),
+                typeof(DxfDatabase)
+            );
         }
 
         /// <summary>Runs NUMCIRCLES on three circles; the line it writes when it is done.</summary>

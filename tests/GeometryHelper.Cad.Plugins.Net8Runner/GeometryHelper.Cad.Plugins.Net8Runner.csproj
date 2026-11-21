@@ -53,5 +53,11 @@
             CopyToOutputDirectory="PreserveNewest"
             Visible="false"
         />
+        <None
+            Include="..\GeometryHelper.Cad.SampleUiPlugin\CircleUi.cs"
+            Link="SampleUiPlugin\CircleUi.cs.txt"
+            CopyToOutputDirectory="PreserveNewest"
+            Visible="false"
+        />
     </ItemGroup>
 </Project>
