@@ -172,7 +172,7 @@ namespace GeometryHelper.Cad.Plugins.UnitTest
 
             Assert.Equal("Needs two", refused.PluginName);
             Assert.Equal(
-                "The plugin Needs two needs version 2.0 of the plugin API, and this presenter has 1.0: it needs a newer presenter.",
+                "The plugin Needs two needs version 2.0 of the plugin API, and this presenter has 1.1: it needs a newer presenter.",
                 refused.Message
             );
         }

@@ -177,6 +177,9 @@ namespace GeometryHelper.Cad.Plugins
 
         internal string ShadowFolder { get; set; }
 
+        /// <summary>The order it was loaded in, counted over the session; a reload gives a new, higher number.</summary>
+        internal int LoadSequence { get; set; }
+
         /// <inheritdoc/>
         public override string ToString() => Name + (IsLoaded ? " (loaded) " : " (unloaded) ") + Path;
     }

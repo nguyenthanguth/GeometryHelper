@@ -57,7 +57,7 @@ namespace GeometryHelper.Cad.Plugins.UnitTest
         public void APluginThatNeedsANewerApiOrIsOfAnotherKindIsRefusedSayingWhy()
         {
             Assert.Equal(
-                "The plugin Number circles needs version 2.0 of the plugin API, and this presenter has 1.0: it needs a newer presenter.",
+                "The plugin Number circles needs version 2.0 of the plugin API, and this presenter has 1.1: it needs a newer presenter.",
                 CadPluginManifest.Parse(PluginFiles.Manifest(api: "2.0")).Refusal()
             );
             Assert.Equal(

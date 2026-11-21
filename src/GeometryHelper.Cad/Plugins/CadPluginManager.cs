@@ -824,8 +824,9 @@ namespace GeometryHelper.Cad.Plugins
                 ShadowFolder,
                 (++_loads).ToString("D3", CultureInfo.InvariantCulture) + "-" + Safe(name)
             );
+            int sequence = _loads;
             IReadOnlyList<Assembly> assemblies = null;
-            CadPlugin plugin;
+            CadPlugin plugin = null;
             IReadOnlyList<string> drawingPlugins = new string[0];
 
             // A drawing plugin, or a bare .dll that may hold one, need not have a command.
@@ -841,13 +842,24 @@ namespace GeometryHelper.Cad.Plugins
             {
                 List<string> files = Copy(full, isFolder, isPackage, copies);
                 assemblies = _loader.Load(name, files, isDll ? Path.GetDirectoryName(full) : null);
-                plugin = CadPlugin.MakeFrom(name, assemblies, manifest?.Version, !mayDraw);
+
+                // The folder files beside the plugin are read from: where it was loaded from, or, for a package, where it was unpacked.
+                plugin = CadPlugin.MakeFrom(
+                    name,
+                    assemblies,
+                    manifest?.Version,
+                    !mayDraw,
+                    isPackage ? copies
+                        : isFolder ? full
+                        : Path.GetDirectoryName(full)
+                );
+                plugin.LeaveOutClashes(LoadedPlugins());
 
                 if (mayDraw)
                 {
                     drawingPlugins = finder(manifest, assemblies) ?? new string[0];
 
-                    if (plugin.Commands.Count == 0 && drawingPlugins.Count == 0)
+                    if (plugin.Commands.Count == 0 && !plugin.HasApplications && drawingPlugins.Count == 0)
                     {
                         throw new CadPluginException(
                             name,
@@ -860,6 +872,9 @@ namespace GeometryHelper.Cad.Plugins
             }
             catch (Exception exception)
             {
+                // A plugin made and then refused lets go of what it holds, as an unloaded one does.
+                plugin?.Disable();
+
                 if (assemblies != null)
                 {
                     _loader.Unload(assemblies);
@@ -903,6 +918,7 @@ namespace GeometryHelper.Cad.Plugins
                 Assemblies = assemblies,
                 DrawingPlugins = drawingPlugins,
                 ShadowFolder = copies,
+                LoadSequence = sequence,
                 LoadAtStartup =
                     installed || _startup.Exists(p => string.Equals(p, full, StringComparison.OrdinalIgnoreCase)),
             };
@@ -921,8 +937,7 @@ namespace GeometryHelper.Cad.Plugins
                 (action == CadPluginAction.Reload ? "Reloaded " : "Loaded ")
                 + name
                 + (plugin.Version.Length > 0 ? " " + plugin.Version : string.Empty)
-                + ": "
-                + string.Join(", ", names)
+                + (names.Count > 0 ? ": " + string.Join(", ", names) : string.Empty)
                 + ".";
             Record(
                 action,
@@ -995,6 +1010,35 @@ namespace GeometryHelper.Cad.Plugins
             }
 
             return false;
+        }
+
+        /// <summary>The plugins loaded now, in the order they were loaded (a reload makes a plugin the last), which <see cref="Plugins"/>, ordinal by name, does not give: the order the window lays out their tabs and runs their providers in.</summary>
+        internal List<CadLoadedPlugin> LoadedInOrder()
+        {
+            var loaded = new List<CadLoadedPlugin>();
+
+            foreach (CadLoadedPlugin entry in _plugins)
+            {
+                if (entry.IsLoaded)
+                {
+                    loaded.Add(entry);
+                }
+            }
+
+            loaded.Sort((a, b) => a.LoadSequence.CompareTo(b.LoadSequence));
+            return loaded;
+        }
+
+        private List<CadPlugin> LoadedPlugins()
+        {
+            var loaded = new List<CadPlugin>();
+
+            foreach (CadLoadedPlugin entry in LoadedInOrder())
+            {
+                loaded.Add(entry.Plugin);
+            }
+
+            return loaded;
         }
 
         private void UnloadQuietly(CadLoadedPlugin plugin)

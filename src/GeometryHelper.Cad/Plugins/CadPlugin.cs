@@ -21,16 +21,25 @@ namespace GeometryHelper.Cad.Plugins
     public sealed class CadPlugin
     {
         private readonly List<Registration> _registrations = new List<Registration>();
+        private readonly List<ICadPluginApplication> _applications = new List<ICadPluginApplication>();
+        private readonly List<ICadPluginApplication> _initialized = new List<ICadPluginApplication>();
+        private List<string> _problems = new List<string>();
+        private bool _terminated;
 
-        private CadPlugin(string name, string version, Version requiredApiVersion)
+        private CadPlugin(string name, string version, Version requiredApiVersion, string folder)
         {
             Name = name;
             Version = version;
             RequiredApiVersion = requiredApiVersion;
+            Host = new CadPluginHost(name, folder);
         }
 
-        /// <summary>Gets the version of the plugin API this build of the presenter has: 1.0.</summary>
-        public static Version ApiVersion { get; } = new Version(1, 0);
+        /// <summary>
+        /// Gets the version of the plugin API this build of the presenter has: 1.1, which added what
+        /// <see cref="ICadPluginApplication"/> and <see cref="CadPluginHost"/> give the window; a plugin that uses them
+        /// states <c>[assembly: CadPluginApi("1.1")]</c>.
+        /// </summary>
+        public static Version ApiVersion { get; } = new Version(1, 1);
 
         /// <summary>Gets the plugin's name: the name of its manifest, or of its assembly.</summary>
         public string Name { get; }
@@ -50,13 +59,21 @@ namespace GeometryHelper.Cad.Plugins
         /// <summary>Gets what was left out while the plugin was read, a line each: a method marked as a command that cannot be one, a name taken twice.</summary>
         public IReadOnlyList<string> Problems { get; private set; }
 
+        /// <summary>
+        /// Gets what the plugin's application classes added to the window in <see cref="ICadPluginApplication.Initialize"/>;
+        /// never null, and empty for a plugin that has none.
+        /// </summary>
+        public CadPluginHost Host { get; }
+
         /// <summary>Gets whether its commands still run; false once it is unloaded, after which a run of one that was going on fails.</summary>
         public bool IsEnabled { get; private set; } = true;
 
         /// <summary>
         /// Makes a plugin from its assemblies, already loaded. A plugin that states a newer version of the plugin API than
-        /// <see cref="ApiVersion"/>, or that has no command, is refused; a method marked as a command that cannot be one is
-        /// left out and said in <see cref="Problems"/>.
+        /// <see cref="ApiVersion"/>, or that has neither a command nor a class that implements
+        /// <see cref="ICadPluginApplication"/>, is refused; a method marked as a command that cannot be one is left out and
+        /// said in <see cref="Problems"/>. Each application class is made and initialised, in ordinal order of its full name;
+        /// <see cref="CadPluginHost.Folder"/> is the folder of the first assembly.
         /// </summary>
         /// <param name="name">The plugin's name; the name of the first assembly where null or empty.</param>
         /// <param name="assemblies">The assemblies, read in ordinal order of their full names.</param>
@@ -66,14 +83,15 @@ namespace GeometryHelper.Cad.Plugins
         /// <exception cref="CadPluginException">Thrown when the plugin needs a newer API, states an API version that is not
         /// one, or has no command.</exception>
         public static CadPlugin FromAssemblies(string name, IEnumerable<Assembly> assemblies, string version = null) =>
-            MakeFrom(name, assemblies, version, true);
+            MakeFrom(name, assemblies, version, true, null);
 
         /// <summary>A plugin from its assemblies; one with no command refused only where commands are needed, as they are not for one that holds drawing plugins.</summary>
         internal static CadPlugin MakeFrom(
             string name,
             IEnumerable<Assembly> assemblies,
             string version,
-            bool needsCommand
+            bool needsCommand,
+            string folder
         )
         {
             if (assemblies == null)
@@ -144,11 +162,12 @@ namespace GeometryHelper.Cad.Plugins
             var plugin = new CadPlugin(
                 name,
                 version ?? (sorted.Count > 0 ? VersionOf(sorted[0]) : string.Empty),
-                required
+                required,
+                folder ?? (sorted.Count > 0 ? FolderOf(sorted[0]) : null)
             );
             plugin.Read(sorted);
 
-            if (plugin.Commands.Count == 0 && needsCommand)
+            if (plugin.Commands.Count == 0 && plugin._applications.Count == 0 && needsCommand)
             {
                 string why = plugin.Problems.Count > 0 ? " " + string.Join(" ", plugin.Problems) : string.Empty;
                 throw new CadPluginException(
@@ -160,7 +179,189 @@ namespace GeometryHelper.Cad.Plugins
                 );
             }
 
+            plugin.Start();
             return plugin;
+        }
+
+        /// <summary>The folder an assembly was loaded from; null where it has no location, as a dynamic assembly has none.</summary>
+        private static string FolderOf(Assembly assembly)
+        {
+            try
+            {
+                string location = assembly.Location;
+                return string.IsNullOrEmpty(location) ? null : System.IO.Path.GetDirectoryName(location);
+            }
+            catch (NotSupportedException)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Whether the plugin has a class that implements <see cref="ICadPluginApplication"/>, which makes a plugin with no
+        /// command a plugin all the same.
+        /// </summary>
+        internal bool HasApplications => _applications.Count > 0;
+
+        /// <summary>
+        /// Initialises the application classes in order. One that throws drops every addition of the plugin, with a line in
+        /// <see cref="Problems"/> and a Warn, and the classes after it are not initialised; the commands stay. The host takes
+        /// no more additions once this returns.
+        /// </summary>
+        private void Start()
+        {
+            foreach (ICadPluginApplication application in _applications)
+            {
+                try
+                {
+                    application.Initialize(Host);
+                    _initialized.Add(application);
+                }
+                catch (Exception exception)
+                {
+                    Host.Clear();
+                    string line =
+                        "The plugin "
+                        + Name
+                        + "'s Initialize failed: "
+                        + exception.Message
+                        + "; its ribbon, Properties, DRAWINGS and snap additions are left out.";
+                    _problems.Add(line);
+                    GeometryHelperLog.Warn("CadPlugin: " + line, exception);
+                    break;
+                }
+            }
+
+            Host.Close();
+        }
+
+        /// <summary>
+        /// Leaves out what clashes with another plugin or an earlier addition of this one: a tab whose id is used, a snap
+        /// whose keyword is used (either case the same), the first loaded winning; each said in <see cref="Problems"/>.
+        /// </summary>
+        /// <param name="loaded">The plugins loaded already, in load order; this one is not among them.</param>
+        internal void LeaveOutClashes(IEnumerable<CadPlugin> loaded)
+        {
+            var others = new List<CadPlugin>(loaded ?? new CadPlugin[0]);
+
+            foreach (CadRibbonTab tab in new List<CadRibbonTab>(Host.RibbonTabs))
+            {
+                string owner = null;
+
+                foreach (CadPlugin other in others)
+                {
+                    foreach (CadRibbonTab used in other.Host.RibbonTabs)
+                    {
+                        if (owner == null && string.Equals(used.Id, tab.Id, StringComparison.OrdinalIgnoreCase))
+                        {
+                            owner = "the plugin " + other.Name;
+                        }
+                    }
+                }
+
+                foreach (CadRibbonTab used in Host.RibbonTabs)
+                {
+                    if (ReferenceEquals(used, tab))
+                    {
+                        break;
+                    }
+
+                    if (owner == null && string.Equals(used.Id, tab.Id, StringComparison.OrdinalIgnoreCase))
+                    {
+                        owner = "an earlier tab of the plugin";
+                    }
+                }
+
+                if (owner != null)
+                {
+                    Host.RemoveTab(tab);
+                    _problems.Add(
+                        "The ribbon tab "
+                            + tab.Id
+                            + " of the plugin "
+                            + Name
+                            + " is left out: "
+                            + owner
+                            + " has a tab of that id."
+                    );
+                }
+            }
+
+            foreach (CadCustomSnap snap in new List<CadCustomSnap>(Host.ObjectSnaps))
+            {
+                string owner = null;
+
+                foreach (CadPlugin other in others)
+                {
+                    foreach (CadCustomSnap used in other.Host.ObjectSnaps)
+                    {
+                        if (owner == null && string.Equals(used.Keyword, snap.Keyword, StringComparison.Ordinal))
+                        {
+                            owner = "the plugin " + other.Name;
+                        }
+                    }
+                }
+
+                foreach (CadCustomSnap used in Host.ObjectSnaps)
+                {
+                    if (ReferenceEquals(used, snap))
+                    {
+                        break;
+                    }
+
+                    if (owner == null && string.Equals(used.Keyword, snap.Keyword, StringComparison.Ordinal))
+                    {
+                        owner = "an earlier snap of the plugin";
+                    }
+                }
+
+                if (owner != null)
+                {
+                    Host.RemoveSnap(snap);
+                    _problems.Add(
+                        "The snap "
+                            + snap.Keyword
+                            + " of the plugin "
+                            + Name
+                            + " is left out: "
+                            + owner
+                            + " has a snap of that keyword."
+                    );
+                }
+            }
+        }
+
+        /// <summary>
+        /// Lets the application classes that were initialised let go, once, in the reverse order. One that throws is logged as
+        /// a Warn and the others still run.
+        /// </summary>
+        internal void Terminate()
+        {
+            if (_terminated)
+            {
+                return;
+            }
+
+            _terminated = true;
+
+            for (int i = _initialized.Count - 1; i >= 0; i--)
+            {
+                try
+                {
+                    _initialized[i].Terminate();
+                }
+                catch (Exception exception)
+                {
+                    GeometryHelperLog.Warn(
+                        "CadPlugin: Terminate of "
+                            + _initialized[i].GetType().FullName
+                            + " of the plugin "
+                            + Name
+                            + " failed.",
+                        exception
+                    );
+                }
+            }
         }
 
         /// <summary>
@@ -303,6 +504,8 @@ namespace GeometryHelper.Cad.Plugins
         /// <summary>Switches the plugin off: taken out of every registry, a run going on fails at its next step.</summary>
         internal void Disable()
         {
+            Terminate();
+
             while (_registrations.Count > 0)
             {
                 RemoveFrom(_registrations[_registrations.Count - 1].Registry);
@@ -340,6 +543,7 @@ namespace GeometryHelper.Cad.Plugins
 
             Commands = new List<CadPluginCommand>(commands.Values);
             Settings = settings;
+            _problems = problems;
             Problems = problems;
         }
 
@@ -375,7 +579,9 @@ namespace GeometryHelper.Cad.Plugins
                 }
             }
 
-            if (methods.Count == 0 && properties.Count == 0)
+            bool implementsApplication = !type.IsAbstract && typeof(ICadPluginApplication).IsAssignableFrom(type);
+
+            if (methods.Count == 0 && properties.Count == 0 && !implementsApplication)
             {
                 return;
             }
@@ -390,14 +596,21 @@ namespace GeometryHelper.Cad.Plugins
                 problems.Add(
                     "The class "
                         + where
-                        + " is left out: a plugin's commands and settings are in a public class that is not generic."
+                        + " is left out: a plugin's "
+                        + (
+                            implementsApplication
+                                ? "commands, settings and application are"
+                                : "commands and settings are"
+                        )
+                        + " in a public class that is not generic."
                 );
                 return;
             }
 
             object instance = null;
             bool needsInstance =
-                methods.Exists(m => !m.IsStatic)
+                implementsApplication
+                || methods.Exists(m => !m.IsStatic)
                 || properties.Exists(p => !(p.GetGetMethod(true) ?? p.GetSetMethod(true)).IsStatic);
 
             if (needsInstance)
@@ -421,6 +634,11 @@ namespace GeometryHelper.Cad.Plugins
                     );
                     return;
                 }
+            }
+
+            if (implementsApplication)
+            {
+                _applications.Add((ICadPluginApplication)instance);
             }
 
             foreach (MethodInfo method in methods)

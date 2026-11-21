@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using GeometryHelper.Cad.Plugins;
+using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Cad
@@ -140,6 +142,9 @@ namespace GeometryHelper.Cad
         /// Extended Apparent Intersection does, and takes no point (<see cref="ObjectSnap.TakeFirstObject"/>).
         /// </summary>
         ExtendedApparentIntersection,
+
+        /// <summary>A point a plugin's object snap gave; <see cref="CadSnapResult.CustomSnap"/> says which snap.</summary>
+        Custom,
     }
 
     /// <summary>
@@ -171,7 +176,8 @@ namespace GeometryHelper.Cad
             GeoPoint2 point,
             string handle,
             IReadOnlyList<IReadOnlyList<GeoPoint2>> tracks = null,
-            object source = null
+            object source = null,
+            Plugins.CadCustomSnap customSnap = null
         )
         {
             Kind = kind;
@@ -179,6 +185,7 @@ namespace GeometryHelper.Cad
             Handle = handle;
             Tracks = tracks ?? NoTracks;
             Source = source;
+            CustomSnap = customSnap;
         }
 
         /// <summary>Gets which snap gave the point; <see cref="CadSnapKind.None"/> for the cursor itself.</summary>
@@ -196,6 +203,9 @@ namespace GeometryHelper.Cad
         /// line; none for any other snap. The extension of an arc runs round its circle in steps of 5 degrees at most.
         /// </summary>
         public IReadOnlyList<IReadOnlyList<GeoPoint2>> Tracks { get; }
+
+        /// <summary>Gets the plugin's object snap that gave the point, for <see cref="CadSnapKind.Custom"/>; null for every other kind.</summary>
+        public Plugins.CadCustomSnap CustomSnap { get; }
 
         /// <summary>The object an Extended Apparent Intersection offers, kept for <see cref="ObjectSnap.TakeFirstObject"/>.</summary>
         internal object Source { get; }
@@ -474,9 +484,9 @@ namespace GeometryHelper.Cad
                 throw new ArgumentNullException(nameof(index));
             }
 
-            _active = Override ?? (IsOn ? Modes : CadSnapModes.None);
+            _active = CustomOverride != null ? CadSnapModes.None : Override ?? (IsOn ? Modes : CadSnapModes.None);
 
-            if (_active != CadSnapModes.None && aperture > 0.0)
+            if ((_active != CadSnapModes.None || ActiveCustomSnaps().Count > 0) && aperture > 0.0)
             {
                 CadSnapResult found = ObjectSnapAt(index, cursor, aperture, basePoint, drawnFrom);
 
@@ -749,6 +759,39 @@ namespace GeometryHelper.Cad
         /// </summary>
         internal ISet<string> HiddenLayers { get; set; }
 
+        private IReadOnlyList<CadCustomSnap> _customSnaps = Array.Empty<CadCustomSnap>();
+
+        private readonly List<CadCustomSnap> _failed = new List<CadCustomSnap>();
+
+        /// <summary>
+        /// The object snaps of plugins that are on, in the order they were loaded, which compete with the built-in snaps by
+        /// distance while snaps are on (<see cref="IsOn"/>) and no override is set; none until set; null sets none. Set by the
+        /// window.
+        /// </summary>
+        internal IReadOnlyList<CadCustomSnap> CustomSnaps
+        {
+            get => _customSnaps;
+            set => _customSnaps = value ?? Array.Empty<CadCustomSnap>();
+        }
+
+        /// <summary>
+        /// The snap of a plugin typed as an override for the next point, taken alone in place of every other snap, whether
+        /// <see cref="IsOn"/> is on or off; null for none. Cleared by the window once the point is taken.
+        /// </summary>
+        internal CadCustomSnap CustomOverride { get; set; }
+
+        /// <summary>Finds an entity by its handle, for the snaps of plugins; set by the window with the drawing's. Without it no custom snap is asked.</summary>
+        internal Func<string, DxfEntity> EntityOf { get; set; }
+
+        /// <summary>The drawing the snaps of plugins are asked about, given to their finders; may be null.</summary>
+        internal CadDocument Document { get; set; }
+
+        /// <summary>
+        /// Told, with the exception, when the finder of a plugin's snap throws; the snap is then switched off for the life of
+        /// this object and its finder is not asked again. The window writes the line on the command line and logs the Warn.
+        /// </summary>
+        internal Action<CadCustomSnap, Exception> CustomFailed { get; set; }
+
         // Set while the snaps of a model space seen through a viewport are worked out: the points acquired are the paper's.
         private bool _withoutTracking;
 
@@ -791,6 +834,15 @@ namespace GeometryHelper.Cad
             GeoPoint2? drawnFrom
         )
         {
+            // The points of the plugins' snaps; none, and no work, where no snap of a plugin is on.
+            List<Candidate> custom = CustomCandidates(index, cursor, aperture, basePoint ?? drawnFrom);
+
+            if (_active == CadSnapModes.None)
+            {
+                Candidate only = Best(custom);
+                return only == null ? null : ResultOf(only);
+            }
+
             var found = new Found();
             Gather(index, cursor, aperture, basePoint ?? drawnFrom, found);
             List<Candidate> near = found.Near;
@@ -807,14 +859,167 @@ namespace GeometryHelper.Cad
                 AddTracking(cursor, aperture, basePoint, near, tracked);
             }
 
+            near.AddRange(custom);
             Candidate best = Best(near)
                 ?? Best(found.OnObject)
                 ?? Best(tracked)
                 ?? Best(offered)
                 ?? Best(found.Nearest);
-            return best == null
-                ? null
-                : new CadSnapResult(best.Kind, best.Point, best.Handle, best.Tracks, best.Source);
+            return best == null ? null : ResultOf(best);
+        }
+
+        private static CadSnapResult ResultOf(Candidate best) =>
+            new CadSnapResult(best.Kind, best.Point, best.Handle, best.Tracks, best.Source, best.CustomSnap);
+
+        /// <summary>
+        /// The snaps of the plugins that apply to the next point: the one typed as an override alone; else, while no built-in
+        /// override is set and snaps are on, those on in <see cref="CustomSnaps"/>; less any switched off after its finder threw.
+        /// </summary>
+        private IReadOnlyList<CadCustomSnap> ActiveCustomSnaps()
+        {
+            if (_withoutTracking)
+            {
+                return Array.Empty<CadCustomSnap>();
+            }
+
+            IReadOnlyList<CadCustomSnap> snaps =
+                CustomOverride != null ? new[] { CustomOverride }
+                : Override == null && IsOn ? _customSnaps
+                : Array.Empty<CadCustomSnap>();
+
+            if (_failed.Count == 0 || snaps.Count == 0)
+            {
+                return snaps;
+            }
+
+            var working = new List<CadCustomSnap>(snaps.Count);
+
+            foreach (CadCustomSnap snap in snaps)
+            {
+                if (!_failed.Contains(snap))
+                {
+                    working.Add(snap);
+                }
+            }
+
+            return working;
+        }
+
+        /// <summary>
+        /// The points the plugins' snaps give for the entities under the aperture, each within the aperture of the cursor: the
+        /// finder is asked once per entity per snap that applies to its type, snaps in the order given, entities in ordinal
+        /// order of their handles, so that the order of the candidates, which breaks a tie, never follows a hash. A finder that
+        /// throws is switched off, and <see cref="CustomFailed"/> told.
+        /// </summary>
+        private List<Candidate> CustomCandidates(
+            PickIndex index,
+            GeoPoint2 cursor,
+            double aperture,
+            GeoPoint2? basePoint
+        )
+        {
+            var found = new List<Candidate>();
+            IReadOnlyList<CadCustomSnap> snaps = ActiveCustomSnaps();
+
+            if (snaps.Count == 0 || EntityOf == null)
+            {
+                return found;
+            }
+
+            var box = new DisplayBox(
+                cursor.X - aperture,
+                cursor.Y - aperture,
+                cursor.X + aperture,
+                cursor.Y + aperture
+            );
+            var handles = new List<string>();
+
+            foreach (DisplayItem2 item in index.ItemsNear(box))
+            {
+                if (
+                    item.Handle != null
+                    && !(HiddenLayers != null && item.Layer != null && HiddenLayers.Contains(item.Layer))
+                    && item.DistanceTo(cursor.X, cursor.Y) <= aperture
+                    && !handles.Contains(item.Handle)
+                )
+                {
+                    handles.Add(item.Handle);
+                }
+            }
+
+            handles.Sort(StringComparer.Ordinal);
+            int rank = 0;
+
+            foreach (CadCustomSnap snap in snaps)
+            {
+                foreach (string handle in handles)
+                {
+                    DxfEntity entity = EntityOf(handle);
+
+                    if (entity == null || !Applies(snap, entity))
+                    {
+                        continue;
+                    }
+
+                    List<GeoPoint2> points;
+
+                    try
+                    {
+                        points = new List<GeoPoint2>(
+                            snap.Finder(new CadSnapRequest(Document, entity, handle, cursor, aperture, basePoint))
+                                ?? Array.Empty<GeoPoint2>()
+                        );
+                    }
+                    catch (Exception exception)
+                    {
+                        _failed.Add(snap);
+
+                        try
+                        {
+                            CustomFailed?.Invoke(snap, exception);
+                        }
+                        catch (Exception)
+                        {
+                            // Telling the window is a courtesy; the snap is off either way.
+                        }
+
+                        break;
+                    }
+
+                    foreach (GeoPoint2 point in points)
+                    {
+                        double reach = (point - cursor).Length;
+
+                        if (reach <= aperture)
+                        {
+                            found.Add(
+                                new Candidate(CadSnapKind.Custom, point, handle, reach, null, null, snap, rank++)
+                            );
+                        }
+                    }
+                }
+            }
+
+            return found;
+        }
+
+        /// <summary>Whether a snap applies to an entity: its type is one of the snap's entity types, or a subclass of one; any entity where the snap names none.</summary>
+        private static bool Applies(CadCustomSnap snap, DxfEntity entity)
+        {
+            if (snap.EntityTypes.Count == 0)
+            {
+                return true;
+            }
+
+            foreach (Type type in snap.EntityTypes)
+            {
+                if (type != null && type.IsInstanceOfType(entity))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>The snaps of the items under the aperture: the points near the cursor, those the objects under it give, the nearest points, and the curves under it.</summary>
@@ -1595,7 +1800,7 @@ namespace GeometryHelper.Cad
         /// The best of the candidates: the nearest, then by kind, handle, X and Y; of candidates equal in all of these, the
         /// first found, so that the choice never rests on how a sort treats a tie.
         /// </summary>
-        private static Candidate Best(List<Candidate> list)
+        private Candidate Best(List<Candidate> list)
         {
             Candidate best = null;
 
@@ -1610,13 +1815,22 @@ namespace GeometryHelper.Cad
             return best;
         }
 
-        private static int Compare(Candidate a, Candidate b)
+        private int Compare(Candidate a, Candidate b)
         {
-            int c = a.Reach.CompareTo(b.Reach);
+            // Where a plugin's point meets another, the distances are compared within the point tolerance, so that a built-in point
+            // (the quadrant, from cos(pi/2)) a rounding error off the custom one wins on both sides of it; built-in ones as ever.
+            bool custom = a.Kind == CadSnapKind.Custom || b.Kind == CadSnapKind.Custom;
+            int c = custom && Math.Abs(a.Reach - b.Reach) <= Tolerance.EqualPoint ? 0 : a.Reach.CompareTo(b.Reach);
 
             if (c == 0)
             {
                 c = a.Kind.CompareTo(b.Kind);
+            }
+
+            // Custom points tie by the order they were found in: snap loaded first, then entity, then the finder's order.
+            if (c == 0 && a.Kind == CadSnapKind.Custom)
+            {
+                return a.Rank.CompareTo(b.Rank);
             }
 
             if (c == 0)
@@ -1655,7 +1869,9 @@ namespace GeometryHelper.Cad
                 string handle,
                 double reach,
                 IReadOnlyList<IReadOnlyList<GeoPoint2>> tracks = null,
-                object source = null
+                object source = null,
+                CadCustomSnap customSnap = null,
+                int rank = 0
             )
             {
                 Kind = kind;
@@ -1664,7 +1880,15 @@ namespace GeometryHelper.Cad
                 Reach = reach;
                 Tracks = tracks;
                 Source = source;
+                CustomSnap = customSnap;
+                Rank = rank;
             }
+
+            /// <summary>The plugin's snap that gave a <see cref="CadSnapKind.Custom"/> point; null for the others.</summary>
+            public CadCustomSnap CustomSnap { get; }
+
+            /// <summary>The order a custom point was found in: by snap, then entity, then the finder's own order; breaks a tie between custom points.</summary>
+            public int Rank { get; }
 
             public CadSnapKind Kind { get; }
 

@@ -146,6 +146,7 @@ namespace GeometryHelper.Cad
         private List<string> _supportFolders = new List<string>(CadSupportFiles.DefaultFolders);
         private List<string> _lispStartupSuite = new List<string>();
         private List<string> _appLoadHistory = new List<string>();
+        private List<string> _pluginSnaps = new List<string>();
         private string _appLoadFolder = string.Empty;
         private string _plotStyleFolder = string.Empty;
         private SortedDictionary<string, string> _fontSubstitutions = new SortedDictionary<string, string>(
@@ -393,6 +394,18 @@ namespace GeometryHelper.Cad
 
         /// <summary>Gets or sets the object snaps on: those of <see cref="CadSnapModes.All"/> but Nearest by default, Node and Geometric Center off.</summary>
         public CadSnapModes Snaps { get; set; } = CadSnapModes.All & ~CadSnapModes.Nearest;
+
+        /// <summary>
+        /// Gets or sets the user's choice for the object snaps plugins add, one entry per keyword, as "CTOP=1" for on and
+        /// "BOLT=0" for off; empty by default, and a keyword never chosen starts as the snap's
+        /// <see cref="Plugins.CadCustomSnap.IsOnByDefault"/>. Entries of plugins not loaded are kept, so that the choice
+        /// is there when the plugin is loaded again. Null sets an empty list. Saved in the settings file.
+        /// </summary>
+        public List<string> PluginSnaps
+        {
+            get => _pluginSnaps;
+            set => _pluginSnaps = value ?? new List<string>();
+        }
 
         /// <summary>Gets or sets how near the cursor a snap is taken, in pixels, 2 to 50: 10 by default, as AutoCAD's APERTURE.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
@@ -1031,6 +1044,7 @@ namespace GeometryHelper.Cad
             copy._supportFolders = new List<string>(_supportFolders);
             copy._lispStartupSuite = new List<string>(_lispStartupSuite);
             copy._appLoadHistory = new List<string>(_appLoadHistory);
+            copy._pluginSnaps = new List<string>(_pluginSnaps);
             copy._fontSubstitutions = Copy(_fontSubstitutions);
             copy._aliases = Copy(_aliases);
             copy._keys = Copy(_keys);
@@ -1155,6 +1169,14 @@ namespace GeometryHelper.Cad
             w.Value("wheelZoomReversed", WheelZoomReversed);
             w.Value("shortcutMenu", _shortcutMenu);
             w.Value("snaps", string.Join(",", SnapNames(Snaps)));
+            w.OpenList("pluginSnaps");
+
+            foreach (string entry in _pluginSnaps)
+            {
+                w.Value(null, entry);
+            }
+
+            w.CloseList();
             w.Value("aperturePixels", _aperturePixels);
             w.Value("polarAngle", _polarAngle);
             w.Value("polarMode", _polarMode);
@@ -1449,6 +1471,7 @@ namespace GeometryHelper.Cad
                 Flag("canvas", "wheelZoomReversed", v => _s.WheelZoomReversed = v);
                 Number("canvas", "shortcutMenu", v => _s.ShortcutMenu = Whole(v));
                 Text("canvas", "snaps", v => _s.Snaps = Snaps(v));
+                Take("canvas", "pluginSnaps", e => _s.PluginSnaps = e.Elements().Select(f => f.Value).ToList());
                 Number("canvas", "aperturePixels", v => _s.AperturePixels = Whole(v));
                 Number("canvas", "polarAngle", v => _s.PolarAngle = v);
                 Number("canvas", "polarMode", v => _s.PolarMode = Whole(v));

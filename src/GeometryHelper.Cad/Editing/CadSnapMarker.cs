@@ -10,9 +10,18 @@ namespace GeometryHelper.Cad
     /// </summary>
     public sealed class CadMarkerStroke
     {
-        internal CadMarkerStroke(IReadOnlyList<GeoPoint2> points, bool closed, bool dotted = false, bool filled = false)
+        /// <summary>
+        /// Makes a stroke, as a plugin draws the glyph of its object snap with (<see cref="Plugins.CadCustomSnap.Glyph"/>): a
+        /// triangle pointing up, 9 across, is <c>(-4.5, 4.5) (4.5, 4.5) (0, -4.5)</c> closed.
+        /// </summary>
+        /// <param name="points">The chain, in pixels from the snap point, X to the right and Y down; copied.</param>
+        /// <param name="closed">Whether the chain closes back to its first point.</param>
+        /// <param name="dotted">Whether the stroke is drawn dotted.</param>
+        /// <param name="filled">Whether the stroke is filled.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the points are null.</exception>
+        public CadMarkerStroke(IReadOnlyList<GeoPoint2> points, bool closed, bool dotted = false, bool filled = false)
         {
-            Points = points;
+            Points = new List<GeoPoint2>(points ?? throw new ArgumentNullException(nameof(points)));
             IsClosed = closed;
             IsDotted = dotted;
             IsFilled = filled;
@@ -117,10 +126,20 @@ namespace GeometryHelper.Cad
                         Chain(false, -h * 0.5, -h * 0.5, h * 0.5, h * 0.5),
                         Chain(false, -h * 0.5, h * 0.5, h * 0.5, -h * 0.5),
                     };
+                case CadSnapKind.Custom:
+                    // The glyph of a plugin's snap that gives none of its own: a square with a dot in it.
+                    return new[] { Square(-h, -h, h, h), new CadMarkerStroke(Ring(1.2), true, filled: true) };
                 default:
                     return Array.Empty<CadMarkerStroke>();
             }
         }
+
+        /// <summary>
+        /// The strokes of a custom snap's marker: its own glyph, or where it has none the default one, a square 9 across with
+        /// a filled dot of radius 1.2 in its centre.
+        /// </summary>
+        internal static IReadOnlyList<CadMarkerStroke> StrokesOf(Plugins.CadCustomSnap snap) =>
+            snap.Glyph ?? Strokes(CadSnapKind.Custom);
 
         /// <summary>Gets the name of a snap kind as AutoCAD's tooltip writes it: "Endpoint", "Geometric Center", "Apparent Intersection".</summary>
         /// <param name="kind">The snap kind.</param>

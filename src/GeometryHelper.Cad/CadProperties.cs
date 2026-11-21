@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using GeometryHelper.Dxf;
+using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Cad
 {
@@ -27,6 +28,7 @@ namespace GeometryHelper.Cad
             Value = value ?? string.Empty;
             IsReadOnly = isReadOnly;
             Choices = choices;
+            Kind = choices != null ? CadPropertyKind.Choice : CadPropertyKind.Text;
         }
 
         /// <summary>
@@ -72,6 +74,15 @@ namespace GeometryHelper.Cad
         /// <summary>Gets whether the value is a check box, which <see cref="Value"/> says is <see cref="YesText"/> or <see cref="NoText"/>.</summary>
         public bool IsCheck { get; private set; }
 
+        /// <summary>
+        /// Gets what kind of value the row holds, which tells the window what to offer: <see cref="CadPropertyKind.Text"/> for a
+        /// row typed into, <see cref="CadPropertyKind.Choice"/> where choices are given, <see cref="CadPropertyKind.Check"/> for
+        /// a check box made with <see cref="Check"/>, and the others for the rows <see cref="Number"/>,
+        /// <see cref="Length"/>, <see cref="Angle"/>, <see cref="Point"/>, <see cref="Color"/>, <see cref="Layer"/>,
+        /// <see cref="Linetype"/> and <see cref="Lineweight"/> make. A read-only row from <see cref="Check"/> is Text.
+        /// </summary>
+        public CadPropertyKind Kind { get; private set; }
+
         /// <summary>Gets whether the selected entities differ in this property.</summary>
         public bool Varies => Value == VariesText;
 
@@ -98,8 +109,306 @@ namespace GeometryHelper.Cad
             string value = isOn ? YesText : NoText;
             return setter == null
                 ? new CadPropertyRow(label, value, true)
-                : new CadPropertyRow(label, value, setter) { IsCheck = true };
+                : new CadPropertyRow(label, value, setter) { IsCheck = true, Kind = CadPropertyKind.Check };
         }
+
+        /// <summary>
+        /// Makes a row for a number typed as it is, in the invariant culture: 12.5, whatever the machine's separator. Typing
+        /// "abc" is refused with "&lt;label&gt; is a number." and the setter is not called.
+        /// </summary>
+        /// <param name="label">The label.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="setter">What changes the value, given the number, as of <see cref="CadPropertyRow(string, string, Func{string, string}, IReadOnlyList{string})"/>: null where it was changed, else the words of the refusal; null for a row that is only read.</param>
+        /// <returns>The row.</returns>
+        public static CadPropertyRow Number(string label, double value, Func<double, string> setter) =>
+            Typed(label, value.ToString("R", CultureInfo.InvariantCulture), setter, CadPropertyKind.Number, text =>
+                double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double v) && IsFinite(v)
+                    ? (double?)v
+                    : null
+            );
+
+        /// <summary>
+        /// Makes a row for a length, written and read in the drawing's units, LUNITS and LUPREC: 12.5 is "12.5000" in decimal
+        /// units to four places, and 14 inches typed as 1'2" is read in architectural units. Text that does not read is refused
+        /// with "&lt;label&gt; is a number." and the setter is not called.
+        /// </summary>
+        /// <param name="label">The label.</param>
+        /// <param name="value">The length, in drawing units.</param>
+        /// <param name="document">The drawing whose units the row follows; read when the row is made.</param>
+        /// <param name="setter">What changes the value, given the length; null for a row that is only read.</param>
+        /// <returns>The row.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the document is null.</exception>
+        public static CadPropertyRow Length(
+            string label,
+            double value,
+            CadDocument document,
+            Func<double, string> setter
+        )
+        {
+            UnitsOf(document, out int lunits, out int luprec, out _, out _);
+            return Typed(label, CadUnits.Length(value, lunits, luprec), setter, CadPropertyKind.Length, text =>
+                CadUnits.TryLength(text, lunits, out double v) && IsFinite(v) ? (double?)v : null
+            );
+        }
+
+        /// <summary>
+        /// Makes a row for an angle, written and read in the drawing's angle units, AUNITS and AUPREC: 90 degrees is "90" in
+        /// decimal degrees to no places, and "90d0'0\"" in degrees, minutes and seconds. The value is in radians from the X
+        /// axis. Text that does not read is refused with "&lt;label&gt; is a number." and the setter is not called.
+        /// </summary>
+        /// <param name="label">The label.</param>
+        /// <param name="radians">The angle, in radians.</param>
+        /// <param name="document">The drawing whose units the row follows; read when the row is made.</param>
+        /// <param name="setter">What changes the value, given the angle in radians; null for a row that is only read.</param>
+        /// <returns>The row.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the document is null.</exception>
+        public static CadPropertyRow Angle(
+            string label,
+            double radians,
+            CadDocument document,
+            Func<double, string> setter
+        )
+        {
+            UnitsOf(document, out _, out _, out int aunits, out int auprec);
+            return Typed(label, CadUnits.Angle(radians, aunits, auprec), setter, CadPropertyKind.Angle, text =>
+                CadUnits.TryAngle(text, aunits, out double v) && IsFinite(v) ? (double?)v : null
+            );
+        }
+
+        /// <summary>
+        /// Makes the three rows of a point, "&lt;label&gt; X", "&lt;label&gt; Y" and "&lt;label&gt; Z", each a
+        /// <see cref="Length"/>; typing one gives the setter the point with that coordinate changed and the others as they were.
+        /// </summary>
+        /// <param name="label">The label: "Center" gives Center X, Center Y and Center Z.</param>
+        /// <param name="value">The point.</param>
+        /// <param name="document">The drawing whose units the rows follow.</param>
+        /// <param name="setter">What changes the point; null for rows that are only read.</param>
+        /// <returns>The three rows, X first.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the label or the document is null.</exception>
+        public static IReadOnlyList<CadPropertyRow> Point(
+            string label,
+            GeoPoint3 value,
+            CadDocument document,
+            Func<GeoPoint3, string> setter
+        )
+        {
+            if (label == null)
+            {
+                throw new ArgumentNullException(nameof(label));
+            }
+
+            return new[]
+            {
+                Length(
+                    label + " X",
+                    value.X,
+                    document,
+                    setter == null ? (Func<double, string>)null : x => setter(new GeoPoint3(x, value.Y, value.Z))
+                ),
+                Length(
+                    label + " Y",
+                    value.Y,
+                    document,
+                    setter == null ? (Func<double, string>)null : y => setter(new GeoPoint3(value.X, y, value.Z))
+                ),
+                Length(
+                    label + " Z",
+                    value.Z,
+                    document,
+                    setter == null ? (Func<double, string>)null : z => setter(new GeoPoint3(value.X, value.Y, z))
+                ),
+            };
+        }
+
+        /// <summary>
+        /// Makes a row for a colour, written as the palette writes one (ByLayer, ByBlock, Red to White, an index 1 to 255, or
+        /// 255,128,0) and read the same way; the window offers its list of colours with Select Color. Text that does not read is
+        /// refused with the palette's own words and the setter is not called.
+        /// </summary>
+        /// <param name="label">The label.</param>
+        /// <param name="color">The colour.</param>
+        /// <param name="setter">What changes the colour; null for a row that is only read.</param>
+        /// <returns>The row.</returns>
+        public static CadPropertyRow Color(string label, DxfColor color, Func<DxfColor, string> setter)
+        {
+            if (color == null)
+            {
+                throw new ArgumentNullException(nameof(color));
+            }
+
+            return Made(
+                label,
+                CadPropertyEditor.ColorName(color),
+                setter == null
+                    ? (Func<string, string>)null
+                    : text =>
+                    {
+                        string error = CadPropertyEditor.ParseColor(text.Trim(), out DxfColor read);
+                        return error ?? setter(read);
+                    },
+                CadPropertyKind.Color
+            );
+        }
+
+        /// <summary>
+        /// Makes a row for a layer's name; the window offers the layers of the drawing. The name typed or chosen goes to the
+        /// setter as it is, which refuses one the drawing has not.
+        /// </summary>
+        /// <param name="label">The label.</param>
+        /// <param name="layer">The layer's name.</param>
+        /// <param name="setter">What changes the layer, given its name; null for a row that is only read.</param>
+        /// <returns>The row.</returns>
+        public static CadPropertyRow Layer(string label, string layer, Func<string, string> setter) =>
+            Made(label, layer, setter, CadPropertyKind.Layer);
+
+        /// <summary>
+        /// Makes a row for a linetype's name; the window offers the linetypes of the drawing. The name typed or chosen goes to
+        /// the setter as it is, which refuses one the drawing has not.
+        /// </summary>
+        /// <param name="label">The label.</param>
+        /// <param name="linetype">The linetype's name.</param>
+        /// <param name="setter">What changes the linetype, given its name; null for a row that is only read.</param>
+        /// <returns>The row.</returns>
+        public static CadPropertyRow Linetype(string label, string linetype, Func<string, string> setter) =>
+            Made(label, linetype, setter, CadPropertyKind.Linetype);
+
+        /// <summary>
+        /// Makes a row for a lineweight, written as the palette writes one (ByLayer, ByBlock, Default, or 0.25 mm) and read the
+        /// same way; the window offers AutoCAD's widths. Text that does not read is refused with the palette's own words and the
+        /// setter is not called.
+        /// </summary>
+        /// <param name="label">The label.</param>
+        /// <param name="lineweight">The lineweight.</param>
+        /// <param name="setter">What changes the lineweight; null for a row that is only read.</param>
+        /// <returns>The row.</returns>
+        public static CadPropertyRow Lineweight(
+            string label,
+            DxfLineWeight lineweight,
+            Func<DxfLineWeight, string> setter
+        ) =>
+            Made(
+                label,
+                CadProperties.LineWeightText(lineweight),
+                setter == null
+                    ? (Func<string, string>)null
+                    : text =>
+                    {
+                        string error = CadPropertyEditor.ParseLineWeight(text.Trim(), out DxfLineWeight read);
+                        return error ?? setter(read);
+                    },
+                CadPropertyKind.Lineweight
+            );
+
+        /// <summary>A row of a kind whose text the setter takes as it is; read-only where there is no setter.</summary>
+        private static CadPropertyRow Made(
+            string label,
+            string value,
+            Func<string, string> setter,
+            CadPropertyKind kind
+        ) =>
+            setter == null
+                ? new CadPropertyRow(label, value, true) { Kind = kind }
+                : new CadPropertyRow(label, value, setter) { Kind = kind };
+
+        /// <summary>A row of a kind whose text is read to a number first: text that does not read is refused, "label is a number.", and the setter is not called.</summary>
+        private static CadPropertyRow Typed(
+            string label,
+            string value,
+            Func<double, string> setter,
+            CadPropertyKind kind,
+            Func<string, double?> read
+        )
+        {
+            if (label == null)
+            {
+                throw new ArgumentNullException(nameof(label));
+            }
+
+            return Made(
+                label,
+                value,
+                setter == null
+                    ? (Func<string, string>)null
+                    : text =>
+                    {
+                        double? number = read(text.Trim());
+                        return number.HasValue ? setter(number.Value) : label + " is a number.";
+                    },
+                kind
+            );
+        }
+
+        private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
+
+        /// <summary>The units of a drawing, each as the drawing says it, or the defaults (decimal, four places; decimal degrees, none) where it does not.</summary>
+        private static void UnitsOf(
+            CadDocument document,
+            out int lunits,
+            out int luprec,
+            out int aunits,
+            out int auprec
+        )
+        {
+            if (document == null)
+            {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            lunits = 2;
+            luprec = 4;
+            aunits = 0;
+            auprec = 0;
+
+            try
+            {
+                DxfDatabase database = document.Database;
+                lunits = database.Lunits;
+                luprec = database.Luprec;
+                aunits = database.Aunits;
+                auprec = database.Auprec;
+            }
+            catch (Exception)
+            {
+                // A drawing whose header cannot be read is shown in the defaults.
+            }
+        }
+    }
+
+    /// <summary>
+    /// What kind of value a row of the Properties panel holds, which tells the window what to offer for it: a box typed into, a
+    /// drop-down of the choices, a check box, or the list of the drawing's colours, layers, linetypes or lineweights.
+    /// </summary>
+    public enum CadPropertyKind
+    {
+        /// <summary>A text typed into.</summary>
+        Text,
+
+        /// <summary>One of the row's own choices.</summary>
+        Choice,
+
+        /// <summary>A check box.</summary>
+        Check,
+
+        /// <summary>A number, typed as it is in the invariant culture.</summary>
+        Number,
+
+        /// <summary>A length, in the drawing's units.</summary>
+        Length,
+
+        /// <summary>An angle, in the drawing's angle units.</summary>
+        Angle,
+
+        /// <summary>A colour: the window offers its list, and Select Color.</summary>
+        Color,
+
+        /// <summary>A layer: the window offers the drawing's layers.</summary>
+        Layer,
+
+        /// <summary>A linetype: the window offers the drawing's linetypes.</summary>
+        Linetype,
+
+        /// <summary>A lineweight: the window offers AutoCAD's widths.</summary>
+        Lineweight,
     }
 
     /// <summary>A titled group of rows of the Properties panel, such as General or Geometry.</summary>
@@ -1094,7 +1403,7 @@ namespace GeometryHelper.Cad
             return string.Equals(name, "Continuous", StringComparison.OrdinalIgnoreCase) ? "Continuous" : name;
         }
 
-        private static string LineWeightText(DxfLineWeight weight)
+        internal static string LineWeightText(DxfLineWeight weight)
         {
             switch (weight)
             {

@@ -29,6 +29,11 @@
             Include="..\GeometryHelper.Cad.SamplePlugin\GeometryHelper.Cad.SamplePlugin.csproj"
             ReferenceOutputAssembly="false"
         />
+        <!-- Built first, never referenced: the plugin tests load its .dll as a plugin that adds to the window, from SampleUiPlugin\ beside them. -->
+        <ProjectReference
+            Include="..\GeometryHelper.Cad.SampleUiPlugin\GeometryHelper.Cad.SampleUiPlugin.csproj"
+            ReferenceOutputAssembly="false"
+        />
         <!-- Built first, never referenced: the app tests run its screenshot mode as a process, from its own bin folder. -->
         <ProjectReference
             Include="..\..\src\GeometryHelper.Cad.App\GeometryHelper.Cad.App.csproj"
@@ -41,6 +46,12 @@
         <None
             Include="..\GeometryHelper.Cad.SamplePlugin\bin\$(Configuration)\netstandard2.0\GeometryHelper.Cad.SamplePlugin.dll"
             Link="SamplePlugin\GeometryHelper.Cad.SamplePlugin.dll"
+            CopyToOutputDirectory="PreserveNewest"
+            Visible="false"
+        />
+        <None
+            Include="..\GeometryHelper.Cad.SampleUiPlugin\bin\$(Configuration)\netstandard2.0\GeometryHelper.Cad.SampleUiPlugin.dll"
+            Link="SampleUiPlugin\GeometryHelper.Cad.SampleUiPlugin.dll"
             CopyToOutputDirectory="PreserveNewest"
             Visible="false"
         />
