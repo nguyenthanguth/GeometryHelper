@@ -813,6 +813,18 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(style));
             }
 
+            TakeDimstyleData(style, false);
+        }
+
+        /// <summary>
+        /// Gives each dimension variable the header leaves out the value of a style, as AutoCAD reads such a variable as its
+        /// own, imperial drawing has it where the style is a new <see cref="DxfDimStyleTableRecord"/>: arrowheads and text 0.18,
+        /// four decimal places and a decimal point, the text on the line. Those the header gives are left as they are.
+        /// </summary>
+        internal void TakeLeftOutDimensions(DxfDimStyleTableRecord style) => TakeDimstyleData(style, true);
+
+        private void TakeDimstyleData(DxfDimStyleTableRecord style, bool leftOutOnly)
+        {
             var changes = new List<KeyValuePair<DimHeader, string>>();
 
             foreach (DxfDimVariable variable in DxfDimVariable.All)
@@ -820,7 +832,11 @@ namespace GeometryHelper.Dxf
                 DimHeader header = DimHeaders[variable.Name];
                 object value = style.Get(variable);
 
-                if ((value == null && header.Kind == DxfDimKind.TextStyle) || !File.Supports(header.Since))
+                if (
+                    (value == null && header.Kind == DxfDimKind.TextStyle)
+                    || !File.Supports(header.Since)
+                    || (leftOutOnly && File.HeaderOf(header.Variable) != null)
+                )
                 {
                     continue;
                 }

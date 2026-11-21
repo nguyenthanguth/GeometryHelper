@@ -278,6 +278,9 @@ namespace GeometryHelper.Cad.UnitTest
                 CadDocument document = Plan();
                 MoveA1(document, 10);
 
+                // The plan leaves its header's MEASUREMENT, dimension variables and CELTYPE out, which opening a DXF writes in as
+                // AutoCAD reads them; the drawing is given them first, so that the text it saves is the text that opens.
+                CadHeaderDefaults.Apply(document.Database);
                 document.SaveAs(path);
 
                 Assert.False(document.IsModified);
