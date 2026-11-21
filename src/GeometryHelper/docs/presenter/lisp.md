@@ -254,6 +254,81 @@ file can still be edited there.
 
 Blank entries are left out and a file named twice is loaded once.
 
+### Trusted folders and SECURELOAD
+
+Loading a file runs its code with the user's rights, so, as AutoCAD 2021 does, a file of code is loaded only from a trusted
+folder unless the user says otherwise. The gate stands in front of `load` and everything built on it: APPLOAD, the files of
+[When a drawing opens](#when-a-drawing-opens) and the Startup Suite, `autoload`, `vl-load-all` and the copy it brings into
+another drawing. It does not stand in front of `load_dialog`, SCRIPT, `open` or `findfile`, nor of code typed at the
+command line: AutoCAD 2021 loads an untrusted `.dcl` and runs an untrusted `.scr` with no question, also at SECURELOAD 2.
+The plugin manager keeps [its own trusted folders](plugins.md). Three system variables set it, readable and settable with
+`getvar`, `setvar` and SETVAR, and kept in Global settings ([the Security page](app.md#the-security-page)):
+
+| Variable | Values | In the app | In a session of the library |
+|---|---|---|---|
+| SECURELOAD | 0 loads from anywhere; 1 loads from the trusted folders and asks about any other file; 2 loads from the trusted folders only | 1, AutoCAD's initial value | 0 |
+| TRUSTEDPATHS | the trusted folders, parted by `;` | empty | empty |
+| LEGACYCODESEARCH | 0 leaves the current folder and the drawing's out of a search for a file of code; 1 puts them in | 0 | 0 |
+
+A session made by the library, with no window to ask, starts at SECURELOAD 0, so a program that loads routines headless
+loads them as it did before; the window gives every drawing one shared
+[`CadLoadSecurity`](xref:GeometryHelper.Cad.CadLoadSecurity) built from the settings, so a SETVAR of SECURELOAD in one
+drawing holds in the others and after a restart. `(setvar "SECURELOAD" 3)` is
+`; error: AutoCAD variable setting rejected: "SECURELOAD" 3`.
+
+A file is decided in this order: SECURELOAD 0 loads it; a file in a trusted folder loads; SECURELOAD 2 refuses it; at 1 a
+file answered Load Once in this run of the app, or Always Load with the same content, loads, and any other is asked about.
+The folder of the app and all its folders below are always trusted, as AutoCAD's program folders are: the presenter's
+linetypes, hatch patterns and Python package lie there. TRUSTEDPATHS is read as AutoCAD 2021 reads it, each form measured
+there with a `setvar` and a `load`:
+
+| TRUSTEDPATHS | Trusts |
+|---|---|
+| `D:\Lisp` | the files in `D:\Lisp`, not those of `D:\Lisp\Old` |
+| `D:\Lisp\...` | `D:\Lisp` and every folder below it, at any depth |
+| `D:\Lisp\` or `d:\LISP` | `D:\Lisp` (a closing backslash and the case change nothing) |
+| `D:\Lisp\Old\..` | `D:\Lisp`, the path worked out |
+| `D:\Lisp;D:\Tools` or `  D:\Lisp  ;;` | both; the spaces around an entry and the empty entries are passed over |
+| `%USERPROFILE%\Lisp` | `C:\Users\you\Lisp`: the variable is expanded when it is set, and `getvar` gives it expanded |
+| `"D:\Lisp"`, `D:\Li*` | nothing: quotes are not taken off, and there are no wildcards |
+| `D:\Work` | the files in `D:\Work`, not those of `D:\Work\Lisp` |
+
+Only a backslash before `...` takes the folders below; `D:/Lisp/...` trusts `D:\Lisp` alone, as in AutoCAD. An entry that
+is not a rooted path, such as `Lisp`, is passed over (the presenter's choice; AutoCAD's was not measured).
+
+A refused file named with a folder is the error `File load canceled:` and the name as it was given, slashes and all, at
+SECURELOAD 1 and 2 alike; the second argument of `load` is not given back for it, as in AutoCAD, so `vl-catch-all-apply`
+catches it as any error:
+
+```text
+Command: (load "C:/Users/you/Downloads/tools.lsp")
+; error: File load canceled: C:/Users/you/Downloads/tools.lsp
+Command: (load "C:/Users/you/Downloads/tools.lsp" "none")
+; error: File load canceled: C:/Users/you/Downloads/tools.lsp
+```
+
+A file refused in a search for a bare name is passed over and the search goes on; where nothing else is found the load is
+`; error: LOAD failed: "tools"`, and there the second argument is given back. A `.fas` or `.vlx` outside the trusted
+folders is cancelled as any file; one inside them is still refused as compiled AutoLISP. APPLOAD's footer shows the line
+of a refusal in red, and a startup file that is refused writes it and lets the next one run.
+
+At SECURELOAD 1 the window asks with AutoCAD's own warning, **Security - Unsigned Executable File**: `The publisher of this
+executable file could not be verified and the file is not located in a trusted folder. What do you want to do?`, the
+file's name, `Unknown Publisher`, its folder, `None` for the issuer and its date, and three buttons. **Do Not Load**, the
+default (Enter, Esc and the window's cross give it too), refuses the file as above. **Load Once** loads it, and the same
+file is not asked about again until the app restarts, in any drawing. **Always Load** loads it and remembers the file with
+its content, kept in the settings file across runs: AutoCAD 2021 asked again once one line was added to such a file, and
+so does the presenter, which keeps a SHA-256 of its bytes. Always Load does not add the folder to TRUSTEDPATHS, and the
+next file of that folder is asked about. At SECURELOAD 2 an Always Load answer does not count. A session with no window
+refuses, as AutoCAD's console does.
+
+`findfile` and `load_dialog` follow LEGACYCODESEARCH for the names of code. At 0, a bare name with the extension `.lsp`,
+`.fas`, `.vlx`, `.mnl`, `.scr`, `.dcl`, `.dll`, `.arx`, `.dvb`, `.cuix` or `.py` is looked for in the support folders
+only, not in the current folder nor beside the drawing: with ten files `ghl6f.<ext>` beside a drawing, AutoCAD 2021's
+`findfile` found the `.txt`, `.js`, `.lin` and `.pat` and none of those ten. At 1 the current folder, the folder of the
+drawing and then the support folders are searched for every name, by `load` too. `load_dialog` of a bare name leaves the
+two folders out at 0 for any name, since it adds `.dcl` to one with no extension.
+
 ## Commands: command and vl-cmdf
 
 `(command "LINE" '(0 0) '(10 0) "")` runs LINE and gives it one argument for each prompt, in turn, as if the user had typed
@@ -772,7 +847,9 @@ that opens a file should close it.
 `(findfile name)` gives the full path of a file or folder, with backslashes, or `nil`. A name with a folder in it, absolute or
 like `files/notes.txt`, is checked where it points, a relative one from the current folder. A bare name is looked for in the
 current folder, then in the folder of the drawing (none for a drawing that was never saved), then in the support folders in
-order, those of Global settings' Folder preference. The first place that has it wins. `(findfile "C:/work/notes.txt")` is
+order, those of Global settings' Folder preference. The first place that has it wins. A bare name of a file of code
+(`.lsp`, `.dcl`, `.fas` and seven more) skips the first two places while LEGACYCODESEARCH is 0, its initial value, as in
+AutoCAD 2021 ([Trusted folders and SECURELOAD](#trusted-folders-and-secureload)). `(findfile "C:/work/notes.txt")` is
 `"C:\\work\\notes.txt"`, and `""`, a name that ends in a separator, and a name nothing has give `nil`. `load` looks in the
 support folders and not in the folder of the drawing, as AutoCAD does, so a routine that loads a file beside its drawing
 names the folder.
@@ -1889,7 +1966,8 @@ gives it.
 
 `(load_dialog file)` gives a whole number, 1 for the first file of a drawing and one more for each file loaded after it (a
 file loaded twice gets two numbers, as in AutoCAD), and `-1` for a file that is not there. A name with a folder is that
-file; any other is looked for as `findfile` looks, in the support folders and the folder of the drawing; `.dcl` is added
+file; any other is looked for in the support folders, and first in the current folder and beside the drawing where
+LEGACYCODESEARCH is 1 ([Trusted folders and SECURELOAD](#trusted-folders-and-secureload)); `.dcl` is added
 where the name has no extension. `(unload_dialog id)` forgets the file and gives `nil`; dialogs already made from it keep
 their own copy.
 
@@ -2185,7 +2263,8 @@ whole, and their names are offered by AutoComplete, whatever their bodies need.
 
 The drawing, the library, the ActiveX functions and the dialogs are built, with these left out. In `entmake`: the POLYLINE sequences, an
 INSERT with attributes, block definitions and the records of a table. Of the library, `acad_strlsort`, `getenv` and `setenv`
-(they come with the registry store, when a routine needs them), `findtrustedfile` (with L6), `vl-load-reactors` (with the
+(they come with the registry store, when a routine needs them), `findtrustedfile` (not brought by L6, which built the
+trusted folders it would search), `vl-load-reactors` (with the
 `vlr-` functions, which the ActiveX stage leaves out: there are no reactors), and `vl-exit-with-error` and
 `vl-exit-with-value`, which belong to VLX applications, are not defined. Of the ActiveX functions, `vlax-dump-object`,
 `vlax-ldata-get` and its family, `vlax-add-cmd`, the product keys, the `Add` methods and the editing methods of the spaces
@@ -2196,10 +2275,7 @@ colour tiles of `acad.dcl`, `audit_level` and the `acad.dce` file are left out, 
 another list than AutoCAD's: for `'(2 1 2 1)` and a function that always answers `nil` AutoCAD gave `(1 2 1)` and the presenter
 gives `(2 1 2 1)`, and for `'(1 2 3 2 1)` and one that always answers `T`, `(1 2 3 1)` and `(1 2 3 2 1)`. `vl-list->string` leaves out the codes
 outside 1 to 65535 where AutoCAD printed other text, a `vl-filename-mktemp` counter does not go past 999, and Unicode typed
-at the command line reaches `read-line` through the ANSI code page.
-
-| Stage | What it brings |
-|---|---|
-| L6 | trusted folders and the secure-load check; for now `load` reads any file it is given |
+at the command line reaches `read-line` through the ANSI code page. Every stage of the plan is built; the trusted folders
+of the last, L6, are [above](#trusted-folders-and-secureload).
 
 A routine that opens with `(vl-load-com)` loads, and has the [ActiveX functions](#activex-objects) after it.

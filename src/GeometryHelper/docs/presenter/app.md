@@ -27,7 +27,7 @@ spaces of indent, 7 984 characters for the defaults.
 
 ### The categories
 
-The presenter's Global settings dialog has eight categories, none of them about drawings made from a model. The JSON keeps the
+The presenter's Global settings dialog has nine categories, none of them about drawings made from a model. The JSON keeps the
 settings of those, which a host that makes model drawings reads and neither that dialog nor the presenter shows or applies: the preset,
 sheet, orientation and projection of a new drawing, the model-change check and its interval, the DXF layout and opening the
 folder after an export, the colour of hidden lines, the decimals of dimensions and the height of titles, and the font, height and
@@ -41,6 +41,7 @@ width factor of drawing text. A file that holds them keeps them, and OK writes t
 | Layers, colours and lines | the layer table written to new drawings, with each layer's colour, linetype, lineweight and plot flag; NEW (Ctrl+N) adds it to the new drawing | Visible, Hidden, Centre, Hatch, Dimension, Mark, Symbol, Sheet, Viewport (not plotted) |
 | Text and fonts | the UI font, chosen from the font families installed on Windows (each shown in its own face) or typed; what Esc in the MTEXT editor with changes does (Hidden messages); the replacement font of a font not found (FONTALT), whether the Missing Fonts dialog is shown on opening a drawing, the font mapping file (FONTMAP) and the fonts drawn in others | UI font Inter, Esc asks, `ghsimplex`, the dialog on, no mapping file, no substitutions |
 | Folder preference | the font search folders and the support file search folders (linetypes and hatch patterns), each in order, with the default Fonts, Hatches and Linetypes folders next to the dll shown read-only under them; the Python the PYTHON palette, PYRUN and PYLOAD run scripts with (a `python.exe` or its folder, with the Python found beside it; see [Python in the app](python.md#finding-python)) | none; Python found automatically |
+| Security | where AutoLISP and Python code may be loaded from: SECURELOAD, the trusted folders (TRUSTEDPATHS), LEGACYCODESEARCH and the files answered Always Load (see [The Security page](#the-security-page)) | SECURELOAD 1, no trusted folder but the app's own, LEGACYCODESEARCH 0, none |
 | Shortcuts | the aliases and the keys | AutoCAD's (see [Editing](editing.md#aliases-and-keys)) |
 | Save and export | the save folder, autosave (how often, and its format, DXF or DWG); Template settings: the template folder and the default template for QNEW (see [Drawing templates](#drawing-templates)); Other programs: whether other programs may connect and drive the app (see [Driving the app from another program](remote.md#the-setting)) | empty, which is the user's Documents, 10 minutes, DXF; template folder empty, which is `%AppData%\GeometryHelper\Drawing\Template`, no default template for QNEW, which is the built-in metric one; other programs allowed to connect |
 | Drawing text (file only) | the font a style's missing font is drawn in where the replacement is not found either, the heights and the width factor of drawing text: TEXT and MTEXT start from the text height and write the width factor, and DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER and DIMANGULAR write their text at the text height | drawing font Arial, text 2.5, titles 5, width factor 0.8 |
@@ -105,6 +106,52 @@ window at once, OK applies and saves them to the file, and Cancel drops them. A 
 taken, and a shortcut that clashes shows with whom; Apply and OK wait until every one is put right. Applied at once are the
 snaps, the grid, the coordinates of the status bar, and the aliases and keys of every command line open; the canvas takes
 the rest.
+
+### The Security page
+
+Security, marked NEW in the list, sets where AutoLISP and Python code may be loaded from, as AutoCAD 2021's Security
+Options and its Trusted Locations do, in their words. [Trusted folders and SECURELOAD](lisp.md#trusted-folders-and-secureload)
+has the rule each setting feeds.
+
+- **SECURELOAD**: three radios, `Least secure setting- Load executable files from all locations without displaying a
+  warning.` (0), `Load executable files from Trusted locations, and display a warning for other locations.` (1, the
+  default) and `Most secure setting-- Load executable files from Trusted locations only.  All other executable files will
+  be ignored.` (2).
+- **Trusted folders for executable files:** the folder of the app first, greyed and marked as always trusted with every
+  folder below it, then the entries of TRUSTEDPATHS as they are kept. Add folder… asks for a folder and adds it; Remove,
+  Move up and Move down work on the entry chosen, and Include subfolders adds or takes off its `\...`, so that `D:\Lisp`
+  becomes `D:\Lisp\...` and trusts the folders below it too. An entry whose folder is missing, or that does not start at a
+  drive or a share, is marked "(not found)" and trusts nothing.
+- **When searching for executable files:** `Exclude the Start In or drawing folders (recommended)` (LEGACYCODESEARCH 0)
+  and `Include the Start In and drawing folders` (1).
+- **Files always loaded: 3** counts the files answered Always Load, and Forget empties the list, so each is asked about
+  again; AutoCAD gives no way to take such an answer back.
+
+A folder the app can write in, as most of a user's own folders are, asks first, as AutoCAD's Options does: **Trusted File
+Search Path - Security Concern**, `The location specified is not read-only.  What do you want to do?`, `Specifying a
+writable folder can leave your computer vulnerable to malicious code.`, with Cancel, which adds nothing, and Continue. The
+app finds out by making an empty file in the folder and deleting it on the spot. SETVAR and `setvar` of TRUSTEDPATHS never
+ask, nor does AutoCAD.
+
+The page applies with Apply and OK as the others do, Forget included, and Cancel leaves everything as it was; Reset to
+defaults gives SECURELOAD 1, no trusted folder and LEGACYCODESEARCH 0 back and keeps the files always loaded, which are the
+user's answers. A SETVAR of the three variables at the command line, and a file answered Always Load, are saved to the
+settings file at once. They are kept under `security`:
+
+```json
+"security": {
+  "secureLoad": 1,
+  "trustedPaths": "D:\\Lisp\\...;D:\\Python",
+  "legacyCodeSearch": false,
+  "alwaysLoaded": [ "<SHA-256 of the file's bytes>|C:\\Users\\you\\Downloads\\tools.lsp" ]
+}
+```
+
+The warning a file outside the trusted folders brings at SECURELOAD 1 is AutoCAD's, **Security - Unsigned Executable
+File**, 616 pixels wide over the main window: the file's name, `Unknown Publisher`, its folder, `None` for the issuer and
+its date, then Always Load, Load Once and Do Not Load, the last the default. Its link `How do I decide what files to load?`
+opens [that section](lisp.md#trusted-folders-and-secureload). The same window asks for a Python file run by PYRUN, loaded
+by PYLOAD or picked with the palette's Run file and Load.
 
 ## Autosave
 
@@ -855,6 +902,7 @@ folder) the message box says so.
 
 | Where it was thrown | What happens |
 |---|---|
+| A Python error on the window's thread outside a script's run (a script's handler of a .NET event that raises after the run ended) | No box and no crash entry: the command line of the drawing shown gets `Python error: <Type>: <message>`, the log a Warn, and the app goes on |
 | The window's thread (a click, a key, a command) | The entry is written and a message box says `An error occurred: <message>. Details were written to <path>. The drawing is kept; save your work.`; the app goes on and the drawings stay open |
 | Another thread | The entry is written; the process ends, as .NET ends it |
 | A task nobody awaited | The entry is written and the exception is marked observed, so the app goes on |
@@ -890,7 +938,8 @@ it cannot read. Both apps take these options:
 | `--recent "a.dxf\|*b.dxf"` | fills Recent Documents, the first the newest, a file written with `*` pinned |
 
 The dialogs are `save-changes`; `mtext-unsaved` (Multiline Text - Unsaved Changes); `options` or `settings:Canvas and cursor` (Global settings on a category); `plugins`,
-`plugin-settings` and `plugin-untrusted`; `color`, `truecolor` and `truecolor-rgb` (Select Color on index 30);
+`plugin-settings` and `plugin-untrusted`; `secureload` (the load warning), `writable-folder` and `settings-security` (the
+Security page); `color`, `truecolor` and `truecolor-rgb` (Select Color on index 30);
 `dsettings[:Tab]`; the menus `osnap-menu`, `snap-menu` (after `--run "LINE"`), `canvas-menu` (the canvas's right-click menu, after `--run "SELECTALL"` the Edit menu, after `--run "LINE;0,0;100,0"` the Command menu), `drawings-menu` and `scale-menu` (the status bar's scale list); `missing-shx` and
 `missing-shx-replace`; `ptype`; `linetype`, `linetype-load`, `select-linetype`, `hatch`, `hatch-gradient`, `hatch-user`,
 `hatch-solid` and `hatch-file`; `block`, `insert`, `wblock`, `attdef` and `eattedit[:Tab]`; `battman`,

@@ -21,10 +21,14 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         {
             string room = _folder.Write("room-" + Guid.NewGuid().ToString("N") + ".dxf", TestFiles.Room(out _, out _));
             var model = new MainViewModel();
+            // The routines lie in a temporary folder, outside the trusted ones: SECURELOAD 0 loads them as before L6 (the
+            // window starts at 1), here and in the settings applied below.
+            model.LoadSecurity.SecureLoad = 0;
 
             if (settings != null)
             {
                 GlobalSettings changed = model.Settings.Clone();
+                changed.SecureLoad = 0;
                 settings(changed);
                 model.ApplySettings(changed);
             }

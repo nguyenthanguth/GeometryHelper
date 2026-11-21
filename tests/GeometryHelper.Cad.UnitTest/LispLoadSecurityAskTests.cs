@@ -86,6 +86,35 @@ namespace GeometryHelper.Cad.UnitTest
             asked = seen;
         }
 
+        #region The thread the question is asked on
+
+        [Fact]
+        public void TheQuestion_AndTheChangeAnAlwaysLoadMakes_ComeOnTheThreadThatTypedTheLoad()
+        {
+            // ours (L6 wave 3): AutoLISP evaluates on a worker thread of its own while the typing thread waits for it, so a
+            // question asked on the worker made the window's Dispatcher.Invoke wait for a thread that was waiting in turn: the
+            // app hung on the first untrusted (load) typed at SECURELOAD 1. The question and the Changed of an Always Load are
+            // asked on the thread that typed, the owner, as every built-in that touches the session is.
+            string path = Untrusted();
+            CadCommandSession session = Session(Blank());
+            session.LoadSecurity.SecureLoad = 1;
+            int owner = Environment.CurrentManagedThreadId;
+            var askedOn = new List<int>();
+            var changedOn = new List<int>();
+            session.LoadSecurity.Ask = p =>
+            {
+                askedOn.Add(Environment.CurrentManagedThreadId);
+                return CadLoadAnswer.AlwaysLoad;
+            };
+            session.LoadSecurity.Changed += (s, e) => changedOn.Add(Environment.CurrentManagedThreadId);
+
+            Assert.Equal("42", Value(session, LoadForm(path)));
+            Assert.Equal(new[] { owner }, askedOn);
+            Assert.Equal(new[] { owner }, changedOn);
+        }
+
+        #endregion
+
         #region The security of a session
 
         [Fact]

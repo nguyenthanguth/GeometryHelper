@@ -29,7 +29,9 @@ namespace GeometryHelper.Cad
                     _lisp = new LispInterpreter
                     {
                         Variable = LispVariable,
-                        MayLoad = path => LoadSecurity.MayLoad(path),
+                        // On the owner thread, as every built-in that touches the session: the question a window shows
+                        // must not wait for the owner while the owner waits for the evaluation.
+                        MayLoad = path => (bool)_lisp.OnOwner(() => LoadSecurity.MayLoad(path)),
                         LegacyCodeSearch = () => LoadSecurity.LegacyCodeSearch,
                     };
                     LispDrawing.Register(_lisp, this);

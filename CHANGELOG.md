@@ -6,6 +6,49 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** Trusted folders and SECURELOAD, as AutoCAD 2021 has them, in front of AutoLISP's `load` (and APPLOAD, the startup
+files, the Startup Suite, `autoload`, `vl-load-all`) and of Python's PYRUN, PYLOAD and the palette's Run file and Load.
+[`CadLoadSecurity`](xref:GeometryHelper.Cad.CadLoadSecurity) decides a file: SECURELOAD 0 loads from anywhere, a file in a
+trusted folder loads, 2 refuses any other, and 1 asks, through `Ask`, with Load Once (for the run of the app), Always Load
+(kept with a SHA-256 of the file, so an edited file is asked about again, as AutoCAD 2021 asked) or Do Not Load. The trusted
+folders are the app's own with every folder below it, and TRUSTEDPATHS read as AutoCAD reads it, each form measured there:
+`D:\Lisp` trusts that folder and not the folders below, `D:\Lisp\...` the folder and all below, entries parted by `;` and
+trimmed, `%NAME%` expanded when set, quotes and wildcards trusting nothing. A refused AutoLISP file is
+`; error: File load canceled: <name as given>`, also with `load`'s second argument, which is not given back for it; a
+refused Python file is `File load canceled: <full path>`. The system variables SECURELOAD (0 to 2), TRUSTEDPATHS and
+LEGACYCODESEARCH read and set `CadCommandSession.LoadSecurity`, and `GlobalSettings` keeps `SecureLoad`, `TrustedPaths`,
+`LegacyCodeSearch` and `AlwaysLoadedFiles` under `security`. `.dcl`, `.scr`, `open` and `findfile` are not gated, as in
+AutoCAD. The guide's section "Trusted folders and SECURELOAD" of the AutoLISP page has the rule and the table.
+
+**NEW.** GeometryHelper CAD asks with AutoCAD's own warning, Security - Unsigned Executable File (the file's name, Unknown
+Publisher, its folder, None, its date; Always Load, Load Once, Do Not Load, the last the default), and Global settings has a
+Security page: SECURELOAD's three radios in AutoCAD's words, the trusted folders with Add folder…, Remove, Move up, Move
+down and Include subfolders (a folder the app can write in asks AutoCAD's Trusted File Search Path - Security Concern
+first), LEGACYCODESEARCH's two radios, and the files always loaded with Forget. One `CadLoadSecurity` serves every drawing
+and Python, so a SETVAR of SECURELOAD in one drawing holds in the others and is saved at once.
+
+**CHANGED.** GeometryHelper CAD starts at SECURELOAD 1, AutoCAD's initial value: an AutoLISP or Python file outside the
+trusted folders, which loaded with no question before, now brings the warning; add its folder on the Security page, answer
+Always Load, or set SECURELOAD 0 to load as before. A session made by the library starts at SECURELOAD 0 and loads every
+file as it did.
+
+**CHANGED.** With LEGACYCODESEARCH 0, its initial value, `findfile` and `load_dialog` no longer find a bare name of a file of
+code (`.lsp`, `.fas`, `.vlx`, `.mnl`, `.scr`, `.dcl`, `.dll`, `.arx`, `.dvb`, `.cuix`, `.py`) in the current folder or beside
+the drawing, only in the support folders: AutoCAD 2021's `findfile` found `ghl6f.txt`, `.js`, `.lin` and `.pat` beside a
+drawing and none of those ten. LEGACYCODESEARCH 1 searches the current folder, the drawing's and then the support folders,
+for `load` too. `(findfile "notes.txt")` is as before.
+
+**FIXED.** A Python script that set `sys.stdout` or `sys.stderr` to `None`, or left it on a closed file, made every later
+run fail with `Python host error: 'NoneType' object has no attribute 'flush'` until the app restarted, and one that left it
+on an open file took the output of every later run away from the command line; the app now puts its own streams back
+before each run. A .NET exception raised to a script is one line naming its type and message, with the .NET stack left out
+(it filled the command line, and the run's `Error` was the last stack frame). A script that left a delegate made from one of
+its functions alive made `PythonEngine.Shutdown` throw on .NET Framework when the app closed; the scripts' globals are
+emptied first. A script's handler of a .NET event that raised after its run ended reached the window as an unhandled
+exception with a message box; it is now `Python error: <Type>: <message>` on the command line and a Warn in the log. 31
+tests run each way a script can end badly by PYRUN and in the palette; a recursion past about 650 levels through .NET
+callbacks still overflows the stack and ends the process, and is parked.
+
 **NEW.** A Python script outside the app drives a running GeometryHelper CAD over the named pipe of
 `GeometryHelper.Cad.Remote`, with the .NET client the `geometryhelper` wheel already holds and loads:
 `with CadApplication() as app:` connects (pythonnet makes every `IDisposable` a context manager, so `Dispose` runs at the

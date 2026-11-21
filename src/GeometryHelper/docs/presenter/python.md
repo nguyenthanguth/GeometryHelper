@@ -305,12 +305,49 @@ These are written, and the run does not start:
 |---|---|
 | a run is going on, in any drawing | `A Python script is running in <drawing name>: wait for it or press Esc.` |
 | a command runs in that drawing | `A command is running: finish it or press Esc first.` |
+| a file outside the trusted folders, refused ([Trusted folders](#trusted-folders)) | `File load canceled: <full path>` |
 | PYRUN or PYLOAD of a file that is not there | `Cannot find Python file "<name>".` |
 | a file that cannot be read | `<name> could not be read: <the system's reason>` |
 | no usable Python | one of the sentences of [Finding Python](#finding-python) |
 
 A fault in the app's own code during a run is not a crash either: it is written as `Python host error: <message>`, logged,
 and the run's groups are cancelled.
+
+The ways a script can end badly were each run, by PYRUN and as a palette entry, and each leaves the app running, no undo
+group open, the drawing as it was where the run failed, and the next run working:
+
+| The script | What it leaves |
+|---|---|
+| `1/0`, `import nonexistent_module`, a file with a syntax error | a failed run and its `Python error:` line, as above |
+| `sys.exit(3)`, `sys.exit("bye")` | a failed run: `Python error: SystemExit: 3` (or `bye`) and the file and line |
+| `exit()`, `quit()`, `sys.exit(0)` | a run ended well, with no line |
+| `raise KeyboardInterrupt` | a cancelled run, `*Cancel*`, as Esc gives |
+| a function that calls itself for ever | a failed run, `RecursionError: maximum recursion depth exceeded` |
+| an error in a PYLOAD command, or in the file PYLOAD loads | a failed run; the command runs again next time |
+| a .NET exception from the object model (`ApplyEdit(None, None, None)`) | a failed run and one line naming the .NET type and message, `Python error: System.ArgumentNullException: Value cannot be null. ...`, the .NET stack left out |
+| `sys.stdout = None`, or `sys.stdout` left on a file it closed or kept open | that run alone: the app puts its own `sys.stdout`, `sys.stderr` and `sys.stdin` back before every run, so the next run writes to the command line again |
+| a handler attached to a .NET event (`CadDocument.Changed`) that raises when the event fires after the run ended | the error goes to the code that fired the event, as any handler's would; where nothing there catches it and it reaches the window, the command line of the drawing shown gets `Python error: <Type>: <message>`, the log a Warn, and no box comes up ([the crash log](app.md#crashes-and-the-crash-log)) |
+
+Two ends are beyond the app. `os._exit()` ends the process at once, drawings and all, as it ends any Python. And a recursion
+that passes through .NET on every level, a Python function called back by a .NET delegate that calls it again, uses the
+window thread's stack faster than Python counts its own frames: 200 and 600 levels ran, but past about 650 levels the
+stack overflows and .NET ends the process with nothing written, below Python's recursion limit of 1 000. A script that
+recurses through callbacks keeps well under that or lowers the limit with `sys.setrecursionlimit`.
+
+## Trusted folders
+
+PYRUN, PYLOAD and the palette's Run file and Load go through the gate AutoLISP's `load` goes through, with the same
+trusted folders and the same answers: SECURELOAD, TRUSTEDPATHS and the files answered Always Load, set with SETVAR or on
+[the Security page](app.md#the-security-page) of Global settings, as
+[Trusted folders and SECURELOAD](lisp.md#trusted-folders-and-secureload) describes. At SECURELOAD 1, the app's default, a
+`.py` outside the trusted folders brings AutoCAD's warning, **Security - Unsigned Executable File**: Load Once runs it and
+does not ask about that file again until the app restarts, Always Load also keeps the answer for that file and its
+content, and Do Not Load writes `File load canceled: <full path>` on the command line and in the palette and ends the run
+as `Refused`. At SECURELOAD 2 such a file is refused with no question. The folder of the app is always trusted.
+
+The gate is in front of the files the app is asked to run. The modules a script imports are Python's own business, found on
+`sys.path`, and are not checked, nor is code typed in the palette. A script outside the app, on the `geometryhelper`
+package alone, meets no gate: a session made by the library starts at SECURELOAD 0.
 
 ## `print`, `input` and the threads
 

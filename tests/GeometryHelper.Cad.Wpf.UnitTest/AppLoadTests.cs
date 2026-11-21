@@ -57,6 +57,9 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             var model = new MainViewModel { SettingsPath = _settingsFile };
             GlobalSettings changed = model.Settings.Clone();
             changed.AppLoadFolder = Browsed;
+            // The routines are written to a temporary folder, outside the trusted ones: these tests are about APPLOAD, not
+            // the gate, so SECURELOAD 0 loads them as before L6 (the window starts at 1).
+            changed.SecureLoad = 0;
             settings?.Invoke(changed);
             model.ApplySettings(changed);
             Assert.True(model.Open(room));
