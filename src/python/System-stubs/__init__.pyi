@@ -2,7 +2,7 @@
 # carry only what a script touches. pythonnet makes the module System at run time; these stubs are for the editor.
 import builtins
 from collections.abc import Iterable, Iterator
-from typing import Any, Callable, ClassVar, Generic, TypeVar, TypeVarTuple, Unpack, overload
+from typing import Any, Callable, ClassVar, Generic, Self, TypeVar, TypeVarTuple, Unpack, overload
 
 from System.Collections.Generic import IList, IReadOnlyList
 
@@ -94,6 +94,8 @@ class Attribute(Object): ...
 
 class IDisposable(Object):
     def Dispose(self) -> None: ...
+    def __enter__(self) -> Self: ...
+    def __exit__(self, *args: object) -> None: ...
 
 class IProgress(Object, Generic[_T]):
     def Report(self, value: _T) -> None: ...
@@ -126,6 +128,10 @@ class DateTime(ValueType):
     UtcNow: ClassVar[DateTime]
 
 class TimeSpan(ValueType):
+    @staticmethod
+    def FromMilliseconds(value: float) -> TimeSpan: ...
+    @staticmethod
+    def FromSeconds(value: float) -> TimeSpan: ...
     @property
     def Ticks(self) -> int: ...
     @property

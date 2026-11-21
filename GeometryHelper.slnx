@@ -6,6 +6,7 @@
         <Project Path="src/GeometryHelper.IfcConvert/GeometryHelper.IfcConvert.csproj" />
         <Project Path="src/GeometryHelper.Cad.Remote/GeometryHelper.Cad.Remote.csproj" />
         <Project Path="src/GeometryHelper.Cad/GeometryHelper.Cad.csproj" />
+        <Project Path="src/GeometryHelper.Cad.Python/GeometryHelper.Cad.Python.csproj" />
         <Project Path="src/GeometryHelper.Cad.Wpf/GeometryHelper.Cad.Wpf.csproj" />
         <Project Path="src/GeometryHelper.Cad.App/GeometryHelper.Cad.App.csproj" />
     </Folder>
@@ -16,7 +17,9 @@
         <Project Path="tests/GeometryHelper.Cad.UnitTest/GeometryHelper.Cad.UnitTest.csproj" />
         <Project Path="tests/GeometryHelper.Cad.Remote.UnitTest/GeometryHelper.Cad.Remote.UnitTest.csproj" />
         <Project Path="tests/GeometryHelper.Cad.Remote.Sample/GeometryHelper.Cad.Remote.Sample.csproj" />
+        <Project Path="tests/GeometryHelper.Cad.Remote.TestServer/GeometryHelper.Cad.Remote.TestServer.csproj" />
         <Project Path="tests/GeometryHelper.Cad.Wpf.UnitTest/GeometryHelper.Cad.Wpf.UnitTest.csproj" />
+        <Project Path="tests/GeometryHelper.Cad.Python.UnitTest/GeometryHelper.Cad.Python.UnitTest.csproj" />
         <Project Path="tests/GeometryHelper.Cad.Plugins.UnitTest/GeometryHelper.Cad.Plugins.UnitTest.csproj" />
         <Project Path="tests/GeometryHelper.Cad.Plugins.Net8Runner/GeometryHelper.Cad.Plugins.Net8Runner.csproj" />
         <Project Path="tests/GeometryHelper.Cad.SamplePlugin/GeometryHelper.Cad.SamplePlugin.csproj" />

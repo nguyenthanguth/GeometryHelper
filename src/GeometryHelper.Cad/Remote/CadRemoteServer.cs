@@ -95,6 +95,12 @@ namespace GeometryHelper.Cad
                     Name = "CadRemoteServer " + PipeName,
                 };
                 _listener.Start();
+
+                // A client of this process on the thread the dispatcher owns would wait for itself: it is refused (RemoteSelf).
+                if (_dispatcher is ICadRemoteOwnerThread owner)
+                {
+                    RemoteSelf.Register(PipeName, owner.IsOwnerThread);
+                }
             }
 
             try
@@ -151,6 +157,7 @@ namespace GeometryHelper.Cad
 
                 _stopping = true;
                 listener = _listener;
+                RemoteSelf.Unregister(PipeName);
                 open = new List<Stream>(_connections);
             }
 

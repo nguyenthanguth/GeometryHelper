@@ -78,6 +78,7 @@ namespace GeometryHelper.PyStubs
                 CollectProperties(type, pieces);
                 CollectEvents(type, pieces);
                 CollectMethods(type, pieces);
+                CollectDisposable(type, pieces);
                 CollectIteration(type, pieces);
             }
 
@@ -748,6 +749,47 @@ namespace GeometryHelper.PyStubs
                 }
             );
         }
+
+        /// <summary>
+        /// pythonnet makes every <c>IDisposable</c> a context manager (<c>with CadApplication() as app:</c>), so a class of
+        /// ours that implements it gets <c>__enter__</c> and <c>__exit__</c>, unless its base class of ours does already.
+        /// <c>__exit__</c> says it returns <c>None</c>, so a checker does not take the block as one that swallows an exception.
+        /// </summary>
+        private void CollectDisposable(Type type, List<Piece> pieces)
+        {
+            if (
+                type.IsInterface
+                || !IsDisposable(type)
+                || (type.BaseType != null && _isOurs(type.BaseType) && IsDisposable(type.BaseType))
+            )
+            {
+                return;
+            }
+
+            pieces.Add(
+                new Piece
+                {
+                    Group = MethodGroup,
+                    Name = "__enter__",
+                    Counts = false,
+                    Render = overloaded =>
+                        Def(4, "__enter__", new List<string> { "self" }, _module.Typing("Self"), null, false, false),
+                }
+            );
+            pieces.Add(
+                new Piece
+                {
+                    Group = MethodGroup,
+                    Name = "__exit__",
+                    Counts = false,
+                    Render = overloaded =>
+                        Def(4, "__exit__", new List<string> { "self", "*args: object" }, "None", null, false, false),
+                }
+            );
+        }
+
+        private static bool IsDisposable(Type type) =>
+            type.GetInterfaces().Any(i => i.FullName == "System.IDisposable");
 
         /// <summary>
         /// A class that implements <c>IEnumerable&lt;T&gt;</c> is iterable in Python. Its base class or interfaces of ours

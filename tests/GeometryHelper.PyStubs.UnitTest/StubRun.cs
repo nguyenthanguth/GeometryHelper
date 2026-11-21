@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Xunit;
 
 namespace GeometryHelper.PyStubs.UnitTest
 {
@@ -41,6 +42,15 @@ namespace GeometryHelper.PyStubs.UnitTest
                 ),
                 new UTF8Encoding(false, true)
             );
+
+        /// <summary>The text of one class of a module: from its <c>class</c> line to the next class, or to the end.</summary>
+        public static string ClassOf(string module, string name)
+        {
+            int start = module.IndexOf("\nclass " + name + "(", StringComparison.Ordinal);
+            Assert.NotEqual(-1, start);
+            int end = module.IndexOf("\nclass ", start + 1, StringComparison.Ordinal);
+            return end < 0 ? module.Substring(start) : module.Substring(start, end - start);
+        }
 
         /// <summary>Every file the run wrote, as a path inside <c>GeometryHelper-stubs</c> and its bytes, in path order.</summary>
         public (string Relative, byte[] Bytes)[] Files() =>

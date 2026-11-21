@@ -1,9 +1,31 @@
 using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.IO.Pipes;
 
 namespace GeometryHelper.Cad.Remote
 {
+    /// <summary>
+    /// The servers of this process, by pipe, that can say whether the calling thread is the one they run their requests on. A
+    /// client on that thread waits for the answer of a thread it holds: it is refused before it sends anything.
+    /// </summary>
+    internal static class RemoteSelf
+    {
+        private static readonly ConcurrentDictionary<string, Func<bool>> Servers = new ConcurrentDictionary<
+            string,
+            Func<bool>
+        >(StringComparer.Ordinal);
+
+        /// <summary>Gives a server's answer to whether the calling thread is its own.</summary>
+        internal static void Register(string pipe, Func<bool> onOwnerThread) => Servers[pipe] = onOwnerThread;
+
+        /// <summary>Takes a server out, as it stops.</summary>
+        internal static void Unregister(string pipe) => Servers.TryRemove(pipe, out _);
+
+        /// <summary>Gets whether the pipe is a server of this process and the calling thread is the one it runs its requests on.</summary>
+        internal static bool IsOwnerThread(string pipe) => Servers.TryGetValue(pipe, out Func<bool> own) && own();
+    }
+
     /// <summary>
     /// A client's connection to one app: its pipe, opened on the first request and again after it broke, one request at a
     /// time. A request that the app refuses is a <see cref="CadRemoteException"/> with the app's words.
@@ -28,6 +50,13 @@ namespace GeometryHelper.Cad.Remote
         /// <summary>Sends a request and reads its answer, the app's refusal thrown as a <see cref="CadRemoteException"/>.</summary>
         public JsonObject Request(JsonObject request)
         {
+            if (RemoteSelf.IsOwnerThread(_pipe))
+            {
+                throw new CadRemoteException(
+                    "A script inside GeometryHelper CAD cannot drive the same app through CadApplication: use geometryhelper.cad, which reaches the drawing directly."
+                );
+            }
+
             lock (_gate)
             {
                 EnsureConnected();

@@ -276,6 +276,114 @@ public static class BeamsToCad
 }
 ```
 
+## From Python
+
+A Python script drives the app with the same client, [`CadApplication`](xref:GeometryHelper.Cad.Remote.CadApplication), run by
+pythonnet from the `geometryhelper` wheel ([Installing](../python.md#installing)). The names are the .NET ones and the calls
+are those of the sections above; no Python class wraps the client, so nothing here is learnt twice. It needs Windows, the
+Windows user who runs the app (the pipe admits nobody else), and [the setting](#the-setting) on.
+
+```python
+import geometryhelper
+from System import Array, String, TimeSpan
+from GeometryHelper.Cad.Remote import CadApplication, CadObjectFilter, CadRemoteException, CadRemoteLayer
+from GeometryHelper.Dxf import DxfColor, DxfColorMethod, DxfLine, DxfMText
+from GeometryHelper.Geometry import GeoPoint3
+
+with CadApplication() as app:                              # the app the user worked in last; Dispose at the block's end
+    drawing = app.ActiveDocument
+    if drawing is None:
+        drawing = app.New()
+
+    layer = CadRemoteLayer("SAMPLE")
+    layer.Color = DxfColor.FromColorIndex(DxfColorMethod.ByAci, 3)
+    drawing.AddLayer(layer)
+    for x in range(0, 100, 10):                            # ten vertical lines, 50 long, 10 apart
+        line = DxfLine(GeoPoint3(x, 0, 0), GeoPoint3(x, 50, 0))
+        line.Layer = "SAMPLE"
+        drawing.Insert(line)
+    title = DxfMText()
+    title.Contents = "Title"
+    title.Location = GeoPoint3(0, 60, 0)
+    title.TextHeight = 8
+    title.Layer = "SAMPLE"
+    drawing.Insert(title)
+    handles = drawing.CommitChanges()                      # one undo step
+    print(handles.Count)                                   # 11
+
+    only_lines = CadObjectFilter()                         # no CadObjectFilter(Layer="SAMPLE"): set the properties after
+    only_lines.Kind = DxfLine                              # a Python class stands for the .NET Type
+    only_lines.Layer = "SAMPLE"
+    print(drawing.GetObjects(only_lines).Count)            # 10
+
+    drawing.Select(Array[String](list(handles)[:3]))       # an array of strings, not a Python list
+    print(drawing.GetSelectedObjects().Count)              # 3
+
+    result = drawing.SendCommand("ZOOM E\n")               # "\n" is Enter
+    print(result.Completed)                                # True
+
+    try:
+        centre = drawing.PickPoint("Pick the centre", timeout=TimeSpan.FromSeconds(30))
+        print(centre)
+    except CadRemoteException as error:
+        print("cancelled" if error.IsCancelled else error.Message)
+
+    drawing.SaveAs("sample.dxf")
+```
+
+The script runs here against a headless app in a process of its own, with the pick answered by typing `120,80` on its command
+line: it prints `11`, `10`, `3`, `True` and `(120, 80, 0)` in turn, on .NET 8 and on .NET Framework 4.8 alike, and
+`sample.dxf` is a file of 6 046 bytes. In the app the `ZOOM E` shows the drawing's extents; the headless app has no window
+to zoom, and answers `Completed` all the same.
+
+Where Python differs from the C# of the sections above, measured on .NET 8 and on .NET Framework 4.8 with the same result:
+
+- **`with` closes the connection.** pythonnet makes every .NET type that is `IDisposable` a context manager, so
+  `with CadApplication() as app:` calls `Dispose`, which closes the pipe, at the end of the block and also when the block
+  raises: a `ValueError("boom")` raised inside came out of the block as it was. Without `with`, call `app.Dispose()`. A call
+  made on the object after `Dispose` opens a new pipe without a word, as a lost connection is opened again, so leave the
+  object alone once the block has ended.
+- **A collection argument is an array.** `drawing.Select(["1A", "1B"])` is a `TypeError: No method matches given arguments
+  for Select: (<class 'list'>)`, since `Select` takes an `IEnumerable<string>` and pythonnet converts a Python list only to
+  an array. Write `Select(Array[String](["1A", "1B"]))`, or a `List[String]()` filled by `Add` (`List[String](["1A"])` is
+  refused as well); `Select(Array[String]([]))` selects nothing. The stubs say so: an editor marks `Select(["1A"])` before
+  the script runs ([Lists: only for arrays](../python.md#lists-only-for-arrays)).
+- **Set a filter's properties after making it.** `CadObjectFilter(Layer="SAMPLE")` is a `TypeError`, because pythonnet
+  has no keyword initialiser for a property, only for a constructor's own arguments (`GeoPoint3(x=1, y=2, z=3)` works).
+  Make the filter, then assign. `Kind` takes the Python class itself (`only_lines.Kind = DxfLine`) or
+  `clr.GetClrType(DxfLine)`.
+- **A command ends on Enter.** `SendCommand("LINE 0,0 100,0\n\n")` draws the line and ends, and its `Output` holds the
+  prompts with the answers (`Command: LINE`, `Specify first point: 0,0`, `Specify next point or [Undo]: 100,0`). The same
+  text ending in one space leaves LINE waiting for another point, and the call returns after its time (30 seconds when
+  none is given) with `Completed` false. Give a shorter time to leave a command open on purpose:
+  `SendCommand("LINE 0,0", TimeSpan.FromMilliseconds(200))` returns at once with `Completed` false, and the next
+  `SendCommand("100,50\n\n")` finishes it.
+- **Ctrl+C waits for the call.** Python takes the interrupt between two of its own instructions, and a call into .NET is one
+  instruction. A pick with no time limit therefore goes on until the user answers in the app, and a
+  `KeyboardInterrupt` raised at 1 second of a `PickPoint(..., timeout=TimeSpan.FromSeconds(4))` came at 4 seconds, when the
+  call returned with its timeout exception. In a script, give every pick and every long command a `timeout`.
+
+What it costs, on this machine with the app in another process, and a drawing of 10 000 lines:
+
+| | .NET 8 | .NET Framework 4.8 |
+|---|---|---|
+| starting the runtime and the three assemblies, once per script | 211 to 224 ms | 282 to 288 ms |
+| connecting and the hello that checks the version | 7.7 to 8.3 ms | 18.9 to 19.5 ms |
+| one small request (the number of open drawings) | 26 to 43 us | 37 us |
+| `GetObjects()` of the 10 000 lines, as `DxfLine` objects | 315 to 348 ms | 298 to 304 ms |
+| 1 000 `Insert` of a line, queued, then their `CommitChanges` | 91 to 93 ms, then 38 to 50 ms | 107 to 144 ms, then 55 to 69 ms |
+| `SendCommand("LINE 0,0 100,0\n\n")` | 16.9 ms | 17.5 to 19.4 ms |
+
+Most of the 10 000-line read is the app's, which writes the drawing as DXF text: a client that took only that text, with no
+Python or .NET types made from it, waited 260 to 281 ms for it.
+
+**A script that runs inside the app does not connect to that app.** The Python of PYRUN, PYLOAD and the PYTHON palette
+runs on the app's own UI thread, and a request from it to the same app would wait for that thread, which is the script
+itself, for good. The app refuses such a connection before anything is sent, with a `CadRemoteException`:
+`A script inside GeometryHelper CAD cannot drive the same app through CadApplication: use geometryhelper.cad, which
+reaches the drawing directly.` Inside the app, use `geometryhelper.cad` ([Python in the app](python.md));
+`CadApplication` is for a script that runs outside it.
+
 ## See also
 
 - [The 2D presenter](index.md) for the projects and the command line the channel types on.

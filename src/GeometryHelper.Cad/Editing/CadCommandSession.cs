@@ -389,6 +389,30 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>
+        /// Starts a command that is not in the registry, as a host does for the question of a script: its prompts, Esc, the
+        /// rubber band and the object snaps are those of any command. Leaves <see cref="LastCommandName"/> as it was, so Enter
+        /// repeats the last command the user ran. Refused while a command runs.
+        /// </summary>
+        /// <param name="command">The command.</param>
+        /// <returns>False where a command was running and nothing was started.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the command is null.</exception>
+        public bool Start(CadCommand command)
+        {
+            if (command == null)
+            {
+                throw new ArgumentNullException(nameof(command));
+            }
+
+            if (IsRunning)
+            {
+                return false;
+            }
+
+            Run(command, Array.Empty<string>());
+            return true;
+        }
+
+        /// <summary>
         /// Starts a grip edit, as a click on a grip starts AutoCAD's with no command running: the grips given are hot, the first
         /// the one clicked, and the command line asks "** STRETCH **" and "Specify stretch point or [Base point/Copy/Undo/eXit]:".
         /// Enter or Space goes on to MOVE, ROTATE, SCALE and MIRROR and back to STRETCH; STRETCH, MOVE, ROTATE, SCALE and MIRROR,

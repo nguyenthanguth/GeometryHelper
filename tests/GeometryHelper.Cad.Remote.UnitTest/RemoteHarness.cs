@@ -157,14 +157,12 @@ namespace GeometryHelper.Cad.Remote.UnitTest
         public string Folder { get; }
 
         /// <summary>Starts a server for a host under an instance name of its own.</summary>
-        public CadRemoteServer Serve(TestHost host)
+        public CadRemoteServer Serve(TestHost host) => Serve(host, new InlineDispatcher(host.Gate));
+
+        /// <summary>Starts a server for a host under an instance name of its own, its work run by a dispatcher of the test's.</summary>
+        public CadRemoteServer Serve(TestHost host, ICadRemoteDispatcher dispatcher)
         {
-            var server = new CadRemoteServer(
-                host,
-                new InlineDispatcher(host.Gate),
-                Folder,
-                Guid.NewGuid().ToString("N").Substring(0, 8)
-            );
+            var server = new CadRemoteServer(host, dispatcher, Folder, Guid.NewGuid().ToString("N").Substring(0, 8));
             server.Start();
             _servers.Add(server);
             return server;

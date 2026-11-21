@@ -22,6 +22,7 @@ namespace GeometryHelper.Cad.Wpf
             InitializeComponent();
             DataContext = model;
             model.BrowsePgpFile = PickPgpFile;
+            model.BrowsePythonFile = PickPythonFile;
             model.OpenFolder = OpenInExplorer;
             model.CloseRequested += (s, done) =>
             {
@@ -53,6 +54,17 @@ namespace GeometryHelper.Cad.Wpf
             {
                 Filter = "Program parameters files (*.pgp)|*.pgp|All files (*.*)|*.*",
                 Title = "Import Command Aliases",
+            };
+            return dialog.ShowDialog(this) == true ? dialog.FileName : null;
+        }
+
+        /// <summary>Browse… of the Python section: a python.exe; null where none was chosen.</summary>
+        private string PickPythonFile()
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "python.exe|python.exe|Programs (*.exe)|*.exe|All files (*.*)|*.*",
+                Title = "Select Python",
             };
             return dialog.ShowDialog(this) == true ? dialog.FileName : null;
         }

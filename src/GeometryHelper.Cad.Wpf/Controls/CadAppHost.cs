@@ -35,7 +35,8 @@ namespace GeometryHelper.Cad.Wpf
     /// </para>
     /// <para>
     /// <c>app.exe --screenshot out.png [plan.dxf] [--size 1600 960] [--space "Layout1"] [--select H1,H2] [--run "MOVE;0,0"]
-    /// [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--tab Insert] [--dialog name] [--plugin path.dll]</c> draws the window
+    /// [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--tab Insert] [--dialog name] [--plugin path.dll]
+    /// [--python idle|prompt|none]</c> draws the window
     /// with the drawing open, 1 600 by 960 unless <c>--size</c> says otherwise, and exits: 0 when written, 2 for arguments or a
     /// file it cannot read. <c>--run</c> types lines on the command line, parted by semicolons, an empty part being Enter;
     /// <c>--cursor</c> puts the cursor on a point of the drawing, showing the snap and the rubber band of the prompt waiting;
@@ -100,13 +101,21 @@ namespace GeometryHelper.Cad.Wpf
         public ImageSource WindowIcon { get; set; }
 
         /// <summary>
+        /// Gets or sets whether the window uses Python: the PYTHON palette, and the commands PYTHON, PYTHONCLOSE, PYRUN and
+        /// PYLOAD (the Python set in Global settings, else found on the machine). False by default, so that a presenter hosted
+        /// in another program (as in Tekla Structures) loads nothing of Python; GeometryHelper CAD sets it. Python itself starts
+        /// at the first run, not with the window, and an app with no Python installed works as it did.
+        /// </summary>
+        public bool EnablePython { get; set; }
+
+        /// <summary>
         /// Gets the line written to the error output when the arguments of <c>--screenshot</c> do not read: the options the
         /// presenter knows, after the name of the program.
         /// </summary>
         protected virtual string Usage =>
             "Usage: "
             + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app")
-            + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Home|Insert|Annotate|Parametric|View|Manage|Output|Plugins|Settings] [--dialog save-changes|mtext-unsaved|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|constraints[:0|1|2]|parameters|osnap-menu|snap-menu|canvas-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|missing-fonts|missing-fonts-truetype|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|scalelist|qleader|qleader-line|qleader-attach|selectarrow|tolerance|tolerance-filled|tolerance-full|gdtsymbol|gdtmaterial|inputsearch|view|newview|units|units-direction|xref|xref-tree|plot:png|plot:jpg|plot-custom|plot-view|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|mlstyle|mlstyle-new|mlstyle-new-page|mlstyle-modify|mlstyle-load|mledit|plotstamp|plotstamp-advanced|plotstamp-fields|imageadjust|attext|xbind|insertobject|recovery|spell|spell-settings|objectscale|objectscale-add|insertlayout|templateoptions|saveaspdf|pdf-override|pdf-options|rename|lweight|boundary|viewports|viewports-named|filter|layerfilter|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
+            + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Home|Insert|Annotate|Parametric|View|Manage|Output|Plugins|Settings] [--dialog save-changes|mtext-unsaved|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|constraints[:0|1|2]|parameters|osnap-menu|snap-menu|canvas-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|missing-fonts|missing-fonts-truetype|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|scalelist|qleader|qleader-line|qleader-attach|selectarrow|tolerance|tolerance-filled|tolerance-full|gdtsymbol|gdtmaterial|inputsearch|view|newview|units|units-direction|xref|xref-tree|plot:png|plot:jpg|plot-custom|plot-view|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|mlstyle|mlstyle-new|mlstyle-new-page|mlstyle-modify|mlstyle-load|mledit|plotstamp|plotstamp-advanced|plotstamp-fields|imageadjust|attext|xbind|insertobject|recovery|spell|spell-settings|objectscale|objectscale-add|insertlayout|templateoptions|saveaspdf|pdf-override|pdf-options|rename|lweight|boundary|viewports|viewports-named|filter|layerfilter|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll] [--python idle|prompt|none]";
 
         /// <summary>
         /// Runs the app on the STA thread of its entry point: the window until it is closed, or the screenshot where the first
@@ -223,6 +232,13 @@ namespace GeometryHelper.Cad.Wpf
             // A host's plugins of its own are found by the same manager, before the plugins of the start are loaded.
             AttachPlugins(plugins);
             model.UsePlugins(plugins, loadAtStart: true);
+
+            // Python's commands go to every drawing opened from here on; the engine starts at the first run.
+            if (EnablePython)
+            {
+                model.UsePython(Dispatcher.CurrentDispatcher);
+            }
+
             string file = args.FirstOrDefault(a => !a.StartsWith("--", StringComparison.Ordinal));
 
             // The window answers while a drawing is read and drawn; the drawing given here is shown once the window runs.
@@ -247,6 +263,7 @@ namespace GeometryHelper.Cad.Wpf
             finally
             {
                 remote.Stop();
+                model.DisposePython();
                 plugins.Dispose();
             }
         }
@@ -395,6 +412,7 @@ namespace GeometryHelper.Cad.Wpf
             string dialogName = null;
             string pluginPath = null;
             string recent = null;
+            string pythonState = null;
             var toggles = new List<string>();
             var select = new List<string>();
             int width = 1600;
@@ -458,6 +476,10 @@ namespace GeometryHelper.Cad.Wpf
                 else if (string.Equals(arg, "--recent", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
                 {
                     recent = args[++i];
+                }
+                else if (string.Equals(arg, "--python", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+                {
+                    pythonState = args[++i];
                 }
                 else if (ReadOption(args, ref i)) { }
                 else if (output == null)
@@ -550,6 +572,13 @@ namespace GeometryHelper.Cad.Wpf
                 }
 
                 model.SelectSpace(space, asStep: false);
+            }
+
+            // The PYTHON palette over a host that makes up what it shows: idle, at a prompt of a script, or with no Python found.
+            if (pythonState != null && !model.UsePythonSample(pythonState))
+            {
+                Console.Error.WriteLine("--python " + pythonState + ": needs a drawing and one of idle, prompt, none.");
+                return 2;
             }
 
             FrameworkElement root;

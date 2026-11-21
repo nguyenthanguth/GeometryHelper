@@ -1,0 +1,544 @@
+<UserControl
+    x:Class="GeometryHelper.Cad.Wpf.PythonConsolePalette"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Cad.Wpf"
+    FontFamily="{DynamicResource GhFont}"
+    FontSize="12"
+    Foreground="{DynamicResource GhText}"
+    Background="{DynamicResource GhPanel}"
+    UseLayoutRounding="True"
+    SnapsToDevicePixels="True"
+    TextOptions.TextFormattingMode="Display"
+>
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Cad.Wpf;component/Themes/Dark.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Cad.Wpf;component/Themes/Icons.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <local:BoolToVisibilityConverter x:Key="Shown" />
+            <local:BoolToVisibilityConverter x:Key="Hidden" Invert="True" />
+
+            <SolidColorBrush x:Key="PyEcho" Color="#6CB6FF" />
+            <SolidColorBrush x:Key="PyMuted" Color="#6B7480" />
+            <SolidColorBrush x:Key="PyStopLive" Color="#F85149" />
+
+            <!-- A tool button of the palette, as the XREF palette's: an icon and its words, outlined, on the input colour. -->
+            <Style x:Key="PyTool" TargetType="Button" BasedOn="{StaticResource GhDialogButton}">
+                <Setter Property="Padding" Value="6,3" />
+                <Setter Property="Margin" Value="0,0,4,0" />
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="FontWeight" Value="Medium" />
+            </Style>
+
+            <!-- Stop: lit with a red outline and a red square while a run goes on. -->
+            <Style x:Key="PyStopTool" TargetType="Button" BasedOn="{StaticResource PyTool}">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding CanStop}" Value="True">
+                        <Setter Property="BorderBrush" Value="{StaticResource PyStopLive}" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="PyStopSquare" TargetType="Path">
+                <Setter Property="Stroke" Value="{StaticResource GhIcon}" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding CanStop}" Value="True">
+                        <Setter Property="Stroke" Value="{StaticResource PyStopLive}" />
+                        <Setter Property="Fill" Value="{StaticResource PyStopLive}" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- The status dot: green where Python is ready, amber while a run goes on, red where it is not available. -->
+            <Style x:Key="PyDot" TargetType="Ellipse">
+                <Setter Property="Width" Value="8" />
+                <Setter Property="Height" Value="8" />
+                <Setter Property="Margin" Value="0,0,8,0" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Fill" Value="{StaticResource GhOk}" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding StatusKind}" Value="Busy">
+                        <Setter Property="Fill" Value="{StaticResource GhWarn}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding StatusKind}" Value="Problem">
+                        <Setter Property="Fill" Value="{StaticResource GhError}" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- The thin bar of the transcript, as the command line history's: 8 wide, its thumb 4 px of #5B6573, 8 px under the pointer. -->
+            <Style x:Key="PyScrollBar" TargetType="ScrollBar" BasedOn="{StaticResource GhScrollBar}">
+                <Setter Property="Width" Value="8" />
+                <Setter Property="MinWidth" Value="8" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ScrollBar">
+                            <Grid Background="Transparent">
+                                <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                    <Track.DecreaseRepeatButton>
+                                        <RepeatButton
+                                            Style="{StaticResource GhScrollPage}"
+                                            Command="ScrollBar.PageUpCommand"
+                                        />
+                                    </Track.DecreaseRepeatButton>
+                                    <Track.IncreaseRepeatButton>
+                                        <RepeatButton
+                                            Style="{StaticResource GhScrollPage}"
+                                            Command="ScrollBar.PageDownCommand"
+                                        />
+                                    </Track.IncreaseRepeatButton>
+                                    <Track.Thumb>
+                                        <Thumb MinHeight="16">
+                                            <Thumb.Template>
+                                                <ControlTemplate TargetType="Thumb">
+                                                    <Border
+                                                        x:Name="Pill"
+                                                        Background="#5B6573"
+                                                        CornerRadius="2"
+                                                        Margin="2,0"
+                                                    />
+                                                    <ControlTemplate.Triggers>
+                                                        <DataTrigger
+                                                            Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ScrollBar}}"
+                                                            Value="True"
+                                                        >
+                                                            <Setter TargetName="Pill" Property="Margin" Value="0" />
+                                                        </DataTrigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Thumb.Template>
+                                        </Thumb>
+                                    </Track.Thumb>
+                                </Track>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- The input: lines that grow with the text, a placeholder while it is greyed and empty. -->
+            <Style x:Key="PyInput" TargetType="TextBox">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="{StaticResource GhText}" />
+                <Setter Property="CaretBrush" Value="{StaticResource GhText}" />
+                <Setter Property="SelectionBrush" Value="{StaticResource GhAccent}" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TextBox">
+                            <Grid Background="{TemplateBinding Background}">
+                                <TextBlock
+                                    x:Name="Placeholder"
+                                    Text="{TemplateBinding Tag}"
+                                    Foreground="{StaticResource PyMuted}"
+                                    Visibility="Collapsed"
+                                    IsHitTestVisible="False"
+                                />
+                                <ScrollViewer
+                                    x:Name="PART_ContentHost"
+                                    Focusable="False"
+                                    HorizontalScrollBarVisibility="Hidden"
+                                    VerticalScrollBarVisibility="Hidden"
+                                />
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="Text" Value="" />
+                                        <Condition Property="IsEnabled" Value="False" />
+                                    </MultiTrigger.Conditions>
+                                    <Setter TargetName="Placeholder" Property="Visibility" Value="Visible" />
+                                </MultiTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- The mark before the lines of the input, >>> and ...: blue, grey while the input is greyed. -->
+            <Style x:Key="PyMarks" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource PyEcho}" />
+                <Setter Property="Margin" Value="0,0,8,0" />
+                <Setter Property="VerticalAlignment" Value="Top" />
+                <Setter Property="LineHeight" Value="16" />
+                <Setter Property="LineStackingStrategy" Value="BlockLineHeight" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsInputEnabled}" Value="False">
+                        <Setter Property="Foreground" Value="{StaticResource PyMuted}" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid>
+        <Border Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="0,1,0,0">
+            <DockPanel>
+                <!-- Status line, 22 high: a dot, what Python is doing, and at the right the keys, the outcome, or what stops the run. -->
+                <Border
+                    DockPanel.Dock="Bottom"
+                    Height="22"
+                    Background="{StaticResource GhBg}"
+                    BorderBrush="{StaticResource GhBorder}"
+                    BorderThickness="0,1,0,0"
+                    Padding="12,0"
+                    TextElement.FontSize="11"
+                    TextElement.Foreground="{StaticResource GhTextMuted}"
+                >
+                    <DockPanel>
+                        <Button
+                            DockPanel.Dock="Right"
+                            Style="{StaticResource GhFlatButton}"
+                            Command="{Binding SettingsCommand}"
+                            Visibility="{Binding ShowsSettingsLink, Converter={StaticResource Shown}}"
+                            AutomationProperties.Name="Global settings"
+                        >
+                            <TextBlock
+                                Text="Global settings..."
+                                Foreground="#6CB6FF"
+                                TextDecorations="Underline"
+                                FontWeight="Normal"
+                            />
+                        </Button>
+                        <TextBlock
+                            DockPanel.Dock="Right"
+                            VerticalAlignment="Center"
+                            FontWeight="Normal"
+                            Text="{Binding StatusRight}"
+                            Visibility="{Binding ShowsSettingsLink, Converter={StaticResource Hidden}}"
+                        />
+                        <Ellipse Style="{StaticResource PyDot}" />
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            FontWeight="Normal"
+                            TextTrimming="CharacterEllipsis"
+                            Text="{Binding StatusLeft}"
+                        />
+                    </DockPanel>
+                </Border>
+
+                <!-- The input: its marks at the left, its lines to the right, six lines at most, then it scrolls. -->
+                <Border
+                    x:Name="InputFrame"
+                    DockPanel.Dock="Bottom"
+                    Margin="8,6,8,6"
+                    Padding="8,4"
+                    BorderBrush="{StaticResource GhBorder}"
+                    BorderThickness="1"
+                    CornerRadius="2"
+                    Background="{StaticResource GhCommandInput}"
+                    TextElement.FontFamily="{StaticResource GhMonoFont}"
+                    TextElement.FontSize="12"
+                >
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Style.Triggers>
+                                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                    <Setter Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                                </Trigger>
+                                <DataTrigger Binding="{Binding IsInputEnabled}" Value="False">
+                                    <Setter Property="Opacity" Value="0.6" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Style="{StaticResource PyMarks}" Text="{Binding InputMarks}" />
+                        <TextBox
+                            x:Name="InputBox"
+                            Style="{StaticResource PyInput}"
+                            AcceptsReturn="True"
+                            TextWrapping="NoWrap"
+                            MaxHeight="96"
+                            TextBlock.LineHeight="16"
+                            TextBlock.LineStackingStrategy="BlockLineHeight"
+                            VerticalScrollBarVisibility="Auto"
+                            IsEnabled="{Binding IsInputEnabled}"
+                            Tag="{Binding InputPlaceholder}"
+                            Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
+                            PreviewKeyDown="OnInputKeyDown"
+                            AutomationProperties.Name="Python input"
+                        />
+                    </DockPanel>
+                </Border>
+
+                <!-- Header, 28 high, and the tool row, 32 high. -->
+                <Border DockPanel.Dock="Top" Height="28" Background="{StaticResource GhHeader}" Padding="12,0,4,0">
+                    <DockPanel>
+                        <Button
+                            DockPanel.Dock="Right"
+                            Style="{StaticResource GhFlatButton}"
+                            Width="24"
+                            Height="24"
+                            Command="{Binding CloseCommand}"
+                            ToolTip="Hide the palette (PYTHONCLOSE)"
+                            AutomationProperties.Name="Close PYTHON"
+                        >
+                            <local:IconView
+                                Size="14"
+                                StrokeThickness="2"
+                                Stroke="{StaticResource GhCloseCross}"
+                                Data="{StaticResource GhIconClose}"
+                            />
+                        </Button>
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Text="PYTHON"
+                            FontSize="11"
+                            FontWeight="Medium"
+                            Foreground="{StaticResource GhTextMuted}"
+                        />
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Margin="8,0"
+                            Text="·"
+                            Foreground="{StaticResource GhTextMuted}"
+                        />
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            TextTrimming="CharacterEllipsis"
+                            Foreground="{StaticResource GhIcon}"
+                            Text="{Binding DocumentName}"
+                        />
+                    </DockPanel>
+                </Border>
+                <Border
+                    DockPanel.Dock="Top"
+                    Height="32"
+                    BorderBrush="{StaticResource GhBorder}"
+                    BorderThickness="0,0,0,1"
+                    Padding="8,0"
+                >
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button
+                            Style="{StaticResource PyTool}"
+                            Command="{Binding RunFileCommand}"
+                            IsEnabled="{Binding CanRunFile}"
+                            ToolTip="Run a Python file (PYRUN)"
+                            AutomationProperties.Name="Run file"
+                        >
+                            <StackPanel Orientation="Horizontal">
+                                <local:IconView
+                                    Size="16"
+                                    StrokeThickness="1.8"
+                                    Data="{StaticResource GhIconNew}"
+                                    Margin="0,0,4,0"
+                                />
+                                <TextBlock Text="Run file..." />
+                            </StackPanel>
+                        </Button>
+                        <Button
+                            Style="{StaticResource PyTool}"
+                            Command="{Binding LoadCommand}"
+                            IsEnabled="{Binding CanRunFile}"
+                            ToolTip="Load a Python file whose functions become commands (PYLOAD)"
+                            AutomationProperties.Name="Load"
+                        >
+                            <StackPanel Orientation="Horizontal">
+                                <local:IconView
+                                    Size="16"
+                                    StrokeThickness="1.8"
+                                    Data="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 14h6M12 11v6"
+                                    Margin="0,0,4,0"
+                                />
+                                <TextBlock Text="Load..." />
+                            </StackPanel>
+                        </Button>
+                        <Button
+                            Style="{StaticResource PyStopTool}"
+                            Command="{Binding StopCommand}"
+                            IsEnabled="{Binding CanStop}"
+                            ToolTip="Stop the run, as Esc does"
+                            AutomationProperties.Name="Stop"
+                        >
+                            <StackPanel Orientation="Horizontal">
+                                <Path
+                                    Style="{StaticResource PyStopSquare}"
+                                    Data="M7 7h10v10H7z"
+                                    StrokeThickness="1.8"
+                                    Width="16"
+                                    Height="16"
+                                    Stretch="Uniform"
+                                    Margin="0,0,4,0"
+                                />
+                                <TextBlock Text="Stop" />
+                            </StackPanel>
+                        </Button>
+                        <Border Width="1" Height="18" Margin="2,0,6,0" Background="{StaticResource GhBorder}" />
+                        <Button
+                            Style="{StaticResource PyTool}"
+                            Command="{Binding ClearCommand}"
+                            ToolTip="Empty the transcript"
+                            AutomationProperties.Name="Clear"
+                        >
+                            <StackPanel Orientation="Horizontal">
+                                <local:IconView
+                                    Size="16"
+                                    StrokeThickness="1.8"
+                                    Data="{StaticResource GhIconErase}"
+                                    Margin="0,0,4,0"
+                                />
+                                <TextBlock Text="Clear" />
+                            </StackPanel>
+                        </Button>
+                        <Button
+                            Style="{StaticResource PyTool}"
+                            Command="{Binding ResetCommand}"
+                            IsEnabled="{Binding CanReset}"
+                            ToolTip="Forget what the console of this drawing defined and imported"
+                            AutomationProperties.Name="Reset console"
+                        >
+                            <StackPanel Orientation="Horizontal">
+                                <local:IconView
+                                    Size="16"
+                                    StrokeThickness="1.8"
+                                    Data="{StaticResource GhIconRefresh}"
+                                    Margin="0,0,4,0"
+                                />
+                                <TextBlock Text="Reset console" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <!-- The transcript: read-only, selectable, no wrap; where Python cannot be used a banner stands at its top. -->
+                <DockPanel x:Name="TranscriptArea" Background="{StaticResource GhInput}">
+                    <Border
+                        DockPanel.Dock="Top"
+                        Margin="8"
+                        Padding="10,8"
+                        Background="{StaticResource GhPanel}"
+                        BorderBrush="{StaticResource GhWarn}"
+                        BorderThickness="3,0,0,0"
+                        CornerRadius="2"
+                        Visibility="{Binding IsUsable, Converter={StaticResource Hidden}}"
+                    >
+                        <StackPanel>
+                            <TextBlock FontWeight="SemiBold" Text="{Binding BannerTitle}" />
+                            <TextBlock
+                                Margin="0,4,0,0"
+                                TextWrapping="Wrap"
+                                Foreground="{StaticResource GhIcon}"
+                                Text="{Binding Problem}"
+                            />
+                            <TextBlock
+                                Margin="0,4,0,0"
+                                TextWrapping="Wrap"
+                                Foreground="{StaticResource GhTextMuted}"
+                                Text="Everything else in GeometryHelper CAD works as before."
+                            />
+                            <Button
+                                Style="{StaticResource GhDialogButton}"
+                                HorizontalAlignment="Left"
+                                Margin="0,8,0,0"
+                                Padding="12,4"
+                                FontWeight="Medium"
+                                Content="Global settings..."
+                                Command="{Binding SettingsCommand}"
+                            />
+                        </StackPanel>
+                    </Border>
+                    <RichTextBox
+                        x:Name="Transcript"
+                        MinHeight="60"
+                        IsReadOnly="True"
+                        IsReadOnlyCaretVisible="False"
+                        IsDocumentEnabled="False"
+                        AllowDrop="True"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="12,6,14,6"
+                        Foreground="{StaticResource GhText}"
+                        FontFamily="{StaticResource GhMonoFont}"
+                        FontSize="12"
+                        SelectionBrush="#1F4E79"
+                        SelectionOpacity="1"
+                        IsInactiveSelectionHighlightEnabled="True"
+                        HorizontalScrollBarVisibility="Hidden"
+                        VerticalScrollBarVisibility="Auto"
+                        FocusVisualStyle="{x:Null}"
+                        ContextMenu="{x:Null}"
+                        PreviewMouseRightButtonUp="OnTranscriptRightUp"
+                        PreviewDragOver="OnTranscriptDragOver"
+                        PreviewDrop="OnTranscriptDrop"
+                        AutomationProperties.Name="Python transcript"
+                    >
+                        <RichTextBox.Resources>
+                            <SolidColorBrush
+                                x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}"
+                                Color="#1F4E79"
+                            />
+                        </RichTextBox.Resources>
+                        <RichTextBox.Template>
+                            <ControlTemplate TargetType="RichTextBox">
+                                <Border Background="{TemplateBinding Background}">
+                                    <ScrollViewer
+                                        x:Name="PART_ContentHost"
+                                        Focusable="False"
+                                        Padding="{TemplateBinding Padding}"
+                                        HorizontalScrollBarVisibility="Hidden"
+                                        VerticalScrollBarVisibility="{TemplateBinding VerticalScrollBarVisibility}"
+                                    >
+                                        <ScrollViewer.Resources>
+                                            <Style TargetType="ScrollBar" BasedOn="{StaticResource PyScrollBar}" />
+                                        </ScrollViewer.Resources>
+                                    </ScrollViewer>
+                                </Border>
+                            </ControlTemplate>
+                        </RichTextBox.Template>
+                        <FlowDocument PagePadding="0" PageWidth="20000" />
+                    </RichTextBox>
+                </DockPanel>
+            </DockPanel>
+        </Border>
+        <!-- The top edge, 6 px across the line of its border: dragged to show more or fewer lines of the transcript, in whole lines; over it, or dragged, it lights as a 2 px blue line with a short handle, as the command line's. -->
+        <Thumb
+            x:Name="Grip"
+            Height="6"
+            VerticalAlignment="Top"
+            Margin="0,-3,0,0"
+            Cursor="SizeNS"
+            Focusable="False"
+            DragStarted="OnGripStarted"
+            DragDelta="OnGripDelta"
+        >
+            <Thumb.Template>
+                <ControlTemplate TargetType="Thumb">
+                    <Grid Background="Transparent">
+                        <Border
+                            x:Name="Edge"
+                            Height="2"
+                            VerticalAlignment="Center"
+                            Background="{StaticResource GhAccent}"
+                            Visibility="Collapsed"
+                        />
+                        <Border
+                            x:Name="Handle"
+                            Width="32"
+                            Height="6"
+                            CornerRadius="3"
+                            HorizontalAlignment="Center"
+                            Background="{StaticResource GhAccent}"
+                            Visibility="Collapsed"
+                        />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Edge" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Handle" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Edge" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Handle" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Thumb.Template>
+        </Thumb>
+    </Grid>
+</UserControl>

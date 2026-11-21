@@ -219,6 +219,7 @@ namespace GeometryHelper.Cad.Wpf
 
             // The files a routine left open are closed with the drawing, so that they can be deleted and read by others.
             file.Session.CloseLispFiles();
+            ForgetPython(document);
             DetachPlugins(file.Session.Registry);
 
             foreach (CadWorkspaceExtension extension in _extensions)
@@ -278,6 +279,7 @@ namespace GeometryHelper.Cad.Wpf
             }
 
             // The start screen: no document shown.
+            PythonConsole?.Follow(null, null);
             SyncInPlace();
             SpaceTabs.Clear();
             Layers = Array.Empty<CadLayerInfo>();

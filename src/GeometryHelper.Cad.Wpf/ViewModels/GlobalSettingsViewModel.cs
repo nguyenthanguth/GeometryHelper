@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Windows.Input;
+using GeometryHelper.Cad.Python;
 
 namespace GeometryHelper.Cad.Wpf
 {
@@ -1124,6 +1125,15 @@ namespace GeometryHelper.Cad.Wpf
                 )
             );
             ResetCommand = new DelegateCommand(_ => Reset());
+            BrowsePythonCommand = new DelegateCommand(_ =>
+            {
+                string path = BrowsePythonFile?.Invoke();
+
+                if (!string.IsNullOrWhiteSpace(path))
+                {
+                    PythonPath = path;
+                }
+            });
             ResetShortcutsCommand = new DelegateCommand(_ => FillShortcuts(true));
             ImportPgpCommand = new DelegateCommand(_ =>
             {
@@ -1339,6 +1349,67 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>Gets or sets how the window asks for a .pgp file: its path, or null where none was chosen.</summary>
         public Func<string> BrowsePgpFile { get; set; }
+
+        /// <summary>Gets the command of Browse… in the Python section of Folder preference: a python.exe asked for through <see cref="BrowsePythonFile"/>, then set as <see cref="PythonPath"/>.</summary>
+        public ICommand BrowsePythonCommand { get; }
+
+        /// <summary>Gets or sets how the window asks for a python.exe: its path, or null where none was chosen.</summary>
+        public Func<string> BrowsePythonFile { get; set; }
+
+        /// <summary>Gets whether the Python section of Folder preference is shown: where the app uses Python (the Python palette is there).</summary>
+        public bool IsPythonUsed => _model.PythonConsole != null;
+
+        /// <summary>
+        /// Gets or sets the python.exe, or the folder holding it, that the PYTHON palette, PYRUN and PYLOAD use: empty for the
+        /// Python found on the machine. Setting it finds the Python again, so that <see cref="PythonFound"/>,
+        /// <see cref="PythonSource"/> and <see cref="PythonPassedOver"/> follow; it is applied with the other settings.
+        /// </summary>
+        public string PythonPath
+        {
+            get => _working.PythonPath;
+            set
+            {
+                _working.PythonPath = value;
+                _python = null;
+                Raise(nameof(PythonPath));
+                RaisePython();
+            }
+        }
+
+        /// <summary>Gets the Python the path above gives, as the environment says it: its version and program, or why none is usable, exactly as the palette's banner words it.</summary>
+        public string PythonFound =>
+            PythonEnvironment.IsUsable ? PythonEnvironment.ToString() : PythonEnvironment.Problem;
+
+        /// <summary>Gets whether the Python found can be used.</summary>
+        public bool IsPythonUsable => PythonEnvironment.IsUsable;
+
+        /// <summary>Gets where the Python was looked for: Global settings, PYTHONNET_PYDLL, Registry (PEP 514), or Automatic: nothing usable.</summary>
+        public string PythonSource => PythonEnvironment.Source ?? "Automatic: nothing usable";
+
+        /// <summary>Gets the candidates the finder left out, each with its reason, in the order it looked at them.</summary>
+        public IReadOnlyList<string> PythonPassedOver => PythonEnvironment.PassedOver;
+
+        /// <summary>Gets whether any candidate was passed over.</summary>
+        public bool HasPythonPassedOver => PythonEnvironment.PassedOver.Count > 0;
+
+        /// <summary>Gets whether Python has started in this session: a path set now takes effect at the next start.</summary>
+        public bool HasPythonStarted => _model.HasPythonStarted;
+
+        private CadPythonEnvironment _python;
+
+        // The environment the path in the box gives, found again whenever the text changes.
+        private CadPythonEnvironment PythonEnvironment =>
+            _python ?? (_python = CadPythonEnvironment.Find(_working.PythonPath));
+
+        private void RaisePython()
+        {
+            Raise(nameof(PythonFound));
+            Raise(nameof(IsPythonUsable));
+            Raise(nameof(PythonSource));
+            Raise(nameof(PythonPassedOver));
+            Raise(nameof(HasPythonPassedOver));
+            Raise(nameof(HasPythonStarted));
+        }
 
         /// <summary>Gets the command of Add layer.</summary>
         public ICommand AddLayerCommand { get; }
@@ -2156,6 +2227,10 @@ namespace GeometryHelper.Cad.Wpf
             Raise(nameof(IsShortcutsPage));
             Raise(nameof(IsTextAndFontsPage));
             Raise(nameof(IsFolderPreferencePage));
+            Raise(nameof(IsPythonUsed));
+            Raise(nameof(PythonPath));
+            _python = null;
+            RaisePython();
             RaiseErrors();
         }
 
