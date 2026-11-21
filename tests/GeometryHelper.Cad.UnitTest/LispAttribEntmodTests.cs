@@ -167,6 +167,10 @@ namespace GeometryHelper.Cad.UnitTest
         {
             CadCommandSession session = D5();
             Value(session, "(entmod (list (cons -1 att) (cons 1 \"ONE\")))");
+
+            // AutoCAD 2021 (GUI g3 of L4): forms typed one after the other are one step until a command ends the run, so a
+            // REGEN keeps the two entmods apart
+            Run(session, "REGEN");
             Value(session, "(entmod (list (cons -1 att) (cons 1 \"TWO\") (cons 10 '(20.0 20.0 0.0))))");
 
             // ours (D332): one undo step as the entmod of any other entity; AutoCAD's d5 ran as one script, where U undid the lot
@@ -174,6 +178,20 @@ namespace GeometryHelper.Cad.UnitTest
 
             Assert.Equal("\"ONE\"", Value(session, "(cdr (assoc 1 (entget att)))"));
             Assert.Equal("(10.0 10.0 0.0)", Value(session, "(cdr (assoc 10 (entget att)))"));
+        }
+
+        [Fact]
+        public void TwoEntmodsOfAnAttributeTypedInTurn_AreTakenBackByOneU()
+        {
+            CadCommandSession session = D5();
+            string before = Value(session, "(cdr (assoc 1 (entget att)))");
+            Value(session, "(entmod (list (cons -1 att) (cons 1 \"ONE\")))");
+            Value(session, "(entmod (list (cons -1 att) (cons 1 \"TWO\")))");
+
+            // AutoCAD 2021 (GUI g3 of L4): two entmods typed one after the other, one U takes both
+            Run(session, "U");
+
+            Assert.Equal(before, Value(session, "(cdr (assoc 1 (entget att)))"));
         }
 
         [Fact]
