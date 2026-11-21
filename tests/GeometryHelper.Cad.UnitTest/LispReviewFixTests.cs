@@ -171,14 +171,19 @@ namespace GeometryHelper.Cad.UnitTest
         {
             // The logger is the process's, and the test classes run side by side: only what this thread writes is the session's
             // (the owner thread ends the undo step), so another test's line is neither added to the list nor read as a Warn.
+            // A worker another test left behind can still reach the writer while this one reads the list, so both take the lock.
             var logs = new List<string>();
+            object gate = new object();
             int owner = Thread.CurrentThread.ManagedThreadId;
             GeometryHelperLog.Enable = true;
             GeometryHelperLog.Writer = (level, message, error) =>
             {
                 if (Thread.CurrentThread.ManagedThreadId == owner)
                 {
-                    logs.Add(level + " " + message + " " + error?.Message);
+                    lock (gate)
+                    {
+                        logs.Add(level + " " + message + " " + error?.Message);
+                    }
                 }
             };
 
@@ -199,7 +204,14 @@ namespace GeometryHelper.Cad.UnitTest
 
                 Run(session, "(progn (getpoint \"a: \") (ghmake) (getpoint \"b: \"))", "1,1", Esc);
 
-                string[] warned = logs.Where(l =>
+                string[] lines;
+                lock (gate)
+                {
+                    lines = logs.ToArray();
+                }
+
+                string[] warned = lines
+                    .Where(l =>
                         !l.StartsWith("Info", StringComparison.Ordinal)
                         && !l.StartsWith("Debug", StringComparison.Ordinal)
                     )
