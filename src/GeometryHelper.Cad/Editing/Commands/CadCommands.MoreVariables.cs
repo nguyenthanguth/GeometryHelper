@@ -372,6 +372,9 @@ namespace GeometryHelper.Cad
 
             // The dimension variables, which the header holds as those new dimensions take.
             AddDimVariablesTo(registry);
+
+            // The gate in front of the files of code: SECURELOAD, TRUSTEDPATHS and LEGACYCODESEARCH.
+            AddLoadSecurityVariablesTo(registry);
         }
 
         /// <summary>

@@ -149,6 +149,9 @@ namespace GeometryHelper.Cad
         private List<string> _pluginSnaps = new List<string>();
         private string _appLoadFolder = string.Empty;
         private string _plotStyleFolder = string.Empty;
+        private int _secureLoad = 1;
+        private string _trustedPaths = string.Empty;
+        private List<string> _alwaysLoaded = new List<string>();
         private SortedDictionary<string, string> _fontSubstitutions = new SortedDictionary<string, string>(
             StringComparer.OrdinalIgnoreCase
         );
@@ -832,6 +835,55 @@ namespace GeometryHelper.Cad
             set => _plotStyleFolder = (value ?? string.Empty).Trim();
         }
 
+        /// <summary>
+        /// Gets or sets SECURELOAD, what happens to a file of code outside the trusted folders: 0 loads it, 1, the default, asks
+        /// with AutoCAD's warning (Always Load, Load Once, Do Not Load) and 2 refuses it. Saved in the settings file; the window
+        /// gives it to the <see cref="CadLoadSecurity"/> of its drawings.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is not 0, 1 or 2.</exception>
+        public int SecureLoad
+        {
+            get => _secureLoad;
+            set =>
+                _secureLoad =
+                    value >= 0 && value <= 2
+                        ? value
+                        : throw new ArgumentOutOfRangeException(nameof(value), value, "SECURELOAD is 0, 1 or 2.");
+        }
+
+        /// <summary>
+        /// Gets or sets TRUSTEDPATHS, the folders trusted for files of code besides the app's own, parted by <c>;</c>, an entry
+        /// ending in <c>\...</c> trusting its subfolders too (<see cref="CadLoadSecurity.TrustedPaths"/>). Empty by default;
+        /// null is taken as empty. Saved in the settings file.
+        /// </summary>
+        public string TrustedPaths
+        {
+            get => _trustedPaths;
+            set => _trustedPaths = value ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Gets or sets LEGACYCODESEARCH: whether a search for a file of code looks in the current and the drawing folder before
+        /// the support folders (<see cref="CadLoadSecurity.LegacyCodeSearch"/>). Off by default. Saved in the settings file.
+        /// </summary>
+        public bool LegacyCodeSearch { get; set; }
+
+        /// <summary>
+        /// Gets or sets the files answered Always Load, each the SHA-256 of its bytes in lower-case hexadecimal, a bar and its full
+        /// path (<see cref="CadLoadSecurity.AlwaysLoaded"/>); empty by default. Blank entries are left out and an entry given
+        /// twice is kept once. Saved in the settings file.
+        /// </summary>
+        public IReadOnlyList<string> AlwaysLoadedFiles
+        {
+            get => _alwaysLoaded.AsReadOnly();
+            set =>
+                _alwaysLoaded = (value ?? Array.Empty<string>())
+                    .Where(f => !string.IsNullOrWhiteSpace(f))
+                    .Select(f => f.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+        }
+
         /// <summary>Gets the fonts drawn in others, as AutoCAD's font mapping file gives them: each name to the name it is drawn in (romans.shx to isocp.shx); none by default.</summary>
         public IReadOnlyDictionary<string, string> FontSubstitutions => _fontSubstitutions;
 
@@ -1044,6 +1096,7 @@ namespace GeometryHelper.Cad
             copy._supportFolders = new List<string>(_supportFolders);
             copy._lispStartupSuite = new List<string>(_lispStartupSuite);
             copy._appLoadHistory = new List<string>(_appLoadHistory);
+            copy._alwaysLoaded = new List<string>(_alwaysLoaded);
             copy._pluginSnaps = new List<string>(_pluginSnaps);
             copy._fontSubstitutions = Copy(_fontSubstitutions);
             copy._aliases = Copy(_aliases);
@@ -1328,6 +1381,19 @@ namespace GeometryHelper.Cad
             w.Value("folder", _templateFolder);
             w.Value("qnew", _qnewTemplate);
             w.Close();
+            w.Open("security");
+            w.Value("secureLoad", _secureLoad);
+            w.Value("trustedPaths", _trustedPaths);
+            w.Value("legacyCodeSearch", LegacyCodeSearch);
+            w.OpenList("alwaysLoaded");
+
+            foreach (string file in _alwaysLoaded)
+            {
+                w.Value(null, file);
+            }
+
+            w.CloseList();
+            w.Close();
             w.Open("panels");
             w.Value("fileListWidth", _fileListWidth);
             w.Value("propertiesWidth", _propertiesWidth);
@@ -1523,6 +1589,12 @@ namespace GeometryHelper.Cad
                 Flag("remote", "allowRemoteConnections", v => _s.AllowRemoteConnections = v);
                 Text("templates", "folder", v => _s.TemplateFolder = v);
                 Text("templates", "qnew", v => _s.QnewTemplate = v);
+                Number("security", "secureLoad", v => _s.SecureLoad = Whole(v));
+                Text("security", "trustedPaths", v => _s.TrustedPaths = v);
+                Flag("security", "legacyCodeSearch", v => _s.LegacyCodeSearch = v);
+                Take("security", "alwaysLoaded", e =>
+                    _s.AlwaysLoadedFiles = e.Elements().Select(f => f.Value).ToList()
+                );
                 Number("panels", "fileListWidth", v => _s.FileListWidth = v);
                 Number("panels", "propertiesWidth", v => _s.PropertiesWidth = v);
                 Number("panels", "sidePanelWidth", v => _s.SidePanelWidth = v);
