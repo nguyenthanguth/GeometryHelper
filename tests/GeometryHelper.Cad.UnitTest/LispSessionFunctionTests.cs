@@ -256,15 +256,18 @@ namespace GeometryHelper.Cad.UnitTest
         {
             CadCommandSession session = WithABlockReference(0.0);
 
-            // reference (AutoCAD documentation, not measured): (entname pickpoint matrix (block ename)), the matrix the images of
-            // the three axes and the origin, the references the object is in from the innermost out
+            // AutoCAD 2021 (GUI, X2 pick2): (entname pickpoint matrix (block ename)), the matrix 4 by 4 row by row, the images of
+            // the three axes in its columns and the origin in the fourth, the references the object is in from the innermost out
             Value(session, "(setq r (nentsel))");
             Run(session, "100,50");
 
             Assert.Equal("4", Value(session, "(length r)"));
             Assert.Equal("\"LINE\"", Value(session, "(cdr (assoc 0 (entget (car r))))"));
             Assert.Equal("(100.0 50.0 0.0)", Value(session, "(cadr r)"));
-            Assert.Equal("((1.0 0.0 0.0) (0.0 1.0 0.0) (0.0 0.0 1.0) (100.0 50.0 0.0))", Value(session, "(caddr r)"));
+            Assert.Equal(
+                "((1.0 0.0 0.0 100.0) (0.0 1.0 0.0 50.0) (0.0 0.0 1.0 0.0) (0.0 0.0 0.0 1.0))",
+                Value(session, "(caddr r)")
+            );
             Assert.Equal("\"INSERT\"", Value(session, "(cdr (assoc 0 (entget (car (cadddr r)))))"));
             Assert.Equal("1", Value(session, "(length (cadddr r))"));
         }
@@ -277,8 +280,12 @@ namespace GeometryHelper.Cad.UnitTest
             Value(session, "(setq r (nentsel))");
             Run(session, "100,50");
 
-            // the block turned a quarter turn: its x axis points along the world y, its y axis along minus x
-            Assert.Equal("((0.0 1.0 0.0) (-1.0 0.0 0.0) (0.0 0.0 1.0) (100.0 50.0 0.0))", Value(session, "(caddr r)"));
+            // AutoCAD 2021 (GUI, X2 pick2): the block turned a quarter turn, its x axis along the world y and its y axis along minus x,
+            // are the columns (0 1 0) and (-1 0 0): the rows read (0 -1 0 100) and (1 0 0 50)
+            Assert.Equal(
+                "((0.0 -1.0 0.0 100.0) (1.0 0.0 0.0 50.0) (0.0 0.0 1.0 0.0) (0.0 0.0 0.0 1.0))",
+                Value(session, "(caddr r)")
+            );
         }
     }
 }

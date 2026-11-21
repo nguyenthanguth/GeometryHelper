@@ -32,9 +32,10 @@ namespace GeometryHelper.Cad.Lisp
 
         /// <summary>
         /// What <c>nentsel</c> gives for an object picked: where it is a block reference with an object under the point inside it,
-        /// <c>(ename pt matrix (insert ...))</c> of that object (reference, as AutoCAD 2021's documentation words it, not measured):
-        /// its name, the point picked, the 4 by 3 matrix that carries the block's coordinates into the world (the world images
-        /// of the three axes, then the origin) and the names of the references it is in, the innermost first. Where the point is on
+        /// <c>(ename pt matrix (insert ...))</c> of that object: its name, the point picked, the 4 by 4 matrix, row by row, that
+        /// carries the block's coordinates into the world (the world images of the three axes in its columns, the origin in the
+        /// fourth, <c>(0 0 0 1)</c> under them; AutoCAD 2021, GUI, measured, not the 4 by 3 form its documentation gives) and the
+        /// names of the references it is in, the innermost first. Where the point is on
         /// the text of a visible attribute of the reference, the answer is <c>(ename pt)</c> of the ATTRIB itself, nothing after the
         /// point (AutoCAD 2021, GUI, measured), and an attribute wins over the objects of the block where both are under the point
         /// (ours: the attribute is drawn last). Anything else is as <c>entsel</c> gives it.
@@ -88,18 +89,25 @@ namespace GeometryHelper.Cad.Lisp
                 placing = placing.Multiply(chain[i].BlockTransform);
             }
 
+            // AutoCAD 2021 (GUI, L5 X2): a 4 by 4 matrix row by row, the images of the three axes in its columns, the origin in the
+            // fourth and (0 0 0 1) under them.
             GeoPoint3 origin = placing.Transform(GeoPoint3.Origin);
-            var matrix = new List<object>();
-
-            foreach (GeoPoint3 axis in new[] { new GeoPoint3(1, 0, 0), new GeoPoint3(0, 1, 0), new GeoPoint3(0, 0, 1) })
+            GeoPoint3 xAxis = placing.Transform(new GeoPoint3(1, 0, 0));
+            GeoPoint3 yAxis = placing.Transform(new GeoPoint3(0, 1, 0));
+            GeoPoint3 zAxis = placing.Transform(new GeoPoint3(0, 0, 1));
+            var matrix = new List<object>
             {
-                GeoPoint3 moved = placing.Transform(axis);
-                matrix.Add(
-                    LispInterpreter.ListOf(new object[] { moved.X - origin.X, moved.Y - origin.Y, moved.Z - origin.Z })
-                );
-            }
-
-            matrix.Add(LispInterpreter.ListOf(new object[] { origin.X, origin.Y, origin.Z }));
+                LispInterpreter.ListOf(
+                    new object[] { xAxis.X - origin.X, yAxis.X - origin.X, zAxis.X - origin.X, origin.X }
+                ),
+                LispInterpreter.ListOf(
+                    new object[] { xAxis.Y - origin.Y, yAxis.Y - origin.Y, zAxis.Y - origin.Y, origin.Y }
+                ),
+                LispInterpreter.ListOf(
+                    new object[] { xAxis.Z - origin.Z, yAxis.Z - origin.Z, zAxis.Z - origin.Z, origin.Z }
+                ),
+                LispInterpreter.ListOf(new object[] { 0.0, 0.0, 0.0, 1.0 }),
+            };
 
             var inserts = new List<object>();
 
