@@ -31,11 +31,14 @@ The maintainer judged Part A done on 2026-11-17. What it covers, in short:
 - [x] A1. Command line history as AutoCAD's (maintainer 2026-11-21; design first): drag the top edge to show more or
       fewer lines (kept in the settings), scroll back with the wheel, select lines and copy them (Ctrl+C, right-click
       Copy and Copy History); F2's text window stays as it is
-- [ ] A2. (running) Plugins extend the window as in AutoCAD (maintainer 2026-11-21; design first): a plugin loaded at run
+- [x] A2. Plugins extend the window as in AutoCAD (maintainer 2026-11-21; design first): a plugin loaded at run
       time (PLUGINLOAD/APPLOAD, both runtimes, unloadable) adds its own ribbon tabs and panels (large/small buttons,
       icons, split buttons, tooltips, as AutoCAD's RibbonTab/RibbonPanel), rows of the PROPERTIES palette for its
       objects, buttons and items of the DRAWINGS list, and custom object snap modes (as AutoCAD's CustomObjectSnapMode
       with a glyph); described without WPF in GeometryHelper.Cad.Plugins, drawn by the window, gone when unloaded
+- [ ] A2 parked: colour swatches in the Color rows of Properties (the presenter's and a plugin's; the A2Properties board
+      to match), collapsing plugin panels, slide-outs, dialog launchers, macros, a pick-point button, and plugin snaps
+      through a viewport, inside a block and for typed points
 
 ### Parked follow-ups
 
