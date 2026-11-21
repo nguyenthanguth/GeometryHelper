@@ -66,7 +66,7 @@ namespace GeometryHelper.Cad.Lisp
         #region ssget
 
         /// <summary>What <c>ssget</c> was asked: how to find the objects and which of them to keep.</summary>
-        private sealed class Request
+        internal sealed class Request
         {
             internal string Mode { get; set; }
 
@@ -246,7 +246,7 @@ namespace GeometryHelper.Cad.Lisp
         }
 
         /// <summary>Whether the filter keeps the object of a handle; owner thread only.</summary>
-        private static bool Accepted(CadCommandSession session, LispSelectionFilter filter, string handle)
+        internal static bool Accepted(CadCommandSession session, LispSelectionFilter filter, string handle)
         {
             DxfItem item = FindItem(session.Document, handle);
 
@@ -272,7 +272,7 @@ namespace GeometryHelper.Cad.Lisp
         }
 
         /// <summary>The groups of an object as <c>entget</c> gives them without its name: <c>(0 . type)</c> first.</summary>
-        private static List<KeyValuePair<int, object>> GroupsOf(CadDocument document, DxfItem item)
+        internal static List<KeyValuePair<int, object>> GroupsOf(CadDocument document, DxfItem item)
         {
             List<KeyValuePair<int, object>> pairs = LispEntityData.Read(item.Groups, item.Type);
 
@@ -295,7 +295,7 @@ namespace GeometryHelper.Cad.Lisp
         }
 
         /// <summary>The handles a request finds in the drawing, in the order the set has them.</summary>
-        private static List<string> Find(CadCommandSession session, Request request)
+        internal static List<string> Find(CadCommandSession session, Request request)
         {
             CadDocument document = session.Document;
             var found = new List<string>();

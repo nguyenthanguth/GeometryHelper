@@ -40,6 +40,7 @@ namespace GeometryHelper.Cad.Lisp
     internal sealed class LispVlaObject
     {
         private static long s_nextAddress = 0x1e4a7f3c000;
+        private readonly string _printForm;
 
         /// <summary>Makes a value.</summary>
         /// <param name="kind">What it stands for.</param>
@@ -51,7 +52,7 @@ namespace GeometryHelper.Cad.Lisp
             InterfaceName = interfaceName;
             Key = key ?? "";
             Address = Interlocked.Add(ref s_nextAddress, 0x60);
-            PrintForm =
+            _printForm =
                 "#<VLA-OBJECT " + interfaceName + " " + Address.ToString("x16", CultureInfo.InvariantCulture) + ">";
         }
 
@@ -73,7 +74,7 @@ namespace GeometryHelper.Cad.Lisp
         /// <summary>Gets the made-up address it prints with.</summary>
         internal long Address { get; }
 
-        /// <summary>Gets how prin1 and princ write it.</summary>
-        internal string PrintForm { get; }
+        /// <summary>Gets how prin1 and princ write it; a released value has lost its interface and its address (AutoCAD 2021, GUI g2).</summary>
+        internal string PrintForm => IsReleased ? "#<VLA-OBJECT 0000000000000000>" : _printForm;
     }
 }

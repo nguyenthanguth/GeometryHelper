@@ -151,6 +151,7 @@ namespace GeometryHelper.Cad
         /// </summary>
         private void StartLispCommand(string name)
         {
+            ReleaseLispHold();
             LastCommandName = name.ToUpperInvariant();
             _lispStep = false;
             _lispStepName = LastCommandName;
@@ -186,7 +187,7 @@ namespace GeometryHelper.Cad
 
             _lispText = null;
             _lispPrompt = null;
-            _lispStep = false;
+            _lispStep = _lispHold;
             _lispStepName = null;
             _lispPrefix = null;
 

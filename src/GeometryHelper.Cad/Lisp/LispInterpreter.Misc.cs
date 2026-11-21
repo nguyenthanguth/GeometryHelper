@@ -93,6 +93,11 @@ namespace GeometryHelper.Cad.Lisp
         {
             while (true)
             {
+                if (x is LispVlaObject vx && y is LispVlaObject vy)
+                {
+                    return vx.Kind == vy.Kind && string.Equals(vx.Key, vy.Key, StringComparison.Ordinal);
+                }
+
                 if (x is LispCons a && y is LispCons b)
                 {
                     CheckStack();
