@@ -32,10 +32,13 @@ namespace GeometryHelper.Cad.Lisp
 
         /// <summary>
         /// What <c>nentsel</c> gives for an object picked: where it is a block reference with an object under the point inside it,
-        /// <c>(ename pt matrix (insert ...))</c> of that object (reference, as AutoCAD 2021's documentation words it, not measured):
-        /// its name, the point picked, the 4 by 3 matrix that carries the block's coordinates into the world (the world images
-        /// of the three axes, then the origin) and the names of the references it is in, the innermost first. Anything else is as
-        /// <c>entsel</c> gives it.
+        /// <c>(ename pt matrix (insert ...))</c> of that object: its name, the point picked, the 4 by 4 matrix, row by row, that
+        /// carries the block's coordinates into the world (the world images of the three axes in its columns, the origin in the
+        /// fourth, <c>(0 0 0 1)</c> under them; AutoCAD 2021, GUI, measured, not the 4 by 3 form its documentation gives) and the
+        /// names of the references it is in, the innermost first. Where the point is on
+        /// the text of a visible attribute of the reference, the answer is <c>(ename pt)</c> of the ATTRIB itself, nothing after the
+        /// point (AutoCAD 2021, GUI, measured), and an attribute wins over the objects of the block where both are under the point
+        /// (ours: the attribute is drawn last). Anything else is as <c>entsel</c> gives it.
         /// </summary>
         private static object NestedAnswer(LispInterpreter lisp, CadCommandSession session, object answer)
         {
@@ -70,6 +73,14 @@ namespace GeometryHelper.Cad.Lisp
             }
 
             GeoPoint2 world = session.Ucs.ToWorld(new GeoPoint2(at.Value.X, at.Value.Y));
+            DxfAttributeReference attribute = AttributePicked(session, top, world);
+
+            if (attribute != null)
+            {
+                // AutoCAD 2021 (GUI, L5 X2): a pick on an attribute's text gives the ATTRIB and the point, no matrix and no references.
+                return LispInterpreter.ListOf(new object[] { new LispEntityName(attribute.Handle), items[1] });
+            }
+
             DxfEntity inner = CadDocument.FindNestedPick(top, world, session.PickAperture, true);
             var chain = new List<DxfBlockReference>();
 
@@ -85,18 +96,25 @@ namespace GeometryHelper.Cad.Lisp
                 placing = placing.Multiply(chain[i].BlockTransform);
             }
 
+            // AutoCAD 2021 (GUI, L5 X2): a 4 by 4 matrix row by row, the images of the three axes in its columns, the origin in the
+            // fourth and (0 0 0 1) under them.
             GeoPoint3 origin = placing.Transform(GeoPoint3.Origin);
-            var matrix = new List<object>();
-
-            foreach (GeoPoint3 axis in new[] { new GeoPoint3(1, 0, 0), new GeoPoint3(0, 1, 0), new GeoPoint3(0, 0, 1) })
+            GeoPoint3 xAxis = placing.Transform(new GeoPoint3(1, 0, 0));
+            GeoPoint3 yAxis = placing.Transform(new GeoPoint3(0, 1, 0));
+            GeoPoint3 zAxis = placing.Transform(new GeoPoint3(0, 0, 1));
+            var matrix = new List<object>
             {
-                GeoPoint3 moved = placing.Transform(axis);
-                matrix.Add(
-                    LispInterpreter.ListOf(new object[] { moved.X - origin.X, moved.Y - origin.Y, moved.Z - origin.Z })
-                );
-            }
-
-            matrix.Add(LispInterpreter.ListOf(new object[] { origin.X, origin.Y, origin.Z }));
+                LispInterpreter.ListOf(
+                    new object[] { xAxis.X - origin.X, yAxis.X - origin.X, zAxis.X - origin.X, origin.X }
+                ),
+                LispInterpreter.ListOf(
+                    new object[] { xAxis.Y - origin.Y, yAxis.Y - origin.Y, zAxis.Y - origin.Y, origin.Y }
+                ),
+                LispInterpreter.ListOf(
+                    new object[] { xAxis.Z - origin.Z, yAxis.Z - origin.Z, zAxis.Z - origin.Z, origin.Z }
+                ),
+                LispInterpreter.ListOf(new object[] { 0.0, 0.0, 0.0, 1.0 }),
+            };
 
             var inserts = new List<object>();
 
@@ -263,6 +281,73 @@ namespace GeometryHelper.Cad.Lisp
 
             chain.RemoveAt(chain.Count - 1);
             return false;
+        }
+
+        /// <summary>
+        /// The attribute of a block reference whose text the point reaches, within the pick aperture, as the display list draws it
+        /// (the pick index's own test, so that a pick that finds the reference by its attribute finds the attribute): of the pieces
+        /// of text the reference is drawn with, the nearest to the point (the first drawn on a tie), taken for the attribute whose
+        /// anchor is nearest to it (the first of the reference on a tie); null where no text of it is reached, as a constant
+        /// attribute's, which has no ATTRIB. An erased attribute is out, and so is an invisible one under ATTMODE 1 and every one
+        /// under ATTMODE 0, as the display leaves them out (AutoCAD 2021, GUI: an invisible attribute is not picked).
+        /// </summary>
+        private static DxfAttributeReference AttributePicked(
+            CadCommandSession session,
+            DxfBlockReference reference,
+            GeoPoint2 at
+        )
+        {
+            int mode = session.Document.Database.Attmode;
+
+            if (mode == 0 || reference.Handle == null)
+            {
+                return null;
+            }
+
+            PickIndex index = session.Document.GetPickIndex(session.Document.WorkingSpace);
+            DisplayText2 reached = null;
+            double nearest = double.MaxValue;
+
+            foreach (int place in index.IndicesOf(reference.Handle))
+            {
+                if (index.List.Items[place] is DisplayText2 text)
+                {
+                    double distance = text.DistanceTo(at.X, at.Y);
+
+                    if (distance <= session.PickAperture && distance < nearest)
+                    {
+                        nearest = distance;
+                        reached = text;
+                    }
+                }
+            }
+
+            if (reached == null)
+            {
+                return null;
+            }
+
+            DxfAttributeReference best = null;
+            double least = double.MaxValue;
+
+            foreach (DxfAttributeReference attribute in reference.AttributeCollection)
+            {
+                if (attribute.IsErased || attribute.Handle == null || (mode == 1 && attribute.Invisible))
+                {
+                    continue;
+                }
+
+                GeoPoint3 anchor = attribute.ReadForDisplay().At;
+                double gap = Math.Abs(anchor.X - reached.X) + Math.Abs(anchor.Y - reached.Y);
+
+                if (gap < least)
+                {
+                    least = gap;
+                    best = attribute;
+                }
+            }
+
+            return best;
         }
 
         /// <summary>

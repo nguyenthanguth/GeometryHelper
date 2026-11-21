@@ -6,7 +6,7 @@ presenter's own, one for each open drawing: [`LispInterpreter`](xref:GeometryHel
 [`CadCommandSession`](xref:GeometryHelper.Cad.CadCommandSession) makes the first time it is asked for. The values, the
 printing and the error messages were measured against AutoCAD 2021, so a routine that runs there writes the same text here.
 
-This covers four stages. The first is the core of the language: the data, the control forms, `defun` and the `c:` commands,
+This covers five stages. The first is the core of the language: the data, the control forms, `defun` and the `c:` commands,
 errors, and the functions for numbers, lists, strings and units. The second is the drawing: a routine can run the
 presenter's commands with `command`, ask the user for points, distances and words, pick objects, select, read and change
 entities and the tables, read and set system variables, and convert between coordinate systems. The third is Visual LISP's
@@ -14,7 +14,9 @@ library of [lists, strings and files](#strings-lists-and-files): `vl-sort`, the 
 and `write-line`, `findfile`, the `vl-file-` functions, a store for `vl-registry-write`, the blackboard shared by the open
 drawings, `getfiled`, and the pick-first selection. The fourth is Visual LISP's [ActiveX functions](#activex-objects):
 `vl-load-com`, variants and safearrays, the `vlax-curve-` functions, and the objects of the drawing, which `vla-` and `vlax-`
-names read and write: the document, its blocks and layers, the entities, their attributes and selection sets. The rest of the
+names read and write: the document, its blocks and layers, the entities, their attributes and selection sets. The fifth is the
+[dialogs](#dialogs-dcl): DCL files, `load_dialog`, `new_dialog` and `start_dialog`, and the 22 functions that fill a dialog
+and read what the user did, shown in the presenter's window at the sizes AutoCAD 2021 draws. The rest of the
 language's library comes in later stages and is listed [at the end](#what-is-not-there-yet).
 
 The drawing stage was checked on seventeen routines written for AutoCAD by one user, each run in AutoCAD 2021's console and
@@ -83,8 +85,9 @@ session.Feed("(command \"CIRCLE\" '(0 0) 5)");              // Command: (command
 | ActiveX curves | after `vl-load-com`: the eighteen `vlax-curve-` functions, `getStartParam` to `isPlanar` |
 | ActiveX objects | after `vl-load-com`: `vlax-get-acad-object`, `vlax-ename->vla-object`, `vlax-vla-object->ename`, `vlax-get-property`, `vlax-put-property`, `vlax-invoke-method`, `vlax-get`, `vlax-put`, `vlax-invoke`, `vlax-for` (before it too), `vlax-map-collection`, `vlax-property-available-p`, `vlax-method-applicable-p`, `vlax-object-released-p`, `vlax-release-object`, `vlax-erased-p`, `vlax-read-enabled-p`, `vlax-write-enabled-p`, `vlax-typeinfo-available-p`; refused with a message: `vlax-create-object`, `vlax-get-object`, `vlax-get-or-create-object`, `vlax-import-type-library` |
 | ActiveX members | after `vl-load-com`: 143 `vla-get-`, `vla-put-` and method functions of the objects of the drawing |
+| Dialogs | `load_dialog`, `unload_dialog`, `new_dialog`, `start_dialog`, `done_dialog`, `term_dialog`, `action_tile`, `get_tile`, `set_tile`, `mode_tile`, `get_attr`, `client_data_tile`, `start_list`, `add_list`, `end_list`, `start_image`, `fill_image`, `vector_image`, `slide_image`, `end_image`, `dimx_tile`, `dimy_tile`, and the variables `$key`, `$value`, `$reason`, `$data`, `$x` and `$y` inside an action |
 
-The functions of the last ten rows read or change the drawing, so they exist in the interpreter of a drawing and not in a bare
+The functions of the last eleven rows read or change the drawing, so they exist in the interpreter of a drawing and not in a bare
 [`LispInterpreter`](xref:GeometryHelper.Cad.Lisp.LispInterpreter): `(getvar "OSMODE")` there is `; error: no function
 definition: GETVAR`. The pure ones, `angle`, `distance`, `polar`, `inters` and `cvunit`, need no drawing and are in both, and
 so are the Visual LISP rows of lists, strings, files and the registry, blackboard and drawings, and the ActiveX variants and
@@ -407,7 +410,15 @@ AutoLISP while a routine waits, APPLOAD or a startup file, are refused with the 
 point in the UCS: `0,0` on the end of a LINE gives `(<Entity name: ...> (0.0 0.0 0.0))`. `L` takes the last object. A pick
 that finds nothing gives `nil` at once and does not ask again; Enter gives `nil`; a keyword of `initget` gives its string;
 other text is `*Invalid selection*` and `Expects a point or Last`, and the prompt again. `nentsel` does the same for an object
-of a space, and for one inside a block reference gives `(ename pt matrix (insert-ename))`, with the insert's name last.
+of a space, and for one inside a block reference gives `(ename pt matrix (insert-ename))`, with the insert's name last. The matrix is the form
+AutoCAD 2021 gave in its window, 4 by 4 and row by row with the translation in the fourth column, not the 4 by 3 form of
+its documentation: a line in a block reference at (100, 0), picked at (125, 5), is `(<Entity name: ...> (125.0 5.0 0.0)
+((1.0 0.0 0.0 100.0) (0.0 1.0 0.0 0.0) (0.0 0.0 1.0 0.0) (0.0 0.0 0.0 1.0)) (<Entity name: ...>))`, and the owners come
+innermost first for nested references. A routine written for the 4 by 3 form finds the origin in the last item of the first
+three rows and a row `(0 0 0 1)` under them. A pick on the
+text of a visible attribute gives the ATTRIB itself and the point only, `(<Entity name: ...> (103.0 2.5 0.0))`, with no matrix and
+no list of references after them, as AutoCAD 2021 does; `entsel` still gives the block reference for the same pick, and an
+invisible attribute cannot be picked. `(entmod ...)` of that name changes the attribute.
 
 ## Selection sets
 
@@ -468,7 +479,13 @@ has one; a code the entity has several of, the vertices of a polyline or the kno
 the start of a LINE and nothing else. A layer named in group `8` that does not exist is made, white and Continuous. A
 changed DIMENSION gets its picture made again, and a TEXT whose `72`, `73` or `11` change gets its `10` computed again, in the
 fonts of the drawing, by the routine `vla-put-TextString` and `vla-put-Alignment` use too, so that a text changed through the
-object and one changed by `entmod` start the same distance back from their second point.
+object and one changed by `entmod` start the same distance back from their second point. **An ATTRIB** of a block reference is changed by `entmod` as AutoCAD 2021
+changes it (measured in its console): `(entmod (subst (cons 1 "NEW") (assoc 1 e) e))` on the list of an attribute gives the list
+and `(cdr (assoc 1 (entget att)))` is `"NEW"`, and a partial list such as `(list (cons -1 att) (cons 1 "PART"))` changes the text
+alone. The text is placed as a TEXT's is; a group `10` moves the attribute and not the block reference (a reference at (10, 10)
+stays there with its attribute at (20, 20)); and a layer named in `8` that is not there is made, colour 7 and Continuous. It is
+one undo step, `(entupd ins)` of the reference gives its name and keeps the change, and a list of the wrong kind, or a change of
+the group `0`, is `nil`. This is what a routine needs that picks an attribute with `nentsel` and edits its text.
 `(entupd e)` gives the name and redraws.
 
 `(entmake list)` gives the list, or `nil` for a type the presenter cannot make or a required group that is missing:
@@ -481,7 +498,9 @@ entity lists neither. A list straight from `entget` is taken: the leading
 CIRCLE, ARC, ELLIPSE, TEXT, MTEXT, LWPOLYLINE, SOLID, TRACE, 3DFACE, RAY, XLINE, SPLINE and INSERT without attributes. A
 POLYLINE with its VERTEX and SEQEND, an INSERT with ATTRIB, a BLOCK definition and the records of a table give `nil`.
 
-`(entdel e)` gives the name and erases; a second `entdel` of the same entity restores it, as AutoCAD's does. `(entnext)`
+`(entdel e)` gives the name and erases; a second `entdel` of the same entity restores it, as AutoCAD's does. The ATTRIB of a
+block reference is not erased that way: `(entdel att)` gives `nil` and leaves it, as many times as it is asked, which is what
+AutoCAD 2021 does. `(entnext)`
 gives the first object of the drawing and `(entnext e)` the one after it, the sub-entities of a POLYLINE or an INSERT with
 attributes following their owner, and `nil` after the last. `(entlast)` is the last main object made, `(handent "1A")` the
 name of the object with that handle, or `nil`.
@@ -1570,8 +1589,8 @@ anonymous block (and `Name` otherwise). `GetAttributes` gives the reference's at
 array with upper bound -1, which `vlax-safearray->list` refuses with `Invalid index` while `vlax-invoke` gives `nil`.
 `GetConstantAttributes` gives the constant attribute definitions of its block, as attribute objects. Writing an
 attribute's `TextString` changes the ATTRIB of its reference, as the Properties palette does, and moving a reference
-(`InsertionPoint`) moves its attributes. `vlax-ename->vla-object` of the name of an ATTRIB gives its object; `entmod` of an
-ATTRIB stays refused, and this is the way a routine writes one.
+(`InsertionPoint`) moves its attributes. `vlax-ename->vla-object` of the name of an ATTRIB gives its object, and `entmod` of the
+ATTRIB [changes it too](#entities-and-tables).
 
 ```text
 Command: (setq bo (vlax-ename->vla-object bi))
@@ -1800,6 +1819,337 @@ Where the presenter differs from the full AutoCAD 2021 that measured it:
 - `ObjectID` and `OwnerID` are handle values, and a TEXT of a font the presenter cannot find has no box.
 - A ProgID that does not exist is `nil` in AutoCAD and an error here, as above.
 
+## Dialogs (DCL)
+
+The fifth stage is the dialogs of a routine. A routine writes a DCL file (Dialog Control Language, the text AutoCAD reads
+a dialog from), loads it with `load_dialog`, makes a dialog with `new_dialog`, fills it with `set_tile` and `start_list`,
+says what each tile does with `action_tile`, and runs it with `start_dialog`. The window shows it at once, drawn in the
+presenter's own colours at the sizes AutoCAD 2021 draws a dialog, and the routine goes on when the dialog ends.
+
+AutoCAD 2021's console cannot open a dialog: `load_dialog` gives `-1` for every file there and `new_dialog` gives `nil`. So
+what a dialog does was measured in two ways. Five probe files typed into the console (the 22 functions are all SUBRs, the
+text of their argument errors, their values where no dialog is open, the `$` variables, and `entmod` of an attribute) and
+three runs of the full AutoCAD 2021 with its window, with clicks and keys sent to the dialogs it showed and a screenshot
+and the position of every control written out (loading errors, the values of every tile kind, the exits, the actions, nested
+dialogs, errors in an action, and the size of every tile). Where neither measured a thing, the test beside it says so: it
+follows AutoCAD's own DCL help, or it is the presenter's choice. The 435 tests of the dialog, attribute and `nentsel` classes of the
+Cad suite and the 71 of the window take their expected values from those runs, and each says in a comment which.
+
+### The language
+
+A DCL file is a list of definitions, `name : parent { ... }`, and `@include "file";` lines. Inside the braces come
+attributes (`label = "Text:";`), tiles (`: edit_box { ... }`) and the names of tiles with nothing of their own added
+(`ok_cancel;`). Comments are `// ...` to the end of the line and `/* ... */`; white space is free; names are letters,
+digits and `_`, not starting with a digit, and, as in AutoCAD, **upper and lower case are different**: `get_tile "Text"`
+does not find the key `text`. A value is a string in double quotes (with `\"`, `\\`, `\n` and `\t`), a whole number, a real
+or a bare name (`true`, `centered`, `left`). A file is read as UTF-8, or as the machine's ANSI code page where it is not
+UTF-8, which is how `write-line` has written it.
+
+A definition's parent is a tile kind or another definition, and a tile takes its parent's attributes and children and
+lays its own over them: after `my_ok : ok_button { label = "Go"; }` the tile `my_ok;` is the OK button with the label
+`Go`, still with the key `accept`. `@include "other.dcl";` reads another file, looked for as the including file's folder
+first, then as `load_dialog` looks; `.dcl` is added where the name has no extension. `@include "base.dcl";` adds nothing,
+since the predefined tiles are always there, and `@include "acad.dcl";` reads AutoCAD's own `acad.dcl` where the
+support folders have one (the presenter ships none).
+
+The predefined tiles are written out for the presenter from the description in AutoCAD's help, not copied: `row`, `column`,
+`boxed_row`, `boxed_column`, `radio_row`, `radio_column`, `boxed_radio_row`, `boxed_radio_column`, `concatenation`,
+`paragraph`, `text_part`, `spacer_0` and `spacer_1`, the buttons `default_button`, `retirement_button`, `ok_button` (key
+`accept`, label `"  OK  "`, `is_default`), `cancel_button` (key `cancel`, `is_cancel`), `help_button` and `info_button`, the
+exit rows `ok_only`, `ok_cancel`, `ok_cancel_help`, `ok_cancel_help_info`, `ok_cancel_help_errtile` and `ok_cancel_err`,
+`errtile` (a text with the key `error`), `image_block`, `icon_image`, `edit12_box` and `edit32_box`. **A file that defines
+one of these names is refused**, as AutoCAD refuses its own `base.dcl` when it is loaded again.
+
+Every tile kind of AutoCAD's DCL is read:
+
+| Kind | What it is | `get_tile` gives |
+|---|---|---|
+| `dialog` | the window; `label` is its title, `initial_focus` the key of the tile that starts with the focus | |
+| `row`, `column`, `boxed_row`, `boxed_column` | clusters that lay their tiles left to right or top to bottom; a boxed one has a border and its label | `""` |
+| `radio_row`, `radio_column`, `boxed_radio_row`, `boxed_radio_column` | a cluster of `radio_button`s of which one is on | the key of the button that is on, `""` for none |
+| `concatenation`, `paragraph` | text parts laid side by side or one over the other | `""` |
+| `button` | a push button; `is_default` and `is_cancel` mark the exits | `nil` |
+| `edit_box` | a line of text; `edit_width` characters wide, `edit_limit` characters long (132 where not given), `password_char` hides it | its text |
+| `list_box` | a list; `multiple_select`, `tabs`, `tab_truncate`, `allow_accept` | the chosen items from 0, `"0 2"`; `""` for none |
+| `popup_list` | a drop-down list | one index from 0, `"0"` before a choice where it has items |
+| `toggle` | a check box | `"0"` or `"1"` |
+| `radio_button` | a button of a radio cluster | `"0"` or `"1"` |
+| `text`, `text_part`, `errtile` | text; `is_bold` | what it shows: its `value` once it has one, else its `label`; an `errtile` `""` |
+| `image`, `image_button` | a picture the routine draws with `fill_image` and `vector_image`; `aspect_ratio` | `nil` |
+| `slider` | a bar between `min_value` (0) and `max_value` (10000) with `small_increment` and `big_increment`; vertical with `layout = vertical` | an integer in range |
+| `spacer`, `spacer_0`, `spacer_1` | room between tiles | `""` |
+
+`width` and `height` count characters, 6 pixels wide and 13 high as AutoCAD counts them: a list box with `width = 20` is
+120 pixels wide and an image with `height = 4` is 52 high. `fixed_width`, `fixed_height`, `alignment`,
+`children_alignment`, `children_fixed_width`, `children_fixed_height`, `horizontal_margin`, `vertical_margin`, `is_enabled`,
+`is_tab_stop`, `mnemonic` and `action` are read. An attribute the presenter does not know is kept, and `get_attr` still
+gives it.
+
+### Loading a file and its messages
+
+`(load_dialog file)` gives a whole number, 1 for the first file of a drawing and one more for each file loaded after it (a
+file loaded twice gets two numbers, as in AutoCAD), and `-1` for a file that is not there. A name with a folder is that
+file; any other is looked for as `findfile` looks, in the support folders and the folder of the drawing; `.dcl` is added
+where the name has no extension. `(unload_dialog id)` forgets the file and gives `nil`; dialogs already made from it keep
+their own copy.
+
+A file with a mistake is not loaded: the presenter shows AutoCAD's message in an alert, which a window shows as a box and a
+headless session writes on the command line, and `load_dialog` gives `-1`. The words are AutoCAD's, measured in the full
+AutoCAD 2021, where it has them: a syntax error is `syntax error.` and the symbol, a `;` left out is `missing semicolon.`,
+and a tile that is not defined is a semantic error. A file that defines a predefined name is
+`warning: redefining object.` with the name.
+
+```text
+Command: (load_dialog "stray.dcl")          ; the second line is  label = Edit;;
+Error in dialog file
+"C:\Users\you\AppData\Local\Temp\stray.dcl", line 2:
+syntax error.
+Symbol: ";".
+-1
+Command: (load_dialog "nosemi.dcl")         ; an edit_box { key = "x" } with no ; before its brace
+Error in dialog file
+"C:\Users\you\AppData\Local\Temp\nosemi.dcl", line 2:
+missing semicolon.
+-1
+Command: (load_dialog "nothing.dcl")        ; the file is  d : nothing { }
+Semantic error(s) in DCL file C:\Users\you\AppData\Local\Temp\nothing.dcl.
+Tile "nothing" is not defined.
+-1
+Command: (load_dialog "row.dcl")            ; the file is  row : column { }
+Error in dialog file
+"C:\Users\you\AppData\Local\Temp\row.dcl", line 1:
+warning: redefining object.
+Symbol: "row".
+-1
+```
+
+AutoCAD's second line of the semantic error is `See file acad.dce for details.`, and it writes that file; the presenter
+writes no `acad.dce` and says which tile it could not find instead. A name that is not on the search path is `-1` with no
+message, as in AutoCAD.
+
+A session with no window, as the console, has no dialogs: `(new_dialog "name" id)` gives `nil` whatever the file. Unlike
+the console, `load_dialog` there still reads the file and finds its mistakes, so a routine can be checked for them
+headless.
+
+### The 22 functions
+
+An argument of the wrong kind is checked before anything else, with or without a dialog, and is AutoCAD's own error
+(measured in the console): `(get_tile 5)` is `bad argument type: stringp 5`, `(mode_tile "a" 1.5)` is `bad argument type:
+fixnump: 1.5`, `(get_tile)` is `too few arguments`, `(get_tile "a" "b")` is `too many arguments`.
+
+| Function | What it does | What it gives |
+|---|---|---|
+| `(load_dialog file)`, `(unload_dialog id)` | read a file, forget it | the number, `-1`; `nil` |
+| `(new_dialog name id [action [point]])` | makes the dialog `name` of file `id`; `action` is the action of every tile that has none, `point` a list of two numbers for the top left corner on the screen, `'(-1 -1)` the centre | `T`; `nil` for an unknown name or number, for a dialog with no exit tile (no key `accept` or `cancel`, no `is_default` or `is_cancel`), and in a session with no window |
+| `(start_dialog)` | shows the dialog and waits for it to end | the status, below |
+| `(done_dialog [status])` | ends the dialog when the action that calls it returns | the top left corner of the window in screen pixels, `(743 461)`; `(100 120)` for a dialog given that point; `(0 0)` with no dialog |
+| `(term_dialog)` | ends every open dialog | `nil` |
+| `(action_tile key "forms")` | the forms to run when the tile is used; `""` takes the action away | `T`, for a missing key too |
+| `(get_tile key)`, `(set_tile key value)` | read or put a tile's value as a string | the value; the value given |
+| `(mode_tile key mode)` | 0 enables, 1 disables, 2 gives the focus, 3 selects the text of an edit box, 4 turns the highlight of an image button over; another number does nothing | `nil` |
+| `(get_attr key attribute)` | the attribute as the DCL file has it: `(get_attr "txt" "label")` is `"&Text:"` and `(get_attr "txt" "edit_width")` is `"20"`, a prototype's too, a string's `\n` a real new line | the text; `""` for an attribute that is not there |
+| `(client_data_tile key data)` | keeps a string, given to the tile's actions as `$data` | the data |
+| `(start_list key [operation [index]])`, `(add_list item)`, `(end_list)` | fill a list box or popup list: 3 starts a new list (the default), 2 appends, 1 replaces the item at `index` | the key, for any tile with one; the item; `nil` |
+| `(start_image key)`, `(fill_image x y width height colour)`, `(vector_image x1 y1 x2 y2 colour)`, `(slide_image x y width height name)`, `(end_image)` | draw in an image, in pixels from its top left corner, in an ACI colour 0 to 255 or `-2` (the background of the picture), `-15` (the dialog's), `-16` (its text), `-18` (its lines) | the key; the colour; the colour; `nil`; `nil` |
+| `(dimx_tile key)`, `(dimy_tile key)` | the width and height of a tile in pixels as the dialog lays it out | a whole number; `0` for a missing key |
+
+With no dialog open, which is also where `new_dialog` gave `nil`: `get_tile`, `set_tile`, `action_tile`, `mode_tile`,
+`client_data_tile`, the list and the image functions give `nil`, `get_attr` gives `""`, `dimx_tile` and `dimy_tile` give `0`,
+`done_dialog` gives `(0 0)`, `start_dialog` gives `0` and `term_dialog` gives `nil`. A key that no tile has gives the same.
+All of this is AutoCAD's console's own, measured. In a dialog the values are those the full AutoCAD 2021 gave:
+
+- A `toggle` keeps any text set in it (`"7"` reads back as `"7"`); a `slider` clamps to its range (500 in a slider up to
+  100 is `"100"`, -5 is `"0"`).
+- A multiple-selection `list_box` **adds** to its choice when set: `"0 2"` and then `"4 1"` read back as `"0 1 2 4"`; an index
+  past the end is ignored and `""` clears the choice. A `radio_button` set to `"1"` moves the cluster's value, and the
+  cluster set to a key moves the buttons.
+- `set_tile` on a button gives the value but `get_tile` of a button is still `nil`. `set_tile` of a key no tile has is `nil`.
+- `start_list` with operation 3 or 2 keeps a popup's `"0"`; operation 1, replacing item 0, makes it `""`.
+- `edit_limit` stops typing, not `set_tile`: a text put in is not cut.
+
+`slide_image` draws nothing and gives `nil`; see [what is not there](#what-is-parked-in-the-dialog-stage).
+
+### Running a dialog
+
+`(start_dialog)` shows the dialog and runs what the user does until it ends, then gives the status: 1 for OK, 0 for Cancel
+or Esc, the number given to `done_dialog`, and -1 where `term_dialog` ended it. Each use of a tile first puts its value
+into the tile, so `get_tile` in the action sees it, and then finds the action: the tile's `action_tile` forms, else its
+`action` attribute in the DCL, else for a radio button its cluster's, else the `action` given to `new_dialog`. The forms
+are read and run in the routine's environment: an action sees the routine's local variables, as in AutoCAD, which scopes
+dynamically.
+
+```lisp
+(defun c:ed ( / path f id text status)
+  (setq path (vl-filename-mktemp "ed.dcl") f (open path "w"))
+  (write-line "ed : dialog { label = \"Edit text\";" f)
+  (write-line "  : edit_box { key = \"txt\"; label = \"&Text:\"; edit_width = 60; allow_accept = true; }" f)
+  (write-line "  ok_cancel; }" f)
+  (close f)
+  (setq id (load_dialog path))
+  (if (new_dialog "ed" id)
+    (progn
+      (set_tile "txt" "old text")
+      (action_tile "accept" "(setq text (get_tile \"txt\")) (done_dialog 1)")
+      (setq status (start_dialog))
+      (princ (strcat "\nstatus " (itoa status) ", text " (vl-prin1-to-string text))))
+    (princ "\nno dialog"))
+  (unload_dialog id)
+  (vl-file-delete path)
+  (princ))
+```
+
+Typing `new text` into the box and pressing OK prints `status 1, text "new text"`. Pressing Cancel prints `status 0, text
+nil`: the routine's `accept` action never ran, and Cancel closed the dialog with 0 without any action of its own. The same
+dialog on the command line of a session with no window prints `no dialog`.
+
+**How a dialog ends** (the full AutoCAD 2021, g1 to g3):
+
+- A tile with `is_default` or the key `accept` and no action ends the dialog with 1; with an action, the action runs and the
+  dialog ends only if the action calls `done_dialog`. An accept action that does not call it **keeps the dialog open**, for
+  Enter and for a click.
+- **`(done_dialog)` with no status gives 0**, also from the OK action: a routine that means 1 writes `(done_dialog 1)`. The
+  status is the dialog's, and the position `done_dialog` gives is that of the window when it closed.
+- A tile with `is_cancel` or the key `cancel` runs its action, if it has one, and then closes the dialog with 0 if the action
+  did not end it: a cancel action that only restores a value, and never calls `done_dialog`, still closes the dialog. Esc
+  and the close box of the window do the same. `ok_only` is an OK that is also `is_cancel`, so Esc in it closes with 1.
+- The `action` given to `new_dialog` serves OK and Cancel when they have none: OK runs it and the dialog stays open,
+  Esc runs it and closes with 0.
+- Enter in an edit box without `allow_accept` runs the box's action with `$reason` 1 and the dialog stays; with
+  `allow_accept` it presses the default tile, whose action sees `$key` `"accept"` and `$reason` 1. Enter elsewhere presses
+  the button that has the focus, else the default one.
+- A box whose text was changed and which still has the focus when the dialog closes gets its action first, with `$reason` 2.
+  (The order after the exit tile's action is the presenter's choice.)
+- `(done_dialog)` before `(start_dialog)` gives `(0 0)` and does nothing; the dialog is then shown. A dialog that has
+  already ended gives its status again at once, without being shown.
+
+**What an action sees.** Inside an action, `$key` is the tile's key, `$value` its value after the use, `$reason` why it ran,
+`$data` the client data or `nil`, and `$x` and `$y` the point of a click in an image button, in the pixels of the tile, and
+0 for every other tile. They are unbound again when the action ends, and unbound before any dialog, as in AutoCAD.
+`$reason` is 1 for a tile picked, a box left by Enter, and a choice made, 2 for an edit box left with a changed text, 3 for
+a slider dragged, and 4 for a double click in a list box or an image button.
+
+```lisp
+(setq *log* nil)
+(defun note (s) (setq *log* (cons s *log*)))
+(defun c:pick ( / path f id status)
+  (setq path (vl-filename-mktemp "pk.dcl") f (open path "w"))
+  (foreach l '("pk : dialog { label = \"Pick\";"
+               "  : list_box { key = \"tags\"; label = \"Tags\"; multiple_select = true; width = 20; height = 6; }"
+               "  : toggle { key = \"all\"; label = \"All blocks\"; }"
+               "  : radio_row { key = \"mode\";"
+               "    : radio_button { key = \"a\"; label = \"A\"; }"
+               "    : radio_button { key = \"b\"; label = \"B\"; } }"
+               "  ok_cancel; }")
+    (write-line l f))
+  (close f)
+  (setq id (load_dialog path))
+  (new_dialog "pk" id)
+  (start_list "tags")
+  (mapcar 'add_list '("PART" "MARK" "LEN" "QTY"))
+  (end_list)
+  (set_tile "mode" "b")
+  (foreach k '("tags" "all" "mode")
+    (action_tile k "(note (list $key $value $reason))"))
+  (action_tile "accept" "(note (list $key (get_tile \"tags\") (get_tile \"all\") (get_tile \"mode\"))) (done_dialog 1)")
+  (setq status (start_dialog))
+  (princ (strcat "\nstatus " (itoa status)))
+  (princ "\nlog: ") (prin1 (reverse *log*))
+  (princ "\nafter: ") (prin1 (list $key $value))
+  (princ))
+```
+
+With the first and third items chosen, the toggle turned on, the first radio button clicked and OK pressed, it prints
+
+```text
+status 1
+log: (("tags" "0 2" 1) ("all" "1" 1) ("mode" "a" 1) ("accept" "0 2" "1" "a"))
+after: (nil nil)
+```
+
+The two radio buttons have no action of their own, so the cluster's action ran, with `$key` the cluster's key `"mode"` and
+`$value` the key of the button on, `"a"`; a radio button with an `action` of its own runs that one only. A button's
+action sees `$value` `"1"`, and a click puts `$x` and `$y` in it (66 and 11 for the centre of a button 132 by 22).
+
+### Dialogs inside dialogs, and errors
+
+`new_dialog` and `start_dialog` inside an action open a child over its parent, which stays shown and takes no input until
+the child ends. `(term_dialog)` in the child's action ends both, and both `start_dialog` calls give -1:
+
+```text
+Command: NEST
+outer -1, inner -1
+no dialog now: (nil (0 0) 0 nil)
+```
+
+A routine that must pick a point while its dialog is open does what AutoCAD's routines do: the action calls `(done_dialog 2)`,
+`start_dialog` gives 2, the routine calls `getpoint`, and makes the dialog again.
+
+**An error in an action, and input in an action, end the whole evaluation**, as they do in AutoCAD 2021 (g2, g3): every open
+dialog is closed and the routine is stopped, and a `vl-catch-all-apply` around `start_dialog`, or around the call inside the
+action, does not catch it. An action `(car 5)` in a routine that runs `(vl-catch-all-apply 'start_dialog nil)` prints
+`; error: bad argument type: consp 5` and the forms after it in the routine never run. The same ends a routine that calls
+`command`, `vl-cmdf`, a `get` function, `entsel`, `nentsel`, `nentselp` without a point or an interactive `ssget` while a
+dialog is open: `; error: AutoCAD rejected function`. `alert` and `getfiled` work in an action, since they are windows of
+their own. (`getpoint` in an action was not measured and is treated as `command`; `*error*` is not run after such an
+error, which the full AutoCAD run did not reach either.)
+
+### The window
+
+A dialog is a window over the presenter's own, owned by it and not in the taskbar, titled with the dialog's `label` and
+placed at the point given to `new_dialog` or centred over the window. The window under it takes no input while a dialog
+is shown, and a dialog opened from an action is shown over the one it came from. The tiles are laid out at AutoCAD 2021's
+sizes and drawn as the presenter draws its own dialogs: the buttons, boxes and lists of the application's theme, text in
+Segoe UI 12 pixels, a default button in the primary colour, disabled tiles greyed, and an image without a colour
+dark. Tab goes through the tiles in the order of the file (not `is_tab_stop = false` ones), `&` in a label marks the access
+key, and an edit box that has the initial focus shows its text selected, as AutoCAD's does.
+
+The sizes were measured in the full AutoCAD 2021, in pixels, with the border and title of the window counted:
+
+- Heights: a button 22, an edit box 19, a popup list 21, a toggle 15, a radio button 19 (a row of them in a box 48), a
+  text 13, a slider 17, a line of a list 13 (a list `height = 6` with a label has a tile 68 high and a list 54).
+- An OK button is 49 by 22 and a Cancel 55 by 22: the text and 16, or `width` characters and 1 if that is more. An
+  `edit_box` with `edit_width = 60` has a box 372 wide, after its label; with `edit_width = 20`, 132, and the label `&Text:`
+  is 31 wide, so the tile is 163 by 19. Tiles of a column that are not fixed stretch to its width; an image, an image
+  button and buttons keep theirs.
+- A dialog of an edit box with its label `Text:`, a `spacer_1` and `ok_cancel` is 433 by 109, with the box at 47,37, OK at
+  151,73 and Cancel at 228,73 in the window. A dialog of a text 219 wide, a `spacer`, a multiple-selection list box, a `spacer` and
+  `ok_cancel` is 249 by 227. `ok_cancel` alone is 162 by 93, with OK at 16,46 and Cancel at 93,46, 28 pixels apart; a
+  dialog with a tile of every kind is 339 by 438.
+- The room between tiles, as AutoCAD gives it: a `spacer_1` takes 9 pixels, a bare `spacer` 4, and a spacer has no margin
+  above or below; a text stands 2 pixels from the top of its slot and 6 from the bottom; an exit row has 15 pixels above and
+  17 below it in a dialog of many tiles, and the error tile of an exit row stands 28 below OK.
+- `dimx_tile` and `dimy_tile` give the tile's size as the window draws it: 49 for OK. A window-less
+  session lays out with a font it does not have and gives 52 for the same OK, and 402 for the edit box with `edit_width =
+  60` and the label `&Text:`, where the window gives 403.
+
+AutoCAD's own dialog text is about 0.9 of the width of Segoe UI 12 pixels, so a text of a dialog is a little wider here
+than in AutoCAD (a text of 219 pixels there is 242 here). The sizes of the controls and their positions are AutoCAD's.
+
+### Driving a dialog from a script
+
+Only the presenter's window shows dialogs. A program that hosts a `CadCommandSession` in a window of its own gets `nil`
+from `new_dialog`, as the console does. For tests, and to run a routine that has a dialog headless, the library has an
+internal script host that answers a dialog from a list of steps instead of from the user, one to a line: `type key
+"text"`, `enter [key]`, `click key [x y]`, `dblclick key [index]`, `select key [index ...]`, `slide key value [drag]`,
+`esc`, `close` and `dump`. It logs `open`, `dump` (every tile with a key and its value), `close` with the status and
+`refused` for a step on a tile that is missing or disabled; a dialog still open when the steps run out is closed as Esc
+does. The 22 functions behave as they do with a window, and a routine that is run with it ends the way it would for a
+user who does those things. The test projects reach it through `InternalsVisibleTo`, and the comparison harness of the
+repository runs a routine in AutoCAD 2021 with a stand-in of the 22 functions and in the presenter with this host, and
+compares the drawings and the transcripts.
+
+### What is parked in the dialog stage
+
+- `slide_image` draws nothing and gives `nil`, writing `slide_image: slides are not supported by GeometryHelper.Cad yet`
+  once for the dialog; the presenter has no slide reader. A dialog with an icon still works.
+- The colour tiles and dialogs of `acad.dcl` (its own file, read where it is found), `audit_level`, the file `acad.dce`,
+  `password_char` beyond the look of a password box, `fixed_width_font` beyond a monospace font, the DIASTAT variable, and
+  dialogs larger than the screen.
+- Not measured, so as AutoCAD's help says or as the presenter chose: a double click in a list, `$x` and `$y` of a real click
+  in an image button, a slider dragged, a choice of several items with Ctrl and a click (the full AutoCAD run could not post
+  the key), the effect of `mode_tile` 2 and 3, `getpoint` in an action, and `*error*` after an error in an action.
+- Making the dialog model public, for windows of other programs, is a later choice: the host is internal.
+
 ## While a routine waits
 
 A routine that asks the user is suspended, and the presenter goes on: the window never blocks, and a headless session returns
@@ -1833,14 +2183,16 @@ writes for a name it does not know, `; error: no function definition: NAME`, so 
 above runs, and one that reaches for a later stage stops at its first such call. A routine that defines its commands loads
 whole, and their names are offered by AutoComplete, whatever their bodies need.
 
-The drawing, the library and the ActiveX functions are built, with these left out. In `entmake`: the POLYLINE sequences, an
+The drawing, the library, the ActiveX functions and the dialogs are built, with these left out. In `entmake`: the POLYLINE sequences, an
 INSERT with attributes, block definitions and the records of a table. Of the library, `acad_strlsort`, `getenv` and `setenv`
 (they come with the registry store, when a routine needs them), `findtrustedfile` (with L6), `vl-load-reactors` (with the
 `vlr-` functions, which the ActiveX stage leaves out: there are no reactors), and `vl-exit-with-error` and
 `vl-exit-with-value`, which belong to VLX applications, are not defined. Of the ActiveX functions, `vlax-dump-object`,
 `vlax-ldata-get` and its family, `vlax-add-cmd`, the product keys, the `Add` methods and the editing methods of the spaces
 and a few more are parked, and a few measured differences remain; both lists are
-[at the end of that section](#what-is-parked-in-the-activex-stage). A `vl-sort` function that is no ordering can give
+[at the end of that section](#what-is-parked-in-the-activex-stage). Of the dialogs, `slide_image` draws nothing, and the
+colour tiles of `acad.dcl`, `audit_level` and the `acad.dce` file are left out, as
+[that section](#what-is-parked-in-the-dialog-stage) says. A `vl-sort` function that is no ordering can give
 another list than AutoCAD's: for `'(2 1 2 1)` and a function that always answers `nil` AutoCAD gave `(1 2 1)` and the presenter
 gives `(2 1 2 1)`, and for `'(1 2 3 2 1)` and one that always answers `T`, `(1 2 3 1)` and `(1 2 3 2 1)`. `vl-list->string` leaves out the codes
 outside 1 to 65535 where AutoCAD printed other text, a `vl-filename-mktemp` counter does not go past 999, and Unicode typed
@@ -1848,7 +2200,6 @@ at the command line reaches `read-line` through the ANSI code page.
 
 | Stage | What it brings |
 |---|---|
-| L5 | dialogs, DCL: `load_dialog`, `new_dialog`, `start_dialog` |
 | L6 | trusted folders and the secure-load check; for now `load` reads any file it is given |
 
 A routine that opens with `(vl-load-com)` loads, and has the [ActiveX functions](#activex-objects) after it.

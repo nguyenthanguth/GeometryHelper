@@ -344,11 +344,15 @@ namespace GeometryHelper.Cad.UnitTest
 
             Value(session, "(setq n (nentselp '(100 50)))");
 
-            // the form of nentsel (L2 D66): the line inside, the point, the matrix, the reference
+            // AutoCAD 2021 (GUI, X2 pick2): the line inside, the point, the 4 by 4 matrix row by row with the translation in the fourth
+            // column, and the references it is in (L2 D66 gave the 4 by 3 form of the documentation, which the window did not)
             Assert.Equal("4", Value(session, "(length n)"));
             Assert.Equal("\"LINE\"", Value(session, "(cdr (assoc 0 (entget (car n))))"));
             Assert.Equal("(100.0 50.0 0.0)", Value(session, "(cadr n)"));
-            Assert.Equal("((1.0 0.0 0.0) (0.0 1.0 0.0) (0.0 0.0 1.0) (100.0 50.0 0.0))", Value(session, "(caddr n)"));
+            Assert.Equal(
+                "((1.0 0.0 0.0 100.0) (0.0 1.0 0.0 50.0) (0.0 0.0 1.0 0.0) (0.0 0.0 0.0 1.0))",
+                Value(session, "(caddr n)")
+            );
             Assert.Equal("\"INSERT\"", Value(session, "(cdr (assoc 0 (entget (car (cadddr n)))))"));
             Assert.False(session.IsRunning);
         }

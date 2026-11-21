@@ -100,6 +100,11 @@ namespace GeometryHelper.Cad.Lisp
                 throw new LispException("Can't reenter LISP.");
             }
 
+            if (RunningDialogs > 0)
+            {
+                throw EndEvaluation("AutoCAD rejected function");
+            }
+
             if (_aborting)
             {
                 throw new LispException("evaluation aborted", isHard: true);
