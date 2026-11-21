@@ -37,6 +37,19 @@ namespace GeometryHelper.PyStubs.UnitTest
         }
 
         [Fact]
+        public void CadApplication_IsAContextManager_AndTheKindOfAFilterTakesAPythonClass()
+        {
+            string remote = Run.Value.Module("Cad/Remote");
+            string application = StubRun.ClassOf(remote, "CadApplication");
+            string filter = StubRun.ClassOf(remote, "CadObjectFilter");
+
+            Assert.Contains("    def __enter__(self) -> Self: ...\n", application);
+            Assert.Contains("    def __exit__(self, *args: object) -> None: ...\n", application);
+            Assert.Contains("    def Kind(self) -> System.Type:\n", filter);
+            Assert.Contains("    def Kind(self, value: System.Type | type[Any]) -> None: ...\n", filter);
+        }
+
+        [Fact]
         public void TheTypesWrittenAsAny_AreTheTwoThatTheTableDoesNotKnow()
         {
             Assert.Equal(new[] { "System.Double[,]", "System.Xml.Linq.XDocument" }, Run.Value.Report.AnyMapped);

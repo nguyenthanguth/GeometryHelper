@@ -24,7 +24,7 @@ namespace GeometryHelper.PyStubs.UnitTest
             Assert.Equal(new[] { "GeometryHelper.Fixture", "GeometryHelper.Fixture.Other" }, report.Modules);
             AssemblyStubs assembly = Assert.Single(report.Assemblies);
             Assert.Equal("GeometryHelper.Fixture", assembly.Name);
-            Assert.Equal(26, assembly.Types);
+            Assert.Equal(29, assembly.Types);
             Assert.Equal(2, assembly.Modules);
         }
 
@@ -304,6 +304,66 @@ namespace GeometryHelper.PyStubs.UnitTest
                     "    def __init__(self) -> None: ..."
                 ),
                 Fixture
+            );
+        }
+
+        [Fact]
+        public void AClassThatImplementsIDisposable_IsAContextManager_AndTheModuleImportsSelf()
+        {
+            // Session is IDisposable and IEnumerable<Spot>: its own Dispose, then the two methods of "with", then __iter__.
+            string session = StubRun.ClassOf(Fixture, "Session");
+
+            Assert.Contains(
+                Lines("    def __enter__(self) -> Self: ...", "    def __exit__(self, *args: object) -> None: ..."),
+                session
+            );
+            Assert.Matches(@"(?m)^from typing import [^\n]*\bSelf\b", Fixture);
+            int dispose = session.IndexOf("def Dispose(self) -> None", StringComparison.Ordinal);
+            int enter = session.IndexOf("def __enter__", StringComparison.Ordinal);
+            int iterate = session.IndexOf("def __iter__", StringComparison.Ordinal);
+            Assert.InRange(dispose, 1, enter - 1);
+            Assert.InRange(iterate, enter + 1, int.MaxValue);
+        }
+
+        [Fact]
+        public void AClassThatIsDisposableThroughItsBaseClassOfOurs_DoesNotRepeatTheContextManagerMethods()
+        {
+            string timed = StubRun.ClassOf(Fixture, "TimedSession");
+
+            Assert.DoesNotContain("__enter__", timed);
+            Assert.DoesNotContain("__exit__", timed);
+            // Session's is the only one in the module.
+            int first = Fixture.IndexOf("def __enter__", StringComparison.Ordinal);
+            Assert.NotEqual(-1, first);
+            Assert.Equal(first, Fixture.LastIndexOf("def __enter__", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void ASystemTypeThatIsTaken_AlsoTakesAPythonClass_AndOneThatIsGivenStaysSystemType()
+        {
+            string box = StubRun.ClassOf(Fixture, "TypeBox");
+
+            Assert.Contains(
+                Lines(
+                    "    @property",
+                    "    def Kind(self) -> System.Type: ...",
+                    "    @Kind.setter",
+                    "    def Kind(self, value: System.Type | type[Any]) -> None: ..."
+                ),
+                box
+            );
+            Assert.Contains("    def Accept(self, kind: System.Type | type[Any]) -> None: ...\n", box);
+            Assert.Contains("    def Current(self) -> System.Type: ...\n", box);
+        }
+
+        [Fact]
+        public void ASystemTypeInsideACollectionParameter_StaysSystemType_BecausePythonnetConvertsNoElement()
+        {
+            string box = StubRun.ClassOf(Fixture, "TypeBox");
+
+            Assert.Contains(
+                "    def AcceptAll(self, kinds: System.Collections.Generic.IEnumerable[System.Type]) -> None: ...\n",
+                box
             );
         }
 

@@ -340,12 +340,14 @@ Where Python differs from the C# of the sections above, measured on .NET 8 and o
 
 - **`with` closes the connection.** pythonnet makes every .NET type that is `IDisposable` a context manager, so
   `with CadApplication() as app:` calls `Dispose`, which closes the pipe, at the end of the block and also when the block
-  raises: a `ValueError("boom")` raised inside came out of the block as it was, and the pipe was closed. Without `with`, call
-  `app.Dispose()`.
+  raises: a `ValueError("boom")` raised inside came out of the block as it was. Without `with`, call `app.Dispose()`. A call
+  made on the object after `Dispose` opens a new pipe without a word, as a lost connection is opened again, so leave the
+  object alone once the block has ended.
 - **A collection argument is an array.** `drawing.Select(["1A", "1B"])` is a `TypeError: No method matches given arguments
   for Select: (<class 'list'>)`, since `Select` takes an `IEnumerable<string>` and pythonnet converts a Python list only to
-  an array. Write `Select(Array[String](["1A", "1B"]))`, or a `List[String]` filled by `Add`; `Select(Array[String]([]))` selects
-  nothing. The stubs say so: an editor marks `Select(["1A"])` before the script runs ([Lists: only for arrays](../python.md#lists-only-for-arrays)).
+  an array. Write `Select(Array[String](["1A", "1B"]))`, or a `List[String]()` filled by `Add` (`List[String](["1A"])` is
+  refused as well); `Select(Array[String]([]))` selects nothing. The stubs say so: an editor marks `Select(["1A"])` before
+  the script runs ([Lists: only for arrays](../python.md#lists-only-for-arrays)).
 - **Set a filter's properties after making it.** `CadObjectFilter(Layer="SAMPLE")` is a `TypeError`, because pythonnet
   has no keyword initialiser for a property, only for a constructor's own arguments (`GeoPoint3(x=1, y=2, z=3)` works).
   Make the filter, then assign. `Kind` takes the Python class itself (`only_lines.Kind = DxfLine`) or
