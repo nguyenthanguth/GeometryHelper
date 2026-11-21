@@ -739,6 +739,12 @@ member of `CadWorkspaceExtension` that adds nothing until it is overridden.
   presenter's own icons are, 2 wide on a square of 24: `Geometry.Parse("M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6")` is the refresh),
   a tooltip and an action. They stand left of the presenter's Refresh and Open, and are read as the extension is added.
 
+A command plugin loaded at run time reaches the same places without these seams, which take WPF types: it describes its
+ribbon tabs, Properties rows, DRAWINGS buttons and items, canvas items and object snaps with the types of
+`GeometryHelper.Cad.Plugins`, and the window draws them, as [command plugins](plugins.md#what-a-plugin-adds-to-the-window)
+describes. A plugin's Properties provider is asked after the extensions, its canvas items come after theirs, and its
+DRAWINGS buttons stand first in the header.
+
 ### The contextual tabs and the owner contract
 
 The Hatch Editor, Image, PDF Underlay and Array tabs open for the objects selected only where their [owner](owners.md) lets

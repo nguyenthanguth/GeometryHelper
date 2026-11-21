@@ -6,6 +6,27 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** A command plugin adds to the window what AutoCAD's plugins add to theirs, described without WPF so that the same
+.dll runs on .NET 8 and .NET Framework, and gone when the plugin is unloaded. A public class implementing
+`ICadPluginApplication` is given a `CadPluginHost` in `Initialize` (and told `Terminate` on unload, reload and Dispose),
+on which it adds: ribbon tabs after the Plugins tab, or panels on it (`CadRibbonTab`, `CadRibbonPanel`,
+`CadRibbonButton`, `CadRibbonSplitButton`; large and standard items, standard ones three to a column; icons from path
+data, bytes, an embedded resource or a file, `CadPluginIcon`; a tooltip with a body and the plugin's name; a command or a
+callback, greyed by `CanRun`; a split button that remembers the one used last; contextual tabs with `ShowWhen`);
+Properties rows through a `CadPropertyProvider`; buttons of the DRAWINGS header and items of a file row's menu; items of
+the canvas's right-click menu (`CadPluginMenuItem`); and object snaps (`CadCustomSnap`, as AutoCAD's
+`CustomObjectSnapMode`: a name, a keyword typed as an override, the entity types, a glyph and a finder of points), listed
+in Drafting Settings, the OSNAP menu and the Shift+right-click menu, on while OSNAP is and kept in
+`GlobalSettings.PluginSnaps`. The sample's "Circle top" snap, CTOP, takes the top of a circle; typed at "Specify next
+point:" it writes "_ctop of". `CadPlugin.ApiVersion` is 1.1: a plugin that adds to the window states
+`[assembly: CadPluginApi("1.1")]`, and a 1.0 plugin loads as before. A plugin with such a class and no command is loaded.
+
+**NEW.** `CadPropertyRow` makes rows of a kind, for extensions and plugins alike: `Number`, `Length` and `Angle` in the
+drawing's units, `Point` as three rows ("Center X", "Center Y", "Center Z"), `Color`, `Layer`, `Linetype` and
+`Lineweight`, which the window shows with its own lists; `CadPropertyRow.Kind` says which (`CadPropertyKind`). Text that
+is not one is refused in the presenter's words before the setter is called: "Diameter is a number." `CadMarkerStroke` has
+a public constructor, `CadSnapKind.Custom` and `CadSnapResult.CustomSnap` report a plugin's snap.
+
 **NEW.** The system variable NOMUTT, 0 or 1, kept for the session and 0 at first, as AutoCAD 2021 gives it (`(getvar "NOMUTT")` is 0, `(setvar "NOMUTT" 1)` is taken, 2 and `"1"` are rejected, 5 typed says `Requires 0 or 1 only.`). AutoCAD's 1 mutes the prompts a routine's `command` writes (ZOOM Extents then writes `_.ZOOM _E nil` alone); the presenter keeps the value and mutes nothing, so the maintainer's TE, which stops at its first `(setvar 'nomutt 1)`, runs on. `Nomutt_IsNoughtAtFirst_TakesNoughtAndOne_AndKeepsWhatItWasGiven` (red before).
 
 **FIXED.** A command typed with the `_` or `.` AutoCAD takes off the front is run: `_REGEN`, `.REGEN`, `_.REGEN`, `_U`, `.U` and `_L` gave `Unknown command`, where AutoCAD 2021 writes `Regenerating model.` for each REGEN, undoes with `_U` and `.U`, and starts LINE with `_L`. An unknown name is refused without them, as AutoCAD says it (`_.FOO` is `Unknown command "FOO"`, `_.-FOO` is `"-FOO"`). `command` from a routine took them off already. `L4ParkedFixTests` (red before).

@@ -131,9 +131,9 @@ A plugin says what it is in a `plugin.json`, read without loading any code:
 
 Only the name is needed: the id is the name where none is given, the kind "command", the API version 1.0.
 [`CadPluginManifest.Parse(json)`](xref:GeometryHelper.Cad.Plugins.CadPluginManifest) reads it, and `Refusal()` says
-why the presenter will not load it: a kind other than "command", or a newer plugin API than this build's, which is 1.0
-(`CadPlugin.ApiVersion`): `The plugin Future needs version 2.0 of the plugin API, and this presenter has 1.0: it needs a
-newer presenter.`
+why the presenter will not load it: a kind other than "command", or a newer plugin API than this build's, which is 1.1
+(`CadPlugin.ApiVersion`): `The plugin Future needs version 2.0 of the plugin API, and this presenter has 1.1: it needs a
+newer presenter.` A plugin that adds to the window, as [below](#what-a-plugin-adds-to-the-window), states 1.1.
 
 A plugin ships as one `.ghplugin` file, a zip of its .dll files and its `plugin.json` at the top. A bare .dll is accepted as
 well, with the `plugin.json` beside it where there is one; the plugin's name is then its assembly's. A plugin targets
@@ -193,6 +193,108 @@ none of it.
 A command that works long shows it on the status bar's progress meter through `c.Progress`:
 `using (var meter = c.Progress.Start("Checking blocks")) { meter.SetLimit(n); ... meter.MeterProgress(); }`, as
 [the app](app.md#the-progress-meter) describes.
+
+## What a plugin adds to the window
+
+A plugin may add to the window what AutoCAD's plugins add to theirs: ribbon tabs and panels, rows of PROPERTIES, buttons
+and items of the DRAWINGS list, items of the canvas's right-click menu, and object snaps of its own. It describes them
+with the types of `GeometryHelper.Cad.Plugins`, none of them WPF's, so the same .dll runs on .NET 8 and .NET Framework;
+the window draws them in its own look and takes them away when the plugin is unloaded.
+
+A public class that implements [`ICadPluginApplication`](xref:GeometryHelper.Cad.Plugins.ICadPluginApplication), as
+AutoCAD's `IExtensionApplication`, is made once when the plugin is loaded and given a
+[`CadPluginHost`](xref:GeometryHelper.Cad.Plugins.CadPluginHost) in `Initialize`; `Terminate` is called when the plugin
+is unloaded or reloaded, and when the manager is disposed. What `Initialize` adds is all the plugin adds: an `Add...`
+call after it has returned throws. A class that also holds commands uses the same object for both, and a plugin with no
+command but such a class is loaded. The sample below, cut short from the test plugin `GeometryHelper.Cad.SampleUiPlugin`,
+adds a tab, a group of Properties, a DRAWINGS button and a snap:
+
+```csharp
+[assembly: CadPluginApi("1.1")]
+
+public sealed class CircleUi : ICadPluginApplication
+{
+    public void Initialize(CadPluginHost host)
+    {
+        var number = new CadRibbonPanel("Number");
+        number.Items.Add(new CadRibbonButton("Number circles", "NUMCIRCLES2")
+        {
+            Size = CadRibbonItemSize.Large,
+            Icon = CadPluginIcon.FromPathData("M4 6h16M4 12h16M4 18h10"),
+            Description = "Writes a number at the centre of each circle selected.",
+        });
+        number.Items.Add(new CadRibbonButton("Count", c => c.Write(Count(c.Document) + " circles."))
+        {
+            CanRun = c => c.Document != null,
+        });
+        var tab = new CadRibbonTab("Circles", "Circles");
+        tab.Panels.Add(number);
+        host.AddRibbonTab(tab);
+
+        host.AddProperties(Describe);
+        host.AddDrawingsButton(new CadPluginButton(CadPluginIcon.FromPathData("M4 12H20M12 4V20"), "Count the circles", Count));
+
+        var top = new CadCustomSnap("Circle top", "CTOP", r =>
+            r.Entity is DxfCircle circle
+                ? new[] { new GeoPoint2(circle.Center.X, circle.Center.Y + circle.Radius) }
+                : null);
+        top.EntityTypes.Add(typeof(DxfCircle));
+        host.AddObjectSnap(top);
+    }
+
+    public void Terminate() { }
+}
+```
+
+An `Initialize` that throws leaves the plugin's commands loaded and everything it added out, with a line in
+`CadPlugin.Problems` and a Warn in the log.
+
+**Ribbon.** [`CadRibbonTab`](xref:GeometryHelper.Cad.Plugins.CadRibbonTab)s come after the Plugins tab, in the order the
+plugins were loaded; `AddRibbonPanel` puts a panel on the Plugins tab instead, between "Command plugins" and "Manage", and
+`ShowsCommandButtons = false` keeps the plugin's commands off "Command plugins". A panel's items are buttons and split
+buttons. A `Large` item has its icon in a slot of 32 pixels over its text, alone in its column; `Standard` items have a
+slot of 16 beside their text, or the icon alone where `ShowText` is false, and stand three to a column, as AutoCAD's row
+panels do. An icon is a path on a square of 24 drawn 2 wide like the presenter's own (`FromPathData`), or a PNG, BMP,
+JPEG, GIF or ICO from bytes, an embedded resource or a file by its full path (`FromImage`, `FromResource`, `FromFile`,
+`Path.Combine(host.Folder, "icons", "count.png")`): its bytes are copied when it is made, so no file stays locked. An icon
+the window cannot draw shows the plugin icon. A button runs a command, started as the presenter's ribbon buttons start
+theirs, or a callback given a [`CadPluginContext`](xref:GeometryHelper.Cad.Plugins.CadPluginContext) (the document, the
+handles selected, `Write`, `RunCommand`); `CanRun` greys it, asked as the selection, the drawing and the command change.
+A callback that throws writes its message on the command line after the plugin's name. A split button shows and runs the
+one used last, as AutoCAD's Circle button does. A tab with `ShowWhen` is contextual: shown in green after the presenter's
+contextual tabs while it says true, as "Circle" while only circles are selected, and taken up when it shows.
+
+**Properties.** A [`CadPropertyProvider`](xref:GeometryHelper.Cad.Plugins.CadPropertyProvider) is asked, after the
+extensions, with the document, the handles shown and what Properties shows, and returns what it shows, usually the same
+groups and one of its own. Its rows are the extension's: a setter returns null where it made the change and the words of
+the refusal otherwise. `CadPropertyRow` makes rows of a kind: `Number`, `Length` and `Angle` (written and read in the
+drawing's units), `Point` (three rows, "Center X", "Center Y" and "Center Z"), `Color`, `Layer`, `Linetype` and
+`Lineweight`, the last four drop-downs of the window's own lists. Text that is not one is refused in the presenter's words
+before the setter is called: "Diameter is a number." A setter edits the drawing through `CadDocument.ApplyEdit`, one undo
+step a change.
+
+**DRAWINGS and the canvas.** `AddDrawingsButton` puts an icon button first in the header of the list;
+`AddDrawingsMenu` adds items after a separator at the end of a file row's right-click menu, given the row's path, its
+document where it is open and the rows selected; `AddCanvasMenu` adds items to the canvas's menu for the objects
+selected, after the extensions' and before the presenter's own. [`CadPluginMenuItem`](xref:GeometryHelper.Cad.Plugins.CadPluginMenuItem)
+makes an item, a grey or ticked one, a submenu and a separator.
+
+**Object snaps.** A [`CadCustomSnap`](xref:GeometryHelper.Cad.Plugins.CadCustomSnap), as AutoCAD's
+`CustomObjectSnapMode`, has a name, a keyword, the entity types it applies to (all where none is given), a glyph drawn
+as a snap marker (a square with a dot where none is given) and a finder that gives its points for an entity under the
+aperture. It is listed in the Object Snap tab of Drafting Settings under "Plugin snaps", in the OSNAP menu and in the
+Shift+right-click menu, and is on while OSNAP is, as the built-in snaps are; the choice is kept in the settings by its
+keyword (`GlobalSettings.PluginSnaps`), and a snap never chosen starts as its `IsOnByDefault`, off unless set. Its keyword
+typed at a point prompt, `CTOP` or `_ctop`, takes it for the next point alone: "Specify next point: _ctop of". A keyword is
+2 to 16 letters and digits, and one that is or starts with one of AutoCAD's snap keywords (END, MID, CEN and the rest), or
+is FROM, TT, M2P or MTP, is refused. A point of a plugin's snap competes with the built-in snaps by distance, the built-in
+one taken at a tie: "Circle top" is the circle's 90 degree quadrant, so it shows with Quadrant off, or typed. A finder that
+throws switches its snap off with one line, `The snap CTOP of Circle tools failed and is off: ...`, until it is chosen on
+again. A plugin's snap is not tried through a viewport of a layout, inside a block, or for a point typed after it.
+
+Two plugins that add a tab of the same id, or snaps of the same keyword, keep the first loaded; the second's is left out
+with a line in its `Problems`. After PLUGINUNLOAD the window shows Home where the plugin's tab was shown, and its panels,
+rows, buttons, items and snaps are gone; on .NET 8 the plugin's code is freed with them.
 
 ## See also
 
