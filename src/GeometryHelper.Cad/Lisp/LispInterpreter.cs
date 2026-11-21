@@ -72,6 +72,9 @@ namespace GeometryHelper.Cad.Lisp
             RegisterErrors();
             RegisterMisc();
             RegisterUnits();
+            RegisterNamespaces();
+            RegisterRegistry();
+            LispApplication.Register(this);
         }
 
         /// <summary>
@@ -804,6 +807,7 @@ namespace GeometryHelper.Cad.Lisp
         /// <summary>The body of one top-level evaluation, which runs on the worker thread.</summary>
         private LispResult Complete(Func<object> work, bool echo)
         {
+            LispApplication.ApplyPending(this);
             _output.Clear();
             _chunkStart = 0;
             _depth = 0;
@@ -1045,7 +1049,7 @@ namespace GeometryHelper.Cad.Lisp
             }
             catch (DecoderFallbackException)
             {
-                return Encoding.Default.GetString(bytes, skip, bytes.Length - skip);
+                return LispTextEncoding.Ansi.GetString(bytes, skip, bytes.Length - skip);
             }
         }
 

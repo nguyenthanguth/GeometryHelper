@@ -139,6 +139,8 @@ namespace GeometryHelper.Cad.Lisp
                     return Intern("SUBR");
                 case LispSelectionSet _:
                     return Intern("PICKSET");
+                case LispFile _:
+                    return Intern("FILE");
                 case LispEntityName _:
                     return Intern("ENAME");
                 case LispCatchAllError _:

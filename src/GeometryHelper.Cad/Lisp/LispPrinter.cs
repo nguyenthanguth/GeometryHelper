@@ -167,6 +167,9 @@ namespace GeometryHelper.Cad.Lisp
                         .Append(set.Number.ToString(CultureInfo.InvariantCulture))
                         .Append('>');
                     break;
+                case LispFile file:
+                    builder.Append(file.PrintForm);
+                    break;
                 case LispCatchAllError _:
                     builder.Append("#<%catch-all-apply-error%>");
                     break;
