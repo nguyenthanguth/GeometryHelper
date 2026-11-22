@@ -20,20 +20,20 @@ and read what the user did, shown in the presenter's window at the sizes AutoCAD
 language's library comes in later stages and is listed [at the end](#what-is-not-there-yet).
 
 The drawing stage was checked on seventeen routines written for AutoCAD by one user, each run in AutoCAD 2021's console and
-in the presenter on the same blank drawing with the same typed answers: nine wrote the same command line and left the same
-drawing, compared object by object and table by table, and the other eight differ only in the wording of a few prompts,
-UNDO's settings line, AUDIT's report, the patterns of the linetypes and the boundary form of the hatches the presenter makes
-with its own files, a dimension style's arrowhead stored as `_None` where AutoCAD stores `None`, and quirks of AutoCAD's console (a
-prompt written over two lines or twice, a pick it misses outside its view, an arc length it kept from an earlier run).
+in the presenter on the same blank drawing with the same typed answers: twelve write the same command line and leave the
+same drawing, compared object by object and table by table, and the other five differ only in UNDO's settings line, the
+patterns of the linetypes the presenter makes with its own file, the order of the two loops of one hatch, and quirks of
+AutoCAD's console (a prompt written twice, a pick it misses outside its view, an arc length it kept from an earlier run).
 
 The library stage was measured in nine probe files typed into AutoCAD 2021's console, and the 420 tests of the stage take
 their expected values from them. The same routines then ran again: all 22 of the user's routines load alike in both
 programs, and for the five that call the library, forms making the same calls on the same shapes of data (numbers with
 repeats through `vl-sort`, a temporary dialog file written, read back and deleted, entity names filtered by type) were
-typed into both. For three of the five the command line and the drawing came out the same; the other two differ only in
-matters of the drawing stage (-LAYER's Lock of a backquoted name, `(setvar 'errno 0)`, the wording of -ATTDEF, -BLOCK and
--INSERT; the groups of ATTRIB and MTEXT that `entget` lacked now come, [as described below](#entities-and-tables)). A sixth feed, of the pick-first functions, differs in one
-row, [described below](#pick-first-and-nentselp).
+typed into both. For four of the five the command line and the drawing come out the same; the fifth writes the same
+command line and differs in two groups of its drawing: an MTEXT made by `entmake` has `(42 . 0.0)` and `(43 . 0.0)` where
+AutoCAD gives its width and height in the font, 24.1667 and 3.33333, and the SEQEND after a block reference's attributes
+lacks the `(6 . "Continuous")` AutoCAD gives it. A sixth feed, of the pick-first functions, differs in one row, [described
+below](#pick-first-and-nentselp).
 
 The ActiveX stage was measured in five probe files typed into AutoCAD 2021's console and in two runs of the full AutoCAD
 2021, which has the object model the console lacks, and the 668 tests of the stage take their expected values from them or

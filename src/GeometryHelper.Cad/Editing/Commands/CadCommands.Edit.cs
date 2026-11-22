@@ -1099,6 +1099,24 @@ namespace GeometryHelper.Cad
                     continue;
                 }
 
+                // OFF of the current layer asks first, with no colon, and leaves it on for N or Enter, as AutoCAD 2021 asks it by
+                // name and for a layer taken from objects alike (l2p pe).
+                string clayer = c.Database.Clayer;
+
+                if (option == "OFF" && listed.Exists(n => string.Equals(n, clayer, StringComparison.OrdinalIgnoreCase)))
+                {
+                    yield return CadPrompt
+                        .ForKeyword("Really want layer \"" + clayer + "\" (the CURRENT layer) off?", new string[0], "N")
+                        .Hiding("Yes", "No")
+                        .WithoutColon()
+                        .Refusing("Yes or No, please.");
+
+                    if (!c.Input.Is("Yes"))
+                    {
+                        listed.RemoveAll(n => string.Equals(n, clayer, StringComparison.OrdinalIgnoreCase));
+                    }
+                }
+
                 foreach (string name in listed)
                 {
                     CadEditResult result;

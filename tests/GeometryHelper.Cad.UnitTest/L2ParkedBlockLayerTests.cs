@@ -531,6 +531,32 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
+        public void LayerOffOfTheCurrentLayer_AsksWhetherToTurnItOff_ByNameAndBySelection()
+        {
+            // AutoCAD 2021 (console, l2p pe): OFF of the current layer asks 'Really want layer "0" (the CURRENT layer) off? <N>',
+            // with no colon; N or Enter leaves it on, Y turns it off, and the same is asked for a layer taken from the objects.
+            CadDocument document = TwoLines();
+            CadCommandSession session = Typed(document, "-LAYER", "OFF", "0");
+
+            Assert.Equal("Really want layer \"0\" (the CURRENT layer) off? <N>", session.PromptText);
+
+            Run(session, "N");
+            Assert.False(document.Database.LayerTable["0"].IsOff);
+
+            Run(session, "OFF", "0", Enter);
+            Assert.False(document.Database.LayerTable["0"].IsOff);
+
+            Run(session, "OFF", "0", "Y");
+            Assert.True(document.Database.LayerTable["0"].IsOff);
+
+            Run(session, "ON", "0", "OFF", Enter, new[] { Handles(document)[0] }, Enter);
+            Assert.Equal("Really want layer \"0\" (the CURRENT layer) off? <N>", session.PromptText);
+
+            Run(session, "Y");
+            Assert.True(document.Database.LayerTable["0"].IsOff);
+        }
+
+        [Fact]
         public void LayerFreezeWithEnter_AsksForObjects_AndFreezesTheLayersOfThoseSelected()
         {
             // AutoCAD 2021 (console, l2p pb2): Enter at <select objects> asks "Select objects:" and takes the layers of the
