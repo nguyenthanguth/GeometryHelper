@@ -110,6 +110,214 @@ namespace GeometryHelper.Cad
             return database;
         }
 
+        /// <summary>The file name of the sample template that ships in the DrawingTemplates folder, written from <see cref="CreateSample"/>.</summary>
+        public const string SampleFileName = "GeometryHelper-mm.dwt";
+
+        /// <summary>The description the sample template carries in its template section, the text Select Template shows under its name.</summary>
+        public const string SampleDescription =
+            "GeometryHelper metric sample: millimetres, layers for a Tekla Structures detail, text styles in ghsimplex and Arial, "
+            + "the dimension style GH (text 2.5) and an A3 layout.";
+
+        /// <summary>
+        /// Makes the drawing of the sample template <c>GeometryHelper-mm.dwt</c>, for a detail drawn at 1:1 in millimetres and
+        /// printed on an A3 sheet: R2013, MEASUREMENT 1, INSUNITS 4 (millimetres), distances to two decimal places, limits of
+        /// 42 000 by 29 700 (an A3 sheet at 1:100), LTSCALE and PSLTSCALE 1 (the dashes of the presenter's own linetypes are
+        /// millimetres: CENTER has a dash of 12), and nothing drawn.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The layers (colours are AutoCAD's index, lineweights millimetres): 0; Axis red, CENTER, 0.18; Outline white,
+        /// Continuous, 0.50; Thin 8, 0.18; Hidden 6, HIDDEN, 0.25; Dimension 3, 0.18; Text 2, 0.25; Hatch 9, 0.13; Rebar 4,
+        /// 0.35; Title block white, 0.35; Viewport 8, not plotted; and Defpoints, white and not plotted. The linetypes are those
+        /// of <see cref="CadLinetypeFile.BuiltIn"/> (GeometryHelper.lin), nothing of Autodesk's.
+        /// </para>
+        /// <para>
+        /// The text styles all draw in the presenter's own font or in Arial: Standard, Notes and Titles in ghsimplex.shx, height
+        /// 0, width factor 0.8; Arial in arial.ttf. The dimension style GH, current, has arrowheads closed and filled 2.5 long,
+        /// text 2.5 in Standard above the line and aligned with it, extension lines 1.5 off the object and 1.5 past the line,
+        /// no decimal places, millimetres (DIMLUNIT 2) and every colour and lineweight by layer; GH-Annotative is GH made
+        /// annotative. The multileader style GH, current, has text and arrowheads 2.5 and Standard beside it. The layouts are
+        /// Model and A3: a sheet of 420 by 297 on its side, in millimetres, with no plotter.
+        /// </para>
+        /// <para>
+        /// AutoCAD's own ISO-25 dimension style and its Annotative text style are not kept: the sample holds what it lists.
+        /// </para>
+        /// </remarks>
+        /// <returns>The drawing.</returns>
+        public static DxfDatabase CreateSample()
+        {
+            var database = new DxfDatabase("AC1027");
+
+            Pin(database, "$MEASUREMENT", 70, "1");
+            Pin(database, "$INSUNITS", 70, "4");
+            Pin(database, "$LUNITS", 70, "2");
+            Pin(database, "$LUPREC", 70, "2");
+            Pin(database, "$AUNITS", 70, "0");
+            Pin(database, "$AUPREC", 70, "0");
+            Pin(database, "$LTSCALE", 40, 1.0);
+            Pin(database, "$PSLTSCALE", 70, "1");
+            Pin(database, "$PDMODE", 70, "0");
+            Pin(database, "$PDSIZE", 40, 0.0);
+            Pin(database, "$TEXTSIZE", 40, 2.5);
+            database.SetHeader("$LIMMIN", new DxfTypedValue(10, "0.0"), new DxfTypedValue(20, "0.0"));
+            database.SetHeader("$LIMMAX", new DxfTypedValue(10, "42000.0"), new DxfTypedValue(20, "29700.0"));
+            Pin(database, "$TEXTSTYLE", 7, "Standard");
+            Pin(database, "$CELTYPE", 6, "ByLayer");
+            Pin(database, "$CLAYER", 8, "0");
+
+            AddSampleTextStyles(database);
+            AddSampleLayers(database);
+            AddSampleDimensionStyles(database);
+            AddSampleMultileaderStyles(database);
+            SetUpSampleLayout(database);
+            return database;
+        }
+
+        private static void AddSampleTextStyles(DxfDatabase database)
+        {
+            DxfTextStyleTable styles = database.TextStyleTable;
+
+            styles["Standard"].FileName = "ghsimplex.shx";
+            styles["Standard"].XScale = 0.8;
+
+            foreach (string name in new[] { "Notes", "Titles" })
+            {
+                styles.Add(
+                    new DxfTextStyleTableRecord
+                    {
+                        Name = name,
+                        FileName = "ghsimplex.shx",
+                        XScale = 0.8,
+                    }
+                );
+            }
+
+            var arial = new DxfTextStyleTableRecord { Name = "Arial", FileName = "arial.ttf" };
+            styles.Add(arial);
+            arial.Font = new DxfFontDescriptor("Arial", false, false, 0, 34);
+        }
+
+        private static void AddSampleLayers(DxfDatabase database)
+        {
+            AddSampleLayer(database, "Axis", 1, "CENTER", 0.18, true);
+            AddSampleLayer(database, "Outline", 7, null, 0.50, true);
+            AddSampleLayer(database, "Thin", 8, null, 0.18, true);
+            AddSampleLayer(database, "Hidden", 6, "HIDDEN", 0.25, true);
+            AddSampleLayer(database, "Dimension", 3, null, 0.18, true);
+            AddSampleLayer(database, "Text", 2, null, 0.25, true);
+            AddSampleLayer(database, "Hatch", 9, null, 0.13, true);
+            AddSampleLayer(database, "Rebar", 4, null, 0.35, true);
+            AddSampleLayer(database, "Title block", 7, null, 0.35, true);
+            AddSampleLayer(database, "Viewport", 8, null, 0.25, false);
+            AddSampleLayer(database, "Defpoints", 7, null, 0.25, false);
+        }
+
+        private static void AddSampleLayer(
+            DxfDatabase database,
+            string name,
+            short colorIndex,
+            string linetype,
+            double lineWeight,
+            bool plot
+        )
+        {
+            var record = new DxfLayerTableRecord
+            {
+                Name = name,
+                Color = DxfColor.FromColorIndex(DxfColorMethod.ByAci, colorIndex),
+                LineWeight = database.GetNearestLineWeight((int)Math.Round(lineWeight * 100.0)),
+            };
+
+            if (linetype != null)
+            {
+                record.LinetypeName = LinetypeOf(database, linetype);
+            }
+
+            database.LayerTable.Add(record);
+            record.IsPlottable = plot;
+        }
+
+        private static void AddSampleDimensionStyles(DxfDatabase database)
+        {
+            DxfDimStyleTable styles = database.DimStyleTable;
+            DxfDimStyleTableRecord gh = SampleDimensionStyle(database, "GH");
+            DxfDimStyleTableRecord annotative = SampleDimensionStyle(database, "GH-Annotative");
+
+            // Standard stays, as AutoCAD always has one, given the look of GH so that no style in the file is in inches.
+            GiveSampleDimensionValues(database, styles["Standard"]);
+            styles.Add(gh);
+            styles.Add(annotative);
+            annotative.Annotative = DxfAnnotativeStates.True;
+
+            // GH is current, in the header too, as AutoCAD keeps the current style's variables there; ISO-25 of the library's new
+            // drawing can go once it is not.
+            database.SetDimstyleData(gh);
+            database.Dimstyle = "GH";
+            styles["ISO-25"].Erase();
+        }
+
+        private static DxfDimStyleTableRecord SampleDimensionStyle(DxfDatabase database, string name)
+        {
+            var style = new DxfDimStyleTableRecord { Name = name };
+            GiveSampleDimensionValues(database, style);
+            return style;
+        }
+
+        /// <summary>The look of the sample's dimension styles: AutoCAD's own values but for those the sample sets, which a drawing in millimetres wants.</summary>
+        private static void GiveSampleDimensionValues(DxfDatabase database, DxfDimStyleTableRecord style)
+        {
+            style.Dimtxsty = database.TextStyleTable["Standard"];
+            style.Dimtxt = 2.5;
+            style.Dimasz = 2.5;
+            style.Dimexo = 1.5;
+            style.Dimexe = 1.5;
+            style.Dimgap = 0.625;
+            style.Dimdli = 3.75;
+            style.Dimcen = 2.5;
+            style.Dimdec = 0;
+            style.Dimlunit = 2;
+            style.Dimdsep = '.';
+            style.Dimscale = 1.0;
+            style.Dimtad = 1;
+            style.Dimtih = false;
+            style.Dimtoh = false;
+            style.Dimclrd = DxfColor.ByLayer;
+            style.Dimclre = DxfColor.ByLayer;
+            style.Dimclrt = DxfColor.ByLayer;
+            style.Dimlwd = DxfLineWeight.ByLayer;
+            style.Dimlwe = DxfLineWeight.ByLayer;
+        }
+
+        private static void AddSampleMultileaderStyles(DxfDatabase database)
+        {
+            // The library's new drawing has no multileader styles; the dictionary is made, and Standard put in it as AutoCAD keeps it.
+            database.NamedObjectsDictionary.SetAt("ACAD_MLEADERSTYLE", new DxfDBDictionary());
+            DxfDBDictionary styles = database.MLeaderStyleDictionary;
+            styles.SetAt("Standard", new DxfMLeaderStyle());
+            styles.SetAt(
+                "GH",
+                new DxfMLeaderStyle
+                {
+                    TextHeight = 2.5,
+                    ArrowSize = 2.5,
+                    LandingGap = 0.625,
+                    DoglegLength = 2.5,
+                    TextStyle = database.TextStyleTable["Standard"],
+                }
+            );
+            database.MLeaderstyle = "GH";
+        }
+
+        private static void SetUpSampleLayout(DxfDatabase database)
+        {
+            // Layout1 of the library's new drawing becomes A3, on a sheet of 420 by 297 millimetres on its side.
+            DxfLayout layout = database.Layouts[1];
+            layout.LayoutName = "A3";
+            layout.CanonicalMediaName = "ISO_A3_(420.00_x_297.00_MM)";
+            layout.PlotPaperUnits = DxfPlotPaperUnit.Millimeters;
+            layout.PlotType = DxfPlotType.Layout;
+        }
+
         /// <summary>The file types a template is chosen among, as the Select Template dialog lists them.</summary>
         public static readonly IReadOnlyList<string> Extensions = new[] { ".dwt", ".dwg", ".dxf" };
 

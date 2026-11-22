@@ -580,8 +580,11 @@ namespace GeometryHelper.Dwg
                         T(given ? style.Text(code) : string.Empty);
                         break;
                     case "BD":
+                        // DIMJOGANG (50) is degrees in DXF and radians in a DWG.
                         _data.BitDouble(
-                            given ? style.Double(code) : double.Parse(parts[2], CultureInfo.InvariantCulture)
+                            given
+                                ? (code == 50 ? Radians(style.Double(code)) : style.Double(code))
+                                : double.Parse(parts[2], CultureInfo.InvariantCulture)
                         );
                         break;
                     case "B":

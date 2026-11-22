@@ -29,6 +29,23 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 
         private static string Shipped => CadSupportFolders.Default.FolderOf(CadSupportKind.DrawingTemplates);
 
+        private readonly string _sampleAside;
+
+        /// <summary>
+        /// The sample template that ships in DrawingTemplates would be listed, and chosen first, ahead of the templates these tests
+        /// make: it is put aside while they run and put back when they end (the tests of this assembly run one at a time).
+        /// </summary>
+        public NewFromTemplateTests()
+        {
+            string sample = Path.Combine(Shipped, CadTemplate.SampleFileName);
+
+            if (File.Exists(sample))
+            {
+                _sampleAside = sample + ".aside";
+                File.Move(sample, _sampleAside);
+            }
+        }
+
         public void Dispose()
         {
             foreach (string file in _made)
@@ -38,6 +55,11 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     File.Delete(file);
                 }
                 catch (IOException) { }
+            }
+
+            if (_sampleAside != null)
+            {
+                File.Move(_sampleAside, _sampleAside.Substring(0, _sampleAside.Length - ".aside".Length));
             }
         }
 

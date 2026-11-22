@@ -9,6 +9,14 @@ other styles, blocks, layouts with their page setups, and units. The template it
 changed. Ctrl+N (and QNEW) starts a blank drawing, or the default template named in Global
 settings (Save and export > Default template for QNEW).
 
+GeometryHelper-mm.dwt is a sample template, metric and in millimetres, made by the program's own
+writer. It holds the layers Axis, Outline, Thin, Hidden, Dimension, Text, Hatch, Rebar, Title
+block, Viewport and Defpoints (colours, linetypes and lineweights set; Viewport and Defpoints are
+not plotted), the text styles Standard, Notes and Titles in ghsimplex.shx and Arial in Arial, the
+dimension styles GH (current; text and arrowheads 2.5), GH-Annotative and Standard, the multileader
+style GH, and the layouts Model and A3 (420 by 297 on its side). Use it as it is, or save your own
+next to it.
+
 Where to find it: Global settings > Folder preference lists this folder, with Open folder.
 Save Drawing As to the Drawing Template type offers this folder first.
 
@@ -28,5 +36,5 @@ to. Where the program sits in a folder that is read-only for you (Program Files)
 folder of your own in Template folder instead.
 
 No template of Autodesk's (acad.dwt, acadiso.dwt and the others of AutoCAD's Template folder)
-is shipped here. NEW offers the program's own metric and imperial templates through Open
-with no Template.
+is shipped here, and the sample names no font of Autodesk's. NEW offers the program's own metric
+and imperial templates through Open with no Template.

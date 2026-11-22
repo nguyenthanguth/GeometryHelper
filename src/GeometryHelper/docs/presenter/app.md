@@ -63,7 +63,7 @@ listed again at each look and the family names of a file are read once, while it
 `GeometryHelper.pat` and `Linetypes` holds `GeometryHelper.lin`, the 48 patterns and the 39 linetypes of the built-in sets in
 AutoCAD's `.pat` and `.lin` formats, as models for your own files; the name `GeometryHelper.pat` or `GeometryHelper.lin` always
 means the built-in set, so editing the copy changes nothing, and a test keeps the files equal to the sets. `Lisps` ships with no routine in it: every `.lsp` file directly in it is loaded into each drawing when it opens, after `acaddoc.lsp` and before the Startup Suite, in the order of the file names, and the folder is on the AutoLISP search path after the support folders (see [The Lisps folder](lisp.md#the-lisps-folder)); it is under the program folder, so SECURELOAD always trusts it. `Plugins` holds command plugins and no search path: every `.dll` directly in it, and every subfolder of it as one plugin, is loaded once when the app starts, in the order of the names, with no question, as [Command plugins](plugins.md#where-a-plugin-lives) says; the Plugin manager shows it first among the trusted folders. `DrawingTemplates` is where a drawing saved as a `.dwt` is
-put to be used as a template (see [Drawing templates](#drawing-templates)). Each folder has a
+put to be used as a template, and ships with the sample `GeometryHelper-mm.dwt` (see [Drawing templates](#drawing-templates)). Each folder has a
 `README.txt` that says the same.
 
 The crosshair size (`CrosshairPercent`, CURSORSIZE) is a share of the canvas: at 5 % each line is 5 % of the larger side of
@@ -333,8 +333,8 @@ AutoCAD's `.dwt` is a DWG with that extension; a `.dwg` or a `.dxf` is as good a
   With FILEDIA 0, SAVEAS Template asks "Save drawing as <Drawing1.dwt>:" ("other.dwg" becomes "other.dwt"), "Enter template
   description:" (Enter for none) and "Enter measurement [English/Metric] <Metric>:".
 - The template folder is the one of Global settings (Save and export > Template settings > Template folder, TEMPLATEPATH).
-  Where it is empty it is the `DrawingTemplates` folder beside the dll, which the build copies with a `README.txt` and no
-  template in it, and which Global settings > Folder preference lists with Open folder: the folder Select Template starts
+  Where it is empty it is the `DrawingTemplates` folder beside the dll, which the build copies with a `README.txt` and the
+  sample template `GeometryHelper-mm.dwt` (below), and which Global settings > Folder preference lists with Open folder: the folder Select Template starts
   in, where Save As › Drawing Template saves, and where a template named with no folder (typed at NEW with FILEDIA 0, or
   the default template for QNEW) is looked for. To make a template, save a drawing as `.dwt` (SAVEAS, Files of type:
   Drawing Template, or the application menu's Save As › Drawing Template) and it is there to use. The folder
@@ -342,6 +342,24 @@ AutoCAD's `.dwt` is a DWG with that extension; a `.dwg` or a `.dxf` is as good a
   template and `DrawingTemplates` holds none; the first template saved into `DrawingTemplates` ends that. A program folder
   you cannot write to (Program Files) cannot be saved into: name a folder of your own in Template folder. The built-in
   templates need no folder.
+- **The sample template**, `GeometryHelper-mm.dwt` in `DrawingTemplates`, is listed by Select Template with its description
+  ("GeometryHelper metric sample: millimetres, layers for a Tekla Structures detail ...") and starts an untitled drawing for a
+  detail drawn at 1:1 in millimetres and printed on A3: MEASUREMENT 1, INSUNITS 4, distances to two decimal places, limits of
+  42 000 by 29 700 (an A3 sheet at 1:100), LTSCALE and PSLTSCALE 1, nothing drawn, the current layer 0. Its layers (AutoCAD
+  colour index, lineweight in millimetres): 0; Axis 1, CENTER, 0.18; Outline 7, 0.50; Thin 8, 0.18; Hidden 6, HIDDEN, 0.25;
+  Dimension 3, 0.18; Text 2, 0.25; Hatch 9, 0.13; Rebar 4, 0.35; Title block 7, 0.35; Viewport 8, not plotted; Defpoints 7,
+  not plotted; the linetypes are those of `GeometryHelper.lin`. Its text styles are Standard, Notes and Titles in `ghsimplex.shx`
+  (height 0, width factor 0.8) and Arial in `arial.ttf`; no font of Autodesk is named. Its dimension styles are GH, the
+  current one (arrowheads closed and filled 2.5, text 2.5 in Standard above the line, extension lines offset 1.5 and
+  extended 1.5, no decimals, DIMLUNIT 2, every colour and lineweight by layer), GH-Annotative (GH made annotative) and
+  Standard, given the look of GH so that none is in inches. Its multileader style GH (text and arrowheads 2.5) is current,
+  and its layouts are Model and A3, a sheet of 420 by 297 millimetres on its side. The file is written by the library, not by
+  hand: `CadTemplate.CreateSample()` makes the drawing and `SaveAsTemplate` writes it, and a test keeps the shipped file equal
+  to it in every layer, style, layout and variable (handles and times are not compared). To write it again, set the
+  environment variable `GEOMETRYHELPER_WRITE_SAMPLE_TEMPLATE` to the full path of the file and run the test
+  `TheSampleTemplateIsWrittenWhereTheVariableSays` of `SampleTemplateTests`. AutoCAD 2021 opens it with AUDIT finding no
+  errors; where it has no `ghsimplex.shx` on its path it says `Substituting [simplex.shx] for [ghsimplex.shx].` and goes
+  on, and with the font beside the drawing it says nothing.
 
 With FILEDIA 0 a command asks on the command line for the file it would show a file dialog for, as AutoCAD 2021 asks:
 

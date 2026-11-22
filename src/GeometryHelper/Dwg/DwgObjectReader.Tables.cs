@@ -539,10 +539,10 @@ namespace GeometryHelper.Dwg
                         break;
                     case "BD":
                         double number = _data.BitDouble();
-
+                        // DIMJOGANG (50) is degrees in DXF and radians in a DWG.
                         if (number != double.Parse(parts[2], CultureInfo.InvariantCulture) && code != 0)
                         {
-                            groups.Add(new DwgGroup(code, number));
+                            groups.Add(new DwgGroup(code, code == 50 ? Degrees(number) : number));
                         }
 
                         break;

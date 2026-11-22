@@ -58,7 +58,7 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void TheShippedFolder_IsBesideTheDll_WithItsReadme_AndNoTemplate()
+        public void TheShippedFolder_IsBesideTheDll_WithItsReadme_AndTheSampleTemplateOnly()
         {
             CadSupportFolders folders = CadSupportFolders.Default;
             string folder = folders.FolderOf(CadSupportKind.DrawingTemplates);
@@ -68,7 +68,7 @@ namespace GeometryHelper.Cad.UnitTest
             Assert.Contains(".dwt", readme);
             Assert.Contains("SAVEAS", readme);
             Assert.Contains("Drawing Template", readme);
-            Assert.Empty(CadTemplate.FindIn(folder));
+            Assert.Equal(new[] { Path.Combine(folder, CadTemplate.SampleFileName) }, CadTemplate.FindIn(folder));
         }
 
         [Fact]
