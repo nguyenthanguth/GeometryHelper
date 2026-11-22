@@ -101,10 +101,8 @@ namespace GeometryHelper.Cad
         private string _fontMapFile = string.Empty;
         private List<string> _supportFolders = new List<string>(CadSupportFiles.DefaultFolders);
         private List<string> _lispStartupSuite = new List<string>();
-        private List<string> _appLoadHistory = new List<string>();
         private List<string> _pluginSnaps = new List<string>();
         private string _appLoadFolder = string.Empty;
-        private string _appLoadFileType = "lsp";
         private SortedDictionary<string, string> _lispEnvironment = new SortedDictionary<string, string>(
             StringComparer.OrdinalIgnoreCase
         );
@@ -719,27 +717,6 @@ namespace GeometryHelper.Cad
                     .ToList();
         }
 
-        /// <summary>The most files <see cref="AppLoadHistory"/> keeps.</summary>
-        public const int AppLoadHistoryLimit = 50;
-
-        /// <summary>
-        /// Gets or sets the History list of APPLOAD (Load/Unload Applications): the files it was given with Add to History
-        /// ticked, as full paths, the newest first, whether they loaded or not; empty by default. Blank entries are left out,
-        /// a file given twice is kept once at its first place, and only the first <see cref="AppLoadHistoryLimit"/> are kept:
-        /// a 51st file loaded pushes the oldest out. Saved in the settings file.
-        /// </summary>
-        public IReadOnlyList<string> AppLoadHistory
-        {
-            get => _appLoadHistory.AsReadOnly();
-            set =>
-                _appLoadHistory = (value ?? Array.Empty<string>())
-                    .Where(f => !string.IsNullOrWhiteSpace(f))
-                    .Select(f => f.Trim())
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .Take(AppLoadHistoryLimit)
-                    .ToList();
-        }
-
         /// <summary>
         /// Gets what AutoLISP's <c>setenv</c> and <c>setcfg</c> keep, which AutoCAD keeps in the registry: each name to its text,
         /// the entries of <c>setcfg</c> under <c>cfg:</c> and their path. None by default. Saved in the settings file.
@@ -775,21 +752,6 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>
-        /// Gets or sets the Files of type Load/Unload Applications (APPLOAD) shows first: <c>lsp</c> (AutoLISP Files, the
-        /// default), <c>dll</c> (Plugins) or <c>all</c> (All files); any other word reads as <c>lsp</c>. It is kept the moment
-        /// it is changed in the dialog. Saved in the settings file.
-        /// </summary>
-        public string AppLoadFileType
-        {
-            get => _appLoadFileType;
-            set
-            {
-                string word = (value ?? string.Empty).Trim().ToLowerInvariant();
-                _appLoadFileType = word == "dll" || word == "all" ? word : "lsp";
-            }
-        }
-
-        /// <summary>
         /// Gets or sets the Python the app runs scripts with: the <c>python.exe</c> of a virtual environment or of an
         /// installation, or the folder that holds it. Empty by default, which finds the newest 64-bit CPython 3.11 to 3.15
         /// registered on the machine (PEP 514). It takes effect at the next start of the app once Python has started. Saved in
@@ -800,9 +762,6 @@ namespace GeometryHelper.Cad
             get => _pythonPath;
             set => _pythonPath = value ?? string.Empty;
         }
-
-        /// <summary>Gets or sets whether Load/Unload Applications (APPLOAD) puts each file it is given in <see cref="AppLoadHistory"/>: on by default. Saved in the settings file.</summary>
-        public bool AppLoadAddToHistory { get; set; } = true;
 
         /// <summary>
         /// Gets or sets the folder of plot style tables (.ctb and .stb) the Plot and Page Setup dialogs list and a plot reads,
@@ -1102,7 +1061,6 @@ namespace GeometryHelper.Cad
             copy._fontFolders = new List<string>(_fontFolders);
             copy._supportFolders = new List<string>(_supportFolders);
             copy._lispStartupSuite = new List<string>(_lispStartupSuite);
-            copy._appLoadHistory = new List<string>(_appLoadHistory);
             copy._alwaysLoaded = new List<string>(_alwaysLoaded);
             copy._pluginSnaps = new List<string>(_pluginSnaps);
             copy._fontSubstitutions = Copy(_fontSubstitutions);
@@ -1311,16 +1269,7 @@ namespace GeometryHelper.Cad
             }
 
             w.CloseList();
-            w.OpenList("appLoadHistory");
-
-            foreach (string file in _appLoadHistory)
-            {
-                w.Value(null, file);
-            }
-
-            w.CloseList();
             w.Value("appLoadFolder", _appLoadFolder);
-            w.Value("appLoadFileType", _appLoadFileType);
             w.Open("lispEnvironment");
 
             foreach (KeyValuePair<string, string> pair in _lispEnvironment)
@@ -1330,7 +1279,6 @@ namespace GeometryHelper.Cad
 
             w.Close();
             w.Value("pythonPath", _pythonPath);
-            w.Value("appLoadAddToHistory", AppLoadAddToHistory);
             w.Value("plotStyleFolder", _plotStyleFolder);
             w.Close();
             w.Open("dataSources");
@@ -1565,12 +1513,9 @@ namespace GeometryHelper.Cad
                 Take("support", "lispStartupSuite", e =>
                     _s.LispStartupSuite = e.Elements().Select(f => f.Value).ToList()
                 );
-                Take("support", "appLoadHistory", e => _s.AppLoadHistory = e.Elements().Select(f => f.Value).ToList());
                 Text("support", "appLoadFolder", v => _s.AppLoadFolder = v);
-                Text("support", "appLoadFileType", v => _s.AppLoadFileType = v);
                 Take("support", "lispEnvironment", e => _s.SetLispEnvironment(Pairs(e)));
                 Text("support", "pythonPath", v => _s.PythonPath = v);
-                Flag("support", "appLoadAddToHistory", v => _s.AppLoadAddToHistory = v);
                 Text("support", "plotStyleFolder", v => _s.PlotStyleFolder = v);
                 Flag("dataSources", "checkForModelChanges", v => _s.CheckForModelChanges = v);
                 Number("dataSources", "checkEverySeconds", v => _s.CheckEverySeconds = Whole(v));

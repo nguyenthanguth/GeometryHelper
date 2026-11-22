@@ -49,6 +49,76 @@ as AutoCAD's ribbon macro does, a backslash leaving a prompt to the user, a semi
 point prompt that takes the tangent override. The Arc and Circle splits of Home use it: Tan, Tan, Tan runs
 `CIRCLE 3P TAN \ TAN \ TAN \` and draws the circle touching the three lines, arcs or circles picked.
 
+**CHANGED.** The folders beside `GeometryHelper.Cad.App.exe` (`Fonts`, `Hatches`, `Linetypes`, `Lisps`, `Plugins` and
+`DrawingTemplates`) are now all read with their subfolders, at any depth, in one order: depth first, a folder's own files first by
+name (letters of either case the same, then as written), then its subfolders in the same order, each walked the same way. A file
+at the top level always comes before one in a subfolder, and of two files with one name (a font, a pattern file, a linetype file or
+a template) the first wins and the others are named in one line of the debug log: `Fonts\Company\abc.shx` is found, and a
+`mine.lin` in `Linetypes` hides a `mine.lin` in `Linetypes\Old`. A subfolder that is a junction or a symbolic link, or is hidden or
+a system folder, is not entered, and one that cannot be read is passed over with a debug line. Every `.lsp` file of `Lisps` at any
+depth loads at start (before, the files in a subfolder were left alone; the search path of `load` is still the folder itself). In
+`Plugins`, a folder at any depth that holds `.dll` files directly is one plugin, as a top-level folder was, and the walk does not go
+below it; a folder with no `.dll` is walked into, so `Plugins\Company\ToolA\ToolA.dll` is the plugin ToolA. Select Template lists
+the templates of the subfolders of the template folder too (`DrawingTemplates`, or the folder named in Global settings), and
+`CadTemplate.FindIn` and `CadTemplate.Find` read them. The folders
+you add in Folder preference are read as they were, without their subfolders. `CadSupportFiles.List` now gives its files in the
+order of the walk (the folders in the order searched) where it gave them by name alone.
+
+**CHANGED.** A `.dwg` or `.dxf` dropped on the drawing area is now inserted as a block, as AutoCAD 2021 does (measured: it runs
+`_-INSERT Enter block name or [?]: "<path>"`, writes the Units line and waits for the insertion point, then the scale and the
+rotation), where every drop of a drawing used to open it. Dropped on the DRAWINGS list or the title bar it still opens, and
+several dropped there all open. With several dropped on the drawing area the first is inserted and the rest are passed over; with
+no drawing open the drawing opens, as AutoCAD opens it then; and while a command or a routine waits the drop is ignored, as it
+always was for the other files. The other file kinds go as before on either target.
+
+**BREAKING.** Plugins of the kind "drawing" are gone. `CadPluginManager.DrawingPluginFinder`, `CadPluginManifest.DrawingKind`,
+`CadLoadedPlugin.DrawingPlugins` and `PluginManagerViewModel.DrawingChipText` are removed, with no forwarder: the plugin manager
+loads command plugins only, as the presenter always did where no finder was set. A plugin.json with `"kind": "drawing"` is refused
+as any kind but "command" is, `The plugin Bolt dimensions is of the kind "drawing", and this presenter loads command plugins
+only.`; the Plugin manager has no "Drawing plugins" chip, and a .dll without a manifest and without a command is refused with the
+reason it always had, `has no command`. A host that made drawing plugins on the finder, such as TeklaHelper.DrawingManager,
+loads them itself.
+
+**CHANGED.** APPLOAD and the Plugin manager are one window, Load/Unload Applications (900 by 700), which the APPLOAD command, the
+Manage tab's Load Application and the Plugin manager button of the Plugins tab all open. It has a toolbar (Load… (.lsp, .dll),
+Reload, Unload), the chips All, Lisp and Plugins with their counts, and one table with the columns On, Name, Kind (Lisp in green,
+Plugin in blue), Commands, File and At start, sorted by name and then by file, several rows to be chosen at once. Load… is the
+Windows Open dialog with the filters "Applications (\*.lsp;\*.dll)", "Lisp files (\*.lsp)", "Plugins (\*.dll)" and "All files", several
+files allowed, opened on the folder of the last Load (`appLoadFolder`); a `.lsp` loads as APPLOAD loaded it, a `.dll` as NETLOAD
+does, any other file gets the refusal line it had, and every line goes to the command history. Commands of an AutoLISP file are
+the `c:` functions it defined while it loaded (`AA, BB`), recorded by the interpreter (`LispInterpreter.CommandsOf`, internal).
+Unload of an AutoLISP file, or unticking its On box or the Delete key, takes the file out of the list and removes its `c:`
+commands from the interpreter, so that typing one is an unknown command (a name that is also an alias, such as AA for AREA, goes
+back to the alias); the other functions it defined stay, as AutoCAD cannot unload a file either. At start replaces the Startup
+Suite: it is the same `lispStartupSuite` storage, so current suites carry over, and for a plugin the startup list; a file in the
+`Lisps` folder or a plugin in the `Plugins` folder always loads, and its box is ticked and greyed. A Startup Suite file that is not
+loaded stays in the table with On unticked. The plugin settings page (Settings…), the plugin load log, the detail pane, the
+trusted-folder list with Add and Remove folder, the folder browser of APPLOAD, Add to History, the History list, the Startup Suite
+window and Help are gone; a .dll from a folder that is not trusted is asked about as NETLOAD asks, and the plugin's load lines go to
+the command history. The question's text no longer tells the user to add the folder in the Plugin manager.
+
+**BREAKING.** Removed with the two windows, with no forwarder: in `GeometryHelper.Cad.Wpf`, the types `AppLoadFileType`,
+`AppLoadPlaceKind`, `AppLoadPlace`, `AppLoadEntry`, `PluginRowViewModel`, `PluginLogLine`, `PluginManagerViewModel`,
+`PluginSettingRow`, `PluginSettingsViewModel`, `StartupSuiteViewModel`, `PluginManagerWindow`, `PluginSettingsWindow` and
+`StartupSuiteWindow`; `MainViewModel.PluginManagerRequested` and `CreatePluginManager()`; `CadWorkspace.ShowPluginManager()`.
+`AppLoadViewModel` and `AppLoadRow` are new in shape: the browser, History, Startup Suite, status and tab members are gone, and
+the rows are the new table's (`Rows`, `Filter`, the chip texts, `Load()` asking for files, `Load(paths)`, `Reload()`, `Unload()`,
+`LoadDropped`). In `GeometryHelper.Cad`, `GlobalSettings.AppLoadHistory`, `AppLoadHistoryLimit`, `AppLoadFileType` and
+`AppLoadAddToHistory` are removed, and their keys `appLoadHistory`, `appLoadFileType` and `appLoadAddToHistory` are ignored when a
+settings file is read, not migrated. A window that has no `ShowAppLoad` no longer falls back to a Plugin manager: APPLOAD says
+`Load/Unload Applications cannot be shown here.`, and Load Application is greyed there.
+
+**NEW.** A sample plugin ships in the app's `Plugins` folder, `Plugins\DrawingInfo`: the command `GHDWGINFO` writes the drawing's
+name, the objects of model space counted by type, the layers, the blocks and the extents, and changes nothing. It is the project
+`examples/GeometryHelper.Cad.Plugins.DrawingInfo` (netstandard2.0, one class, no `plugin.json`), which `GeometryHelper.Cad.App` builds first
+and copies, its .dll only, into `Plugins\DrawingInfo`; it is named after its folder, DrawingInfo, and takes the assembly's version.
+The app loads it at start with no question, and it has a button on the Plugins tab like every command. Delete the folder to remove it.
+
+**NEW.** A sample routine ships in the `Lisps` folder, `GH-DrawingInfo.lsp`: it defines the command `GHINFO` and writes nothing
+when it loads. `GHINFO` writes the drawing's name and folder, INSUNITS and LUNITS, the current layer and text style, the objects
+of model space counted by type, the number of layers and blocks, and the extents. It is standard AutoLISP, and AutoCAD 2021 writes
+the same lines apart from the name and folder.
+
 **CHANGED.** The Layers panel of Home is laid out as AutoCAD 2021's. Layer Properties stays the large button; the layer box is
 208 pixels wide (it was 168) over two rows of tiles 24 by 22 that show only their icon, the tooltip naming the command: Off,
 Isolate, Freeze, Lock and Make Current (LAYOFF, LAYISO, LAYFRZ, LAYLCK, LAYMCUR), then Turn All Layers On, Unisolate, Thaw All
@@ -122,7 +192,7 @@ changes nothing here, and a test keeps the file equal to the bytes the font buil
 
 **NEW.** New from template: a button right of New on the start screen, `New from template · Ctrl+Shift+N`, and the key
 Ctrl+Shift+N (on the start screen and with a drawing open) run NEW with Select Template opened in a `DrawingTemplates`
-folder beside GeometryHelper.Cad.dll, as Fonts, Hatches, Linetypes and AutoLisps are. A drawing saved as `.dwt` (SAVEAS, Files
+folder beside GeometryHelper.Cad.dll, as Fonts, Hatches, Linetypes and Lisps are. A drawing saved as `.dwt` (SAVEAS, Files
 of type: Drawing Template) and put there is listed, and starts an untitled Drawing1.dwg with its layers, styles, blocks,
 layouts and units; the dialog is shown with one template as with many, and with none it says how to make one. Ctrl+N and
 QNEW stay a blank drawing. `DrawingTemplates` is now where the template folder points while Global settings name none (Select
@@ -132,7 +202,7 @@ Open folder. The `Template` folder beside the settings file, the default until n
 `CadSupportKind.DrawingTemplates` is new, and `GlobalSettings.DefaultTemplateFolder` now gives the folder this works out.
 
 **NEW.** The app has a `Plugins` folder beside `GeometryHelper.Cad.App.exe`, as it has `Fonts`, `Hatches`, `Linetypes` and
-`AutoLisps` (`CadSupportKind.Plugins`; the build copies it with a `README.txt`). Put a plugin there and it loads when the app
+`Plugins` (`CadSupportKind.Plugins`; the build copies it with a `README.txt`). Put a plugin there and it loads when the app
 starts: every `.dll` directly in it, by the order of the names (either case the same), then every subfolder as one plugin,
 the same way, so a plugin of several .dll files lives in a folder of its own, named by the folder's `plugin.json` where it
 has one and by the folder where it has not. They load through the plugin manager as before (shadow copy, a load context of
@@ -276,15 +346,15 @@ only when disabled. Every button filled with the accent shares one style, `GhAcc
 the same flat grey as the Close, where it was the dark input colour with a border. The transparent and outlined buttons keep
 their grey hover.
 
-**NEW.** An `AutoLisps` folder beside `GeometryHelper.Cad.dll` (beside the exe in the app), the fourth default folder with `Fonts`,
-`Hatches` and `Linetypes` (`CadSupportKind.AutoLisps`, copied by the build with a `README.txt`). Every `.lsp` file directly in it
+**NEW.** A `Lisps` folder beside `GeometryHelper.Cad.dll` (beside the exe in the app), the fourth default folder with `Fonts`,
+`Hatches` and `Linetypes` (`CadSupportKind.Lisps`, copied by the build with a `README.txt`). Every `.lsp` file directly in it
 loads into each drawing when it opens, in the order of the file names ignoring case, after `acad.lsp` and `acaddoc.lsp` and
 before the Startup Suite and `S::STARTUP`: a folder holding `10-layers.lsp` and `20-dims.lsp` gives both commands in every
 drawing with no APPLOAD. An error in a file is written and the next loads; `x.lspx`, other extensions and files in a
 subfolder are left alone; a compiled `.fas` or `.vlx` writes the usual refusal. The folder is on the AutoLISP search path
 after the support folders of Folder preference, so `load`, `findfile` and `load_dialog` find a file in it by its bare name; it
-is under the program folder, which SECURELOAD always trusts, and Folder preference lists it read-only with Open folder. No
-sample routine is shipped, since what is there runs for every drawing, and the Python wheel has no such folder.
+is under the program folder, which SECURELOAD always trusts, and Folder preference lists it read-only with Open folder. Only one sample routine
+is shipped (`GH-DrawingInfo.lsp`, above), since what is there runs for every drawing, and the Python wheel has no such folder.
 
 **FIXED.** A name with a relative folder, `(load "Sub/x")`, `(load "./x.lsp")`, `(findfile "Sub/x.txt")`, was taken from the
 folder of the process (`load`) or the current folder alone (`findfile`), so a subfolder of a support folder could not be

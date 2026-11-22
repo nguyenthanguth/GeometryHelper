@@ -16,9 +16,6 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Raised by PLUGINLOAD (NETLOAD) and the Load .dll buttons: the window shows its Open dialog for a .dll, then calls <see cref="LoadPlugin"/>.</summary>
         public event EventHandler PluginLoadRequested;
 
-        /// <summary>Raised by the Plugin manager button: the window shows the Plugin manager over <see cref="CreatePluginManager"/>.</summary>
-        public event EventHandler PluginManagerRequested;
-
         /// <summary>Gets the manager of the command plugins; null until <see cref="UsePlugins"/>.</summary>
         public CadPluginManager Plugins => _plugins;
 
@@ -106,16 +103,11 @@ namespace GeometryHelper.Cad.Wpf
         /// <returns>What came of it; null without a manager.</returns>
         public CadPluginResult UnloadPlugin(string name) => Report(_plugins?.Unload(name));
 
-        /// <summary>Makes the view model of the Plugin manager; null without a manager. Dispose it when the dialog closes.</summary>
-        /// <returns>The view model.</returns>
-        public PluginManagerViewModel CreatePluginManager() =>
-            _plugins == null ? null : new PluginManagerViewModel(_plugins, Say);
-
         /// <summary>Asks the window for the file dialog of PLUGINLOAD.</summary>
         internal void RequestPluginLoad() => PluginLoadRequested?.Invoke(this, EventArgs.Empty);
 
-        /// <summary>Asks the window for the Plugin manager.</summary>
-        internal void RequestPluginManager() => PluginManagerRequested?.Invoke(this, EventArgs.Empty);
+        /// <summary>Shows Load/Unload Applications, which the Plugin manager button opens as APPLOAD does.</summary>
+        internal void RequestPluginManager() => LoadApplications();
 
         /// <summary>
         /// Adds the plugins' commands to a document's command line: first the window's own PLUGINLOAD, which shows a file dialog,

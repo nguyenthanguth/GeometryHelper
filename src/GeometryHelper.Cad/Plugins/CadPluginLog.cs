@@ -126,7 +126,7 @@ namespace GeometryHelper.Cad.Plugins
         /// <summary>Gets the manifest; null for a bare .dll with no plugin.json beside it.</summary>
         public CadPluginManifest Manifest { get; }
 
-        /// <summary>Gets whether it lies directly in the plugin folder (a .dll there, or a subfolder), and so is loaded at every start.</summary>
+        /// <summary>Gets whether it lies in the plugin folder (a .dll there, or a folder of .dll files at any depth), and so is loaded at every start.</summary>
         public bool IsInstalled { get; }
 
         /// <summary>Gets whether its path lies in a trusted folder.</summary>
@@ -158,9 +158,6 @@ namespace GeometryHelper.Cad.Plugins
 
         /// <summary>Gets the assemblies loaded for it while it is loaded; null once it is unloaded.</summary>
         public IReadOnlyList<Assembly> Assemblies { get; internal set; }
-
-        /// <summary>Gets the names of the drawing plugins found in it while it is loaded (<see cref="CadPluginManager.DrawingPluginFinder"/>); empty for none.</summary>
-        public IReadOnlyList<string> DrawingPlugins { get; internal set; } = new string[0];
 
         internal string ShadowFolder { get; set; }
 

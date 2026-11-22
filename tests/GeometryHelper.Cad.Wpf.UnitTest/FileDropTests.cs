@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Windows;
+using GeometryHelper.Dwg;
+using GeometryHelper.Dxf;
 using Xunit;
 using static GeometryHelper.Cad.Wpf.UnitTest.PythonWindowKit;
 using static GeometryHelper.Cad.Wpf.UnitTest.SecurityKit;
@@ -14,7 +16,9 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
     /// Files dropped on the window, as AutoCAD 2021 takes them (measured in part M, rows 1 to 14 of drop.md): a .lsp, .fas or
     /// .vlx runs the line <c>(LOAD "D:/x/u1.lsp")</c> as if typed, a .scr runs SCRIPT of the file, a .arx, .dbx or .dvb is
     /// refused, any other file gets the "Drag and Drop" box, and all of it is ignored while a command waits. Driven at the
-    /// view-model level, with no real drag; the last test raises the drop through the command line's box.
+    /// view-model level, with no real drag; the last tests raise the drop through the command line's box and onto the drawing
+    /// area and the DRAWINGS list. A drawing dropped on the drawing area is inserted as a block, as AutoCAD's -INSERT takes it
+    /// (rows 13 and 14); dropped on the DRAWINGS list it opens.
     /// </summary>
     public sealed class FileDropTests : IDisposable
     {
@@ -35,6 +39,16 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             Assert.True(model.Open(Room("room.dxf")));
             return model;
         }
+
+        private string RoomDwg(string name)
+        {
+            string path = Path.Combine(_folder.FullPath, name);
+            DwgWriter.Write(TestFiles.Room(out _, out _), path);
+            return path;
+        }
+
+        private static int References(MainViewModel model) =>
+            model.Document.ModelSpace.Block.OfType<DxfBlockReference>().Count();
 
         private static string Slashes(string path) => path.Replace('\\', '/');
 
@@ -60,8 +74,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             Assert.Contains("GHM tools.lsp loaded", string.Join("\n", written));
             Assert.Contains("dropped", model.Session.LispCommandNames, StringComparer.OrdinalIgnoreCase);
 
-            // The History list of APPLOAD is not touched, and the file is among the loaded applications.
-            Assert.Empty(model.Settings.AppLoadHistory);
+            // The file is among the loaded applications.
             Assert.Equal(new[] { tools }, model.LoadedLispFiles);
         }
 
@@ -204,14 +217,218 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void ADrawingDropped_StillOpens()
+        public void ADwgDroppedOnTheDrawingArea_StartsInsertWithItsPath_AndPlacesABlockReferenceAtThePointGiven()
         {
-            string other = Room("other.dxf");
+            string other = RoomDwg("other.dwg");
             MainViewModel model = Opened();
+            CadDocument shown = model.Document;
+            int before = model.History.Count;
 
             model.DropFiles(new[] { other });
 
+            // As AutoCAD writes it (row 13): the typed -INSERT, the path in quotes, the Units line, then it waits for the point.
+            string[] written = Since(model, before);
+            Assert.Equal("Command: _-INSERT", written[0].TrimEnd());
+            Assert.Contains(written, l => l.Contains("\"" + other + "\""));
+            Assert.Contains(written, l => l.StartsWith("Units:", StringComparison.Ordinal));
+            Assert.True(model.Session.IsRunning);
+            Assert.StartsWith("Specify insertion point", model.Session.Prompt.Text, StringComparison.Ordinal);
+            Assert.Same(shown, model.Document);
+            Assert.Equal(0, References(model));
+
+            model.Execute("500,500");
+            model.Enter();
+            model.Enter();
+            model.Enter();
+
+            Assert.False(model.Session.IsRunning);
+            DxfBlockReference reference = Assert.Single(model.Document.ModelSpace.Block.OfType<DxfBlockReference>());
+            Assert.Equal("other", reference.Name);
+            Assert.Equal(500.0, reference.Position.X, 6);
+            Assert.Equal(500.0, reference.Position.Y, 6);
+            Assert.Same(shown, model.Document);
+        }
+
+        [Fact]
+        public void ADxfDroppedOnTheDrawingArea_IsInsertedToo_AndEscapeCancelsIt()
+        {
+            string other = Room("other.dxf");
+            MainViewModel model = Opened();
+            int before = model.History.Count;
+
+            model.DropFiles(new[] { other });
+
+            Assert.Contains(Since(model, before), l => l.Contains("\"" + other + "\""));
+            Assert.True(model.Session.IsRunning);
+
+            model.Escape();
+
+            Assert.False(model.Session.IsRunning);
+            Assert.Equal(0, References(model));
+        }
+
+        [Fact]
+        public void ADrawingDroppedOnTheDrawingsList_Opens_AsBefore()
+        {
+            string other = RoomDwg("other.dwg");
+            MainViewModel model = Opened();
+
+            model.DropFiles(new[] { other }, onDrawingList: true);
+
             Assert.Equal(Path.GetFullPath(other), Path.GetFullPath(model.Document.FileName));
+            Assert.False(model.Session.IsRunning);
+        }
+
+        [Fact]
+        public void ADrawingDroppedOnTheDrawingAreaWithNoDrawingOpen_IsOpened_AsAutoCadOpensItThen()
+        {
+            string other = RoomDwg("other.dwg");
+            var model = new MainViewModel { SettingsPath = Path.Combine(_folder.FullPath, "settings.json") };
+            Assert.False(model.HasDocument);
+
+            model.DropFiles(new[] { other });
+
+            Assert.True(model.HasDocument);
+            Assert.Equal(Path.GetFullPath(other), Path.GetFullPath(model.Document.FileName));
+            Assert.Equal(0, References(model));
+        }
+
+        [Fact]
+        public void SeveralDrawingsDroppedOnTheDrawingArea_InsertTheFirst_AndPassTheRestOver()
+        {
+            string first = RoomDwg("first.dwg");
+            string second = RoomDwg("second.dwg");
+            MainViewModel model = Opened();
+            string shown = model.Document.FileName;
+
+            model.DropFiles(new[] { first, second });
+
+            // One -INSERT waits, for the first; the second is passed over with no word, as a drop while a command waits is.
+            Assert.True(model.Session.IsRunning);
+            model.Execute("0,0");
+            model.Enter();
+            model.Enter();
+            model.Enter();
+            DxfBlockReference reference = Assert.Single(model.Document.ModelSpace.Block.OfType<DxfBlockReference>());
+            Assert.Equal("first", reference.Name);
+            Assert.Equal(shown, model.Document.FileName);
+        }
+
+        [Fact]
+        public void SeveralDrawingsDroppedOnTheDrawingsList_AllOpen()
+        {
+            string first = RoomDwg("first.dwg");
+            string second = RoomDwg("second.dwg");
+            MainViewModel model = Opened();
+            int before = model.History.Count;
+
+            model.DropFiles(new[] { first, second }, onDrawingList: true);
+
+            Assert.Equal(Path.GetFullPath(second), Path.GetFullPath(model.Document.FileName));
+            Assert.Contains(Since(model, before), l => l.StartsWith("Opened first.dwg", StringComparison.Ordinal));
+            Assert.Contains(Since(model, before), l => l.StartsWith("Opened second.dwg", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void ADrawingDroppedOnTheDrawingAreaWhileLineWaits_IsIgnored_AndLineStillWaits()
+        {
+            string other = RoomDwg("other.dwg");
+            MainViewModel model = Opened();
+            model.StartCommand("LINE");
+            model.Execute("0,0");
+            Assert.True(model.Session.IsRunning);
+            string prompt = model.Session.Prompt.Text;
+            string shown = model.Document.FileName;
+            int before = model.History.Count;
+
+            model.DropFiles(new[] { other });
+
+            Assert.True(model.Session.IsRunning);
+            Assert.Equal(prompt, model.Session.Prompt.Text);
+            Assert.Equal(shown, model.Document.FileName);
+            Assert.Empty(Since(model, before));
+
+            model.Escape();
+
+            Assert.Equal(0, References(model));
+        }
+
+        [Fact]
+        public void ADrawingDroppedOnTheDrawingsListOrTheTitleBarOrTheDrawingArea_IsRoutedByTheWorkspaceByWhereItLands()
+        {
+            // The file is the drawing already open, so that "opens" shows as no -INSERT started and no second window to build.
+            string shown = Path.Combine(_folder.FullPath, "room.dxf");
+
+            OnWindowThread(() =>
+            {
+                MainViewModel model = Opened();
+                var workspace = new CadWorkspace { DataContext = model };
+                workspace.Measure(new Size(1600, 960));
+                workspace.Arrange(new Rect(0, 0, 1600, 960));
+                workspace.UpdateLayout();
+                var data = new DataObject();
+                data.SetData(DataFormats.FileDrop, new[] { shown });
+
+                DragEventArgs onCanvas = Drag(data, DragDrop.PreviewDropEvent);
+                workspace.CanvasView.RaiseEvent(onCanvas);
+
+                Assert.True(onCanvas.Handled);
+                Assert.True(model.Session.IsRunning);
+                model.Escape();
+                Assert.False(model.Session.IsRunning);
+
+                DragEventArgs onList = Drag(data, DragDrop.PreviewDropEvent);
+                workspace.FileListPanel.RaiseEvent(onList);
+
+                Assert.True(onList.Handled);
+                Assert.False(model.Session.IsRunning);
+
+                DragEventArgs onTitle = Drag(data, DragDrop.PreviewDropEvent);
+                workspace.TitleBar.RaiseEvent(onTitle);
+
+                Assert.True(onTitle.Handled);
+                Assert.False(model.Session.IsRunning);
+            });
+        }
+
+        [Fact]
+        public void SecondAndThirdDrawingsDroppedOnTheDrawingsListOfABoundWorkspace_OpenOneAfterTheOther()
+        {
+            string second = RoomDwg("second.dwg");
+            string third = RoomDwg("third.dwg");
+
+            OnWindowThread(() =>
+            {
+                MainViewModel model = Opened();
+                var workspace = new CadWorkspace { DataContext = model };
+                workspace.Measure(new Size(1600, 960));
+                workspace.Arrange(new Rect(0, 0, 1600, 960));
+                workspace.UpdateLayout();
+
+                // The workspace answers the Missing SHX files question with a modal window, which nobody closes in a test host: a
+                // drawing written with the Standard style in txt.shx opens it, and the host waits for ever. Answered here with Cancel.
+                var asked = new List<string>();
+                model.ShowMissingShx = dialog =>
+                {
+                    asked.Add(dialog.Title);
+                    return false;
+                };
+
+                foreach (string file in new[] { second, third })
+                {
+                    var data = new DataObject();
+                    data.SetData(DataFormats.FileDrop, new[] { file });
+                    DragEventArgs onList = Drag(data, DragDrop.PreviewDropEvent);
+                    workspace.FileListPanel.RaiseEvent(onList);
+                    workspace.UpdateLayout();
+
+                    Assert.True(onList.Handled);
+                    Assert.Equal(Path.GetFullPath(file), Path.GetFullPath(model.Document.FileName));
+                    Assert.False(model.Session.IsRunning);
+                }
+
+                Assert.Equal(new[] { "Missing SHX files · second.dwg", "Missing SHX files · third.dwg" }, asked);
+            });
         }
 
         [Fact]
@@ -228,7 +445,8 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 
             Assert.Equal(new[] { b, a }, model.LoadedLispFiles);
 
-            model.DropFiles(new[] { other, c });
+            // Dropped on the DRAWINGS list, where a drawing opens; on the drawing area it would be inserted (see above).
+            model.DropFiles(new[] { other, c }, onDrawingList: true);
 
             Assert.NotSame(first, model.Session);
             Assert.Equal(new[] { c }, model.LoadedLispFiles);

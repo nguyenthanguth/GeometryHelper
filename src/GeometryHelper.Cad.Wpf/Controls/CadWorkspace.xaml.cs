@@ -293,20 +293,6 @@ namespace GeometryHelper.Cad.Wpf
             dialog.ShowDialog();
         }
 
-        /// <summary>Shows the Plugin manager of the window's plugins, as a dialog over the window; nothing without a plugin manager.</summary>
-        public void ShowPluginManager()
-        {
-            PluginManagerViewModel manager = _model?.CreatePluginManager();
-
-            if (manager == null)
-            {
-                return;
-            }
-
-            var dialog = new PluginManagerWindow(manager) { Owner = Window.GetWindow(this) };
-            dialog.ShowDialog();
-        }
-
         /// <summary>Shows Global settings as a dialog over the window, on a category; null for the first.</summary>
         /// <param name="category">The category, as Shortcuts.</param>
         public void ShowGlobalSettings(string category = null)
@@ -642,11 +628,36 @@ namespace GeometryHelper.Cad.Wpf
             {
                 if (_model != null && e.Data.GetData(DataFormats.FileDrop) is string[] files)
                 {
-                    _model.DropFiles(files);
+                    // A drawing opens when it lands on the DRAWINGS list or the title bar, and is inserted anywhere else.
+                    _model.DropFiles(
+                        files,
+                        IsOver(e.OriginalSource, FileListDock) || IsOver(e.OriginalSource, TitleBar)
+                    );
                 }
 
                 e.Handled = true;
             }
+        }
+
+        // Whether a drop's source lies inside the element: the DRAWINGS list or the title bar.
+        private static bool IsOver(object source, DependencyObject element)
+        {
+            for (
+                DependencyObject d = source as DependencyObject;
+                d != null;
+                d =
+                        d is Visual || d is System.Windows.Media.Media3D.Visual3D
+                            ? VisualTreeHelper.GetParent(d)
+                            : LogicalTreeHelper.GetParent(d)
+            )
+            {
+                if (ReferenceEquals(d, element))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static bool IsOverPythonTranscript(object source)
@@ -742,7 +753,6 @@ namespace GeometryHelper.Cad.Wpf
                 _model.SaveAsRequested -= OnSaveAsRequested;
                 _model.LayerManagerRequested -= OnLayerManagerRequested;
                 _model.PluginLoadRequested -= OnPluginLoadRequested;
-                _model.PluginManagerRequested -= OnPluginManagerRequested;
                 _model.SettingsRequested -= OnSettingsRequested;
                 _model.SettingsApplied -= OnSettingsApplied;
                 _model.CloseRequested -= OnCloseRequested;
@@ -765,7 +775,6 @@ namespace GeometryHelper.Cad.Wpf
                 _model.SaveAsRequested += OnSaveAsRequested;
                 _model.LayerManagerRequested += OnLayerManagerRequested;
                 _model.PluginLoadRequested += OnPluginLoadRequested;
-                _model.PluginManagerRequested += OnPluginManagerRequested;
                 _model.SettingsRequested += OnSettingsRequested;
                 _model.SettingsApplied += OnSettingsApplied;
                 _model.CloseRequested += OnCloseRequested;
@@ -997,9 +1006,7 @@ namespace GeometryHelper.Cad.Wpf
         private void OnLayerManagerRequested(object sender, EventArgs e) => ShowLayerManager();
 
         private void OnPluginLoadRequested(object sender, EventArgs e) =>
-            PluginManagerWindow.PickPlugin(Window.GetWindow(this), path => _model.LoadPlugin(path));
-
-        private void OnPluginManagerRequested(object sender, EventArgs e) => ShowPluginManager();
+            AppLoadWindow.PickPlugin(Window.GetWindow(this), path => _model.LoadPlugin(path));
 
         private void OnSettingsRequested(object sender, string category) => ShowGlobalSettings(category);
 

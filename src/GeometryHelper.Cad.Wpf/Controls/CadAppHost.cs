@@ -49,7 +49,7 @@ namespace GeometryHelper.Cad.Wpf
     /// plugin, every file trusted.
     /// <c>--layers</c> draws the Layer manager instead, and <c>--dialog</c> one of the presenter's dialogs or menus:
     /// <c>save-changes</c>, <c>mtext-unsaved</c>, <c>options</c> or <c>settings:Category</c> (Global settings), <c>plugins</c>,
-    /// <c>plugin-settings</c>, <c>plugin-untrusted</c>, <c>color</c>, <c>truecolor</c>, <c>truecolor-rgb</c>,
+    /// <c>plugin-untrusted</c>, <c>color</c>, <c>truecolor</c>, <c>truecolor-rgb</c>,
     /// <c>dsettings[:Tab]</c>, <c>osnap-menu</c>, <c>snap-menu</c>, <c>canvas-menu</c>, <c>drawings-menu</c>, <c>scale-menu</c>,
     /// <c>missing-shx</c>, <c>missing-shx-replace</c>, <c>missing-fonts</c>, <c>missing-fonts-truetype</c>, <c>ptype</c>, <c>linetype</c>, <c>linetype-load</c>,
     /// <c>select-linetype</c>, <c>hatch</c>,
@@ -117,7 +117,7 @@ namespace GeometryHelper.Cad.Wpf
         protected virtual string Usage =>
             "Usage: "
             + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app")
-            + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Home|Insert|Annotate|Parametric|View|Manage|Output|Plugins|Settings] [--dialog save-changes|mtext-unsaved|secureload|writable-folder|settings-security|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|constraints[:0|1|2]|parameters|osnap-menu|snap-menu|canvas-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|missing-fonts|missing-fonts-truetype|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|scalelist|qleader|qleader-line|qleader-attach|selectarrow|tolerance|tolerance-filled|tolerance-full|gdtsymbol|gdtmaterial|inputsearch|view|newview|units|units-direction|xref|xref-tree|plot:png|plot:jpg|plot-custom|plot-view|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|mlstyle|mlstyle-new|mlstyle-new-page|mlstyle-modify|mlstyle-load|mledit|plotstamp|plotstamp-advanced|plotstamp-fields|imageadjust|attext|xbind|insertobject|recovery|spell|spell-settings|objectscale|objectscale-add|insertlayout|templateoptions|saveaspdf|pdf-override|pdf-options|rename|lweight|boundary|viewports|viewports-named|filter|layerfilter|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll] [--python idle|prompt|none]";
+            + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Home|Insert|Annotate|Parametric|View|Manage|Output|Plugins|Settings] [--dialog save-changes|mtext-unsaved|secureload|writable-folder|settings-security|options|settings:Category|plugins|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|constraints[:0|1|2]|parameters|osnap-menu|snap-menu|canvas-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|missing-fonts|missing-fonts-truetype|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|scalelist|qleader|qleader-line|qleader-attach|selectarrow|tolerance|tolerance-filled|tolerance-full|gdtsymbol|gdtmaterial|inputsearch|view|newview|units|units-direction|xref|xref-tree|plot:png|plot:jpg|plot-custom|plot-view|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|mlstyle|mlstyle-new|mlstyle-new-page|mlstyle-modify|mlstyle-load|mledit|plotstamp|plotstamp-advanced|plotstamp-fields|imageadjust|attext|xbind|insertobject|recovery|spell|spell-settings|objectscale|objectscale-add|insertlayout|templateoptions|saveaspdf|pdf-override|pdf-options|rename|lweight|boundary|viewports|viewports-named|filter|layerfilter|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll] [--python idle|prompt|none]";
 
         /// <summary>
         /// Runs the app on the STA thread of its entry point: the window until it is closed, or the screenshot where the first
@@ -1053,14 +1053,12 @@ namespace GeometryHelper.Cad.Wpf
             }
             else if (dialogName != null && dialogName.StartsWith("plugin", StringComparison.OrdinalIgnoreCase))
             {
-                // The Plugin manager, the settings of the plugin loaded, or the question asked before an untrusted load.
-                PluginManagerViewModel manager = model.CreatePluginManager();
-
+                // Load/Unload Applications, or the question asked before an untrusted load.
                 if (string.Equals(dialogName, "plugin-untrusted", StringComparison.OrdinalIgnoreCase))
                 {
                     var question = new CadQuestionWindow(
                         "Load a plugin from a folder that is not trusted?",
-                        "Loading a plugin runs its code with your rights. Load it only if you know where it comes from; to stop being asked, add its folder to the trusted folders in the Plugin manager.",
+                        "Loading a plugin runs its code with your rights. Load it only if you know where it comes from.",
                         pluginPath ?? @"D:\Dev\CircleTools\bin\Debug\CircleTools.dll",
                         "Load",
                         "Don't load"
@@ -1070,20 +1068,9 @@ namespace GeometryHelper.Cad.Wpf
                     width = (int)question.Width;
                     height = MeasuredHeight(root, width);
                 }
-                else if (
-                    string.Equals(dialogName, "plugin-settings", StringComparison.OrdinalIgnoreCase)
-                    && manager?.CreateSettings() is PluginSettingsViewModel settings
-                )
+                else if (model.Plugins != null)
                 {
-                    var dialog = new PluginSettingsWindow(settings);
-                    root = dialog.Body;
-                    window = dialog;
-                    width = (int)dialog.Width;
-                    height = MeasuredHeight(root, width);
-                }
-                else if (manager != null)
-                {
-                    var dialog = new PluginManagerWindow(manager);
+                    var dialog = new AppLoadWindow(new AppLoadViewModel(model));
                     root = dialog.Body;
                     window = dialog;
                     width = (int)dialog.Width;

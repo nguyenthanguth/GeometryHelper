@@ -86,6 +86,17 @@ namespace GeometryHelper.Cad.Lisp
             object value = asList ? definition : made;
             name.Value = value;
             _defined[name] = value;
+
+            if (_defining != null && name.Name.StartsWith("C:", StringComparison.Ordinal))
+            {
+                string command = name.Name.Substring(2);
+
+                if (!_defining.Contains(command))
+                {
+                    _defining.Add(command);
+                }
+            }
+
             return name;
         }
 

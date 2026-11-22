@@ -827,7 +827,7 @@ namespace GeometryHelper.Cad
                     continue;
                 }
 
-                typed = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim() : last;
+                typed = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim().Trim('"') : last;
 
                 if (string.IsNullOrEmpty(typed))
                 {

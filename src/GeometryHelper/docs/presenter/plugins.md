@@ -141,18 +141,23 @@ plugin its own, so that the `CadCommandContext` it is handed is of the type it w
 
 ## Where a plugin lives
 
-The app has a `Plugins` folder beside `GeometryHelper.Cad.App.exe`, as it has `Fonts`, `Hatches`, `Linetypes` and `AutoLisps`
+The app has a `Plugins` folder beside `GeometryHelper.Cad.App.exe`, as it has `Fonts`, `Hatches`, `Linetypes` and `Lisps`
 ([`CadSupportKind.Plugins`](xref:GeometryHelper.Cad.CadSupportKind)). The build copies it, with a `README.txt`, to the
 output of every project that uses the presenter. To install a plugin, put it there:
 
 - **A .dll** directly in `Plugins`: one plugin, named as the file without its extension (`NumberCircles.dll` is the plugin
   `NumberCircles`). A `plugin.json` beside it is not read here, since one file could not name every .dll of the folder.
-- **A folder** in `Plugins`: one plugin made of the .dll files directly in it, its own and the libraries it needs. Where
-  the folder has a `plugin.json`, that gives the plugin its name, version and API, as above; where it has none, the plugin
-  is named after the folder. A folder with neither a .dll nor a `plugin.json` is passed over.
+- **A folder** in `Plugins`, at any depth, that holds .dll files directly: one plugin made of those .dll files, its own and
+  the libraries it needs, and the walk does not go below it. Where the folder has a `plugin.json`, that gives the plugin its
+  name, version and API, as above; where it has none, the plugin is named after the folder.
+- **A folder with no .dll and no `plugin.json`** is walked into: `Plugins\Company\ToolA\ToolA.dll` is the plugin `ToolA`,
+  and `Plugins\Company\ToolB\ToolB.dll` the plugin `ToolB`. A subfolder of a plugin's own folder is not looked at, since the
+  plugin is the folder above it. A subfolder that is a junction or a symbolic link, or is hidden or a system folder, is not
+  entered, and one that cannot be read is passed over.
 
-Everything there is loaded once, when the app starts: the .dll files first, by the order of their names (either case the
-same), then the folders in the same order; then the plugins of the startup list below. Loading goes through the manager
+Everything there is loaded once, when the app starts, in the order of the walk: the .dll files directly in `Plugins` first,
+by the order of their names (either case the same), then the folders, depth first, the folders of each level in the same
+name order; then the plugins of the startup list below. Loading goes through the manager
 described next, so a plugin of `Plugins` is copied to the shadow folder, loaded into its own load context on .NET 8, added
 to the Plugins tab and the command line, written in the load log and given the plugin API's window extensions. The folder
 lies under the program folder, so it is a trusted folder, and no question is asked. A file that is not a plugin (a library
@@ -184,7 +189,7 @@ from `Plugins`: there is no install or uninstall command.
 outside `TrustedFolders` is loaded only when `ConfirmUntrusted` says yes, and never where it is not set. The plugin folder (`Plugins` beside the app)
 is always trusted (`AddTrustedFolder`, `RemoveTrustedFolder`, `IsTrusted`). Without a confirmation, `Load` gives
 `...CircleTools.dll is outside the trusted folders, and loading it was not confirmed.`; with one, `Loaded Circle tools 1.0.0:
-NUMCIRCLES.` Every load is a line of `Log`, with the full path of the file and whether it was trusted. A yes to a folder outside the trusted ones holds for that folder for the life of the manager, so a reload does not ask again; it is never written to disk, and a no is asked again.
+NUMCIRCLES.` Every load is a line of `Log`, with the full path of the file and whether it was trusted. A yes to a folder outside the trusted ones holds for that folder for the life of the manager, so a reload does not ask again; it is never written to disk, and a no is asked again. Load/Unload Applications has no page for the trusted folders: a .dll from anywhere but `Plugins` is asked about at its load by the question above.
 
 **A plugin loaded twice.** `Load` of a plugin already loaded is refused: `The plugin Circle tools is loaded already, from
 ...; PLUGINRELOAD loads it again.`
@@ -207,14 +212,36 @@ app keeps them in a folder of its own, GeometryHelper CAD in `%AppData%\Geometry
 there but beside the app, so that every user of an install has the same plugins. A plugin that earlier versions installed
 into `%AppData%\GeometryHelper\Dxf\Plugins` is not loaded now: move its folder to `Plugins` beside the app.
 
-A plugin.json with `"kind": "drawing"` holds drawing plugins, which this presenter does not run: a library that makes model drawings gives the plugin manager a `DrawingPluginFinder`, and the manager then loads such a plugin through the same shadow copy, trusted folders, startup list and log, and lists it under the Drawing chip of the Plugin manager. Without a finder the presenter refuses the plugin with the manager's reason.
+## The sample plugin
+
+A sample plugin ships in `Plugins\DrawingInfo`: the command `GHDWGINFO`, which reads the drawing and writes what it holds on
+the command line, and changes nothing. It is the smallest plugin that does something useful, one class with one command that
+takes no prompt, and its source is the project `examples/GeometryHelper.Cad.Plugins.DrawingInfo` of the repository, a netstandard2.0
+library that references `GeometryHelper.Cad` without copying it. The app loads it at every start with no question, and the
+Plugins tab has a button for its command, as for every command. A drawing of three circles and a line in model space, with one
+layer and no block, gives
+
+```
+Command: GHDWGINFO
+Drawing: circles.dxf
+Model space: 4 objects
+  Circle   3
+  Line     1
+Layers: 1, blocks: 0
+Extents: (-10.00,-40.00) to (110.00,30.00)
+```
+
+The folder holds the plugin's .dll and its `plugin.json` and nothing else, since the app gives a plugin its own
+`GeometryHelper.Cad.dll`. The build of `GeometryHelper.Cad.App` builds the plugin first and copies those two files there. To
+remove the sample, delete the folder `Plugins\DrawingInfo`; to start a plugin of your own, copy its project.
 
 ## What the window adds
 
-The window shows a Plugins ribbon tab with a button for each command of each plugin loaded, a Plugin manager (a list with
-its load log, the settings of each plugin, load at startup, trusted folders) and a dialog before a
-load outside the trusted folders. Its settings are drawn by the window from the `CadSetting` attributes; the plugin knows
-none of it.
+The window shows a Plugins ribbon tab with a button for each command of each plugin loaded, the Plugin manager button,
+which opens [Load/Unload Applications](lisp.md#appload) (a table of the plugins and the AutoLISP files, with On, Commands,
+File and At start, Load…, Reload and Unload) and a dialog before a load outside the trusted folders. The plugin's load
+lines go to the command history. A plugin's `CadSetting` attributes remain in the plugin API, but the window has no page
+that shows them now.
 
 A command that works long shows it on the status bar's progress meter through `c.Progress`:
 `using (var meter = c.Progress.Start("Checking blocks")) { meter.SetLimit(n); ... meter.MeterProgress(); }`, as

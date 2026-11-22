@@ -9,21 +9,21 @@ using static GeometryHelper.Cad.UnitTest.EditingDrawings;
 namespace GeometryHelper.Cad.UnitTest
 {
     /// <summary>
-    /// The AutoLisps folder beside the program (D1210 to D1216 of the lispux spec): every <c>.lsp</c> directly in it loads into each
+    /// The Lisps folder beside the program (D1210 to D1216 of the lispux spec): every <c>.lsp</c> in it, at any depth, loads into each
     /// drawing when it opens, between acaddoc.lsp and the Startup Suite, in name order; the folder is on the AutoLISP search
     /// path after the user's support folders. AutoCAD has no such folder, so the rules are ours; the order of the steps is the
     /// published one of AutoCAD 2021 with the program's own files (a menu's .mnl) between acaddoc.lsp and the Startup Suite.
     /// The program folder is made under the temporary folder and removed after; each file writes a mark so that the order
     /// shows in the history.
     /// </summary>
-    public sealed class LispAutoLispsFolderTests : IDisposable
+    public sealed class LispLispsFolderTests : IDisposable
     {
         private readonly string _root = Path.Combine(
             Path.GetTempPath(),
             "gh-lisp-lisps-" + Guid.NewGuid().ToString("N")
         );
 
-        public LispAutoLispsFolderTests()
+        public LispLispsFolderTests()
         {
             Directory.CreateDirectory(_root);
         }
@@ -49,10 +49,10 @@ namespace GeometryHelper.Cad.UnitTest
 
         private string Program => Path.Combine(_root, "app");
 
-        private string AutoLisps(string name) => Path.Combine(Program, "AutoLisps", name);
+        private string Lisps(string name) => Path.Combine(Program, "Lisps", name);
 
         // A file of the folder that writes its own name in square brackets when loaded.
-        private void Mark(string name) => Make(Path.Combine("app", "AutoLisps", name), "(princ \"[" + name + "]\")");
+        private void Mark(string name) => Make(Path.Combine("app", "Lisps", name), "(princ \"[" + name + "]\")");
 
         private CadCommandSession NewSession(params string[] support)
         {
@@ -81,14 +81,14 @@ namespace GeometryHelper.Cad.UnitTest
         #region The folder
 
         [Fact]
-        public void TheAutoLispsFolder_IsTheFourthDefaultFolderBesideTheProgram()
+        public void TheLispsFolder_IsTheFourthDefaultFolderBesideTheProgram()
         {
             var roots = new CadSupportFolders(Program);
 
-            Assert.Equal(Path.Combine(Program, "AutoLisps"), roots.FolderOf(CadSupportKind.AutoLisps));
-            Assert.Empty(roots.ExistingOf(CadSupportKind.AutoLisps));
+            Assert.Equal(Path.Combine(Program, "Lisps"), roots.FolderOf(CadSupportKind.Lisps));
+            Assert.Empty(roots.ExistingOf(CadSupportKind.Lisps));
             Mark("a.lsp");
-            Assert.Equal(new[] { Path.Combine(Program, "AutoLisps") }, roots.ExistingOf(CadSupportKind.AutoLisps));
+            Assert.Equal(new[] { Path.Combine(Program, "Lisps") }, roots.ExistingOf(CadSupportKind.Lisps));
         }
 
         #endregion
@@ -96,7 +96,7 @@ namespace GeometryHelper.Cad.UnitTest
         #region Loading at start
 
         [Fact]
-        public void TwoFilesInAutoLisps_LoadIntoANewDrawing_InNameOrder()
+        public void TwoFilesInLisps_LoadIntoANewDrawing_InNameOrder()
         {
             Mark("b.lsp");
             Mark("a.lsp");
@@ -136,7 +136,7 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void AFileThatErrors_IsWritten_AndSkipped_AndTheOthersLoad()
         {
-            Make(@"app\AutoLisps\a.lsp", "(princ \"[a]\")\n(car 1)\n(princ \"[never]\")");
+            Make(@"app\Lisps\a.lsp", "(princ \"[a]\")\n(car 1)\n(princ \"[never]\")");
             Mark("b.lsp");
 
             CadCommandSession session = Opened(new LispStartup());
@@ -145,25 +145,25 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void OnlyTheLspFilesDirectlyInTheFolder_Load()
+        public void OnlyTheLspFiles_Load_ThoseInASubfolderToo_AfterTheTopOnes()
         {
             Mark("a.lsp");
             Mark("x.lspx");
             Mark("readme.txt");
             Mark("tools.dcl");
-            Make(@"app\AutoLisps\Sub\c.lsp", "(princ \"[c]\")");
+            Make(@"app\Lisps\Sub\c.lsp", "(princ \"[c]\")");
 
             CadCommandSession session = Opened(new LispStartup());
 
-            Assert.Equal(new[] { "[a.lsp]" }, session.History);
+            Assert.Equal(new[] { "[a.lsp]", "[c]" }, session.History);
         }
 
         [Fact]
         public void ACompiledFile_WritesTheRefusal_AndTheRestLoads()
         {
             Mark("a.lsp");
-            Make(@"app\AutoLisps\b.fas", "x");
-            Make(@"app\AutoLisps\c.vlx", "x");
+            Make(@"app\Lisps\b.fas", "x");
+            Make(@"app\Lisps\c.vlx", "x");
             Mark("d.lsp");
 
             CadCommandSession session = Opened(new LispStartup());
@@ -172,8 +172,8 @@ namespace GeometryHelper.Cad.UnitTest
                 new[]
                 {
                     "[a.lsp]",
-                    "; error: LOAD failed: " + Printed(AutoLisps("b.fas")) + " (compiled AutoLISP is not supported)",
-                    "; error: LOAD failed: " + Printed(AutoLisps("c.vlx")) + " (compiled AutoLISP is not supported)",
+                    "; error: LOAD failed: " + Printed(Lisps("b.fas")) + " (compiled AutoLISP is not supported)",
+                    "; error: LOAD failed: " + Printed(Lisps("c.vlx")) + " (compiled AutoLISP is not supported)",
                     "[d.lsp]",
                 },
                 session.History
@@ -181,7 +181,7 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void WithNoAutoLispsFolder_NothingIsWritten()
+        public void WithNoLispsFolder_NothingIsWritten()
         {
             Directory.CreateDirectory(Program);
 
@@ -193,17 +193,17 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void TheCommandsOfAFile_AreTheDocumentsToTypeAfterwards()
         {
-            Make(@"app\AutoLisps\tools.lsp", "(defun c:ghlisps () (princ \"up\") (princ))");
+            Make(@"app\Lisps\tools.lsp", "(defun c:ghlisps () (princ \"up\") (princ))");
             CadCommandSession session = Opened(new LispStartup());
 
             Run(session, "GHLISPS");
 
             Assert.Equal(new[] { "Command: GHLISPS", "up" }, session.History);
-            Assert.Equal(new[] { AutoLisps("tools.lsp") }, session.LoadedLispFiles, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal(new[] { Lisps("tools.lsp") }, session.LoadedLispFiles, StringComparer.OrdinalIgnoreCase);
         }
 
         [Fact]
-        public void AFileInAutoLisps_GoesThroughTheLoadGate()
+        public void AFileInLisps_GoesThroughTheLoadGate()
         {
             // the gate trusts the folder of the program (L6 D902); here the program folder is a temporary one, so it asks
             Mark("a.lsp");
@@ -212,7 +212,7 @@ namespace GeometryHelper.Cad.UnitTest
 
             new LispStartup().OnDocumentOpened(session);
 
-            Assert.Equal(new[] { "; error: File load canceled: " + AutoLisps("a.lsp") }, session.History);
+            Assert.Equal(new[] { "; error: File load canceled: " + Lisps("a.lsp") }, session.History);
         }
 
         #endregion
@@ -220,7 +220,7 @@ namespace GeometryHelper.Cad.UnitTest
         #region The order of the steps
 
         [Fact]
-        public void TheOrder_IsAcadLsp_AcaddocLsp_AutoLisps_TheStartupSuite_ThenStartupFunction()
+        public void TheOrder_IsAcadLsp_AcaddocLsp_Lisps_TheStartupSuite_ThenStartupFunction()
         {
             string support = Path.Combine(_root, "support");
             Make(@"support\acad.lsp", "(princ \"[acad]\")");
@@ -239,9 +239,9 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void AnAcaddocLspInAutoLisps_IsFoundAsAcaddocLsp_AndLoadsOnce()
+        public void AnAcaddocLspInLisps_IsFoundAsAcaddocLsp_AndLoadsOnce()
         {
-            Make(@"app\AutoLisps\acaddoc.lsp", "(princ \"[acaddoc]\")");
+            Make(@"app\Lisps\acaddoc.lsp", "(princ \"[acaddoc]\")");
             Mark("a.lsp");
 
             CadCommandSession session = Opened(new LispStartup());
@@ -250,9 +250,9 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void AnAcadLspInAutoLisps_LoadsOnceForTheProgram_NotForEveryDrawing()
+        public void AnAcadLspInLisps_LoadsOnceForTheProgram_NotForEveryDrawing()
         {
-            Make(@"app\AutoLisps\acad.lsp", "(princ \"[acad]\")");
+            Make(@"app\Lisps\acad.lsp", "(princ \"[acad]\")");
             Mark("a.lsp");
             var startup = new LispStartup();
 
@@ -264,11 +264,11 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void AnAcaddocLspOfTheSupportFolders_WinsOverOneInAutoLisps()
+        public void AnAcaddocLspOfTheSupportFolders_WinsOverOneInLisps()
         {
             string support = Path.Combine(_root, "support");
             Make(@"support\acaddoc.lsp", "(princ \"[mine]\")");
-            Make(@"app\AutoLisps\acaddoc.lsp", "(princ \"[lisps]\")");
+            Make(@"app\Lisps\acaddoc.lsp", "(princ \"[lisps]\")");
 
             CadCommandSession session = Opened(new LispStartup(), support);
 
@@ -280,21 +280,21 @@ namespace GeometryHelper.Cad.UnitTest
         #region The search path
 
         [Fact]
-        public void TheSearchPath_IsTheSupportFoldersThenAutoLisps_AndTheDocumentsOwnListIsNotChanged()
+        public void TheSearchPath_IsTheSupportFoldersThenLisps_AndTheDocumentsOwnListIsNotChanged()
         {
             string support = Path.Combine(_root, "support");
             Directory.CreateDirectory(support);
             Mark("a.lsp");
             CadCommandSession session = NewSession(support);
 
-            Assert.Equal(new[] { support, Path.Combine(Program, "AutoLisps") }, session.Lisp.SupportFolders);
+            Assert.Equal(new[] { support, Path.Combine(Program, "Lisps") }, session.Lisp.SupportFolders);
             Assert.Equal(new[] { support }, session.Document.SupportFolders);
         }
 
         [Fact]
-        public void AnAutoLispsFolderTheUserListedAsWell_IsOnThePathOnce()
+        public void ALispsFolderTheUserListedAsWell_IsOnThePathOnce()
         {
-            string listed = Path.Combine(Program, "AutoLisps") + "\\";
+            string listed = Path.Combine(Program, "Lisps") + "\\";
             Mark("a.lsp");
             CadCommandSession session = NewSession(listed);
 
@@ -302,31 +302,31 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void Load_OfABareName_FindsAFileInAutoLisps()
+        public void Load_OfABareName_FindsAFileInLisps()
         {
-            Make(@"app\AutoLisps\a.lsp", "42");
+            Make(@"app\Lisps\a.lsp", "42");
             CadCommandSession session = NewSession();
 
             Assert.Equal("42", Value(session, "(load \"a\")"));
         }
 
         [Fact]
-        public void Findfile_FindsAFileInAutoLisps_AfterTheSupportFolders()
+        public void Findfile_FindsAFileInLisps_AfterTheSupportFolders()
         {
             string support = Path.Combine(_root, "support");
             Make(@"support\both.lsp", "1");
-            Make(@"app\AutoLisps\both.lsp", "2");
-            Make(@"app\AutoLisps\only.lsp", "3");
+            Make(@"app\Lisps\both.lsp", "2");
+            Make(@"app\Lisps\only.lsp", "3");
             CadCommandSession session = NewSession(support);
 
             Assert.Equal(Printed(Path.Combine(support, "both.lsp")), Value(session, "(findfile \"both.lsp\")"));
-            Assert.Equal(Printed(AutoLisps("only.lsp")), Value(session, "(findfile \"only.lsp\")"));
+            Assert.Equal(Printed(Lisps("only.lsp")), Value(session, "(findfile \"only.lsp\")"));
         }
 
         [Fact]
-        public void Load_OfAFileInASubfolderOfAutoLisps_ReachesIt()
+        public void Load_OfAFileInASubfolderOfLisps_ReachesIt()
         {
-            Make(@"app\AutoLisps\Sub\x.lsp", "7");
+            Make(@"app\Lisps\Sub\x.lsp", "7");
             CadCommandSession session = NewSession();
 
             Assert.Equal("7", Value(session, "(load \"Sub/x\")"));
@@ -334,13 +334,10 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void LoadDialog_OfADclInAutoLisps_AndInItsSubfolder_FindsIt()
+        public void LoadDialog_OfADclInLisps_AndInItsSubfolder_FindsIt()
         {
-            Make(@"app\AutoLisps\kit.dcl", "ghok : dialog { label = \"Only\"; : text { label = \"x\"; } ok_only; }");
-            Make(
-                @"app\AutoLisps\Sub\kit2.dcl",
-                "ghok2 : dialog { label = \"Only\"; : text { label = \"x\"; } ok_only; }"
-            );
+            Make(@"app\Lisps\kit.dcl", "ghok : dialog { label = \"Only\"; : text { label = \"x\"; } ok_only; }");
+            Make(@"app\Lisps\Sub\kit2.dcl", "ghok2 : dialog { label = \"Only\"; : text { label = \"x\"; } ok_only; }");
             CadCommandSession session = NewSession();
 
             Assert.Equal("1", Value(session, "(load_dialog \"kit\")"));

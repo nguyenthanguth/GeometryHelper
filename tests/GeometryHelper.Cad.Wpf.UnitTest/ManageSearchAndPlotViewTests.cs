@@ -175,13 +175,13 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void LoadApplication_IsGreyedWithNoPluginManager_AndShowsThePluginManagerWithOne()
+        public void LoadApplication_IsGreyedUntilTheWindowCanShowTheDialog_AndTheManagerButtonOpensTheSameDialog()
         {
             MainViewModel model = Opened();
             var ribbon = (ManageRibbonViewModel)model.ManageTab.TabContent;
             Assert.False(ribbon.CanLoadApplication);
             model.StartCommand("APPLOAD");
-            Assert.Contains("No plugin manager is in use: applications cannot be loaded.", model.History);
+            Assert.Contains("Load/Unload Applications cannot be shown here.", model.History);
 
             using (
                 var manager = new CadPluginManager(
@@ -192,15 +192,23 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                 )
             )
             {
-                int raised = 0;
-                model.PluginManagerRequested += (s, e) => raised++;
                 model.UsePlugins(manager, loadAtStart: false);
 
+                // With plugins but a window that cannot show Load/Unload Applications, nothing can be pressed.
+                Assert.False(ribbon.CanLoadApplication);
+
+                int shown = 0;
+                model.ShowAppLoad = dialog =>
+                {
+                    shown++;
+                    return true;
+                };
                 Assert.True(ribbon.CanLoadApplication);
 
-                // A window that cannot ask for a file (no ShowAppLoad) still shows its Plugin manager.
+                // APPLOAD and the Plugin manager button open the same window.
                 model.StartCommand("APPLOAD");
-                Assert.Equal(1, raised);
+                model.PluginRibbon.ManagerCommand.Execute(null);
+                Assert.Equal(2, shown);
             }
         }
 

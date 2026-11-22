@@ -7,7 +7,7 @@ namespace GeometryHelper.Cad.Wpf
 {
     /// <summary>
     /// The Manage ribbon tab, as AutoCAD 2021's for what the presenter has: Customization (User Interface and Edit Aliases open Global settings on Shortcuts, Tool Palettes shows the tool palettes), Applications
-    /// (Load Application, which loads an AutoLISP file or a plugin, greyed where the window can neither show Load/Unload Applications nor has a plugin manager; Run Script), CAD Standards
+    /// (Load Application, which opens Load/Unload Applications, greyed where the window cannot show it; Run Script), CAD Standards
     /// (parked, greyed) and Cleanup (Purge, Overkill, Audit, Recover). A button starts its command through
     /// <see cref="MainViewModel.StartCommandCommand"/>, as the buttons of Home do.
     /// </summary>
@@ -20,7 +20,6 @@ namespace GeometryHelper.Cad.Wpf
             {
                 if (
                     e.PropertyName == nameof(MainViewModel.HasDocument)
-                    || e.PropertyName == nameof(MainViewModel.Plugins)
                     || e.PropertyName == nameof(MainViewModel.ShowAppLoad)
                 )
                 {
@@ -32,8 +31,8 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets the window's view model, whose commands the buttons run.</summary>
         public MainViewModel Model { get; }
 
-        /// <summary>Gets whether Load Application can be pressed: a drawing is open and the window can show Load/Unload Applications or has a plugin manager.</summary>
-        public bool CanLoadApplication => Model.HasDocument && (Model.ShowAppLoad != null || Model.Plugins != null);
+        /// <summary>Gets whether Load Application can be pressed: a drawing is open and the window can show Load/Unload Applications.</summary>
+        public bool CanLoadApplication => Model.HasDocument && Model.ShowAppLoad != null;
     }
 
     /// <summary>
@@ -65,7 +64,7 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>
         /// Adds CUI and ALIASEDIT, which show Global settings on the Shortcuts page (the aliases and the keys the presenter lets
-        /// a drafter change), and APPLOAD, which loads an AutoLISP file or a plugin and says so where the window can do neither.
+        /// a drafter change), and APPLOAD, which shows Load/Unload Applications and says so where the window cannot.
         /// </summary>
         private void AddManageWindowCommands(CadCommandRegistry registry)
         {
@@ -76,8 +75,8 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>
         /// Gets or sets how the window shows Load/Unload Applications, over the view model it is given, until the dialog is
-        /// closed; the window is modal. Null where no window does, when APPLOAD shows the Plugin manager instead. The Plugin
-        /// manager stays on the Plugins tab.
+        /// closed; the window is modal. It is the one window of APPLOAD and of the Plugin manager button. Null where no window
+        /// does, when APPLOAD says so.
         /// </summary>
         public Func<AppLoadViewModel, bool> ShowAppLoad
         {
@@ -86,24 +85,14 @@ namespace GeometryHelper.Cad.Wpf
         }
 
         /// <summary>
-        /// APPLOAD: shows Load/Unload Applications with <see cref="ShowAppLoad"/>, which loads an AutoLISP file into the
-        /// document's interpreter and a plugin into the plugin manager as its Load button is pressed. A window with no such
-        /// dialog shows its Plugin manager, and with neither says that applications cannot be loaded.
+        /// APPLOAD, and the Plugin manager button: shows Load/Unload Applications with <see cref="ShowAppLoad"/>, which lists
+        /// the AutoLISP files and the plugins loaded. A window with no such dialog says that it cannot show it.
         /// </summary>
         private void LoadApplications()
         {
-            // A window with no dialog shows its Plugin manager, as APPLOAD did before it loaded AutoLISP.
             if (ShowAppLoad == null)
             {
-                if (_plugins == null)
-                {
-                    Say("No plugin manager is in use: applications cannot be loaded.");
-                }
-                else
-                {
-                    RequestPluginManager();
-                }
-
+                Say("Load/Unload Applications cannot be shown here.");
                 return;
             }
 
@@ -170,6 +159,13 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets the AutoLISP files loaded into the document shown, as full paths in the order they loaded; empty with no document.</summary>
         internal IReadOnlyList<string> LoadedLispFiles =>
             _current?.Session.LoadedLispFiles ?? (IReadOnlyList<string>)Array.Empty<string>();
+
+        /// <summary>Gets the commands a loaded AutoLISP file defined in the document shown, without <c>c:</c>, in the order it defined them; empty with no document.</summary>
+        internal IReadOnlyList<string> LispCommandsOf(string path) =>
+            _current?.Session.LispCommandsOf(path) ?? (IReadOnlyList<string>)Array.Empty<string>();
+
+        /// <summary>Unloads an AutoLISP file from the document shown: it leaves the loaded files and its <c>c:</c> commands are unknown again.</summary>
+        internal bool UnloadLispFile(string path) => _current != null && _current.Session.UnloadLisp(path);
 
         /// <summary>
         /// Changes the settings in use in place and saves them to <see cref="SettingsPath"/>, as the dialogs that keep a choice

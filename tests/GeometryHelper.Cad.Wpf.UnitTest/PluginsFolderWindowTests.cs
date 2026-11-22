@@ -9,7 +9,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 {
     /// <summary>
     /// The Plugins folder beside the app, as the window meets it: the folder the app loads from, the plugins found in it at
-    /// start, the Plugin manager's trusted folders, and no way left to install a .ghplugin.
+    /// start, and no way left to install a .ghplugin.
     /// </summary>
     public sealed class PluginsFolderWindowTests : IDisposable
     {
@@ -57,32 +57,6 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     line.StartsWith("Loaded " + SampleName, StringComparison.Ordinal)
                 );
             }
-        }
-
-        [Fact]
-        public void ThePluginManagerShowsThePluginsFolderFirstAmongTheTrustedFolders_AndItCannotBeRemoved()
-        {
-            string plugins = Path.Combine(_folder.FullPath, "Plugins");
-
-            using (CadPluginManager manager = Manager(plugins))
-            using (var model = new PluginManagerViewModel(manager))
-            {
-                manager.AddTrustedFolder(Path.Combine(_folder.FullPath, "dev"));
-
-                Assert.Equal(plugins, model.TrustedFolders[0]);
-                model.SelectedFolder = plugins;
-                Assert.False(model.RemoveFolderCommand.CanExecute(null));
-            }
-        }
-
-        [Theory]
-        [InlineData("InstallCommand")]
-        [InlineData("RemoveCommand")]
-        [InlineData("InstallRequested")]
-        [InlineData("Install")]
-        public void ThePluginManager_HasNoInstallOrRemoveAnyMore(string member)
-        {
-            Assert.Null(typeof(PluginManagerViewModel).GetMember(member).FirstOrDefault());
         }
     }
 }

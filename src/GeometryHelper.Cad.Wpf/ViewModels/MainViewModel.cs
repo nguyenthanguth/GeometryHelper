@@ -1877,7 +1877,7 @@ namespace GeometryHelper.Cad.Wpf
             document.LayerFilterChanged += OnLayerFilterChanged;
             WatchReferences(document);
 
-            // acad.lsp, acaddoc.lsp, the files of the AutoLisps folder, the Startup Suite of the settings and S::STARTUP; what they write waits in the history until the drawing is shown.
+            // acad.lsp, acaddoc.lsp, the files of the Lisps folder, the Startup Suite of the settings and S::STARTUP; what they write waits in the history until the drawing is shown.
             _lispStartup.StartupSuite.Clear();
 
             foreach (string startupFile in _settings.LispStartupSuite)

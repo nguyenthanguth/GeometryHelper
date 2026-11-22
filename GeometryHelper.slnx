@@ -43,5 +43,6 @@
             Id="39dca74c-af65-4caa-96c6-716e221631ca"
         />
         <Project Path="examples/Tekla2025Test/Tekla2025Test.csproj" Id="1067b19d-8718-4212-99fb-afcd6e796d6f" />
+        <Project Path="examples/GeometryHelper.Cad.Plugins.DrawingInfo/GeometryHelper.Cad.Plugins.DrawingInfo.csproj" />
     </Folder>
 </Solution>

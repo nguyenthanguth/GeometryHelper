@@ -9,7 +9,7 @@ namespace GeometryHelper.Cad
     /// <summary>
     /// The support files a drawing's linetypes (.lin) and hatch patterns (.pat) may be read from, looked for in this order:
     /// the folders the user gave in <see cref="CadDocument.SupportFolders"/>, then the Linetypes or Hatches folder beside
-    /// GeometryHelper.Cad.dll (<see cref="CadSupportFolders"/>), then the presenter's own sets
+    /// GeometryHelper.Cad.dll and its subfolders (<see cref="CadSupportFolders"/>), then the presenter's own sets
     /// (<see cref="CadLinetypeFile.BuiltIn"/>, <see cref="CadPatternFile.BuiltIn"/>). The drawing's own folder is not looked
     /// in for them, and no file of AutoCAD's is looked for or preferred.
     /// </summary>
@@ -23,7 +23,7 @@ namespace GeometryHelper.Cad
 
         /// <summary>
         /// Finds a file of support: the path as written where it is a full path that is there, else its name in the document's
-        /// support folders in order and then, for a .lin or .pat file, in the Linetypes or Hatches folder beside the dll; null
+        /// support folders in order and then, for a .lin or .pat file, in the Linetypes or Hatches folder beside the dll and its subfolders; null
         /// where none has it.
         /// </summary>
         /// <param name="document">The document.</param>
@@ -76,8 +76,8 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>
-        /// Lists the files of support of an extension in the support folders and the folder beside the dll, each name once, the
-        /// first folder that has it winning, in the order of their names: hidden.lin, mine.lin, walls.lin.
+        /// Lists the files of support of an extension in the support folders and the folder beside the dll with its subfolders, each name once, the
+        /// first that has it winning, in the order of the walk (<see cref="CadSupportFolders"/>): the user's folders in order, then the folder beside the dll, its own files by name first and then its subfolders.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="extension">The extension, as .lin or .pat.</param>
@@ -95,41 +95,18 @@ namespace GeometryHelper.Cad
                 throw new ArgumentNullException(nameof(extension));
             }
 
-            var found = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var found = new List<string>();
 
             foreach (string folder in FoldersOf(document, KindOf("x" + extension)))
             {
-                try
-                {
-                    foreach (
-                        string path in Directory
-                            .GetFiles(folder, "*" + extension)
-                            .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                found.AddRange(
+                    CadSupportWalk.FilesOf(folder, name =>
+                        string.Equals(Path.GetExtension(name), extension, StringComparison.OrdinalIgnoreCase)
                     )
-                    {
-                        string name = Path.GetFileName(path);
-
-                        if (
-                            !found.ContainsKey(name)
-                            && string.Equals(Path.GetExtension(path), extension, StringComparison.OrdinalIgnoreCase)
-                        )
-                        {
-                            found.Add(name, path);
-                        }
-                    }
-                }
-                catch (Exception e)
-                    when (e is ArgumentException
-                        || e is IOException
-                        || e is UnauthorizedAccessException
-                        || e is System.Security.SecurityException
-                    )
-                {
-                    GeometryHelperLog.Debug("CadSupportFiles: " + folder + " was not listed (" + e.Message + ").");
-                }
+                );
             }
 
-            return found.Values.ToList().AsReadOnly();
+            return CadSupportWalk.FirstOfEachName(extension + " files", found).ToList().AsReadOnly();
         }
 
         /// <summary>
@@ -184,7 +161,7 @@ namespace GeometryHelper.Cad
 
             if (kind != null)
             {
-                foreach (string folder in document.SupportRoots.ExistingOf(kind.Value))
+                foreach (string folder in document.SupportRoots.SearchFoldersOf(kind.Value))
                 {
                     if (!folders.Contains(folder, StringComparer.OrdinalIgnoreCase))
                     {

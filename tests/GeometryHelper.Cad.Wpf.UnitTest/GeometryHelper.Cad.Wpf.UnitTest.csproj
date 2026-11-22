@@ -56,4 +56,12 @@
             Visible="false"
         />
     </ItemGroup>
+
+    <!--
+    The Lisps folder of the program ships the sample routine GH-DrawingInfo.lsp, which loads into every drawing that opens.
+    These tests list the files a drawing loaded and expect only their own, so the sample is taken out of their copy of the folder.
+  -->
+    <Target Name="LeaveOutTheSampleRoutine" AfterTargets="CopyFilesToOutputDirectory">
+        <Delete Files="$(OutDir)Lisps\GH-DrawingInfo.lsp" />
+    </Target>
 </Project>
