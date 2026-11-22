@@ -101,6 +101,45 @@ namespace GeometryHelper.Cad.Wpf
             set => _sources = value ?? Array.Empty<CadSourceInfo>();
         }
 
+        /// <summary>
+        /// Starts a session with the shortest and longest arc of a revision cloud the settings keep (REVCLOUDMINARCLENGTH and
+        /// REVCLOUDMAXARCLENGTH, which AutoCAD keeps in the profile between sessions, probe m/routines M6); nothing where none is kept.
+        /// The approximate length (REVCLOUDAPPROXARCLEN) is not kept, as AutoCAD does not keep it.
+        /// </summary>
+        private void SeedRevcloudLengths(CadCommandSession session)
+        {
+            if (_settings.RevcloudMinimumArcLength > 0.0 && _settings.RevcloudMaximumArcLength > 0.0)
+            {
+                session.Remembered["revcloud.least"] = _settings.RevcloudMinimumArcLength;
+                session.Remembered["revcloud.most"] = _settings.RevcloudMaximumArcLength;
+            }
+        }
+
+        /// <summary>Keeps the arc lengths REVCLOUD, Arc length or a SETVAR left in a session in the settings, once a command has ended, where they differ from those kept.</summary>
+        private void KeepRevcloudLengths(CadCommandSession session)
+        {
+            if (
+                session.IsRunning
+                || !session.Remembered.TryGetValue("revcloud.least", out double least)
+                || !session.Remembered.TryGetValue("revcloud.most", out double most)
+                || !(least > 0.0)
+                || !(most > 0.0)
+                || (least == _settings.RevcloudMinimumArcLength && most == _settings.RevcloudMaximumArcLength)
+            )
+            {
+                return;
+            }
+
+            ChangeSettings(
+                s =>
+                {
+                    s.RevcloudMinimumArcLength = least;
+                    s.RevcloudMaximumArcLength = most;
+                },
+                "REVCLOUD"
+            );
+        }
+
         /// <summary>Gets the Settings ribbon tab, always shown, last.</summary>
         public CadWorkspaceExtension SettingsTab
         {

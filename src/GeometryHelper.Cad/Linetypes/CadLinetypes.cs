@@ -46,7 +46,7 @@ namespace GeometryHelper.Cad
         /// Loads linetypes into a document as one undo step, named as given: each of a file on disk through the library's
         /// loader, each of <see cref="CadLinetypeFile.BuiltInName"/> from its definition; one the drawing has already passed
         /// over, one the drawing cannot take (its text style or shape missing) refused alone, the others loaded. DASHED of
-        /// the presenter's own set loaded into a new drawing is an LTYPE of a dash 6 and a gap 1.5, 7.5 long. A linetype of
+        /// the presenter's own set loaded into a new drawing is an LTYPE of a dash 12.7 and a gap 6.35, 19.05 long. A linetype of
         /// <see cref="CadLinetypeFile.BuiltIn"/> itself is written from its definition whatever the path, so that the Load
         /// dialog's list, the presenter's own set followed by a file's, loads in one step.
         /// </summary>
@@ -160,8 +160,11 @@ namespace GeometryHelper.Cad
         /// Writes a linetype of the presenter's own as an LTYPE record of a drawing, as AutoCAD writes one: its name, its
         /// description, 72 the alignment A, the count of its elements and its length, then each element's 49 and 74, and for a
         /// text its 75 of nought, the handle of its text style (340), its scale, rotation and offset (46, 50, 44, 45) and the
-        /// text (9). GAS_LINE's gap of 2.4 carrying GAS in STANDARD is <c>49 -2.4, 74 2, 75 0, 340</c> Standard's handle
-        /// <c>, 46 1.2, 50 0, 44 -1.2, 45 -0.6, 9 GAS</c>.
+        /// text (9). GAS_LINE's gap of 5.08 carrying GAS in STANDARD is <c>49 -5.08, 74 2, 75 0, 340</c> Standard's handle
+        /// <c>, 46 2.54, 50 0, 44 -2.54, 45 -1.27, 9 GAS</c>. One of <see cref="CadLinetypeFile.BuiltIn"/> itself named like one of
+        /// AutoCAD's (CENTER, HIDDEN, DASHED and the rest) is written in the drawing's units, as AutoCAD takes acad.lin or
+        /// acadiso.lin by MEASUREMENT: CENTER in a metric drawing is <c>31.75, -6.35, 6.35, -6.35</c> and in one whose
+        /// MEASUREMENT is 0 it is <c>1.25, -0.25, 0.25, -0.25</c>; any other definition is written as it is.
         /// </summary>
         /// <param name="database">The drawing.</param>
         /// <param name="linetype">The linetype.</param>
@@ -185,6 +188,8 @@ namespace GeometryHelper.Cad
             {
                 throw new ArgumentException(linetype.Fault, nameof(linetype));
             }
+
+            linetype = CadLinetypeFile.InUnitsOf(linetype, database);
 
             if (database.LinetypeTable.Has(linetype.Name))
             {

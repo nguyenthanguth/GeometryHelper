@@ -10,7 +10,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 {
     /// <summary>
     /// The vectors AutoLISP's <c>grdraw</c> and <c>grvecs</c> put on the screen, drawn by the canvas over its picture of the
-    /// drawing, offscreen on an STA thread: in the colour of the index, a pixel wide, and gone after REDRAW or <c>grclear</c>.
+    /// drawing, offscreen on an STA thread: in the colour of the index, a pixel wide, and gone after REDRAW or <c>(redraw)</c>, and left by <c>grclear</c>.
     /// </summary>
     public class CanvasTemporaryGraphicsTests
     {
@@ -136,7 +136,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void TheVectorsOfGrvecs_AreDrawnEachInItsColour_AndGoneAfterGrclear()
+        public void TheVectorsOfGrvecs_AreDrawnEachInItsColour_StayAfterGrclear_AndGoneAfterRedraw()
         {
             OnCanvas(
                 (model, canvas) =>
@@ -149,7 +149,15 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     Assert.True(Shows(canvas, pixels, 1000, 300, 0x00FF00));
                     Assert.True(Shows(canvas, pixels, 1000, 350, 0x0000FF));
 
+                    // AutoCAD 2021 (window): grclear clears nothing; (redraw) takes the vectors off.
                     model.Session.Feed("(grclear)");
+                    canvas.RenderNow();
+                    pixels = Pixels(canvas);
+
+                    Assert.True(Shows(canvas, pixels, 1000, 300, 0x00FF00));
+                    Assert.True(Shows(canvas, pixels, 1000, 350, 0x0000FF));
+
+                    model.Session.Feed("(redraw)");
                     canvas.RenderNow();
                     pixels = Pixels(canvas);
 

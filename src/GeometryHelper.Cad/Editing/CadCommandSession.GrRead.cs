@@ -11,11 +11,14 @@ namespace GeometryHelper.Cad
     /// </summary>
     public sealed partial class CadCommandSession
     {
-        // What one answer of grread is, in the codes grread gives: 2 a key, 3 a click, 5 a move, 11 a right click.
+        // What one answer of grread is, in the codes grread gives: 2 a key, 3 a click, 5 a move, 11 and 12 the right button with no
+        // menu (a 0, then the point), 25 the right button with the menu on (the column).
         private const int GrKey = 2;
         private const int GrClick = 3;
         private const int GrMove = 5;
         private const int GrRight = 11;
+        private const int GrPoint = 12;
+        private const int GrMenu = 25;
 
         private readonly struct GrEvent
         {
@@ -74,10 +77,30 @@ namespace GeometryHelper.Cad
             return FeedGrRead(new GrEvent(GrMove, 0, point));
         }
 
-        /// <summary>The right button pressed at the prompt of <c>grread</c>: the routine gets <c>(11 0)</c>, and no menu opens.</summary>
+        /// <summary>
+        /// The right button pressed at the prompt of <c>grread</c>, and no menu opens. With the default menu on (the bit 1 of
+        /// SHORTCUTMENU, which 11 has) the routine gets <c>(25 x)</c>, <c>x</c> being the cursor's screen column in pixels; with
+        /// SHORTCUTMENU 0 it gets <c>(11 0)</c> and, at the next call, <c>(12 (x y z))</c>, the point in the UCS (AutoCAD 2021, window).
+        /// </summary>
         /// <param name="point">The cursor, in drawing units.</param>
+        /// <param name="screenX">The cursor's column in pixels.</param>
+        /// <param name="shortcutMenu">The window's SHORTCUTMENU.</param>
         /// <returns>Whether the prompt is <c>grread</c>'s and took it.</returns>
-        internal bool FeedRightClick(GeoPoint2 point) => FeedGrRead(new GrEvent(GrRight, 0, point));
+        internal bool FeedRightClick(GeoPoint2 point, int screenX, int shortcutMenu)
+        {
+            if (!IsGrRead)
+            {
+                return false;
+            }
+
+            if ((shortcutMenu & 1) != 0)
+            {
+                return FeedGrRead(new GrEvent(GrMenu, screenX, point));
+            }
+
+            _grQueue.Add(new GrEvent(GrRight, 0, point));
+            return FeedGrRead(new GrEvent(GrPoint, 0, point));
+        }
 
         /// <summary>
         /// Text fed to the prompt of <c>grread</c> (a test, the remote server): one key for each character, then Enter, as the
@@ -138,13 +161,15 @@ namespace GeometryHelper.Cad
             return true;
         }
 
-        /// <summary>The list <c>grread</c> gives for an answer: <c>(2 code)</c>, <c>(3 (x y z))</c>, <c>(5 (x y z))</c> or <c>(11 0)</c>.</summary>
+        /// <summary>The list <c>grread</c> gives for an answer: <c>(2 code)</c>, <c>(3 (x y z))</c>, <c>(5 (x y z))</c>, <c>(11 0)</c>, <c>(12 (x y z))</c> or <c>(25 x)</c>.</summary>
         private object GrAnswerOf(GrEvent answer)
         {
             switch (answer.Type)
             {
                 case GrKey:
                     return LispInterpreter.ListOf(new object[] { GrKey, answer.Code });
+                case GrMenu:
+                    return LispInterpreter.ListOf(new object[] { GrMenu, answer.Code });
                 case GrRight:
                     return LispInterpreter.ListOf(new object[] { GrRight, 0 });
                 default:

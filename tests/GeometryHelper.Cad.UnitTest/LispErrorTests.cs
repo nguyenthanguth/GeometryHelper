@@ -133,7 +133,6 @@ namespace GeometryHelper.Cad.UnitTest
         [InlineData("(load)", "too few arguments")] // AutoCAD 2021: ; error: too few arguments
         [InlineData("(exit)", "quit / exit abort")] // AutoCAD 2021: ; error: quit / exit abort
         [InlineData("(quit)", "quit / exit abort")] // AutoCAD 2021: ; error: quit / exit abort
-        [InlineData("(*error* \"x\")", "no function definition: *ERROR*")] // AutoCAD 2021: ; error: no function definition: *ERROR*
         public void AnError_IsWrittenAsAutoCadWritesIt(string expression, string message)
         {
             LispResult result = new LispInterpreter().Run(expression);

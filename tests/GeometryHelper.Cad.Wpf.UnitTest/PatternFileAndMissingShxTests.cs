@@ -193,7 +193,8 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 
                 Assert.Equal(new[] { "DASHED", "FENCE" }, done.Loaded.ToArray());
                 Assert.Equal("LINETYPE", model.Document.NextUndo.Name);
-                Assert.Equal(7.5, model.Document.Database.LinetypeTable["DASHED"].PatternLength, 9);
+                // The drawing here is imperial (MEASUREMENT 0), so DASHED is loaded in inches: a dash 0.5 and a gap 0.25.
+                Assert.Equal(0.75, model.Document.Database.LinetypeTable["DASHED"].PatternLength, 9);
                 Assert.Equal(14.0, model.Document.Database.LinetypeTable["FENCE"].PatternLength, 9);
 
                 load.BuiltInCommand.Execute(null);

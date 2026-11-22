@@ -270,7 +270,7 @@ namespace GeometryHelper.Cad.UnitTest
                 CadCommandSession session = Start(document, "-LINETYPE", "L", "DASHED");
                 Assert.Equal("Enter linetype file to search <GeometryHelper.lin>:", session.PromptText);
                 Run(session, Enter, Enter);
-                Assert.Equal(7.5, document.Database.LinetypeTable["DASHED"].PatternLength, 12);
+                Assert.Equal(19.05, document.Database.LinetypeTable["DASHED"].PatternLength, 12);
             });
         }
 
@@ -287,25 +287,24 @@ namespace GeometryHelper.Cad.UnitTest
             Assert.True(load.Result.Succeeded);
             Assert.Equal(new[] { "DASHED", "GAS_LINE" }, load.Loaded.ToArray());
             string text = Text(document.Database);
-            Assert.Contains(
-                "  2\nDASHED\n 70\n0\n  3\nDashed __ __ __ __ __ __ __\n 72\n65\n 73\n2\n 40\n7.5\n 49\n6\n 74\n0\n 49\n-1.5\n 74\n0\n",
-                text
-            );
+            // Group 40, the length of the pattern, is the sum of its elements and is not asserted to the last digit.
+            Assert.Contains("  2\nDASHED\n 70\n0\n  3\nDashed __ __ __ __ __ __ __ __\n 72\n65\n 73\n2\n 40\n", text);
+            Assert.Contains(" 49\n12.7\n 74\n0\n 49\n-6.35\n 74\n0\n  0\nLTYPE", text);
             string standard = document
                 .Database.TextStyleTable.First(s =>
                     string.Equals(s.Name, "Standard", StringComparison.OrdinalIgnoreCase)
                 )
                 .Handle;
             Assert.Contains(
-                " 49\n-2.4\n 74\n2\n 75\n0\n340\n"
+                " 49\n-5.08\n 74\n2\n 75\n0\n340\n"
                     + standard
-                    + "\n 46\n1.2\n 50\n0\n 44\n-1.2\n 45\n-0.6\n  9\nGAS\n 49\n-3\n 74\n0\n",
+                    + "\n 46\n2.54\n 50\n0\n 44\n-2.54\n 45\n-1.27\n  9\nGAS\n 49\n-6.35\n 74\n0\n",
                 text
             );
 
             DxfLinetypeTableRecord gas = document.Database.LinetypeTable["GAS_LINE"];
             Assert.Equal("GAS", gas.TextAt(1));
-            Assert.Equal(11.4, gas.PatternLength, 12);
+            Assert.Equal(24.13, gas.PatternLength, 12);
 
             // Loaded again, each is already there and nothing more is done.
             CadLinetypeLoad again = CadLinetypes.Load(
@@ -320,7 +319,7 @@ namespace GeometryHelper.Cad.UnitTest
             DxfLine line = Assert.Single(All<DxfLine>(document.ModelSpace));
             Assert.Equal("DASHED", line.Linetype);
             DisplayItem2 drawn = Assert.Single(document.GetDisplay(document.ModelSpace).Items);
-            Assert.Equal(new[] { 6.0, 1.5 }, drawn.Style.Dashes);
+            Assert.Equal(new[] { 12.7, 6.35 }, drawn.Style.Dashes);
             AuditsClean(document);
         }
 
@@ -346,30 +345,35 @@ namespace GeometryHelper.Cad.UnitTest
             {
                 double[] full = own.Single(l => l.Name == bases[i]).Elements.Select(e => e.Length).ToArray();
                 Assert.Equal(counts[i], full.Length);
-                Assert.Equal(
-                    full.Select(x => x / 2.0).ToArray(),
-                    own.Single(l => l.Name == bases[i] + "2").Elements.Select(e => e.Length).ToArray()
-                );
+                // AutoCAD's CENTER2 is not half of CENTER (19.05 against 31.75): the half size is its own row.
+                if (bases[i] != "CENTER")
+                {
+                    Assert.Equal(
+                        full.Select(x => x / 2.0).ToArray(),
+                        own.Single(l => l.Name == bases[i] + "2").Elements.Select(e => e.Length).ToArray()
+                    );
+                }
+
                 Assert.Equal(
                     full.Select(x => x * 2.0).ToArray(),
                     own.Single(l => l.Name == bases[i] + "X2").Elements.Select(e => e.Length).ToArray()
                 );
             }
 
-            // The nine of before keep their lengths.
+            // The names of AutoCAD have its lengths in millimetres (the inch values times 25.4, as acadiso.lin has them).
             Assert.Equal(
-                new[] { 6.0, -1.5 },
+                new[] { 12.7, -6.35 },
                 own.Single(l => l.Name == "DASHED").Elements.Select(e => e.Length).ToArray()
             );
             Assert.Equal(
-                new[] { 3.0, -0.75 },
+                new[] { 6.35, -3.175 },
                 own.Single(l => l.Name == "DASHED2").Elements.Select(e => e.Length).ToArray()
             );
             Assert.Equal(
-                new[] { 12.0, -1.5, 3.0, -1.5 },
+                new[] { 31.75, -6.35, 6.35, -6.35 },
                 own.Single(l => l.Name == "CENTER").Elements.Select(e => e.Length).ToArray()
             );
-            Assert.Equal(11.4, own.Single(l => l.Name == "GAS_LINE").PatternLength, 12);
+            Assert.Equal(24.13, own.Single(l => l.Name == "GAS_LINE").PatternLength, 12);
 
             // ISO 128-20 for a pen of 1.0 mm: a dash 12, a gap 3, a space 18, a long dash 24, a short dash 6, a dot nought.
             double[] Iso(int type) =>
@@ -403,11 +407,10 @@ namespace GeometryHelper.Cad.UnitTest
 
             Assert.False(session.IsRunning);
             Assert.Contains("Linetype DASHEDX2 loaded.", session.History);
-            Assert.Contains(
-                "  2\nDASHEDX2\n 70\n0\n  3\nDashed, double size\n 72\n65\n 73\n2\n 40\n15\n 49\n12\n 74\n0\n 49\n-3\n 74\n0\n",
-                Text(document.Database)
-            );
-            Assert.Equal(15.0, document.Database.LinetypeTable["DASHEDX2"].PatternLength, 12);
+            string text = Text(document.Database);
+            Assert.Contains("  2\nDASHEDX2\n 70\n0\n  3\nDashed, double size\n 72\n65\n 73\n2\n 40\n", text);
+            Assert.Contains(" 49\n25.4\n 74\n0\n 49\n-12.7\n 74\n0\n", text);
+            Assert.Equal(38.1, document.Database.LinetypeTable["DASHEDX2"].PatternLength, 12);
             AuditsClean(document);
         }
 
@@ -421,14 +424,14 @@ namespace GeometryHelper.Cad.UnitTest
                 CadLinetypeFile.BuiltInName
             );
             CadCommandSession session = Start(document, "CELTYPE", "HIDDEN", "LINE", P(0, 0), P(100, 0), Enter);
-            Assert.Equal(new[] { 3.0, 1.5 }, document.GetDisplay(document.ModelSpace).Items.Single().Style.Dashes);
+            Assert.Equal(new[] { 6.35, 3.175 }, document.GetDisplay(document.ModelSpace).Items.Single().Style.Dashes);
 
             Run(session, "LTS");
             Assert.Equal("Enter new linetype scale factor <1.0000>:", session.PromptText);
             Run(session, "2");
             Assert.Equal(2.0, document.Database.Ltscale);
             Assert.Equal("Regenerating model.", session.History.Last());
-            Assert.Equal(new[] { 6.0, 3.0 }, document.GetDisplay(document.ModelSpace).Items.Single().Style.Dashes);
+            Assert.Equal(new[] { 12.7, 6.35 }, document.GetDisplay(document.ModelSpace).Items.Single().Style.Dashes);
 
             Run(session, "LTSCALE", "-1");
             Assert.Equal("Value must be positive and nonzero.", session.History.Last());
@@ -440,7 +443,7 @@ namespace GeometryHelper.Cad.UnitTest
             DxfLine second = All<DxfLine>(document.ModelSpace).Last();
             Assert.Equal(0.5, second.LinetypeScale);
             Assert.Contains(document.GetDisplay(document.ModelSpace).Items, i =>
-                i.Style.Dashes != null && i.Style.Dashes[0] == 3.0
+                i.Style.Dashes != null && i.Style.Dashes[0] == 6.35
             );
 
             Assert.True(document.Undo());
@@ -448,7 +451,7 @@ namespace GeometryHelper.Cad.UnitTest
             Assert.Equal(1.0, document.Database.Celtscale);
             Assert.True(document.Undo());
             Assert.Equal(1.0, document.Database.Ltscale);
-            Assert.Equal(new[] { 3.0, 1.5 }, document.GetDisplay(document.ModelSpace).Items.Single().Style.Dashes);
+            Assert.Equal(new[] { 6.35, 3.175 }, document.GetDisplay(document.ModelSpace).Items.Single().Style.Dashes);
         }
 
         [Fact]

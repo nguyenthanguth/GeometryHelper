@@ -63,7 +63,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     manager.Add(load.Chosen, load.FilePath);
                     Assert.True(manager.Rows.Single(r => r.Name == "DASHED").IsPending);
                     Assert.Equal(
-                        "M0,5 L32,5 M40,5 L72,5 M80,5 L112,5",
+                        "M0,5 L26.67,5 M40,5 L66.67,5 M80,5 L106.67,5",
                         manager.Rows.Single(r => r.Name == "DASHED").Appearance
                     );
 

@@ -50,8 +50,8 @@ namespace GeometryHelper.Cad.Lisp
         Selection,
 
         /// <summary>
-        /// <c>grread</c>: one key, click or move of the cursor, answered as <c>(2 code)</c>, <c>(3 (x y z))</c>, <c>(5 (x y z))</c> or
-        /// <c>(11 0)</c>; the window answers it with the keys and the mouse, never as a line of the command line.
+        /// <c>grread</c>: one key, click or move of the cursor, answered as <c>(2 code)</c>, <c>(3 (x y z))</c>, <c>(5 (x y z))</c>,
+        /// <c>(11 0)</c>, <c>(12 (x y z))</c> or <c>(25 x)</c>; the window answers it with the keys and the mouse, never as a line of the command line.
         /// </summary>
         Input,
 

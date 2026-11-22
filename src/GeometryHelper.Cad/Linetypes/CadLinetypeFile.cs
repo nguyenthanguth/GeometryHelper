@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
+using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Cad
 {
@@ -289,61 +291,62 @@ namespace GeometryHelper.Cad
         public const string BuiltInName = "GeometryHelper.lin";
 
         /// <summary>
-        /// The presenter's own linetypes, in millimetres, the lengths of ISO 128 for a pen of 0.5 mm: a dash 6, a long dash 12,
-        /// a short dash 3, a gap 1.5, a dot nought. Each but GAS_LINE comes again at half size (its name and 2: DASHED2, a dash 3
-        /// and a gap of 0.75) and at double size (its name and X2: DASHEDX2, a dash 12 and a gap of 3). The ISO 128-20 types 02 to
-        /// 15 follow for a pen of 1.0 mm: a dash 12, a long dash 24, a short dash 6, a gap 3, a space 18 and a dot nought, as a
+        /// The presenter's own linetypes, in millimetres. The 24 that carry the names AutoCAD users type (DASHED, HIDDEN, CENTER,
+        /// PHANTOM, DOT, DASHDOT, DIVIDE, BORDER, each with its 2 and X2) and GAS_LINE have the lengths AutoCAD gives them in a
+        /// metric drawing, so that a drawing looks the same in both programs: CENTER a dash 31.75, a gap 6.35, a short dash 6.35
+        /// and a gap 6.35, HIDDEN a dash 6.35 and a gap 3.175. The 2 is half of that but for CENTER2 (a dash 19.05, not 15.875)
+        /// and the X2 double. The ISO 128-20 types 02 to 15 follow for a pen of 1.0 mm: a dash 12, a long dash 24, a short dash 6, a gap 3, a space 18 and a dot nought, as a
         /// pen draws a dot of half its width.
         /// </summary>
         private const string Own =
-            "*DASHED,Dashed __ __ __ __ __ __ __\n"
-            + "A,6,-1.5\n"
+            "*DASHED,Dashed __ __ __ __ __ __ __ __\n"
+            + "A,12.7,-6.35\n"
             + "*DASHED2,Dashed, half size\n"
-            + "A,3,-0.75\n"
+            + "A,6.35,-3.175\n"
             + "*DASHEDX2,Dashed, double size\n"
-            + "A,12,-3\n"
-            + "*HIDDEN,Hidden _ _ _ _ _ _ _ _ _ _ _\n"
-            + "A,3,-1.5\n"
+            + "A,25.4,-12.7\n"
+            + "*HIDDEN,Hidden __ __ __ __ __ __ __ __\n"
+            + "A,6.35,-3.175\n"
             + "*HIDDEN2,Hidden, half size\n"
-            + "A,1.5,-0.75\n"
+            + "A,3.175,-1.5875\n"
             + "*HIDDENX2,Hidden, double size\n"
-            + "A,6,-3\n"
-            + "*CENTER,Center ____ _ ____ _ ____ _\n"
-            + "A,12,-1.5,3,-1.5\n"
+            + "A,12.7,-6.35\n"
+            + "*CENTER,Center _____ _ _____ _ _____ _\n"
+            + "A,31.75,-6.35,6.35,-6.35\n"
             + "*CENTER2,Center, half size\n"
-            + "A,6,-0.75,1.5,-0.75\n"
+            + "A,19.05,-3.175,3.175,-3.175\n"
             + "*CENTERX2,Center, double size\n"
-            + "A,24,-3,6,-3\n"
-            + "*PHANTOM,Phantom ____ _ _ ____ _ _ ____\n"
-            + "A,12,-1.5,3,-1.5,3,-1.5\n"
+            + "A,63.5,-12.7,12.7,-12.7\n"
+            + "*PHANTOM,Phantom _____ _ _ _____ _ _ _____ _ _\n"
+            + "A,31.75,-6.35,6.35,-6.35,6.35,-6.35\n"
             + "*PHANTOM2,Phantom, half size\n"
-            + "A,6,-0.75,1.5,-0.75,1.5,-0.75\n"
+            + "A,15.875,-3.175,3.175,-3.175,3.175,-3.175\n"
             + "*PHANTOMX2,Phantom, double size\n"
-            + "A,24,-3,6,-3,6,-3\n"
-            + "*DOT,Dot . . . . . . . . . . . . .\n"
-            + "A,0,-1.5\n"
+            + "A,63.5,-12.7,12.7,-12.7,12.7,-12.7\n"
+            + "*DOT,Dot . . . . . . . . . . . .\n"
+            + "A,0,-6.35\n"
             + "*DOT2,Dot, half size\n"
-            + "A,0,-0.75\n"
+            + "A,0,-3.175\n"
             + "*DOTX2,Dot, double size\n"
-            + "A,0,-3\n"
-            + "*DASHDOT,Dash dot __ . __ . __ . __\n"
-            + "A,6,-1.5,0,-1.5\n"
+            + "A,0,-12.7\n"
+            + "*DASHDOT,Dash dot __ . __ . __ . __ . __ .\n"
+            + "A,12.7,-6.35,0,-6.35\n"
             + "*DASHDOT2,Dash dot, half size\n"
-            + "A,3,-0.75,0,-0.75\n"
+            + "A,6.35,-3.175,0,-3.175\n"
             + "*DASHDOTX2,Dash dot, double size\n"
-            + "A,12,-3,0,-3\n"
-            + "*DIVIDE,Divide __ . . __ . . __ . .\n"
-            + "A,6,-1.5,0,-1.5,0,-1.5\n"
+            + "A,25.4,-12.7,0,-12.7\n"
+            + "*DIVIDE,Divide __ . . __ . . __ . . __ . .\n"
+            + "A,12.7,-6.35,0,-6.35,0,-6.35\n"
             + "*DIVIDE2,Divide, half size\n"
-            + "A,3,-0.75,0,-0.75,0,-0.75\n"
+            + "A,6.35,-3.175,0,-3.175,0,-3.175\n"
             + "*DIVIDEX2,Divide, double size\n"
-            + "A,12,-3,0,-3,0,-3\n"
+            + "A,25.4,-12.7,0,-12.7,0,-12.7\n"
             + "*BORDER,Border __ __ . __ __ . __ __ .\n"
-            + "A,6,-1.5,6,-1.5,0,-1.5\n"
+            + "A,12.7,-6.35,12.7,-6.35,0,-6.35\n"
             + "*BORDER2,Border, half size\n"
-            + "A,3,-0.75,3,-0.75,0,-0.75\n"
+            + "A,6.35,-3.175,6.35,-3.175,0,-3.175\n"
             + "*BORDERX2,Border, double size\n"
-            + "A,12,-3,12,-3,0,-3\n"
+            + "A,25.4,-12.7,25.4,-12.7,0,-12.7\n"
             +
             // ISO 128-20 for a pen of 1.0 mm (W100); the type's number in ISO 128-2 is the one in the name.
             // 02 dashed: a dash and a gap.
@@ -402,18 +405,104 @@ namespace GeometryHelper.Cad
             "*ACAD_ISO15W100,ISO 15 two dashes three dots, pen 1.0 mm\n"
             + "A,12,-3,12,-3,0,-3,0,-3,0,-3\n"
             + "*GAS_LINE,Gas line ----GAS----GAS----GAS----\n"
-            + "A,6,-2.4,[\"GAS\",STANDARD,S=1.2,R=0.0,X=-1.2,Y=-0.6],-3\n";
+            + "A,12.7,-5.08,[\"GAS\",STANDARD,S=2.54,R=0.0,X=-2.54,Y=-1.27],-6.35\n";
+
+        // The same linetypes in inches, for a drawing whose MEASUREMENT is 0 (see InUnitsOf). The names and the pattern lines
+        // only: the description is the one above.
+        private const string OwnInches =
+            "*DASHED\n"
+            + "A,0.5,-0.25\n"
+            + "*DASHED2\n"
+            + "A,0.25,-0.125\n"
+            + "*DASHEDX2\n"
+            + "A,1,-0.5\n"
+            + "*HIDDEN\n"
+            + "A,0.25,-0.125\n"
+            + "*HIDDEN2\n"
+            + "A,0.125,-0.0625\n"
+            + "*HIDDENX2\n"
+            + "A,0.5,-0.25\n"
+            + "*CENTER\n"
+            + "A,1.25,-0.25,0.25,-0.25\n"
+            + "*CENTER2\n"
+            + "A,0.75,-0.125,0.125,-0.125\n"
+            + "*CENTERX2\n"
+            + "A,2.5,-0.5,0.5,-0.5\n"
+            + "*PHANTOM\n"
+            + "A,1.25,-0.25,0.25,-0.25,0.25,-0.25\n"
+            + "*PHANTOM2\n"
+            + "A,0.625,-0.125,0.125,-0.125,0.125,-0.125\n"
+            + "*PHANTOMX2\n"
+            + "A,2.5,-0.5,0.5,-0.5,0.5,-0.5\n"
+            + "*DOT\n"
+            + "A,0,-0.25\n"
+            + "*DOT2\n"
+            + "A,0,-0.125\n"
+            + "*DOTX2\n"
+            + "A,0,-0.5\n"
+            + "*DASHDOT\n"
+            + "A,0.5,-0.25,0,-0.25\n"
+            + "*DASHDOT2\n"
+            + "A,0.25,-0.125,0,-0.125\n"
+            + "*DASHDOTX2\n"
+            + "A,1,-0.5,0,-0.5\n"
+            + "*DIVIDE\n"
+            + "A,0.5,-0.25,0,-0.25,0,-0.25\n"
+            + "*DIVIDE2\n"
+            + "A,0.25,-0.125,0,-0.125,0,-0.125\n"
+            + "*DIVIDEX2\n"
+            + "A,1,-0.5,0,-0.5,0,-0.5\n"
+            + "*BORDER\n"
+            + "A,0.5,-0.25,0.5,-0.25,0,-0.25\n"
+            + "*BORDER2\n"
+            + "A,0.25,-0.125,0.25,-0.125,0,-0.125\n"
+            + "*BORDERX2\n"
+            + "A,1,-0.5,1,-0.5,0,-0.5\n"
+            + "*GAS_LINE\n"
+            + "A,0.5,-0.2,[\"GAS\",STANDARD,S=0.1,R=0.0,X=-0.1,Y=-0.05],-0.25\n";
 
         private static readonly Lazy<IReadOnlyList<CadLinetypeDefinition>> Mine = new Lazy<
             IReadOnlyList<CadLinetypeDefinition>
         >(() => Parse(Own));
 
+        private static readonly Lazy<Dictionary<string, CadLinetypeDefinition>> Inches = new Lazy<
+            Dictionary<string, CadLinetypeDefinition>
+        >(() =>
+        {
+            var byName = new Dictionary<string, CadLinetypeDefinition>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (CadLinetypeDefinition linetype in Parse(OwnInches))
+            {
+                byName[linetype.Name] = linetype;
+            }
+
+            return byName;
+        });
+
         /// <summary>
         /// Gets the presenter's own 39 linetypes, in millimetres: DASHED, HIDDEN, CENTER, PHANTOM, DOT, DASHDOT, DIVIDE and BORDER,
         /// each with its half size (DASHED2) and double size (DASHEDX2); ACAD_ISO02W100 to ACAD_ISO15W100; and GAS_LINE. Continuous
-        /// is not among them, as every drawing has it.
+        /// is not among them, as every drawing has it. Loaded into a drawing whose MEASUREMENT is 0 the first 24 and GAS_LINE
+        /// take their lengths in inches instead (<see cref="CadLinetypes.Add"/>).
         /// </summary>
         public static IReadOnlyList<CadLinetypeDefinition> BuiltIn => Mine.Value;
+
+        /// <summary>
+        /// Gets the linetype to write into a drawing: one of <see cref="BuiltIn"/> itself, whose name the presenter also has in
+        /// inches (all but the ISO 128 ones), comes back in inches for a drawing whose MEASUREMENT is 0, as AutoCAD takes acad.lin
+        /// for such a drawing and acadiso.lin for a metric one; any other linetype comes back as it is.
+        /// </summary>
+        internal static CadLinetypeDefinition InUnitsOf(CadLinetypeDefinition linetype, DxfDatabase database)
+        {
+            if (database.Measurement != DxfMeasurementValue.English || !Mine.Value.Contains(linetype))
+            {
+                return linetype;
+            }
+
+            return Inches.Value.TryGetValue(linetype.Name, out CadLinetypeDefinition inches)
+                ? new CadLinetypeDefinition(linetype.Name, linetype.Description, inches.Elements)
+                : linetype;
+        }
 
         /// <summary>
         /// Reads the linetypes of the text of a .lin file, in its order: each opened by <c>*NAME,description</c>, its pattern on

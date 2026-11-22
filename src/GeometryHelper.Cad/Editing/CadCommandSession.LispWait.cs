@@ -362,6 +362,11 @@ namespace GeometryHelper.Cad
             LispResult result = Lisp.CancelWait();
 
             // A routine the cancel ended is not told so again: the command line keeps what Esc made of the command.
+            if (!result.IsWaiting)
+            {
+                RaiseLispEnds(result);
+            }
+
             LispContinue(result, result.IsWaiting ? finished : null);
         }
 

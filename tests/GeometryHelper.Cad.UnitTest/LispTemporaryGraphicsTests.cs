@@ -171,16 +171,17 @@ namespace GeometryHelper.Cad.UnitTest
         #region grclear and redraw
 
         [Fact]
-        public void GrclearGivesNilAndTakesTheVectorsOff_AndWithAnArgumentIsTooManyArguments()
+        public void GrclearGivesNilAndLeavesTheVectors_AndWithAnArgumentIsTooManyArguments()
         {
             CadCommandSession session = Fresh();
             Value(session, "(grdraw '(0 0) '(10 10) 1)");
 
-            // AutoCAD 2021 (g1): (grclear) is nil; (grclear 1) is too many arguments.
+            // AutoCAD 2021 (g1): (grclear) is nil; (grclear 1) is too many arguments; its window clears nothing (L8 M7: the pixels
+            // of a grdraw were the same before and after it).
             Assert.Equal("; error: too many arguments", Value(session, "(grclear 1)"));
             Assert.Single(session.TemporaryVectors);
             Assert.Equal("nil", Value(session, "(grclear)"));
-            Assert.Empty(session.TemporaryVectors);
+            Assert.Single(session.TemporaryVectors);
         }
 
         [Theory]
@@ -227,8 +228,8 @@ namespace GeometryHelper.Cad.UnitTest
             session.TemporaryGraphicsChanged += (s, e) => raised++;
 
             Value(session, "(grdraw '(0 0) '(10 10) 1)");
-            Value(session, "(grclear)");
-            Value(session, "(grclear)");
+            Value(session, "(redraw)");
+            Value(session, "(redraw)");
 
             Assert.Equal(2, raised);
         }

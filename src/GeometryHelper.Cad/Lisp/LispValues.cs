@@ -252,6 +252,12 @@ namespace GeometryHelper.Cad.Lisp
         public bool IsHard { get; }
 
         /// <summary>
+        /// True for the quiet exit of <c>vl-exit-with-error</c> and <c>vl-exit-with-value</c>: the evaluation ends with nothing
+        /// written and no <c>*error*</c> called, and <c>vl-catch-all-apply</c> gives an error object with no message (AutoCAD 2021).
+        /// </summary>
+        internal bool IsQuiet { get; set; }
+
+        /// <summary>
         /// The variables the functions this error went out of had bound, innermost first, each with the value it had before. They
         /// are given back after <c>*error*</c> has run, which is why <c>*error*</c> sees the locals of the function that failed.
         /// </summary>

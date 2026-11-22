@@ -29,6 +29,10 @@ namespace GeometryHelper.Cad.Lisp
             internal Dictionary<string, KeyValuePair<CadClipboardData, string>> Erased { get; } =
                 new Dictionary<string, KeyValuePair<CadClipboardData, string>>(StringComparer.OrdinalIgnoreCase);
 
+            /// <summary>The extension dictionary (its handle) of each object <c>entdel</c> erased, by the handle the object had: it stays in the drawing, readable, and a second <c>entdel</c> gives it to the entity brought back.</summary>
+            internal Dictionary<string, string> Extensions { get; } =
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
             /// <summary>The handle an object has now: an entity brought back by <c>entdel</c> has a new one, and the name it had still reaches it.</summary>
             internal string Resolve(string handle)
             {
@@ -61,6 +65,7 @@ namespace GeometryHelper.Cad.Lisp
                 lisp.OnOwner(() => a.Length == 0 ? null : EntMakeX(lisp, session, a[0]))
             );
             lisp.Define("ENTDEL", 1, 1, a => EntDel(lisp, session, state, a[0]));
+            RegisterMenuFunctions(lisp, session);
             lisp.Define("ENTNEXT", 0, 1, a => EntNext(lisp, session, state, a));
             lisp.Define("ENTLAST", 0, 0, a => lisp.OnOwner(() => EntLast(session)));
             lisp.Define("ENTUPD", 1, 1, a => EntUpd(lisp, session, state, a[0]));
@@ -333,6 +338,16 @@ namespace GeometryHelper.Cad.Lisp
                 {
                     CompleteLayer(pairs);
                 }
+                else if (item.Type == "STYLE")
+                {
+                    // The obliquing is in radians in AutoCAD's list (0.261799 for 15 degrees), the file has it in degrees.
+                    int slant = pairs.FindIndex(p => p.Key == 50);
+
+                    if (slant >= 0 && pairs[slant].Value is double degrees)
+                    {
+                        pairs[slant] = LispEntityData.Pair(50, degrees * Math.PI / 180.0);
+                    }
+                }
                 else if (item.Type == "DICTIONARY" && !pairs.Exists(p => p.Key == 280))
                 {
                     // A dictionary of the file with no flag for its owner is soft owning, (280 . 0), in AutoCAD's list.
@@ -535,6 +550,7 @@ namespace GeometryHelper.Cad.Lisp
             }
 
             CadSpace space = document.FindSpace(handle);
+            state.Extensions.Remove(handle);
 
             try
             {
@@ -543,6 +559,14 @@ namespace GeometryHelper.Cad.Lisp
                 if (data != null)
                 {
                     state.Erased[handle] = new KeyValuePair<CadClipboardData, string>(data, space?.Name);
+                    string extension = document.Database.File.HoldsObjects
+                        ? document.Database.File.ExtensionDictionaryOf(entity.Item)
+                        : null;
+
+                    if (extension != null)
+                    {
+                        state.Extensions[handle] = extension;
+                    }
                 }
             }
             catch (Exception exception) when (!(exception is OutOfMemoryException))
@@ -559,6 +583,20 @@ namespace GeometryHelper.Cad.Lisp
                 {
                     if (!s.IsHandled(handle))
                     {
+                        // AutoCAD leaves the extension dictionary in the drawing, readable (probe m/entmod d1); the dictionary
+                        // would go with its owner here, so it is let go of first (owner 0, until the entity is brought back).
+                        if (state.Extensions.TryGetValue(handle, out string extension))
+                        {
+                            DxfFile file = s.Database.File;
+                            DxfItem dictionary = file.ObjectItem(extension);
+                            file.SetExtensionDictionary(s.Document.FindEntity(handle).Item, null);
+
+                            if (dictionary != null)
+                            {
+                                DxfField.Reown(file, dictionary, handle, "0");
+                            }
+                        }
+
                         s.Document.FindEntity(handle).Erase();
                     }
                 }
@@ -606,6 +644,11 @@ namespace GeometryHelper.Cad.Lisp
                     if (!string.IsNullOrEmpty(copy.Handle) && !copy.IsErased)
                     {
                         s.Added(space, copy);
+                        if (made == null && state.Extensions.TryGetValue(handle, out string extension))
+                        {
+                            GiveExtensionBack(copy.Item, handle, extension);
+                        }
+
                         made = made ?? copy.Handle;
                     }
                 }
@@ -617,6 +660,7 @@ namespace GeometryHelper.Cad.Lisp
             }
 
             state.Erased.Remove(handle);
+            state.Extensions.Remove(handle);
             state.Rename(handle, made);
             return true;
         }
@@ -662,7 +706,14 @@ namespace GeometryHelper.Cad.Lisp
             CadDocument document = session.Document;
             string handle = state.Resolve(name.Handle);
             DxfItem item = FindItem(document, handle);
-            DxfItem owner = item?.Parent != null && item.Type == "ATTRIB" ? item.Parent : null;
+            DxfItem owner =
+                item?.Parent != null && (item.Type == "ATTRIB" || item.Type == "VERTEX") ? item.Parent : null;
+
+            if (IsModifiableRecord(item))
+            {
+                return ModifyRecord(lisp, session, item, given, list);
+            }
+
             DxfEntity entity =
                 item == null || (item.Space == null && owner == null) ? null : DxfEntity.Of(item) as DxfEntity;
 
@@ -670,7 +721,12 @@ namespace GeometryHelper.Cad.Lisp
                 entity == null
                 || (
                     item.Parent != null
-                    && (owner == null || owner.Type != "INSERT" || owner.Parent != null || owner.Space == null)
+                    && (
+                        owner == null
+                        || owner.Type != (item.Type == "VERTEX" ? "POLYLINE" : "INSERT")
+                        || owner.Parent != null
+                        || owner.Space == null
+                    )
                 )
             )
             {
@@ -728,7 +784,9 @@ namespace GeometryHelper.Cad.Lisp
 
                     // An attribute is written through its block reference, as the Properties palette writes it.
                     DxfEntity target =
-                        owner == null ? s.Document.FindEntity(handle) : AttributeOf(s.Document, owner, handle);
+                        owner == null ? s.Document.FindEntity(handle)
+                        : item.Type == "VERTEX" ? entity
+                        : AttributeOf(s.Document, owner, handle);
 
                     if (target == null)
                     {

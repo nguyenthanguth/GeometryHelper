@@ -24,6 +24,63 @@ command of its own (the alias DTEXT of the default shortcuts is gone) and no lon
 <select all>:` with mOde, and `VPORTS` with no window asks the options of `-VPORTS`, as the console does, where it said the
 window shows it.
 
+**NEW.** A load-result line in Load/Unload Applications. A load that fails (a .lsp or a .dll, from Load…, a drop, Reload or the
+On box), a file type that is refused, and Load… with no drawing open used to write only to the command history behind the modal
+window, so the user saw nothing. The window now has a red line above the hint, as the design draws it: the file in bold, then
+`failed to load: ` and the error as the history wrote it (`; error: bad argument type: consp 5`), with `(ERRONE was defined before
+the error)` for an AutoLISP file that defined commands first, and `Shown until the next load` on the right. Several failures in one
+Load… show the last with `(and 1 more)`; a load with no failure hides the line, and a load that succeeds shows nothing. See
+[Load/Unload Applications](src/GeometryHelper/docs/presenter/lisp.md#the-load-result-line).
+
+**NEW.** The menu and help functions a routine calls, as AutoCAD 2021's console answers them: `menucmd` (a `"M=$(getvar,clayer)"` string
+gives its DIESEL result, any other menu string `nil`), `menugroup`, `vmon`, `getcname` (`"LINE"` is `"_LINE"` and back), `fnsplitl`
+(`"c:/a/b.lsp"` is `("C:\a\\" "b" ".lsp")`), `setfunhelp`, `help` (a `.chm`, `.htm`, `.html` or `.pdf` file that is there opens with the
+program Windows gives its type, and gives its name back), and `acdimenableupdate`, which keeps its flag. `*error*` holds AutoCAD's own SUBR in a
+fresh session (`(type *error*)` is `SUBR`, calling it by hand gives `nil`, an uncaught error writes `; error: message` as before), and
+`vl-exit-with-error` and `vl-exit-with-value` end the evaluation quietly: nothing is written, no `*error*` is called, and
+`vl-catch-all-apply` gives an error object with no message.
+
+**NEW.** SELECT, as AutoCAD 2021's: `Select objects:` with every mode of that prompt, ending at Enter, what it took kept as the Previous
+set. Typed, it leaves the objects selected as the implied set; run by `(command "_.SELECT" ss "")`, it leaves nothing selected.
+
+**NEW.** `entmod` changes the records of the tables and XRECORDs as AutoCAD 2021 does, and a VERTEX of an old-style polyline: a layer's
+colour (negative for off), frozen and locked bits, linetype, plot flag, lineweight and name (not layer 0, not into a name another has, the
+current layer included), a text style's font, height, width factor, slant and name (not Standard), a linetype's, dimension style's, UCS's
+and view's groups and names, each one step of undo with the routine's, and the layer box follows. An XRECORD takes the groups of the list
+added after its data, as AutoCAD adds them, and does not replace it. `entdel` of an entity with an extension dictionary leaves the dictionary
+in the drawing, readable, as AutoCAD does, and a second `entdel` gives the entity back with that same dictionary and its data.
+
+**FIXED.** `entget` of a text style gave its slant in degrees (15.0); AutoCAD's list has radians (0.261799), and the whole list given back to
+`entmod` was refused for a style with a slant.
+
+**CHANGED.** The built-in linetypes that carry the names AutoCAD users type (BORDER, CENTER, DASHDOT, DASHED, DIVIDE, DOT, HIDDEN and PHANTOM, each with its `2` and `X2`, and GAS_LINE) take AutoCAD 2021's dash lengths, so that a drawing looks the same in both programs. In a metric drawing (MEASUREMENT 1) CENTER is `31.75, -6.35, 6.35, -6.35` (it was `12, -1.5, 3, -1.5`) and HIDDEN `6.35, -3.175` (it was `3, -1.5`), the inch values times 25.4; loaded into a drawing whose MEASUREMENT is 0 they are in inches, CENTER `1.25, -0.25, 0.25, -0.25` and HIDDEN `0.25, -0.125`, as AutoCAD takes `acad.lin` for such a drawing and `acadiso.lin` for a metric one. CENTER2 is not half of CENTER, as in AutoCAD (a dash of 19.05, not 15.875). Only the numbers are AutoCAD's: the descriptions are our own, and no Autodesk file ships. The ISO 128 names (`ACAD_ISO02W100` and the rest) are unchanged. A linetype a drawing has already is never changed by loading, so a drawing opened with the old CENTER keeps it. The shipped `Linetypes/GeometryHelper.lin` and the sample template `GeometryHelper-mm.dwt` carry the new lengths.
+
+**CHANGED.** UNDO starts with `Combine = No, Layer = No`, as AutoCAD 2021 reads them in its window and console on the maintainer's machine
+(UNDOCTL 5, and 13 inside a group), where it started with Yes and Yes. Consecutive real-time zooms and pans of the wheel are therefore a step
+of undo each until UNDO Control Combine is set to Yes, as in AutoCAD with the same profile.
+
+**NEW.** REVCLOUDMINARCLENGTH and REVCLOUDMAXARCLENGTH are kept in the settings file from one session to the next, as AutoCAD keeps them in its
+profile (a run that set 15 left 10 and 20 for the next one): the older prompts of REVCLOUD, `Specify minimum length of arc <10.0000>:`,
+offer them again. REVCLOUDAPPROXARCLEN is not kept, as in AutoCAD.
+
+**NEW.** Visual LISP reactors in the presenter's AutoLISP. The 46 `vlr-` functions are defined, as AutoCAD 2021 gave them
+(AutoCAD has them only after `(vl-load-com)`; here they exist from the start): the nineteen constructors
+(`vlr-command-reactor`, `vlr-lisp-reactor`, `vlr-sysvar-reactor`, `vlr-dwg-reactor`, `vlr-editor-reactor`, `vlr-object-reactor`,
+`vlr-acdb-reactor` and twelve more, each printing as `#<VLR-Command-Reactor>`), `vlr-add`, `vlr-remove`, `vlr-remove-all`,
+`vlr-reactors`, `vlr-types`, `vlr-reactions`, `vlr-reaction-set`, `vlr-reaction-names`, `vlr-data`, the owner and persistence
+functions, `vlr-current-reaction-name` and the rest, with `vl-load-reactors` and `vlax-queueexpr`. Events fire as AutoCAD fired
+them: `:vlr-commandWillStart` before a command's first prompt, `:vlr-commandEnded` and `:vlr-commandCancelled`,
+`:vlr-unknownCommand` before the message, `:vlr-lispWillStart` and `:vlr-lispEnded` for each form typed or loaded,
+`:vlr-sysVarWillChange` and `:vlr-sysVarChanged` for `setvar` and the SETVAR command, `:vlr-beginSave`, `:vlr-saveComplete` and
+`:vlr-beginClose`, and for the entities of the drawing `:vlr-modified`, `:vlr-erased` and `:vlr-unerased` of an owner and
+`:vlr-objectAppended`, `-Modified`, `-Erased` and `-UnErased` of every entity, an undo included. A callback of an event typed at
+the Command prompt runs at once with no echo, so one for `:vlr-commandWillStart` that sets `CLAYER` puts the text TEXT is about to
+make on that layer; one for an event raised inside a routine runs before the routine's next form, and a callback that raises its
+own event again is stopped after 1 000 callbacks with `; error: reactor cascade stopped`. An error in a callback is written (or
+handed to `*error*`) and the command goes on; `command` in a callback is `; error: AutoCAD command rejected: "_.POINT"`. A
+reactor made persistent with `vlr-pers` is marked for the session only; the other reaction names are accepted and never fire.
+See [Reactors](src/GeometryHelper/docs/presenter/lisp.md#reactors).
+
 **NEW.** AutoLISP's `grread`, in GeometryHelper.Cad and its window. `(grread [track [allkeys [curtype]]])` waits for one key,
 click or move of the cursor and gives `(2 code)` for a key (13 Enter, 32 Space, 8 Backspace, 9 Tab, the character's code for
 the rest), `(3 (x y z))` for a left click and `(5 (x y z))` for a move, in the UCS and with no snap, and `(11 0)` for the right
@@ -31,6 +88,8 @@ button, which opens no menu; moves come only with `track` or the bit 1 of `allke
 again takes the place of the one before it, so a loop that draws with `grvecs` at each move kept up with 1 000 moves in 19 ms.
 Esc gives `Function cancelled`. The prompt shows no words and the command line shows nothing typed while it waits. The bit 2 of
 `allkeys` (function and cursor keys) and `curtype` are not used yet.
+
+**CHANGED.** `grread` and `grclear` follow what AutoCAD 2021's window gave when it was driven with a real mouse and keyboard. A click and a move are put on the grid where SNAPMODE is on (`SNAPUNIT 10` turns a click at 41.7, 25.8 into `(3 (40.0 30.0 0.0))`) and stay in the current UCS, with no object snap and no ortho. The right button gives `(25 x)`, `x` being the cursor's column in pixels, while SHORTCUTMENU has its bit 1 (11 has), and `(11 0)` then `(12 (x y z))` at the next call with SHORTCUTMENU 0; no menu opens either way. F3 gives `(2 6)`. `(grclear)` clears nothing, as AutoCAD's window did: the temporary vectors stay until REDRAW, REGEN or `(redraw)`. The guide lists the three differences left: its first `(26 10)`, no move before the first click, and a `(5 pt)` after each key.
 
 **FIXED.** Ribbon follow-ups. A collapsed panel whose title has a long word broke it in two: Dimensions read "Dimension" over
 "s" at windows of 884 to 908 pixels, the word being a little wider than the 58 pixels the label was given. The label of a

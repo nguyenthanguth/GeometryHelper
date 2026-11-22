@@ -308,13 +308,75 @@
                     </DockPanel>
                 </Border>
 
-                <TextBlock
-                    Grid.Row="2"
-                    Foreground="{StaticResource GhTextMuted}"
-                    TextWrapping="Wrap"
-                    Margin="0,8,0,0"
-                    Text="Files in the Lisps and Plugins folders beside the app load at every start; their At start box is greyed. Hover a Commands cell for the full list."
-                />
+                <StackPanel Grid.Row="2">
+                    <!-- The last load that failed: the file in bold, then what came of it; hidden until one does. -->
+                    <Border
+                        x:Name="LoadErrorBox"
+                        Margin="0,8,0,0"
+                        Padding="10,6"
+                        CornerRadius="4"
+                        Background="#3A1D1D"
+                        BorderBrush="{StaticResource GhError}"
+                        BorderThickness="1"
+                        AutomationProperties.LiveSetting="Polite"
+                    >
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasLoadError}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <DockPanel>
+                            <Grid
+                                DockPanel.Dock="Left"
+                                Width="14"
+                                Height="14"
+                                Margin="0,0,8,0"
+                                VerticalAlignment="Center"
+                            >
+                                <Ellipse Stroke="{StaticResource GhError}" StrokeThickness="1.2" />
+                                <Path
+                                    Data="M7,4.2 L7,7.8 M7,9.9 L7,10.2"
+                                    Stroke="{StaticResource GhError}"
+                                    StrokeThickness="1.2"
+                                    StrokeStartLineCap="Round"
+                                    StrokeEndLineCap="Round"
+                                />
+                            </Grid>
+                            <TextBlock
+                                x:Name="LoadErrorHint"
+                                DockPanel.Dock="Right"
+                                Foreground="{StaticResource GhTextMuted}"
+                                Margin="8,0,0,0"
+                                VerticalAlignment="Center"
+                                Text="Shown until the next load"
+                            />
+                            <TextBlock
+                                x:Name="LoadErrorLine"
+                                Foreground="#FFB4AE"
+                                TextTrimming="CharacterEllipsis"
+                                VerticalAlignment="Center"
+                                ToolTip="{Binding LoadError}"
+                            >
+                                <Run
+                                    Text="{Binding LoadErrorName, Mode=OneWay}"
+                                    FontWeight="Bold"
+                                    Foreground="#FFFFFF"
+                                /><Run Text="{Binding LoadErrorText, Mode=OneWay}" />
+                            </TextBlock>
+                        </DockPanel>
+                    </Border>
+                    <TextBlock
+                        Foreground="{StaticResource GhTextMuted}"
+                        TextWrapping="Wrap"
+                        Margin="0,8,0,0"
+                        Text="Files in the Lisps and Plugins folders beside the app load at every start; their At start box is greyed. Hover a Commands cell for the full list."
+                    />
+                </StackPanel>
             </Grid>
         </DockPanel>
     </Border>

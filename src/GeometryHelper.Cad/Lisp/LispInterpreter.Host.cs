@@ -78,6 +78,9 @@ namespace GeometryHelper.Cad.Lisp
             _ownerResult = null;
             _ownerFailure = null;
 
+            // The events the work raised are answered as soon as the work is over, before the built-in returns.
+            DrainReactions();
+
             if (failure != null)
             {
                 ExceptionDispatchInfo.Capture(failure).Throw();
@@ -110,6 +113,13 @@ namespace GeometryHelper.Cad.Lisp
                 throw new LispException("evaluation aborted", isHard: true);
             }
 
+            // A callback that runs at once, for an event no evaluation was going on at, has nobody to wait for the user; one that
+            // runs inside an evaluation waits as the evaluation does (AutoCAD 2021, probe m1: getstring in a callback works).
+            if (_reacting > 0 && _idleReactions)
+            {
+                throw new LispException("AutoCAD rejected function");
+            }
+
             _waiting = ask;
             _answer = null;
             _cancelled = false;
@@ -117,12 +127,16 @@ namespace GeometryHelper.Cad.Lisp
             _ownerTurn.Release();
             _workerTurn.Wait();
 
+            // The events that came while the routine waited are answered before it goes on.
+            DrainReactions();
+
             object answer = _answer;
             _answer = null;
 
             if (_cancelled)
             {
                 _cancelled = false;
+                _cancelledAtAsk = true;
                 throw new LispException("Function cancelled");
             }
 
@@ -290,6 +304,150 @@ namespace GeometryHelper.Cad.Lisp
             string text = _output.ToString(_chunkStart, _output.Length - _chunkStart);
             _chunkStart = _output.Length;
             return text;
+        }
+
+        /// <summary>The most callbacks one drain runs: an event a callback raises again and again (a <c>setvar</c> of the variable it answers) stops here.</summary>
+        internal const int MaxReactionsPerDrain = 1000;
+
+        private readonly Queue<LispReactionCall> _reactions = new Queue<LispReactionCall>();
+        private int _reacting;
+        private LispSymbol _reactionName;
+
+        private bool _cancelledAtAsk;
+        private bool _idleReactions;
+
+        /// <summary>Tells whether the user's Esc ended a get function since this was last asked (the <c>Function cancelled</c> of <see cref="Ask"/>), and forgets it: what <c>vlr-lispCancelled</c> is raised for.</summary>
+        /// <returns>True when it did.</returns>
+        internal bool TakeCancelledAtAsk()
+        {
+            bool cancelled = _cancelledAtAsk;
+            _cancelledAtAsk = false;
+            return cancelled;
+        }
+
+        /// <summary>Gets the symbol with no name that <c>(princ)</c> returns, which prints nothing.</summary>
+        internal LispSymbol EmptySymbol => _empty;
+
+        /// <summary>Gets whether a reaction is running: the callback of a reactor answers an event.</summary>
+        internal bool IsReacting => _reacting > 0;
+
+        /// <summary>Gets the event name of the reaction running, as the registered symbol; null when none runs.</summary>
+        internal LispSymbol ReactionName => _reactionName;
+
+        /// <summary>
+        /// Keeps the callbacks of an event the owner raised while an evaluation goes on (inside work the worker asked for, or
+        /// while a get function waits): the worker runs them as soon as it has the turn back.
+        /// </summary>
+        /// <param name="calls">The callbacks, in the order they are run.</param>
+        internal void QueueReactions(IEnumerable<LispReactionCall> calls)
+        {
+            foreach (LispReactionCall call in calls)
+            {
+                _reactions.Enqueue(call);
+            }
+        }
+
+        /// <summary>
+        /// Runs the callbacks of an event raised while no evaluation goes on, as an evaluation of its own with no echo: what an
+        /// error in one writes is in the output, and the others run all the same.
+        /// </summary>
+        /// <param name="calls">The callbacks.</param>
+        /// <returns>The evaluation's result, whose output is what the callbacks wrote.</returns>
+        internal LispResult RunReactions(IReadOnlyList<LispReactionCall> calls)
+        {
+            QueueReactions(calls);
+            _idleReactions = true;
+
+            try
+            {
+                return Execute(
+                    () =>
+                    {
+                        DrainReactions();
+                        return null;
+                    },
+                    echo: false
+                );
+            }
+            finally
+            {
+                _idleReactions = false;
+            }
+        }
+
+        /// <summary>
+        /// Runs the callbacks the owner queued, in order, on the worker: each is called with its arguments; an error in one is
+        /// written and the next runs; the callbacks' own events join the end of the queue. Does nothing inside a callback (the
+        /// drain going on picks the new ones up) or with nothing queued. After <see cref="MaxReactionsPerDrain"/> the rest is
+        /// dropped, with one line in the log and <c>; error: reactor cascade stopped</c> in the output.
+        /// </summary>
+        private void DrainReactions()
+        {
+            if (_reacting > 0 || _reactions.Count == 0)
+            {
+                return;
+            }
+
+            int ran = 0;
+
+            while (_reactions.Count > 0)
+            {
+                if (ran == MaxReactionsPerDrain)
+                {
+                    int dropped = _reactions.Count;
+                    _reactions.Clear();
+                    GeometryHelperLog.Warn(
+                        "LispInterpreter: reactor cascade stopped after "
+                            + MaxReactionsPerDrain
+                            + " callbacks; "
+                            + dropped
+                            + " dropped."
+                    );
+                    WriteFreshLine();
+                    _output.Append("; error: reactor cascade stopped\n");
+                    return;
+                }
+
+                LispReactionCall call = _reactions.Dequeue();
+                ran++;
+
+                if (call.Reactor.Added)
+                {
+                    RunReaction(call);
+                }
+            }
+        }
+
+        private void RunReaction(LispReactionCall call)
+        {
+            int depth = _depth;
+            LispSymbol previous = _reactionName;
+            _reacting++;
+            _reactionName = call.Reaction;
+
+            try
+            {
+                // The function is looked up now, as AutoCAD does: a callback redefined since the reactor was made is the new one.
+                if (call.Callback.Value == null)
+                {
+                    throw new LispException("no function definition: " + call.Callback.Name);
+                }
+
+                Apply(Callable(call.Callback, catchAll: false), call.Arguments);
+            }
+            catch (LispException error) when (!error.IsHard)
+            {
+                // What an error in a callback does is what one at the top level does: *error* is called with the message where the
+                // routine defined it, else "; error: message" follows what the callback wrote; the event's command goes on and the
+                // reactor stays (AutoCAD 2021, probe m1).
+                Report(error);
+                _depth = depth;
+            }
+            finally
+            {
+                _reacting--;
+                _reactionName = previous;
+            }
         }
 
         /// <summary>Keeps what <c>initget</c> said for the next ask.</summary>

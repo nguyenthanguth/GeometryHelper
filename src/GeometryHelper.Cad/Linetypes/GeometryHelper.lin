@@ -1,54 +1,54 @@
 ;; GeometryHelper.lin - the 39 built-in linetypes of GeometryHelper CAD, in millimetres.
 ;; A copy for reference and to start your own file from: the name GeometryHelper.lin always means the built-in set,
 ;; so changing this file changes nothing. Written from the built-in definitions; a test keeps the two equal.
-*DASHED,Dashed __ __ __ __ __ __ __
-A,6,-1.5
+*DASHED,Dashed __ __ __ __ __ __ __ __
+A,12.7,-6.35
 *DASHED2,Dashed, half size
-A,3,-0.75
+A,6.35,-3.175
 *DASHEDX2,Dashed, double size
-A,12,-3
-*HIDDEN,Hidden _ _ _ _ _ _ _ _ _ _ _
-A,3,-1.5
+A,25.4,-12.7
+*HIDDEN,Hidden __ __ __ __ __ __ __ __
+A,6.35,-3.175
 *HIDDEN2,Hidden, half size
-A,1.5,-0.75
+A,3.175,-1.5875
 *HIDDENX2,Hidden, double size
-A,6,-3
-*CENTER,Center ____ _ ____ _ ____ _
-A,12,-1.5,3,-1.5
+A,12.7,-6.35
+*CENTER,Center _____ _ _____ _ _____ _
+A,31.75,-6.35,6.35,-6.35
 *CENTER2,Center, half size
-A,6,-0.75,1.5,-0.75
+A,19.05,-3.175,3.175,-3.175
 *CENTERX2,Center, double size
-A,24,-3,6,-3
-*PHANTOM,Phantom ____ _ _ ____ _ _ ____
-A,12,-1.5,3,-1.5,3,-1.5
+A,63.5,-12.7,12.7,-12.7
+*PHANTOM,Phantom _____ _ _ _____ _ _ _____ _ _
+A,31.75,-6.35,6.35,-6.35,6.35,-6.35
 *PHANTOM2,Phantom, half size
-A,6,-0.75,1.5,-0.75,1.5,-0.75
+A,15.875,-3.175,3.175,-3.175,3.175,-3.175
 *PHANTOMX2,Phantom, double size
-A,24,-3,6,-3,6,-3
-*DOT,Dot . . . . . . . . . . . . .
-A,0,-1.5
+A,63.5,-12.7,12.7,-12.7,12.7,-12.7
+*DOT,Dot . . . . . . . . . . . .
+A,0,-6.35
 *DOT2,Dot, half size
-A,0,-0.75
+A,0,-3.175
 *DOTX2,Dot, double size
-A,0,-3
-*DASHDOT,Dash dot __ . __ . __ . __
-A,6,-1.5,0,-1.5
+A,0,-12.7
+*DASHDOT,Dash dot __ . __ . __ . __ . __ .
+A,12.7,-6.35,0,-6.35
 *DASHDOT2,Dash dot, half size
-A,3,-0.75,0,-0.75
+A,6.35,-3.175,0,-3.175
 *DASHDOTX2,Dash dot, double size
-A,12,-3,0,-3
-*DIVIDE,Divide __ . . __ . . __ . .
-A,6,-1.5,0,-1.5,0,-1.5
+A,25.4,-12.7,0,-12.7
+*DIVIDE,Divide __ . . __ . . __ . . __ . .
+A,12.7,-6.35,0,-6.35,0,-6.35
 *DIVIDE2,Divide, half size
-A,3,-0.75,0,-0.75,0,-0.75
+A,6.35,-3.175,0,-3.175,0,-3.175
 *DIVIDEX2,Divide, double size
-A,12,-3,0,-3,0,-3
+A,25.4,-12.7,0,-12.7,0,-12.7
 *BORDER,Border __ __ . __ __ . __ __ .
-A,6,-1.5,6,-1.5,0,-1.5
+A,12.7,-6.35,12.7,-6.35,0,-6.35
 *BORDER2,Border, half size
-A,3,-0.75,3,-0.75,0,-0.75
+A,6.35,-3.175,6.35,-3.175,0,-3.175
 *BORDERX2,Border, double size
-A,12,-3,12,-3,0,-3
+A,25.4,-12.7,25.4,-12.7,0,-12.7
 *ACAD_ISO02W100,ISO 02 dashed, pen 1.0 mm
 A,12,-3
 *ACAD_ISO03W100,ISO 03 dashed spaced, pen 1.0 mm
@@ -78,4 +78,4 @@ A,12,-3,0,-3,0,-3,0,-3
 *ACAD_ISO15W100,ISO 15 two dashes three dots, pen 1.0 mm
 A,12,-3,12,-3,0,-3,0,-3,0,-3
 *GAS_LINE,Gas line ----GAS----GAS----GAS----
-A,6,-2.4,["GAS",STANDARD,S=1.2,R=0,X=-1.2,Y=-0.6],-3
+A,12.7,-5.08,["GAS",STANDARD,S=2.54,R=0,X=-2.54,Y=-1.27],-6.35

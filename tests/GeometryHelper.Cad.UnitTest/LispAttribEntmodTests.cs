@@ -218,7 +218,7 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void EntmodOfAVertexOfAPolyline_StaysNil()
+        public void EntmodOfAVertexOfAPolyline_MovesTheVertex()
         {
             string drawing =
                 "0\nSECTION\n2\nENTITIES\n"
@@ -230,9 +230,10 @@ namespace GeometryHelper.Cad.UnitTest
             CadCommandSession session = Session(CadDocument.From(DxfDatabase.Parse(drawing), "poly.dxf"));
             Value(session, "(setq v (entnext (entnext)))");
 
-            // ours (D332): a vertex is a child of its polyline, and every child but an attribute stays out of entmod
+            // D1466 (L8): a vertex of an old-style polyline is changed by entmod as AutoCAD changes it; the point is the new one
             Assert.Equal("\"VERTEX\"", Value(session, "(cdr (assoc 0 (entget v)))"));
-            Assert.Equal("nil", Value(session, "(entmod (list (cons -1 v) '(10 3.0 3.0 0.0)))"));
+            Assert.NotEqual("nil", Value(session, "(entmod (list (cons -1 v) (quote (10 3.0 3.0 0.0))))"));
+            Assert.Equal("(3.0 3.0 0.0)", Value(session, "(cdr (assoc 10 (entget v)))"));
         }
 
         [Fact]
