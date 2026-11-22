@@ -144,17 +144,28 @@ namespace GeometryHelper.Cad.Wpf
     }
 
     /// <summary>
+    /// <para>
     /// Load/Unload Applications, shown by APPLOAD and by the Plugin manager button: the AutoLISP files loaded into the
     /// document shown, those of the Startup Suite, and the plugins known in this session, in one table (On, Name, Kind,
     /// Commands, File, At start) sorted by name and then by file, with chips that filter it by kind. Load takes .lsp and .dll
     /// files (an AutoLISP file as <see cref="CadCommandSession.LoadLisp"/> does, a .dll through the plugin manager as NETLOAD
     /// does), Reload loads the rows chosen again and Unload unloads them: a plugin as the plugin manager does, an AutoLISP file
-    /// by losing the <c>c:</c> commands it defined, which become unknown commands, its row staying in the table unticked until
-    /// the window closes; AutoLISP can unload no more than that. What each action did is a line of the command history. The folder of the last Load is kept in Global
+    /// by losing the <c>c:</c> commands it defined, which become unknown commands, its row staying in the table unticked;
+    /// AutoLISP can unload no more than that. What each action did is a line of the command history. The folder of the last Load is kept in Global
     /// settings (<see cref="GlobalSettings.AppLoadFolder"/>), the Startup Suite in <see cref="GlobalSettings.LispStartupSuite"/>.
+    /// </para>
+    /// <para>
+    /// Every file loaded is also kept in <see cref="GlobalSettings.KnownApplications"/>, with the commands it last defined, so
+    /// that an unloaded file stays in the table, unticked, in a new window and after a restart of the app, as AutoCAD keeps its
+    /// History list; ticking it loads it. Remove unloads the rows chosen and takes them out of the table, the known list and the
+    /// Startup Suite (a plugin is forgotten by the plugin manager, its At start entry too); a file of the Lisps or Plugins
+    /// folder cannot be removed, since it loads at every start.
+    /// </para>
+    /// <para>
     /// A load that fails (a .lsp or a .dll, from Load…, a drop, Reload or the On box), a file type refused, or Load… with no
     /// drawing open is also told by a red line above the hint, until the next load that has no failure
     /// (<see cref="HasLoadError"/>). It follows the plugin manager while open and lets go of it when disposed.
+    /// </para>
     /// </summary>
     public sealed class AppLoadViewModel : ObservableObject, IDisposable
     {
@@ -188,6 +199,7 @@ namespace GeometryHelper.Cad.Wpf
             LoadCommand = new DelegateCommand(_ => Load());
             ReloadCommand = new DelegateCommand(_ => Reload(), _ => _chosen.Count > 0);
             UnloadCommand = new DelegateCommand(_ => Unload(), _ => _chosen.Count > 0);
+            RemoveCommand = new DelegateCommand(_ => Remove(), _ => _chosen.Any(r => !r.IsAtStartFixed));
             FilterCommand = new DelegateCommand(p => Filter = p as string ?? "All");
 
             if (model.Plugins != null)
@@ -261,6 +273,18 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets the command of Unload, which needs a row chosen.</summary>
         public ICommand UnloadCommand { get; }
 
+        /// <summary>Gets the command of Remove, which needs a row chosen that is not of the Lisps or Plugins folder.</summary>
+        public ICommand RemoveCommand { get; }
+
+        /// <summary>
+        /// Gets the tooltip of Remove: what it does, or, where every row chosen lies in the Lisps or Plugins folder, why it
+        /// cannot be pressed.
+        /// </summary>
+        public string RemoveToolTip =>
+            _chosen.Count > 0 && _chosen.All(r => r.IsAtStartFixed)
+                ? "Files in the Lisps and Plugins folders load at every start, so they cannot be taken out of the list."
+                : "Unload the chosen files and take them out of the list";
+
         /// <summary>Gets the command of a filter chip, given All, Lisp or Plugin.</summary>
         public ICommand FilterCommand { get; }
 
@@ -273,6 +297,8 @@ namespace GeometryHelper.Cad.Wpf
             Raise(nameof(Chosen));
             ((DelegateCommand)ReloadCommand).RaiseCanExecuteChanged();
             ((DelegateCommand)UnloadCommand).RaiseCanExecuteChanged();
+            ((DelegateCommand)RemoveCommand).RaiseCanExecuteChanged();
+            Raise(nameof(RemoveToolTip));
         }
 
         /// <summary>Load…: asks for files with <see cref="AskFiles"/> and loads them as <see cref="Load(IEnumerable{string})"/> does.</summary>
@@ -318,7 +344,12 @@ namespace GeometryHelper.Cad.Wpf
             {
                 if (row.IsPlugin)
                 {
-                    NotePlugin(row.File, _model.ReloadPlugin(row.PluginName));
+                    // A plugin the manager does not know yet (known from an earlier run) is loaded from its file.
+                    CadLoadedPlugin managed = ManagedPlugin(row);
+                    NotePlugin(
+                        row.File,
+                        managed != null ? _model.ReloadPlugin(managed.Name) : _model.LoadPlugin(row.File)
+                    );
                 }
                 else
                 {
@@ -333,8 +364,8 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>
         /// Unload: unloads the rows chosen that are loaded. A plugin is unloaded as PLUGINUNLOAD does. An AutoLISP file stays in
         /// the table, unticked, as a plugin does, so that ticking it loads it again; the <c>c:</c> commands it defined are
-        /// removed from the interpreter, and the other functions it defined stay. The row leaves the table only when the window
-        /// closes, if the file is neither loaded nor in the Startup Suite then.
+        /// removed from the interpreter, and the other functions it defined stay. The row stays in the table, in a new window and
+        /// after a restart of the app too, until Remove takes it out.
         /// </summary>
         public void Unload()
         {
@@ -348,6 +379,56 @@ namespace GeometryHelper.Cad.Wpf
                 if (!row.IsPlugin)
                 {
                     _off.Add(Normal(row.File));
+                }
+            }
+
+            Refresh();
+        }
+
+        /// <summary>
+        /// Remove: unloads the rows chosen that are loaded, as Unload does, and takes them out of the table, out of
+        /// <see cref="GlobalSettings.KnownApplications"/> and, for an AutoLISP file, out of the Startup Suite; a plugin is
+        /// forgotten by the plugin manager, which takes it off its startup list too. A row of the Lisps or Plugins folder is
+        /// left as it is, since it loads at every start.
+        /// </summary>
+        public void Remove()
+        {
+            List<AppLoadRow> gone = _chosen.Where(r => !r.IsAtStartFixed).ToList();
+
+            foreach (AppLoadRow row in gone)
+            {
+                if (row.IsOn)
+                {
+                    UnloadRow(row);
+                }
+
+                if (!row.IsPlugin)
+                {
+                    _off.Remove(Normal(row.File));
+                }
+            }
+
+            var files = new HashSet<string>(gone.Select(r => Normal(r.File)), StringComparer.OrdinalIgnoreCase);
+            var lisps = new HashSet<string>(
+                gone.Where(r => !r.IsPlugin).Select(r => Normal(r.File)),
+                StringComparer.OrdinalIgnoreCase
+            );
+            _model.ChangeSettings(
+                s =>
+                {
+                    s.SetKnownApplications(s.KnownApplications.Where(p => !files.Contains(Normal(p.Key))).ToList());
+                    s.LispStartupSuite = s.LispStartupSuite.Where(f => !lisps.Contains(Normal(f))).ToList();
+                },
+                "applications were removed from the list"
+            );
+
+            foreach (AppLoadRow row in gone.Where(r => r.IsPlugin))
+            {
+                CadLoadedPlugin managed = ManagedPlugin(row);
+
+                if (managed != null)
+                {
+                    _model.Plugins.Remove(managed.Name);
                 }
             }
 
@@ -410,7 +491,17 @@ namespace GeometryHelper.Cad.Wpf
 
             if (row.IsPlugin)
             {
-                _model.Plugins?.SetLoadAtStartup(row.PluginName, value);
+                // A plugin the manager does not know yet (known from an earlier run) has no startup entry to change until it
+                // is loaded: the box is put back as it was.
+                CadLoadedPlugin managed = ManagedPlugin(row);
+
+                if (managed == null)
+                {
+                    row.ShowAtStart(row.AtStart);
+                    return;
+                }
+
+                _model.Plugins.SetLoadAtStartup(managed.Name, value);
             }
             else
             {
@@ -566,35 +657,50 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Lists the files and plugins again, as after one was loaded or unloaded.</summary>
         private void Refresh()
         {
+            _model.RememberApplications();
             var rows = new List<AppLoadRow>();
             string[] suite = _model.Settings.LispStartupSuite.ToArray();
+            IReadOnlyDictionary<string, string> known = _model.Settings.KnownApplications;
             IReadOnlyList<string> loaded = _model.LoadedLispFiles;
             IReadOnlyList<string> lisps = _model.Session?.Document.SupportRoots.ExistingOf(CadSupportKind.Lisps)
                 ?? Array.Empty<string>();
 
-            // The files loaded, those that failed half way (their commands are bound), the files unticked here and those of the
-            // Startup Suite, which stay to be ticked or unticked. A path is one file however it was written.
+            // The files loaded, those that failed half way (their commands are bound), the files unticked here, those of the
+            // Startup Suite and the AutoLISP files known from before, which stay to be ticked or unticked. A path is one file
+            // however it was written.
             IReadOnlyList<string> failed = _model.FailedLispFiles;
             var on = new HashSet<string>(loaded.Concat(failed).Select(Normal), StringComparer.OrdinalIgnoreCase);
             var inSuite = new HashSet<string>(suite.Select(Normal), StringComparer.OrdinalIgnoreCase);
+            var remembered = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (KeyValuePair<string, string> pair in known)
+            {
+                remembered[Normal(pair.Key)] = pair.Value;
+            }
 
             foreach (
                 string file in loaded
                     .Concat(failed)
                     .Concat(_off)
                     .Concat(suite)
+                    .Concat(known.Keys.Where(IsLisp))
                     .Select(Normal)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
             )
             {
                 bool fixedOn = lisps.Any(folder => IsUnder(file, folder));
-                IReadOnlyList<string> commands = _model.LispCommandsOf(file);
+
+                // A file not loaded shows the commands it last defined.
+                string commands =
+                    on.Contains(file) ? string.Join(", ", _model.LispCommandsOf(file))
+                    : remembered.TryGetValue(file, out string last) ? last
+                    : string.Empty;
                 rows.Add(
                     new AppLoadRow(
                         this,
                         LispKind,
                         Path.GetFileName(file),
-                        string.Join(", ", commands),
+                        commands,
                         file,
                         on.Contains(file),
                         fixedOn || inSuite.Contains(file),
@@ -604,19 +710,22 @@ namespace GeometryHelper.Cad.Wpf
                 );
             }
 
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             if (_model.Plugins != null)
             {
                 foreach (CadLoadedPlugin plugin in _model.Plugins.Plugins)
                 {
-                    IEnumerable<string> names = plugin.Plugin?.Commands.Select(c => c.Name)
-                        ?? plugin.Manifest?.Commands
-                        ?? Array.Empty<string>();
+                    string names = string.Join(", ", CommandsOf(plugin));
+                    seen.Add(Normal(plugin.Path));
                     rows.Add(
                         new AppLoadRow(
                             this,
                             PluginKind,
                             plugin.Name,
-                            string.Join(", ", names),
+                            names.Length == 0 && remembered.TryGetValue(Normal(plugin.Path), out string last)
+                                ? last
+                                : names,
                             plugin.Path,
                             plugin.IsLoaded,
                             plugin.IsInstalled || plugin.LoadAtStartup,
@@ -627,6 +736,17 @@ namespace GeometryHelper.Cad.Wpf
                 }
             }
 
+            // The plugins known from an earlier run, which the manager does not hold yet: off, to be ticked to load them.
+            foreach (KeyValuePair<string, string> pair in known.Where(p => !IsLisp(p.Key)))
+            {
+                string name = Path.GetFileNameWithoutExtension(pair.Key.TrimEnd('\\', '/'));
+
+                if (seen.Add(Normal(pair.Key)))
+                {
+                    rows.Add(new AppLoadRow(this, PluginKind, name, pair.Value, pair.Key, false, false, false, name));
+                }
+            }
+
             rows.Sort(Compare);
             _all = rows;
             Raise(nameof(AllChipText));
@@ -634,6 +754,14 @@ namespace GeometryHelper.Cad.Wpf
             Raise(nameof(PluginChipText));
             ApplyFilter();
         }
+
+        /// <summary>The plugin of the manager the row stands for, found by its file; null where the manager does not hold it, as for a plugin known only from an earlier run.</summary>
+        private CadLoadedPlugin ManagedPlugin(AppLoadRow row) =>
+            _model.Plugins?.Plugins.FirstOrDefault(p => SameFile(p.Path, row.File));
+
+        /// <summary>The names of the commands a plugin registers, or its manifest lists while it is not loaded.</summary>
+        internal static IEnumerable<string> CommandsOf(CadLoadedPlugin plugin) =>
+            plugin.Plugin?.Commands.Select(c => c.Name) ?? plugin.Manifest?.Commands ?? Array.Empty<string>();
 
         /// <summary>The rows are made anew, so the rows chosen are found again by file or plugin name and stay chosen.</summary>
         private void ApplyFilter()
@@ -672,7 +800,7 @@ namespace GeometryHelper.Cad.Wpf
             string.Equals(Normal(a), Normal(b), StringComparison.OrdinalIgnoreCase);
 
         /// <summary>The full path, so that <c>C:/a/b.lsp</c> and <c>C:\a\x\..\b.lsp</c> are one file; a name that is no path is kept as it is.</summary>
-        private static string Normal(string path)
+        internal static string Normal(string path)
         {
             try
             {
@@ -685,7 +813,7 @@ namespace GeometryHelper.Cad.Wpf
         }
 
         /// <summary>Whether the file lies in the folder or in any folder below it.</summary>
-        private static bool IsUnder(string file, string folder)
+        internal static bool IsUnder(string file, string folder)
         {
             string root = Normal(folder)?.TrimEnd('\\', '/');
             return !string.IsNullOrEmpty(root)

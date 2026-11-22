@@ -9,7 +9,7 @@ namespace GeometryHelper.Cad.Wpf
 {
     /// <summary>
     /// Load/Unload Applications, from APPLOAD and from the Plugin manager button, as the design draws it: 900 by 700, Load…,
-    /// Reload and Unload on top, the chips that filter by kind, and one table of the AutoLISP files and plugins with On, Name,
+    /// Reload, Unload and Remove on top, the chips that filter by kind, and one table of the AutoLISP files and plugins with On, Name,
     /// Kind, Commands, File and At start. Its logic is <see cref="AppLoadViewModel"/>, disposed when the dialog closes; the
     /// Open dialog Load… asks for is shown here. Delete unloads the rows chosen, and files dragged from Explorer onto the
     /// table are loaded.

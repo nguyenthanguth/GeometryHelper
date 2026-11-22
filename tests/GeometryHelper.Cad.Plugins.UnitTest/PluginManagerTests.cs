@@ -382,6 +382,32 @@ namespace GeometryHelper.Cad.Plugins.UnitTest
         }
 
         [Fact]
+        public void RemoveUnloadsAPluginAndForgetsIt_ItsStartupEntryToo_AndItCanBeLoadedAgain()
+        {
+            string path = _files.Sample();
+            int changes = 0;
+
+            using (CadPluginManager manager = _files.Manager())
+            {
+                manager.AddTrustedFolder(Path.GetDirectoryName(path));
+                manager.Load(path);
+                manager.SetLoadAtStartup(PluginFiles.SampleName, true);
+                manager.PluginsChanged += (s, e) => changes++;
+
+                Assert.True(manager.Remove(PluginFiles.SampleName));
+
+                Assert.Empty(manager.Plugins);
+                Assert.Empty(manager.StartupList);
+                Assert.Equal(1, changes);
+                Assert.False(manager.Remove(PluginFiles.SampleName));
+                Assert.DoesNotContain(path.Replace("\\", "\\\\"), File.ReadAllText(_files.SettingsPath));
+
+                Assert.True(manager.Load(path).Succeeded);
+                Assert.Single(manager.Plugins);
+            }
+        }
+
+        [Fact]
         public void APluginFolderThatNeedsANewerApiIsRefusedBeforeAnyOfItsCodeIsCopiedOrLoaded()
         {
             string folder = _files.SampleFolder(PluginFiles.Manifest(api: "2.0"));

@@ -237,6 +237,66 @@ namespace GeometryHelper.Cad.Wpf
         internal bool UnloadLispFile(string path) => _current != null && _current.Session.UnloadLisp(path);
 
         /// <summary>
+        /// Keeps the applications in use in <see cref="GlobalSettings.KnownApplications"/>, so that Load/Unload Applications still
+        /// lists them once unloaded: each AutoLISP file loaded or failed half way in the document shown, with the commands it
+        /// defines now, and each plugin of the manager that is not of the plugin folder (loaded now, or unloaded with the
+        /// commands it last had). Files of the Lisps folder are left out, since the window lists them anyway. The settings are
+        /// saved only where something changed. Called after the history grows (a <c>(load)</c> says something), after a plugin
+        /// is loaded or unloaded, and when the window lists its rows.
+        /// </summary>
+        internal void RememberApplications()
+        {
+            var known = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (KeyValuePair<string, string> pair in _settings.KnownApplications)
+            {
+                known[pair.Key] = pair.Value;
+            }
+
+            bool changed = false;
+            IReadOnlyList<string> lisps = _current?.Session.Document.SupportRoots.ExistingOf(CadSupportKind.Lisps)
+                ?? Array.Empty<string>();
+
+            foreach (string file in LoadedLispFiles.Concat(FailedLispFiles))
+            {
+                string full = AppLoadViewModel.Normal(file);
+
+                if (!lisps.Any(folder => AppLoadViewModel.IsUnder(full, folder)))
+                {
+                    changed |= Keep(known, full, string.Join(", ", LispCommandsOf(full)));
+                }
+            }
+
+            if (_plugins != null)
+            {
+                foreach (CadLoadedPlugin plugin in _plugins.Plugins.Where(p => !p.IsInstalled))
+                {
+                    known.TryGetValue(plugin.Path, out string before);
+                    string commands = plugin.IsLoaded
+                        ? string.Join(", ", AppLoadViewModel.CommandsOf(plugin))
+                        : before ?? string.Join(", ", AppLoadViewModel.CommandsOf(plugin));
+                    changed |= Keep(known, plugin.Path, commands);
+                }
+            }
+
+            if (changed)
+            {
+                ChangeSettings(s => s.SetKnownApplications(known), "the applications in use were remembered");
+            }
+        }
+
+        private static bool Keep(IDictionary<string, string> known, string file, string commands)
+        {
+            if (known.TryGetValue(file, out string before) && before == commands)
+            {
+                return false;
+            }
+
+            known[file] = commands;
+            return true;
+        }
+
+        /// <summary>
         /// Changes the settings in use in place and saves them to <see cref="SettingsPath"/>, as the dialogs that keep a choice
         /// of their own do (Do not show again); a file that cannot be written is logged and the change stays for this run.
         /// </summary>
