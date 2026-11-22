@@ -28,6 +28,25 @@ only when disabled. Every button filled with the accent shares one style, `GhAcc
 the same flat grey as the Close, where it was the dark input colour with a border. The transparent and outlined buttons keep
 their grey hover.
 
+**NEW.** A `Lisps` folder beside `GeometryHelper.Cad.dll` (beside the exe in the app), the fourth default folder with `Fonts`,
+`Hatches` and `Linetypes` (`CadSupportKind.Lisps`, copied by the build with a `README.txt`). Every `.lsp` file directly in it
+loads into each drawing when it opens, in the order of the file names ignoring case, after `acad.lsp` and `acaddoc.lsp` and
+before the Startup Suite and `S::STARTUP`: a folder holding `10-layers.lsp` and `20-dims.lsp` gives both commands in every
+drawing with no APPLOAD. An error in a file is written and the next loads; `x.lspx`, other extensions and files in a
+subfolder are left alone; a compiled `.fas` or `.vlx` writes the usual refusal. The folder is on the AutoLISP search path
+after the support folders of Folder preference, so `load`, `findfile` and `load_dialog` find a file in it by its bare name; it
+is under the program folder, which SECURELOAD always trusts, and Folder preference lists it read-only with Open folder. No
+sample routine is shipped, since what is there runs for every drawing, and the Python wheel has no such folder.
+
+**FIXED.** A name with a relative folder, `(load "Sub/x")`, `(load "./x.lsp")`, `(findfile "Sub/x.txt")`, was taken from the
+folder of the process (`load`) or the current folder alone (`findfile`), so a subfolder of a support folder could not be
+reached and `./x.lsp` failed whenever the process ran elsewhere. AutoCAD 2021 (measured in its console) looks such a name up
+along the same folders as a bare name, in the same order: the support folders, and the current and drawing folders first with
+LEGACYCODESEARCH 1; a code file only under the current folder is `nil` for `findfile` and `LOAD failed` for `load` at 0, as
+`mine.txt` is found at both. The presenter now does the same, and a refused `./Sub/x.lsp` is `File load canceled:` with the
+full path in forward slashes, as AutoCAD writes it. `findfile "dir/a.lsp"` of a file only under the current folder is `nil`
+at LEGACYCODESEARCH 0 where it was found before.
+
 **NEW.** AutoLISP's `entmake` makes what AutoCAD 2021 makes by several calls and by records (each measured there): a POLYLINE
 with its VERTEX forms and its `SEQEND` (nothing is in the drawing until the end; a flag 8 makes a 3D polyline; a `SEQEND`
 with no vertex writes `Invalid POLYLINE object.`; another entity while one is pending writes `Invalid complex object.`), an

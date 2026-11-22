@@ -167,8 +167,9 @@ namespace GeometryHelper.Cad.Lisp
         }
 
         /// <summary>
-        /// Loads a file as <c>(load path)</c> does: a name with a folder is that file, any other is looked for in the
-        /// <see cref="SupportFolders"/> in order, and <c>.lsp</c> is added to a name with no extension. The forms are read and
+        /// Loads a file as <c>(load path)</c> does: a rooted name is that file, any other (a bare name, or one with a relative
+        /// folder such as <c>Sub/x</c> or <c>./x.lsp</c>) is looked for in the <see cref="SupportFolders"/> in order, and
+        /// <c>.lsp</c> is added to a name with no extension. The forms are read and
         /// evaluated one at a time, so an error leaves what ran before it.
         /// </summary>
         /// <param name="path">The file name as the program writes it.</param>
@@ -953,12 +954,12 @@ namespace GeometryHelper.Cad.Lisp
         {
             loaded = null;
             string extension = ExtensionOf(name);
-            string path = FindFile(name, out bool canceled);
+            string path = FindFile(name, out string canceled);
 
             // The check comes before the refusal of compiled files: an untrusted .fas is cancelled, a trusted one is not supported.
-            if (canceled)
+            if (canceled != null)
             {
-                throw new LispException("File load canceled: " + name);
+                throw new LispException("File load canceled: " + canceled);
             }
 
             if (extension == ".fas" || extension == ".vlx")
@@ -1015,22 +1016,23 @@ namespace GeometryHelper.Cad.Lisp
         }
 
         /// <summary>
-        /// Finds the file <c>load</c> reads and has <see cref="MayLoad"/> agree to it. A name with a folder is that file; any
-        /// other is looked for in the folders of <see cref="LoadFolders"/> in order, and a file found there that is refused is
-        /// passed over for the next.
+        /// Finds the file <c>load</c> reads and has <see cref="MayLoad"/> agree to it. A rooted name is that file. Any other,
+        /// with a relative folder (<c>Sub/x</c>, <c>./x.lsp</c>) or without, is looked for in the folders of
+        /// <see cref="LoadFolders"/> in order, as AutoCAD 2021 does; a file found there that is refused is passed over for the
+        /// next, except under a name with a folder and an extension, which AutoCAD cancels at once.
         /// </summary>
         /// <param name="name">The name as given to <c>load</c>.</param>
-        /// <param name="canceled">True when the file a name with a folder points at exists and is refused.</param>
+        /// <param name="canceled">The name for the error <c>File load canceled:</c> when the file the name points at exists and is refused: the name as given for a rooted one, the full path with forward slashes for a relative one. Null otherwise.</param>
         /// <returns>The file, or null where there is none to load.</returns>
-        private string FindFile(string name, out bool canceled)
+        private string FindFile(string name, out string canceled)
         {
-            canceled = false;
+            canceled = null;
 
             try
             {
                 string withExtension = Path.HasExtension(name) ? name : name + ".lsp";
 
-                if (name.IndexOfAny(new[] { '/', '\\' }) >= 0 || Path.IsPathRooted(name))
+                if (Path.IsPathRooted(name))
                 {
                     if (!File.Exists(withExtension))
                     {
@@ -1038,9 +1040,17 @@ namespace GeometryHelper.Cad.Lisp
                     }
 
                     string full = Path.GetFullPath(withExtension);
-                    canceled = MayLoad != null && !MayLoad(full);
-                    return canceled ? null : full;
+
+                    if (MayLoad != null && !MayLoad(full))
+                    {
+                        canceled = name;
+                        return null;
+                    }
+
+                    return full;
                 }
+
+                bool hasFolder = name.IndexOfAny(Separators) >= 0;
 
                 foreach (string folder in LoadFolders())
                 {
@@ -1051,9 +1061,22 @@ namespace GeometryHelper.Cad.Lisp
 
                     string candidate = Path.Combine(folder, withExtension);
 
-                    if (File.Exists(candidate) && (MayLoad == null || MayLoad(Path.GetFullPath(candidate))))
+                    if (!File.Exists(candidate))
+                    {
+                        continue;
+                    }
+
+                    string found = Path.GetFullPath(candidate);
+
+                    if (MayLoad == null || MayLoad(found))
                     {
                         return candidate;
+                    }
+
+                    if (hasFolder && Path.HasExtension(name))
+                    {
+                        canceled = found.Replace('\\', '/');
+                        return null;
                     }
                 }
             }
@@ -1063,7 +1086,7 @@ namespace GeometryHelper.Cad.Lisp
             return null;
         }
 
-        /// <summary>The folders <c>load</c> looks in for a name with no folder: the support folders, and before them the current folder and the drawing's where <see cref="LegacyCodeSearch"/> says so.</summary>
+        /// <summary>The folders <c>load</c> looks in for a name that is not rooted: the support folders, and before them the current folder and the drawing's where <see cref="LegacyCodeSearch"/> says so.</summary>
         private IEnumerable<string> LoadFolders()
         {
             if (LegacyCodeSearch != null && LegacyCodeSearch())

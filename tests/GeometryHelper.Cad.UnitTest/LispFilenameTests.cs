@@ -88,6 +88,12 @@ namespace GeometryHelper.Cad.UnitTest
 
             // AutoCAD 2021: a forward-slash path and a relative one with a folder come back as D:\...\files\ansi.txt (r4)
             Expect(lisp, "(findfile (strcat D \"ansi.txt\"))", Q(Full("ansi.txt")));
+            Expect(lisp, "(findfile \"dir/b.txt\")", Q(Full("dir/b.txt")));
+            Expect(lisp, "(findfile \"dir\\\\b.txt\")", Q(Full("dir/b.txt")));
+            // AutoCAD 2021: a file of code with a relative folder is looked for beside the drawing only with LEGACYCODESEARCH 1
+            // (lispux C1 probe p1: "mysub/mine.lsp" nil at 0, found at 1)
+            Expect(lisp, "(findfile \"dir/a.lsp\")", "nil");
+            lisp.LegacyCodeSearch = () => true;
             Expect(lisp, "(findfile \"dir/a.lsp\")", Q(Full("dir/a.lsp")));
             Expect(lisp, "(findfile \"dir\\\\a.lsp\")", Q(Full("dir/a.lsp")));
             // AutoCAD 2021: a folder is found too (r4)

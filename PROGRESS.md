@@ -115,8 +115,8 @@ compared by their values and by eye.
       "Security - Unsigned Executable File" (Always Load by file content), a Security page in Global settings; the four
       harness feeds and the L2/L5 routines give the same transcripts as before
 - [ ] L6 parked: the plugin manager's trusted folders kept apart from TRUSTEDPATHS and the app defaulting to SECURELOAD 1
-      (the maintainer to confirm); `load "./x.lsp"` resolving `.` against the process folder; the Security page's Add
-      folder and writable-folder warning checked by screenshot and tests only, not by hand
+      (the maintainer to confirm); the Security page's Add folder and writable-folder warning checked by screenshot and
+      tests only, not by hand
 
 ### Python
 

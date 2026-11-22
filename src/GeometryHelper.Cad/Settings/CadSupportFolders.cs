@@ -15,14 +15,19 @@ namespace GeometryHelper.Cad
 
         /// <summary>Linetype files (.lin).</summary>
         Linetypes,
+
+        /// <summary>AutoLISP files (.lsp) loaded into every drawing at start, and the .dcl files they use.</summary>
+        Lisps,
     }
 
     /// <summary>
-    /// The default support folders, as AutoCAD's own Fonts and Support folders are: <c>Fonts</c>, <c>Hatches</c> and
-    /// <c>Linetypes</c> beside GeometryHelper.Cad.dll (not beside the exe, so that a host which embeds the dll, such as
-    /// a model drawing library or a Tekla plugin, finds the same ones). A font, a pattern file or a linetype file is looked
-    /// for in the folders the user set in Global settings' Folder preference first, then in these, then in the presenter's
-    /// own built-in sets. A folder that does not exist is passed over without a word.
+    /// The default support folders, as AutoCAD's own Fonts and Support folders are: <c>Fonts</c>, <c>Hatches</c>,
+    /// <c>Linetypes</c> and <c>Lisps</c> beside GeometryHelper.Cad.dll (not beside the exe, so that a host which embeds the
+    /// dll, such as a model drawing library or a Tekla plugin, finds the same ones). A font, a pattern file or a linetype
+    /// file is looked for in the folders the user set in Global settings' Folder preference first, then in these, then in
+    /// the presenter's own built-in sets. Every <c>.lsp</c> file directly in <c>Lisps</c> is loaded into each drawing when
+    /// it opens, and the folder is on the AutoLISP search path after the user's folders. A folder that does not exist is
+    /// passed over without a word.
     /// </summary>
     public sealed class CadSupportFolders
     {
@@ -31,7 +36,7 @@ namespace GeometryHelper.Cad
         );
 
         /// <summary>Makes the default folders of a root, as a test or a host puts them.</summary>
-        /// <param name="programFolder">The folder that holds the Fonts, Hatches and Linetypes folders; null or blank for none.</param>
+        /// <param name="programFolder">The folder that holds the Fonts, Hatches, Linetypes and Lisps folders; null or blank for none.</param>
         public CadSupportFolders(string programFolder)
         {
             ProgramFolder = string.IsNullOrWhiteSpace(programFolder) ? null : programFolder.Trim();
@@ -40,7 +45,7 @@ namespace GeometryHelper.Cad
         /// <summary>Gets the default folders: those beside GeometryHelper.Cad.dll.</summary>
         public static CadSupportFolders Default => Own.Value;
 
-        /// <summary>Gets the folder that holds the Fonts, Hatches and Linetypes folders: the folder of GeometryHelper.Cad.dll; null where the dll has no place on disk.</summary>
+        /// <summary>Gets the folder that holds the Fonts, Hatches, Linetypes and Lisps folders: the folder of GeometryHelper.Cad.dll; null where the dll has no place on disk.</summary>
         public string ProgramFolder { get; }
 
         /// <summary>Gets the default folder of a kind, as <c>C:\App\Fonts</c>, whether it exists or not; null where there is no root.</summary>
