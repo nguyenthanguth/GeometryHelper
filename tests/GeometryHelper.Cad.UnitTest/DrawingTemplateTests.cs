@@ -252,7 +252,7 @@ namespace GeometryHelper.Cad.UnitTest
             Assert.Equal(string.Empty, settings.TemplateFolder);
             Assert.Equal(string.Empty, settings.QnewTemplate);
             Assert.Equal(GlobalSettings.DefaultTemplateFolder, settings.EffectiveTemplateFolder);
-            Assert.EndsWith("Template", GlobalSettings.DefaultTemplateFolder);
+            Assert.Contains("Template", Path.GetFileName(GlobalSettings.DefaultTemplateFolder));
 
             settings.TemplateFolder = "  " + _folder + " ";
             settings.QnewTemplate = " office.dwt ";

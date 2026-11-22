@@ -45,7 +45,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             Assert.Equal(Path.Combine(program, "Fonts"), fonts.Folder);
             Assert.Equal("(default)", fonts.Mark);
             Assert.Equal(
-                new[] { "Hatch patterns", "Linetypes", "Lisps" },
+                new[] { "Hatch patterns", "Linetypes", "Lisps", "Drawing templates" },
                 dialog.DefaultSupportFolders.Select(r => r.Kind)
             );
             Assert.Equal("(default) not found", dialog.DefaultSupportFolders[0].Mark);
@@ -66,8 +66,8 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 
             GlobalSettingsViewModel dialog = Dialog(program, out List<string> opened);
 
-            Assert.Equal("Lisps", dialog.DefaultSupportFolders.Last().Kind);
-            DefaultFolderRow lisps = dialog.DefaultSupportFolders.Last();
+            Assert.Equal("Lisps", dialog.DefaultSupportFolders[2].Kind);
+            DefaultFolderRow lisps = dialog.DefaultSupportFolders[2];
             Assert.Equal(Path.Combine(program, "Lisps"), lisps.Folder);
             Assert.Equal("(default)", lisps.Mark);
             Assert.True(dialog.OpenDefaultFolderCommand.CanExecute(lisps));

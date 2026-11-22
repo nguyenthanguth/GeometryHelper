@@ -40,16 +40,16 @@ width factor of drawing text. A file that holds them keeps them, and OK writes t
 | Units and rounding | decimals of coordinates and angles; the separators | 2 and 1 decimals; thousands parted by a space, decimals by a point |
 | Layers, colours and lines | the layer table written to new drawings, with each layer's colour, linetype, lineweight and plot flag; NEW (Ctrl+N) adds it to the new drawing | Visible, Hidden, Centre, Hatch, Dimension, Mark, Symbol, Sheet, Viewport (not plotted) |
 | Text and fonts | the UI font, chosen from the font families installed on Windows (each shown in its own face) or typed; what Esc in the MTEXT editor with changes does (Hidden messages); the replacement font of a font not found (FONTALT), whether the Missing Fonts dialog is shown on opening a drawing, the font mapping file (FONTMAP) and the fonts drawn in others | UI font Inter, Esc asks, `ghsimplex`, the dialog on, no mapping file, no substitutions |
-| Folder preference | the font search folders and the support file search folders (linetypes, hatch patterns and AutoLISP files), each in order, with the default Fonts, Hatches, Linetypes and Lisps folders next to the dll shown read-only under them (a Plugins folder is beside them too, but it holds no search path: see [Command plugins](plugins.md#where-a-plugin-lives)); the Python the PYTHON palette, PYRUN and PYLOAD run scripts with (a `python.exe` or its folder, with the Python found beside it; see [Python in the app](python.md#finding-python)) | none; Python found automatically |
+| Folder preference | the font search folders and the support file search folders (linetypes, hatch patterns and AutoLISP files), each in order, with the default Fonts, Hatches, Linetypes, Lisps and DrawingTemplates folders next to the dll shown read-only under them (a Plugins folder is beside them too, but it holds no search path: see [Command plugins](plugins.md#where-a-plugin-lives)); the Python the PYTHON palette, PYRUN and PYLOAD run scripts with (a `python.exe` or its folder, with the Python found beside it; see [Python in the app](python.md#finding-python)) | none; Python found automatically |
 | Security | where AutoLISP and Python code may be loaded from: SECURELOAD, the trusted folders (TRUSTEDPATHS), LEGACYCODESEARCH and the files answered Always Load (see [The Security page](#the-security-page)) | SECURELOAD 1, no trusted folder but the app's own, LEGACYCODESEARCH 0, none |
 | Shortcuts | the aliases and the keys | AutoCAD's (see [Editing](editing.md#aliases-and-keys)) |
-| Save and export | the save folder, autosave (how often, and its format, DXF or DWG); Template settings: the template folder and the default template for QNEW (see [Drawing templates](#drawing-templates)); Other programs: whether other programs may connect and drive the app (see [Driving the app from another program](remote.md#the-setting)) | empty, which is the user's Documents, 10 minutes, DXF; template folder empty, which is `%AppData%\GeometryHelper\Drawing\Template`, no default template for QNEW, which is the built-in metric one; other programs allowed to connect |
+| Save and export | the save folder, autosave (how often, and its format, DXF or DWG); Template settings: the template folder and the default template for QNEW (see [Drawing templates](#drawing-templates)); Other programs: whether other programs may connect and drive the app (see [Driving the app from another program](remote.md#the-setting)) | empty, which is the user's Documents, 10 minutes, DXF; template folder empty, which is the `DrawingTemplates` folder next to the dll, no default template for QNEW, which is the built-in metric one; other programs allowed to connect |
 | Drawing text (file only) | the font a style's missing font is drawn in where the replacement is not found either, the heights and the width factor of drawing text: TEXT and MTEXT start from the text height and write the width factor, and DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER and DIMANGULAR write their text at the text height | drawing font Arial, text 2.5, titles 5, width factor 0.8 |
 
 Folder preference lists the folders you add, each editable, and under them the default folder next to `GeometryHelper.Cad.dll`
 for each kind, read-only, marked "(default)" with its full path ("(default) not found" where the folder is missing) and an Open
 folder button; they are never saved into the settings file. A line under each list says the order. The default folders are
-`Fonts`, `Hatches`, `Linetypes`, `Lisps` and `Plugins` beside the dll (the dll's folder, not the exe's, so that an app which embeds it, such as
+`Fonts`, `Hatches`, `Linetypes`, `Lisps`, `Plugins` and `DrawingTemplates` beside the dll (the dll's folder, not the exe's, so that an app which embeds it, such as
 a host that makes model drawings, finds the same ones). Put SHX fonts and big fonts, `.ttf`, `.ttc` and `.otf` files in `Fonts`, `.pat` files
 in `Hatches`, `.lin` files in `Linetypes` and AutoLISP files (`.lsp`, and the `.dcl` files they use) in `Lisps`. A font, a pattern file or a linetype file is looked for in three places, in this
 order: (1) the folders you set in Folder preference, in order; (2) the default folder of its kind next to the dll; (3) the built-in
@@ -62,7 +62,8 @@ installing (and it is not listed as missing); the regular face of a family is pr
 listed again at each look and the family names of a file are read once, while its size and time stay as they were. `Hatches` holds
 `GeometryHelper.pat` and `Linetypes` holds `GeometryHelper.lin`, the 48 patterns and the 39 linetypes of the built-in sets in
 AutoCAD's `.pat` and `.lin` formats, as models for your own files; the name `GeometryHelper.pat` or `GeometryHelper.lin` always
-means the built-in set, so editing the copy changes nothing, and a test keeps the files equal to the sets. `Lisps` ships with no routine in it: every `.lsp` file directly in it is loaded into each drawing when it opens, after `acaddoc.lsp` and before the Startup Suite, in the order of the file names, and the folder is on the AutoLISP search path after the support folders (see [The Lisps folder](lisp.md#the-lisps-folder)); it is under the program folder, so SECURELOAD always trusts it. `Plugins` holds command plugins and no search path: every `.dll` directly in it, and every subfolder of it as one plugin, is loaded once when the app starts, in the order of the names, with no question, as [Command plugins](plugins.md#where-a-plugin-lives) says; the Plugin manager shows it first among the trusted folders. Each folder has a
+means the built-in set, so editing the copy changes nothing, and a test keeps the files equal to the sets. `Lisps` ships with no routine in it: every `.lsp` file directly in it is loaded into each drawing when it opens, after `acaddoc.lsp` and before the Startup Suite, in the order of the file names, and the folder is on the AutoLISP search path after the support folders (see [The Lisps folder](lisp.md#the-lisps-folder)); it is under the program folder, so SECURELOAD always trusts it. `Plugins` holds command plugins and no search path: every `.dll` directly in it, and every subfolder of it as one plugin, is loaded once when the app starts, in the order of the names, with no question, as [Command plugins](plugins.md#where-a-plugin-lives) says; the Plugin manager shows it first among the trusted folders. `DrawingTemplates` is where a drawing saved as a `.dwt` is
+put to be used as a template (see [Drawing templates](#drawing-templates)). Each folder has a
 `README.txt` that says the same.
 
 The crosshair size (`CrosshairPercent`, CURSORSIZE) is a share of the canvas: at 5 % each line is 5 % of the larger side of
@@ -314,6 +315,10 @@ AutoCAD's `.dwt` is a DWG with that extension; a `.dwg` or a `.dxf` is as good a
   Enter taking the default, `acadiso` and `acad` standing for the built-in metric and imperial templates where no file of
   the name is found, and a period asking "Enter measurement [English/Metric] <Metric>:" for a drawing of no template. A file
   not found is said, `"office.dwt": Can't find file.`
+- **New from template** (the start screen's button right of New, and Ctrl+Shift+N, with no drawing open or with one) runs NEW
+  with Select Template opened in the template folder, `DrawingTemplates` where none is named. The dialog is shown with one
+  template there as with many, and with none it lists nothing and says how to make one (save a drawing as `.dwt` and put it
+  there). The new drawing is Drawing1.dwg, untitled, with the template's layers, styles, blocks, layouts and units.
 - **QNEW** (and the New button of the quick access bar, Ctrl+N and the start screen's Blank drawing) starts the drawing
   from the default template of Global settings (Save and export > Template settings > Default template for QNEW) without
   asking, the built-in metric template where none is set; one set but not found is said, "The default template office.dwt
@@ -327,8 +332,16 @@ AutoCAD's `.dwt` is a DWG with that extension; a `.dwg` or a `.dxf` is as good a
   again, the description kept; `CadDocument.SaveAsTemplate`, `CadDocument.TemplateDescription`, `CadTemplate.DescriptionOf`).
   With FILEDIA 0, SAVEAS Template asks "Save drawing as <Drawing1.dwt>:" ("other.dwg" becomes "other.dwt"), "Enter template
   description:" (Enter for none) and "Enter measurement [English/Metric] <Metric>:".
-- The template folder is the one of Global settings (Save and export > Template settings > Template folder, TEMPLATEPATH),
-  `%AppData%\GeometryHelper\Drawing\Template` where it is empty; nothing is put in it, and the built-in templates need none.
+- The template folder is the one of Global settings (Save and export > Template settings > Template folder, TEMPLATEPATH).
+  Where it is empty it is the `DrawingTemplates` folder beside the dll, which the build copies with a `README.txt` and no
+  template in it, and which Global settings > Folder preference lists with Open folder: the folder Select Template starts
+  in, where Save As › Drawing Template saves, and where a template named with no folder (typed at NEW with FILEDIA 0, or
+  the default template for QNEW) is looked for. To make a template, save a drawing as `.dwt` (SAVEAS, Files of type:
+  Drawing Template, or the application menu's Save As › Drawing Template) and it is there to use. The folder
+  `%AppData%\GeometryHelper\Drawing\Template`, where templates were kept before, is taken in its place only while it holds a
+  template and `DrawingTemplates` holds none; the first template saved into `DrawingTemplates` ends that. A program folder
+  you cannot write to (Program Files) cannot be saved into: name a folder of your own in Template folder. The built-in
+  templates need no folder.
 
 With FILEDIA 0 a command asks on the command line for the file it would show a file dialog for, as AutoCAD 2021 asks:
 
@@ -382,6 +395,7 @@ tab (see [Command plugins](plugins.md)), a Settings tab, and the tabs a host add
 | Ctrl+W | switches selection cycling on and off, as AutoCAD 2021 |
 | Ctrl+S, Ctrl+Shift+S | saves, saves as |
 | Ctrl+N | runs the new document an extension offers (`MainViewModel.NewDocumentOffer`); where none does, as in GeometryHelper CAD, makes a new drawing (NEW) |
+| Ctrl+Shift+N | starts a new drawing from a template: Select Template opened in the `DrawingTemplates` folder (see [Drawing templates](#drawing-templates)), with or without a drawing open |
 | Ctrl+Z, Ctrl+Y | undo, redo |
 | Delete | erases the selection |
 | F2 | the text window (TEXTSCR): the command history in a resizable list with Copy; F2 or Esc inside it closes it |
@@ -758,7 +772,7 @@ With no drawing open the canvas shows the start screen: the name of the app, Ope
 Documents with the same files and pins as the application menu, under PINNED and RECENT headings, each row with its
 preview, folder and when it was opened (`today 09:14`, `yesterday 16:40`, `2026-10-30`); the two buttons at its top right
 show the files as a list or as large pictures. GeometryHelper CAD, which has no extension, offers `New ·
-Ctrl+N` (NEW) and says "Ctrl+O opens a DXF, Ctrl+N starts a new drawing." on the command line. An extension may offer a new
+Ctrl+N` (NEW), then `New from template · Ctrl+Shift+N` (Select Template in the `DrawingTemplates` folder), and says "Ctrl+O opens a DXF, Ctrl+N starts a new drawing." on the command line. An extension may offer a new
 document of its own, a `CadNewDocumentOffer` (its menu name, button text, tooltip, start-screen line, welcome line and what
 running it does) returned by `CadWorkspaceExtension.NewDocumentOffer`: the start screen then adds its button and calls NEW
 "Blank drawing", the New entry of the application menu lists it, and Ctrl+N runs it. A host that makes model drawings offers "New

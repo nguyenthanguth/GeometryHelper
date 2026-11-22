@@ -6,6 +6,17 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** New from template: a button right of New on the start screen, `New from template · Ctrl+Shift+N`, and the key
+Ctrl+Shift+N (on the start screen and with a drawing open) run NEW with Select Template opened in a `DrawingTemplates`
+folder beside GeometryHelper.Cad.dll, as Fonts, Hatches, Linetypes and Lisps are. A drawing saved as `.dwt` (SAVEAS, Files
+of type: Drawing Template) and put there is listed, and starts an untitled Drawing1.dwg with its layers, styles, blocks,
+layouts and units; the dialog is shown with one template as with many, and with none it says how to make one. Ctrl+N and
+QNEW stay a blank drawing. `DrawingTemplates` is now where the template folder points while Global settings name none (Select
+Template, Save As › Drawing Template and a template typed with no folder at NEW or QNEW), and Folder preference lists it with
+Open folder. The `Template` folder beside the settings file, the default until now, is used only while it holds a template and
+`DrawingTemplates` holds none, so templates kept there are still found until the first one is saved into `DrawingTemplates`.
+`CadSupportKind.DrawingTemplates` is new, and `GlobalSettings.DefaultTemplateFolder` now gives the folder this works out.
+
 **NEW.** The app has a `Plugins` folder beside `GeometryHelper.Cad.App.exe`, as it has `Fonts`, `Hatches`, `Linetypes` and
 `Lisps` (`CadSupportKind.Plugins`; the build copies it with a `README.txt`). Put a plugin there and it loads when the app
 starts: every `.dll` directly in it, by the order of the names (either case the same), then every subfolder as one plugin,
