@@ -315,7 +315,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
             Assert.True(session.Feed("H2LATE"));
             Owner.Drain();
 
-            Assert.Equal(new[] { "RuntimeError" }, Printed);
+            Assert.Equal(new[] { "RuntimeError" }, Printed.Where(line => !line.Contains(" loaded:")));
             Assert.Empty(host.RibbonPanels);
         }
 

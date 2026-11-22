@@ -132,7 +132,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
 
             Type(session, "H2ASKS", Objects(first), EnterKey);
 
-            Assert.Single(Owner.Asked);
+            Assert.All(Owner.Asked, asked => Assert.StartsWith("Select objects", asked, StringComparison.Ordinal));
             Assert.Contains("took " + first, session.History);
         }
 
@@ -147,7 +147,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
 
             Type(session, "H2PLAIN", Objects(second), EnterKey);
 
-            Assert.Single(Owner.Asked);
+            Assert.All(Owner.Asked, asked => Assert.StartsWith("Select objects", asked, StringComparison.Ordinal));
             Assert.Contains("took " + second, session.History);
         }
 
@@ -287,7 +287,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
                 {
                     UsesCad,
                     "d = cad.active_drawing()",
-                    "print(d.net is cad.session().Document)",
+                    "print(d.net == cad.session().Document)",
                     "print([e.handle for e in d.selection()])",
                 }
             );

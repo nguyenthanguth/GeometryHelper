@@ -403,24 +403,19 @@ def _end_load() -> _ui.Load:  # pyright: ignore[reportUnusedFunction]
     return _ui.end_load()
 
 
-# B's names (D1655 to D1658). Until the files of the Drawing API are merged the imports are passed over, so that the module,
-# the prompts and the window additions work without them.
-try:
-    from ._drawing import (  # pyright: ignore[reportMissingImports]
-        Documents as Documents,
-        Drawing as Drawing,
-        Entity as Entity,
-        Layer as Layer,
-    )
-    from ._local import (  # pyright: ignore[reportMissingImports]
-        active_drawing as active_drawing,
-        documents as documents,
-        new_drawing as new_drawing,
-        new_file as new_file,
-        open_drawing as open_drawing,
-        open_file as open_file,
-    )
-    from ._remote import App as App, connect as connect  # pyright: ignore[reportMissingImports]
-except ModuleNotFoundError as missing:
-    if missing.name not in ("geometryhelper.cad._drawing", "geometryhelper.cad._local", "geometryhelper.cad._remote"):
-        raise
+# The Drawing API (D1655 to D1658).
+from ._drawing import (  # noqa: E402
+    Documents as Documents,
+    Drawing as Drawing,
+    Entity as Entity,
+    Layer as Layer,
+)
+from ._local import (  # noqa: E402
+    active_drawing as active_drawing,
+    documents as documents,
+    new_drawing as new_drawing,
+    new_file as new_file,
+    open_drawing as open_drawing,
+    open_file as open_file,
+)
+from ._remote import App as App, connect as connect  # noqa: E402

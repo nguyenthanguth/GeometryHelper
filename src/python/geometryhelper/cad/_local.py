@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import importlib
 import os
+from collections.abc import Callable
 from typing import Any
 
 from ._drawing import Backend, Documents, Drawing, Entity, Look, Op, dxf_type_of, look_color, point3
@@ -442,21 +443,35 @@ class _LocalBackend:
 
     # ---- the file ---------------------------------------------------------------------------------------------------
 
+    def _saving(self, action: Callable[[], object]) -> None:
+        """Runs a save. A drawing cannot be saved while a group of edits is open, and a run holds one: the run's step is
+        ended for the save and opened again after it, so what was done before the save is one undo step and what follows is
+        another, both named after the run."""
+        document = self.document
+        script = _script() if self._in_app else None
+        name = str(getattr(script, "StepName", "PYRUN")) if script is not None else "PYTHON"
+        depth = 0
+        while document.IsInGroup:
+            document.EndGroup()
+            depth += 1
+        try:
+            action()
+        finally:
+            for _ in range(depth):
+                document.BeginGroup(name)
+
     def save(self) -> None:
         host = self._host()
-        if host is not None:
-            host.Save(self.document)
-        else:
-            self.document.Save()
+        self._saving(lambda: host.Save(self.document) if host is not None else self.document.Save())
 
     def save_as(self, path: str, version: str | None) -> None:
         host = self._host()
         if host is not None:
-            host.SaveAs(self.document, path, version)
+            self._saving(lambda: host.SaveAs(self.document, path, version))
         elif version is None:
-            self.document.SaveAs(path)
+            self._saving(lambda: self.document.SaveAs(path))
         else:
-            self.document.SaveAs(path, version, None)
+            self._saving(lambda: self.document.SaveAs(path, version, None))
 
     def close(self, discard: bool) -> None:
         document = self.document

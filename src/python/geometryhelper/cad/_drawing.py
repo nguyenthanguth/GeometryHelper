@@ -655,7 +655,8 @@ class Drawing:
     # ---- the file -------------------------------------------------------------------------------------------------
 
     def save(self) -> None:
-        """Commit what is queued, then save to the file the drawing came from or was last saved as."""
+        """Commit what is queued, then save to the file the drawing came from or was last saved as. In the app a save ends the
+        undo step of the run and opens it again: what was done before it is one step, what follows another."""
         self.commit()
         self._backend.save()
 
