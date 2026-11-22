@@ -2,6 +2,7 @@
 
 from GeometryHelper import Tolerance
 from GeometryHelper.Dxf import DxfDatabase, DxfEraseFlags, DxfWriter
+from GeometryHelper.Enums import BooleanOutcome
 from GeometryHelper.Geometry import GeoObb3, GeoPoint3
 
 # a [Flags] enum combines with itself, not with a number (pythonnet refuses `flag | 1`)
@@ -18,3 +19,9 @@ cutter = GeoObb3(GeoPoint3(0, 0, 0), 20, 20, 30).ToSolid()
 positional_tolerance = plate.TrySubtract(cutter, Tolerance.Default)  # expect: reportCallIssue
 placeholder_and_tolerance = plate.TrySubtract(cutter, None, Tolerance.Default)  # expect: reportCallIssue
 volume_with_a_positional_tolerance = plate.TryGetVolume(Tolerance.Default)  # expect: reportCallIssue
+
+# an overload that differs from a shorter one only by an out parameter is reached by naming that out parameter
+made, left, outcome = plate.TrySubtract(cutter)  # expect: reportAssignmentType
+only_two, items = plate.TrySubtract(cutter, outcome=BooleanOutcome.Made)  # expect: reportAssignmentType
+no_placeholder_for_an_enum = plate.TrySubtract(cutter, outcome=None)  # expect: reportCallIssue|reportArgumentType
+positional_outcome = plate.TrySubtract(cutter, BooleanOutcome.Made)  # expect: reportCallIssue

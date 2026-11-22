@@ -7,20 +7,23 @@ needs a second look, not the test a quick edit.
 
 import pytest
 from System import Action, Array, Func
+from System import ArgumentNullException, Double
 from System import Exception as NetException
 from System.Collections.Generic import List
 
 import geometryhelper  # noqa: F401  (boots .NET and loads the assemblies)
 from GeometryHelper import GeometryHelperLog, SolidBooleanOptions, Tolerance
 from GeometryHelper.Cad import CadCommandSession, CadDocument, CadSystemVariable, CadTrueTypeFonts
+from GeometryHelper.Cad.Remote import CadObjectFilter
 from GeometryHelper.Core import Boolean3, Intersection2, Splition2
 from GeometryHelper.Dxf import DxfBlockLookupRow, DxfBlockReference, DxfBlockTableRecord, DxfDatabase, DxfEraseFlags
-from GeometryHelper.Dxf import DxfReadOptions, DxfWriter
+from GeometryHelper.Dxf import DxfEndCap, DxfLine, DxfReadOptions, DxfWriter
 from GeometryHelper.Enums import BooleanOutcome, GeometryHelperLogLevel
 from GeometryHelper.Extension import GeoPointEnumerableExtension
 from GeometryHelper.Geometry import GeoLine2, GeoObb3, GeoPoint2, GeoPoint3, GeoPolygon2, GeoPolygon3, GeoRectangle2
-from GeometryHelper.Geometry import GeoSolid3, GeoXLine2
-from GeometryHelper.Geometry import GeoVector2
+from GeometryHelper.Geometry import GeoLine3, GeoPlane3, GeoPolyline2, GeoPolyline3, GeoPolylineArc3, GeoSolid3
+from GeometryHelper.Geometry import GeoXLine2
+from GeometryHelper.Geometry import GeoVector2, GeoVector3
 from GeometryHelper.Takeoff import VolumeItem, VolumeTakeoff
 
 TOLERANCE = Tolerance.Default
@@ -302,3 +305,144 @@ def test_the_overload_with_one_more_out_parameter_is_reached_with_the_tolerance_
     assert made
     assert outcome == BooleanOutcome.Made
     assert left.GetVolume(TOLERANCE) == pytest.approx(96000.0)
+
+
+# Overloads that differ only by a trailing out parameter (stub rule: the longer one is reached by naming its out
+# parameter). With the out arguments left out pythonnet binds the overload with the fewest parameters, whichever is
+# declared first.
+
+
+def test_the_two_item_overload_is_bound_when_no_out_parameter_is_named() -> None:
+    plate, cutter = _plate_and_cutter()
+    assert len(plate.TrySubtract(cutter)) == 2
+    assert len(plate.TrySubtract(cutter, tolerance=TOLERANCE)) == 2
+    other = GeoObb3(GeoPoint3(10, 0, 0), 100, 100, 10).ToSolid()
+    for name in ("TryIntersect", "TryUnion"):
+        assert len(getattr(plate, name)(other)) == 2
+        assert len(getattr(Boolean3, name)(plate, other)) == 2
+    assert len(Boolean3.TrySubtract(plate, cutter)) == 2
+
+
+def test_naming_the_outcome_gives_the_three_item_overload_with_or_without_the_tolerance() -> None:
+    plate, cutter = _plate_and_cutter()
+    other = GeoObb3(GeoPoint3(10, 0, 0), 100, 100, 10).ToSolid()
+    made, left, outcome = plate.TrySubtract(cutter, outcome=BooleanOutcome.Made)
+    assert (made, outcome) == (True, BooleanOutcome.Made)
+    assert left.GetVolume(TOLERANCE) == pytest.approx(96000.0)
+    assert len(plate.TrySubtract(cutter, tolerance=TOLERANCE, outcome=BooleanOutcome.Made)) == 3
+    assert len(Boolean3.TrySubtract(plate, cutter, outcome=BooleanOutcome.Made)) == 3
+    assert len(Boolean3.TrySubtract(plate, cutter, tolerance=TOLERANCE, outcome=BooleanOutcome.Made)) == 3
+    for name in ("TryIntersect", "TryUnion"):
+        assert len(getattr(plate, name)(other, outcome=BooleanOutcome.Made)) == 3
+        assert len(getattr(Boolean3, name)(plate, other, outcome=BooleanOutcome.Made)) == 3
+
+
+def test_a_placeholder_of_an_enum_out_parameter_that_is_not_the_enum_falls_back_to_the_shorter_overload() -> None:
+    # why the stub asks for a value of the enum: None and a number give the two-item tuple and no error
+    plate, cutter = _plate_and_cutter()
+    assert len(plate.TrySubtract(cutter, outcome=None)) == 2
+    assert len(plate.TrySubtract(cutter, outcome=0)) == 2
+
+
+def test_naming_one_of_several_out_parameters_gives_the_longer_overload_whatever_the_other_names_are() -> None:
+    # GeoPolyline2.TrySplitAtDistance(distance, out pieces) and (distance, out first, out second)
+    polyline = GeoPolyline2(GeoPoint2(0, 0), GeoPoint2(10, 0), GeoPoint2(10, 10))
+    made, pieces = polyline.TrySplitAtDistance(5.0)
+    assert made
+    assert len(pieces) == 2  # the pieces come as one array
+    for named in ({"first": None}, {"second": None}, {"first": None, "second": None}):
+        made, first, second = polyline.TrySplitAtDistance(5.0, **named)
+        assert made
+        assert first.Length == pytest.approx(5.0)
+        assert second.Length == pytest.approx(15.0)
+    assert len(polyline.TrySplitAtDistance(5.0, tolerance=TOLERANCE)) == 2
+    assert len(polyline.TrySplitAtDistance(5.0, second=None, tolerance=TOLERANCE)) == 3
+    # the out parameter of the shorter overload names the shorter one, whatever else is named
+    assert len(polyline.TrySplitAtDistance(5.0, pieces=None)) == 2
+
+
+def test_one_placeholder_short_of_the_longer_overload_is_the_shorter_one_and_the_stubs_do_not_promise_either() -> None:
+    line = GeoLine3(GeoPoint3(-5, 0, -5), GeoPoint3(5, 0, 5))
+    plane = GeoPlane3(GeoPoint3(0, 0, 0), GeoVector3(0, 0, 1))
+    assert len(line.TrySplitBy(plane, None)) == 2
+    assert len(line.TrySplitBy(plane, None, None)) == 3
+    assert len(line.TrySplitBy(plane, below=None)) == 3
+    assert len(line.TrySplitBy(plane, above=None, below=None, tolerance=TOLERANCE)) == 3
+
+
+def test_the_overload_without_an_out_parameter_is_bound_before_the_one_with_it_whichever_is_declared_first() -> None:
+    # GeoPolylineArc3 declares SplitAtDistances(distances, out pieces) before SplitAtDistances(distances)
+    arcs = GeoPolylineArc3(GeoPolyline3(GeoPoint3(0, 0, 0), GeoPoint3(10, 0, 0), GeoPoint3(10, 10, 0)))
+    distances = Array[Double]([5.0])
+    assert len(arcs.SplitAtDistances(distances)) == 2  # the two pieces, an array
+    assert len(arcs.SplitAtDistances(distances, tolerance=TOLERANCE)) == 2
+    made, pieces = arcs.SplitAtDistances(distances, pieces=None)
+    assert made
+    assert len(pieces) == 2
+    made, pieces = arcs.SplitAtDistances(distances, pieces=None, tolerance=TOLERANCE)
+    assert made
+
+
+# Null on reference-type members (stub rule: a settable member takes None where its summary says null or it is a
+# delegate, unless its comment says it throws ArgumentNullException)
+
+
+def test_a_property_whose_summary_says_null_takes_none_and_gives_it_back() -> None:
+    selection = CadObjectFilter()
+    selection.Layer = "Steel"
+    selection.Layout = "Model"
+    selection.Kind = DxfLine
+    assert (selection.Layer, selection.Layout) == ("Steel", "Model")
+    selection.Layer = None
+    selection.Layout = None
+    selection.Kind = None
+    assert (selection.Layer, selection.Layout, selection.Kind) == (None, None, None)
+
+
+def test_a_delegate_property_takes_none_and_gives_it_back() -> None:
+    try:
+        GeometryHelperLog.Writer = Action[GeometryHelperLogLevel, str, NetException](lambda a, b, c: None)
+        assert GeometryHelperLog.Writer is not None
+        GeometryHelperLog.Writer = None
+        assert GeometryHelperLog.Writer is None
+        CadTrueTypeFonts.MeasureWidth = Func[str, bool, bool, str, float](lambda text, bold, italic, font: 1.0)
+        CadTrueTypeFonts.MeasureWidth = None
+        assert CadTrueTypeFonts.MeasureWidth is None
+    finally:
+        GeometryHelperLog.Writer = None
+        CadTrueTypeFonts.MeasureWidth = None
+
+
+def test_a_property_that_gives_null_but_throws_on_null_refuses_none() -> None:
+    # DxfDatabase.Cmaterial is "null where the header names none", and its comment says ArgumentNullException
+    database = DxfDatabase.Parse(DxfWriter().ToString())
+    with pytest.raises(ArgumentNullException):
+        database.Cmaterial = None
+
+
+# Enums made from a number (stub rule: every enum has __init__(self, value: int))
+
+
+def test_an_enum_is_made_from_a_number() -> None:
+    assert DxfEraseFlags(1) == DxfEraseFlags.ZeroLengthCurve
+    assert DxfEraseFlags(3) == DxfEraseFlags.ZeroLengthCurve | DxfEraseFlags.EmptyText
+    assert int(DxfEraseFlags(3)) == 3
+    assert DxfEndCap(1) == DxfEndCap.Round
+    assert type(DxfEndCap(1)) is DxfEndCap
+
+
+def test_a_flags_enum_takes_any_number_and_a_plain_enum_refuses_one_it_has_no_member_for() -> None:
+    assert int(DxfEraseFlags(1 << 20)) == 1 << 20
+    with pytest.raises(ValueError):
+        DxfEndCap(99)
+    assert int(DxfEndCap(99, True)) == 99  # the second argument, which the stubs leave out, asks for it unchecked
+
+
+def test_an_enum_is_made_from_a_whole_number_and_from_nothing_else() -> None:
+    for refused in (1.5, "1", None):
+        with pytest.raises(TypeError):
+            DxfEraseFlags(refused)
+    with pytest.raises(TypeError):
+        DxfEraseFlags()
+    with pytest.raises(OverflowError):
+        DxfEraseFlags(1 << 40)

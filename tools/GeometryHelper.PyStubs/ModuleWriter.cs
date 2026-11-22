@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace GeometryHelper.PyStubs
 {
@@ -243,6 +244,18 @@ namespace GeometryHelper.PyStubs
         private void CollectEnum(Type type, List<Piece> pieces)
         {
             CollectFields(type, pieces);
+
+            // pythonnet makes an enum value from a number, DxfEraseFlags(1); a plain enum refuses a number it has no member for.
+            pieces.Add(
+                new Piece
+                {
+                    Group = ConstructorGroup,
+                    Name = "__init__",
+                    Counts = false,
+                    Render = overloaded =>
+                        Def(4, "__init__", new List<string> { "self", "value: int" }, "None", null, false, false),
+                }
+            );
             pieces.Add(
                 new Piece
                 {
@@ -303,6 +316,7 @@ namespace GeometryHelper.PyStubs
                 }
 
                 FieldInfo captured = field;
+                bool writable = !field.IsInitOnly && !field.IsLiteral;
                 pieces.Add(
                     new Piece
                     {
@@ -314,17 +328,57 @@ namespace GeometryHelper.PyStubs
                                 captured.IsStatic,
                                 captured.FieldType,
                                 false,
-                                _docs.Of(captured)
+                                _docs.Of(captured),
+                                writable && TakesNull(captured, captured.FieldType)
                             ),
                     }
                 );
             }
         }
 
-        /// <summary>Attribute line (a field, a static property or event): <c>Name: T</c> or <c>Name: ClassVar[T]</c>, then its docstring.</summary>
-        private string AttributeText(string name, bool isStatic, Type type, bool asParameter, IReadOnlyList<string> doc)
+        private static readonly Regex NullWord = new Regex(
+            @"\bnull\b",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled
+        );
+
+        /// <summary>
+        /// Whether a member that can be set takes null, which pythonnet reads as <c>None</c>: its type is a reference type,
+        /// its comment does not say it throws <see cref="ArgumentNullException"/>, and it is either a delegate
+        /// (<c>GeometryHelperLog.Writer = None</c> puts the default writer back) or its summary says null, as in "null for
+        /// every layer". The .NET assemblies carry no nullable annotations to read it from, and a summary alone is not
+        /// enough: "null where the file has none" describes what a property gives, and many refuse null when set.
+        /// </summary>
+        private bool TakesNull(MemberInfo member, Type type)
+        {
+            if (type.IsValueType || type.IsGenericParameter || type.IsPointer || type.FullName == "System.Object")
+            {
+                return false;
+            }
+
+            return !_docs.ThrowsWhenNull(member)
+                && (IsDelegate(type) || _docs.Of(member).Any(paragraph => NullWord.IsMatch(paragraph)));
+        }
+
+        private static bool IsDelegate(Type type) => type.BaseType?.FullName == "System.MulticastDelegate";
+
+        /// <summary>The annotation of a type, with <c>| None</c> where the member takes null (an <c>Any</c> already does).</summary>
+        private string Annotation(Type type, bool asParameter, bool acceptsNull)
         {
             string annotation = _mapper.Map(type, asParameter, _module);
+            return acceptsNull && annotation != "Any" ? annotation + " | None" : annotation;
+        }
+
+        /// <summary>Attribute line (a field, a static property or event): <c>Name: T</c> or <c>Name: ClassVar[T]</c>, then its docstring.</summary>
+        private string AttributeText(
+            string name,
+            bool isStatic,
+            Type type,
+            bool asParameter,
+            IReadOnlyList<string> doc,
+            bool acceptsNull = false
+        )
+        {
+            string annotation = Annotation(type, asParameter, acceptsNull);
             var text = new StringBuilder();
             text.Append("    ")
                 .Append(name)
@@ -437,7 +491,8 @@ namespace GeometryHelper.PyStubs
                                     isStatic,
                                     captured.PropertyType,
                                     getter == null,
-                                    _docs.Of(captured)
+                                    _docs.Of(captured),
+                                    setter != null && TakesNull(captured, captured.PropertyType)
                                 ),
                         }
                     );
@@ -451,14 +506,26 @@ namespace GeometryHelper.PyStubs
                             Group = PropertyGroup,
                             Name = property.Name,
                             Render = overloaded =>
-                                PropertyText(captured.Name, captured.PropertyType, settable, _docs.Of(captured)),
+                                PropertyText(
+                                    captured.Name,
+                                    captured.PropertyType,
+                                    settable,
+                                    _docs.Of(captured),
+                                    settable && TakesNull(captured, captured.PropertyType)
+                                ),
                         }
                     );
                 }
             }
         }
 
-        private string PropertyText(string name, Type type, bool settable, IReadOnlyList<string> doc)
+        private string PropertyText(
+            string name,
+            Type type,
+            bool settable,
+            IReadOnlyList<string> doc,
+            bool acceptsNull = false
+        )
         {
             var text = new StringBuilder();
             text.Append("    @property\n");
@@ -472,7 +539,7 @@ namespace GeometryHelper.PyStubs
                     Def(
                         4,
                         name,
-                        new List<string> { "self", "value: " + _mapper.Map(type, true, _module) },
+                        new List<string> { "self", "value: " + Annotation(type, true, acceptsNull) },
                         "None",
                         null,
                         false,
@@ -577,6 +644,7 @@ namespace GeometryHelper.PyStubs
 
         private void CollectMethods(Type type, List<Piece> pieces)
         {
+            var written = new List<MethodInfo>();
             foreach (MethodInfo method in type.GetMethods(Declared))
             {
                 if (method.IsSpecialName)
@@ -589,12 +657,17 @@ namespace GeometryHelper.PyStubs
                     continue;
                 }
 
-                if (!CanWrite(type, method, method.Name))
+                if (CanWrite(type, method, method.Name))
                 {
-                    continue;
+                    written.Add(method);
                 }
+            }
 
+            Dictionary<MethodInfo, ParameterInfo> shadowed = OutToName(written);
+            foreach (MethodInfo method in written)
+            {
                 MethodInfo captured = method;
+                shadowed.TryGetValue(method, out ParameterInfo toName);
                 ParameterInfo[] parameters = method.GetParameters();
                 pieces.Add(
                     new Piece
@@ -609,7 +682,7 @@ namespace GeometryHelper.PyStubs
                             Def(
                                 4,
                                 captured.Name,
-                                Parameters(parameters, !captured.IsStatic),
+                                Parameters(parameters, !captured.IsStatic, false, toName),
                                 ReturnAnnotation(captured.ReturnType, parameters),
                                 _docs.Of(captured),
                                 overloaded,
@@ -633,7 +706,7 @@ namespace GeometryHelper.PyStubs
                                 Def(
                                     4,
                                     captured.Name,
-                                    Parameters(parameters, !captured.IsStatic, true),
+                                    Parameters(parameters, !captured.IsStatic, true, toName),
                                     ReturnAnnotation(captured.ReturnType, parameters),
                                     _docs.Of(captured),
                                     overloaded,
@@ -653,6 +726,65 @@ namespace GeometryHelper.PyStubs
             parameters.Length > 0
             && parameters[parameters.Length - 1]
                 .CustomAttributes.Any(a => a.AttributeType.FullName == "System.ParamArrayAttribute");
+
+        /// <summary>
+        /// The overloads that a call of another one covers: those that take the same parameters (names and types) as a
+        /// shorter one and differ by out parameters alone. With the out arguments left out pythonnet binds the overload
+        /// with the fewest parameters (measured on both runtimes, whichever is declared first), so the longer ones are
+        /// reached only by naming one of their own out parameters, <c>TrySubtract(tool, outcome=BooleanOutcome.Made)</c>.
+        /// Each gives back the last out parameter, the one its stub makes a required keyword.
+        /// </summary>
+        private static Dictionary<MethodInfo, ParameterInfo> OutToName(List<MethodInfo> methods)
+        {
+            var result = new Dictionary<MethodInfo, ParameterInfo>();
+            foreach (
+                IGrouping<string, MethodInfo> group in methods.GroupBy(m =>
+                    m.Name
+                    + "|"
+                    + m.IsStatic
+                    + "|"
+                    + string.Join(
+                        ",",
+                        m.GetParameters().Where(p => !p.IsOut).Select(p => p.Name + ":" + SortName(p.ParameterType))
+                    )
+                )
+            )
+            {
+                List<MethodInfo> overloads = group.OrderBy(m => m.GetParameters().Length).ToList();
+                if (overloads.Count < 2)
+                {
+                    continue;
+                }
+
+                string label = overloads[0].DeclaringType?.FullName + "." + overloads[0].Name;
+                if (overloads[1].GetParameters().Length == overloads[0].GetParameters().Length)
+                {
+                    throw new InvalidOperationException(
+                        "Overloads that differ only by an out parameter and have as many parameters cannot be told apart: "
+                            + label
+                    );
+                }
+
+                foreach (MethodInfo longer in overloads.Skip(1))
+                {
+                    ParameterInfo last = longer.GetParameters().LastOrDefault(p => p.IsOut);
+                    if (
+                        last == null
+                        || PythonNames.IsKeyword(last.Name)
+                        || overloads.Any(o => o != longer && o.GetParameters().Any(p => p.Name == last.Name))
+                    )
+                    {
+                        throw new InvalidOperationException(
+                            "The overload " + label + " has no out parameter that names it."
+                        );
+                    }
+
+                    result[longer] = last;
+                }
+            }
+
+            return result;
+        }
 
         private void CollectOperator(Type type, MethodInfo method, List<Piece> pieces)
         {
@@ -907,9 +1039,16 @@ namespace GeometryHelper.PyStubs
         /// <paramref name="varargs"/> the last one, a <c>params</c> array, is written as <c>*name: T</c>, for the call with
         /// separate arguments. pythonnet leaves out a trailing <c>out</c> argument by itself, but one that a parameter of the
         /// call follows (<c>TrySubtract(tool, out result, tolerance)</c>) only when that parameter is given by keyword, so the
-        /// parameters from the first such <c>out</c> on are written after a <c>*</c>: keyword-only.
+        /// parameters from the first such <c>out</c> on are written after a <c>*</c>: keyword-only. A parameter given as
+        /// <paramref name="namedOut"/> is an out one that is named too, as a required keyword, to reach an overload that a
+        /// shorter one would otherwise take (<see cref="OutToName"/>).
         /// </summary>
-        private List<string> Parameters(IEnumerable<ParameterInfo> parameters, bool withSelf, bool varargs = false)
+        private List<string> Parameters(
+            IEnumerable<ParameterInfo> parameters,
+            bool withSelf,
+            bool varargs = false,
+            ParameterInfo namedOut = null
+        )
         {
             ParameterInfo[] all = parameters.ToArray();
             List<ParameterInfo> list = all.Where(p => !p.IsOut).ToList();
@@ -960,6 +1099,28 @@ namespace GeometryHelper.PyStubs
                 {
                     result.Add("/");
                 }
+            }
+
+            if (namedOut != null)
+            {
+                if (varargs)
+                {
+                    throw new InvalidOperationException(
+                        "An out parameter cannot be named after a params array: "
+                            + namedOut.Member.DeclaringType?.FullName
+                            + "."
+                            + namedOut.Member.Name
+                    );
+                }
+
+                if (!result.Contains("*"))
+                {
+                    result.Add("*");
+                }
+
+                // What is passed for it is a placeholder that is never read, so a reference type takes None.
+                Type element = namedOut.ParameterType.GetElementType();
+                result.Add(namedOut.Name + ": " + Annotation(element, false, !element.IsValueType));
             }
 
             return result;

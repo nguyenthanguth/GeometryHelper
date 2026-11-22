@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace GeometryHelper.PyStubs.UnitTest
@@ -24,7 +25,7 @@ namespace GeometryHelper.PyStubs.UnitTest
             Assert.Equal(new[] { "GeometryHelper.Fixture", "GeometryHelper.Fixture.Other" }, report.Modules);
             AssemblyStubs assembly = Assert.Single(report.Assemblies);
             Assert.Equal("GeometryHelper.Fixture", assembly.Name);
-            Assert.Equal(29, assembly.Types);
+            Assert.Equal(31, assembly.Types);
             Assert.Equal(2, assembly.Modules);
         }
 
@@ -116,6 +117,7 @@ namespace GeometryHelper.PyStubs.UnitTest
                     "    Both: ClassVar[Mode]",
                     "    Off: ClassVar[Mode]",
                     "    On: ClassVar[Mode]",
+                    "    def __init__(self, value: int) -> None: ...",
                     "    def __and__(self, other: Mode) -> Mode: ...",
                     "    def __int__(self) -> int: ...",
                     "    def __invert__(self) -> Mode: ...",
@@ -131,10 +133,18 @@ namespace GeometryHelper.PyStubs.UnitTest
                     "    Round: ClassVar[Kind]",
                     "    \"\"\"A round one.\"\"\"",
                     "    Square: ClassVar[Kind]",
+                    "    def __init__(self, value: int) -> None: ...",
                     "    def __int__(self) -> int: ..."
                 ),
                 Fixture
             );
+        }
+
+        [Fact]
+        public void EveryEnum_CanBeMadeFromANumber_AsPythonnetAllows()
+        {
+            // pythonnet takes `Mode(1)` and `Kind(1)`: the same one constructor for a plain enum and a [Flags] one.
+            Assert.Equal(2, Regex.Matches(Fixture, @"    def __init__\(self, value: int\) -> None: \.\.\.\n").Count);
         }
 
         [Fact]
@@ -269,7 +279,7 @@ namespace GeometryHelper.PyStubs.UnitTest
                 Lines(
                     "    def TryScale(self, key: str, *, tolerance: float) -> tuple[bool, int]: ...",
                     "    @overload",
-                    "    def TryScale(self, key: str, *, tolerance: float) -> tuple[bool, int, str]: ..."
+                    "    def TryScale(self, key: str, *, tolerance: float, note: str | None) -> tuple[bool, int, str]: ..."
                 ),
                 Fixture
             );
@@ -277,6 +287,129 @@ namespace GeometryHelper.PyStubs.UnitTest
                 "    def TryDivide(self, number: int, *, tolerance: float, limit: float) -> tuple[bool, int, int]: ...\n",
                 Fixture
             );
+        }
+
+        [Fact]
+        public void OverloadsThatDifferOnlyByAnOutParameter_ReachTheLongerOneByNamingItsLastOutParameter()
+        {
+            // With the out arguments left out pythonnet binds the overload with the fewest parameters, so
+            // `TryMake(key)` is the two-item one and the three-item one is `TryMake(key, note=None)`.
+            Assert.Contains(
+                Lines(
+                    "    @overload",
+                    "    def TryMake(self, key: str) -> tuple[bool, int]: ...",
+                    "    @overload",
+                    "    def TryMake(self, key: str, *, note: str | None) -> tuple[bool, int, str]: ..."
+                ),
+                Fixture
+            );
+
+            // A static one, with an out parameter in the middle and a struct and an enum for placeholders: no None.
+            Assert.Contains(
+                Lines(
+                    "    @overload",
+                    "    @staticmethod",
+                    "    def TryRun(spot: Spot, *, tolerance: float) -> tuple[bool, Spot]: ...",
+                    "    @overload",
+                    "    @staticmethod",
+                    "    def TryRun(spot: Spot, *, tolerance: float, kind: Kind) -> tuple[bool, Spot, Kind]: ..."
+                ),
+                Fixture
+            );
+
+            // The shorter one may have no out parameter at all: the one with an out parameter is the one named.
+            Assert.Contains(
+                Lines(
+                    "    @overload",
+                    "    def Pieces(self, distance: float) -> System.Array[int]: ...",
+                    "    @overload",
+                    "    def Pieces(self, distance: float, *, pieces: System.Array[int] | None) -> tuple[bool, System.Array[int]]: ..."
+                ),
+                Fixture
+            );
+
+            // Different out parameters: the last one of the longer overload names it.
+            Assert.Contains(
+                Lines(
+                    "    @overload",
+                    "    def TrySplit(self, distance: float) -> tuple[bool, System.Array[int]]: ...",
+                    "    @overload",
+                    "    def TrySplit(self, distance: float, *, second: Shape | None) -> tuple[bool, Shape, Shape]: ..."
+                ),
+                Fixture
+            );
+        }
+
+        [Fact]
+        public void OverloadsWhoseInParametersDifferInType_AreLeftAsTheyWere()
+        {
+            // int and long are both int in Python, but pythonnet tells them apart by the argument, not by the out count.
+            Assert.Contains(
+                Lines(
+                    "    @overload",
+                    "    def TryOther(self, a: int) -> tuple[bool, int]: ...",
+                    "    @overload",
+                    "    def TryOther(self, a: int) -> tuple[bool, int, int]: ..."
+                ),
+                Fixture
+            );
+        }
+
+        [Fact]
+        public void ASettableReferenceMember_WhoseSummarySaysNull_TakesNone_AndSoDoesADelegateOne()
+        {
+            // A property takes None where it is set, and gives what it gave before.
+            Assert.Contains("    @Layer.setter\n    def Layer(self, value: str | None) -> None: ...\n", Fixture);
+            Assert.Contains("    @Limit.setter\n    def Limit(self, value: int | None) -> None: ...\n", Fixture);
+            Assert.Contains(
+                "    @property\n    def Layer(self) -> str:\n        \"\"\"Gets or sets the layer; null for every layer.\"\"\"\n",
+                Fixture
+            );
+            Assert.Contains(
+                "    @Kind.setter\n    def Kind(self, value: System.Type | type[Any] | None) -> None: ...\n",
+                Fixture
+            );
+            Assert.Contains(
+                "    @Tags.setter\n    def Tags(self, value: Sequence[str] | System.Array[str] | None) -> None: ...\n",
+                Fixture
+            );
+
+            // A delegate takes None without a word of it in the summary: a property, a static one, a field, our own delegate.
+            Assert.Contains(
+                "    @Callback.setter\n    def Callback(self, value: System.Action[int] | None) -> None: ...\n",
+                Fixture
+            );
+            Assert.Contains(
+                "    @Test.setter\n    def Test(self, value: System.Func[str, bool] | None) -> None: ...\n",
+                Fixture
+            );
+            Assert.Contains(
+                "    @SpotCheck.setter\n    def SpotCheck(self, value: SpotTest | None) -> None: ...\n",
+                Fixture
+            );
+            Assert.Contains("    Hook: ClassVar[System.Action[str] | None]\n", Fixture);
+            Assert.Contains("    Listener: System.Action[int] | None\n", Fixture);
+
+            // A static property and one that can only be set are one attribute, so the read is typed with None too.
+            Assert.Contains("    Prefix: ClassVar[str | None]\n", Fixture);
+            Assert.Contains("    Note: str | None\n", Fixture);
+        }
+
+        [Fact]
+        public void ASummaryThatSaysNull_IsNotEnough_WhereTheCommentSaysNullIsRefused_OrNothingCanBeSet()
+        {
+            // The summary describes what the property gives, and the comment says setting null throws.
+            Assert.Contains("    @Style.setter\n    def Style(self, value: str) -> None: ...\n", Fixture);
+
+            // No word of null; a word that only contains it; a value type; a property that cannot be set; an object.
+            Assert.Contains("    @Name.setter\n    def Name(self, value: str) -> None: ...\n", Fixture);
+            Assert.Contains("    @Nullable.setter\n    def Nullable(self, value: str) -> None: ...\n", Fixture);
+            Assert.Contains("    @Count.setter\n    def Count(self, value: int) -> None: ...\n", Fixture);
+            Assert.Contains("    @Plain.setter\n    def Plain(self, value: str) -> None: ...\n", Fixture);
+            Assert.Contains("    @Thing.setter\n    def Thing(self, value: object) -> None: ...\n", Fixture);
+            string members = StubRun.ClassOf(Fixture, "NullableMembers");
+            Assert.DoesNotContain("@Owner.setter", members);
+            Assert.DoesNotContain("@Fixed.setter", members);
         }
 
         [Fact]

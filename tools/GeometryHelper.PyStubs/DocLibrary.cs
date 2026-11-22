@@ -46,6 +46,18 @@ namespace GeometryHelper.PyStubs
         /// <summary>The paragraphs of the summary of a member, empty when it has none.</summary>
         public IReadOnlyList<string> Of(MemberInfo member) => Of(member, 0);
 
+        /// <summary>
+        /// Whether the comment of a member says it throws <see cref="ArgumentNullException"/>: a property whose summary says
+        /// "null where the file has none" describes what it gives, and refuses null when set.
+        /// </summary>
+        public bool ThrowsWhenNull(MemberInfo member) =>
+            _members.TryGetValue(DocIds.Of(member), out XElement element)
+            && element
+                .Elements("exception")
+                .Any(e =>
+                    ((string)e.Attribute("cref") ?? "").EndsWith(".ArgumentNullException", StringComparison.Ordinal)
+                );
+
         private IReadOnlyList<string> Of(Type type, int depth)
         {
             if (depth > MaxDepth || !_members.TryGetValue(DocIds.Of(type), out XElement element))

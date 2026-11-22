@@ -46,7 +46,54 @@ namespace GeometryHelper.PyStubs.UnitTest
             Assert.Contains("    def __enter__(self) -> Self: ...\n", application);
             Assert.Contains("    def __exit__(self, *args: object) -> None: ...\n", application);
             Assert.Contains("    def Kind(self) -> System.Type:\n", filter);
-            Assert.Contains("    def Kind(self, value: System.Type | type[Any]) -> None: ...\n", filter);
+            Assert.Contains("    def Kind(self, value: System.Type | type[Any] | None) -> None: ...\n", filter);
+        }
+
+        [Fact]
+        public void TheFilterAndTheLogWriter_TakeNone_AsTheirSummariesAndPythonnetSay()
+        {
+            string filter = StubRun.ClassOf(Run.Value.Module("Cad/Remote"), "CadObjectFilter");
+            string log = StubRun.ClassOf(Run.Value.Module(""), "GeometryHelperLog");
+
+            Assert.Contains("    def Layer(self, value: str | None) -> None: ...\n", filter);
+            Assert.Contains("    def Layout(self, value: str | None) -> None: ...\n", filter);
+            Assert.Contains(
+                "    Writer: ClassVar[System.Action[GeometryHelperLogLevel, str, System.Exception] | None]\n",
+                log
+            );
+        }
+
+        [Fact]
+        public void ADeclaredNullRefusal_KeepsAPropertyFromTakingNone()
+        {
+            // DxfDatabase.Cmaterial is "null where the header names none" and throws ArgumentNullException when set.
+            string database = StubRun.ClassOf(Run.Value.Module("Dxf"), "DxfDatabase");
+
+            Assert.Contains("    def Cmaterial(self, value: DxfDBObject) -> None: ...\n", database);
+        }
+
+        [Fact]
+        public void TheOverloadsOfTrySubtractThatTellHowItCameOut_AreReachedByNamingTheOutcome()
+        {
+            string solid = StubRun.ClassOf(Run.Value.Module("Geometry"), "GeoSolid3");
+
+            Assert.Contains("    def TrySubtract(self, tool: GeoSolid3) -> tuple[bool, GeoSolid3]:\n", solid);
+            Assert.Contains(
+                "    def TrySubtract(self, tool: GeoSolid3, *, outcome: BooleanOutcome) -> tuple[bool, GeoSolid3, BooleanOutcome]:\n",
+                solid
+            );
+            Assert.Contains(
+                "        tolerance: Tolerance,\n        outcome: BooleanOutcome,\n    ) -> tuple[bool, GeoSolid3, BooleanOutcome]:\n",
+                solid
+            );
+        }
+
+        [Fact]
+        public void AnEnum_CanBeMadeFromANumber()
+        {
+            string erase = StubRun.ClassOf(Run.Value.Module("Dxf"), "DxfEraseFlags");
+
+            Assert.Contains("    def __init__(self, value: int) -> None: ...\n", erase);
         }
 
         [Fact]

@@ -142,7 +142,7 @@ the [API reference](xref:GeometryHelper). A few things differ from C# at run tim
 
 ## What pythonnet does with .NET
 
-Six things differ from what a Python reader expects. Each was measured on .NET 8 and on .NET Framework 4.8, with the same
+Seven things differ from what a Python reader expects. Each was measured on .NET 8 and on .NET Framework 4.8, with the same
 result, and the stubs are written to say them: a call that pythonnet would refuse is an error in the editor.
 
 ### Out parameters come back in a tuple
@@ -168,6 +168,27 @@ choice. The stubs write those parameters after a `*`, so the editor says so. 876
 them followed by a `tolerance`, and none has a `ref` parameter or a params array after it. Passing a placeholder in
 place of the out argument works as well (`None` for a class, `GeoPoint2()` for a struct, `0.0` for a `double`), but the
 stubs do not promise it.
+
+Some overloads differ from a shorter one only by out parameters, such as the `TrySubtract` that also says how the cut came
+out. Both are the same call, `plate.TrySubtract(cutter)`, and with the out arguments left out pythonnet binds the one
+with the fewest parameters (whichever is declared first), so the call gives the two-item tuple. The longer overload is
+reached by naming one of its own out parameters, with a value nobody reads:
+
+```python
+from GeometryHelper.Enums import BooleanOutcome
+
+made, left = plate.TrySubtract(cutter)                                           # two items
+made, left, outcome = plate.TrySubtract(cutter, outcome=BooleanOutcome.Made)     # three; outcome == BooleanOutcome.Made
+```
+
+The value is one of the enum for an enum or a struct, since `outcome=None` and `outcome=0` quietly bind the shorter overload
+again, and `None` for a class or an array (`polyline.TrySplitAtDistance(5.0, second=None)` gives `(bool, first, second)`
+where `polyline.TrySplitAtDistance(5.0)` gives `(bool, pieces)`). The stubs write the longer overload with that out
+parameter as a required keyword, so the editor gives the tuple that runs. 26 overloads are such: `TryIntersect`,
+`TryUnion` and `TrySubtract` of `GeoSolid3` and of `Boolean3` (the keyword `outcome`), `TrySplitBy` by a plane of `GeoLine3`
+and `GeoPolyline3` (`above` and `below`), `TrySplitAtDistance` of the four polylines (`first` and `second`), and
+`SplitAtDistances` of `GeoPolylineArc3` (the array alone, or the flag and the array through `pieces`), each with and
+without a `tolerance`.
 
 ### Lists: only for arrays
 
@@ -244,8 +265,14 @@ GeometryHelperLog.Writer = Action[GeometryHelperLogLevel, str, System.Exception]
 GeometryHelperLog.Warn("hello")                                 # messages == [("Warn", "hello")]
 ```
 
-Assigning `None` puts the default writer back. The stubs do not model null yet, so an editor flags that one assignment;
-the script runs.
+Assigning `None` puts the default writer back, and the stubs say so. `None` is `null` to .NET, and any reference-type
+property takes it, but the .NET assemblies carry no nullable annotations to say which ones the library means to take it.
+The stubs go by two things: a property, field or static of a delegate type, and a property whose summary says null, as
+`CadObjectFilter.Layer` does ("null for every layer"): `selection.Layer = None` is "every layer". A property whose comment
+says it throws `ArgumentNullException`, such as `DxfDatabase.Cmaterial` ("null where the header names none"), does not
+take `None` when it is set, whatever its summary says of what it gives. That makes 106 members, 10 of them delegates; the
+other 331 settable reference-type properties accept `None` at run time or not as their code says, and the editor reports
+an assignment of `None` to them. Only the value that is set takes `| None`: what a property gives back is typed as before.
 
 An event is the exception: `+=` takes a plain function, with the .NET handler's two arguments, and `-=` takes it away:
 
@@ -294,6 +321,14 @@ not `[Flags]`, such as `DxfEndCap.Round | DxfEndCap.Square`, does not raise a `T
 raises `RecursionError`. The stubs give the operators to the `[Flags]` enums only, so an editor reports the second case
 before it runs. A flag and a plain number do not combine either: `DxfEraseFlags.ZeroLengthCurve | 1` is refused at run time
 and in the editor alike, so combine the named values.
+
+### An enum from a number
+
+An enum value is made from a whole number as in C#, `DxfEraseFlags(3)` (the same as the two named values joined) and
+`DxfEndCap(1)` (`DxfEndCap.Round`), and the stubs give every enum that one constructor. A `[Flags]` enum takes any number,
+`DxfEraseFlags(1 << 20)` included; a plain enum refuses one it has no member for, `DxfEndCap(99)` is a `ValueError`, and
+`DxfEndCap(99, True)` gives the value all the same, a second argument the stubs leave out. A fraction, a string, `None` and
+no argument are a `TypeError`, and a number past 32 bits an `OverflowError`. All 181 enums of the library are `Int32` ones.
 
 ## numpy in blocks
 
@@ -377,7 +412,7 @@ your own, which Global settings can name; the wheel is not used there, as the ap
 The wheel carries the stubs of the library, so an editor completes the .NET names and checks a script that uses them. They
 are a PEP 561 stub package per namespace, `GeometryHelper-stubs` (an `__init__.pyi` for each of the 18 namespaces), and
 `System-stubs`, the few BCL classes the library's signatures name, as pythonnet spells them: `System.Array[T]`,
-`System.Collections.Generic.List[T]`, `System.Action[...]`. They hold 806 types and 18 561 members (a member is one stub
+`System.Collections.Generic.List[T]`, `System.Action[...]`. They hold 808 types and 18 581 members (a member is one stub
 entry, each overload once), and the summary of each type and member as its docstring, so hovering `GeoPoint3(` in Pylance
 shows its overloads and what each does. A class written in several files shows all its summaries joined in the hover.
 The same text is on the docs site as the [Python API](../../../docfx/python-api/index.md), a page for each type with
@@ -387,10 +422,15 @@ What the stubs say, so that the editor and pythonnet agree:
 
 - every .NET overload is an `@overload`, and an out parameter is not a parameter but part of the returned tuple;
 - the parameters after an out parameter that is not the last are keyword-only;
+- an overload that differs from a shorter one only by out parameters is reached by naming one of them: a required keyword
+  (`outcome=BooleanOutcome.Made`), so the call without it is the shorter overload, as pythonnet binds it;
 - a collection a method returns is typed as the .NET interface (`IReadOnlyList[GeoPoint2]`), without `len()` or a slice;
 - a parameter that pythonnet takes a Python list for is `Sequence[T] | System.Array[T]`, and one it does not is the .NET
   class only;
 - a delegate is `System.Action[...]` or `System.Func[...]`, and an event `+=` takes a plain function;
+- a settable reference-type property takes `None` when it is a delegate or its summary says null (106 members), unless its
+  comment says it throws `ArgumentNullException`;
+- an enum is made from a number, `DxfEraseFlags(3)`;
 - a `[Flags]` enum has `|`, `&`, `^` and `~`, a plain enum none;
 - the 33 members named as Python keywords are left out, and a parameter named so is `from_`, positional-only;
 - two .NET types are written `Any`, `System.Double[,]` and `System.Xml.Linq.XDocument`.

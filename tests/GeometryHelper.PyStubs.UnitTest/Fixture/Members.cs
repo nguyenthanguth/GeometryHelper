@@ -178,6 +178,122 @@ namespace GeometryHelper.Fixture
         /// <summary>Ends with a quote "</summary>
         public void EndsWithQuote() { }
     }
+
+    /// <summary>Members that take null, by a delegate type or by their summary, and look-alikes that do not.</summary>
+    public class NullableMembers
+    {
+        /// <summary>Gets or sets the layer; null for every layer.</summary>
+        public string Layer { get; set; }
+
+        /// <summary>Gets or sets the name, which is never empty.</summary>
+        public string Name { get; set; }
+
+        /// <summary>Gets or sets the style; null where it has none.</summary>
+        /// <exception cref="ArgumentNullException">Thrown when the style set is null.</exception>
+        public string Style { get; set; }
+
+        /// <summary>Gets or sets the nullable thing, a word that only contains one.</summary>
+        public string Nullable { get; set; }
+
+        /// <summary>Gets the owner; null where it has none.</summary>
+        public string Owner { get; }
+
+        /// <summary>Gets or sets the count, never null.</summary>
+        public int Count { get; set; }
+
+        /// <summary>Gets or sets the limit; null for none.</summary>
+        public int? Limit { get; set; }
+
+        /// <summary>Gets or sets the kind of object, a class; <see langword="null"/> for every kind.</summary>
+        public Type Kind { get; set; }
+
+        /// <summary>Gets or sets the thing; null for none.</summary>
+        public object Thing { get; set; }
+
+        /// <summary>Gets or sets the tags; null for none.</summary>
+        public string[] Tags { get; set; }
+
+        /// <summary>Sets the note; null for none.</summary>
+        public string Note
+        {
+            set { }
+        }
+
+        /// <summary>Gets or sets the prefix; null for none.</summary>
+        public static string Prefix { get; set; }
+
+        public Action<int> Callback { get; set; }
+        public Func<string, bool> Test { get; set; }
+        public SpotTest SpotCheck { get; set; }
+        public static Action<string> Hook { get; set; }
+        public Action<int> Listener;
+        public Action<int> Fixed { get; }
+        public string Plain { get; set; }
+    }
+
+    /// <summary>Overloads that differ only by an out parameter at the end.</summary>
+    public class OutShadows
+    {
+        public bool TryMake(string key, out int made)
+        {
+            made = 0;
+            return true;
+        }
+
+        public bool TryMake(string key, out int made, out string note)
+        {
+            made = 0;
+            note = "";
+            return true;
+        }
+
+        public static bool TryRun(Spot spot, out Spot result, double tolerance)
+        {
+            result = spot;
+            return true;
+        }
+
+        public static bool TryRun(Spot spot, out Spot result, double tolerance, out Kind kind)
+        {
+            result = spot;
+            kind = Kind.Round;
+            return true;
+        }
+
+        public int[] Pieces(double distance) => new int[0];
+
+        public bool Pieces(double distance, out int[] pieces)
+        {
+            pieces = new int[0];
+            return true;
+        }
+
+        public bool TrySplit(double distance, out int[] pieces)
+        {
+            pieces = new int[0];
+            return true;
+        }
+
+        public bool TrySplit(double distance, out Shape first, out Shape second)
+        {
+            first = null;
+            second = null;
+            return true;
+        }
+
+        public bool TryOther(int a, out int b)
+        {
+            b = 0;
+            return true;
+        }
+
+        public bool TryOther(long a, out int b, out int c)
+        {
+            b = 0;
+            c = 0;
+            return true;
+        }
+    }
 }
 
 namespace GeometryHelper.Fixture.Other
