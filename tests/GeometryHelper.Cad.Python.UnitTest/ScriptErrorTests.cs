@@ -15,7 +15,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
     public sealed class ScriptErrorTests : PythonHostTestBase
     {
         /// <summary>The first two lines of every script: the module, and a circle of radius 5 at the origin as one undo step.</summary>
-        private static readonly string[] Draws = { UsesCad, "cad.command('CIRCLE', (0, 0), 5)" };
+        private static readonly string[] Draws = { UsesCad, "cad.cmd('CIRCLE', (0, 0), 5)" };
 
         public ScriptErrorTests(PythonHostFixture fixture)
             : base(fixture) { }
@@ -187,7 +187,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
             CadPythonRunEventArgs run = RunAndCheck(
                 session,
                 "badargument.py",
-                AfterDrawing("cad.document().BeginGroup(None)"),
+                AfterDrawing("cad.session().Document.BeginGroup(None)"),
                 0
             );
 
@@ -217,7 +217,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
             // The same exception from a palette entry: one line, with no file part and no stack trace.
             CadCommandSession session = NewSession();
 
-            Enter(session, "import geometryhelper.cad as cad; cad.document().BeginGroup(None)");
+            Enter(session, "import geometryhelper.cad as cad; cad.session().Document.BeginGroup(None)");
 
             Assert.Equal(CadPythonOutcome.Failed, Finished.Last().Outcome);
             string line = Assert.Single(session.History, entry =>
@@ -244,9 +244,9 @@ namespace GeometryHelper.Cad.Python.UnitTest
             string path = Script(
                 "p6boom.py",
                 UsesCad,
-                "@cad.cad_command('P6BOOM')",
+                "@cad.command('P6BOOM')",
                 "def boom():",
-                "    cad.command('CIRCLE', (0, 0), 5)",
+                "    cad.cmd('CIRCLE', (0, 0), 5)",
                 "    1 / 0"
             );
             Load(session, path);
@@ -295,7 +295,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
                     "def handler(sender, args):",
                     "    raise RuntimeError('handler boom')",
                     "builtins.p6_handler = handler",
-                    "cad.document().Changed += handler",
+                    "cad.session().Document.Changed += handler",
                 }
             );
             Assert.Empty(Errors);
@@ -312,7 +312,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
                 {
                     UsesCad,
                     "import builtins",
-                    "cad.document().Changed -= builtins.p6_handler",
+                    "cad.session().Document.Changed -= builtins.p6_handler",
                     "del builtins.p6_handler",
                 }
             );

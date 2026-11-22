@@ -68,7 +68,11 @@ def test_the_wheel_holds_the_files_of_the_list_and_nothing_else() -> None:
         "geometryhelper/__init__.py",
         "geometryhelper/_app.py",
         "geometryhelper/arrays.py",
-        "geometryhelper/cad.py",
+        "geometryhelper/cad/__init__.py",
+        "geometryhelper/cad/_drawing.py",
+        "geometryhelper/cad/_local.py",
+        "geometryhelper/cad/_remote.py",
+        "geometryhelper/cad/_ui.py",
         "geometryhelper/geometryhelper.runtimeconfig.json",
         "geometryhelper/py.typed",
     ]

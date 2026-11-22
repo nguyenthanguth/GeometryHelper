@@ -33,8 +33,8 @@
             CopyToOutputDirectory="PreserveNewest"
         />
         <Content
-            Include="..\python\geometryhelper\cad.py"
-            Link="python\geometryhelper\cad.py"
+            Include="..\python\geometryhelper\cad\*.py"
+            Link="python\geometryhelper\cad\%(Filename)%(Extension)"
             CopyToOutputDirectory="PreserveNewest"
         />
         <Content

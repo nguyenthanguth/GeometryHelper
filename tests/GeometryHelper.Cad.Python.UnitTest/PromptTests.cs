@@ -260,7 +260,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
             CadCommandSession session = NewSession();
             string handle = AddLine(session.Document, 0).Handle;
 
-            RunLines(session, new[] { UsesCad, "print(repr(cad.get_entity('Pick a line')))" }, Objects(handle));
+            RunLines(session, new[] { UsesCad, "print(repr(cad.get_entity('Pick a line').handle))" }, Objects(handle));
 
             Assert.Equal(new[] { "'" + handle + "'" }, Printed);
         }
@@ -275,7 +275,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
 
             RunLines(
                 session,
-                new[] { UsesCad, "print(sorted(cad.get_selection()))" },
+                new[] { UsesCad, "print(sorted(e.handle for e in cad.get_selection()))" },
                 Objects(first, second),
                 EnterKey
             );
@@ -437,8 +437,8 @@ namespace GeometryHelper.Cad.Python.UnitTest
                 {
                     UsesCad,
                     AddLineInPython,
-                    "add_line(cad.document(), 0)",
-                    "cad.command('CIRCLE', (0, 0), 5)",
+                    "add_line(cad.session().Document, 0)",
+                    "cad.cmd('CIRCLE', (0, 0), 5)",
                     "cad.get_point('Where')",
                 },
                 EscKey

@@ -52,7 +52,7 @@ namespace GeometryHelper.Cad.Python
         }
 
         /// <summary>
-        /// Loads a Python file that defines commands (<c>@cad_command</c>), as PYLOAD does, at once, in the session's drawing.
+        /// Loads a Python file that defines commands (<c>@command</c>), as PYLOAD does, at once, in the session's drawing.
         /// Its module-level code runs as one undo step named PYLOAD, and each command it defines is added to the registries
         /// <see cref="AddCommandsTo"/> was given; loading a file again replaces its commands. A command that shows a window
         /// (APPLOAD, PYLOAD) may be running on the session, with no prompt waiting and no undo step open; a command at a
@@ -364,7 +364,9 @@ namespace GeometryHelper.Cad.Python
                             return Result.Of(answer);
                         }
                     },
-                    null
+                    null,
+                    null,
+                    defined.UsesSelection
                 );
             });
 
@@ -377,14 +379,15 @@ namespace GeometryHelper.Cad.Python
             string step,
             Func<Result> work,
             Action<Result> afterwards,
-            string path = null
+            string path = null,
+            bool usesSelection = false
         )
         {
             CadDocument document = session.Document;
 
             // A load asked from a command that shows a window finds it running: it is left running, as the run found it.
             bool commandAround = session.IsRunning;
-            var run = new CadPythonRun(step, session, path);
+            var run = new CadPythonRun(step, session, path, usesSelection);
             Result result = new Result { Status = "failed" };
             string hostError = null;
             _current = run;
@@ -510,7 +513,11 @@ namespace GeometryHelper.Cad.Python
         }
 
         /// <summary>Asks a question of the script as the prompts of a small command, and waits on the owner for the answer.</summary>
-        private void Carry(CadPythonRun run, Func<CadCommandContext, IEnumerable<CadPrompt>> body)
+        private void Carry(
+            CadPythonRun run,
+            Func<CadCommandContext, IEnumerable<CadPrompt>> body,
+            bool usesSelection = false
+        )
         {
             if (run.Cancelled)
             {
@@ -536,9 +543,9 @@ namespace GeometryHelper.Cad.Python
                 done = true;
             }
 
-            var carrier = new CadCommand(CadPythonNames.Carrier, Wrapped);
+            var carrier = new CadCommand(CadPythonNames.Carrier, Wrapped, usesSelection);
 
-            if (!session.Start(carrier))
+            if (!session.Begin(carrier))
             {
                 throw new InvalidOperationException(Still(session));
             }
@@ -607,11 +614,11 @@ namespace GeometryHelper.Cad.Python
                 handles = c.Selected;
             }
 
-            Carry(run, Body);
+            Carry(run, Body, run.UsesSelection);
             return handles;
         }
 
-        /// <summary>Runs a command with its answers, as <c>command(...)</c> of the module does.</summary>
+        /// <summary>Runs a command with its answers, as <c>cmd(...)</c> of the module does.</summary>
         internal void FeedCommand(CadPythonRun run, object[] answers)
         {
             if (
@@ -656,6 +663,12 @@ namespace GeometryHelper.Cad.Python
 
                 string prompt = session.PromptText;
 
+                if (answers[i] is string pause && pause == CadPythonNames.Pause)
+                {
+                    HandToUser(run, session);
+                    continue;
+                }
+
                 if (!FeedOne(session, answers[i]))
                 {
                     session.Escape();
@@ -670,6 +683,41 @@ namespace GeometryHelper.Cad.Python
                 string prompt = session.PromptText;
                 session.Escape();
                 throw new InvalidOperationException(shown + " still asked '" + prompt + "' after the last answer.");
+            }
+        }
+
+        /// <summary>
+        /// Leaves the prompt the fed command waits at to the user (<c>PAUSE</c>), and waits on the owner until the command asks
+        /// another question or ends.
+        /// </summary>
+        /// <exception cref="CadPythonCancelledException">Thrown when Esc ended the command at that prompt.</exception>
+        private void HandToUser(CadPythonRun run, CadCommandSession session)
+        {
+            CadPrompt paused = session.Prompt;
+            run.Computing = false;
+
+            try
+            {
+                _owner.WaitUntil(() => !session.IsRunning || !ReferenceEquals(session.Prompt, paused));
+            }
+            finally
+            {
+                run.Computing = true;
+            }
+
+            // The owner left the wait with the question still open (the window is closing), or Esc ended the command.
+            bool stillAsking = session.IsRunning && ReferenceEquals(session.Prompt, paused);
+
+            if (stillAsking)
+            {
+                session.Escape();
+            }
+
+            if (stillAsking || (!session.IsRunning && session.LastOutcome == CadCommandOutcome.Cancelled))
+            {
+                run.Cancelled = true;
+                run.CancelWritten = true;
+                throw new CadPythonCancelledException();
             }
         }
 

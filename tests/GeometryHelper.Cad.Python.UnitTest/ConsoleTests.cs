@@ -128,7 +128,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
             CadCommandSession session = NewSession();
 
             Enter(session, "import geometryhelper.cad as cad");
-            Enter(session, "cad.command('CIRCLE', (0, 0), 5)");
+            Enter(session, "cad.cmd('CIRCLE', (0, 0), 5)");
 
             CadDocument document = session.Document;
             Assert.Equal(1, document.EntityCount);

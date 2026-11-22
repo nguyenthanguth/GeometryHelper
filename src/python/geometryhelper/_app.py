@@ -21,11 +21,14 @@ from typing import Any, cast
 
 from geometryhelper import cad
 
+_host: Any = importlib.import_module("GeometryHelper.Cad.Python")
+
 _THIS_FILE = __file__
 _compiler = codeop.CommandCompiler()
 _compiled: CodeType | None = None
 _real_input = builtins.input
 _installed: list[io.TextIOBase] = []
+_found: Any = None
 
 
 class _Out(io.TextIOBase):
@@ -137,9 +140,65 @@ def _describe(error: BaseException, show_file: bool) -> tuple[str, str, str]:
     return summary, text, line
 
 
-def _guard(action: Callable[[], object], show_file: bool) -> list[str]:
+def _pending(name: str) -> None:
+    """Calls ``commit_pending`` or ``discard_pending`` of the Drawing API, which commits or drops what the drawings queued."""
     try:
+        local = importlib.import_module("geometryhelper.cad._local")
+    except ModuleNotFoundError as missing:
+        if missing.name != "geometryhelper.cad._local":
+            raise
+        return
+    action: Callable[[], object] | None = getattr(local, name, None)
+    if action is not None:
         action()
+
+
+def _finishing(action: Callable[[], object]) -> Callable[[], object]:
+    """Wraps a run's code: what the Drawing API queued is committed when the code ends well (inside the run's undo step), and
+    dropped when it raises, so that an error before ``commit()`` leaves the drawing as it was."""
+
+    def finished() -> None:
+        try:
+            action()
+        except SystemExit as stop:
+            _pending("commit_pending" if stop.code is None or stop.code == 0 else "discard_pending")
+            raise
+        except BaseException:
+            _pending("discard_pending")
+            raise
+        _pending("commit_pending")
+
+    return finished
+
+
+def flush_callback() -> None:
+    """Commits what a callback of the window queued, unless a run is going on, whose end commits it."""
+    if _host.CadPythonScript.Current is None:
+        _pending("commit_pending")
+
+
+def discard_callback() -> None:
+    """Drops what a callback of the window queued before it raised, unless a run is going on."""
+    if _host.CadPythonScript.Current is None:
+        _pending("discard_pending")
+
+
+def report(error: BaseException, function: object = None) -> None:
+    """Writes one ``Python error:`` line for an error of a callback of the window: the error's text, and the file of the
+    function when the error's own frame is elsewhere."""
+    summary, _, _ = _describe(error, True)
+    code = getattr(getattr(function, "__func__", function), "__code__", None)
+    name = None if code is None else code.co_filename.replace("\\", "/").rsplit("/", 1)[-1]
+    if name is not None and f"({name}," not in summary:
+        summary += f" [{name}]"
+    (_installed[1] if len(_installed) > 1 else sys.stderr).write(f"Python error: {summary}\n")
+    for stream in _installed:
+        stream.flush()
+
+
+def _guard(action: Callable[[], object], show_file: bool, commits: bool = True) -> list[str]:
+    try:
+        (_finishing(action) if commits else action)()
     except SystemExit as exit_:
         if exit_.code is None or exit_.code == 0:
             return ["completed", "", "", ""]
@@ -176,8 +235,9 @@ def run_file(source: str, path: str, folder: str) -> list[str]:
             sys.path.remove(folder)
 
 
-def load_file(source: str, path: str, folder: str, module_name: str) -> list[str]:
-    """Imports a file as a fresh module of the given name; ``cad_command`` calls made meanwhile are collected."""
+def load_file(source: str, path: str, folder: str, module_name: str, host: Any) -> list[str]:
+    """Imports a file as a fresh module of the given name; the ``@command`` and ``@on_unload`` calls made meanwhile are
+    collected, and the additions to the window go to ``host``, the file's own plugin host."""
 
     def action() -> None:
         spec = importlib.util.spec_from_file_location(module_name, path)
@@ -192,22 +252,35 @@ def load_file(source: str, path: str, folder: str, module_name: str) -> list[str
             raise
 
     sys.path.insert(0, folder)
-    cad._begin_load()  # pyright: ignore[reportPrivateUsage]
+    global _found
+    cad._begin_load(host, path)  # pyright: ignore[reportPrivateUsage]
     try:
         return _guard(action, True)
     finally:
+        _found = cad._end_load()  # pyright: ignore[reportPrivateUsage]
         if folder in sys.path:
             sys.path.remove(folder)
 
 
 def loaded_commands() -> list[Any]:
-    """Returns what ``cad_command`` collected since ``load_file`` began, as ``[name, alias, description, function]`` lists."""
-    return cad._end_load()  # pyright: ignore[reportPrivateUsage]
+    """Returns what ``@command`` collected in the last ``load_file``, as ``[name, alias, description, function,
+    uses_selection]`` lists."""
+    return _found.commands if _found is not None else []
+
+
+def loaded_unloaders() -> list[Any]:
+    """Returns the functions ``@on_unload`` collected in the last ``load_file``, in the order they were defined."""
+    return _found.unloaders if _found is not None else []
 
 
 def call(function: Callable[[], object]) -> list[str]:
-    """Runs the function of a command ``PYLOAD`` defined."""
+    """Runs the function of a command a loaded file defined."""
     return _guard(function, True)
+
+
+def call_hook(function: Callable[[], object]) -> list[str]:
+    """Runs the ``@on_unload`` function of a file: no run is going on, so nothing is committed."""
+    return _guard(function, True, False)
 
 
 def console_compile(text: str) -> list[str]:
@@ -239,6 +312,8 @@ def uninstall() -> None:
     sys.stdin = sys.__stdin__
     builtins.input = _real_input
     _installed.clear()
+    global _found
+    _found = None
     # A function of a script and a delegate made from it, kept in the globals the function reads, hold each other through
     # .NET, where Python's collector cannot see: only emptying the globals lets go of the delegate. Without that,
     # pythonnet's shutdown on .NET Framework (inside an AppDomain that is not the default) cannot serialise it and throws.

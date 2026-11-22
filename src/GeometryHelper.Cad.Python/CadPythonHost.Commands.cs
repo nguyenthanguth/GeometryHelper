@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using GeometryHelper.Cad.Plugins;
 using Python.Runtime;
 
 namespace GeometryHelper.Cad.Python
@@ -12,16 +13,53 @@ namespace GeometryHelper.Cad.Python
         private readonly List<CadCommandRegistry> _registries = new List<CadCommandRegistry>();
         private readonly List<Defined> _defined = new List<Defined>();
         private readonly List<string> _loaded = new List<string>();
+        private readonly Dictionary<string, LoadedExtras> _extras = new Dictionary<string, LoadedExtras>(
+            StringComparer.OrdinalIgnoreCase
+        );
 
-        /// <summary>A command a loaded file defined with <c>@cad_command</c>.</summary>
+        /// <summary>A command a loaded file defined with <c>@command</c>.</summary>
         private sealed class Defined
         {
             internal string Name;
             internal string Alias;
             internal string File;
+            internal bool UsesSelection;
             internal PyObject Function;
             internal CadCommand Command;
         }
+
+        /// <summary>What a loaded file keeps besides its commands: its own plugin host, and the functions <c>@on_unload</c> marked.</summary>
+        private sealed class LoadedExtras
+        {
+            internal CadPluginHost Host;
+            internal List<PyObject> Unloaders = new List<PyObject>();
+        }
+
+        /// <summary>
+        /// Gets the plugin host of each file loaded and not unloaded, in the order the files first loaded: what the module-level
+        /// code added to the window (<c>add_ribbon_tab</c> and the other <c>add_*</c> functions of the module), which the window
+        /// reads after the hosts of the <c>.dll</c> plugins. A file that added nothing has an empty host.
+        /// </summary>
+        public IReadOnlyList<CadPluginHost> PluginHosts
+        {
+            get
+            {
+                var hosts = new List<CadPluginHost>();
+
+                foreach (string file in _loaded)
+                {
+                    if (_extras.TryGetValue(file, out LoadedExtras extras))
+                    {
+                        hosts.Add(extras.Host);
+                    }
+                }
+
+                return hosts;
+            }
+        }
+
+        /// <summary>Occurs on the owner thread when <see cref="PluginHosts"/> changed in what the window draws: a file that added to the window loaded, loaded again or was unloaded.</summary>
+        public event EventHandler PluginHostsChanged;
 
         /// <summary>
         /// Adds PYRUN, PYLOAD and the commands PYLOAD has defined to a registry, and to each command PYLOAD defines from now on:
@@ -164,13 +202,87 @@ namespace GeometryHelper.Cad.Python
                 return false;
             }
 
+            bool changed;
+
             using (Py.GIL())
             {
+                RunUnloaders(full);
                 RemoveDefinedOf(full);
+                changed = DropExtras(full);
             }
 
             _loaded.RemoveAt(index);
+
+            if (changed)
+            {
+                PluginHostsChanged?.Invoke(this, EventArgs.Empty);
+            }
+
             return true;
+        }
+
+        /// <summary>Runs the <c>@on_unload</c> functions of a file, in the order they were defined; an error is one line and the others still run. Called with the GIL held.</summary>
+        private void RunUnloaders(string full)
+        {
+            if (!_extras.TryGetValue(full, out LoadedExtras extras))
+            {
+                return;
+            }
+
+            foreach (PyObject hook in extras.Unloaders)
+            {
+                using (PyObject answer = _app.InvokeMethod("call_hook", hook))
+                {
+                    Result result = Result.Of(answer);
+
+                    if (result.Status != "completed")
+                    {
+                        Emit("Python error: " + result.Summary, true, true);
+                    }
+                }
+            }
+        }
+
+        /// <summary>Lets go of a file's hooks and plugin host; true when the host had added something to the window. Called with the GIL held.</summary>
+        private bool DropExtras(string full)
+        {
+            if (!_extras.TryGetValue(full, out LoadedExtras extras))
+            {
+                return false;
+            }
+
+            foreach (PyObject hook in extras.Unloaders)
+            {
+                hook.Dispose();
+            }
+
+            _extras.Remove(full);
+            return !extras.Host.IsEmpty;
+        }
+
+        /// <summary>Runs the unload hooks of every file loaded, as the app closes.</summary>
+        private void RunAllUnloaders()
+        {
+            foreach (string file in _loaded.ToArray())
+            {
+                RunUnloaders(file);
+            }
+        }
+
+        private void DisposeExtras()
+        {
+            foreach (LoadedExtras extras in _extras.Values)
+            {
+                foreach (PyObject hook in extras.Unloaders)
+                {
+                    hook.Dispose();
+                }
+
+                // The callbacks the file gave the window are delegates over its functions: let go of them with the rest.
+                extras.Host.Clear();
+            }
+
+            _extras.Clear();
         }
 
         /// <summary>Starts the engine for the files of the start; where Python cannot start, writes the one line that says so (not a run's refusal) and gives false.</summary>
@@ -214,6 +326,8 @@ namespace GeometryHelper.Cad.Python
             string file = Path.GetFileName(full);
             string module = "geometryhelper_user_" + Identifier(Path.GetFileNameWithoutExtension(full));
             bool reached = false;
+            bool hadAdditions = false;
+            var host = new CadPluginHost(file, folder);
 
             CadPythonOutcome outcome = Execute(
                 session,
@@ -222,16 +336,21 @@ namespace GeometryHelper.Cad.Python
                 {
                     reached = true;
 
-                    // Loading a file again replaces its commands: the old ones go first.
+                    // Loading a file again replaces its commands, its unload hooks and its plugin host: the old ones go first,
+                    // the hooks running for the copy being replaced.
+                    RunUnloaders(full);
                     RemoveDefinedOf(full);
+                    hadAdditions = DropExtras(full);
 
+                    using (PyObject pyHost = host.ToPython())
                     using (
                         PyObject answer = _app.InvokeMethod(
                             "load_file",
                             new PyString(source),
                             new PyString(full),
                             new PyString(folder),
-                            new PyString(module)
+                            new PyString(module),
+                            pyHost
                         )
                     )
                     {
@@ -241,6 +360,8 @@ namespace GeometryHelper.Cad.Python
                 result =>
                 {
                     Register(file, full);
+                    host.Close();
+                    _extras[full] = new LoadedExtras { Host = host, Unloaders = Found("loaded_unloaders") };
 
                     if (!_loaded.Exists(f => string.Equals(f, full, StringComparison.OrdinalIgnoreCase)))
                     {
@@ -256,7 +377,30 @@ namespace GeometryHelper.Cad.Python
                 _loaded.RemoveAll(f => string.Equals(f, full, StringComparison.OrdinalIgnoreCase));
             }
 
+            if (hadAdditions || (outcome == CadPythonOutcome.Completed && !host.IsEmpty))
+            {
+                PluginHostsChanged?.Invoke(this, EventArgs.Empty);
+            }
+
             return outcome == CadPythonOutcome.Completed;
+        }
+
+        /// <summary>Takes the items of a list the package's <c>_app</c> returns, each as a Python object of its own; called with the GIL held.</summary>
+        private List<PyObject> Found(string function)
+        {
+            var items = new List<PyObject>();
+
+            using (PyObject found = _app.InvokeMethod(function))
+            {
+                long count = found.Length();
+
+                for (long i = 0; i < count; i++)
+                {
+                    items.Add(found.GetItem((int)i));
+                }
+            }
+
+            return items;
         }
 
         private static string Identifier(string stem)
@@ -313,9 +457,10 @@ namespace GeometryHelper.Cad.Python
                             Name = name,
                             Alias = alias,
                             File = full,
+                            UsesSelection = Flag(entry, 4),
                             Function = entry.GetItem(3),
                         };
-                        defined.Command = new CadCommand(name, c => DefinedBody(c, defined));
+                        defined.Command = new CadCommand(name, c => DefinedBody(c, defined), defined.UsesSelection);
                         _defined.Add(defined);
                         added.Add(name);
 
@@ -336,6 +481,14 @@ namespace GeometryHelper.Cad.Python
             using (PyObject item = entry.GetItem(index))
             {
                 return item.IsNone() ? null : item.As<string>();
+            }
+        }
+
+        private static bool Flag(PyObject entry, int index)
+        {
+            using (PyObject item = entry.GetItem(index))
+            {
+                return item.IsTrue();
             }
         }
 

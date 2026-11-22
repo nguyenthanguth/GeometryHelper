@@ -19,7 +19,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
         {
             CadCommandSession session = NewSession();
 
-            CadPythonRunEventArgs run = RunLines(session, new[] { UsesCad, "cad.command('CIRCLE', (10, 20), 50)" });
+            CadPythonRunEventArgs run = RunLines(session, new[] { UsesCad, "cad.cmd('CIRCLE', (10, 20), 50)" });
 
             Assert.Equal(CadPythonOutcome.Completed, run.Outcome);
             DxfCircle circle = Assert.Single(All<DxfCircle>(session.Document));
@@ -42,7 +42,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
                     {
                         UsesCad,
                         "from GeometryHelper.Geometry import GeoPoint2",
-                        "cad.command('CIRCLE', GeoPoint2(10, 20), 2.5)",
+                        "cad.cmd('CIRCLE', GeoPoint2(10, 20), 2.5)",
                     }
                 )
             );
@@ -57,7 +57,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
         {
             CadCommandSession session = NewSession();
 
-            RunLines(session, new[] { UsesCad, "cad.command('_LINE', (0, 0), (100, 0), '')" });
+            RunLines(session, new[] { UsesCad, "cad.cmd('_LINE', (0, 0), (100, 0), '')" });
 
             DxfLine line = Assert.Single(All<DxfLine>(session.Document));
             Assert.Equal(0, line.StartPoint.X, 6);
@@ -73,7 +73,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
             string second = AddLine(session.Document, 50).Handle;
             AddLine(session.Document, 100);
 
-            RunLines(session, new[] { UsesCad, "cad.command('ERASE', ['" + first + "', '" + second + "'])" });
+            RunLines(session, new[] { UsesCad, "cad.cmd('ERASE', ['" + first + "', '" + second + "'])" });
 
             Assert.Equal(1, session.Document.EntityCount);
             Assert.Null(session.Document.FindEntity(first));
@@ -88,14 +88,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
 
             RunLines(
                 session,
-                new[]
-                {
-                    UsesCad,
-                    "try:",
-                    "    cad.command('CIRCLE', (0, 0))",
-                    "except RuntimeError as e:",
-                    "    print(e)",
-                }
+                new[] { UsesCad, "try:", "    cad.cmd('CIRCLE', (0, 0))", "except RuntimeError as e:", "    print(e)" }
             );
 
             string message = Assert.Single(Printed);
@@ -117,7 +110,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
                 {
                     UsesCad,
                     "try:",
-                    "    cad.command('CIRCLE', (0, 0), 'abc')",
+                    "    cad.cmd('CIRCLE', (0, 0), 'abc')",
                     "except ValueError as e:",
                     "    print(e)",
                 }

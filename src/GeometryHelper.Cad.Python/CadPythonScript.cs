@@ -29,6 +29,18 @@ namespace GeometryHelper.Cad.Python
         /// <summary>Gets that drawing's command session.</summary>
         public CadCommandSession Session => _run.Session;
 
+        /// <summary>
+        /// Gets the name of the run's undo step: PYRUN for a file run, PYLOAD for a file loaded, the command's own name for a
+        /// command a loaded file defined.
+        /// </summary>
+        public string StepName => _run.Name;
+
+        /// <summary>
+        /// Gets the app's list of open drawings (<see cref="CadPythonHost.DocumentHost"/>), through which a script opens, makes,
+        /// shows, saves and closes drawings as an outside program does; null where there is no window.
+        /// </summary>
+        public ICadRemoteHost DocumentHost => _host.DocumentHost;
+
         internal static void SetCurrent(CadPythonScript script) => _current = script;
 
         /// <summary>Asks a prompt at the command line and waits for the answer.</summary>
@@ -38,7 +50,7 @@ namespace GeometryHelper.Cad.Python
         /// <exception cref="InvalidOperationException">Thrown when a command is still running, so the session is not at the Command prompt.</exception>
         public CadInput Ask(CadPrompt prompt) => _host.Ask(_run, prompt);
 
-        /// <summary>Asks "Select objects:" until Enter.</summary>
+        /// <summary>Asks "Select objects:" until Enter; where the command was defined with <c>uses_selection</c> and objects were selected before it, returns them without asking.</summary>
         /// <returns>The handles selected; none where Enter came first.</returns>
         /// <exception cref="CadPythonCancelledException">Thrown when Esc ended the question, or an earlier question of the run.</exception>
         /// <exception cref="InvalidOperationException">Thrown when a command is still running, so the session is not at the Command prompt.</exception>
@@ -62,11 +74,12 @@ namespace GeometryHelper.Cad.Python
     /// <summary>The state of the run going on, which the host keeps and the script reads.</summary>
     internal sealed class CadPythonRun
     {
-        internal CadPythonRun(string name, CadCommandSession session, string path)
+        internal CadPythonRun(string name, CadCommandSession session, string path, bool usesSelection)
         {
             Name = name;
             Session = session;
             Path = path;
+            UsesSelection = usesSelection;
         }
 
         internal string Name { get; }
@@ -75,6 +88,9 @@ namespace GeometryHelper.Cad.Python
         internal string Path { get; }
 
         internal CadCommandSession Session { get; }
+
+        /// <summary>Whether the command was defined with <c>uses_selection</c>, so that its selection question takes the objects selected before it.</summary>
+        internal bool UsesSelection { get; }
 
         /// <summary>The thread of Python the run executes on, for <c>PythonEngine.Interrupt</c>.</summary>
         internal ulong ThreadId { get; set; }

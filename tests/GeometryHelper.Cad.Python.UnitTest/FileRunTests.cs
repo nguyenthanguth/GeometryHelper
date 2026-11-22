@@ -322,7 +322,10 @@ namespace GeometryHelper.Cad.Python.UnitTest
             CadCommandSession first = NewSession("first.dxf");
             CadCommandSession second = NewSession("second.dxf");
 
-            RunLines(second, new[] { UsesCad, "print(cad.document().Title)", "print(cad.session().Document.Title)" });
+            RunLines(
+                second,
+                new[] { UsesCad, "print(cad.session().Document.Title)", "print(cad.session().Document.Title)" }
+            );
 
             Assert.Equal(new[] { "second.dxf", "second.dxf" }, Printed);
             Assert.False(first.IsRunning);
@@ -347,7 +350,10 @@ namespace GeometryHelper.Cad.Python.UnitTest
             DxfLine line = AddLine(session.Document, 0);
             session.Document.Selection.Set(new[] { line.Handle });
 
-            RunLines(session, new[] { UsesCad, "print(cad.selection())" });
+            RunLines(
+                session,
+                new[] { UsesCad, "print(sorted(str(h) for h in cad.session().Document.Selection.Handles))" }
+            );
 
             Assert.Equal(new[] { "['" + line.Handle + "']" }, Printed);
         }
