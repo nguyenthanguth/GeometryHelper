@@ -1861,6 +1861,7 @@ namespace GeometryHelper.Cad.Wpf
             file.Session.DclHost = _dclHost;
             file.Session.LoadSecurity = _loadSecurity;
             file.Session.LispEnvironment = _lispEnvironment;
+            file.Session.Lisp.HelpOpener = PlotHelp.Open;
             file.Session.SelectionFilter.FilePath = FilterListsPath;
             file.Session.Clipboard = _clipboard;
             file.Session.SpellDictionaryPath = _spellDictionaryPath;

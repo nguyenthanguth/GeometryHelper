@@ -83,6 +83,7 @@ namespace GeometryHelper.Cad.Lisp
             RegisterEnvironment();
             RegisterAutoCadOnly();
             RegisterAutoload();
+            RegisterMenus();
             LispApplication.Register(this);
         }
 
@@ -966,7 +967,19 @@ namespace GeometryHelper.Cad.Lisp
                 return;
             }
 
+            if (exception.IsQuiet)
+            {
+                // vl-exit-with-error and vl-exit-with-value: the evaluation ends with nothing written, *error* not called.
+                Restore(exception.Frames);
+                return;
+            }
+
             object handler = _error.Value;
+
+            if (ReferenceEquals(handler, _defaultHandler))
+            {
+                handler = null;
+            }
             bool mayCommand = _errorModes.Count > 0 && _errorModes[_errorModes.Count - 1];
 
             if (handler == null && mayCommand)
@@ -1006,7 +1019,11 @@ namespace GeometryHelper.Cad.Lisp
                     }
                     catch (LispException inner)
                     {
-                        if (inner.IsHard)
+                        if (inner.IsQuiet)
+                        {
+                            // The handler ended itself quietly: nothing is written.
+                        }
+                        else if (inner.IsHard)
                         {
                             WriteHardError();
                         }
