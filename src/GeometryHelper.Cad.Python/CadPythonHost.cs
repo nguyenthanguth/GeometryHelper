@@ -73,6 +73,14 @@ namespace GeometryHelper.Cad.Python
         /// </summary>
         public Func<string, string> LoadCheck { get; set; }
 
+        /// <summary>
+        /// Gets or sets the app's list of open drawings, which <c>documents()</c>, <c>open_drawing</c> and <c>new_drawing</c> of a
+        /// script go through, so that open, new, show, save and close behave as they do for a program outside; the window sets it
+        /// to its own. Null where there is no window, when <c>documents()</c> lists only the drawing of the run. Output a callback
+        /// of the window writes outside a run goes to the command line of this host's active drawing.
+        /// </summary>
+        public ICadRemoteHost DocumentHost { get; set; }
+
         /// <summary>Gets the commands PYLOAD defined, sorted ordinally.</summary>
         public IReadOnlyList<string> CommandNames
         {
@@ -171,6 +179,14 @@ namespace GeometryHelper.Cad.Python
                 return;
             }
 
+            // The window is closing: the unload hooks of the files loaded run (writing no line to a drawing), then the engine goes.
+            DocumentHost = null;
+
+            using (Py.GIL())
+            {
+                RunAllUnloaders();
+            }
+
             int threads;
 
             using (Py.GIL())
@@ -190,6 +206,7 @@ namespace GeometryHelper.Cad.Python
 
                     _consoles.Clear();
                     DisposeDefined();
+                    DisposeExtras();
                     using (_app.InvokeMethod("uninstall")) { }
                     _stdout.Dispose();
                     _stderr.Dispose();
@@ -336,10 +353,17 @@ namespace GeometryHelper.Cad.Python
         {
             if (toCommandLine)
             {
-                _current?.Session.Write(line);
+                (_current?.Session ?? ActiveSession())?.Write(line);
             }
 
             Output?.Invoke(this, new CadPythonOutputEventArgs(line, isError));
+        }
+
+        /// <summary>The command session of the drawing shown, for the lines no run wrote (a callback of the window, an unload hook); null with no window.</summary>
+        private CadCommandSession ActiveSession()
+        {
+            CadDocument active = DocumentHost?.ActiveDocument;
+            return active == null ? null : DocumentHost.SessionOf(active);
         }
 
         /// <summary>Writes text as lines, as a script's <c>write</c> does.</summary>

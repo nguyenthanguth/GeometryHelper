@@ -4,20 +4,20 @@ Run in GeometryHelper CAD: PYRUN, then this file; it asks "Select objects:" as a
 Lines, arcs, circles (their circumference) and polylines add to the length; circles and closed polylines to the area.
 """
 
-from geometryhelper.cad import document, get_selection, write
+from geometryhelper.cad import get_selection, write
 from GeometryHelper.Dxf import DxfArc, DxfCircle, DxfLine, DxfPolyline
 
 
 def selection_lengths() -> None:
-    handles = get_selection()
-    if not handles:
+    entities = get_selection()
+    if not entities:
         write("Nothing selected.")
         return
     length = 0.0
     area = 0.0
     skipped = 0
-    for handle in handles:
-        entity = document().FindEntity(handle)
+    for item in entities:
+        entity = item.net
         if isinstance(entity, DxfCircle):
             length += entity.Circumference
             area += entity.Area
@@ -28,7 +28,7 @@ def selection_lengths() -> None:
             area += entity.Area if entity.Closed else 0.0
         else:
             skipped += 1
-    write(f"{len(handles)} objects: length {length:.3f}, closed area {area:.3f}, {skipped} skipped")
+    write(f"{len(entities)} objects: length {length:.3f}, closed area {area:.3f}, {skipped} skipped")
 
 
 selection_lengths()

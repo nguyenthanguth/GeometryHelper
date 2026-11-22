@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Threading;
+using GeometryHelper.Cad.Plugins;
 using GeometryHelper.Cad.Python;
 
 namespace GeometryHelper.Cad.Wpf
@@ -24,6 +25,12 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>Takes a loaded file's commands out of every drawing; false where it was not loaded.</summary>
         bool Unload(string path);
+
+        /// <summary>Gets the plugin host of each file loaded, in the order they first loaded: what each added to the window.</summary>
+        IReadOnlyList<CadPluginHost> PluginHosts { get; }
+
+        /// <summary>Occurs when what the files added to the window changed: one loaded, loaded again or was unloaded.</summary>
+        event EventHandler PluginHostsChanged;
     }
 
     /// <summary>The Python files of the process, over the host.</summary>
@@ -43,6 +50,14 @@ namespace GeometryHelper.Cad.Wpf
         public IReadOnlyList<string> CommandsOf(string path) => _host.CommandsOf(path);
 
         public bool Unload(string path) => _host.UnloadFile(path);
+
+        public IReadOnlyList<CadPluginHost> PluginHosts => _host.PluginHosts;
+
+        public event EventHandler PluginHostsChanged
+        {
+            add => _host.PluginHostsChanged += value;
+            remove => _host.PluginHostsChanged -= value;
+        }
     }
 
     /// <summary>
@@ -66,9 +81,43 @@ namespace GeometryHelper.Cad.Wpf
         private CadPythonStartup _pythonStartup;
         private bool _pythonStartupDone;
         private string _pythonPathUsed;
+        private IPythonFiles _pythonFiles;
+        private Dispatcher _pythonDispatcher;
 
         /// <summary>Gets or sets the Python files of the process, as Load/Unload Applications reaches them; set over the host by <see cref="UsePython"/>, null where the app does not use Python.</summary>
-        internal IPythonFiles PythonFiles { get; set; }
+        internal IPythonFiles PythonFiles
+        {
+            get => _pythonFiles;
+            set
+            {
+                IPythonFiles old = _pythonFiles;
+
+                if (ReferenceEquals(old, value))
+                {
+                    return;
+                }
+
+                if (old != null)
+                {
+                    old.PluginHostsChanged -= OnPythonHostsChanged;
+                }
+
+                _pythonFiles = value;
+
+                if (value != null)
+                {
+                    value.PluginHostsChanged += OnPythonHostsChanged;
+                }
+
+                // What the files added to the window follows the files: the old ones' tabs and panels go, the new ones' come.
+                if ((old != null && old.PluginHosts.Count > 0) || (value != null && value.PluginHosts.Count > 0))
+                {
+                    RebuildPluginUi();
+                }
+            }
+        }
+
+        private void OnPythonHostsChanged(object sender, EventArgs e) => RebuildPluginUi();
 
         /// <summary>
         /// Gets or sets how the window asks for the files of PYLOAD: given the filter (<see cref="AppLoadViewModel.PythonFilter"/>)
@@ -96,6 +145,7 @@ namespace GeometryHelper.Cad.Wpf
                 return;
             }
 
+            _pythonDispatcher = dispatcher;
             _pythonOwner = new CadPythonWindowOwner(dispatcher);
             _pythonSeam = new CadPythonConsoleHost();
             _pythonSeam.RunFinished += (name, document, outcome, error) => AfterPythonRun();
@@ -123,6 +173,9 @@ namespace GeometryHelper.Cad.Wpf
             {
                 // The same gate as AutoLISP's: a file outside the trusted folders is asked about, or refused (SECURELOAD).
                 LoadCheck = path => _loadSecurity.MayLoad(path) ? null : "File load canceled: " + path,
+
+                // The drawings a script lists, opens, makes, saves and closes are those of the window, as a program outside sees them.
+                DocumentHost = new CadAppRemoteHost(this, () => "GeometryHelper CAD", _pythonDispatcher),
             };
             _pythonOwner.Watch(host);
             _pythonHost?.Dispose();

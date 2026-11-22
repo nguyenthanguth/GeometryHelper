@@ -7,11 +7,11 @@ each layer.
 
 from collections import Counter
 
-from geometryhelper.cad import cad_command, command, document, get_distance, get_point, write
+from geometryhelper.cad import active_drawing, cmd, command, get_distance, get_point, write
 from GeometryHelper.Geometry import GeoPoint2
 
 
-@cad_command("RECTC", alias="RC")
+@command("RECTC", alias="RC")
 def rectangle_by_centre() -> None:
     centre = get_point("Specify centre")
     if not isinstance(centre, GeoPoint2):
@@ -25,12 +25,12 @@ def rectangle_by_centre() -> None:
         return
     corner = (centre.X - width / 2, centre.Y - height / 2)
     opposite = (centre.X + width / 2, centre.Y + height / 2)
-    command("RECTANG", corner, opposite)
+    cmd("RECTANG", corner, opposite)
 
 
-@cad_command("LAYERCOUNT")
+@command("LAYERCOUNT")
 def layer_count() -> None:
-    database = document().Database
+    database = active_drawing().net.Database
     # Counted under the layer table's spelling: an object on "walls" is on the layer the table calls "Walls".
     spelling = {layer.Name.casefold(): layer.Name for layer in database.LayerTable}
     counts = Counter(spelling.get(entity.Layer.casefold(), entity.Layer) for entity in database.ModelSpace)

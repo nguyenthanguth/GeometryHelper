@@ -20,5 +20,8 @@ namespace GeometryHelper.Cad.Python
 
         /// <summary>The command that carries the question of a script; it is in no registry.</summary>
         internal const string Carrier = "PYTHON";
+
+        /// <summary>The answer of <c>cmd</c> that hands one prompt to the user: one backslash, as AutoLISP's <c>pause</c>.</summary>
+        internal const string Pause = "\\";
     }
 }

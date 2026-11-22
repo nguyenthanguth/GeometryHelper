@@ -11,9 +11,9 @@ using WpfGeometry = System.Windows.Media.Geometry;
 namespace GeometryHelper.Cad.Wpf
 {
     /// <summary>
-    /// What the command plugins loaded add to the window: the ribbon tabs and the panels of the Plugins tab (shown while a plugin has panels), rows of Properties,
+    /// What the command plugins loaded, and the Python files loaded, add to the window: the ribbon tabs and the panels of the Plugins tab (shown while a plugin has panels), rows of Properties,
     /// buttons and row items of the DRAWINGS list and items of the canvas's right-click menu. All of it is read from the
-    /// <see cref="CadPluginHost"/> of each plugin loaded when the manager says the plugins changed, plugin by plugin in the order
+    /// <see cref="CadPluginHost"/> of each plugin loaded when the manager says the plugins changed (and of each Python file, when the host says its files changed), plugin by plugin in the order
     /// they were loaded, and none of it is kept once a plugin is unloaded.
     /// </summary>
     public sealed partial class MainViewModel
@@ -52,7 +52,7 @@ namespace GeometryHelper.Cad.Wpf
         /// </summary>
         private void RebuildPluginUi()
         {
-            List<CadLoadedPlugin> loaded = LoadedPlugins();
+            List<PluginSource> loaded = PluginSources();
             var kept = new Dictionary<CadRibbonTab, CadPluginTab>();
 
             foreach (CadPluginTab tab in _pluginTabs)
@@ -76,9 +76,9 @@ namespace GeometryHelper.Cad.Wpf
             var plugins = new List<PluginPanelViewModel>();
             var drawings = new List<PluginDrawingsButton>();
 
-            foreach (CadLoadedPlugin entry in loaded)
+            foreach (PluginSource entry in loaded)
             {
-                CadPluginHost host = entry.Plugin.Host;
+                CadPluginHost host = entry.Host;
 
                 foreach (CadRibbonTab source in host.RibbonTabs)
                 {
@@ -164,6 +164,33 @@ namespace GeometryHelper.Cad.Wpf
             _plugins == null
                 ? new List<CadLoadedPlugin>()
                 : _plugins.LoadedInOrder().Where(p => p.Plugin != null && p.Plugin.IsEnabled).ToList();
+
+        /// <summary>A host the window draws and the name its additions are shown and logged under: a plugin's, or a Python file's.</summary>
+        private sealed class PluginSource
+        {
+            internal PluginSource(string name, CadPluginHost host)
+            {
+                Name = name;
+                Host = host;
+            }
+
+            internal string Name { get; }
+
+            internal CadPluginHost Host { get; }
+        }
+
+        /// <summary>The hosts the window draws: those of the plugins loaded and on, in the order they were loaded, then those of the Python files loaded, in the order they were loaded.</summary>
+        private List<PluginSource> PluginSources()
+        {
+            List<PluginSource> sources = LoadedPlugins().Select(p => new PluginSource(p.Name, p.Plugin.Host)).ToList();
+
+            if (PythonFiles != null)
+            {
+                sources.AddRange(PythonFiles.PluginHosts.Select(h => new PluginSource(h.PluginName, h)));
+            }
+
+            return sources;
+        }
 
         private void OnPluginUiSourceChanged(object sender, PropertyChangedEventArgs e)
         {
@@ -292,9 +319,9 @@ namespace GeometryHelper.Cad.Wpf
             ref string banner
         )
         {
-            foreach (CadLoadedPlugin entry in LoadedPlugins())
+            foreach (PluginSource entry in PluginSources())
             {
-                foreach (CadPropertyProvider provider in entry.Plugin.Host.PropertyProviders)
+                foreach (CadPropertyProvider provider in entry.Host.PropertyProviders)
                 {
                     var request = new CadPropertyRequest(_current.Document, shown, info, banner);
 
@@ -373,9 +400,9 @@ namespace GeometryHelper.Cad.Wpf
             IReadOnlyList<string> paths = SelectedFileRows.Select(r => r.Path).ToList();
             CadDocument document = Known(row.Path)?.Document;
 
-            foreach (CadLoadedPlugin entry in LoadedPlugins())
+            foreach (PluginSource entry in PluginSources())
             {
-                foreach (CadDrawingsMenuProvider provider in entry.Plugin.Host.DrawingsMenus)
+                foreach (CadDrawingsMenuProvider provider in entry.Host.DrawingsMenus)
                 {
                     try
                     {
@@ -411,9 +438,9 @@ namespace GeometryHelper.Cad.Wpf
                 return made;
             }
 
-            foreach (CadLoadedPlugin entry in LoadedPlugins())
+            foreach (PluginSource entry in PluginSources())
             {
-                foreach (CadCanvasMenuProvider provider in entry.Plugin.Host.CanvasMenus)
+                foreach (CadCanvasMenuProvider provider in entry.Host.CanvasMenus)
                 {
                     try
                     {

@@ -21,11 +21,11 @@ namespace GeometryHelper.Cad.Python.UnitTest
             {
                 UsesCad,
                 AddLineInPython,
-                "doc = cad.document()",
+                "doc = cad.session().Document",
                 "add_line(doc, 0)",
-                "cad.command('CIRCLE', (0, 0), 5)",
+                "cad.cmd('CIRCLE', (0, 0), 5)",
                 "add_line(doc, 50)",
-                "cad.command('_LINE', (0, 100), (100, 100), '')",
+                "cad.cmd('_LINE', (0, 100), (100, 100), '')",
             }
                 .Concat(after)
                 .ToArray();
@@ -75,7 +75,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
                     UsesCad,
                     AddLineInPython,
                     "import geometryhelper",
-                    "doc = cad.document()",
+                    "doc = cad.session().Document",
                     "with geometryhelper.undo_group(doc, 'inner'):",
                     "    add_line(doc, 0)",
                     "add_line(doc, 50)",
@@ -121,7 +121,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
                     UsesCad,
                     AddLineInPython,
                     "import geometryhelper",
-                    "doc = cad.document()",
+                    "doc = cad.session().Document",
                     "add_line(doc, 0)",
                     "with geometryhelper.undo_group(doc, 'inner'):",
                     "    add_line(doc, 50)",
@@ -142,7 +142,14 @@ namespace GeometryHelper.Cad.Python.UnitTest
 
             CadPythonRunEventArgs run = RunLines(
                 session,
-                new[] { UsesCad, AddLineInPython, "doc = cad.document()", "doc.BeginGroup('mine')", "add_line(doc, 0)" }
+                new[]
+                {
+                    UsesCad,
+                    AddLineInPython,
+                    "doc = cad.session().Document",
+                    "doc.BeginGroup('mine')",
+                    "add_line(doc, 0)",
+                }
             );
 
             CadDocument document = session.Document;
@@ -165,7 +172,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
                 {
                     UsesCad,
                     AddLineInPython,
-                    "doc = cad.document()",
+                    "doc = cad.session().Document",
                     "doc.BeginGroup('mine')",
                     "add_line(doc, 0)",
                     "raise ValueError('boom')",
@@ -187,7 +194,14 @@ namespace GeometryHelper.Cad.Python.UnitTest
 
             CadPythonRunEventArgs run = RunLines(
                 session,
-                new[] { UsesCad, AddLineInPython, "doc = cad.document()", "add_line(doc, 0)", "doc.CancelGroup()" }
+                new[]
+                {
+                    UsesCad,
+                    AddLineInPython,
+                    "doc = cad.session().Document",
+                    "add_line(doc, 0)",
+                    "doc.CancelGroup()",
+                }
             );
 
             Assert.Equal(CadPythonOutcome.Completed, run.Outcome);

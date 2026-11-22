@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows.Threading;
+using GeometryHelper.Cad.Plugins;
 using Xunit;
 
 namespace GeometryHelper.Cad.Wpf.UnitTest
@@ -35,6 +36,15 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         public List<string> Unloads { get; } = new List<string>();
 
         public IReadOnlyList<string> Loaded => _loaded.ToArray();
+
+        /// <summary>The fake loads no engine, so its files add nothing to the window.</summary>
+        public IReadOnlyList<CadPluginHost> PluginHosts => Array.Empty<CadPluginHost>();
+
+        public event EventHandler PluginHostsChanged
+        {
+            add { }
+            remove { }
+        }
 
         public bool Load(CadCommandSession session, string path)
         {

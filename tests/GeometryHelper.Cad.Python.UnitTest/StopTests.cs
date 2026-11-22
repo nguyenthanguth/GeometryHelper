@@ -78,7 +78,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
                 session,
                 marker,
                 UsesCad,
-                "cad.command('CIRCLE', (0, 0), 5)",
+                "cad.cmd('CIRCLE', (0, 0), 5)",
                 "open(" + Raw(marker) + ", 'w').close()",
                 "while True:",
                 "    pass"

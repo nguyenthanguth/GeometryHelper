@@ -7,7 +7,7 @@ using static GeometryHelper.Cad.Python.UnitTest.PythonDrawings;
 namespace GeometryHelper.Cad.Python.UnitTest
 {
     /// <summary>
-    /// PYRUN and PYLOAD typed at the command line, and the commands a loaded file defines with <c>@cad_command</c> (D716,
+    /// PYRUN and PYLOAD typed at the command line, and the commands a loaded file defines with <c>@command</c> (D716,
     /// D718). The command names are made up for each test (H11ONE and so on) because the commands live as long as the
     /// process.
     /// </summary>
@@ -19,11 +19,11 @@ namespace GeometryHelper.Cad.Python.UnitTest
         private string Tools(string name, params string[] commands)
         {
             // One function for each command: it writes "<name> ran".
-            var lines = new List<string> { "from geometryhelper.cad import cad_command, write" };
+            var lines = new List<string> { "from geometryhelper.cad import command, write" };
 
             foreach (string command in commands)
             {
-                lines.Add("@cad_command('" + command + "')");
+                lines.Add("@command('" + command + "')");
                 lines.Add("def run_" + command.ToLowerInvariant() + "():");
                 lines.Add("    write('" + command + " ran')");
             }
@@ -123,11 +123,11 @@ namespace GeometryHelper.Cad.Python.UnitTest
             CadCommandSession session = NewSession();
             string path = Script(
                 "h11-clash.py",
-                "from geometryhelper.cad import cad_command, write",
-                "@cad_command('LINE')",
+                "from geometryhelper.cad import command, write",
+                "@command('LINE')",
                 "def not_line():",
                 "    write('hijacked')",
-                "@cad_command('H11OK')",
+                "@command('H11OK')",
                 "def fine():",
                 "    write('H11OK ran')"
             );
@@ -148,8 +148,8 @@ namespace GeometryHelper.Cad.Python.UnitTest
             CadCommandSession session = NewSession();
             string path = Script(
                 "h11-fails.py",
-                "from geometryhelper.cad import cad_command, write",
-                "@cad_command('H11GOOD')",
+                "from geometryhelper.cad import command, write",
+                "@command('H11GOOD')",
                 "def good():",
                 "    write('good ran')",
                 "raise RuntimeError('boom')"
@@ -170,8 +170,8 @@ namespace GeometryHelper.Cad.Python.UnitTest
             string path = Script(
                 "h11-draws.py",
                 "import geometryhelper.cad as cad",
-                "cad.command('CIRCLE', (0, 0), 5)",
-                "cad.command('CIRCLE', (50, 0), 5)"
+                "cad.cmd('CIRCLE', (0, 0), 5)",
+                "cad.cmd('CIRCLE', (50, 0), 5)"
             );
 
             Load(session, path);
@@ -191,9 +191,9 @@ namespace GeometryHelper.Cad.Python.UnitTest
             string path = Script(
                 "h11-draw-command.py",
                 "import geometryhelper.cad as cad",
-                "@cad.cad_command('H11DRAW')",
+                "@cad.command('H11DRAW')",
                 "def draw():",
-                "    cad.command('CIRCLE', (0, 0), 5)"
+                "    cad.cmd('CIRCLE', (0, 0), 5)"
             );
             Load(session, path);
             Owner.Session = session;

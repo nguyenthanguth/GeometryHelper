@@ -70,7 +70,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                         "def handler(sender, args):",
                         "    raise RuntimeError(" + message + ")",
                         "builtins.p6_handler = handler",
-                        "cad.document().Changed += handler"
+                        "cad.session().Document.Changed += handler"
                     )
                 );
 
@@ -90,7 +90,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                         "off.py",
                         "import builtins",
                         "import geometryhelper.cad as cad",
-                        "cad.document().Changed -= builtins.p6_handler",
+                        "cad.session().Document.Changed -= builtins.p6_handler",
                         "del builtins.p6_handler"
                     )
                 );

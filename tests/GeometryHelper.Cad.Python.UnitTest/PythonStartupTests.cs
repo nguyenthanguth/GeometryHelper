@@ -175,11 +175,11 @@ namespace GeometryHelper.Cad.Python.UnitTest
         /// <summary>A file of one function for each command, which writes "name ran".</summary>
         private string Tools(string file, params string[] commands)
         {
-            var lines = new List<string> { "from geometryhelper.cad import cad_command, write" };
+            var lines = new List<string> { "from geometryhelper.cad import command, write" };
 
             foreach (string command in commands)
             {
-                lines.Add("@cad_command('" + command + "')");
+                lines.Add("@command('" + command + "')");
                 lines.Add("def run_" + command.ToLowerInvariant() + "():");
                 lines.Add("    write('" + command + " ran')");
             }
@@ -267,8 +267,8 @@ namespace GeometryHelper.Cad.Python.UnitTest
             CadCommandSession session = NewSession();
             string bad = Script(
                 "w1-bad.py",
-                "from geometryhelper.cad import cad_command",
-                "@cad_command('PYW1BAD')",
+                "from geometryhelper.cad import command",
+                "@command('PYW1BAD')",
                 "def bad():",
                 "    pass",
                 "raise RuntimeError('w1 startup boom')"
@@ -298,8 +298,8 @@ namespace GeometryHelper.Cad.Python.UnitTest
             string path = Script(
                 "w1-draws.py",
                 "import geometryhelper.cad as cad",
-                "cad.command('CIRCLE', (0, 0), 5)",
-                "cad.command('CIRCLE', (50, 0), 5)"
+                "cad.cmd('CIRCLE', (0, 0), 5)",
+                "cad.cmd('CIRCLE', (50, 0), 5)"
             );
 
             Startup(new CadPythonStartup(Host), session, path);
@@ -359,8 +359,8 @@ namespace GeometryHelper.Cad.Python.UnitTest
             CadCommandSession session = NewSession();
             string path = Script(
                 "w1-api-bad.py",
-                "from geometryhelper.cad import cad_command",
-                "@cad_command('PYW1APIBAD')",
+                "from geometryhelper.cad import command",
+                "@command('PYW1APIBAD')",
                 "def bad():",
                 "    pass",
                 "raise RuntimeError('w1 api boom')"
@@ -406,11 +406,11 @@ namespace GeometryHelper.Cad.Python.UnitTest
             CadCommandSession second = NewSession("second.dxf");
             string path = Script(
                 "w1-unload.py",
-                "from geometryhelper.cad import cad_command",
-                "@cad_command('PYW1UNLOAD', alias='PW1U')",
+                "from geometryhelper.cad import command",
+                "@command('PYW1UNLOAD', alias='PW1U')",
                 "def one():",
                 "    pass",
-                "@cad_command('PYW1UNLOADB')",
+                "@command('PYW1UNLOADB')",
                 "def two():",
                 "    pass"
             );
