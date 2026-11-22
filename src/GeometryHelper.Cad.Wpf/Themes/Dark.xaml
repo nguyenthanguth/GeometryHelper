@@ -42,6 +42,11 @@
     <SolidColorBrush x:Key="GhError" Color="{StaticResource GhErrorColor}" />
     <SolidColorBrush x:Key="GhHover" Color="#323944" />
 
+    <!-- The two steps of the accent for a button filled with it: lighter under the mouse, darker pressed. A flat button turns
+         grey (GhHover) under the mouse, which on a blue button would drop the blue altogether. -->
+    <SolidColorBrush x:Key="GhAccentHover" Color="#63AFFF" />
+    <SolidColorBrush x:Key="GhAccentPressed" Color="#2F86E0" />
+
     <!-- Close is orange-red (design v70): the footer button filled, the cross of a title bar or a drawing row stroked. The
          cross on a selected row is lighter, #FF9A6E, since #F26B3A on #1F4E79 is only 2.9 to 1 and #FF9A6E is 4.2 to 1. -->
     <SolidColorBrush x:Key="GhClose" Color="#C2410C" />
@@ -367,6 +372,51 @@
                         </MultiTrigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="Chrome" Property="Background" Value="{StaticResource GhClosePressed}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource GhBorder}" />
+                            <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A button filled with the accent (Open DXF, OK, Apply): dark semibold words, no border; lighter blue under the mouse,
+         darker pressed, grey when disabled. A style based on it keeps its own size, padding and margin. -->
+    <Style x:Key="GhAccentButton" TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
+        <Setter Property="Background" Value="{StaticResource GhAccent}" />
+        <Setter Property="Foreground" Value="{StaticResource GhAccentInk}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FontSize" Value="{StaticResource GhFontSize}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="12,5" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border
+                        x:Name="Chrome"
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="2"
+                        Padding="{TemplateBinding Padding}"
+                    >
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True" />
+                                <Condition Property="IsEnabled" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource GhAccentHover}" />
+                        </MultiTrigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter
+                                TargetName="Chrome"
+                                Property="Background"
+                                Value="{StaticResource GhAccentPressed}"
+                            />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="Chrome" Property="Background" Value="{StaticResource GhBorder}" />

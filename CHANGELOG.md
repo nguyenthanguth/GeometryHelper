@@ -6,6 +6,13 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The blue buttons of the app (Open DXF on the start screen, and the OK, Apply and Modify of the dialogs) turned
+grey under the mouse, the grey of a flat button, and went dark grey when pressed. They stay blue now: a lighter blue
+(`#63AFFF`) under the mouse and a darker one (`#2F86E0`) pressed, as the orange Close does with its own two steps, and grey
+only when disabled. Every button filled with the accent shares one style, `GhAccentButton`; a disabled OK of a style dialog is
+the same flat grey as the Close, where it was the dark input colour with a border. The transparent and outlined buttons keep
+their grey hover.
+
 **NEW.** AutoLISP's `entmake` makes what AutoCAD 2021 makes by several calls and by records (each measured there): a POLYLINE
 with its VERTEX forms and its `SEQEND` (nothing is in the drawing until the end; a flag 8 makes a 3D polyline; a `SEQEND`
 with no vertex writes `Invalid POLYLINE object.`; another entity while one is pending writes `Invalid complex object.`), an

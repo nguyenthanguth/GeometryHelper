@@ -118,16 +118,12 @@
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                         <Button
-                            Style="{StaticResource GhDialogButton}"
+                            Style="{StaticResource GhAccentButton}"
                             Content="OK"
                             Padding="22,5"
                             Margin="0,0,12,0"
                             Click="OnOk"
                             IsDefault="True"
-                            Background="{StaticResource GhAccent}"
-                            Foreground="{StaticResource GhAccentInk}"
-                            BorderThickness="0"
-                            FontWeight="SemiBold"
                         />
                         <Button
                             Style="{StaticResource GhDialogButton}"
