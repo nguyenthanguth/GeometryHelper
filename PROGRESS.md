@@ -39,6 +39,17 @@ The maintainer judged Part A done on 2026-11-17. What it covers, in short:
 - [ ] A2 parked: colour swatches in the Color rows of Properties (the presenter's and a plugin's; the A2Properties board
       to match), collapsing plugin panels, slide-outs, dialog launchers, macros, a pick-point button, and plugin snaps
       through a viewport, inside a block and for typed points
+- [x] A3. Asked for 2026-11-22/23, done: the first STYLE and the Font box no longer stall (font lists read ahead,
+      long drop-downs virtualized); Remove Vertex from a grip's menu acts at once; UCS P after UCS W returns to World
+      (the CD routine) and UCS changes are undo steps as in AutoCAD; the DRAWINGS right-click menu as AutoCAD's file
+      tab menu, Save/Close of another row keeping the drawing shown; every support folder read with its subfolders;
+      a .dwg dropped on the drawing area inserted as a block; built-in linetypes with AutoCAD's lengths
+- [x] A4. Applications (2026-11-22/23): one Load/Unload Applications window for Lisp files and plugins (APPLOAD),
+      LISPLOAD for .lsp files, NETLOAD for .dll, Manage > Load Manager/Load Lisp/Load Plugin/Load Python; Unload only
+      unticks, unloaded files kept across restarts with their commands, Remove takes a file out; the load-error line;
+      the Plugins ribbon tab and .ghplugin packages removed; the sample plugin in examples/
+- [ ] A4 parked: a UCS change inside the Block Editor and then BCLOSE discard not put back; the UCS dialog's changes
+      one step each, not one per dialog
 
 ### Parked follow-ups
 
@@ -140,6 +151,8 @@ compared by their values and by eye.
       pick-first set; mouse and docmanager
       reactors and persistent reactors; MLEADER's Options and landing-first orders; 3DPOLY's typed Z; FILLETRAD of a
       header with none (10, AutoCAD 0: accepted); trace, tablet, vports, setview and the `_vl-` internals
+- [ ] L9. The AutoLISP leftovers (maintainer 2026-11-23, "finish AutoLISP"): the L1, L2, L4, L5, L6 and L8 parked
+      lines above, each fixed or measured in AutoCAD and closed, or left with the reason
 
 ### Python
 
@@ -183,6 +196,19 @@ scripts inside the app, and a script outside that drives a running app.
       running with one line on the command line (a .NET error too), the streams put back before each run
 - [ ] P6 parked: a list of Python startup scripts; recursion through .NET callbacks past about 650 levels overflows the
       stack
+
+Re-scoped 2026-11-23 by the maintainer: Python is to work as a C# plugin plus Remote, "like LISP", not as a console
+inside the app; made to be used a lot, by people and by AI (plan and spec in .claude/scratch/pyl, D1600–D1642).
+
+- [ ] PW1. Loading as LISP: a Pythons folder beside the exe loaded at start, .py files in the Load/Unload Applications
+      window (Kind Python, their commands), a Python Startup Suite, drag-drop of .py, PYLOAD as the .py picker; from
+      outside, closing a drawing and reading text styles, dimension styles and blocks
+- [ ] PW2. One API: `@command("NAME")`, `cmd(...)` and the get_* prompts; a Drawing API (entities, add, modify, erase,
+      layers, tables, save, close) the same in the app, from outside (`connect()`, any open drawing) and headless
+      (`open_file()`); parity with the C# plugin API (ribbon tabs, panels and buttons, side panel, settings, events)
+- [ ] PW3. Finish: the PYTHON console and PYTHONCLOSE removed (PYRUN kept); a docstring with an example and a stub for
+      every public name, checked by a test; one example per task; acceptance: the C1 layer command written in Python
+      run in the app and from outside, and a LISP routine and its Python port giving the same drawing
 
 ## Release
 
