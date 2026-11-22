@@ -9,9 +9,8 @@ using static GeometryHelper.Cad.UnitTest.EditingDrawings;
 namespace GeometryHelper.Cad.UnitTest
 {
     /// <summary>
-    /// The AutoLISP files a document has loaded, which the Loaded Applications list of APPLOAD shows (the interpreter's
-    /// <c>LoadedFiles</c>, the session's <c>LoadedLispFiles</c>), and the settings APPLOAD keeps: its History list, the folder
-    /// it opens on and Add to History.
+    /// The AutoLISP files a document has loaded, which Load/Unload Applications lists (the interpreter's <c>LoadedFiles</c>, the
+    /// session's <c>LoadedLispFiles</c>), the commands each defined, Unload, and the folder APPLOAD keeps in the settings.
     /// </summary>
     public sealed class LispLoadedFilesTests : IDisposable
     {
@@ -159,60 +158,122 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void TheAppLoadSettings_AreEmptyAndOnByDefault()
+        public void TheAppLoadFolderSetting_IsEmptyByDefault_AndKeptThroughTheFile()
         {
-            var settings = new GlobalSettings();
+            string path = Path.Combine(_folder, "settings.json");
+            Assert.Equal(string.Empty, new GlobalSettings().AppLoadFolder);
 
-            Assert.Empty(settings.AppLoadHistory);
-            Assert.Equal(string.Empty, settings.AppLoadFolder);
-            Assert.True(settings.AppLoadAddToHistory);
+            new GlobalSettings { AppLoadFolder = @" D:\Lisp " }.Save(path);
+
+            Assert.Equal(@"D:\Lisp", GlobalSettings.Load(path).AppLoadFolder);
         }
 
         [Fact]
-        public void TheAppLoadHistory_KeepsItsOrderThroughTheFileAndLeavesBlanksAndRepeatsOut()
+        public void TheKeysOfTheOldHistoryList_AreIgnoredWhenTheSettingsAreRead()
         {
-            string path = Path.Combine(_folder, "settings.json");
-
-            new GlobalSettings
-            {
-                AppLoadHistory = new[] { @" D:\Lisp\b.lsp ", "", "  ", @"D:\Lisp\a.lsp", @"d:\lisp\B.LSP" },
-                AppLoadFolder = @" D:\Lisp ",
-                AppLoadAddToHistory = false,
-            }.Save(path);
+            string path = Path.Combine(_folder, "old.json");
+            System.IO.File.WriteAllText(
+                path,
+                @"{ ""support"": { ""appLoadHistory"": [""D:\\Lisp\\a.lsp""], ""appLoadFileType"": ""dll"", ""appLoadAddToHistory"": false, ""appLoadFolder"": ""D:\\Lisp"" } }",
+                new UTF8Encoding(false)
+            );
 
             GlobalSettings read = GlobalSettings.Load(path);
 
-            Assert.Equal(new[] { @"D:\Lisp\b.lsp", @"D:\Lisp\a.lsp" }, read.AppLoadHistory);
             Assert.Equal(@"D:\Lisp", read.AppLoadFolder);
-            Assert.False(read.AppLoadAddToHistory);
         }
 
         [Fact]
-        public void TheAppLoadHistory_KeepsTheFirstFiftyOnly()
+        public void TheCommandsAFileDefined_AreListedInTheOrderTheyWereDefined_EachOnce()
         {
-            var settings = new GlobalSettings
-            {
-                AppLoadHistory = Enumerable.Range(1, 60).Select(i => @"D:\Lisp\f" + i + ".lsp").ToList(),
-            };
+            string path = File("defs.lsp", "(defun c:BB () 1) (defun helper () 2) (defun c:aa () 3) (defun c:bb () 4)");
+            CadCommandSession session = Session(Blank());
 
-            Assert.Equal(GlobalSettings.AppLoadHistoryLimit, settings.AppLoadHistory.Count);
-            Assert.Equal(@"D:\Lisp\f1.lsp", settings.AppLoadHistory[0]);
-            Assert.Equal(@"D:\Lisp\f50.lsp", settings.AppLoadHistory[49]);
+            session.LoadLisp(path);
+
+            Assert.Equal(new[] { "BB", "AA" }, session.LispCommandsOf(path));
+            Assert.Equal(new[] { "BB", "AA" }, session.LispCommandsOf(path.ToUpperInvariant()));
         }
 
         [Fact]
-        public void ACopyOfTheSettings_HasAnAppLoadHistoryOfItsOwnAndNullIsEmpty()
+        public void AFileThatDefinesNoCommand_HasNoCommands_AndSoHasAFileNotLoaded()
         {
-            var settings = new GlobalSettings { AppLoadHistory = new[] { "a.lsp" } };
-            GlobalSettings copy = settings.Clone();
+            string path = File("plain.lsp", "(defun helper () 2)");
+            CadCommandSession session = Session(Blank());
 
-            copy.AppLoadHistory = new[] { "b.lsp" };
+            Assert.Empty(session.LispCommandsOf(path));
 
-            Assert.Equal(new[] { "a.lsp" }, settings.AppLoadHistory);
-            Assert.Equal(new[] { "b.lsp" }, copy.AppLoadHistory);
+            session.LoadLisp(path);
 
-            settings.AppLoadHistory = null;
-            Assert.Empty(settings.AppLoadHistory);
+            Assert.Empty(session.LispCommandsOf(path));
+        }
+
+        [Fact]
+        public void ACommandOfAFileItLoads_CountsForThatFile()
+        {
+            string inner = File("inner.lsp", "(defun c:inn () 1)");
+            string outer = File(
+                "outer.lsp",
+                "(defun c:out () 1) (load \"" + inner.Replace('\\', '/') + "\") (defun c:out2 () 2)"
+            );
+            CadCommandSession session = Session(Blank());
+
+            session.LoadLisp(outer);
+
+            Assert.Equal(new[] { "OUT", "OUT2" }, session.LispCommandsOf(outer));
+            Assert.Equal(new[] { "INN" }, session.LispCommandsOf(inner));
+        }
+
+        [Fact]
+        public void UnloadingAFile_LeavesTheList_AndMakesItsCommandsUnknown_ButKeepsItsOtherFunctions()
+        {
+            string path = File("two.lsp", "(defun c:aa () 1) (defun c:bb () 2) (defun helper () 3)");
+            CadCommandSession session = Session(Blank());
+            session.LoadLisp(path);
+            Assert.True(session.Start("AA"));
+
+            Assert.True(session.UnloadLisp(path));
+
+            Assert.Empty(session.LoadedLispFiles);
+            Assert.Empty(session.LispCommandNames);
+            Assert.Empty(session.LispCommandsOf(path));
+            Assert.False(session.Start("BB"));
+            Assert.Contains("Unknown command", session.History.Last());
+            session.Feed("(helper)");
+            Assert.Contains("3", session.History.Last());
+            Assert.False(session.UnloadLisp(path));
+        }
+
+        [Fact]
+        public void UnloadingAFile_KeepsACommandAnotherLoadedFileDefinedAsWell()
+        {
+            string first = File("first.lsp", "(defun c:shared () 1) (defun c:one () 1)");
+            string second = File("second.lsp", "(defun c:shared () 2)");
+            CadCommandSession session = Session(Blank());
+            session.LoadLisp(first);
+            session.LoadLisp(second);
+
+            session.UnloadLisp(first);
+
+            Assert.Equal(new[] { "SHARED" }, session.LispCommandNames);
+
+            session.UnloadLisp(second);
+
+            Assert.Empty(session.LispCommandNames);
+        }
+
+        [Fact]
+        public void AFileLoadedAgain_DefinesItsCommandsAgain_AfterItWasUnloaded()
+        {
+            string path = File("again.lsp", "(defun c:aa () 1)");
+            CadCommandSession session = Session(Blank());
+            session.LoadLisp(path);
+            session.UnloadLisp(path);
+
+            session.LoadLisp(path);
+
+            Assert.Equal(new[] { "AA" }, session.LispCommandsOf(path));
+            Assert.Equal(new[] { "AA" }, session.LispCommandNames);
         }
     }
 }

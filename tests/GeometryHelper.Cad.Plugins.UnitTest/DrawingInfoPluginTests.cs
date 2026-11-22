@@ -18,7 +18,7 @@ namespace GeometryHelper.Cad.Plugins.UnitTest
 
         public void Dispose() => _files.Dispose();
 
-        /// <summary>Copies the plugin's .dll and plugin.json, as the build of the app does, into Plugins\DrawingInfo of the test folder.</summary>
+        /// <summary>Copies the plugin's .dll, as the build of the app does, into Plugins\DrawingInfo of the test folder.</summary>
         private void Install()
         {
             string built = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DrawingInfo");
@@ -45,7 +45,7 @@ namespace GeometryHelper.Cad.Plugins.UnitTest
                 CadPluginResult started = Assert.Single(manager.LoadAtStart());
 
                 Assert.True(started.Succeeded, started.ToString());
-                Assert.Equal("Drawing info", started.Plugin.Name);
+                Assert.Equal("DrawingInfo", started.Plugin.Name);
                 Assert.Equal("1.0.0", started.Plugin.Plugin.Version);
                 Assert.True(started.Plugin.IsTrusted);
                 Assert.Equal(new[] { "GHDWGINFO" }, started.Plugin.Plugin.Commands.Select(c => c.Name));
@@ -54,12 +54,12 @@ namespace GeometryHelper.Cad.Plugins.UnitTest
         }
 
         [Fact]
-        public void TheFolderHoldsThePluginAndItsManifestOnly_NotAnotherCopyOfThePresenter()
+        public void TheFolderHoldsThePluginOnly_NoManifest_AndNotAnotherCopyOfThePresenter()
         {
             Install();
 
             Assert.Equal(
-                new[] { "GeometryHelper.Cad.Plugins.DrawingInfo.dll", "plugin.json" },
+                new[] { "GeometryHelper.Cad.Plugins.DrawingInfo.dll" },
                 Directory
                     .GetFiles(Path.Combine(_files.PluginFolder, "DrawingInfo"))
                     .Select(Path.GetFileName)

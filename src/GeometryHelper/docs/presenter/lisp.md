@@ -194,80 +194,56 @@ refused.
 
 ### APPLOAD
 
-APPLOAD (Manage tab, Applications, Load Application) shows Load/Unload Applications, a window of 720 by 600 that waits over
-the presenter until Close, as AutoCAD 2021's dialog does but modal; what a file writes goes to the command line as it
-loads. Its top half is a folder browser of its own: Look in, with Back and Up, over the folders and then the files of the
-type chosen (AutoLISP Files, Plugins or All files), each group by name in ordinal order with the case ignored, with the
-columns Name, Date modified, Type and Size (`1 KB` for a file of 1 to 1 024 bytes, `2 KB` for 1 025, `0 KB` for an empty
-one, kept in whole kilobytes rounded up; nothing for a folder). It opens in the folder it loaded from last, else the first
-support folder, else Documents. Choose a file, or several with Ctrl or Shift, and press Load; or type a name, a file of the
-folder shown or a full path (several, each in quotes), and press Enter. A double-click opens a folder, and loads a file.
+APPLOAD (Manage tab, Applications, Load Application) shows Load/Unload Applications, a window of 900 by 700 that waits over
+the presenter until Close; the Plugin manager button of the Plugins tab opens the same window, so there is one place for
+AutoLISP files and plugins. What a file writes goes to the command line as it loads. The window has a toolbar, three chips and
+one table.
 
-**Look in** shows the icon and the name of the folder shown, `Lisp`, not its path, which is its tooltip. Its drop-down lists,
-as Windows does, Desktop; your own folder, Documents and Downloads (those that exist); This PC; each drive that is ready under
-This PC, as `Data (D:)`, or `Local Disk (C:)`, `DVD Drive (E:)` and `Network Drive (S:)` where it has no label (a drive that
-is not ready, an empty DVD drive, is left out and never waited on); and under its drive the folders from the root down to
-the folder shown, indented, the folder shown last and chosen. A folder inside Documents hangs under Documents
-(`C:\Users\Ann\Documents\Lisp` is `Lisp` one level under Documents, not four under `C:`), one inside Downloads under
-Downloads, and any other folder of your profile under your own folder. A drive shown is its own row, chosen, with nothing
-under it. Choosing a row opens it. **This PC** has no folder: its list is the drives (Type `Local Disk`, `CD Drive` or
-`Network Drive`, no date, no size); Up from a drive's root goes to This PC, and is greyed there; Back works across it; Load
-is greyed until a text is typed; a double-click or Enter opens a drive.
+**Load… (.lsp, .dll)** shows the Windows Open dialog, several files allowed, with the filters "Applications (\*.lsp;\*.dll)"
+(the first), "Lisp files (\*.lsp)", "Plugins (\*.dll)" and "All files (\*.\*)". It opens in the folder of the last Load, which
+the settings keep (`appLoadFolder` under `support`). Each file is loaded in the order chosen:
 
-**File name** is read by what it holds, in this order. A folder, full or relative to the folder shown (`..` and `..\Projects`
-too), opens and empties the box, and loads nothing. A text with `*` or `?` keeps the folders and lists the files whose names
-match (`*.txt`, `t*.lsp`, either case), instead of the type chosen, until the type or the folder changes; the text stays,
-selected. A text equal to the pattern of a Files of type entry (`*.lsp`, `*.dll`, `*.*`) chooses that entry. A name with no
-file or folder behind it is answered with a box and nothing is loaded: `D:\Nowhere` or `nothere.lsp` gives the box titled
-Error, "The following file was not found:" and the full path, and a path ending in a backslash, `D:\Nowhere\`, the box
-titled Load/Unload Applications, "Path does not exist. Check the path and try again." and the path; the text stays in the
-box and the list does not change. With several quoted names the box is for the first that is missing and none is loaded.
-Anything else is loaded.
+| File | What Load does |
+|---|---|
+| `tools.lsp` | loads it into the drawing shown, as `CadCommandSession.LoadLisp` does: what the file wrote, then `tools.lsp successfully loaded.`; a file with an error runs up to the error and writes the `; error:` line, and is not listed |
+| `CircleTools.dll` | goes to the [plugin manager](plugins.md), as NETLOAD does, which asks once about a file outside its trusted folders |
+| `.arx`, `.dbx`, `.dvb`, `.fas`, `.vlx` | refused with `tools.fas cannot be loaded: .arx, .dbx, .dvb, .fas and .vlx files are not supported.` |
+| any other file | refused with `readme.txt is not an AutoLISP file or a plugin.` |
 
-**The keys** are those of a Windows file dialog. In the list, Enter opens the folder chosen or loads the files chosen,
-Backspace goes up one level, and typing letters finds a folder or file by its name (`la` within a second chooses
-`layers.lsp`); Up, Down, Home, End, Shift and Ctrl choose as in any list. Anywhere in the dialog, Alt+Up goes up, Alt+Left
-back, F5 lists the folder again (and the drives again at This PC), and F4 or Alt+Down opens Look in. Esc closes Look in
-when it is open, else the dialog.
+Every line goes to the command history, none to the window. **Reload** loads the rows chosen again: an AutoLISP file is
+loaded as Load loads it, a plugin as PLUGINRELOAD does. **Unload** unloads the rows chosen, as does unticking On, and the
+Delete key: a plugin as PLUGINUNLOAD does; an AutoLISP file leaves the list and the `c:` commands it defined are removed from
+the interpreter, so that typing one is an unknown command, though a name that is also an alias, such as `AA` for AREA, goes
+back to the alias. The other functions it defined stay until the drawing is closed, as in AutoCAD, which cannot unload an
+AutoLISP file either.
 
-Load takes each file in the order of the list, and the footer shows the line of the last:
+The chips, **All 4**, **Lisp 3** and **Plugins 1**, show the number of rows of each kind and filter the table. The table
+has the columns:
 
-| File | What Load does | Footer |
-|---|---|---|
-| `tools.lsp` | loads it into the drawing shown, as `CadCommandSession.LoadLisp` does: what the file wrote, then `tools.lsp successfully loaded.` | green: `tools.lsp successfully loaded.` |
-| a `.lsp` with an error | runs up to the error and writes the `; error:` line; the file is not listed under Loaded Applications | red: `tools.lsp was not loaded: ; error: bad argument type: consp 1` |
-| `CircleTools.dll` | goes to the [plugin manager](plugins.md), as PLUGINLOAD does | green or red, the manager's own line |
-| `.arx`, `.dbx`, `.dvb`, `.fas`, `.vlx` | refused | amber: `tools.fas cannot be loaded: .arx, .dbx, .dvb, .fas and .vlx files are not supported.`, written to the command line too |
-| any other file | refused | amber: `readme.txt is not an AutoLISP file or a plugin.` |
+| Column | What it shows |
+|---|---|
+| On | whether the file is loaded; untick to unload it, tick to load it again |
+| Name | the file name of an AutoLISP file, the name of a plugin |
+| Kind | Lisp in green, Plugin in blue |
+| Commands | the commands it defines, separated by commas, in the order defined; the tooltip has the full list |
+| File | the full path, with an ellipsis where it is long, and the path as tooltip |
+| At start | whether it loads at every start |
 
-Under the browser are two tabs and the Startup Suite. **Loaded Applications** lists the AutoLISP files loaded into the
-drawing shown, whether by Load, by `(load)` or as a startup file (a file read to its end, once each, in the order they
-finished: `CadCommandSession.LoadedLispFiles`, or `LispInterpreter.LoadedFiles` of one interpreter), then the plugins
-loaded now, with the columns File, Kind (AutoLISP in green, Plugin in blue) and Path; each drawing has its own list. The
-**History list** has the files Load was given, newest first, at most 50 (a 51st pushes the oldest out), whether they
-loaded or not, as long as Add to History is ticked, which it is at the start; it lasts across runs of the program. Load on
-that tab loads the rows chosen. Files dropped on the Loaded Applications list, from Explorer or dragged from the dialog's own
-list, are loaded at once in the order of the drop, each as Load loads one and with Add to History as Load does; the footer
-reads `Successfully loaded 2 files.` for several, the file's own line for one, and the line of the last failure where a file
-failed. A folder dropped is passed over, and so is a drop on the History list tab. AutoCAD 2021 does the same, though it
-runs the loads when the dialog closes.
+The rows are sorted by name and then by file, either case the same, and several can be chosen with Ctrl or Shift. The
+commands of an AutoLISP file are the `c:` functions it defined while it loaded: a file that defines `c:AA` and `c:BB` shows
+`AA, BB`, one that defines none shows nothing (`CadCommandSession.LispCommandsOf`). The list is that of the drawing shown,
+as `LoadedLispFiles` is, whether the file came by Load, by `(load)` or as a startup file, and each drawing has its own. The
+files of the [Startup Suite](#the-startup-suite) that are not loaded now stay in the table with On unticked, so that they can
+be loaded or taken out of the suite.
 
-One button beside the tabs follows the tab. **Unload** is for plugin rows, and does what the Plugin manager's Unload does:
-on .NET Framework it switches the plugin off, its code stays until the presenter restarts, the footer shows the manager's
-line, and the row stays, dimmed. It is greyed on an AutoLISP row, with the tooltip "AutoLISP files cannot be unloaded: what
-they defined stays in the drawing until it is closed", as in AutoCAD. **Remove**, on the History list, takes the rows
-chosen out of the list and never off the disk. The briefcase of the Startup Suite takes an AutoLISP file dragged from the
-list or from Explorer, and Contents… shows the [Startup Suite](#the-startup-suite). Close, Esc and the cross close the
-window and there is nothing to undo; Help opens this page.
+**At start** is the Startup Suite: ticking it for an AutoLISP file puts the file at the end of the suite, saved at once, and
+unticking takes it out (`lispStartupSuite`, so a suite from an earlier version carries over); for a plugin it is the startup
+list of the plugin manager. A file in the `Lisps` folder, or a plugin in the `Plugins` folder, beside the app always loads,
+so its box is ticked and greyed. Files dragged from Explorer onto the table are loaded in the order of the drop.
 
-The History list, the folder last used, the Files of type and Add to History are kept in the settings file, under `support`:
-`appLoadHistory` (full paths, newest first), `appLoadFolder`, `appLoadFileType` (`lsp`, `dll` or `all`, `lsp` at the start)
-and `appLoadAddToHistory`. As in AutoCAD, the folder is kept by a Load from the folder shown and by nothing else: closing the
-dialog after moving about leaves the folder it opened in, and a Load from `D:\Lisp\old` makes the next APPLOAD open there.
-The Files of type is kept the moment it is changed, so that the next APPLOAD opens on it. The Plugin manager stays on the
-Plugins tab, and a
-window that shows no such dialog (`MainViewModel.ShowAppLoad` null) shows the Plugin manager for APPLOAD, as APPLOAD did
-before it loaded AutoLISP.
+A window that shows no such dialog (`MainViewModel.ShowAppLoad` null) says `Load/Unload Applications cannot be shown here.`
+for APPLOAD. The History list, Add to History, Files of type and the Startup Suite window of earlier versions are gone, and
+the keys `appLoadHistory`, `appLoadFileType` and `appLoadAddToHistory` of a settings file are ignored when it is read.
 
 #### Dropping a file on the window
 
@@ -277,8 +253,8 @@ line of the drawing shown, `(LOAD "D:/x/tools.lsp")` (LOAD in capitals, the path
 reads `Command: (LOAD "D:/x/tools.lsp")` and then what the file writes. The SECURELOAD question comes as for a typed
 `load`: outside the trusted folders at SECURELOAD 1 it asks, Do Not Load leaves `; error: File load canceled:
 D:/x/tools.lsp`, and Load Once holds for that file for the session. A `.fas` or `.vlx` gets the question too, then the
-interpreter's refusal of compiled AutoLISP as its `; error:` line. The History list of APPLOAD is not touched, and the file
-shows in Loaded Applications as every loaded file does. A `.scr` runs `_SCRIPT` and answers its file prompt with the path
+interpreter's refusal of compiled AutoLISP as its `; error:` line. The file
+shows in Load/Unload Applications as every loaded file does. A `.scr` runs `_SCRIPT` and answers its file prompt with the path
 in quotes, `Enter script file name <...>: "D:\x\draw.scr"`, with no question, as SCRIPT typed. A `.arx`, `.dbx` or `.dvb`
 writes APPLOAD's refusal line, `tools.arx cannot be loaded: .arx, .dbx, .dvb, .fas and .vlx files are not supported.`; any
 other file (`.dcl`, `.dll`, `.txt`) gets a box titled Drag and Drop that reads `No association..D:\x\notes.txt`, with OK, and
@@ -364,12 +340,10 @@ Delete the file to remove the command, or copy it as a start for a routine of yo
 
 ### The Startup Suite
 
-The Startup Suite is the list of AutoLISP files loaded into every drawing that opens, in the order of the list: Contents…
-on Load/Unload Applications shows it in a window of its own, 460 by 360. Add… asks for one or more `.lsp` files and puts
-them at the end; Remove takes the file chosen out of the list and never off the disk. Each change is saved to the settings
-file at once and applies to the drawings opened afterwards, not to those open now. The suite holds AutoLISP files only: a
-`.dll` dropped on the briefcase is refused with "Plugins load at start from the Plugin manager (At start).", and any other
-file with a line that says so. The list is kept in the settings file, under `support`, next to the search folders, and the
+The Startup Suite is the list of AutoLISP files loaded into every drawing that opens, in the order of the list: the
+At start box of a row of [Load/Unload Applications](#appload) puts a file at the end of it and takes it out again. Each change
+is saved to the settings file at once and applies to the drawings opened afterwards, not to those open now. The suite holds
+AutoLISP files only. The list is kept in the settings file, under `support`, next to the search folders, and the
 file can still be edited there.
 
 ```json
@@ -388,7 +362,7 @@ folder unless the user says otherwise. The gate stands in front of `load` and ev
 [When a drawing opens](#when-a-drawing-opens) and the Startup Suite, `autoload`, `vl-load-all` and the copy it brings into
 another drawing. It does not stand in front of `load_dialog`, SCRIPT, `open` or `findfile`, nor of code typed at the
 command line: AutoCAD 2021 loads an untrusted `.dcl` and runs an untrusted `.scr` with no question, also at SECURELOAD 2.
-The plugin manager keeps [its own trusted folders](plugins.md). Three system variables set it, readable and settable with
+The plugin manager keeps [its own trusted folders](plugins.md), and asks about a .dll from anywhere else. Three system variables set it, readable and settable with
 `getvar`, `setvar` and SETVAR, and kept in Global settings ([the Security page](app.md#the-security-page)):
 
 | Variable | Values | In the app | In a session of the library |
@@ -436,8 +410,8 @@ Command: (load "C:/Users/you/Downloads/tools.lsp" "none")
 
 A file refused in a search for a bare name is passed over and the search goes on; where nothing else is found the load is
 `; error: LOAD failed: "tools"`, and there the second argument is given back. A `.fas` or `.vlx` outside the trusted
-folders is cancelled as any file; one inside them is still refused as compiled AutoLISP. APPLOAD's footer shows the line
-of a refusal in red, and a startup file that is refused writes it and lets the next one run.
+folders is cancelled as any file; one inside them is still refused as compiled AutoLISP. APPLOAD writes the line
+of a refusal to the command line, and a startup file that is refused writes it and lets the next one run.
 
 At SECURELOAD 1 the window asks with AutoCAD's own warning, **Security - Unsigned Executable File**: `The publisher of this
 executable file could not be verified and the file is not located in a trusted folder. What do you want to do?`, the

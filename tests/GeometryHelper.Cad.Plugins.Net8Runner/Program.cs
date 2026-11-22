@@ -256,7 +256,7 @@ namespace GeometryHelper.Cad.Plugins.Net8Runner
                     "the Drawing info plugin loads at start with no question: " + string.Join(" ", started),
                     started.Count == 1
                         && started[0].Succeeded
-                        && started[0].Plugin.Name == "Drawing info"
+                        && started[0].Plugin.Name == "DrawingInfo"
                         && started[0].Plugin.IsTrusted
                 );
                 contexts.AddRange(Contexts());
@@ -267,7 +267,7 @@ namespace GeometryHelper.Cad.Plugins.Net8Runner
                     "GHDWGINFO writes the objects by type: " + string.Join(" | ", session.History),
                     session.History.Contains("Model space: 3 objects") && session.History.Contains("  Circle   3")
                 );
-                CadPluginResult unloaded = manager.Unload("Drawing info");
+                CadPluginResult unloaded = manager.Unload("DrawingInfo");
                 Check("it unloads: " + unloaded.Message, unloaded.Succeeded);
             }
 

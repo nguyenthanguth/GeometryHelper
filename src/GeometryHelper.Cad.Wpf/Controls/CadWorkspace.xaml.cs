@@ -293,20 +293,6 @@ namespace GeometryHelper.Cad.Wpf
             dialog.ShowDialog();
         }
 
-        /// <summary>Shows the Plugin manager of the window's plugins, as a dialog over the window; nothing without a plugin manager.</summary>
-        public void ShowPluginManager()
-        {
-            PluginManagerViewModel manager = _model?.CreatePluginManager();
-
-            if (manager == null)
-            {
-                return;
-            }
-
-            var dialog = new PluginManagerWindow(manager) { Owner = Window.GetWindow(this) };
-            dialog.ShowDialog();
-        }
-
         /// <summary>Shows Global settings as a dialog over the window, on a category; null for the first.</summary>
         /// <param name="category">The category, as Shortcuts.</param>
         public void ShowGlobalSettings(string category = null)
@@ -767,7 +753,6 @@ namespace GeometryHelper.Cad.Wpf
                 _model.SaveAsRequested -= OnSaveAsRequested;
                 _model.LayerManagerRequested -= OnLayerManagerRequested;
                 _model.PluginLoadRequested -= OnPluginLoadRequested;
-                _model.PluginManagerRequested -= OnPluginManagerRequested;
                 _model.SettingsRequested -= OnSettingsRequested;
                 _model.SettingsApplied -= OnSettingsApplied;
                 _model.CloseRequested -= OnCloseRequested;
@@ -790,7 +775,6 @@ namespace GeometryHelper.Cad.Wpf
                 _model.SaveAsRequested += OnSaveAsRequested;
                 _model.LayerManagerRequested += OnLayerManagerRequested;
                 _model.PluginLoadRequested += OnPluginLoadRequested;
-                _model.PluginManagerRequested += OnPluginManagerRequested;
                 _model.SettingsRequested += OnSettingsRequested;
                 _model.SettingsApplied += OnSettingsApplied;
                 _model.CloseRequested += OnCloseRequested;
@@ -1022,9 +1006,7 @@ namespace GeometryHelper.Cad.Wpf
         private void OnLayerManagerRequested(object sender, EventArgs e) => ShowLayerManager();
 
         private void OnPluginLoadRequested(object sender, EventArgs e) =>
-            PluginManagerWindow.PickPlugin(Window.GetWindow(this), path => _model.LoadPlugin(path));
-
-        private void OnPluginManagerRequested(object sender, EventArgs e) => ShowPluginManager();
+            AppLoadWindow.PickPlugin(Window.GetWindow(this), path => _model.LoadPlugin(path));
 
         private void OnSettingsRequested(object sender, string category) => ShowGlobalSettings(category);
 

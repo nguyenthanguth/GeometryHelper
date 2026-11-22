@@ -140,19 +140,17 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     Assert.True(plugins.Load(sample).Succeeded);
 
                     var model = new MainViewModel();
+                    model.UsePlugins(plugins, loadAtStart: false);
                     Assert.True(model.Open(folder.Write("room.dxf", TestFiles.Room(out _, out _))));
                     DimStyleManagerViewModel dimensions = model.CreateDimStyleManager();
 
                     using (LayerManagerViewModel layers = model.CreateLayerManager())
-                    using (var pluginManager = new PluginManagerViewModel(plugins))
                     {
                         var windows = new List<(Window Window, FrameworkElement Body, bool HasCross)>();
                         var layerWindow = new LayerManagerWindow(layers);
                         windows.Add((layerWindow, layerWindow.Body, true));
-                        var pluginWindow = new PluginManagerWindow(pluginManager);
+                        var pluginWindow = new AppLoadWindow(new AppLoadViewModel(model));
                         windows.Add((pluginWindow, pluginWindow.Body, true));
-                        var settingsWindow = new PluginSettingsWindow(pluginManager.CreateSettings());
-                        windows.Add((settingsWindow, settingsWindow.Body, true));
                         var textWindow = new TextStyleWindow(model.CreateTextStyle());
                         windows.Add((textWindow, textWindow.Body, true));
                         var dimWindow = new DimStyleManagerWindow(dimensions);

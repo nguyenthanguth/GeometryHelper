@@ -629,12 +629,12 @@ The Manage tab, between View and Output, has AutoCAD 2021's panels for what the 
 (Configure and Check) is parked: its buttons are greyed and the tooltip says the feature is not built yet. AutoCAD's
 Action Recorder panel is not here at all: it will not be built. **Customization** has User Interface (CUI) and Edit Aliases
 (ALIASEDIT), which both open Global settings on Shortcuts, where the aliases and the keys are kept, and Tool Palettes
-(TOOLPALETTES, see [Tool Palettes](#tool-palettes)). **Applications** has Load Application (APPLOAD), which shows Load/Unload Applications, where an AutoLISP file or a plugin is loaded and the Startup Suite kept (see
-[AutoLISP](lisp.md#appload)), and is greyed where the window can neither show that dialog nor has a plugin manager
-(`ManageRibbonViewModel.CanLoadApplication`), and Run Script (SCRIPT). The Plugin manager is on the Plugins tab, and APPLOAD shows it where the window gives no such dialog (`MainViewModel.ShowAppLoad` null). **Cleanup** has Purge (PURGE), Overkill
+(TOOLPALETTES, see [Tool Palettes](#tool-palettes)). **Applications** has Load Application (APPLOAD), which shows Load/Unload Applications, one table where an AutoLISP file or a plugin is loaded, unloaded and kept for every start (see
+[AutoLISP](lisp.md#appload)), and is greyed where the window cannot show that dialog
+(`ManageRibbonViewModel.CanLoadApplication`), and Run Script (SCRIPT). The Plugin manager button of the Plugins tab opens the same window. **Cleanup** has Purge (PURGE), Overkill
 (OVERKILL), Audit (AUDIT) and Recover (RECOVER). CUI, ALIASEDIT and APPLOAD are commands of the window, not of
-`CadCommandRegistry.CreateDefault()`: APPLOAD says `No plugin manager is in use: applications cannot be loaded.` where the
-window has neither that dialog nor a manager, and where it is given a `.dll` and has no manager. CAD Standards' third button, Layer Translator, runs LAYTRANS (see the layers guide).
+`CadCommandRegistry.CreateDefault()`: APPLOAD says `Load/Unload Applications cannot be shown here.` where the
+window has no such dialog, and a `.dll` given with no plugin manager gets `No plugin manager is in use: applications cannot be loaded.` CAD Standards' third button, Layer Translator, runs LAYTRANS (see the layers guide).
 
 ### DesignCenter
 
@@ -970,8 +970,8 @@ it cannot read. Both apps take these options:
 | `--dialog name` | draws a dialog or a menu instead of the window, the lines of `--run` typed first where it needs them |
 | `--recent "a.dxf\|*b.dxf"` | fills Recent Documents, the first the newest, a file written with `*` pinned |
 
-The dialogs are `save-changes`; `mtext-unsaved` (Multiline Text - Unsaved Changes); `options` or `settings:Canvas and cursor` (Global settings on a category); `plugins`,
-`plugin-settings` and `plugin-untrusted`; `secureload` (the load warning), `writable-folder` and `settings-security` (the
+The dialogs are `save-changes`; `mtext-unsaved` (Multiline Text - Unsaved Changes); `options` or `settings:Canvas and cursor` (Global settings on a category); `plugins` (Load/Unload Applications)
+and `plugin-untrusted`; `secureload` (the load warning), `writable-folder` and `settings-security` (the
 Security page); `color`, `truecolor` and `truecolor-rgb` (Select Color on index 30);
 `dsettings[:Tab]`; the menus `osnap-menu`, `snap-menu` (after `--run "LINE"`), `canvas-menu` (the canvas's right-click menu, after `--run "SELECTALL"` the Edit menu, after `--run "LINE;0,0;100,0"` the Command menu), `drawings-menu` and `scale-menu` (the status bar's scale list); `missing-shx` and
 `missing-shx-replace`; `ptype`; `linetype`, `linetype-load`, `select-linetype`, `hatch`, `hatch-gradient`, `hatch-user`,

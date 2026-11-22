@@ -30,21 +30,15 @@
         />
         <!-- Built first, never referenced: the sample that ships in Plugins\DrawingInfo is loaded from DrawingInfo\ beside the tests. -->
         <ProjectReference
-            Include="..\..\src\GeometryHelper.Cad.Plugins.DrawingInfo\GeometryHelper.Cad.Plugins.DrawingInfo.csproj"
+            Include="..\..\examples\GeometryHelper.Cad.Plugins.DrawingInfo\GeometryHelper.Cad.Plugins.DrawingInfo.csproj"
             ReferenceOutputAssembly="false"
         />
     </ItemGroup>
 
     <ItemGroup>
         <None
-            Include="..\..\src\GeometryHelper.Cad.Plugins.DrawingInfo\bin\$(Configuration)\netstandard2.0\GeometryHelper.Cad.Plugins.DrawingInfo.dll"
+            Include="..\..\examples\GeometryHelper.Cad.Plugins.DrawingInfo\bin\$(Configuration)\netstandard2.0\GeometryHelper.Cad.Plugins.DrawingInfo.dll"
             Link="DrawingInfo\GeometryHelper.Cad.Plugins.DrawingInfo.dll"
-            CopyToOutputDirectory="PreserveNewest"
-            Visible="false"
-        />
-        <None
-            Include="..\..\src\GeometryHelper.Cad.Plugins.DrawingInfo\plugin.json"
-            Link="DrawingInfo\plugin.json"
             CopyToOutputDirectory="PreserveNewest"
             Visible="false"
         />

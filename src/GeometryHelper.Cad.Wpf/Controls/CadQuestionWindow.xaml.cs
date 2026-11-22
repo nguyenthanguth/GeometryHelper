@@ -105,7 +105,7 @@ namespace GeometryHelper.Cad.Wpf
         {
             var question = new CadQuestionWindow(
                 "Load a plugin from a folder that is not trusted?",
-                "Loading a plugin runs its code with your rights. Load it only if you know where it comes from; to stop being asked, add its folder to the trusted folders in the Plugin manager.",
+                "Loading a plugin runs its code with your rights. Load it only if you know where it comes from.",
                 path,
                 "Load",
                 "Don't load"

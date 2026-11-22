@@ -92,9 +92,10 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                         Path.Combine(folder.FullPath, "copies")
                     )
                 )
-                using (var pluginManager = new PluginManagerViewModel(plugins))
                 {
-                    var window = new PluginManagerWindow(pluginManager);
+                    var model = new MainViewModel();
+                    model.UsePlugins(plugins, loadAtStart: false);
+                    var window = new AppLoadWindow(new AppLoadViewModel(model));
                     AssertAccentButton(theme, (Style)window.FindResource("Primary"));
                 }
             });

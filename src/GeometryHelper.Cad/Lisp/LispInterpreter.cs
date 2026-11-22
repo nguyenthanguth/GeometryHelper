@@ -50,6 +50,10 @@ namespace GeometryHelper.Cad.Lisp
         private LispBuiltin _quoteFunction;
         private IReadOnlyList<string> _supportFolders = Array.Empty<string>();
         private readonly List<string> _loadedFiles = new List<string>();
+        private readonly Dictionary<string, List<string>> _fileCommands = new Dictionary<string, List<string>>(
+            StringComparer.OrdinalIgnoreCase
+        );
+        private List<string> _defining;
         private int _depth;
 
         /// <summary>Makes an interpreter with the functions of the core language and nothing defined by a program.</summary>
@@ -117,6 +121,62 @@ namespace GeometryHelper.Cad.Lisp
         /// list, and a file loaded twice is listed once. Empty until a file has been loaded.
         /// </summary>
         public IReadOnlyList<string> LoadedFiles => _loadedFiles.AsReadOnly();
+
+        /// <summary>
+        /// Gets the commands a file defined with <c>defun c:name</c> while it loaded, without <c>C:</c>, in the order they were
+        /// defined, each once: those bound for the first time and those bound again. A file that defined none, or that was not
+        /// loaded to its end, has an empty list. A command defined by a file this one loaded counts for that file, not for this one.
+        /// </summary>
+        /// <param name="path">The file's full path, in either case.</param>
+        /// <returns>The names.</returns>
+        internal IReadOnlyList<string> CommandsOf(string path) =>
+            path != null && _fileCommands.TryGetValue(path, out List<string> names)
+                ? names.AsReadOnly()
+                : (IReadOnlyList<string>)Array.Empty<string>();
+
+        /// <summary>
+        /// Forgets a loaded file as far as AutoLISP can: it leaves <see cref="LoadedFiles"/> and the <c>c:</c> commands it defined
+        /// are unbound, so that typing one is an unknown command. A command another loaded file defined as well stays, and so
+        /// does every other function the file defined, as in AutoCAD, which cannot unload a file.
+        /// </summary>
+        /// <param name="path">The file's full path, in either case.</param>
+        /// <returns>True when the file was loaded.</returns>
+        internal bool UnloadFile(string path)
+        {
+            int index =
+                path == null
+                    ? -1
+                    : _loadedFiles.FindIndex(f => string.Equals(f, path, StringComparison.OrdinalIgnoreCase));
+
+            if (index < 0)
+            {
+                return false;
+            }
+
+            string file = _loadedFiles[index];
+            _loadedFiles.RemoveAt(index);
+
+            if (_fileCommands.TryGetValue(file, out List<string> names))
+            {
+                _fileCommands.Remove(file);
+
+                foreach (string name in names)
+                {
+                    if (_fileCommands.Values.Any(other => other.Contains(name)))
+                    {
+                        continue;
+                    }
+
+                    if (_symbols.TryGetValue("C:" + name, out LispSymbol symbol))
+                    {
+                        symbol.Value = null;
+                        _defined.Remove(symbol);
+                    }
+                }
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// Reads a setting of the drawing by its name (<c>LUNITS</c>, <c>LUPREC</c>, <c>AUNITS</c>, <c>AUPREC</c>,
@@ -1005,12 +1065,25 @@ namespace GeometryHelper.Cad.Lisp
             var reader = new LispReader(text, Intern, _quote);
             object last = null;
 
-            while (reader.TryRead(out object form))
+            // The c: commands this file defines are recorded as it loads, so that Unload can take them away again.
+            var defined = new List<string>();
+            List<string> outer = _defining;
+            _defining = defined;
+
+            try
             {
-                last = Eval(form);
+                while (reader.TryRead(out object form))
+                {
+                    last = Eval(form);
+                }
+            }
+            finally
+            {
+                _defining = outer;
             }
 
             string full = Path.GetFullPath(path);
+            _fileCommands[full] = defined;
 
             if (!_loadedFiles.Exists(f => string.Equals(f, full, StringComparison.OrdinalIgnoreCase)))
             {

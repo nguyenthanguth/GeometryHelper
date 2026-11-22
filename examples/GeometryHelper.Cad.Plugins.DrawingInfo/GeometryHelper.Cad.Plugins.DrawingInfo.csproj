@@ -2,18 +2,19 @@
     <!--
     The sample plugin that ships with the app, in Plugins\DrawingInfo: GHDWGINFO writes what the drawing holds. It
     references GeometryHelper.Cad only, as a plugin does, and does not copy it: the app gives a plugin its own.
-    GeometryHelper.Cad.App copies this plugin's .dll and plugin.json into its Plugins folder when it builds.
+    GeometryHelper.Cad.App copies this plugin's .dll into its Plugins folder when it builds. It has no plugin.json: the folder gives its name, DrawingInfo, and the assembly its version.
   -->
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <IsPackable>false</IsPackable>
+        <Version>1.0.0</Version>
         <RootNamespace>GeometryHelper.Cad.Plugins.DrawingInfo</RootNamespace>
         <AssemblyName>GeometryHelper.Cad.Plugins.DrawingInfo</AssemblyName>
         <Description>A sample plugin for GeometryHelper CAD: the command GHDWGINFO writes the name, the objects by type, the layers, the blocks and the extents of the drawing.</Description>
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\GeometryHelper.Cad\GeometryHelper.Cad.csproj" Private="false" />
+        <ProjectReference Include="..\..\src\GeometryHelper.Cad\GeometryHelper.Cad.csproj" Private="false" />
     </ItemGroup>
 </Project>

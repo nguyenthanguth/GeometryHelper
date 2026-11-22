@@ -161,6 +161,16 @@ namespace GeometryHelper.Cad
         public IReadOnlyList<string> LoadedLispFiles =>
             _lisp != null ? _lisp.LoadedFiles : (IReadOnlyList<string>)Array.Empty<string>();
 
+        /// <summary>Gets the commands a loaded AutoLISP file defined, without <c>c:</c>, in the order it defined them (<see cref="LispInterpreter.CommandsOf"/>); empty for a file that defined none or was not loaded.</summary>
+        /// <param name="path">The file's full path.</param>
+        internal IReadOnlyList<string> LispCommandsOf(string path) =>
+            _lisp != null ? _lisp.CommandsOf(path) : Array.Empty<string>();
+
+        /// <summary>Unloads an AutoLISP file as far as AutoLISP can (<see cref="LispInterpreter.UnloadFile"/>): it leaves <see cref="LoadedLispFiles"/> and its <c>c:</c> commands are unbound.</summary>
+        /// <param name="path">The file's full path.</param>
+        /// <returns>True when the file was loaded.</returns>
+        internal bool UnloadLisp(string path) => _lisp != null && _lisp.UnloadFile(path);
+
         /// <summary>
         /// Loads an AutoLISP file as APPLOAD does: the lines the file wrote, then <c>name.lsp successfully loaded.</c>, or the
         /// <c>; error:</c> line an error gave, which leaves what the file ran before it.

@@ -184,7 +184,7 @@ from `Plugins`: there is no install or uninstall command.
 outside `TrustedFolders` is loaded only when `ConfirmUntrusted` says yes, and never where it is not set. The plugin folder (`Plugins` beside the app)
 is always trusted (`AddTrustedFolder`, `RemoveTrustedFolder`, `IsTrusted`). Without a confirmation, `Load` gives
 `...CircleTools.dll is outside the trusted folders, and loading it was not confirmed.`; with one, `Loaded Circle tools 1.0.0:
-NUMCIRCLES.` Every load is a line of `Log`, with the full path of the file and whether it was trusted. A yes to a folder outside the trusted ones holds for that folder for the life of the manager, so a reload does not ask again; it is never written to disk, and a no is asked again.
+NUMCIRCLES.` Every load is a line of `Log`, with the full path of the file and whether it was trusted. A yes to a folder outside the trusted ones holds for that folder for the life of the manager, so a reload does not ask again; it is never written to disk, and a no is asked again. Load/Unload Applications has no page for the trusted folders: a .dll from anywhere but `Plugins` is asked about at its load by the question above.
 
 **A plugin loaded twice.** `Load` of a plugin already loaded is refused: `The plugin Circle tools is loaded already, from
 ...; PLUGINRELOAD loads it again.`
@@ -211,7 +211,7 @@ into `%AppData%\GeometryHelper\Dxf\Plugins` is not loaded now: move its folder t
 
 A sample plugin ships in `Plugins\DrawingInfo`: the command `GHDWGINFO`, which reads the drawing and writes what it holds on
 the command line, and changes nothing. It is the smallest plugin that does something useful, one class with one command that
-takes no prompt, and its source is the project `GeometryHelper.Cad.Plugins.DrawingInfo` of the repository, a netstandard2.0
+takes no prompt, and its source is the project `examples/GeometryHelper.Cad.Plugins.DrawingInfo` of the repository, a netstandard2.0
 library that references `GeometryHelper.Cad` without copying it. The app loads it at every start with no question, and the
 Plugins tab has a button for its command, as for every command. A drawing of three circles and a line in model space, with one
 layer and no block, gives
@@ -232,10 +232,11 @@ remove the sample, delete the folder `Plugins\DrawingInfo`; to start a plugin of
 
 ## What the window adds
 
-The window shows a Plugins ribbon tab with a button for each command of each plugin loaded, a Plugin manager (a list with
-its load log, the settings of each plugin, load at startup, trusted folders) and a dialog before a
-load outside the trusted folders. Its settings are drawn by the window from the `CadSetting` attributes; the plugin knows
-none of it.
+The window shows a Plugins ribbon tab with a button for each command of each plugin loaded, the Plugin manager button,
+which opens [Load/Unload Applications](lisp.md#appload) (a table of the plugins and the AutoLISP files, with On, Commands,
+File and At start, Load…, Reload and Unload) and a dialog before a load outside the trusted folders. The plugin's load
+lines go to the command history. A plugin's `CadSetting` attributes remain in the plugin API, but the window has no page
+that shows them now.
 
 A command that works long shows it on the status bar's progress meter through `c.Progress`:
 `using (var meter = c.Progress.Start("Checking blocks")) { meter.SetLimit(n); ... meter.MeterProgress(); }`, as

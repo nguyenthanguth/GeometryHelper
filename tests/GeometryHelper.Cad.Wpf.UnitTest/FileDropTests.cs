@@ -74,8 +74,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             Assert.Contains("GHM tools.lsp loaded", string.Join("\n", written));
             Assert.Contains("dropped", model.Session.LispCommandNames, StringComparer.OrdinalIgnoreCase);
 
-            // The History list of APPLOAD is not touched, and the file is among the loaded applications.
-            Assert.Empty(model.Settings.AppLoadHistory);
+            // The file is among the loaded applications.
             Assert.Equal(new[] { tools }, model.LoadedLispFiles);
         }
 

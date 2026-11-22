@@ -37,12 +37,11 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             return model;
         }
 
-        /// <summary>A Load/Unload Applications that loads one file, as a drafter does by typing its path and pressing Load, and closes.</summary>
+        /// <summary>A Load/Unload Applications that loads one file, as a drafter does by choosing it with Load…, and closes.</summary>
         private static Func<AppLoadViewModel, bool> Loading(string path) =>
             dialog =>
             {
-                dialog.FileName = path;
-                dialog.Load();
+                dialog.Load(new[] { path });
                 return true;
             };
 

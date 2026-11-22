@@ -26,24 +26,16 @@
         <ProjectReference Include="..\GeometryHelper\GeometryHelper.csproj" />
         <!-- Built first, never referenced: its .dll is copied below into Plugins\DrawingInfo, where the app loads it at start. -->
         <ProjectReference
-            Include="..\GeometryHelper.Cad.Plugins.DrawingInfo\GeometryHelper.Cad.Plugins.DrawingInfo.csproj"
+            Include="..\..\examples\GeometryHelper.Cad.Plugins.DrawingInfo\GeometryHelper.Cad.Plugins.DrawingInfo.csproj"
             ReferenceOutputAssembly="false"
             OutputItemType="DrawingInfoPlugin"
         />
     </ItemGroup>
 
     <!--
-    The sample plugin, Plugins\DrawingInfo, beside the exe: its .dll and its plugin.json, and nothing else. Not
-    GeometryHelper.Cad.dll: the app gives a plugin its own. The items are None items with a link, so that publish copies
-    them as the build does.
+    The sample plugin, Plugins\DrawingInfo, beside the exe: its .dll and nothing else. Not GeometryHelper.Cad.dll: the
+    app gives a plugin its own. The item is a None item with a link, so that publish copies it as the build does.
   -->
-    <ItemGroup>
-        <None
-            Include="..\GeometryHelper.Cad.Plugins.DrawingInfo\plugin.json"
-            Link="Plugins\DrawingInfo\plugin.json"
-            CopyToOutputDirectory="PreserveNewest"
-        />
-    </ItemGroup>
     <Target Name="LinkDrawingInfoPlugin" BeforeTargets="AssignTargetPaths" DependsOnTargets="ResolveProjectReferences">
         <ItemGroup>
             <None

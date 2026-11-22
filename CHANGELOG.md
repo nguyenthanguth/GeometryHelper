@@ -21,11 +21,40 @@ only.`; the Plugin manager has no "Drawing plugins" chip, and a .dll without a m
 reason it always had, `has no command`. A host that made drawing plugins on the finder, such as TeklaHelper.DrawingManager,
 loads them itself.
 
+**CHANGED.** APPLOAD and the Plugin manager are one window, Load/Unload Applications (900 by 700), which the APPLOAD command, the
+Manage tab's Load Application and the Plugin manager button of the Plugins tab all open. It has a toolbar (Load… (.lsp, .dll),
+Reload, Unload), the chips All, Lisp and Plugins with their counts, and one table with the columns On, Name, Kind (Lisp in green,
+Plugin in blue), Commands, File and At start, sorted by name and then by file, several rows to be chosen at once. Load… is the
+Windows Open dialog with the filters "Applications (\*.lsp;\*.dll)", "Lisp files (\*.lsp)", "Plugins (\*.dll)" and "All files", several
+files allowed, opened on the folder of the last Load (`appLoadFolder`); a `.lsp` loads as APPLOAD loaded it, a `.dll` as NETLOAD
+does, any other file gets the refusal line it had, and every line goes to the command history. Commands of an AutoLISP file are
+the `c:` functions it defined while it loaded (`AA, BB`), recorded by the interpreter (`LispInterpreter.CommandsOf`, internal).
+Unload of an AutoLISP file, or unticking its On box or the Delete key, takes the file out of the list and removes its `c:`
+commands from the interpreter, so that typing one is an unknown command (a name that is also an alias, such as AA for AREA, goes
+back to the alias); the other functions it defined stay, as AutoCAD cannot unload a file either. At start replaces the Startup
+Suite: it is the same `lispStartupSuite` storage, so current suites carry over, and for a plugin the startup list; a file in the
+`Lisps` folder or a plugin in the `Plugins` folder always loads, and its box is ticked and greyed. A Startup Suite file that is not
+loaded stays in the table with On unticked. The plugin settings page (Settings…), the plugin load log, the detail pane, the
+trusted-folder list with Add and Remove folder, the folder browser of APPLOAD, Add to History, the History list, the Startup Suite
+window and Help are gone; a .dll from a folder that is not trusted is asked about as NETLOAD asks, and the plugin's load lines go to
+the command history. The question's text no longer tells the user to add the folder in the Plugin manager.
+
+**BREAKING.** Removed with the two windows, with no forwarder: in `GeometryHelper.Cad.Wpf`, the types `AppLoadFileType`,
+`AppLoadPlaceKind`, `AppLoadPlace`, `AppLoadEntry`, `PluginRowViewModel`, `PluginLogLine`, `PluginManagerViewModel`,
+`PluginSettingRow`, `PluginSettingsViewModel`, `StartupSuiteViewModel`, `PluginManagerWindow`, `PluginSettingsWindow` and
+`StartupSuiteWindow`; `MainViewModel.PluginManagerRequested` and `CreatePluginManager()`; `CadWorkspace.ShowPluginManager()`.
+`AppLoadViewModel` and `AppLoadRow` are new in shape: the browser, History, Startup Suite, status and tab members are gone, and
+the rows are the new table's (`Rows`, `Filter`, the chip texts, `Load()` asking for files, `Load(paths)`, `Reload()`, `Unload()`,
+`LoadDropped`). In `GeometryHelper.Cad`, `GlobalSettings.AppLoadHistory`, `AppLoadHistoryLimit`, `AppLoadFileType` and
+`AppLoadAddToHistory` are removed, and their keys `appLoadHistory`, `appLoadFileType` and `appLoadAddToHistory` are ignored when a
+settings file is read, not migrated. A window that has no `ShowAppLoad` no longer falls back to a Plugin manager: APPLOAD says
+`Load/Unload Applications cannot be shown here.`, and Load Application is greyed there.
+
 **NEW.** A sample plugin ships in the app's `Plugins` folder, `Plugins\DrawingInfo`: the command `GHDWGINFO` writes the drawing's
 name, the objects of model space counted by type, the layers, the blocks and the extents, and changes nothing. It is the project
-`GeometryHelper.Cad.Plugins.DrawingInfo` (netstandard2.0, one class, a `plugin.json`), which `GeometryHelper.Cad.App` builds first
-and copies, its .dll and its plugin.json only, into `Plugins\DrawingInfo`; the app loads it at start with no question, and it has
-a button on the Plugins tab like every command. Delete the folder to remove it.
+`examples/GeometryHelper.Cad.Plugins.DrawingInfo` (netstandard2.0, one class, no `plugin.json`), which `GeometryHelper.Cad.App` builds first
+and copies, its .dll only, into `Plugins\DrawingInfo`; it is named after its folder, DrawingInfo, and takes the assembly's version.
+The app loads it at start with no question, and it has a button on the Plugins tab like every command. Delete the folder to remove it.
 
 **NEW.** A sample routine ships in the `Lisps` folder, `GH-DrawingInfo.lsp`: it defines the command `GHINFO` and writes nothing
 when it loads. `GHINFO` writes the drawing's name and folder, INSUNITS and LUNITS, the current layer and text style, the objects
