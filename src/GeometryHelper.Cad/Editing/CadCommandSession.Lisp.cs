@@ -212,6 +212,9 @@ namespace GeometryHelper.Cad
         /// Writes what AutoLISP wrote, a line of the history for each line of it, a blank one where it wrote nothing between two
         /// new lines; nothing where it wrote nothing. The text a command of the routine left on its last line, the Command
         /// prompt or the prompt it asks, starts the first line (<c>Command: done7</c>, <c>Specify next point or [Undo]: nil</c>).
+        /// A line the routine left open, text with no new line after it, is continued: what it writes next goes on the same line
+        /// (<c>Type: abc</c> from a <c>princ</c> of each key a <c>grread</c> loop reads), and the next command's echo and the next
+        /// get function's prompt and answer do (<see cref="WriteOnOpenLine"/>).
         /// </summary>
         internal void WriteLisp(string output)
         {
@@ -230,10 +233,80 @@ namespace GeometryHelper.Cad
                 lines[0] = open + lines[0];
             }
 
-            foreach (string line in lines)
+            // The line the routine left open goes on with the first line; a prompt the session held has taken its place.
+            int from = open == null && ContinueOpenLine(lines[0]) ? 1 : 0;
+
+            for (int i = from; i < lines.Length; i++)
             {
-                Write(line);
+                Write(lines[i]);
             }
+
+            // The last piece has no new line after it: the line stays open for what is written next.
+            _openLine = Quiet || lines[lines.Length - 1].Length == 0 ? -1 : _history.Count - 1;
+        }
+
+        // The history line a routine's text left open, with no new line after it, so that what is written next goes on it, as in
+        // AutoCAD's console (Aq: x, Type: abc, A_.LINE); -1 for none. It is the last line while open, so any line written after it
+        // closes it, and the start of an evaluation forgets it.
+        private int _openLine = -1;
+
+        // The first line of the history that was added to after it was written, int.MaxValue for none: a window that shows the
+        // history has the shorter line and takes the longer (TakeHistoryExtension).
+        private int _extendedFrom = int.MaxValue;
+
+        /// <summary>Whether the last line of the history is one a routine left open.</summary>
+        private bool HasOpenLine => _openLine >= 0 && _openLine == _history.Count - 1;
+
+        /// <summary>Adds text to the line a routine left open, and closes it where <paramref name="closes"/>; false where no line is open.</summary>
+        private bool ContinueOpenLine(string text, bool closes = false)
+        {
+            if (!HasOpenLine)
+            {
+                _openLine = -1;
+                return false;
+            }
+
+            if (text.Length > 0)
+            {
+                _history[_openLine] += text;
+                _extendedFrom = Math.Min(_extendedFrom, _openLine);
+            }
+
+            if (closes)
+            {
+                _openLine = -1;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Writes a line as <see cref="Write"/> does, but on the line a routine left open where there is one, which AutoCAD does
+        /// for the echo of a command (<c>A_.LINE</c>) and for the answer to a get function's prompt (<c>Aq: x</c>): the line is
+        /// then closed.
+        /// </summary>
+        /// <param name="line">The text of the line.</param>
+        private void WriteOnOpenLine(string line)
+        {
+            if (!Quiet && ContinueOpenLine(line ?? string.Empty, closes: true))
+            {
+                return;
+            }
+
+            Write(line);
+        }
+
+        /// <summary>
+        /// Tells a window that follows the history which lines it already has were made longer since, once: the first of them.
+        /// A line of the history is made longer where the text of a routine is continued (<see cref="WriteLisp"/>).
+        /// </summary>
+        /// <param name="index">The index of the first line made longer.</param>
+        /// <returns>False where no line was.</returns>
+        internal bool TakeHistoryExtension(out int index)
+        {
+            index = _extendedFrom;
+            _extendedFrom = int.MaxValue;
+            return index != int.MaxValue;
         }
 
         /// <summary>

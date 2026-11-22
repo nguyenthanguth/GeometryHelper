@@ -182,6 +182,7 @@ namespace GeometryHelper.Cad
 
             _lispAnswers = false;
             _lispPrefix = null;
+            _openLine = -1;
             LispResult result = run();
             LispContinue(result, finished);
             return result;
@@ -196,6 +197,7 @@ namespace GeometryHelper.Cad
         /// <param name="finished">Called with the last result of the evaluation; null for none.</param>
         private void LispContinue(LispResult result, Action<LispResult> finished)
         {
+            string held = _lispPrefix;
             WriteLisp(result.Output);
 
             if (result.IsWaiting)
@@ -213,6 +215,15 @@ namespace GeometryHelper.Cad
             }
 
             _lispTyped = false;
+
+            // The routine returns with a command it started still waiting and wrote nothing after the prompt it asked: AutoCAD writes
+            // that prompt again (EE's UCS E, D1451), so the line is there for the answer or Esc to go on (the text of a routine
+            // that follows the prompt is the line already).
+            if (held != null && result.Output.Length == 0 && HasLispCommand && held == Prompt.Text + " ")
+            {
+                Write(held);
+            }
+
             finished?.Invoke(result);
             CloseLispStep();
         }
@@ -377,11 +388,21 @@ namespace GeometryHelper.Cad
             string message = ask.Message ?? string.Empty;
             int lineEnd = message.LastIndexOf('\n');
 
-            if (first && lineEnd > 0)
+            // The first of them goes on the line the routine left open, and a message that starts with a new line ends it.
+            if (first && lineEnd >= 0)
             {
-                foreach (string line in message.Substring(0, lineEnd).Split('\n'))
+                string[] written = message.Substring(0, lineEnd).Split('\n');
+
+                for (int i = 0; i < written.Length; i++)
                 {
-                    Write(line);
+                    if (i == 0 && HasOpenLine)
+                    {
+                        WriteOnOpenLine(written[i]);
+                    }
+                    else if (lineEnd > 0)
+                    {
+                        Write(written[i]);
+                    }
                 }
             }
 

@@ -1222,6 +1222,20 @@ namespace GeometryHelper.Cad
                 line = WindowAfter + " " + line;
             }
 
+            // The prompt of a get function that waits, and what answers it, go on the line the routine left open (Aq: x).
+            if (
+                HasOpenLine
+                && line != null
+                && Prompt != null
+                && ReferenceEquals(Prompt, _lispAskPrompt)
+                && _lispAsk.Message != null
+                && line.StartsWith(Prompt.Text, StringComparison.Ordinal)
+            )
+            {
+                ContinueOpenLine(line, closes: true);
+                return;
+            }
+
             _history.Add(line ?? string.Empty);
         }
 

@@ -1922,6 +1922,20 @@ namespace GeometryHelper.Cad.Wpf
 
             IReadOnlyList<string> lines = _current.Session.History;
 
+            // A line a routine left open was made longer after it was shown: the lines kept are the last ones of the model's.
+            if (_current.Session.TakeHistoryExtension(out int extended))
+            {
+                int offset = History.Count - _current.Synced;
+
+                for (int i = Math.Max(extended, 0); i < _current.Synced && i < lines.Count; i++)
+                {
+                    if (offset + i >= 0 && offset + i < History.Count && History[offset + i] != lines[i])
+                    {
+                        History[offset + i] = lines[i];
+                    }
+                }
+            }
+
             if (_current.Synced >= lines.Count)
             {
                 return;

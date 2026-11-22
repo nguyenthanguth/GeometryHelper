@@ -404,12 +404,12 @@ namespace GeometryHelper.Cad
 
                 if (repeated)
                 {
-                    Write(open + given);
+                    WriteEcho(open + given);
                     Write(message);
                 }
                 else
                 {
-                    Write(open + given + " " + message);
+                    WriteEcho(open + given + " " + message);
                 }
 
                 unknown = true;
@@ -418,7 +418,7 @@ namespace GeometryHelper.Cad
             }
 
             command = Registry.FindTwin(command) ?? command;
-            Write(open + given);
+            WriteEcho(open + given);
 
             if (Document.BlockEditor != null && CadCommands.LeavesBlockEditor(command.Name))
             {
@@ -440,6 +440,19 @@ namespace GeometryHelper.Cad
             CloseLispStep();
             _lispStarted = command;
             Run(command, _lispAnswersFollow ? Array.Empty<string>() : PreSelectedFor(command));
+        }
+
+        /// <summary>Writes the echo of a command a routine starts: on the line a routine left open where the echo is written, else a line of its own; with CMDECHO 0 or the muted call the line the call writes is cut from the history after, so it never joins one.</summary>
+        private void WriteEcho(string line)
+        {
+            if (CommandEchoOn && !PromptsMuted)
+            {
+                WriteOnOpenLine(line);
+            }
+            else
+            {
+                Write(line);
+            }
         }
 
         /// <summary>The handles of a selection set whose objects are still in the drawing.</summary>

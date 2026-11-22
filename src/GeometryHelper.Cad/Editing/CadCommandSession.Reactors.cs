@@ -191,6 +191,8 @@ namespace GeometryHelper.Cad
         /// <param name="source">The text of the evaluation: a line typed, a <c>(load ...)</c>, <c>(C:NAME)</c>.</param>
         private void RaiseLispStarts(string source)
         {
+            // A line the last evaluation left open is closed by the one that starts.
+            _openLine = -1;
             List<string> forms = LispFormTexts(source);
             _lispReactForms = forms.Count;
 
