@@ -35,6 +35,14 @@ loaded at every start (each `.dll` and subfolder of it), not a folder of install
 the .dll files and the `plugin.json`) into a folder of `Plugins` beside the app, or copy the .dll there. This is a major
 change, to go with the major version bump of the release.
 
+**FIXED.** GeometryHelper CAD died with a stack overflow on the first MLEADER of a drawing that had no multileader style, once its
+words were committed with Enter and the Annotate tab was showing. MLEADER makes the style Standard there, so the list of the
+Multileader Style box is replaced; the box clears its selection and pushes null into the current multileader style, and that
+setter raised the list again for any value it was given, which reset the box and pushed null again, without end (the same drawing
+with the Home tab showing had no box to loop, and a drawing with a style had no change of list). A null, or the style the box
+already shows, now changes nothing and raises nothing, as the text style and dimension style boxes already did; "Multileader
+style…" still opens the manager and sets the box back.
+
 **NEW.** Files dropped on the window are taken as AutoCAD 2021 takes them (each measured in the full program), anywhere on
 it: the command line's box, the ribbon and the palettes no longer swallow them. A `.lsp`, `.fas` or `.vlx` runs the line
 typed at the command line, `Command: (LOAD "D:/x/u1.lsp")` and then what the file writes, with the SECURELOAD question of a
@@ -43,6 +51,30 @@ compiled AutoLISP); a `.scr` runs `_SCRIPT` with its path in quotes; a `.arx`, `
 line; any other file (`.dcl`, `.dll`, `.txt`) gets a box titled Drag and Drop reading `No association..D:\x\notes.txt`,
 and nothing on the command line. While a command or a routine waits these files are ignored. Drawings still open.
 Several files are taken in the order of the drop.
+
+**FIXED.** A thin light line ran along the top edge of Load/Unload Applications. The window has no frame of its own
+(`WindowStyle` None) yet resizes, and Windows 10 and 11 draw a light line along the top of such a window. It now carries the
+same `WindowChrome` as the main window (no caption, a 6 pixel resize border, no glass frame), and so do the other three
+dialogs built that way, the Text Window, the Tool Palettes and the Parameters palette; the dialogs that cannot be resized
+never had the line.
+
+**CHANGED.** APPLOAD's Load/Unload Applications has the Look in of AutoCAD 2021's file dialog, built from measuring it. Look in
+shows the icon and name of the folder shown (`Lisp`, the path as a tooltip) and drops down Desktop; your folder, Documents and
+Downloads; This PC; the drives (`Data (D:)`, `Local Disk (C:)`, `DVD Drive (E:)`, `Network Drive (S:)`); and the folders from
+a drive's root down to the folder shown, indented under their drive, or under Documents when the folder is inside it
+(`C:\Users\Ann\Documents\Lisp` is `Lisp` one level under Documents, not four under `C:`). This PC is a place of its own whose
+list is the drives, Up from a drive's root goes to it, and Back works across it. File name is read by what it holds: a
+folder, full, relative or `..`, opens and empties the box; `*.txt` lists the folders and the matching files and stays in the
+box, and `*.dll` also chooses the Plugins entry of Files of type; a name that is not there gives AutoCAD's box (`Error`, "The
+following file was not found:" and the full path for `D:\Nowhere` or `nothere.lsp`; "Path does not exist. Check the path and
+try again." for `D:\Nowhere\`) and loads nothing, where a missing `.lsp` was loaded and failed in the footer. In the list,
+Enter opens a folder or loads the files chosen, Backspace goes up and letters find by name; anywhere Alt+Up, Alt+Left, F5, F4
+and Alt+Down go up, back, refresh and open Look in. The list has a Size column (`2 KB` for a 1 025 byte file) after Type,
+which now follows Date modified. As in AutoCAD, the folder is kept only by a Load from it, not at Close, and the Files of
+type is kept (`GlobalSettings.AppLoadFileType`, `lsp`, `dll` or `all`, under `support`). Files dropped on the Loaded
+Applications list load at once in the order of the drop, with `Successfully loaded 2 files.` in the footer. `AppLoadViewModel`
+gains `Places`, `Place`, `IsThisPc`, `Enter`, `LoadDropped` and `ShowMessage`, and `AppLoadPlace`, `AppLoadPlaceKind`;
+`AppLoadEntry` gains `Size`, `DriveType` and `IsDrive`. Up at a drive's root is no longer greyed.
 
 **FIXED.** AutoLISP's `entget` listed the groups of a block made by `entmake` and of the objects round it a way AutoCAD 2021 does not
 (each measured in its console): the BLOCK of such a block has its name as group `1` (`"*U"` for an anonymous one, whatever `1`

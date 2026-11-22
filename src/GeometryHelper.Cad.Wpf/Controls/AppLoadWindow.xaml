@@ -3,6 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:GeometryHelper.Cad.Wpf"
+    xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
     Title="Load/Unload Applications"
     Width="720"
     Height="600"
@@ -13,6 +14,7 @@
     ShowInTaskbar="False"
     WindowStartupLocation="CenterOwner"
     Background="#262B33"
+    PreviewKeyDown="OnPreviewKeyDown"
 >
     <Window.Resources>
         <ResourceDictionary>
@@ -30,13 +32,17 @@
                 <Setter Property="TextTrimming" Value="CharacterEllipsis" />
             </Style>
 
-            <!-- A folder or a file of the list: its icon and name, its type and when it was written. -->
+            <!-- The indent of a row of Look in: 12 px a level (the row's own padding is 6). -->
+            <local:AppLoadIndent x:Key="Indent" />
+
+            <!-- A folder, a file or a drive of the list: its icon and name, when it was written, its type and its size. -->
             <DataTemplate x:Key="EntryRow" DataType="{x:Type local:AppLoadEntry}">
                 <Grid Background="Transparent">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="150" />
+                        <ColumnDefinition Width="140" />
                         <ColumnDefinition Width="130" />
+                        <ColumnDefinition Width="70" />
                     </Grid.ColumnDefinitions>
                     <DockPanel>
                         <local:IconView
@@ -50,12 +56,19 @@
                         />
                         <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
                     </DockPanel>
-                    <TextBlock Grid.Column="1" Text="{Binding Type}" Foreground="{StaticResource GhTextMuted}" />
                     <TextBlock
-                        Grid.Column="2"
+                        Grid.Column="1"
                         Text="{Binding Modified}"
                         Foreground="{StaticResource GhTextMuted}"
                         FontFamily="{StaticResource GhMonoFont}"
+                    />
+                    <TextBlock Grid.Column="2" Text="{Binding Type}" Foreground="{StaticResource GhTextMuted}" />
+                    <TextBlock
+                        Grid.Column="3"
+                        Text="{Binding Size}"
+                        TextAlignment="Right"
+                        Margin="0,0,10,0"
+                        Foreground="{StaticResource GhTextMuted}"
                     />
                 </Grid>
                 <DataTemplate.Triggers>
@@ -67,8 +80,273 @@
                             Value="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
                         />
                     </DataTrigger>
+                    <DataTrigger Binding="{Binding IsDrive}" Value="True">
+                        <Setter TargetName="Icon" Property="Stroke" Value="{StaticResource GhIcon}" />
+                        <Setter TargetName="Icon" Property="Data" Value="M3 13h18v6H3zM5 13l2-8h10l2 8M17 16h.01" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding DriveType}" Value="CDRom">
+                        <Setter
+                            TargetName="Icon"
+                            Property="Data"
+                            Value="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"
+                        />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding DriveType}" Value="Network">
+                        <Setter TargetName="Icon" Property="Data" Value="M4 4h16v7H4zM12 11v5M5 20h14M12 16v4" />
+                    </DataTrigger>
                 </DataTemplate.Triggers>
             </DataTemplate>
+
+            <!-- A row of Look in: the icon of its kind and its name, indented by its level in the drop-down only. -->
+            <DataTemplate x:Key="PlaceRow" DataType="{x:Type local:AppLoadPlace}">
+                <StackPanel
+                    x:Name="Line"
+                    Orientation="Horizontal"
+                    Margin="{Binding Level, Converter={StaticResource Indent}}"
+                >
+                    <local:IconView
+                        x:Name="Icon"
+                        Size="16"
+                        StrokeThickness="2"
+                        Margin="0,0,6,0"
+                        VerticalAlignment="Center"
+                        Stroke="{StaticResource GhWarn}"
+                        Data="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+                    />
+                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <DataTemplate.Triggers>
+                    <!-- The box shows the chosen row alone, with no indent: only a row of the drop-down sits in a ComboBoxItem. -->
+                    <DataTrigger
+                        Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type ComboBoxItem}}}"
+                        Value="{x:Null}"
+                    >
+                        <Setter TargetName="Line" Property="Margin" Value="0" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="Desktop">
+                        <Setter TargetName="Icon" Property="Stroke" Value="{StaticResource GhAccent}" />
+                        <Setter TargetName="Icon" Property="Data" Value="M3 4h18v12H3zM8 20h8M12 16v4" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="UserFolder">
+                        <Setter TargetName="Icon" Property="Stroke" Value="{StaticResource GhAccent}" />
+                        <Setter
+                            TargetName="Icon"
+                            Property="Data"
+                            Value="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0"
+                        />
+                    </DataTrigger>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding Kind}" Value="UserFolder" />
+                            <Condition Binding="{Binding Name}" Value="Documents" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter TargetName="Icon" Property="Data" Value="M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h6" />
+                    </MultiDataTrigger>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding Kind}" Value="UserFolder" />
+                            <Condition Binding="{Binding Name}" Value="Downloads" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter TargetName="Icon" Property="Data" Value="M12 4v11M7 10l5 5 5-5M5 20h14" />
+                    </MultiDataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="ThisPc">
+                        <Setter TargetName="Icon" Property="Stroke" Value="{StaticResource GhAccent}" />
+                        <Setter TargetName="Icon" Property="Data" Value="M4 5h16v10H4zM2 19h20" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="Drive">
+                        <Setter TargetName="Icon" Property="Stroke" Value="{StaticResource GhIcon}" />
+                        <Setter TargetName="Icon" Property="Data" Value="M3 13h18v6H3zM5 13l2-8h10l2 8M17 16h.01" />
+                    </DataTrigger>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding Kind}" Value="Drive" />
+                            <Condition Binding="{Binding DriveType}" Value="CDRom" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter
+                            TargetName="Icon"
+                            Property="Data"
+                            Value="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"
+                        />
+                    </MultiDataTrigger>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding Kind}" Value="Drive" />
+                            <Condition Binding="{Binding DriveType}" Value="Network" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter TargetName="Icon" Property="Data" Value="M4 4h16v7H4zM12 11v5M5 20h14M12 16v4" />
+                    </MultiDataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <!-- A row of the Look in drop-down: 22 px high, the chosen one (the folder shown) on the selection colour. -->
+            <Style x:Key="PlaceItem" TargetType="ComboBoxItem">
+                <Setter Property="Foreground" Value="{StaticResource GhText}" />
+                <Setter Property="ToolTip" Value="{Binding Path, TargetNullValue='This PC'}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ComboBoxItem">
+                            <Border x:Name="Row" Height="22" Background="Transparent" Padding="6,0,8,0">
+                                <ContentPresenter VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsHighlighted" Value="True">
+                                    <Setter TargetName="Row" Property="Background" Value="{StaticResource GhHover}" />
+                                </Trigger>
+                                <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                    <Setter
+                                        TargetName="Row"
+                                        Property="Background"
+                                        Value="{StaticResource GhSelected}"
+                                    />
+                                </DataTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Look in: the icon and name of the folder shown in a 26 px box that turns accent while its drop-down is open. -->
+            <Style x:Key="LookInBox" TargetType="ComboBox">
+                <Setter Property="Foreground" Value="{StaticResource GhText}" />
+                <Setter Property="FontFamily" Value="{StaticResource GhFont}" />
+                <Setter Property="FontSize" Value="{StaticResource GhFontSize}" />
+                <Setter Property="Height" Value="26" />
+                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="ItemTemplate" Value="{StaticResource PlaceRow}" />
+                <Setter Property="ItemContainerStyle" Value="{StaticResource PlaceItem}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ComboBox">
+                            <Grid>
+                                <Border
+                                    x:Name="Box"
+                                    Background="{StaticResource GhInput}"
+                                    BorderBrush="{StaticResource GhBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="6,0,8,0"
+                                >
+                                    <DockPanel>
+                                        <Path
+                                            DockPanel.Dock="Right"
+                                            Width="12"
+                                            Height="12"
+                                            Margin="6,0,0,0"
+                                            VerticalAlignment="Center"
+                                            Data="M3 4.5 6 7.5 9 4.5"
+                                            Stroke="{StaticResource GhTextMuted}"
+                                            StrokeThickness="1.5"
+                                            StrokeStartLineCap="Round"
+                                            StrokeEndLineCap="Round"
+                                            Stretch="None"
+                                        />
+                                        <ContentPresenter
+                                            Content="{TemplateBinding SelectionBoxItem}"
+                                            ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                            VerticalAlignment="Center"
+                                            IsHitTestVisible="False"
+                                        />
+                                    </DockPanel>
+                                </Border>
+                                <Border
+                                    x:Name="Ring"
+                                    Margin="-1"
+                                    BorderBrush="Transparent"
+                                    BorderThickness="1"
+                                    CornerRadius="5"
+                                    IsHitTestVisible="False"
+                                />
+                                <ToggleButton
+                                    Style="{StaticResource GhComboBoxToggle}"
+                                    IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                />
+                                <Popup
+                                    x:Name="PART_Popup"
+                                    Placement="Bottom"
+                                    HorizontalOffset="-14"
+                                    VerticalOffset="-1"
+                                    AllowsTransparency="True"
+                                    Focusable="False"
+                                    IsOpen="{TemplateBinding IsDropDownOpen}"
+                                    PopupAnimation="None"
+                                >
+                                    <Grid Margin="14,0,14,24">
+                                        <Border
+                                            Background="{StaticResource GhInput}"
+                                            BorderBrush="{StaticResource GhBorder}"
+                                            BorderThickness="1"
+                                            CornerRadius="4"
+                                            Padding="0,2"
+                                            MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                            MaxHeight="354"
+                                        >
+                                            <Border.Effect>
+                                                <DropShadowEffect
+                                                    BlurRadius="16"
+                                                    ShadowDepth="6"
+                                                    Direction="270"
+                                                    Opacity="0.45"
+                                                />
+                                            </Border.Effect>
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+                                            </ScrollViewer>
+                                        </Border>
+                                    </Grid>
+                                </Popup>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsDropDownOpen" Value="True">
+                                    <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                                    <Setter
+                                        TargetName="Ring"
+                                        Property="BorderBrush"
+                                        Value="{StaticResource GhAccent}"
+                                    />
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter
+                                        TargetName="Box"
+                                        Property="BorderBrush"
+                                        Value="{StaticResource GhTextMuted}"
+                                    />
+                                </Trigger>
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsDropDownOpen" Value="True" />
+                                        <Condition Property="IsMouseOver" Value="True" />
+                                    </MultiTrigger.Conditions>
+                                    <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                                </MultiTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- A file of the list, its chosen row dotted when the list has the focus. -->
+            <Style x:Key="FileItem" TargetType="ListBoxItem" BasedOn="{StaticResource StyleListItem}">
+                <Setter Property="FocusVisualStyle">
+                    <Setter.Value>
+                        <Style TargetType="Control">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate>
+                                        <Rectangle
+                                            Margin="2"
+                                            Stroke="{StaticResource GhText}"
+                                            StrokeThickness="1"
+                                            StrokeDashArray="1 2"
+                                            SnapsToDevicePixels="True"
+                                            IsHitTestVisible="False"
+                                        />
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Setter.Value>
+                </Setter>
+            </Style>
 
             <!-- A file of the Loaded Applications list or of the History list: its name, its kind in colour, its folder. -->
             <DataTemplate x:Key="AppRow" DataType="{x:Type local:AppLoadRow}">
@@ -107,6 +385,17 @@
             </DataTemplate>
         </ResourceDictionary>
     </Window.Resources>
+
+    <!-- No frame of the system: with WindowStyle None and a resizable window, Windows 10 and 11 draw a light line along the top edge. -->
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome
+            CaptionHeight="0"
+            ResizeBorderThickness="6"
+            GlassFrameThickness="0"
+            CornerRadius="0"
+            UseAeroCaptionButtons="False"
+        />
+    </shell:WindowChrome.WindowChrome>
 
     <!-- Design AppLoad: Look in with Back and Up over the files, File name with Load, Files of type, Add to History, the Loaded
          Applications and History list tabs with Unload or Remove and the Startup Suite, the footer's status, Close and Help. -->
@@ -220,7 +509,7 @@
                         Margin="6,0,0,0"
                         IsEnabled="{Binding CanUp}"
                         AutomationProperties.Name="Up one level"
-                        ToolTip="Up one level"
+                        ToolTip="Up one level (Alt+Up, Backspace in the list)"
                         Click="OnUp"
                     >
                         <local:IconView
@@ -239,7 +528,7 @@
                         Margin="6,0,0,0"
                         IsEnabled="{Binding CanBack}"
                         AutomationProperties.Name="Back"
-                        ToolTip="Back to the folder shown before"
+                        ToolTip="Back to the folder shown before (Alt+Left)"
                         Click="OnBack"
                     >
                         <local:IconView
@@ -257,36 +546,50 @@
                         VerticalAlignment="Center"
                     />
                     <ComboBox
-                        Style="{StaticResource GhComboBox}"
-                        FontFamily="{StaticResource GhMonoFont}"
-                        ItemsSource="{Binding FolderChain}"
-                        SelectedItem="{Binding LookIn, Mode=TwoWay}"
+                        x:Name="LookInBox"
+                        Style="{StaticResource LookInBox}"
+                        ItemsSource="{Binding Places}"
+                        SelectedItem="{Binding Place, Mode=OneWay}"
+                        SelectionChanged="OnLookInChosen"
+                        ToolTip="{Binding Place.Path, TargetNullValue='This PC'}"
                         AutomationProperties.Name="Look in"
                     />
                 </DockPanel>
 
                 <!-- The folders and files of the folder shown. -->
-                <Border
-                    Grid.Row="1"
-                    Background="{StaticResource GhCommandInput}"
-                    BorderBrush="{StaticResource GhBorder}"
-                    BorderThickness="1"
-                    CornerRadius="2"
-                >
+                <Border Grid.Row="1" Background="{StaticResource GhCommandInput}" BorderThickness="1" CornerRadius="2">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="BorderBrush" Value="{StaticResource GhBorder}" />
+                            <Style.Triggers>
+                                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                    <Setter Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
                     <DockPanel>
                         <Grid DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Margin="0,0,0,2">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="150" />
                                 <ColumnDefinition Width="140" />
+                                <ColumnDefinition Width="130" />
+                                <ColumnDefinition Width="70" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Style="{StaticResource HeadText}" Text="Name" Margin="10,5" />
-                            <TextBlock Grid.Column="1" Style="{StaticResource HeadText}" Text="Type" Margin="0,5" />
                             <TextBlock
-                                Grid.Column="2"
+                                Grid.Column="1"
                                 Style="{StaticResource HeadText}"
                                 Text="Date modified"
                                 Margin="0,5"
+                            />
+                            <TextBlock Grid.Column="2" Style="{StaticResource HeadText}" Text="Type" Margin="0,5" />
+                            <TextBlock
+                                Grid.Column="3"
+                                Style="{StaticResource HeadText}"
+                                Text="Size"
+                                TextAlignment="Right"
+                                Margin="0,5,10,5"
                             />
                         </Grid>
                         <ListBox
@@ -297,7 +600,9 @@
                             SelectionMode="Extended"
                             ItemsSource="{Binding Entries}"
                             ItemTemplate="{StaticResource EntryRow}"
-                            ItemContainerStyle="{StaticResource StyleListItem}"
+                            ItemContainerStyle="{StaticResource FileItem}"
+                            IsTextSearchEnabled="True"
+                            TextSearch.TextPath="Name"
                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                             AutomationProperties.Name="Files"
                             SelectionChanged="OnEntriesChosen"
@@ -321,6 +626,7 @@
                     </Grid.RowDefinitions>
                     <TextBlock Text="File name:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
                     <TextBox
+                        x:Name="FileNameBox"
                         Grid.Column="1"
                         Style="{StaticResource StyleBox}"
                         Margin="0,0,6,0"
@@ -345,6 +651,7 @@
                         VerticalAlignment="Center"
                     />
                     <ComboBox
+                        x:Name="FileTypeBox"
                         Grid.Row="1"
                         Grid.Column="1"
                         Style="{StaticResource GhComboBox}"
@@ -429,7 +736,10 @@
                                     ItemContainerStyle="{StaticResource StyleListItem}"
                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                     AutomationProperties.Name="Applications"
+                                    AllowDrop="True"
                                     SelectionChanged="OnRowsChosen"
+                                    DragOver="OnApplicationsDragOver"
+                                    Drop="OnApplicationsDrop"
                                 />
                             </DockPanel>
                         </Border>
