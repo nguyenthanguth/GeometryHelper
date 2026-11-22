@@ -33,10 +33,6 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             Assert.Equal(CadSnapModes.All & ~CadSnapModes.Nearest, settings.Snaps);
             Assert.Equal(CadShortcuts.Default.Aliases, settings.Aliases);
             Assert.Equal(CadShortcuts.Default.Keys, settings.Keys);
-            Assert.Equal(
-                new[] { "Visible", "Hidden", "Centre", "Hatch", "Dimension", "Mark", "Symbol", "Sheet", "Viewport" },
-                settings.Layers.Select(l => l.Name)
-            );
             Assert.Equal("Assembly", settings.DefaultPreset);
             Assert.Equal("A2", settings.DefaultSheetSize);
             Assert.Equal("LayoutAndViewports", settings.ExportLayout);
@@ -74,9 +70,6 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                 SaveFolder = @"D:\Drawings ""A""",
                 ShowLineWeights = false,
             };
-            settings.Layers = settings
-                .Layers.Concat(new[] { new GlobalLayer("Weld", 0xF85149, "Continuous", 0.5, false) })
-                .ToList();
             settings.SetShortcuts(
                 settings.Aliases.Concat(new[] { new KeyValuePair<string, string>("ZZ", "ZOOM") }),
                 settings.Keys.Concat(new[] { new KeyValuePair<string, string>("Ctrl+Shift+P", "PLOT") })
@@ -93,7 +86,6 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             Assert.Equal("12.345,678", read.FormatNumber(12345.678, 3));
             Assert.Equal("ZOOM", read.Aliases["zz"]);
             Assert.Equal("PLOT", read.Keys["Ctrl+Shift+P"]);
-            Assert.False(read.Layers.Last().Plot);
             Assert.DoesNotContain("\r", File.ReadAllText(path));
         }
 
@@ -131,7 +123,6 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             Assert.Equal(1.5, read.WheelZoomFactor);
             Assert.Equal(CadSnapModes.All & ~CadSnapModes.Nearest, read.Snaps);
             Assert.Equal("Space", read.ThousandsSeparator);
-            Assert.Equal(new[] { "Visible" }, read.Layers.Select(l => l.Name));
             Assert.Contains(lines, l =>
                 l.StartsWith("WARN ", StringComparison.Ordinal) && l.Contains("appearance.pickboxPixels")
             );
@@ -152,32 +143,41 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void TheSymbolAndViewportLayersAreDefaultsTheViewportNotPlotted_AndAnOlderFileReadsWithItsOwnTable()
+        public void AnOldFileWithALayersSection_StillLoads_TheLayersIgnoredAndTheOthersRead()
         {
-            var settings = new GlobalSettings();
-            GlobalLayer symbol = settings.Layers.Single(l => l.Name == "Symbol");
-            GlobalLayer viewport = settings.Layers.Single(l => l.Name == "Viewport");
-            Assert.True(symbol.Plot);
-            Assert.False(viewport.Plot);
-            Assert.Equal("Continuous", viewport.Linetype);
-
-            // A file with no layers, as one with only the canvas set, takes the default table.
             string path = Path.Combine(_folder.FullPath, "settings.json");
-            File.WriteAllText(path, "{ \"canvas\": { \"wheelZoomFactor\": 1.5 } }");
-            Assert.Equal(settings.Layers.Select(l => l.Name), GlobalSettings.Load(path).Layers.Select(l => l.Name));
-
-            // A file written before Symbol and Viewport were defaults reads as written.
-            var older = new GlobalSettings
-            {
-                Layers = settings.Layers.Where(l => l.Name != "Symbol" && l.Name != "Viewport").ToList(),
-            };
-            older.Save(path);
-            GlobalSettings read = GlobalSettings.Load(path);
-            Assert.Equal(
-                new[] { "Visible", "Hidden", "Centre", "Hatch", "Dimension", "Mark", "Sheet" },
-                read.Layers.Select(l => l.Name)
+            File.WriteAllText(
+                path,
+                "{ \"canvas\": { \"wheelZoomFactor\": 1.2 }, \"layers\": [ { \"name\": \"Visible\", \"colour\": \"#FFFFFF\", \"linetype\": \"Continuous\", \"lineweight\": 0.35 }, { \"name\": \"Viewport\", \"colour\": \"#9AA4B1\", \"linetype\": \"Continuous\", \"lineweight\": 0.13, \"plot\": false }, { \"name\": \"\", \"colour\": \"blue\" } ], \"units\": { \"coordinateDecimals\": 3 } }"
             );
-            Assert.Equal(1.5, read.WheelZoomFactor);
+            var lines = new List<string>();
+            Action<GeometryHelperLogLevel, string, Exception> before = GeometryHelperLog.Writer;
+            GlobalSettings read;
+
+            try
+            {
+                GeometryHelperLog.Writer = (level, text, exception) =>
+                {
+                    lock (lines)
+                    {
+                        lines.Add(GeometryHelperLog.Format(level, text, exception));
+                    }
+                };
+                read = GlobalSettings.Load(path);
+            }
+            finally
+            {
+                GeometryHelperLog.Writer = before;
+            }
+
+            Assert.Equal(1.2, read.WheelZoomFactor);
+            Assert.Equal(3, read.CoordinateDecimals);
+            Assert.DoesNotContain(lines, l => l.Contains("layer"));
+
+            // Written back, the file has no layers section, and it reads back as it is.
+            read.Save(path);
+            Assert.DoesNotContain("layers", File.ReadAllText(path));
+            Assert.Equal(read.ToJson(), GlobalSettings.Load(path).ToJson());
         }
 
         [Fact]
@@ -342,14 +342,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     };
 
                     foreach (
-                        string category in new[]
-                        {
-                            "Appearance",
-                            "Layers, colours and lines",
-                            "Text and fonts",
-                            "Folder preference",
-                            "Shortcuts",
-                        }
+                        string category in new[] { "Appearance", "Text and fonts", "Folder preference", "Shortcuts" }
                     )
                     {
                         var window = new GlobalSettingsWindow(model.CreateGlobalSettings(category));

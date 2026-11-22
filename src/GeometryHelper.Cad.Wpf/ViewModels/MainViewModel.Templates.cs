@@ -62,7 +62,7 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>
         /// Makes a new drawing the presenter's own, as AutoCAD's Open with no Template: the metric template (millimetres, ISO-25)
-        /// or the imperial one (inches, Standard), with the layer 0 and the layers of Global settings, named Drawing1.dwg and
+        /// or the imperial one (inches, Standard), with the layer 0 and no other layer (a drawing's layers come from its template), named Drawing1.dwg and
         /// then on, listed under Open drawings until it is saved.
         /// </summary>
         /// <param name="metric">Whether the drawing is metric; false for imperial.</param>
@@ -73,9 +73,6 @@ namespace GeometryHelper.Cad.Wpf
             DxfDatabase database = metric ? CadTemplate.CreateMetric() : CadTemplate.CreateImperial();
             database.ViewportTable["*Active"].GridEnabled = _settings.Grid;
 
-            // The layers of Global settings (Layers, colours and lines), with their colours, linetypes, lineweights and plot
-            // flags; the current layer stays 0.
-            CadTemplate.AddLayers(database, _settings.Layers);
             string name = NextDrawingName();
             CadDocument document = CadDocument.From(database, name);
             OpenDocument(document, name);

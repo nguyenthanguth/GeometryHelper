@@ -1376,7 +1376,6 @@ namespace GeometryHelper.Cad.Wpf
                 "Appearance",
                 "Canvas and cursor",
                 "Units and rounding",
-                "Layers, colours and lines",
                 "Text and fonts",
                 "Folder preference",
                 "Security",

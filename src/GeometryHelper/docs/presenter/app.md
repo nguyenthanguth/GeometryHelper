@@ -27,7 +27,7 @@ spaces of indent, 7 984 characters for the defaults.
 
 ### The categories
 
-The presenter's Global settings dialog has nine categories, none of them about drawings made from a model. The JSON keeps the
+The presenter's Global settings dialog has eight categories, none of them about drawings made from a model. The JSON keeps the
 settings of those, which a host that makes model drawings reads and neither that dialog nor the presenter shows or applies: the preset,
 sheet, orientation and projection of a new drawing, the model-change check and its interval, the DXF layout and opening the
 folder after an export, the colour of hidden lines, the decimals of dimensions and the height of titles, and the font, height and
@@ -38,7 +38,6 @@ width factor of drawing text. A file that holds them keeps them, and OK writes t
 | Appearance | the colours of the canvas, paper, visible lines, selection and grips; the crosshair, pickbox and grip size; the grid; line weights | canvas `#000000`, paper `#FFFFFF`, selection and grips `#3D9BFF`, crosshair 5 %, pickbox 5 pixels, grip size 5 (a square 15 pixels across; 1 to 255), grid off, line weights shown |
 | Canvas and cursor | the wheel zoom and its direction, the object snaps, the aperture, the polar increment, what F3 does | 1.5 a notch (1.01 to 4, ZOOMWHEEL turns it round; a file saved with 1.2 keeps 1.2), every snap but Nearest, 10 pixels (2 to 50), 90 degrees (above 0 to 360, POLARANG), F3 toggles them |
 | Units and rounding | decimals of coordinates and angles; the separators | 2 and 1 decimals; thousands parted by a space, decimals by a point |
-| Layers, colours and lines | the layer table written to new drawings, with each layer's colour, linetype, lineweight and plot flag; NEW (Ctrl+N) adds it to the new drawing | Visible, Hidden, Centre, Hatch, Dimension, Mark, Symbol, Sheet, Viewport (not plotted) |
 | Text and fonts | the UI font, chosen from the font families installed on Windows (each shown in its own face) or typed; what Esc in the MTEXT editor with changes does (Hidden messages); the replacement font of a font not found (FONTALT), whether the Missing Fonts dialog is shown on opening a drawing, the font mapping file (FONTMAP) and the fonts drawn in others | UI font Inter, Esc asks, `ghsimplex`, the dialog on, no mapping file, no substitutions |
 | Folder preference | the font search folders and the support file search folders (linetypes, hatch patterns and AutoLISP files), each in order, with the default Fonts, Hatches, Linetypes, Lisps and DrawingTemplates folders next to the dll shown read-only under them (a Plugins folder is beside them too, but it holds no search path: see [Command plugins](plugins.md#where-a-plugin-lives)); the Python the PYTHON palette, PYRUN and PYLOAD run scripts with (a `python.exe` or its folder, with the Python found beside it; see [Python in the app](python.md#finding-python)) | none; Python found automatically |
 | Security | where AutoLISP and Python code may be loaded from: SECURELOAD, the trusted folders (TRUSTEDPATHS), LEGACYCODESEARCH and the files answered Always Load (see [The Security page](#the-security-page)) | SECURELOAD 1, no trusted folder but the app's own, LEGACYCODESEARCH 0, none |
@@ -89,7 +88,6 @@ with a comma for the thousands `12,345.68`. The thousands cannot be parted by th
 "Point"` with `DecimalSeparator = "Point"` throws. `SetShortcuts(aliases, keys)` replaces the aliases and keys, and
 `ShortcutConflicts(names)` says an alias that is the name of another command ("The alias DU is the name of the command DU");
 `ToShortcuts()` gives the [`CadShortcuts`](xref:GeometryHelper.Cad.CadShortcuts) a registry takes.
-[`GlobalLayer`](xref:GeometryHelper.Cad.GlobalLayer) is a layer of the default table: name, colour, linetype, line weight and whether it plots.
 
 ### What the text settings reach
 
@@ -289,12 +287,10 @@ The presenter opens a DWG of AutoCAD 2000 to 2018 as it opens a DXF, read by the
   in its name: `plan.dwg.autosave.dxf` for `plan.dwg`, where `plan.dxf` beside it has `plan.autosave.dxf`.
 - A new drawing (NEW, QNEW, Ctrl+N) is named Drawing1.dwg, then Drawing2.dwg, as AutoCAD names its own, so that Save As and
   QSAVE offer it as a DWG first. Of the presenter's own template (Open with no Template - Metric, what QNEW starts where no
-  default template is set) it has the layer 0 and the layers of Global settings > Layers, colours and lines, each
-  with its colour (a true colour), linetype, lineweight and plot flag: Hidden is #9AA4B1 in HIDDEN at 0.18 mm, Centre
-  #F85149 in CENTER at 0.18 mm, Viewport is not plotted, and the linetypes HIDDEN and CENTER come with them from the
-  presenter's own set. A linetype that set does not hold is not made up: the layer is Continuous. The current layer stays 0,
-  and a drawing opened from a file is left as it is. A new drawing of a template file has what the template has instead
-  (see [Drawing templates](#drawing-templates)).
+  default template is set) it has the layer 0 and no other, as AutoCAD's Open with no Template - Metric has; a drawing's
+  layers come from its template, not from a list in Global settings (there is none), so put the layers you want in a `.dwt`
+  in the `DrawingTemplates` folder. The current layer is 0, and a drawing opened from a file is left as it is. A new
+  drawing of a template file has what the template has instead (see [Drawing templates](#drawing-templates)).
 
 ### Drawing templates
 
@@ -305,7 +301,7 @@ AutoCAD's `.dwt` is a DWG with that extension; a `.dwg` or a `.dxf` is as good a
   name with what it is, the first selected and its description (the text its Template Options kept) under the list, Open to
   start from the one selected (a double click too), Browse… for a file in another folder (Drawing Template, Drawing and DXF
   types), and Open with no Template - Metric or Imperial. The new drawing is untitled, Drawing1.dwg and on, takes the
-  template as it is (the layers of Global settings are not added to it) and is listed under Open drawings until it is
+  template as it is and is listed under Open drawings until it is
   saved. The metric one has millimetres, ISO-25 and limits of 420 by 297; the imperial one inches, the dimension style
   Standard (arrowheads and text 0.18, four places) and limits of 12 by 9. A template that cannot be read is said on the
   command line and starts nothing; Cancel starts nothing. The application menu's New › Drawing shows the same dialog; with

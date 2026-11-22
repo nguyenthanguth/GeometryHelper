@@ -29,6 +29,18 @@ plugin, or cannot be loaded, is one line of the log and stops no other; a plugin
 `.dll` loaded from elsewhere. `PLUGINLOAD` (`NETLOAD`), `PLUGINRELOAD`, `PLUGINUNLOAD`, the startup list ("Load at every
 start") and the trusted folders stay for plugins kept elsewhere.
 
+**BREAKING.** The layer list of Global settings is removed, since a drawing's layers now come from its template (a `.dwt` in
+the `DrawingTemplates` folder). Removed: the Global settings category Layers, colours and lines, with its Add layer button
+and rows; the class `GlobalLayer`; `GlobalSettings.Layers`; `CadTemplate.AddLayers`; and, from the view model of the dialog,
+`GlobalSettingsViewModel.IsLayersPage`, `Layers`, `AddLayerCommand`, `RemoveLayerCommand` and the class `GlobalLayerRow`. The
+dialog has eight categories. A blank drawing (NEW, Open with no Template, Ctrl+N, and QNEW where no default template is set)
+now holds layer 0 and no other, as AutoCAD's Open with no Template - Metric does, instead of layer 0 with Visible, Hidden, Centre,
+Hatch, Dimension, Mark, Symbol, Sheet and Viewport; its units (millimetres, ISO-25, limits 420 by 297) are as before. No command
+depended on those layers: DIMLINEAR and the others draw on the current layer. A settings file that still has a `layers` section
+loads without a warning and the section is ignored; the next save leaves it out. To keep a layer set, make a drawing with the
+layers (colour, linetype, lineweight, plot flag), save it as a `.dwt` in `DrawingTemplates`, and start from it with NEW, or set
+it as the default template for QNEW under Save and export.
+
 **BREAKING.** Plugins are no longer packaged and installed: the `.ghplugin` file is gone, and a plugin is put in the `Plugins`
 folder beside the app. Removed: `CadPluginManager.Install(string)` and `Uninstall(string)`; the class `CadPluginPackage` (its
 `Extension` and `Unpack`); `CadPluginAction.Install` and `CadPluginAction.Uninstall`;
