@@ -371,7 +371,7 @@ namespace GeometryHelper.Cad
             _lispText = null;
             _lispPrompt = null;
 
-            if (Lisp.GetValue("*ERROR*") == null)
+            if (!Lisp.HasErrorHandler)
             {
                 Write("; error: Function cancelled");
             }

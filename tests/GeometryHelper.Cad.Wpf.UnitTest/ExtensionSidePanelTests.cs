@@ -62,38 +62,45 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         [Fact]
         public void TheFirstExtensionThatHasAPanelOwnsIt_AndOneWithoutContentOwnsNone()
         {
-            var model = new MainViewModel();
-            var none = new PanelExtension();
-            var first = new PanelExtension { SidePanelContent = new Border() };
-            var second = new SecondExtension { SidePanelContent = new Border() };
+            // A Border is a FrameworkElement, which needs an STA thread; the thread a test is given is not one after an async test.
+            OnSta(() =>
+            {
+                var model = new MainViewModel();
+                var none = new PanelExtension();
+                var first = new PanelExtension { SidePanelContent = new Border() };
+                var second = new SecondExtension { SidePanelContent = new Border() };
 
-            model.AddExtension(none);
-            Assert.Null(model.SidePanelExtension);
-            Assert.False(model.IsSidePanelShown);
+                model.AddExtension(none);
+                Assert.Null(model.SidePanelExtension);
+                Assert.False(model.IsSidePanelShown);
 
-            model.AddExtension(first);
-            model.AddExtension(second);
+                model.AddExtension(first);
+                model.AddExtension(second);
 
-            Assert.Same(first, model.SidePanelExtension);
+                Assert.Same(first, model.SidePanelExtension);
+            });
         }
 
         [Fact]
         public void SettingTheContentLate_OrHidingThePanel_ShowsAndHidesItAndTellsTheWindow()
         {
-            var model = new MainViewModel();
-            var extension = new PanelExtension();
-            model.AddExtension(extension);
-            var raised = new List<string>();
-            model.PropertyChanged += (s, e) => raised.Add(e.PropertyName);
+            OnSta(() =>
+            {
+                var model = new MainViewModel();
+                var extension = new PanelExtension();
+                model.AddExtension(extension);
+                var raised = new List<string>();
+                model.PropertyChanged += (s, e) => raised.Add(e.PropertyName);
 
-            extension.SidePanelContent = new Border();
-            Assert.True(model.IsSidePanelShown);
-            Assert.Contains(nameof(MainViewModel.IsSidePanelShown), raised);
+                extension.SidePanelContent = new Border();
+                Assert.True(model.IsSidePanelShown);
+                Assert.Contains(nameof(MainViewModel.IsSidePanelShown), raised);
 
-            raised.Clear();
-            extension.IsSidePanelVisible = false;
-            Assert.False(model.IsSidePanelShown);
-            Assert.Contains(nameof(MainViewModel.IsSidePanelShown), raised);
+                raised.Clear();
+                extension.IsSidePanelVisible = false;
+                Assert.False(model.IsSidePanelShown);
+                Assert.Contains(nameof(MainViewModel.IsSidePanelShown), raised);
+            });
         }
 
         [Fact]
@@ -217,6 +224,30 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             workspace.Measure(new Size(1600, 960));
             workspace.Arrange(new Rect(0, 0, 1600, 960));
             workspace.UpdateLayout();
+        }
+
+        /// <summary>Runs a check on a thread of its own that is STA, whatever thread the test runner gave the test.</summary>
+        private static void OnSta(Action test)
+        {
+            Exception failure = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    test();
+                }
+                catch (Exception ex)
+                {
+                    failure = ex;
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+            if (failure != null)
+            {
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
+            }
         }
 
         /// <summary>

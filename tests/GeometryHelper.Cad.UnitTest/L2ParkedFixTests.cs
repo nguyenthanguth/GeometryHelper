@@ -355,24 +355,27 @@ namespace GeometryHelper.Cad.UnitTest
         public void Undoctl_AddsTheBitsOfUndosSettings_AsAutoCadDoes()
         {
             // AutoCAD 2021 (p5): All and Auto 5 at Combine and Layer No; 21 with Combine; 53 with Layer; Auto off 49; One 51; a group
-            // open 61; None 0. The presenter starts with Combine and Layer Yes (the window's), so 53.
+            // open 61; None 0. The presenter starts with Combine and Layer No, as AutoCAD 2021 does on the machine measured (L8 M6: 13
+            // inside a group), so 5.
             CadCommandSession session = Typed(Blank());
-
-            Assert.Equal("53", Value(session, "(getvar \"UNDOCTL\")"));
+            Assert.Equal("5", Value(session, "(getvar \"UNDOCTL\")"));
 
             Run(session, "UNDO", "BE");
-            Assert.Equal("61", Value(session, "(getvar \"UNDOCTL\")"));
+            Assert.Equal("13", Value(session, "(getvar \"UNDOCTL\")"));
             Run(session, "UNDO", "E");
-            Assert.Equal("53", Value(session, "(getvar \"UNDOCTL\")"));
+            Assert.Equal("5", Value(session, "(getvar \"UNDOCTL\")"));
 
             Run(session, "UNDO", "A", "OFF");
-            Assert.Equal("49", Value(session, "(getvar \"UNDOCTL\")"));
+            Assert.Equal("1", Value(session, "(getvar \"UNDOCTL\")"));
             Run(session, "UNDO", "A", "ON");
 
+            Run(session, "UNDO", "C", "C", "Y");
+            Assert.Equal("21", Value(session, "(getvar \"UNDOCTL\")"));
+            Run(session, "UNDO", "C", "L", "Y");
+            Assert.Equal("53", Value(session, "(getvar \"UNDOCTL\")"));
             Run(session, "UNDO", "C", "C", "N");
             Run(session, "UNDO", "C", "L", "N");
             Assert.Equal("5", Value(session, "(getvar \"UNDOCTL\")"));
-
             Run(session, "UNDO", "C", "O");
             Assert.Equal("3", Value(session, "(getvar \"UNDOCTL\")"));
             Run(session, "UNDO", "C", "N");

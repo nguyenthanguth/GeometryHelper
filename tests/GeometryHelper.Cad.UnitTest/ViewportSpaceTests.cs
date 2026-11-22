@@ -131,6 +131,7 @@ namespace GeometryHelper.Cad.UnitTest
         public void RealTimeZoomsAndPansInARow_AreOneUndoStep_ATypedZoomItsOwn()
         {
             CadDocument document = WithViewport(out CadCommandSession session, out string handle);
+            document.UndoCombine = true; // the combine of UNDO Control, which the presenter starts without as AutoCAD 2021 does here
             session.View = new CadView(800, 600);
             document.EnterViewport(handle);
             CadUndoStep start = document.NextUndo;
