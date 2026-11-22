@@ -42,11 +42,11 @@ namespace GeometryHelper.Cad
         /// </summary>
         internal bool UndoAuto { get; set; } = true;
 
-        /// <summary>Gets or sets UNDO Control Combine: whether consecutive real-time zooms and pans are one step; true until set.</summary>
-        internal bool UndoCombine { get; set; } = true;
+        /// <summary>Gets or sets UNDO Control Combine: whether consecutive real-time zooms and pans are one step; false until set, as AutoCAD 2021 reads it on the machine measured (UNDOCTL 13).</summary>
+        internal bool UndoCombine { get; set; }
 
-        /// <summary>Gets or sets UNDO Control Layer, the layer dialog's operations combined; kept and shown, true until set.</summary>
-        internal bool UndoLayer { get; set; } = true;
+        /// <summary>Gets or sets UNDO Control Layer, the layer dialog's operations combined; kept and shown, false until set, as AutoCAD 2021 reads it on the machine measured.</summary>
+        internal bool UndoLayer { get; set; }
 
         /// <summary>Gets whether UNDO BEgin has opened a group that UNDO End has not closed.</summary>
         internal bool IsUndoGroupOpen => _undoGroup != 0;

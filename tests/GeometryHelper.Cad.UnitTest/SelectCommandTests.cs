@@ -140,6 +140,20 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
+        public void AFenceAlongNoLine_FindsNothingAndKeepsThePreviousSet()
+        {
+            CadCommandSession session = Lines();
+            Run(session, "SELECT", "ALL", Enter);
+            LispEntityTests.Value(session, "(sssetfirst nil nil)");
+            int before = session.History.Count;
+
+            Run(session, "SELECT", "F", "-5,5", "15,5", Enter, Enter);
+
+            Assert.Contains("0 found", session.History.Skip(before));
+            Assert.Equal("3", Previous(session));
+        }
+
+        [Fact]
         public void ObjectsHandedByHandle_BecomeThePreviousSet()
         {
             CadCommandSession session = Lines();

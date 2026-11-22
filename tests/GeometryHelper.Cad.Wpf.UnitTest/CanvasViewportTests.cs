@@ -188,6 +188,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             OnLayout(
                 (model, canvas, viewport) =>
                 {
+                    model.Document.UndoCombine = true; // the combine of UNDO Control, which a drawing starts without as in AutoCAD 2021 here
                     model.Document.EnterViewport(viewport);
                     canvas.RenderNow();
                     CadUndoStep start = model.Document.NextUndo;

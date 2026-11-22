@@ -27,6 +27,14 @@ in the drawing, readable, as AutoCAD does, and a second `entdel` gives the entit
 **FIXED.** `entget` of a text style gave its slant in degrees (15.0); AutoCAD's list has radians (0.261799), and the whole list given back to
 `entmod` was refused for a style with a slant.
 
+**CHANGED.** UNDO starts with `Combine = No, Layer = No`, as AutoCAD 2021 reads them in its window and console on the maintainer's machine
+(UNDOCTL 5, and 13 inside a group), where it started with Yes and Yes. Consecutive real-time zooms and pans of the wheel are therefore a step
+of undo each until UNDO Control Combine is set to Yes, as in AutoCAD with the same profile.
+
+**NEW.** REVCLOUDMINARCLENGTH and REVCLOUDMAXARCLENGTH are kept in the settings file from one session to the next, as AutoCAD keeps them in its
+profile (a run that set 15 left 10 and 20 for the next one): the older prompts of REVCLOUD, `Specify minimum length of arc <10.0000>:`,
+offer them again. REVCLOUDAPPROXARCLEN is not kept, as in AutoCAD.
+
 **FIXED.** Load/Unload Applications, after a real mouse, the Delete key and an Open dialog were driven against it. The table
 was rebuilt on every click, so a double click on the On box of the second of three files unticked it and then unloaded the
 third (the second click landed on the neighbour that had moved up); an unticked AutoLISP file now stays in the table, off,

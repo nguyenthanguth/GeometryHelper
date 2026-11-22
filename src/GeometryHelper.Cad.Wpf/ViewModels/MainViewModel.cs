@@ -1862,6 +1862,7 @@ namespace GeometryHelper.Cad.Wpf
             file.Session.LoadSecurity = _loadSecurity;
             file.Session.LispEnvironment = _lispEnvironment;
             file.Session.Lisp.HelpOpener = PlotHelp.Open;
+            SeedRevcloudLengths(file.Session);
             file.Session.SelectionFilter.FilePath = FilterListsPath;
             file.Session.Clipboard = _clipboard;
             file.Session.SpellDictionaryPath = _spellDictionaryPath;
@@ -1979,6 +1980,9 @@ namespace GeometryHelper.Cad.Wpf
             {
                 RaiseModified();
             }
+
+            // REVCLOUD's shortest and longest arc are kept between sessions, as AutoCAD keeps them.
+            KeepRevcloudLengths(_current.Session);
 
             // LAYOUT Set shows another space from the command line: the tabs follow, as a tab clicked.
             SyncActiveSpaceTab();

@@ -547,7 +547,22 @@ namespace GeometryHelper.Cad.Lisp
                 return null;
             }
 
-            DxfItem owner = file.OwnerOf(item) is string handleOfOwner ? file.ObjectItem(handleOfOwner) : null;
+            string ownerHandle = file.OwnerOf(item);
+            DxfItem owner = ownerHandle == null ? null : file.ObjectItem(ownerHandle);
+
+            // The extension dictionary of an entity is erased by itself, its owner keeping the pointer (AutoCAD 2021, probe m/entmod d1).
+            if (
+                owner == null
+                && item.Type == "DICTIONARY"
+                && FindItem(session.Document, ownerHandle) is DxfItem entity
+                && string.Equals(file.ExtensionDictionaryOf(entity), handle, StringComparison.OrdinalIgnoreCase)
+            )
+            {
+                ApplyToObjects(session, "ERASE", handle, s =>
+                    s.Database.File.RemoveRecord(s.Database.File.ObjectItem(handle))
+                );
+                return name;
+            }
 
             if (
                 owner == null

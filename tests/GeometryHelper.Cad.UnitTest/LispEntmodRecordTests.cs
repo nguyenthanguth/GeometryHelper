@@ -496,6 +496,27 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
+        public void AVertexOfA3dPolyline_MovesAtOnceForEntgetAndTheCurve()
+        {
+            // AutoCAD 2021 (e5, e6): the vertex list comes back, the new point is there before any entupd
+            CadCommandSession session = Session(Blank());
+            V(session, "(vl-load-com)");
+            V(session, "(entmake '((0 . \"POLYLINE\") (66 . 1) (10 0.0 0.0 0.0) (70 . 8)))");
+            V(session, "(entmake '((0 . \"VERTEX\") (10 0.0 0.0 0.0) (70 . 32)))");
+            V(session, "(entmake '((0 . \"VERTEX\") (10 10.0 0.0 0.0) (70 . 32)))");
+            V(session, "(entmake '((0 . \"VERTEX\") (10 10.0 10.0 0.0) (70 . 32)))");
+            V(session, "(entmake '((0 . \"SEQEND\")))");
+            V(session, "(setq pl (entlast) v1 (entnext pl))");
+
+            Assert.NotEqual(
+                "nil",
+                V(session, "(entmod (subst (cons 10 '(1.0 2.0 3.0)) (assoc 10 (entget v1)) (entget v1)))")
+            );
+            Assert.Equal("(1.0 2.0 3.0)", V(session, "(cdr (assoc 10 (entget v1)))"));
+            Assert.Equal("(1.0 2.0 3.0)", V(session, "(vlax-curve-getStartPoint pl)"));
+        }
+
+        [Fact]
         public void TheSeqendOfAPolyline_IsNotChanged()
         {
             CadCommandSession session = WithPolyline();
@@ -547,6 +568,18 @@ namespace GeometryHelper.Cad.UnitTest
             Assert.Equal("\"V\"", V(session, "(vlax-ldata-get e \"K\")"));
             Assert.Equal("T", V(session, "(if (equal (cdr (assoc 360 (entget e))) d) T)"));
             Assert.Contains("(0 . \"DICTIONARY\")", V(session, "(entget d)"));
+        }
+
+        [Fact]
+        public void TheExtensionDictionaryErasedByItself_IsGone_AndTheLineKeepsItsGroup()
+        {
+            // AutoCAD 2021 (d1): (entdel xd) gives its name and (entget xd) is then nil; the line keeps the dangling 360
+            CadCommandSession session = LineWithDictionary();
+
+            V(session, "(entdel d)");
+
+            Assert.Equal("nil", V(session, "(entget d)"));
+            Assert.Equal("nil", V(session, "(vlax-ldata-get e \"K\")"));
         }
 
         [Fact]

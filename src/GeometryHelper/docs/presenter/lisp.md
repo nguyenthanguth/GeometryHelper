@@ -532,8 +532,8 @@ it current), UCS's hidden `E`, which aligns the UCS to an object, -PURGE's promp
 REVCLOUD's Arc length with its minimum and maximum, and DIMLINEAR's `Non-associative dimension created.` A drawing whose
 DXF header leaves out the dimension variables, DIMSTYLE or CELTYPE, as AutoCAD's own blank drawing does, is read with the
 values AutoCAD reads for it (DIMASZ 0.18, DIMSTYLE Standard, CELTYPE Continuous), so that a routine sees the same settings
-in both programs. UNDO keeps the settings of AutoCAD's window (`Combine = Yes, Layer = Yes`), where the console reads
-`Combine = No, Layer = No`: UNDO's settings line is the one place a routine's transcript differs there.
+in both programs. UNDO shows `Combine = No, Layer = No` in both, as AutoCAD 2021 reads them on the machine measured (UNDOCTL 5, and 13 inside
+a group), where a profile without the settings starts with Yes and Yes.
 
 ### command-s
 
@@ -856,7 +856,7 @@ its bulge `42` and widths `40` and `41` too. The SEQEND is `nil`.
 block reference is not erased that way: `(entdel att)` gives `nil` and leaves it, as many times as it is asked, which is what
 AutoCAD 2021 does. The extension dictionary of an entity erased stays in the drawing and can be read (`(entget d)`), and a second `entdel`
 gives the entity that same dictionary and its data back (`(vlax-ldata-get e "K")` is its value again); the entity has a new handle, which
-its old name reaches. `(entnext)`
+its old name reaches. `(entdel d)` of the extension dictionary by itself erases it, and the entity keeps its pointer. `(entnext)`
 gives the first object of the drawing and `(entnext e)` the one after it, the sub-entities of a POLYLINE or an INSERT with
 attributes following their owner, and `nil` after the last. `(entlast)` is the last main object made, `(handent "1A")` the
 name of the object with that handle, or `nil`.
