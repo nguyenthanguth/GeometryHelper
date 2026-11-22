@@ -128,13 +128,19 @@ namespace GeometryHelper.Cad
                 string words = text;
                 double? fixedTo = fixedAngle;
                 double? turned = textAngle;
-                yield return CadPrompt
-                    .ForPoint("Specify dimension line location", p2, keywords)
-                    .Previewing(
-                        DimPreview(c, input =>
-                            LinearMade(c, style, aligned, p1, p2, input.Point, words, fixedTo, turned, out _, out _)
-                        )
-                    );
+                CadPrompt location = CadPrompt.ForPoint("Specify dimension line location", p2, keywords);
+
+                // DIMLINEAR's long list of options is on a line of its own, as AutoCAD 2021 breaks the prompt; DIMALIGNED's is not.
+                if (!aligned)
+                {
+                    location.BreakingBeforeKeywords();
+                }
+
+                yield return location.Previewing(
+                    DimPreview(c, input =>
+                        LinearMade(c, style, aligned, p1, p2, input.Point, words, fixedTo, turned, out _, out _)
+                    )
+                );
 
                 if (c.Input.Is("Mtext") || c.Input.Is("Text"))
                 {

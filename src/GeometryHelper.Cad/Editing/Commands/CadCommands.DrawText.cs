@@ -452,6 +452,40 @@ namespace GeometryHelper.Cad
             return Current(c, box);
         }
 
+        /// <summary>The list "?" gives at a style prompt: "Enter text style(s) to list &lt;*&gt;:", then each style with its font, height, width factor and obliquing angle.</summary>
+        private static IEnumerable<CadPrompt> ListTextStyles(CadCommandContext c, string current)
+        {
+            yield return CadPrompt.ForString("Enter text style(s) to list", "*");
+            var names = new List<string>();
+
+            foreach (DxfTextStyleTableRecord style in c.Database.TextStyleTable)
+            {
+                if (!style.IsShapeFile && !string.IsNullOrEmpty(style.Name))
+                {
+                    names.Add(style.Name);
+                }
+            }
+
+            names.Sort(StringComparer.OrdinalIgnoreCase);
+            c.Write("Text styles:");
+
+            foreach (string name in names)
+            {
+                DxfTextStyleTableRecord style = c.Database.TextStyleTable[name];
+                c.Write("Style name: \"" + name + "\"  Font files: " + style.FileName);
+                c.Write(
+                    "   Height: "
+                        + Length(style.TextSize)
+                        + "  Width factor: "
+                        + Length(style.XScale)
+                        + "  Obliquing angle: "
+                        + Number(style.ObliquingAngle * 180.0 / Math.PI)
+                );
+            }
+
+            c.Write("Current text style: \"" + current + "\"");
+        }
+
         /// <summary>
         /// The Style option of TEXT and MTEXT: "Enter style name or [?]", a style of the drawing made current (TEXTSTYLE), ? listing
         /// them; a name the drawing has not said so.
@@ -463,35 +497,11 @@ namespace GeometryHelper.Cad
 
             if (c.Input.Is("?"))
             {
-                yield return CadPrompt.ForString("Enter text style(s) to list", "*");
-                var names = new List<string>();
-
-                foreach (DxfTextStyleTableRecord style in c.Database.TextStyleTable)
+                foreach (CadPrompt prompt in ListTextStyles(c, current))
                 {
-                    if (!style.IsShapeFile && !string.IsNullOrEmpty(style.Name))
-                    {
-                        names.Add(style.Name);
-                    }
+                    yield return prompt;
                 }
 
-                names.Sort(StringComparer.OrdinalIgnoreCase);
-                c.Write("Text styles:");
-
-                foreach (string name in names)
-                {
-                    DxfTextStyleTableRecord style = c.Database.TextStyleTable[name];
-                    c.Write("Style name: \"" + name + "\"  Font files: " + style.FileName);
-                    c.Write(
-                        "   Height: "
-                            + Length(style.TextSize)
-                            + "  Width factor: "
-                            + Length(style.XScale)
-                            + "  Obliquing angle: "
-                            + Number(style.ObliquingAngle * 180.0 / Math.PI)
-                    );
-                }
-
-                c.Write("Current text style: \"" + current + "\"");
                 yield break;
             }
 

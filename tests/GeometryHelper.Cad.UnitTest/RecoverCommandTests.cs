@@ -84,25 +84,32 @@ namespace GeometryHelper.Cad.UnitTest
             CadCommandSession session = Session(document);
 
             Run(session, "AUDIT");
-            Assert.Equal("Fix any errors detected? [Yes/No] <No>:", session.PromptText);
+            Assert.Equal("Fix any errors detected? [Yes/No] <N>:", session.PromptText);
             Run(session, Enter);
 
-            Assert.Contains("1 error found, 0 fixed.", session.History);
+            Assert.Contains("Total errors found 1 fixed 0", session.History);
             Assert.False(document.Database.LayerTable.Has("WALLS"));
             Assert.False(document.CanUndo);
 
             Run(session, "AUDIT", "Yes");
 
-            Assert.Contains("1 error found, 1 fixed.", session.History);
+            Assert.Contains("Total errors found 1 fixed 1", session.History);
             Assert.Contains(session.History, l =>
                 l.StartsWith("The layer WALLS, named by 1 entity (the first: the LINE ", StringComparison.Ordinal)
                 && l.EndsWith("; it was added.", StringComparison.Ordinal)
+            );
+            // The error lines come before the total, as AutoCAD 2021 writes its report.
+            Assert.True(
+                session.History.ToList().FindLastIndex(l => l.EndsWith("; it was added.", StringComparison.Ordinal))
+                    < session.History.ToList().FindLastIndex(l => l == "Total errors found 1 fixed 1")
             );
             Assert.True(document.Database.LayerTable.Has("WALLS"));
             Assert.Equal("AUDIT", document.NextUndo.Name);
 
             Run(session, "AUDIT", "Yes");
-            Assert.Equal("No errors found.", session.History.Last());
+            Assert.Equal("Erased 0 objects", session.History.Last());
+            Assert.Equal("Total errors found 0 fixed 0", session.History[session.History.Count - 2]);
+            Assert.DoesNotContain("No errors found.", session.History);
             Assert.Equal("AUDIT", document.NextUndo.Name);
 
             Assert.True(document.Undo());

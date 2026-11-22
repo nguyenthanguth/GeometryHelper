@@ -111,7 +111,7 @@ namespace GeometryHelper.Cad
             }
             else
             {
-                yield return CadPrompt.ForSelection();
+                yield return AskingObjects();
                 handles = Input.Handles;
                 _pickedInOrder = Input.PickOrder.Count == handles.Count ? Input.PickOrder : handles;
             }
@@ -149,7 +149,7 @@ namespace GeometryHelper.Cad
             }
             else
             {
-                yield return CadPrompt.ForSelection(message);
+                yield return AskingObjects(message);
 
                 foreach (string handle in Input.Handles ?? Array.Empty<string>())
                 {
@@ -328,11 +328,58 @@ namespace GeometryHelper.Cad
         public static string Length(double value) =>
             (Math.Abs(value) < 5E-5 ? 0.0 : value).ToString("0.0000", CultureInfo.InvariantCulture);
 
-        /// <summary>The handles of entities not on a locked layer, saying how many were.</summary>
+        /// <summary>
+        /// "Select objects:" (or its words as given) that says the objects on a locked layer each pick or window took right after
+        /// its "N found" line, as AutoCAD 2021 says them; <see cref="Unlocked"/> then leaves them out without saying them again.
+        /// </summary>
+        private CadPrompt AskingObjects(string message = null)
+        {
+            _lockedSaid = false;
+            return CadPrompt
+                .ForSelection(message)
+                .WhenFound(found =>
+                {
+                    int locked = 0;
+
+                    // The objects outside the working set of a reference edited in place cannot be selected, as AutoCAD's REFEDIT locks them.
+                    Func<string, bool> held = Document.RefEditLockTest();
+
+                    foreach (string handle in found)
+                    {
+                        DxfEntity entity = Document.FindEntity(handle);
+
+                        if (
+                            entity != null
+                            && (held == null || !held(handle))
+                            && CadLayerEditor.IsLocked(Database, entity.Layer)
+                        )
+                        {
+                            locked++;
+                        }
+                    }
+
+                    if (locked > 0)
+                    {
+                        Write(LockedLine(locked));
+                        _lockedSaid = true;
+                    }
+                });
+        }
+
+        // Whether AskingObjects' prompt has said the objects on a locked layer already, so that Unlocked does not say them again.
+        private bool _lockedSaid;
+
+        /// <summary>"1 was on a locked layer.", or "3 were on a locked layer.".</summary>
+        private static string LockedLine(int locked) =>
+            locked.ToString(CultureInfo.InvariantCulture) + (locked == 1 ? " was" : " were") + " on a locked layer.";
+
+        /// <summary>The handles of entities not on a locked layer, saying how many were unless the selection said them as it took them.</summary>
         private IReadOnlyList<string> Unlocked(IReadOnlyList<string> handles)
         {
             var kept = new List<string>();
             int locked = 0;
+            bool said = _lockedSaid;
+            _lockedSaid = false;
 
             // The objects outside the working set of a reference edited in place cannot be selected, as AutoCAD's REFEDIT locks them.
             Func<string, bool> held = Document.RefEditLockTest();
@@ -355,13 +402,9 @@ namespace GeometryHelper.Cad
                 kept.Add(handle);
             }
 
-            if (locked > 0)
+            if (locked > 0 && !said)
             {
-                Write(
-                    locked.ToString(CultureInfo.InvariantCulture)
-                        + (locked == 1 ? " was" : " were")
-                        + " on a locked layer."
-                );
+                Write(LockedLine(locked));
             }
 
             kept.Sort(StringComparer.OrdinalIgnoreCase);

@@ -205,6 +205,12 @@ namespace GeometryHelper.Cad
         /// <summary>Gets or sets whether the Block Editor is to open on the block once it is made, as the dialog's "Open in block editor" box says; the window does it.</summary>
         public bool OpenInBlockEditor { get; set; }
 
+        /// <summary>Whether the block is made annotative, as -BLOCK's Annotative option says; the dialog of the window has no such box.</summary>
+        internal bool Annotative { get; set; }
+
+        /// <summary>Whether an annotative block keeps the way up of the sheet in paper space viewports ("Orient relative to sheet").</summary>
+        internal bool OrientToLayout { get; set; }
+
         /// <summary>Gets or sets what the window's dialog was closed with; Cancel until set.</summary>
         public CadDialogAction Action { get; set; }
     }
@@ -376,6 +382,12 @@ namespace GeometryHelper.Cad
 
         /// <summary>Gets or sets the justification; left on the baseline until set.</summary>
         public DxfAttachmentPoint Justification { get; set; } = DxfAttachmentPoint.BaseLeft;
+
+        /// <summary>Whether the attribute definition is made annotative, as -ATTDEF's Annotative mode says.</summary>
+        internal bool Annotative { get; set; }
+
+        /// <summary>The second point of a text justified Align or Fit, where -ATTDEF asked one; null where it did not.</summary>
+        internal GeoPoint3? Second { get; set; }
 
         /// <summary>Gets or sets the text style; null for Standard.</summary>
         public string TextStyle { get; set; }

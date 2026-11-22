@@ -110,11 +110,13 @@ namespace GeometryHelper.Cad
 
             while (true)
             {
-                yield return CadPrompt.ForKeyword(
-                    "Enter a dimension style option",
-                    new[] { "ANnotative", "Save", "Restore", "STatus", "Variables", "Apply", "?" },
-                    "Restore"
-                );
+                yield return CadPrompt
+                    .ForKeyword(
+                        "Enter a dimension style option",
+                        new[] { "ANnotative", "Save", "Restore", "STatus", "Variables", "Apply", "?" },
+                        "Restore"
+                    )
+                    .BreakingBeforeKeywords();
 
                 if (c.Input.Is("ANnotative"))
                 {

@@ -200,7 +200,7 @@ namespace GeometryHelper.Cad.UnitTest
 
             Run(session, "PLINE", P(0, 0), P(10, 0), "A");
             Assert.Equal(
-                "Specify endpoint of arc (hold Ctrl to switch direction) or [Angle/CEnter/CLose/Direction/Halfwidth/Line/Radius/Second pt/Undo/Width]:",
+                "Specify endpoint of arc (hold Ctrl to switch direction) or\n[Angle/CEnter/CLose/Direction/Halfwidth/Line/Radius/Second pt/Undo/Width]:",
                 session.PromptText
             );
             Run(session, "A");

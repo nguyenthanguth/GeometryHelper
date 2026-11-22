@@ -1487,6 +1487,13 @@ namespace GeometryHelper.Cad
                 );
             }
 
+            // A command's selection says the objects on a locked layer here, right after "found", as AutoCAD 2021 says them; the
+            // :L of an interactive ssget is said above.
+            if (!remove)
+            {
+                Prompt?.AfterFound?.Invoke(handles);
+            }
+
             if (_single && !remove && found > 0 && Prompt != null && Prompt.Kind == CadPromptKind.Selection)
             {
                 EndSelection(quiet);

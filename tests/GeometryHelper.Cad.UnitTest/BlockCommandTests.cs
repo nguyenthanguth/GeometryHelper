@@ -153,11 +153,11 @@ namespace GeometryHelper.Cad.UnitTest
             CadDocument document = Bubble();
             CadCommandSession session = Start(document, "-ATTDEF");
             Assert.Contains(
-                "Current attribute modes: Invisible=N Constant=N Verify=N Preset=N Lock position=Y Annotative=N Multiple lines=N",
+                "Invisible=N  Constant=N  Verify=N  Preset=N  Lock position=Y  Annotative=N  Multiple line=N",
                 session.History
             );
             Assert.Equal(
-                "Enter an option to change [Invisible/Constant/Verify/Preset/Lock position/Multiple lines] <done>:",
+                "Enter an option to change [Invisible/Constant/Verify/Preset/Lock position/Annotative/Multiple lines] <done>:",
                 session.PromptText
             );
             Run(session, Enter, "grid", "Grid letter", "A");
@@ -181,8 +181,11 @@ namespace GeometryHelper.Cad.UnitTest
             session = Start(document, "-INSERT");
             Assert.Equal("Enter block name or [?]:", session.PromptText);
             Run(session, "GB");
-            Assert.Contains("Units: Millimeters   Conversion:   1.0000", session.History);
-            Assert.Equal("Specify insertion point or [Basepoint/Scale/X/Y/Z/Rotate]:", session.PromptText);
+            Assert.Contains("Units: Millimeters   Conversion:    1.0000", session.History);
+            Assert.Equal(
+                "Specify insertion point or [Basepoint/Scale/X/Y/Z/Rotate/Explode/REpeat]:",
+                session.PromptText
+            );
             Run(session, P(500, 500));
             Assert.Equal("Enter X scale factor, specify opposite corner, or [Corner/XYZ] <1>:", session.PromptText);
             Run(session, "2");
@@ -529,7 +532,7 @@ namespace GeometryHelper.Cad.UnitTest
             string line = All<DxfLine>(document.ModelSpace).Single().Handle;
 
             CadCommandSession session = Start(document, "-BLOCK", "GB");
-            Assert.Equal("Block \"GB\" already exists. Redefine it? [Yes/No] <No>:", session.PromptText);
+            Assert.Equal("Block \"GB\" already exists. Redefine it? [Yes/No] <N>:", session.PromptText);
             Run(session, "Y", P(0, 0), new[] { line }, Enter);
 
             DxfBlockTableRecord block = document.Database.BlockTable["GB"];

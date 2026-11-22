@@ -246,6 +246,20 @@ namespace GeometryHelper.Cad
             return this;
         }
 
+        /// <summary>
+        /// What a "Select objects:" does right after it writes "2 found", given the handles it found: a command says the objects
+        /// on a locked layer there, "1 was on a locked layer.", as AutoCAD 2021 says them, and not after the last prompt; null
+        /// for none.
+        /// </summary>
+        internal Action<IReadOnlyList<string>> AfterFound { get; private set; }
+
+        /// <summary>Gives a selection what it does right after it says how many objects it found (<see cref="AfterFound"/>).</summary>
+        internal CadPrompt WhenFound(Action<IReadOnlyList<string>> after)
+        {
+            AfterFound = after;
+            return this;
+        }
+
         /// <summary>The words written for a pick on nothing where they are not "Nothing selected.": CAL's "No object picked."; null for the usual.</summary>
         internal string MissText { get; private set; }
 
@@ -305,7 +319,8 @@ namespace GeometryHelper.Cad
 
                 if (Keywords.Count > 0)
                 {
-                    text.Append(Kind == CadPromptKind.Keyword || _noOr ? " [" : " or [")
+                    bool noOr = Kind == CadPromptKind.Keyword || _noOr;
+                    text.Append(_breaksBeforeKeywords ? (noOr ? "\n[" : " or\n[") : (noOr ? " [" : " or ["))
                         .Append(string.Join("/", Keywords))
                         .Append(_note)
                         .Append(']');
@@ -321,7 +336,7 @@ namespace GeometryHelper.Cad
                     text.Append(_defaultTight ? "<" : " <").Append(Default).Append('>');
                 }
 
-                return _noColon ? text.ToString() : text.Append(':').ToString();
+                return _noColon ? text.ToString() : text.Append(_spaceBeforeColon ? " :" : ":").ToString();
             }
         }
 
@@ -402,6 +417,31 @@ namespace GeometryHelper.Cad
         internal CadPrompt WithoutColon()
         {
             _noColon = true;
+            return this;
+        }
+
+        // Whether the keywords start a line of their own, as AutoCAD 2021 breaks the line before the brackets of a prompt too long
+        // for one: "Specify dimension line location or" and then "[Mtext/Text/Angle/Horizontal/Vertical/Rotated]:".
+        private bool _breaksBeforeKeywords;
+
+        /// <summary>
+        /// Breaks the line before the keywords, as AutoCAD 2021 writes DIMLINEAR's "Specify dimension line location or" and
+        /// "[Mtext/Text/Angle/Horizontal/Vertical/Rotated]:" on two lines, in its history and its transcript alike; the command
+        /// line shows the last line as the live prompt.
+        /// </summary>
+        internal CadPrompt BreakingBeforeKeywords()
+        {
+            _breaksBeforeKeywords = true;
+            return this;
+        }
+
+        // Whether a space stands before the colon, as AutoCAD writes -LAYER's "New color [Truecolor/COlorbook] :".
+        private bool _spaceBeforeColon;
+
+        /// <summary>Puts a space before the prompt's colon, as AutoCAD writes -LAYER's "New color [Truecolor/COlorbook] :".</summary>
+        internal CadPrompt WithSpaceBeforeColon()
+        {
+            _spaceBeforeColon = true;
             return this;
         }
 

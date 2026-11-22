@@ -19,7 +19,7 @@ namespace GeometryHelper.Cad
     {
         private static readonly string[] InsertKeywords = { "Basepoint", "Scale", "X", "Y", "Z", "Rotate" };
 
-        private static readonly string[] WmfInsertKeywords =
+        private static readonly string[] InsertKeywordsWithExplode =
         {
             "Basepoint",
             "Scale",
@@ -179,8 +179,13 @@ namespace GeometryHelper.Cad
 
                 if (c.Input.Is("?"))
                 {
-                    WriteBlockList(c);
-                    continue;
+                    // The list ends the command, as AutoCAD 2021's -BLOCK ends with it.
+                    foreach (CadPrompt prompt in AskBlockList(c))
+                    {
+                        yield return prompt;
+                    }
+
+                    yield break;
                 }
 
                 if (c.Input.Kind != CadInputKind.Text)
@@ -205,7 +210,7 @@ namespace GeometryHelper.Cad
                 yield return CadPrompt.ForKeyword(
                     "Block \"" + request.Name + "\" already exists. Redefine it?",
                     new[] { "Yes", "No" },
-                    "No"
+                    "N"
                 );
 
                 if (!c.Input.Is("Yes"))
@@ -216,7 +221,42 @@ namespace GeometryHelper.Cad
                 request.Redefine = true;
             }
 
-            yield return CadPrompt.ForPoint("Specify insertion base point");
+            // Annotative and mOde are asked where the base point is, and the base point again after each, as AutoCAD 2021 asks.
+            while (true)
+            {
+                yield return CadPrompt.ForPoint("Specify insertion base point", null, new[] { "Annotative", "mOde" });
+
+                if (c.Input.Is("Annotative"))
+                {
+                    yield return CadPrompt
+                        .ForKeyword("Create annotative block", new[] { "Yes", "No" }, "Y")
+                        .Refusing("Yes or No, please.");
+                    request.Annotative = c.Input.Is("Yes");
+
+                    // Asked after No as well, as AutoCAD 2021 asks it.
+                    yield return CadPrompt
+                        .ForKeyword("Orient relative to sheet in paper space viewports", new[] { "Yes", "No" }, "N")
+                        .Refusing("Yes or No, please.");
+                    request.OrientToLayout = c.Input.Is("Yes");
+                    continue;
+                }
+
+                if (c.Input.Is("mOde"))
+                {
+                    yield return CadPrompt.ForKeyword(
+                        "Choose mode for selected object conversion",
+                        new[] { "Convert to block", "Retain", "Delete" },
+                        "Delete"
+                    );
+                    request.ObjectAction =
+                        c.Input.Is("Convert to block") ? CadBlockObjectAction.ConvertToBlock
+                        : c.Input.Is("Retain") ? CadBlockObjectAction.Retain
+                        : CadBlockObjectAction.Delete;
+                    continue;
+                }
+
+                break;
+            }
 
             if (!c.Input.IsPoint)
             {
@@ -242,6 +282,70 @@ namespace GeometryHelper.Cad
             c.Write("Defined blocks.");
             names.ForEach(c.Write);
             c.Write("User blocks: " + names.Count.ToString(CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// The "?" of -BLOCK and -INSERT as AutoCAD 2021 lists it: "Enter block(s) to list &lt;*&gt;:" (names or patterns, parted by
+        /// commas), "Defined blocks.", each block of the user's quoted and indented two spaces, then the table of counts of the user's
+        /// blocks, external references, dependent blocks and unnamed blocks.
+        /// </summary>
+        private static IEnumerable<CadPrompt> AskBlockList(CadCommandContext c)
+        {
+            yield return CadPrompt.ForString("Enter block(s) to list", "*");
+            string[] patterns = (c.Input.Kind == CadInputKind.Text ? c.Input.Text : "*").Split(
+                new[] { ',' },
+                StringSplitOptions.RemoveEmptyEntries
+            );
+
+            if (patterns.Length == 0)
+            {
+                patterns = new[] { "*" };
+            }
+
+            List<string> names = NamedBlocks(c.Database)
+                .Select(b => b.Name)
+                .Where(n =>
+                    patterns.Any(p =>
+                        Lisp.LispInterpreter.WildcardMatch(n.ToUpperInvariant(), p.Trim().ToUpperInvariant())
+                    )
+                )
+                .ToList();
+            c.Write("Defined blocks.");
+
+            foreach (string name in names)
+            {
+                c.Write("  \"" + name + "\"");
+            }
+
+            int external = 0;
+            int dependent = 0;
+            int unnamed = 0;
+
+            foreach (DxfBlockTableRecord block in c.Database.BlockTable)
+            {
+                if (block.IsLayout)
+                {
+                    continue;
+                }
+
+                if (block.IsFromExternalReference)
+                {
+                    external++;
+                }
+                else if (block.Name.IndexOf('|') >= 0)
+                {
+                    dependent++;
+                }
+                else if (block.IsAnonymous)
+                {
+                    unnamed++;
+                }
+            }
+
+            string Count(int value, int width) => value.ToString(CultureInfo.InvariantCulture).PadLeft(width);
+            c.Write("User     External     Dependent   Unnamed");
+            c.Write("Blocks   References   Blocks      Blocks");
+            c.Write(Count(names.Count, 5) + Count(external, 10) + Count(dependent, 12) + Count(unnamed, 12));
         }
 
         /// <summary>The blocks a user names, in ordinal order of their names: no layout, no anonymous block, no external reference.</summary>
@@ -392,6 +496,12 @@ namespace GeometryHelper.Cad
                 Keep(
                     () => record.BlockScaling = request.ScaleUniformly ? DxfBlockScaling.Uniform : DxfBlockScaling.Any,
                     record.BlockScaling != (request.ScaleUniformly ? DxfBlockScaling.Uniform : DxfBlockScaling.Any)
+                );
+                // -BLOCK's Annotative: a drawing older than R2007 holds no annotative blocks, and the block is made all the same.
+                Keep(() => record.Annotative = DxfAnnotativeStates.True, request.Annotative);
+                Keep(
+                    () => record.XData = new[] { new DxfTypedValue(1001, "AcadAnnoPO"), new DxfTypedValue(1070, "1") },
+                    request.Annotative && request.OrientToLayout
                 );
                 List<DxfEntity> entities = handles.Select(h => s.Document.FindEntity(h)).ToList();
 
@@ -658,7 +768,11 @@ namespace GeometryHelper.Cad
 
                 if (c.Input.Is("?"))
                 {
-                    WriteBlockList(c);
+                    foreach (CadPrompt prompt in AskBlockList(c))
+                    {
+                        yield return prompt;
+                    }
+
                     continue;
                 }
 
@@ -720,12 +834,25 @@ namespace GeometryHelper.Cad
                 yield break;
             }
 
-            var placing = new Placing { Scale = new GeoVector3(1.0, 1.0, 1.0) };
-
-            foreach (CadPrompt prompt in Place(c, name, placing, true, true, true, explode))
+            var placing = new Placing
             {
-                yield return prompt;
-            }
+                Scale = new GeoVector3(1.0, 1.0, 1.0),
+                Options = true,
+                Explode = explode,
+            };
+
+            // REpeat places the block again and again, its units said once, until Enter is given at the insertion point.
+            do
+            {
+                placing.Placed = false;
+
+                foreach (CadPrompt prompt in Place(c, name, placing, true, true, true, placing.Explode))
+                {
+                    yield return prompt;
+                }
+
+                placing.Again = true;
+            } while (placing.Repeat && placing.Placed);
         }
 
         /// <summary>Where and how an INSERT is placed, asked or given, and whether it was.</summary>
@@ -741,6 +868,12 @@ namespace GeometryHelper.Cad
 
             /// <summary>Whether it is the INSERT of WMFIN, which names its units "Unitless" and offers Explode and REpeat among the options of the insertion point.</summary>
             public bool Wmf { get; set; }
+
+            /// <summary>Whether the options of the insertion point list Explode and REpeat, as -INSERT's do (WMFIN's list them through <see cref="Wmf"/>).</summary>
+            public bool Options { get; set; }
+
+            /// <summary>Whether the block is placed again by REpeat, its units already said.</summary>
+            public bool Again { get; set; }
 
             /// <summary>Whether the block is to be exploded, as WMFIN's Explode option sets it.</summary>
             public bool Explode { get; set; }
@@ -985,19 +1118,27 @@ namespace GeometryHelper.Cad
                     unitFactor
                 );
 
-            // WMFIN writes the conversion in a field of ten, and calls the units of its block of inches "Unitless".
-            c.Write(
-                placing.Wmf
-                    ? "Units: Unitless   Conversion:" + Length(UnitFactor(c.Database, record)).PadLeft(10)
-                    : "Units: " + UnitName(record.Units) + "   Conversion:   " + Length(UnitFactor(c.Database, record))
-            );
+            // The conversion stands in a field of ten, as AutoCAD 2021 writes it ("Units: Millimeters   Conversion:    1.0000");
+            // WMFIN calls the units of its block of inches "Unitless". A block placed again by REpeat says it once.
+            if (!placing.Again)
+            {
+                c.Write(
+                    (placing.Wmf ? "Units: Unitless" : "Units: " + UnitName(record.Units))
+                        + "   Conversion:"
+                        + Length(UnitFactor(c.Database, record)).PadLeft(10)
+                );
+            }
 
             if (askPoint)
             {
                 while (true)
                 {
                     yield return CadPrompt
-                        .ForPoint("Specify insertion point", null, placing.Wmf ? WmfInsertKeywords : InsertKeywords)
+                        .ForPoint(
+                            "Specify insertion point",
+                            null,
+                            placing.Wmf || placing.Options ? InsertKeywordsWithExplode : InsertKeywords
+                        )
                         .Dragging(DragOf(CadBlockDragMode.Point));
 
                     if (c.Input.IsPoint)
@@ -1006,20 +1147,32 @@ namespace GeometryHelper.Cad
                         break;
                     }
 
-                    if (placing.Wmf && (c.Input.Is("Explode") || c.Input.Is("REpeat")))
+                    if ((placing.Wmf || placing.Options) && (c.Input.Is("Explode") || c.Input.Is("REpeat")))
                     {
                         bool exploding = c.Input.Is("Explode");
-                        yield return CadPrompt.ForKeyword(
-                            exploding ? "Explode block" : "Repeat insertion of block",
-                            new[] { "Yes", "No" },
-                            "Yes"
-                        );
-                        bool yes = !c.Input.Is("No");
+                        bool yes = true;
+
+                        // -INSERT's REpeat is asked nothing: the block is placed again until Enter. WMFIN asks Yes or No.
+                        if (exploding || placing.Wmf)
+                        {
+                            yield return CadPrompt.ForKeyword(
+                                exploding ? "Explode block" : "Repeat insertion of block",
+                                new[] { "Yes", "No" },
+                                "Yes"
+                            );
+                            yes = !c.Input.Is("No");
+                        }
 
                         if (exploding)
                         {
                             explode = yes;
                             placing.Explode = yes;
+
+                            // AutoCAD 2021's -INSERT asks the scale of a block it explodes as it asks any block's (pd2: X and Y).
+                            if (placing.Options)
+                            {
+                                uniform = record.BlockScaling == DxfBlockScaling.Uniform;
+                            }
                         }
                         else
                         {
@@ -1062,7 +1215,7 @@ namespace GeometryHelper.Cad
                             axis == null ? "Specify scale factor for XYZ axes" : "Specify " + axis + " scale factor",
                             null,
                             null,
-                            Length(1.0)
+                            Number(1.0)
                         );
 
                         if (c.Input.Kind == CadInputKind.Number && c.Input.Number != 0.0)
@@ -1795,8 +1948,10 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>
-        /// -ATTDEF (-ATT): the modes toggled until Enter, the tag, prompt and default, then the start point with Justify and
-        /// Style, the height and the rotation, as AutoCAD's -ATTDEF asks them.
+        /// -ATTDEF (-ATT): "Current attribute modes:" and the seven modes on a line, toggled until Enter (they carry to the next
+        /// -ATTDEF, as AutoCAD keeps them), the tag, prompt and default, then "Current text style:" with the justification, the
+        /// start point with Justify and Style, the height and the rotation, as AutoCAD 2021 asks them. The Annotative mode is shown
+        /// and toggled as AutoCAD does, and stored as the presenter stores annotative text.
         /// </summary>
         private static IEnumerable<CadPrompt> AttributeDefinitionTyped(CadCommandContext c)
         {
@@ -1805,22 +1960,44 @@ namespace GeometryHelper.Cad
             {
                 SpecifyOnScreen = false,
             };
-            string[] modes = { "Invisible", "Constant", "Verify", "Preset", "Lock position", "Multiple lines" };
+            string[] modes =
+            {
+                "Invisible",
+                "Constant",
+                "Verify",
+                "Preset",
+                "Lock position",
+                "Annotative",
+                "Multiple lines",
+            };
+
+            // The modes of the last -ATTDEF, each a bit; Lock position on until it is toggled, as AutoCAD's AFLAGS starts.
+            int kept = (int)c.Remembered("attdef.modes", 16.0);
+            request.Invisible = (kept & 1) != 0;
+            request.Constant = (kept & 2) != 0;
+            request.Verify = (kept & 4) != 0;
+            request.Preset = (kept & 8) != 0;
+            request.LockPosition = (kept & 16) != 0;
+            request.Annotative = (kept & 32) != 0;
+            request.MultipleLines = (kept & 64) != 0;
 
             while (true)
             {
+                c.Write("Current attribute modes:");
                 c.Write(
-                    "Current attribute modes: Invisible="
+                    "Invisible="
                         + YesNo(request.Invisible)
-                        + " Constant="
+                        + "  Constant="
                         + YesNo(request.Constant)
-                        + " Verify="
+                        + "  Verify="
                         + YesNo(request.Verify)
-                        + " Preset="
+                        + "  Preset="
                         + YesNo(request.Preset)
-                        + " Lock position="
+                        + "  Lock position="
                         + YesNo(request.LockPosition)
-                        + " Annotative=N Multiple lines="
+                        + "  Annotative="
+                        + YesNo(request.Annotative)
+                        + "  Multiple line="
                         + YesNo(request.MultipleLines)
                 );
                 yield return CadPrompt.ForKeyword("Enter an option to change", modes, "done");
@@ -1845,6 +2022,10 @@ namespace GeometryHelper.Cad
                 {
                     request.LockPosition = !request.LockPosition;
                 }
+                else if (c.Input.Is("Annotative"))
+                {
+                    request.Annotative = !request.Annotative;
+                }
                 else if (c.Input.Is("Multiple lines"))
                 {
                     request.MultipleLines = !request.MultipleLines;
@@ -1854,6 +2035,17 @@ namespace GeometryHelper.Cad
                     break;
                 }
             }
+
+            c.Remember(
+                "attdef.modes",
+                (request.Invisible ? 1 : 0)
+                    | (request.Constant ? 2 : 0)
+                    | (request.Verify ? 4 : 0)
+                    | (request.Preset ? 8 : 0)
+                    | (request.LockPosition ? 16 : 0)
+                    | (request.Annotative ? 32 : 0)
+                    | (request.MultipleLines ? 64 : 0)
+            );
 
             while (true)
             {
@@ -1884,6 +2076,9 @@ namespace GeometryHelper.Cad
             );
             request.Default = c.Input.Kind == CadInputKind.Text ? c.Input.Text : string.Empty;
 
+            // The justification chosen is kept for the next -ATTDEF, and shown as typed ("MC"), as AutoCAD 2021 does.
+            int justify = (int)c.Remembered("attdef.justify", 0.0);
+
             while (true)
             {
                 c.Write(
@@ -1891,9 +2086,14 @@ namespace GeometryHelper.Cad
                         + (request.TextStyle ?? "Standard")
                         + "\"  Text height:  "
                         + Length(request.Height)
-                        + "  Annotative:  No"
+                        + "  Justify:  "
+                        + DTextJustifications[justify]
                 );
-                yield return CadPrompt.ForPoint("Specify start point of text", null, new[] { "Justify", "Style" });
+                yield return CadPrompt.ForPoint(
+                    TextPointPrompts[justify] ?? "Specify first endpoint of text baseline",
+                    null,
+                    new[] { "Justify", "Style" }
+                );
 
                 if (c.Input.IsPoint)
                 {
@@ -1903,26 +2103,44 @@ namespace GeometryHelper.Cad
 
                 if (c.Input.Is("Justify"))
                 {
-                    yield return CadPrompt.ForKeyword("Enter an option", Justifications.Select(j => j.Key).ToArray());
-                    KeyValuePair<string, DxfAttachmentPoint> picked = Justifications.FirstOrDefault(j =>
-                        c.Input.Is(j.Key)
-                    );
+                    yield return CadPrompt.ForKeyword("Enter an option", DTextJustifications);
+                    int picked = Array.IndexOf(DTextJustifications, c.Input.Text);
 
-                    if (picked.Key != null)
+                    if (picked < 0)
                     {
-                        request.Justification = picked.Value;
+                        continue;
                     }
 
-                    continue;
+                    justify = picked;
+                    c.Remember("attdef.justify", justify);
+                    yield return CadPrompt.ForPoint(
+                        TextPointPrompts[justify] ?? "Specify first endpoint of text baseline"
+                    );
+
+                    if (!c.Input.IsPoint)
+                    {
+                        yield break;
+                    }
+
+                    request.Point = P3(c.Input.Point);
+                    break;
                 }
 
                 if (c.Input.Is("Style"))
                 {
-                    yield return CadPrompt.ForString("Enter style name", request.TextStyle ?? "Standard");
+                    string current = request.TextStyle ?? "Standard";
+                    yield return CadPrompt.ForKeywordOrText("Enter style name or", new[] { "?" }, current);
 
-                    if (c.Input.Kind == CadInputKind.Text)
+                    if (c.Input.Is("?"))
                     {
-                        string name = c.Input.Text.Trim();
+                        foreach (CadPrompt prompt in ListTextStyles(c, current))
+                        {
+                            yield return prompt;
+                        }
+                    }
+                    else
+                    {
+                        string name = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim() : current;
 
                         if (c.Database.TextStyleTable.Has(name))
                         {
@@ -1940,25 +2158,49 @@ namespace GeometryHelper.Cad
                 yield break;
             }
 
+            request.Justification = TextPoints[justify];
             GeoPoint2 at = new GeoPoint2(request.Point.X, request.Point.Y);
-            yield return CadPrompt.ForDistance("Specify text height", at, null, Length(request.Height));
+            bool twoPoints =
+                request.Justification == DxfAttachmentPoint.BaseAlign
+                || request.Justification == DxfAttachmentPoint.BaseFit;
 
-            if (c.Input.Kind == CadInputKind.Number)
+            // Align and Fit are held by the two ends of the baseline, which give the rotation too.
+            if (twoPoints)
             {
-                if (!(c.Input.Number > 0.0))
+                yield return CadPrompt.ForPoint("Specify second endpoint of text baseline", at);
+
+                if (!c.Input.IsPoint || (c.Input.Point - at).Length <= c.Session.Tolerance.EqualPoint)
                 {
-                    c.Write("Value must be positive and nonzero.");
                     yield break;
                 }
 
-                request.Height = c.Input.Number;
+                request.Second = P3(c.Input.Point);
             }
 
-            yield return CadPrompt.ForAngle("Specify rotation angle of text", at, null, Counted(c, 0.0));
-
-            if (c.Input.Kind == CadInputKind.Number)
+            if (request.Justification != DxfAttachmentPoint.BaseAlign)
             {
-                request.Rotation = c.Input.Number;
+                yield return CadPrompt.ForDistance("Specify height", at, null, Length(request.Height));
+
+                if (c.Input.Kind == CadInputKind.Number)
+                {
+                    if (!(c.Input.Number > 0.0))
+                    {
+                        c.Write("Value must be positive and nonzero.");
+                        yield break;
+                    }
+
+                    request.Height = c.Input.Number;
+                }
+            }
+
+            if (!twoPoints)
+            {
+                yield return CadPrompt.ForAngle("Specify rotation angle of text", at, null, Counted(c, 0.0));
+
+                if (c.Input.Kind == CadInputKind.Number)
+                {
+                    request.Rotation = c.Input.Number;
+                }
             }
 
             MakeAttributeDefinition(c, request);
@@ -1987,8 +2229,15 @@ namespace GeometryHelper.Cad
                 return;
             }
 
+            // A text held by two points (Align, Fit) is turned as the baseline between them runs; any other by the angle given.
+            double angle = request.Second.HasValue
+                ? Math.Atan2(request.Second.Value.Y - request.Point.Y, request.Second.Value.X - request.Point.X)
+                : c.Session.Ucs.AngleToWorld(request.Rotation);
+
+            // An annotative one is drawn at the size its scale gives it on the sheet, as annotative text is: 2.5 at 1:50 is 125.
+            DxfAnnotationScale scale = request.Annotative ? CurrentScale(c.Database, c.Space.IsModel) : null;
+            double drawn = scale == null ? request.Height : request.Height / scale.Scale;
             CadSpace space = c.Space;
-            double angle = c.Session.Ucs.AngleToWorld(request.Rotation);
             string value = (request.Default ?? string.Empty).Replace("\r", string.Empty).Replace("\n", " ");
             string prompt = (request.Prompt ?? string.Empty).Replace("\r", string.Empty).Replace("\n", " ");
             c.Apply(null, s =>
@@ -1999,13 +2248,13 @@ namespace GeometryHelper.Cad
                         : null;
                 var definition = new DxfAttributeDefinition(request.Point, value, tag, prompt, style);
                 s.Append(space, Current(c, definition));
-                definition.Height = request.Height;
+                definition.Height = drawn;
                 definition.Rotation = angle;
 
                 if (request.Justification != DxfAttachmentPoint.BaseLeft)
                 {
                     definition.Justify = request.Justification;
-                    definition.AlignmentPoint = request.Point;
+                    definition.AlignmentPoint = request.Second ?? request.Point;
                 }
 
                 SetValue(definition, value, s.Document);
@@ -2018,6 +2267,11 @@ namespace GeometryHelper.Cad
                 if (request.MultipleLines)
                 {
                     definition.IsMTextAttributeDefinition = true;
+                }
+
+                if (scale != null)
+                {
+                    MakeAnnotative(s.Database, definition);
                 }
             });
             c.Remember("text.height", request.Height);

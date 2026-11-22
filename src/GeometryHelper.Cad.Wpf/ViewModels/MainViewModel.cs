@@ -560,8 +560,12 @@ namespace GeometryHelper.Cad.Wpf
                 ? new[] { NewDocumentOffer?.WelcomeText ?? NewDrawingWelcomeText }
                 : History.Skip(Math.Max(0, History.Count - HistoryShown)).ToList();
 
-        /// <summary>Gets the prompt of the command running, empty with none.</summary>
-        public string Prompt => Session?.PromptText ?? string.Empty;
+        /// <summary>
+        /// Gets the prompt of the command running, empty with none, on one line: a prompt AutoCAD breaks in two ("Specify dimension
+        /// line location or" and "[Mtext/Text/Angle/Horizontal/Vertical/Rotated]:") is broken in the history only, where the
+        /// answer is written.
+        /// </summary>
+        public string Prompt => (Session?.PromptText ?? string.Empty).Replace('\n', ' ');
 
         /// <summary>Gets whether a command is running.</summary>
         public bool IsCommandRunning => Session?.IsRunning ?? false;

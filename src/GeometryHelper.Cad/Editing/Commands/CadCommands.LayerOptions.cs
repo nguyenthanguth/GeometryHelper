@@ -65,37 +65,56 @@ namespace GeometryHelper.Cad
             }
         }
 
-        /// <summary>-LAYER Rename: "Enter old layer name:", then "Enter new layer name:"; a layer the drawing lacks is said.</summary>
+        /// <summary>
+        /// -LAYER Rename: "Enter old layer name:", then "Enter new layer name:"; as AutoCAD 2021 does, a name that is not valid is
+        /// "Invalid layer name." and a layer the drawing lacks <c>Cannot find layer "nosuch".</c>, each asking the same prompt again.
+        /// </summary>
         private static IEnumerable<CadPrompt> LayerRename(CadCommandContext c)
         {
-            yield return CadPrompt.ForString("Enter old layer name");
+            string old;
 
-            if (c.Input.Kind != CadInputKind.Text)
+            while (true)
             {
-                yield break;
+                yield return CadPrompt.ForString("Enter old layer name");
+
+                if (c.Input.Kind != CadInputKind.Text)
+                {
+                    yield break;
+                }
+
+                old = c.Input.Text.Trim();
+
+                if (c.Database.LayerTable.Has(old))
+                {
+                    break;
+                }
+
+                c.Write(CadLayerEditor.IsLayerName(old) ? "Cannot find layer \"" + old + "\"." : "Invalid layer name.");
             }
 
-            string old = c.Input.Text.Trim();
-
-            if (!c.Database.LayerTable.Has(old))
+            while (true)
             {
-                c.Write("Cannot find layer \"" + old + "\".");
-                yield break;
-            }
+                yield return CadPrompt.ForString("Enter new layer name");
 
-            yield return CadPrompt.ForString("Enter new layer name");
+                if (c.Input.Kind != CadInputKind.Text)
+                {
+                    yield break;
+                }
 
-            if (c.Input.Kind != CadInputKind.Text)
-            {
-                yield break;
-            }
+                c.OpenUndoStep();
+                CadEditResult result = CadLayerEditor.Rename(c.Document, old, c.Input.Text);
 
-            c.OpenUndoStep();
-            CadEditResult result = CadLayerEditor.Rename(c.Document, old, c.Input.Text);
+                if (result.Succeeded)
+                {
+                    yield break;
+                }
 
-            if (!result.Succeeded)
-            {
                 c.Write(result.Message);
+
+                if (result.Message != "Invalid layer name.")
+                {
+                    yield break;
+                }
             }
         }
 
@@ -147,19 +166,33 @@ namespace GeometryHelper.Cad
 
         /// <summary>
         /// -LAYER Make: "Enter name for new layer (becomes the current layer) &lt;0&gt;:", the layer made where the drawing has
-        /// none and made current; Enter keeps the current layer.
+        /// none and made current; Enter keeps the current layer. A name that is not valid is "Invalid layer name." and the prompt
+        /// again, as AutoCAD 2021 asks it.
         /// </summary>
         private static IEnumerable<CadPrompt> LayerMake(CadCommandContext c)
         {
             string current = c.Database.Clayer;
-            yield return CadPrompt.ForString("Enter name for new layer (becomes the current layer)", current);
+            string name;
 
-            if (c.Input.Kind != CadInputKind.Text || c.Input.Text.Trim().Length == 0)
+            while (true)
             {
-                yield break;
+                yield return CadPrompt.ForString("Enter name for new layer (becomes the current layer)", current);
+
+                if (c.Input.Kind != CadInputKind.Text || c.Input.Text.Trim().Length == 0)
+                {
+                    yield break;
+                }
+
+                name = c.Input.Text.Trim();
+
+                if (c.Database.LayerTable.Has(name) || CadLayerEditor.IsLayerName(name))
+                {
+                    break;
+                }
+
+                c.Write("Invalid layer name.");
             }
 
-            string name = c.Input.Text.Trim();
             c.OpenUndoStep();
 
             if (!c.Database.LayerTable.Has(name))
@@ -202,7 +235,12 @@ namespace GeometryHelper.Cad
 
                     if (!c.Database.LayerTable.Has(name))
                     {
-                        c.Write("Cannot find layer \"" + name + "\".");
+                        // Set takes one name, not a list: a name that holds a character no layer name may hold is not valid.
+                        c.Write(
+                            CadLayerEditor.IsLayerName(name)
+                                ? "Cannot find layer \"" + name + "\"."
+                                : "Invalid layer name."
+                        );
                         continue;
                     }
 
@@ -254,7 +292,9 @@ namespace GeometryHelper.Cad
 
             while (colour == null)
             {
-                yield return CadPrompt.ForKeywordOrText("New color", new[] { "Truecolor", "COlorbook" }, null);
+                yield return CadPrompt
+                    .ForKeywordOrText("New color", new[] { "Truecolor", "COlorbook" }, null)
+                    .WithSpaceBeforeColon();
 
                 if (c.Input.IsNone)
                 {

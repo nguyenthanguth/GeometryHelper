@@ -284,6 +284,43 @@ a public constructor, `CadSnapKind.Custom` and `CadSnapResult.CustomSnap` report
 **FIXED.** An extension of the presenter that throws no longer takes the presenter with it. `CanvasMenuItems` and `DescribeSelection` were called with no guard, so an exception in either escaped from the right-click menu and from the selection: each is now caught for the extension that threw it and written as a Warn line of `GeometryHelperLog`, and that extension adds no menu item and no row while the presenter's own and the other extensions' stay, as a setter that throws already did. A setter whose action makes the extension ask for its rows again (`RefreshFromExtensions`) no longer has the rows rebuilt under the row still in its own setter, and again after it; they are read once, when the setter is done.
 **CHANGED.** The Hatch Editor, Image, PDF Underlay and Array tabs are no longer opened for objects whose [owner](src/GeometryHelper/docs/presenter/owners.md) answers `MoveOnly` or `ReadOnly`, nor for those of an owner that is not registered (which is `ReadOnly`): a section's hatch, or the cut circles of a group of bars drawn as hatches, selected with an owner registered, opens no Hatch Editor, whose edits the owner would refuse. Objects with no owner, or with one that answers `Free` or `Edit`, open the tabs as before. Of two hatches selected, one free and one an owner only lets move, the tab opens over the free one.
 
+**CHANGED.** At "Select objects:" the line `1 was on a locked layer.` (`3 were on a locked layer.`) comes right after the `2 found`
+of the pick, window or ALL that took the object, before the next `Select objects:`, as AutoCAD 2021 words it, where it came
+after the last prompt. The objects are left out of the selection as before. Every command that selects through
+`CadCommandContext.SelectObjects` writes it so.
+
+**CHANGED.** -ATTDEF writes AutoCAD 2021's words: `Current attribute modes:` on a line of its own, the seven modes on the next
+with two spaces between them (`Invisible=N  Constant=N  Verify=N  Preset=N  Lock position=Y  Annotative=N  Multiple line=N`)
+and `Enter an option to change [Invisible/Constant/Verify/Preset/Lock position/Annotative/Multiple lines] <done>:`, which
+offers Annotative (toggled, and the definition made annotative at the current annotation scale where it is on). The modes and
+the justification chosen carry to the next -ATTDEF of the session, `Current text style:` ends with `Justify:  MC` as typed,
+`Specify middle point of text or [Justify/Style]:` follows the justification, Justify lists Align and Fit and asks the point of
+the choice alone (`Specify middle point of text:`), Style asks `Enter style name or [?] <Standard>:`, and the height is
+`Specify height <2.5000>:`.
+
+**NEW.** -BLOCK asks its base point as `Specify insertion base point or [Annotative/mOde]:`. Annotative asks `Create annotative
+block [Yes/No] <Y>:` and `Orient relative to sheet in paper space viewports [Yes/No] <N>:` and makes the block annotative; mOde
+asks `Choose mode for selected object conversion [Convert to block/Retain/Delete] <Delete>:` and keeps the objects, replaces
+them by a reference or erases them. A name in use asks `Redefine it? [Yes/No] <N>:`, and `?` asks `Enter block(s) to list <*>:`
+and writes the names quoted with the four-line table of counts, ending the command. -INSERT offers `Explode` (`Explode block
+[Yes/No] <Yes>:`) and `REpeat` (typed `RE`) at the insertion point and writes `Units: Millimeters   Conversion:    1.0000` with
+the conversion in a field of ten, as WMFIN does.
+
+**CHANGED.** -LAYER asks `New color [Truecolor/COlorbook] :` with a space before the colon, and Freeze, OFF, LOck and Unlock
+offer `or <select objects>` (Enter then asks `Select objects:` and takes the layers of the objects selected; Thaw and ON do
+not). A name that is not valid at Make, Set or Rename is `Invalid layer name.` and the same prompt again, a layer Set or Rename
+cannot find is `Cannot find layer "nosuch".` and the prompt again, where they ended the command.
+
+**CHANGED.** AUDIT asks `Fix any errors detected? [Yes/No] <N>:` and writes AutoCAD 2021's report: `Auditing Header`, `Auditing
+Tables`, `Auditing Entities Pass 1`, `Pass 1 100     objects audited`, Pass 2, `Auditing Blocks`, ` 0       Blocks audited`,
+`Auditing AcDsRecords`, the lines of the errors found, `Total errors found 0 fixed 0` and `Erased 0 objects`, where it wrote
+`No errors found.` or `1 error found, 1 fixed.`. The count of objects is rounded up to a hundred, as AutoCAD counts, from the
+presenter's own count of objects.
+
+**CHANGED.** DIMLINEAR's `Specify dimension line location or` and its options, PLINE's arc segment prompt and -DIMSTYLE's
+`Enter a dimension style option` and its options are written on two lines in the history, as AutoCAD 2021 writes them; the
+command line shows each prompt on one line, and `CadPrompt.Text` has the line break.
+
 ## 13.12.0 (2026-11-19)
 
 A minor release: public types and members are added to the four libraries and none is removed or renamed, as Microsoft's

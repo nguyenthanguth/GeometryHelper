@@ -15,7 +15,7 @@ namespace GeometryHelper.Cad.UnitTest
     public class DimStyleTypedCommandTests
     {
         private const string Options =
-            "Enter a dimension style option [ANnotative/Save/Restore/STatus/Variables/Apply/?] <Restore>:";
+            "Enter a dimension style option\n[ANnotative/Save/Restore/STatus/Variables/Apply/?] <Restore>:";
 
         private static CadDocument Metric() => CadDocument.From(CadTemplate.CreateMetric(), "metric.dxf");
 
