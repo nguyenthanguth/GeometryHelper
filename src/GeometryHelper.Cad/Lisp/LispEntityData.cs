@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using GeometryHelper.Dxf;
+using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Cad.Lisp
 {
@@ -170,6 +171,88 @@ namespace GeometryHelper.Cad.Lisp
         }
 
         private static bool IsAngle(int code) => code >= 50 && code <= 58;
+
+        /// <summary>
+        /// Makes the direction (group 11) and the angle (group 50, in radians as <c>entget</c> has it) of an MTEXT's list agree, as
+        /// AutoCAD does: the later of the two in the list sets the rotation, and both are kept, each the other's value (AutoCAD
+        /// 2021, console, L9 M1-c: an 11 of (0, 1, 0) before a 50 of 0.5 turns the text 0.5, the same two the other way round
+        /// turn it 1.5708; an 11 alone gives a 50 of 1.5708). The DXF layer reads a 50 with no 11 in degrees and an 11 over a
+        /// 50, so without this the angle of 0.5 given alone turned the text half a degree. The direction is in world
+        /// coordinates, of unit length, the x axis of the system of the normal (group 210, the record's where the list gives
+        /// none) turned by the angle; the angle is of one turn, from nought up to 2 pi.
+        /// </summary>
+        /// <param name="type">The type of the entity, which only an MTEXT is changed for.</param>
+        /// <param name="record">The groups the entity has already: empty for a list that makes one.</param>
+        /// <param name="changes">The groups of the list, whose 11 and 50 are replaced by the pair that agree.</param>
+        internal static void TurnMText(
+            string type,
+            List<KeyValuePair<int, object>> record,
+            List<KeyValuePair<int, object>> changes
+        )
+        {
+            int last = type == "MTEXT" ? changes.FindLastIndex(p => p.Key == 11 || p.Key == 50) : -1;
+
+            if (last < 0)
+            {
+                return;
+            }
+
+            int normalAt = changes.FindLastIndex(p => p.Key == 210);
+            object held = normalAt >= 0 ? changes[normalAt].Value : record.Find(p => p.Key == 210).Value;
+            double[] normal = held is double[] three && three.Length == 3 ? three : Up;
+            var extrusion = new GeoVector3(normal[0], normal[1], normal[2]);
+
+            // A normal of no length is read as the world's z.
+            if (!(extrusion.Length > Tolerance.Default.EqualVector))
+            {
+                extrusion = new GeoVector3(Up[0], Up[1], Up[2]);
+            }
+
+            var axes = new DxfOcsTransform.Axes(extrusion);
+            object given = changes[last].Value;
+            GeoVector3 along;
+            double angle;
+
+            if (changes[last].Key == 50)
+            {
+                angle =
+                    given is double real ? real
+                    : given is int whole ? whole
+                    : double.NaN;
+
+                if (double.IsNaN(angle) || double.IsInfinity(angle))
+                {
+                    return;
+                }
+
+                along = axes.ToWorld(new GeoVector3(Math.Cos(angle), Math.Sin(angle), 0.0));
+            }
+            else
+            {
+                var point = given as double[];
+
+                if (point == null || point.Length < 2)
+                {
+                    return;
+                }
+
+                var direction = new GeoVector3(point[0], point[1], point.Length > 2 ? point[2] : 0.0);
+
+                if (!(direction.Length > Tolerance.Default.EqualVector))
+                {
+                    return;
+                }
+
+                along = direction.Multiply(1.0 / direction.Length);
+                GeoVector3 flat = axes.FromWorld(along);
+                angle = Math.Atan2(flat.Y, flat.X);
+                angle = angle < 0.0 ? angle + 2.0 * Math.PI : angle;
+            }
+
+            changes.RemoveAll(p => p.Key == 11 || p.Key == 50);
+            changes.Add(Pair(11, new[] { along.X, along.Y, along.Z }));
+            changes.Add(Pair(50, angle));
+        }
 
         #endregion
 

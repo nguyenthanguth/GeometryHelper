@@ -129,6 +129,13 @@ namespace GeometryHelper.Cad
         internal bool JoinsPrevious { get; }
 
         /// <summary>
+        /// Gets or sets how a routine's command is called in the words U and REDO write for the step: the routine's name for its
+        /// first command, "(Lisp Expression)" for each later one (AutoCAD 2021, L9 rows M1-b u3, u8 and r2: "GH9A GROUP" when
+        /// taken back, "GROUP GH9A" when put again); null for a step the name of whose command is written.
+        /// </summary>
+        internal string Routine { get; set; }
+
+        /// <summary>
         /// Gets or sets the group UNDO BEgin opened that the step was made in; the steps of a group that is closed are taken
         /// back and put again together, as AutoCAD's U takes a GROUP. Nought for a step made outside any group.
         /// </summary>

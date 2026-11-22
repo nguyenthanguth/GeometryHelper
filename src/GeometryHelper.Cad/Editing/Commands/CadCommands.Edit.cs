@@ -1462,7 +1462,7 @@ namespace GeometryHelper.Cad
 
             if (names.Count > 0)
             {
-                c.Write(string.Join(" ", names));
+                c.Session.WriteOnEchoLine(string.Join(" ", names));
             }
 
             if (ranOut || (names.Count > 0 && c.Document.UndoControl == CadUndoControl.One))

@@ -72,11 +72,16 @@ namespace GeometryHelper.Cad.Wpf
         }
 
         /// <summary>
-        /// Add folder… of the Security page: a Save dialog chooses the folder, as the Plugin manager's does, for .NET
-        /// Framework's WPF has no folder dialog; null where none was chosen.
+        /// Add folder… of the Security page: a folder dialog chooses the folder, so that one the user cannot write in, such as
+        /// a folder of Program Files, can be chosen (the app's .NET 8 build). For .NET Framework's WPF, which has no folder
+        /// dialog, a Save dialog chooses it, as the Plugin manager's does; null where none was chosen.
         /// </summary>
         private string PickTrustedFolder()
         {
+#if NET8_0_OR_GREATER
+            var folder = new Microsoft.Win32.OpenFolderDialog { Title = "Choose a folder to trust" };
+            return folder.ShowDialog(this) == true ? folder.FolderName : null;
+#else
             var dialog = new Microsoft.Win32.SaveFileDialog
             {
                 Title = "Choose a folder to trust",
@@ -85,6 +90,7 @@ namespace GeometryHelper.Cad.Wpf
                 OverwritePrompt = false,
             };
             return dialog.ShowDialog(this) == true ? System.IO.Path.GetDirectoryName(dialog.FileName) : null;
+#endif
         }
 
         /// <summary>Open folder: the folder shown in Explorer; a folder that cannot be opened is passed over.</summary>

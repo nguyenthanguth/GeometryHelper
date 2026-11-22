@@ -819,7 +819,7 @@ namespace GeometryHelper.Cad.Lisp
 
                     PickIndex index = document.GetPickIndex(document.WorkingSpace);
                     found.AddRange(
-                        request.Mode == "F" ? index.Fence(ring)
+                        request.Mode == "F" ? index.FenceAlong(ring)
                         : request.Mode == "WP" ? session.TakenByWindow(index.WindowPolygon(ring), true)
                         : session.TakenByWindow(index.CrossingPolygon(ring), false)
                     );

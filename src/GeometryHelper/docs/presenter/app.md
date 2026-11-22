@@ -120,7 +120,7 @@ has the rule each setting feeds.
   default) and `Most secure setting-- Load executable files from Trusted locations only.  All other executable files will
   be ignored.` (2).
 - **Trusted folders for executable files:** the folder of the app first, greyed and marked as always trusted with every
-  folder below it, then the entries of TRUSTEDPATHS as they are kept. Add folder… asks for a folder and adds it; Remove,
+  folder below it, then the entries of TRUSTEDPATHS as they are kept. Add folder… shows the Windows folder picker, which can choose a folder you cannot write in, such as one of Program Files, and adds it; Remove,
   Move up and Move down work on the entry chosen, and Include subfolders adds or takes off its `\...`, so that `D:\Lisp`
   becomes `D:\Lisp\...` and trusts the folders below it too. An entry whose folder is missing, or that does not start at a
   drive or a share, is marked "(not found)" and trusts nothing.

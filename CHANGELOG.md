@@ -6,6 +6,39 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Add folder… on the Security page of Global settings shows the Windows folder picker. It was a Save dialog
+that wrote a name into the folder to learn it, so a folder the user cannot write in, such as one of Program Files, could not be
+chosen: Windows offered to save in the user's profile folder instead (found by hand with the app, not by any test). The .NET
+Framework build keeps the Save dialog, which has no folder picker.
+
+**FIXED.** Apply and OK of Global settings stayed off on every page when the saved settings held an alias that is another
+command's name, such as DTEXT for TEXT (`DTEXT` is a command of its own, and a name wins over an alias): the Shortcuts page
+showed it in red and no other page said why. Such an alias, which Import acad.pgp has left out since an earlier version, is
+now left out of the dialog and so of the settings once they are applied.
+
+**FIXED.** `entmake`, `entmakex` and `entmod` of an MTEXT read its group 50 as radians and keep its 11 (the direction it reads
+along) in step with it, as AutoCAD 2021 does (measured with accoreconsole): of the two groups in the list the later sets the
+rotation. `(entmake '((0 . "MTEXT") (10 0.0 0.0 0.0) (1 . "A") (50 . 0.5)))` used to turn the text half a degree and now
+turns it 0.5 radians, 28.65 degrees, with `(11 0.877583 0.479426 0.0)`; an 11 of (0 1 0) after a 50 of 0.5 gives a 50 of
+1.5708, and an `entmod` of an `entget` list with only its 50 substituted turns the text, as one with only its 11
+substituted does not. On the normal (0, 0, -1) the angle is turned in the plane of the normal.
+
+**FIXED.** `(ssget "F" ...)` gives the objects in the order the fence first crosses them, as AutoCAD 2021 does, where it gave
+the order of the drawing: five lines at y 0 to 40 are 40, 30, 20, 10, 0 to a fence drawn down and 0, 10, 20, 30, 40 to one
+drawn up, and a polyline the fence crosses twice stands where it is first crossed. A fence typed at the `Select objects:`
+prompt of `ssget` keeps that order; one typed at a command's prompt is newest first, as a typed window is, which Previous
+shows (it was oldest first).
+
+**FIXED.** A click on a DCL list item that is already chosen runs the list's action again with `$reason` 1 and the value as it
+is, as AutoCAD 2021 does (measured with real clicks in the full AutoCAD on a probe dialog): a double click on a chosen item is
+`$reason` 1 and then 4, where it was 4 alone, and a click below the last item of a `multiple_select` list is `$reason` 1 too;
+a single list below its last item still sends nothing. The selections of a `multiple_select` list (plain, Ctrl and Shift
+clicks) and the `$reason` 3 of a slider dragged were measured the same as before.
+
+**FIXED.** U and UNDO write the words AutoCAD 2021 writes for the commands of a `c:` routine: `GH9A GROUP` for the first,
+`(Lisp Expression) GROUP` for each later one (they wrote `LINE` and `CIRCLE`), and REDO `GROUP GH9A`; `(command "_.U")` writes
+its names on the line of its echo, `Command: _.U CIRCLE`.
+
 **CHANGED.** A change of the user coordinate system is an undo step, as in AutoCAD 2021 (measured with accoreconsole): U and
 `UNDO 1` take back the last UCS command with the earlier systems kept for UCS Previous (ten of each space, as before), and
 REDO puts them again. A 3point UCS, then World, then U, REDO and U leaves the 3point one current, and UCS Previous gives

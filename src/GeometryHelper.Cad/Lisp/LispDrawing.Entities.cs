@@ -759,6 +759,7 @@ namespace GeometryHelper.Cad.Lisp
                 return null;
             }
 
+            LispEntityData.TurnMText(item.Type, record, changes);
             LispEntityData.Apply(item.Type, record, changes);
 
             foreach (KeyValuePair<int, object> change in changes)
@@ -1117,6 +1118,7 @@ namespace GeometryHelper.Cad.Lisp
 
             List<KeyValuePair<int, object>> groups = ChangesOf(given);
             CompletePoints(type, groups);
+            LispEntityData.TurnMText(type, new List<KeyValuePair<int, object>>(), groups);
             TakeLinetypeAndColour(session.Document.Database, groups);
 
             // A text left on its baseline has no second point: AutoCAD keeps group 11 of its list at 0,0,0 whatever the list gave.

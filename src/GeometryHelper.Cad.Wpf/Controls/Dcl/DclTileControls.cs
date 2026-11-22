@@ -631,6 +631,8 @@ namespace GeometryHelper.Cad.Wpf
                 _list.Margin = new Thickness(0, 0, 0, labelled ? 1 : 0);
                 _list.SelectionChanged += OnSelectionChanged;
                 _list.MouseDoubleClick += OnDoubleClick;
+                _list.AddHandler(UIElement.MouseLeftButtonDownEvent, new MouseButtonEventHandler(OnClickDown), true);
+                _list.AddHandler(UIElement.MouseLeftButtonUpEvent, new MouseButtonEventHandler(OnClickUp), true);
                 _list.GotKeyboardFocus += (s, e) => Window.NoteFocus(this);
                 _root.Children.Add(_list);
                 _stops = StopsOf(tile.Get("tabs"), window.Metrics.CharWidth);
@@ -757,8 +759,60 @@ namespace GeometryHelper.Cad.Wpf
 
             private string Chosen() => ValueOf(_list.SelectedIndexes());
 
+            // A click that left the choice as it was (on a chosen item, or for a multiple-select list below the last item) is
+            // reported with reason 1 and the value as it is, as AutoCAD's list box sends its notification for every click (AutoCAD
+            // 2021, L9 rows M2 R14, R16 and RS3; a single list below its last item sends nothing, RS0). WPF reports a change only.
+            private bool _clicking;
+            private bool _clickChanged;
+            private bool _clickCounts;
+
+            private void OnClickDown(object sender, MouseButtonEventArgs e)
+            {
+                var source = e.OriginalSource as DependencyObject;
+                _clicking = true;
+                _clickChanged = false;
+                _clickCounts =
+                    e.ClickCount <= 1
+                    && (
+                        Within<ListBoxItem>(source)
+                        || (_list.SelectionMode != SelectionMode.Single && !Within<ScrollBar>(source))
+                    );
+            }
+
+            private void OnClickUp(object sender, MouseButtonEventArgs e)
+            {
+                bool report = _clicking && _clickCounts && !_clickChanged;
+                _clicking = false;
+
+                if (report && !Window.IsRefreshing && Tile.Key != null)
+                {
+                    Tile.Value = Chosen();
+                    Window.Raise(DclEvent.Tile(Tile.Key, Tile.Value, 1));
+                }
+            }
+
+            // Whether an element lies in an element of a type inside the list.
+            private bool Within<T>(DependencyObject source)
+                where T : DependencyObject
+            {
+                while (source != null && !ReferenceEquals(source, _list))
+                {
+                    if (source is T)
+                    {
+                        return true;
+                    }
+
+                    source =
+                        source is Visual ? VisualTreeHelper.GetParent(source) : LogicalTreeHelper.GetParent(source);
+                }
+
+                return false;
+            }
+
             private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
             {
+                _clickChanged = true;
+
                 if (Window.IsRefreshing || Tile.Key == null)
                 {
                     return;

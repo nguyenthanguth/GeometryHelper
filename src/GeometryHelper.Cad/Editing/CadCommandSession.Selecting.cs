@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using GeometryHelper.Cad.Lisp;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -462,7 +463,13 @@ namespace GeometryHelper.Cad
 
             if (option == "Fence" && points.Count >= 2)
             {
-                GatherWhole(new List<string>(index.Fence(points)));
+                // The set of an ssget keeps the order along the fence; a command's selection is newest first, as a typed window's is
+                // (AutoCAD 2021, L9 rows M1-a, fence and fence3).
+                GatherWhole(
+                    _lispAsk != null && _lispAsk.Kind == LispAskKind.Selection
+                        ? new List<string>(index.FenceAlong(points))
+                        : TakenByWindow(index.Fence(points), false)
+                );
             }
             else if ((option == "WPolygon" || option == "CPolygon") && points.Count >= 3)
             {

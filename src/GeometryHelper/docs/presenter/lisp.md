@@ -561,12 +561,18 @@ prompt: AutoLISP is not read while a routine waits.
 get functions write their prompts whatever CMDECHO is.
 
 **Undo.** Each command `command` runs is an undo step of its own, as when it is typed: a routine that runs LINE and then
-CIRCLE is undone by U one command at a time. The changes a routine makes between its commands, `entmake`, `entmod`,
+CIRCLE is undone by U one command at a time, and U writes the routine's words for them as AutoCAD 2021 does: the first
+command of a `c:` routine is `GH9A GROUP` (the routine's name in capitals, however it was typed), each later one
+`(Lisp Expression) GROUP`, and REDO writes them the other way round, `GROUP GH9A`; a command typed at the prompt is still
+named by itself, `LINE`. `(command "_.U")` writes its names on the line of its echo, `Command: _.U GH9A GROUP`. The changes a routine makes between its commands, `entmake`, `entmod`,
 `entdel` and `setvar` of a drawing variable, are one step of their own, named after the `c:` command or `(Lisp Expression)`
 for a form typed; forms typed at the Command prompt join the steps of the forms and commands before them, as
 [described below](#undo-of-typed-forms). `UNDO BEgin` and `End`
 run by `command` group what lies between them as when typed. Esc at a routine's wait ends the routine's step; what `*error*`
 then changes is a step of its own, and U undoes it first.
+A `c:` routine that changes the drawing only through `entmod` (no `command`) is one step of its own here; AutoCAD 2021's
+console made no step for it and one U took back the forms typed before it and the command before them too (L9 row u4, a
+difference kept: U here takes back only what the routine did).
 
 **The commands themselves.** A routine runs the presenter's commands, so it gets what they do. Its routines asked for some
 of AutoCAD's command-line forms the presenter did not have, and they were added as AutoCAD 2021's console asks them:
@@ -762,8 +768,14 @@ Command: (sslength (ssget "X" '((-4 . "<OR") (0 . "TEXT") (0 . "CIRCLE") (-4 . "
 Every set `ssget` gives becomes the Previous selection, so `(ssget "P")` and `P` at the next command's prompt give it. Esc is
 `Function cancelled`. `ALL` at `Select objects:` of any command lists the newest object first, as `"X"` does, with the
 handle's text breaking a tie, as the selection engine of AutoCAD walks the drawing. So do `"W"`, `"C"`, `"WP"` and `"CP"`, a
-window typed at the prompt and Previous after them: five lines at y 0 to 40 give 40, 30, 20, 10, 0 (AutoCAD 2021), where a fence
-keeps the order of its points in AutoCAD and here the order of the drawing. With a view (the window has one, a script does not),
+window typed at the prompt and Previous after them: five lines at y 0 to 40 give 40, 30, 20, 10, 0 (AutoCAD 2021). A fence gives
+its objects in the order it first crosses them, segment by segment from its first point: the same five lines are 40, 30, 20,
+10, 0 to a fence drawn from y 45 down to y -5 and 0, 10, 20, 30, 40 to one drawn up, a fence that turns back (y 25 down to -5,
+across, then up to 45) gives 20, 10, 0, 30, 40, and a polyline the fence crosses twice stands where it is first crossed and is
+listed once. A fence typed at the `Select objects:` prompt of `ssget` keeps that order, and Previous after an `ssget` set is
+that set in the same order; typed at the prompt of a command, as MOVE's, it is newest first like a window, which Previous
+shows. Objects that meet the fence at one point have no order of AutoCAD's to follow (it follows the float error of the
+crossings); the presenter lists them by their handles. With a view (the window has one, a script does not),
 `"W"`, `"C"` and `"WP"` find only what the view shows, `"CP"` and `"F"` everything, as AutoCAD 2021's console did.
 
 `(sslength ss)` is an integer, `(ssname ss i)` the i-th entity name (`nil` out of range, `-1` included), `(ssadd)` a new empty
@@ -803,7 +815,13 @@ record, `0.0` for an MTEXT made by `entmake`), `50 0.0`, `73 1` and `44 1.0`, it
 (1 where the record has none, 0 after -LAYER Plot No plot), the lineweight `370` (-3), the plot style `390`, and the material
 `347` and visual style `348`, which name no object, as the presenter keeps neither (`entget` of `348` is `nil` in AutoCAD too;
 `tblsearch` of a layer keeps its five groups). The
-entities of a block definition have no `410`. Where an entity has both, the colour `62` is listed before the linetype `6`. The angles of a HATCH are radians, as an ARC's are: `53`, the angle of a pattern
+entities of a block definition have no `410`. An MTEXT's `50` is in radians and its `11` is the direction it reads along, and
+`entmake`, `entmakex` and `entmod` keep the two in step as AutoCAD 2021 does: of the two groups in the list the **later**
+one sets the rotation and the other is worked out from it. A `50` of 0.5 alone turns the text 0.5 radians, 28.65 degrees, and
+the list then holds `(11 0.877583 0.479426 0.0) (50 . 0.5)` (it used to turn it half a degree); `(11 0.0 1.0 0.0)` alone
+gives `(50 . 1.5708)`; `11` before `50` follows the `50`, `50` before `11` follows the `11`. The list of `entget` has the `11`
+before the `50`, so an `entmod` that substitutes only the `50` turns the text and one that substitutes only the `11` leaves
+it where the `50` puts it. Where an entity has both, the colour `62` is listed before the linetype `6`. The angles of a HATCH are radians, as an ARC's are: `53`, the angle of a pattern
 line, is `0.785398` for ANSI31, `52` the pattern angle, and `50` and `51` the angles of an arc edge of its boundary. The
 `(tblobjname "BLOCK" name)` of a block is the name of the BLOCK that opens its definition, not of its record, and its `entget` is
 `((-1 . ename) (0 . "BLOCK") (330 . owner) (5 . handle) (100 . "AcDbEntity") (67 . 0) (8 . "0") (100 . "AcDbBlockBegin")
@@ -2832,9 +2850,16 @@ compares the drawings and the transcripts.
 - The colour tiles and dialogs of `acad.dcl` (its own file, read where it is found), `audit_level`, the file `acad.dce`,
   `password_char` beyond the look of a password box, `fixed_width_font` beyond a monospace font, the DIASTAT variable, and
   dialogs larger than the screen.
-- Not measured, so as AutoCAD's help says or as the presenter chose: a double click in a list, `$x` and `$y` of a real click
-  in an image button, a slider dragged, a choice of several items with Ctrl and a click (the full AutoCAD run could not post
-  the key), the effect of `mode_tile` 2 and 3, `getpoint` in an action, and `*error*` after an error in an action.
+- Measured with real mouse clicks in the full AutoCAD 2021 on a probe dialog of our own (L9): a `multiple_select` list is an
+  extended list (a plain click replaces the choice, Ctrl toggles an item, Shift takes a range, the value always lists the
+  items from 0 up), a double click gives `$reason` 1 and then 4 (4 alone is never sent), and a slider dragged gives `$reason`
+  3 once for each move of the thumb (values 7, 13, 19, 25, 31, 37 for six moves of 10 pixels) and 1 with the last value when
+  it is let go. Each click on a list item, or below the last item of a `multiple_select` list, gives a `$reason` 1 even when
+  the choice did not change; the presenter does the same (it used to report a change only).
+- Not measured, so as AutoCAD's help says or as the presenter chose: `$x` and `$y` of a real click in an image button, the
+  effect of `mode_tile` 2 and 3, `getpoint` in an action (AutoCAD's help forbids input while a dialog is active, so a routine
+  that works there never does it), and `*error*` after an error in an action. The keys of a slider differ a little: one
+  arrow-key step is `small_increment`, where AutoCAD's scroll bar moves 0.6 of a value for a range of 0 to 100.
 - Making the dialog model public, for windows of other programs, is a later choice: the host is internal.
 
 ## While a routine waits

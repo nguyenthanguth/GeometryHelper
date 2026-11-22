@@ -72,6 +72,56 @@ namespace GeometryHelper.Cad
             return found;
         }
 
+        /// <summary>
+        /// Gets the entities a fence crosses, as <see cref="Fence"/> takes them, in the order along the fence that AutoCAD's
+        /// <c>(ssget "F" ...)</c> gives them: each by the first place it meets the fence, segment by segment from the fence's first
+        /// point and, within a segment, from its start, so that a polyline crossed twice stands where it is first crossed. Two
+        /// that meet at one place, or at places the fence reaches at one distance, keep ordinal order of their handles.
+        /// </summary>
+        /// <param name="fence">The points of the fence, not closed.</param>
+        /// <returns>The handles, in the order along the fence.</returns>
+        internal IReadOnlyList<string> FenceAlong(IReadOnlyList<GeoPoint2> fence)
+        {
+            IReadOnlyList<string> met = Fence(fence);
+
+            if (met.Count < 2)
+            {
+                return met;
+            }
+
+            DisplayBox bounds = Bounds(fence);
+            var ranked = new List<KeyValuePair<double, string>>(met.Count);
+
+            foreach (string handle in met)
+            {
+                double first = double.PositiveInfinity;
+
+                foreach (int i in IndicesOf(handle))
+                {
+                    first = Math.Min(first, FirstAlong(_list.Items[i], fence, bounds));
+                }
+
+                ranked.Add(new KeyValuePair<double, string>(first, handle));
+            }
+
+            ranked.Sort(
+                (x, y) =>
+                {
+                    int order = x.Key.CompareTo(y.Key);
+                    return order != 0 ? order : string.CompareOrdinal(x.Value, y.Value);
+                }
+            );
+
+            var handles = new List<string>(ranked.Count);
+
+            foreach (KeyValuePair<double, string> pair in ranked)
+            {
+                handles.Add(pair.Value);
+            }
+
+            return handles;
+        }
+
         /// <summary>The entities a polygon takes: those whose every item lies inside it, or for a crossing those an item of which it touches; ordinal order.</summary>
         private IReadOnlyList<string> Polygon(IReadOnlyList<GeoPoint2> ring, bool crossing)
         {
@@ -194,42 +244,115 @@ namespace GeometryHelper.Cad
             return false;
         }
 
-        /// <summary>Whether a segment meets one of the segments of a fence, an end on a segment or two segments along one line counted.</summary>
-        private static bool MeetsFence(IReadOnlyList<GeoPoint2> fence, double ax, double ay, double bx, double by)
+        /// <summary>How far along the fence an item first meets it, as a segment number plus the part of that segment; infinity where it does not.</summary>
+        private static double FirstAlong(DisplayItem2 item, IReadOnlyList<GeoPoint2> fence, DisplayBox bounds)
+        {
+            double first = double.PositiveInfinity;
+
+            if (item is DisplayRay2 ray)
+            {
+                DisplayBox around = bounds.Inflate(Math.Max(1.0, Math.Max(bounds.Width, bounds.Height)));
+                return ray.TryClip(around, out double x0, out double y0, out double x1, out double y1)
+                    ? AlongFence(fence, x0, y0, x1, y1)
+                    : first;
+            }
+
+            foreach (KeyValuePair<double[], bool> chain in Chains(item))
+            {
+                double[] xy = chain.Key;
+                int n = xy.Length / 2;
+
+                if (n == 1)
+                {
+                    first = Math.Min(first, AlongFence(fence, xy[0], xy[1], xy[0], xy[1]));
+                }
+
+                for (int k = 0; k + 1 < n || (chain.Value && n > 2 && k < n); k++)
+                {
+                    int next = k + 1 < n ? k + 1 : 0;
+                    first = Math.Min(
+                        first,
+                        AlongFence(fence, xy[2 * k], xy[2 * k + 1], xy[2 * next], xy[2 * next + 1])
+                    );
+                }
+            }
+
+            return first;
+        }
+
+        /// <summary>How far along the fence a segment first meets it: the number of the first fence segment it meets plus the part of that segment up to where it does; infinity where it meets none.</summary>
+        private static double AlongFence(IReadOnlyList<GeoPoint2> fence, double ax, double ay, double bx, double by)
         {
             for (int i = 1; i < fence.Count; i++)
             {
                 GeoPoint2 c = fence[i - 1];
                 GeoPoint2 d = fence[i];
 
-                if (
-                    Math.Max(ax, bx) < Math.Min(c.X, d.X)
-                    || Math.Min(ax, bx) > Math.Max(c.X, d.X)
-                    || Math.Max(ay, by) < Math.Min(c.Y, d.Y)
-                    || Math.Min(ay, by) > Math.Max(c.Y, d.Y)
-                )
+                if (!MeetsSegment(c, d, ax, ay, bx, by))
                 {
                     continue;
                 }
 
-                double d1 = Side(c.X, c.Y, d.X, d.Y, ax, ay);
-                double d2 = Side(c.X, c.Y, d.X, d.Y, bx, by);
-                double d3 = Side(ax, ay, bx, by, c.X, c.Y);
-                double d4 = Side(ax, ay, bx, by, d.X, d.Y);
+                double rx = d.X - c.X;
+                double ry = d.Y - c.Y;
+                double sx = bx - ax;
+                double sy = by - ay;
+                double rr = rx * rx + ry * ry;
 
-                // Of opposite sides or on the line, each of the other; two segments along one line meet where their boxes do.
-                if (
-                    !(d1 > 0.0 && d2 > 0.0)
-                    && !(d1 < 0.0 && d2 < 0.0)
-                    && !(d3 > 0.0 && d4 > 0.0)
-                    && !(d3 < 0.0 && d4 < 0.0)
-                )
+                if (!(rr > 0.0))
+                {
+                    return i - 1;
+                }
+
+                // Across the fence's segment: where the two lines cross. Along it, or a point: the first end met.
+                double cross = rx * sy - ry * sx;
+                double part =
+                    Math.Abs(cross) > 1E-12 * Math.Sqrt(rr * (sx * sx + sy * sy))
+                        ? ((ax - c.X) * sy - (ay - c.Y) * sx) / cross
+                        : Math.Min((ax - c.X) * rx + (ay - c.Y) * ry, (bx - c.X) * rx + (by - c.Y) * ry) / rr;
+                return i - 1 + Math.Min(1.0, Math.Max(0.0, part));
+            }
+
+            return double.PositiveInfinity;
+        }
+
+        /// <summary>Whether a segment meets one of the segments of a fence, an end on a segment or two segments along one line counted.</summary>
+        private static bool MeetsFence(IReadOnlyList<GeoPoint2> fence, double ax, double ay, double bx, double by)
+        {
+            for (int i = 1; i < fence.Count; i++)
+            {
+                if (MeetsSegment(fence[i - 1], fence[i], ax, ay, bx, by))
                 {
                     return true;
                 }
             }
 
             return false;
+        }
+
+        /// <summary>Whether a segment meets the segment from one point to another, an end on it or the two along one line counted.</summary>
+        private static bool MeetsSegment(GeoPoint2 c, GeoPoint2 d, double ax, double ay, double bx, double by)
+        {
+            if (
+                Math.Max(ax, bx) < Math.Min(c.X, d.X)
+                || Math.Min(ax, bx) > Math.Max(c.X, d.X)
+                || Math.Max(ay, by) < Math.Min(c.Y, d.Y)
+                || Math.Min(ay, by) > Math.Max(c.Y, d.Y)
+            )
+            {
+                return false;
+            }
+
+            double d1 = Side(c.X, c.Y, d.X, d.Y, ax, ay);
+            double d2 = Side(c.X, c.Y, d.X, d.Y, bx, by);
+            double d3 = Side(ax, ay, bx, by, c.X, c.Y);
+            double d4 = Side(ax, ay, bx, by, d.X, d.Y);
+
+            // Of opposite sides or on the line, each of the other; two segments along one line meet where their boxes do.
+            return !(d1 > 0.0 && d2 > 0.0)
+                && !(d1 < 0.0 && d2 < 0.0)
+                && !(d3 > 0.0 && d4 > 0.0)
+                && !(d3 < 0.0 && d4 < 0.0);
         }
 
         /// <summary>The outline of an item as chains of points, each with whether it closes: an arc flattened, a fill's rings, the box of a text or a viewport.</summary>
