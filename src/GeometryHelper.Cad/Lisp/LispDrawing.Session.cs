@@ -20,6 +20,9 @@ namespace GeometryHelper.Cad.Lisp
             lisp.Define("ALERT", 1, 1, a => Alert(lisp, session, LispInterpreter.Str(a[0])));
             lisp.Define("GRTEXT", 0, 3, a => GrText(a));
             lisp.Define("REDRAW", 0, 2, a => Redraw(a));
+            lisp.Define("TEXTSCR", 0, 0, a => Screen(lisp, session, "TEXTSCR"));
+            lisp.Define("TEXTPAGE", 0, 0, a => Screen(lisp, session, "TEXTSCR"));
+            lisp.Define("GRAPHSCR", 0, 0, a => Screen(lisp, session, "GRAPHSCR"));
         }
 
         #region trans
@@ -330,6 +333,22 @@ namespace GeometryHelper.Cad.Lisp
             lisp.OnOwner(() =>
             {
                 session.ShowAlert(text);
+                return null;
+            });
+            return null;
+        }
+
+        /// <summary>
+        /// <c>(textscr)</c>, <c>(textpage)</c> and <c>(graphscr)</c>: ask the window to show the text window with the command
+        /// history (as F2 does) or to put it away; where nobody shows one, nothing happens. They give nil, as in AutoCAD 2021's
+        /// console (probe g7). The presenter's text window keeps its history, so <c>textpage</c>, which AutoCAD clears the text
+        /// screen with, shows it as <c>textscr</c> does.
+        /// </summary>
+        private static object Screen(LispInterpreter lisp, CadCommandSession session, string request)
+        {
+            lisp.OnOwner(() =>
+            {
+                session.Request(request, session.Document);
                 return null;
             });
             return null;

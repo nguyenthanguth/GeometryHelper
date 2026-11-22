@@ -148,6 +148,7 @@ namespace GeometryHelper.Cad.Wpf
             DynamicInput.PropertyChanged += OnDynamicInputChanged;
             PropertyChanged += OnInputSourceChanged;
             StartLoadSecurity();
+            StartLispEnvironment();
             ZoomExtentsCommand = new DelegateCommand(_ => Execute("ZOOM E"));
             PanCommand = new DelegateCommand(_ => StartCommand("PAN"));
             OpenCommand = new DelegateCommand(_ => OpenRequested?.Invoke(this, EventArgs.Empty));
@@ -1856,6 +1857,7 @@ namespace GeometryHelper.Cad.Wpf
             file.Session.UiRequested += OnUiRequested;
             file.Session.DclHost = _dclHost;
             file.Session.LoadSecurity = _loadSecurity;
+            file.Session.LispEnvironment = _lispEnvironment;
             file.Session.SelectionFilter.FilePath = FilterListsPath;
             file.Session.Clipboard = _clipboard;
             file.Session.SpellDictionaryPath = _spellDictionaryPath;
@@ -2178,6 +2180,9 @@ namespace GeometryHelper.Cad.Wpf
                     break;
                 case "TEXTSCR":
                     OnTextWindowRequested(e);
+                    break;
+                case "GRAPHSCR":
+                    OnGraphScreenRequested(e);
                     break;
                 case "CONSTRAINTSETTINGS":
                     OnConstraintSettingsRequested(e);

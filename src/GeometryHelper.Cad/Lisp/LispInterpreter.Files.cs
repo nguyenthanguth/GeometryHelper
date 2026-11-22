@@ -35,6 +35,12 @@ namespace GeometryHelper.Cad.Lisp
         /// </summary>
         internal Func<string> KeyboardLine { get; set; }
 
+        /// <summary>
+        /// Says whether a file lies where <c>findtrustedfile</c> may give it: the folders of the program and the trusted ones, or
+        /// anywhere at SECURELOAD 0. Nothing is asked. Null, as it is until set, trusts every file.
+        /// </summary>
+        internal Func<string, bool> IsTrusted { get; set; }
+
         private void RegisterFiles()
         {
             Define("OPEN", 2, 3, Open);
@@ -44,6 +50,7 @@ namespace GeometryHelper.Cad.Lisp
             Define("WRITE-LINE", 1, 2, WriteLine);
             Define("WRITE-CHAR", 1, 2, WriteChar);
             Define("FINDFILE", 1, 1, a => FindOnPath(Str(a[0])));
+            Define("FINDTRUSTEDFILE", 1, 1, a => FindTrusted(Str(a[0])));
             Define("VL-FILENAME-BASE", 1, 1, a => FileNameBase(Str(a[0])));
             Define("VL-FILENAME-DIRECTORY", 1, 1, a => FileNameDirectory(Str(a[0])));
             Define("VL-FILENAME-EXTENSION", 1, 1, a => FileNameExtension(Str(a[0])));
@@ -371,6 +378,21 @@ namespace GeometryHelper.Cad.Lisp
             catch (Exception exception) when (IoFailure(exception)) { }
 
             return null;
+        }
+
+        /// <summary>
+        /// <c>(findtrustedfile name)</c>: <c>findfile</c> limited to the files in a trusted folder (SECURELOAD, TRUSTEDPATHS: see
+        /// <see cref="CadLoadSecurity.IsTrusted"/>); at SECURELOAD 0 every file is. A folder is never found, and no extension is
+        /// added to the name (AutoCAD 2021, probe g13).
+        /// </summary>
+        private object FindTrusted(string name)
+        {
+            if (!(FindOnPath(name) is string found) || !File.Exists(found))
+            {
+                return null;
+            }
+
+            return IsTrusted == null || (bool)OnOwner(() => IsTrusted(found)) ? found : null;
         }
 
         #endregion

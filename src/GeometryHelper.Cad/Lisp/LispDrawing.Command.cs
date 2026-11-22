@@ -16,6 +16,7 @@ namespace GeometryHelper.Cad.Lisp
             lisp.SetValue("PAUSE", Pause);
             lisp.Define("COMMAND", 0, -1, a => Command(lisp, session, a, vl: false));
             lisp.Define("VL-CMDF", 0, -1, a => Command(lisp, session, a, vl: true));
+            lisp.Define("COMMAND-S", 0, -1, a => CommandStack(lisp, session, a));
         }
 
         /// <summary>
@@ -32,6 +33,9 @@ namespace GeometryHelper.Cad.Lisp
             {
                 throw lisp.EndEvaluation("AutoCAD rejected function");
             }
+
+            // *error* may call command only where the routine said so before the error came.
+            lisp.CheckCommandAllowed();
 
             if (a.Length == 0)
             {
@@ -88,6 +92,77 @@ namespace GeometryHelper.Cad.Lisp
             }
 
             return vl ? lisp.Bool(true) : null;
+        }
+
+        /// <summary>
+        /// <c>(command-s [arg ...])</c>, the form of <c>command</c> that never waits half way: the first argument names the
+        /// command and the others answer its prompts, one after the other. A prompt that refuses one writes its words and takes
+        /// the next at the same prompt; what the command leaves unanswered is waited for until it ends, and the arguments it did
+        /// not take, once it has ended, are dropped. The value is nil. It is allowed in <c>*error*</c> with no
+        /// <c>*push-error-using-command*</c>. An argument that is nil, or a list that is no point, writes its words and fails
+        /// with <c>Unknown (command-s) failure.</c> as does a first argument that names no command; a symbol or a function is
+        /// <c>Invalid data type for (command-s).</c> (AutoCAD 2021, probes g6 to g6d).
+        /// </summary>
+        private static object CommandStack(LispInterpreter lisp, CadCommandSession session, object[] a)
+        {
+            if (lisp.RunningDialogs > 0)
+            {
+                throw lisp.EndEvaluation("AutoCAD rejected function");
+            }
+
+            if (a.Length == 0)
+            {
+                lisp.OnOwner(() =>
+                {
+                    session.CancelLispCommand();
+                    return null;
+                });
+                return null;
+            }
+
+            foreach (object argument in a)
+            {
+                string words = null;
+
+                switch (argument)
+                {
+                    case null:
+                        words = "Application ERROR: Invalid type sent as command input";
+                        break;
+                    case string _:
+                    case int _:
+                    case double _:
+                    case LispEntityName _:
+                    case LispSelectionSet _:
+                        break;
+                    case LispCons _ when PointOf(argument) != null:
+                        break;
+                    case LispCons _:
+                        words = "Application ERROR: Invalid entity/point list.";
+                        break;
+                    default:
+                        throw new LispException("Invalid data type for (command-s).");
+                }
+
+                if (words != null)
+                {
+                    lisp.WriteFreshLine();
+                    lisp.Write(words + "\n");
+                    throw new LispException("Unknown (command-s) failure.");
+                }
+            }
+
+            if ((bool)lisp.OnOwner(() => session.FeedLispStack(a)))
+            {
+                lisp.Ask(new LispAsk { Kind = LispAskKind.Pause, UntilEnd = true });
+            }
+
+            lisp.OnOwner(() =>
+            {
+                session.EndLispStack();
+                return null;
+            });
+            return null;
         }
     }
 }

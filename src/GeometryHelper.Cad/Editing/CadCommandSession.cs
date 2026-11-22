@@ -1670,7 +1670,7 @@ namespace GeometryHelper.Cad
             Changed();
 
             // The command a routine's PAUSE waits at asked its next prompt: the routine goes on with its next argument.
-            if (_lispPause && _pauseCommand != null && ReferenceEquals(Current, _pauseCommand))
+            if (_lispPause && !_pauseUntilEnd && _pauseCommand != null && ReferenceEquals(Current, _pauseCommand))
             {
                 ResumePause(CadCommandOutcome.Completed);
             }

@@ -43,6 +43,15 @@ namespace GeometryHelper.Cad.Lisp
             lisp.Define("VLAX-INVOKE", 2, -1, a => InvokeMethod(lisp, ax, a, legacy: true));
 
             lisp.Define("VLAX-MAP-COLLECTION", 2, 2, a => MapCollection(lisp, ax, a));
+            lisp.Define("VLAX-DUMP-OBJECT", 1, 2, a =>
+            {
+                LispVlaObject target = LispActiveX.ObjectOf(a[0]);
+                bool methods = a.Length > 1 && a[1] != null;
+                string text = (string)lisp.OnOwner(() => ax.DumpText(target, methods));
+                lisp.WriteFreshLine();
+                lisp.Write(text);
+                return lisp.Bool(true);
+            });
             lisp.Define("VLAX-PROPERTY-AVAILABLE-P", 2, 3, a =>
             {
                 LispVlaObject target = LispActiveX.ObjectOf(a[0]);

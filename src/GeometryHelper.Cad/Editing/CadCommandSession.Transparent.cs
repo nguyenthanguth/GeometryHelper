@@ -84,10 +84,12 @@ namespace GeometryHelper.Cad
                 return false;
             }
 
-            CadCommand command = Registry.Find(typed.Substring(1));
+            // The _ and . that menus and routines put in front of the name (<c>'_.ZOOM</c>) are taken off, as for any typed name.
+            string named = WithoutPrefixes(typed.Substring(1));
+            CadCommand command = Registry.Find(named);
 
             // A variable's name is a transparent command of its own: it asks its new value, in SETVAR's words.
-            if (command == null && Registry.FindVariable(typed.Substring(1)) is CadSystemVariable variable)
+            if (command == null && Registry.FindVariable(named) is CadSystemVariable variable)
             {
                 command = new CadCommand(variable.Name, c => CadCommands.TypedVariable(c, variable));
             }
@@ -150,14 +152,16 @@ namespace GeometryHelper.Cad
                 return null;
             }
 
-            CadCommand command = Registry.Find(name.Substring(1));
+            // The _ and . that menus and routines put in front of the name ('_.ZOOM) are taken off.
+            string named = WithoutPrefixes(name.Substring(1));
+            CadCommand command = Registry.Find(named);
 
             if (command == null)
             {
-                return Registry.FindVariable(name.Substring(1)) != null ? name.Substring(1) : null;
+                return Registry.FindVariable(named) != null ? named : null;
             }
 
-            return Array.IndexOf(Transparents, command.Name) >= 0 ? name.Substring(1) : null;
+            return Array.IndexOf(Transparents, command.Name) >= 0 ? named : null;
         }
 
         /// <summary>

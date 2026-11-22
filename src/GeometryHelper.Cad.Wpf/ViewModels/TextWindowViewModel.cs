@@ -13,6 +13,12 @@ namespace GeometryHelper.Cad.Wpf
     {
         internal TextWindowViewModel(ObservableCollection<string> lines) => Lines = lines;
 
+        /// <summary>Occurs when AutoLISP's <c>graphscr</c> asks for the text window to be put away; the window that shows it closes itself.</summary>
+        public event System.EventHandler CloseRequested;
+
+        /// <summary>Asks the window that shows this one to close, as <c>(graphscr)</c> does; nothing happens where none is shown.</summary>
+        public void RequestClose() => CloseRequested?.Invoke(this, System.EventArgs.Empty);
+
         /// <summary>Gets the lines of the command line's history, the oldest first.</summary>
         public ObservableCollection<string> Lines { get; }
 

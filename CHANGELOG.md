@@ -76,6 +76,34 @@ Applications list load at once in the order of the drop, with `Successfully load
 gains `Places`, `Place`, `IsThisPc`, `Enter`, `LoadDropped` and `ShowMessage`, and `AppLoadPlace`, `AppLoadPlaceKind`;
 `AppLoadEntry` gains `Size`, `DriveType` and `IsDrive`. Up at a drive's root is no longer greyed.
 
+**NEW.** Seventy-one more AutoLISP functions, each measured in AutoCAD 2021 (its console, and the full AutoCAD for
+`vlax-dump-object`) before it was written. Error handling: `command-s`, which feeds one command, takes the next argument at the
+same prompt where a prompt refuses one (`(command-s "_.CIRCLE" "0,0" "abc" "7")` writes `Requires numeric radius, point on
+circumference, or "D".` and makes the circle of radius 7), drops what the command leaves when it ends and waits until the command
+ends where its arguments run out; and `*push-error-using-command*`, `*push-error-using-stack*` and `*pop-error-mode*`, with the
+rule they decide: `command` and `vl-cmdf` inside `*error*` write `Cannot invoke (command) from *error* without prior call to
+(*push-error-using-command*).` and `Converting (command) calls to (command-s) is recommended.` unless the routine pushed
+`*push-error-using-command*` before the error, which is the case of a great many routines written for AutoCAD 2015 and later.
+`getenv`, `setenv`, `getcfg` and `setcfg` keep a routine's settings between drawings and runs: the app saves them in the Global
+settings file (`lispEnvironment`), the library keeps them in memory, and `getenv` falls back to the Windows environment as
+AutoCAD does (`(setenv "ZZ" "a")` then `(getenv "zz")` is `"a"`; set to `""` it is gone). Strings and numbers: `snvalid` (with its
+second argument that lets a vertical bar stand inside a name), `acad_strlsort`, `xstrcase`, `ver`, `vl-infp`, `vl-nanp`. The
+screen: `textscr`, `textpage` and `graphscr` show and put away the text window of F2. `autoload`, built as AutoCAD's
+`acad2021doc.lsp` makes it (`Initializing...`, the file, then the command), and `findtrustedfile`. `vlax-dump-object` writes the
+interface and the properties of an object, and with a second argument the methods, in AutoCAD's layout (`; IAcadLine: AutoCAD
+Line Interface`, `;   Length (RO) = 11.1803`). The older names `safearray`, `safearray-get-dim`, `-get-l-bound`, `-get-u-bound`,
+`-get-element`, `-put-element`, `-type`, `variant` and `variant-type`; and `gc`, `mem`, `alloc`, `expand` and `pragma`, `arx`
+and `ads`. What only AutoCAD can do is defined and refused with its name and the reason (`ARXLOAD is not available: ObjectARX
+applications load only in AutoCAD.`): `arxload`, `arxunload`, the twenty `vlisp-` functions, `vlax-add-cmd`,
+`vlax-remove-cmd`, `vlax-reg-app`, the three product keys, `vl-init`, `vlarts-init`, `vl-bt`, `vl-bt-on`, `vl-bt-off`,
+`c:vlide` and `c:vldebug`; `arxload` and `arxunload` give their second argument, as AutoCAD does for a failed load. The variable
+NOMUTT now mutes the prompts of `command`: with 1 and CMDECHO on, `(command "_.CIRCLE" "0,0" "5")` writes the one line `_.CIRCLE
+0,0 5 nil`.
+
+**CHANGED.** `command` and `vl-cmdf` called in an `*error*` function with no `(*push-error-using-command*)` before the error are
+now an error, as they are in AutoCAD 2021 (they ran before). A transparent command typed with the `_` and `.` in front, `'_.ZOOM`,
+runs at a prompt and at the Command prompt, as `'ZOOM` did; it was refused as an unknown name.
+
 **FIXED.** AutoLISP's `entget` listed the groups of a block made by `entmake` and of the objects round it a way AutoCAD 2021 does not
 (each measured in its console): the BLOCK of such a block has its name as group `1` (`"*U"` for an anonymous one, whatever `1`
 the list gave; a block of `-BLOCK` keeps `""`); a block with no entity names its ENDBLK as `-2`, in `tblsearch` too, and

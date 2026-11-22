@@ -62,27 +62,30 @@ session.Feed("(command \"CIRCLE\" '(0 0) 5)");              // Command: (command
 | Control | `quote`, `function`, `lambda`, `setq`, `if`, `cond`, `while`, `repeat`, `foreach`, `and`, `or`, `progn` |
 | Definitions | `defun` and `defun-q`, with local variables after a slash: `(defun f (a / b) ...)` |
 | Lists | `car`, `cdr` and the `c...r` forms, `cons`, `list`, `append`, `assoc`, `nth`, `member`, `reverse`, `length`, `subst`, `last`, `mapcar`, `apply`, `listp`, `atom`, `null`, `not` |
-| Numbers | `+ - * /`, `rem`, `1+`, `1-`, `abs`, `min`, `max`, `fix`, `float`, `gcd`, `expt`, `sqrt`, `exp`, `log`, `sin`, `cos`, `atan`, `logand`, `logior`, `lsh`, `~`, `boole`, the comparisons, `minusp`, `zerop`, `numberp` |
-| Strings | `strcat`, `substr`, `strlen`, `strcase`, `ascii`, `chr`, `atoi`, `atof`, `itoa`, `wcmatch`, `vl-symbol-name`, `vl-princ-to-string`, `vl-prin1-to-string` |
+| Numbers | `+ - * /`, `rem`, `1+`, `1-`, `abs`, `min`, `max`, `fix`, `float`, `gcd`, `expt`, `sqrt`, `exp`, `log`, `sin`, `cos`, `atan`, `logand`, `logior`, `lsh`, `~`, `boole`, the comparisons, `minusp`, `zerop`, `numberp`, `vl-infp`, `vl-nanp` |
+| Strings | `strcat`, `substr`, `strlen`, `strcase`, `ascii`, `chr`, `atoi`, `atof`, `itoa`, `wcmatch`, `vl-symbol-name`, `vl-princ-to-string`, `vl-prin1-to-string`, `snvalid`, `acad_strlsort`, `xstrcase` |
 | Output | `princ`, `prin1`, `print`, `prompt`, `terpri` |
-| Errors | `*error*`, `vl-catch-all-apply`, `vl-catch-all-error-p`, `vl-catch-all-error-message`, `exit`, `quit` |
+| Errors | `*error*`, `vl-catch-all-apply`, `vl-catch-all-error-p`, `vl-catch-all-error-message`, `exit`, `quit`, `*push-error-using-command*`, `*push-error-using-stack*`, `*pop-error-mode*` |
 | Units | `rtos`, `angtos`, `distof`, `angtof`, which read the drawing's LUNITS, LUPREC, AUNITS, AUPREC and DIMZIN; `cvunit`, which converts between units |
 | Geometry | `angle`, `distance`, `polar`, `inters` |
-| The rest | `type`, `eval`, `read`, `set`, `boundp`, `eq`, `equal`, `load`, `defun-q-list-ref`, `defun-q-list-set`, `vl-symbol-value`, `vl-symbolp`, `vl-consp`, `vl-load-com` (which defines the [ActiveX functions](#activex-objects)) |
+| The rest | `type`, `eval`, `read`, `set`, `boundp`, `eq`, `equal`, `load`, `defun-q-list-ref`, `defun-q-list-set`, `vl-symbol-value`, `vl-symbolp`, `vl-consp`, `vl-load-com` (which defines the [ActiveX functions](#activex-objects)), `ver`, `autoload` |
 | Visual LISP lists | `vl-sort`, `vl-sort-i`, `vl-position`, `vl-remove`, `vl-remove-if`, `vl-remove-if-not`, `vl-member-if`, `vl-member-if-not`, `vl-some`, `vl-every`, `vl-list*`, `vl-list-length` |
 | Visual LISP strings | `vl-string-search`, `vl-string-subst`, `vl-string-position`, `vl-string-mismatch`, `vl-string-elt`, `vl-string-translate`, `vl-string-trim`, `vl-string-left-trim`, `vl-string-right-trim`, `vl-string->list`, `vl-list->string` |
-| Files | `open`, `close`, `read-line`, `read-char`, `write-line`, `write-char`, `findfile`, `vl-filename-base`, `vl-filename-directory`, `vl-filename-extension`, `vl-filename-mktemp`, `vl-file-size`, `vl-file-systime`, `vl-file-directory-p`, `vl-file-copy`, `vl-file-rename`, `vl-file-delete`, `vl-mkdir`, `vl-directory-files` |
+| Files | `open`, `close`, `read-line`, `read-char`, `write-line`, `write-char`, `findfile`, `vl-filename-base`, `vl-filename-directory`, `vl-filename-extension`, `vl-filename-mktemp`, `vl-file-size`, `vl-file-systime`, `vl-file-directory-p`, `vl-file-copy`, `vl-file-rename`, `vl-file-delete`, `vl-mkdir`, `vl-directory-files`, `findtrustedfile` |
 | Registry, blackboard, drawings | `vl-registry-read`, `vl-registry-write`, `vl-registry-delete`, `vl-registry-descendents`, `vl-bb-set`, `vl-bb-ref`, `vl-propagate`, `vl-load-all`, `vl-doc-ref`, `vl-doc-set`, and the VLX group (`vl-doc-export`, `vl-doc-import`, `vl-list-exported-functions`, `vl-vlx-loaded-p`, `vl-unload-vlx`, `vl-list-loaded-vlx`, `vl-get-resource`) |
-| ActiveX variants and safearrays | after `vl-load-com`: `vlax-make-variant`, `vlax-variant-type`, `vlax-variant-value`, `vlax-variant-change-type`, `vlax-make-safearray`, `vlax-safearray-fill`, `vlax-safearray->list`, `vlax-safearray-get-element`, `vlax-safearray-put-element`, `vlax-safearray-get-dim`, `vlax-safearray-get-l-bound`, `vlax-safearray-get-u-bound`, `vlax-safearray-type`, `vlax-3d-point`, `vlax-tmatrix`, `variant-value`, `safearray-value`, and the constants `vlax-vbEmpty` to `vlax-vbArray`; `:vlax-true` and `:vlax-false` always |
-| Commands | `command`, `vl-cmdf`, and the symbol `PAUSE` |
+| ActiveX variants and safearrays | after `vl-load-com`: `vlax-make-variant`, `vlax-variant-type`, `vlax-variant-value`, `vlax-variant-change-type`, `vlax-make-safearray`, `vlax-safearray-fill`, `vlax-safearray->list`, `vlax-safearray-get-element`, `vlax-safearray-put-element`, `vlax-safearray-get-dim`, `vlax-safearray-get-l-bound`, `vlax-safearray-get-u-bound`, `vlax-safearray-type`, `vlax-3d-point`, `vlax-tmatrix`, `variant-value`, `safearray-value`, and the constants `vlax-vbEmpty` to `vlax-vbArray`; `:vlax-true` and `:vlax-false` always, and their older names `safearray`, `safearray-get-dim`, `safearray-get-l-bound`, `safearray-get-u-bound`, `safearray-get-element`, `safearray-put-element`, `safearray-type`, `variant` and `variant-type` |
+| Environment | `getenv`, `setenv`, `getcfg`, `setcfg` |
+| Memory and the old interpreter | `gc`, `mem`, `alloc`, `expand`, `pragma`, `arx`, `ads`, which do nothing or give what an empty session gives |
+| AutoCAD alone | `arxload`, `arxunload`, the twenty `vlisp-` functions, `vlax-add-cmd`, `vlax-remove-cmd`, `vlax-reg-app`, the three product keys, `vl-init`, `vlarts-init`, `vl-bt`, `vl-bt-on`, `vl-bt-off`, `c:vlide` and `c:vldebug`, which are defined and refused |
+| Commands | `command`, `vl-cmdf`, `command-s`, and the symbol `PAUSE` |
 | Asking | `getpoint`, `getcorner`, `getdist`, `getangle`, `getorient`, `getint`, `getreal`, `getstring`, `getkword`, `initget`, `entsel`, `nentsel`, `nentselp`, `getfiled` |
 | Selection sets | `ssget`, `sslength`, `ssname`, `ssadd`, `ssdel`, `ssmemb`, `sssetfirst`, `ssgetfirst` |
 | Entities | `entget`, `entmod`, `entmake`, `entdel`, `entupd`, `entnext`, `entlast`, `handent` |
 | Tables | `tblsearch`, `tblnext`, `tblobjname` |
 | Variables | `getvar`, `setvar` |
-| The session | `trans`, `osnap`, `alert`, `grtext`, `redraw`, `textbox` |
+| The session | `trans`, `osnap`, `alert`, `grtext`, `redraw`, `textbox`, `textscr`, `textpage`, `graphscr` |
 | ActiveX curves | after `vl-load-com`: the eighteen `vlax-curve-` functions, `getStartParam` to `isPlanar` |
-| ActiveX objects | after `vl-load-com`: `vlax-get-acad-object`, `vlax-ename->vla-object`, `vlax-vla-object->ename`, `vlax-get-property`, `vlax-put-property`, `vlax-invoke-method`, `vlax-get`, `vlax-put`, `vlax-invoke`, `vlax-for` (before it too), `vlax-map-collection`, `vlax-property-available-p`, `vlax-method-applicable-p`, `vlax-object-released-p`, `vlax-release-object`, `vlax-erased-p`, `vlax-read-enabled-p`, `vlax-write-enabled-p`, `vlax-typeinfo-available-p`; refused with a message: `vlax-create-object`, `vlax-get-object`, `vlax-get-or-create-object`, `vlax-import-type-library` |
+| ActiveX objects | after `vl-load-com`: `vlax-get-acad-object`, `vlax-ename->vla-object`, `vlax-vla-object->ename`, `vlax-get-property`, `vlax-put-property`, `vlax-invoke-method`, `vlax-get`, `vlax-put`, `vlax-invoke`, `vlax-for` (before it too), `vlax-map-collection`, `vlax-property-available-p`, `vlax-method-applicable-p`, `vlax-object-released-p`, `vlax-release-object`, `vlax-erased-p`, `vlax-read-enabled-p`, `vlax-write-enabled-p`, `vlax-typeinfo-available-p`; refused with a message: `vlax-create-object`, `vlax-get-object`, `vlax-get-or-create-object`, `vlax-import-type-library`, `vlax-dump-object` |
 | ActiveX members | after `vl-load-com`: 143 `vla-get-`, `vla-put-` and method functions of the objects of the drawing |
 | Dialogs | `load_dialog`, `unload_dialog`, `new_dialog`, `start_dialog`, `done_dialog`, `term_dialog`, `action_tile`, `get_tile`, `set_tile`, `mode_tile`, `get_attr`, `client_data_tile`, `start_list`, `add_list`, `end_list`, `start_image`, `fill_image`, `vector_image`, `slide_image`, `end_image`, `dimx_tile`, `dimy_tile`, and the variables `$key`, `$value`, `$reason`, `$data`, `$x` and `$y` inside an action |
 
@@ -507,6 +510,53 @@ values AutoCAD reads for it (DIMASZ 0.18, DIMSTYLE Standard, CELTYPE Continuous)
 in both programs. UNDO keeps the settings of AutoCAD's window (`Combine = Yes, Layer = Yes`), where the console reads
 `Combine = No, Layer = No`: UNDO's settings line is the one place a routine's transcript differs there.
 
+### command-s
+
+`command-s` takes the same arguments and gives `nil`, but it feeds one command and never lets the routine go on half way.
+The first argument names the command; each of the others answers its prompts in turn. A prompt that refuses one writes its
+words and takes the next argument at the same prompt, where `command` would give `Function cancelled`:
+`(command-s "_.CIRCLE" "0,0" "abc" "7")` writes `Requires numeric radius, point on circumference, or "D".` and makes a circle
+of radius 7. When the command has ended, the arguments left are dropped (`(command-s "_.POINT" "0,0" "_.POINT" "1,1")` makes one
+point); when the arguments run out first, the routine waits until the command ends, whatever the user types going to it, and
+Esc gives `nil`, not `Function cancelled`. A transparent command in the arguments (`"'_.ZOOM"`) runs inside the command. With
+CMDECHO on, the value follows the last line the command wrote (`Specify radius of circle or [Diameter]: 5 nil`) where `command`
+starts a Command prompt for it.
+
+A first argument that names no command, an empty one or a number is `; error: Unknown (command-s) failure.`, and `nil` and a
+list that is no point are written first as `Application ERROR: Invalid type sent as command input` and `Application ERROR:
+Invalid entity/point list.`, before anything has run; a symbol or a function is `Invalid data type for (command-s).`.
+
+`command` and `vl-cmdf` are refused in `*error*` unless the routine said before the error that its handler uses them:
+
+```text
+Command: (defun *error* (m) (command "_.POINT" "0,0"))
+Command: (c:myroutine)
+Cannot invoke (command) from *error* without prior call to (*push-error-using-command*).
+Converting (command) calls to (command-s) is recommended.
+```
+
+`(*push-error-using-command*)` in the routine, before the error, allows them; `(*push-error-using-stack*)` says the handler
+uses `command-s`, which is always allowed; `(*pop-error-mode*)` takes the last back (it is `(*pop-error-mode*) underflow.` with
+none pushed). The innermost mode counts, and the modes last to the end of the evaluation that pushed them, so one typed on a
+line does not reach the next. A push inside the handler is too late. With no `*error*` at all and the command mode pushed, the
+message is lost: AutoCAD writes `"INTERNAL error in FAIL\nmessage lost, reset to top"` and so does the presenter.
+
+### NOMUTT
+
+With NOMUTT at 1 and CMDECHO on, `command` writes no prompts: one line holds the name of the command and each argument as it
+was typed, each followed by a space, and the value of the routine's form goes on the same line:
+
+```text
+Command: (command "_.CIRCLE" "0,0" "5")
+_.CIRCLE 0,0 5 nil
+```
+
+A point, an empty string and `nil` are not written, an entity name or a selection set is two spaces, and text the routine had
+written on the line stays in front (`a_.REGEN b_.REGEN c"c"` for `princ`es round two `command`s). An argument the prompt refuses
+ends the line, and its words come under it; an unknown name is `NOSUCH Unknown command "NOSUCH".  Press F1 for help.` and `nil` on
+the next line. With CMDECHO 0 nothing is written but the words of a refusal, as before. Left out: the prompts a muted call
+leaves running are still shown to what the user types after it, and a `PAUSE` writes the line so far before the prompt.
+
 ## Asking the user
 
 The get functions ask the user and give back what was answered. The prompt is shown as the routine gave it: the text up to
@@ -801,7 +851,7 @@ Variables added for routines:
 | `UCSXDIR`, `UCSYDIR` | read-only: the axes of the UCS |
 | `LISPINIT` | read-only, 1 |
 | `BLIPMODE`, `MENUECHO` | kept and without effect |
-| `NOMUTT` | 0 or 1, kept for the session, 0 at first; AutoCAD's 1 mutes the prompts of a routine's `command`, which the presenter does not, so a routine that sets it and puts it back (`(setvar 'nomutt 1)` of TE) runs as before |
+| `NOMUTT` | 0 or 1, kept for the session, 0 at first; with 1 and CMDECHO on, a routine's `command` writes [one line](#nomutt) and no prompts |
 | every dimension variable | `DIMASZ`, `DIMTXSTY`, `DIMSAH`, `DIMBLK1` and the rest, as system variables of the drawing's header, typed alone or set with SETVAR with AutoCAD's prompts (`Enter new value for DIMSAH <OFF>:` takes ON or OFF); the name of an arrowhead (`DIMBLK`, `DIMBLK1`, `DIMBLK2`, `DIMLDRBLK`) is read without its underscore, `"_None"` as `"None"` and `"_DOT"` as `"Dot"`, a period is the default, `""` is refused and an unknown block writes `Block "nosuch" not defined` before the refusal |
 
 ## Geometry, units and the session
@@ -1584,7 +1634,7 @@ older `vlax-get-property`, `vlax-put-property` and `vlax-invoke-method`, and the
 The properties of a layer, a text style, a linetype and a dimension style are read only. `vla-put-Color` of a layer is
 `vla-put-Color: changing a table record is not supported by GeometryHelper.Cad yet`, and the setters that only a layer has
 (`LayerOn`, `Freeze`, `Lock`) are not defined; the layer commands change them. A member the table does not list is not
-defined as a `vla-` function. `vlax-dump-object` is not there either.
+defined as a `vla-` function. `vlax-dump-object` [lists the members it does](#vlax-dump-object).
 
 ```text
 Command: (setq ly (vla-Item lays "Off"))
@@ -2050,11 +2100,43 @@ It is an error and not `nil` for every program, where AutoCAD gives `nil` for on
 `vl-catch-all-apply`. The `vlax-put-property`, `vlax-invoke-method` and `vla-put-Visible` calls such a routine makes on
 Excel's objects are never reached.
 
+### vlax-dump-object
+
+`(vlax-dump-object obj)` writes the interface of an object, what it is, and each property it has with its value, in
+alphabetical order, `(RO)` after a name that cannot be set, and gives `T`; a second argument that is not `nil` adds the methods
+with the number of their parameters:
+
+```text
+Command: (vlax-dump-object (vlax-ename->vla-object (entlast)) T)
+; IAcadLine: AutoCAD Line Interface
+; Property values:
+;   Angle (RO) = 0.463648
+;   Application (RO) = #<VLA-OBJECT IAcadApplication 000001e4a7f3c2a0>
+;   Delta (RO) = (10.0 5.0 0.0)
+;   EndPoint = (10.0 5.0 0.0)
+;   Layer = "0"
+;   Length (RO) = 11.1803
+;   Visible = -1
+; Methods supported:
+;   Delete (0)
+;   GetBoundingBox (2)
+;   Highlight (1)
+;   Update (0)
+T
+```
+
+The values are written as `prin1` writes them: a Boolean as -1 or 0, a point as a list, a string in quotes. The line after the
+interface's name is the one AutoCAD's type library gives (`A logical grouping of data, similar to transparent acetate overlays
+on a drawing` for a layer, `An AutoCAD drawing` for the document); an interface not listed in the source is worded as
+`AutoCAD Arc Interface` is. AutoCAD lists every member of an interface and the presenter those of its own object model (the
+table of this section), so a dump has fewer lines. A property AutoCAD cannot give is written as `AutoCAD.Application`, and the
+presenter does the same for a value it has none for. A value that is no object is `bad argument type: VLA-OBJECT 5`.
+
 ### What is parked in the ActiveX stage
 
-These are not defined, and a call is `; error: no function definition: NAME`: `vlax-dump-object`, `vlax-ldata-get`,
-`-put`, `-list`, `-delete` and `-test`, `vlax-add-cmd` and `vlax-remove-cmd`, the product keys (`vlax-product-key` and
-the two with it) and every `vlr-` function, with `vl-load-reactors`; there are no reactors. The `Layouts` and `Documents`
+These are not defined, and a call is `; error: no function definition: NAME`: `vlax-ldata-get`,
+`-put`, `-list`, `-delete` and `-test` and every `vlr-` function, with `vl-load-reactors`; there are no reactors.
+`vlax-add-cmd`, `vlax-remove-cmd` and the product keys are [defined and refused](#functions-of-autocad-alone). The `Layouts` and `Documents`
 collections, the `Add...` methods of a space and `InsertBlock`, `Layers.Add` and `Blocks.Add`, writes to a table record,
 `Copy`, `Move`, `Rotate`, `Mirror`, `ScaleEntity`, `Explode`, `IntersectWith`, `Offset`, `GetXData` and `SetXData`,
 `SelectOnScreen`, a selection by fence or polygon, `Utility` and `Preferences` are not there either: a `vla-` function of
@@ -2429,6 +2511,86 @@ types them as an unknown command until it has loaded the file too. A value that 
 `vl-propagate`, a file with `vl-load-all`, and a value that is shared rather than copied lives on the
 [blackboard](#the-registry-the-blackboard-and-other-drawings).
 
+## The environment, AutoCAD's own functions and autoload
+
+### getenv, setenv, getcfg and setcfg
+
+AutoCAD keeps what a routine sets with `setenv` and `setcfg` in its registry, so that it is there in the next drawing and the
+next session. Here the library keeps them in memory, and the app keeps them in the Global settings file (`lispEnvironment`),
+shared by every open drawing and saved at each change, so that `(setenv "MyToolDir" "C:/Work")` in one drawing is read by
+`(getenv "MyToolDir")` in another and after a restart. The name's case does not matter. A name never set is the Windows
+environment variable of that name, as AutoCAD falls back to Windows' variables, and `nil` where there is none; setting a name to
+the empty text takes it away, so `getenv` goes back to Windows' value:
+
+```text
+Command: (setenv "ZZMyVar" "hello")
+"hello"
+Command: (getenv "zzmyvar")
+"hello"
+Command: (setenv "ZZMyVar" "")
+""
+Command: (getenv "ZZMyVar")
+nil
+Command: (getenv "COMPUTERNAME")
+"INUYASHA-MEV"
+```
+
+`getcfg` and `setcfg` take a path with a folder in it, `AppData/MyTool/Last`: the text before the last slash is the folder and
+the rest the value. `setcfg` gives the value back, the empty text too, which `getcfg` then gives (not `nil`); a path with no
+folder and name (`"MyTool"`, `"AppData/MyTool/"`) is not kept and `setcfg` gives `nil`. `getcfg` of a name in a folder that
+holds some value is the empty text where the value was never set, and `nil` where the folder holds nothing. What AutoCAD's own
+profile holds (`(getenv "MaxArray")` is `"100000"` there, `(getenv "ACAD")` its search path) is not here.
+
+### autoload
+
+`(autoload "app" '("cmd1" "cmd2"))` defines `C:CMD1` and `C:CMD2` as stubs that load the file `app` the first time one is run,
+and then run the command the file defined, as AutoCAD 2021's `acad2021doc.lsp` makes them (a command that is defined already
+is left alone). The first run writes `Initializing...`, then what the file writes; a file that is not on the search path
+writes `The file app(.lsp/.exe/.arx) was not found in your search path folders.` and the next line, and the command gives
+`nil`. While a stub works `*error*` is `*merrmsg*`, which writes the message alone, with no `; error:`. A file that does not
+define the command makes the stub load it again and again, until the stack limit. `ai_ffile`, `ai_nofile`, `_autoload` and
+`*merrmsg*` are there for the stubs, as in AutoCAD.
+
+### Functions of AutoCAD alone
+
+An ObjectARX application, the Visual LISP compiler and projects, AutoCAD's command table and registry, and its debugger and
+editor are not here. Their functions are defined, so that a routine written for AutoCAD finds the name, and a call is an error
+that says what it is and why, which `vl-catch-all-apply` catches like any other:
+
+```text
+Command: (arxload "geomcal")
+; error: ARXLOAD is not available: ObjectARX applications load only in AutoCAD.
+Command: (vlisp-compile 'st "a.lsp")
+; error: VLISP-COMPILE is not available: Visual LISP compiles and makes projects only in AutoCAD.
+```
+
+They are `arxload` and `arxunload`, the twenty `vlisp-` functions (`vlisp-compile` to `vlisp-read-project-xdv-list`),
+`vlax-add-cmd`, `vlax-remove-cmd`, `vlax-reg-app`, `vlax-product-key`, `vlax-machine-product-key`, `vlax-user-product-key`,
+`vl-init`, `vlarts-init`, `vl-bt`, `vl-bt-on`, `vl-bt-off`, `c:vlide` and `c:vldebug`. `arxload` and `arxunload` keep
+AutoCAD's second argument, what to give when the load fails: `(arxload "geomcal" nil)` is `nil` and `(arxload "x" 1)` is `1`,
+so a routine that tests for an application and goes on without it runs. `(arx)` and `(ads)` give `nil`, as no application is
+loaded (AutoCAD gives the list of what it has loaded; its console, which the measurements are from, writes an error for `ads`).
+`gc` gives `nil` and counts a collection; `mem` writes the shape of AutoCAD's report with the figures of a session just
+started; `alloc` gives the size it had and keeps the new one; `expand` gives the number of segments it was asked for; `pragma`
+checks its argument and does nothing. The refusals before `(vl-load-com)` are as in AutoCAD: all but `vlax-reg-app` and the
+product keys exist then.
+
+### Names, numbers and the screen
+
+`(snvalid "a|b")` is `nil`, and `(snvalid "a|b" 1)` is `T`: a name is valid when it is not empty, does not start or end in a
+space, and has none of the characters `"`, `*`, `,`, `/`, `:`, `;`, `<`, `=`, `>`, `?` and `\`, none of the reverse quote, and no control character; a vertical bar is allowed inside it, but not at
+either end, when the second argument is a number other than 0. `acad_strlsort` sorts a list of strings by the codes of their
+lower-case letters, one after the other, so `_` stands between `9` and `a` and `a10` comes before `a2`; words that differ only in
+case come in the reverse of the order they were given (`("b" "a" "C" "c" "A")` gives `("A" "a" "b" "c" "C")`); a list with
+anything but strings in it gives `nil`. `(xstrcase "Hello")` is `"HELLO"`. `(ver)` is `"Visual LISP 2021 (en)"`.
+
+`vl-infp` is `T` for an infinity; `vl-nanp` gives `nil` for every number, as AutoCAD 2021 does for each not-a-number a routine can
+make (`-nan(ind).0`, `nan.0`). Both give `bad argument type: numberp:` for what is no number.
+
+`(textscr)` and `(textpage)` show the text window, as F2 does, and `(graphscr)` puts it away; each gives `nil`, and does
+nothing where no window shows one. `(findtrustedfile "name")` is `findfile` for the files that lie in a trusted folder
+(the program's, and those of TRUSTEDPATHS), `nil` for any other and for a folder; at SECURELOAD 0 every file is trusted.
+
 ## What is not there yet
 
 AutoLISP is built in stages, and a function that belongs to a later one is not defined yet. Calling it writes what AutoCAD
@@ -2436,12 +2598,11 @@ writes for a name it does not know, `; error: no function definition: NAME`, so 
 above runs, and one that reaches for a later stage stops at its first such call. A routine that defines its commands loads
 whole, and their names are offered by AutoComplete, whatever their bodies need.
 
-The drawing, the library, the ActiveX functions and the dialogs are built, with these left out. Of the library, `acad_strlsort`, `getenv` and `setenv`
-(they come with the registry store, when a routine needs them), `findtrustedfile` (not brought by L6, which built the
-trusted folders it would search), `vl-load-reactors` (with the
-`vlr-` functions, which the ActiveX stage leaves out: there are no reactors), and `vl-exit-with-error` and
-`vl-exit-with-value`, which belong to VLX applications, are not defined. Of the ActiveX functions, `vlax-dump-object`,
-`vlax-ldata-get` and its family, `vlax-add-cmd`, the product keys, the `Add` methods and the editing methods of the spaces
+The drawing, the library, the ActiveX functions and the dialogs are built, with these left out. Of the library, `vl-load-reactors` (with the
+`vlr-` functions, which the ActiveX stage leaves out: there are no reactors), `grread`, `menucmd`, `menugroup`, `help`,
+`setfunhelp`, `trace`, `untrace`, `vmon`, `tablet`, `vports`, `setview`, `report`, `fnsplitl`, `acdimenableupdate`, `getcname`
+and the `_vl-` internals, and `vl-exit-with-error` and `vl-exit-with-value`, which belong to VLX applications, are not defined. Of the ActiveX functions,
+`vlax-ldata-get` and its family, the `Add` methods and the editing methods of the spaces
 and a few more are parked, and a few measured differences remain; both lists are
 [at the end of that section](#what-is-parked-in-the-activex-stage). Of the dialogs, `slide_image` draws nothing, and the
 colour tiles of `acad.dcl`, `audit_level` and the `acad.dce` file are left out, as

@@ -78,6 +78,9 @@ namespace GeometryHelper.Cad.Lisp
         /// <summary>Gets or sets the keywords <c>initget</c> gave, as written (<c>Yes</c> is typed as Y, YE or YES).</summary>
         internal IReadOnlyList<string> Keywords { get; set; } = Array.Empty<string>();
 
+        /// <summary>Gets or sets, for a <see cref="LispAskKind.Pause"/>, whether the routine waits until the command ends, as <c>command-s</c> does, and not only until it asks its next prompt, as <c>PAUSE</c> does; Esc then gives the routine nil, not <c>Function cancelled</c>.</summary>
+        internal bool UntilEnd { get; set; }
+
         /// <summary>Gets or sets whether a space is part of the text, as in <c>(getstring T)</c>.</summary>
         internal bool Spaces { get; set; }
 

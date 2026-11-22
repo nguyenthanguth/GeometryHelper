@@ -134,10 +134,11 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void AnErrorHandlerThatStartsACommand_LeavesTheCommandRunningAfterEsc()
         {
+            // AutoCAD 2021 (C4a probe g5b): command in *error* is refused unless (*push-error-using-command*) came before the error.
             CadCommandSession session = Run(
                 Session(Blank()),
                 "(defun *error* (m) (command \"LINE\" \"0,0\") (princ))",
-                "(getpoint \"P: \")",
+                "(progn (*push-error-using-command*) (getpoint \"P: \"))",
                 Esc
             );
 
@@ -149,10 +150,11 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void ACommandOfAnErrorHandler_IsItsOwnUndoStepAndTheNextCommandIsAnother()
         {
+            // AutoCAD 2021 (C4a probe g5b): command in *error* is refused unless (*push-error-using-command*) came before the error.
             CadCommandSession session = Run(
                 Session(Blank()),
                 "(defun *error* (m) (command \"LINE\" \"0,0\" \"5,5\") (princ))",
-                "(getpoint \"P: \")",
+                "(progn (*push-error-using-command*) (getpoint \"P: \"))",
                 Esc
             );
             Assert.Equal(1, Count<DxfLine>(session));
