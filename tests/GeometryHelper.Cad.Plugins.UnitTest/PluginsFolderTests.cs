@@ -9,7 +9,7 @@ using Xunit;
 namespace GeometryHelper.Cad.Plugins.UnitTest
 {
     /// <summary>
-    /// The Plugins folder beside the app: every .dll directly in it, then every subfolder, is loaded at start, in the order of
+    /// The Plugins folder beside the app: every .dll directly in it, then every folder of .dlls at any depth, is loaded at start, in the order of
     /// their names; the folder is trusted and asks nothing; a file that is not a plugin, or fails to load, is one line of the
     /// log and stops no other; and a .ghplugin is no longer taken.
     /// </summary>
@@ -243,15 +243,79 @@ namespace GeometryHelper.Cad.Plugins.UnitTest
         }
 
         [Fact]
-        public void ADllTwoLevelsDown_IsNotOneTheFolderLoadsAtStart()
+        public void ADllTwoLevelsDown_IsAPluginOfItsFolder_NamedAfterThatFolder()
         {
             string alpha = Emitted(_files.PluginFolder, "alpha", "ALPHACMD");
-            string deeper = Emitted(Path.Combine(_files.PluginFolder, "sub", "inner"), "deeper", "DEEPCMD");
+            string deeper = Emitted(Path.Combine(_files.PluginFolder, "Company", "ToolA"), "deeper", "DEEPCMD");
+            var registry = CadCommandRegistry.CreateDefault();
 
             using (CadPluginManager manager = Manager())
             {
-                Assert.Equal(new[] { alpha }, manager.LoadAtStart().Select(r => r.Plugin.Path));
-                Assert.Null(manager.Find(Path.GetFileNameWithoutExtension(deeper)));
+                manager.Attach(registry);
+
+                IReadOnlyList<CadPluginResult> started = manager.LoadAtStart();
+
+                Assert.All(started, r => Assert.True(r.Succeeded, r.ToString()));
+                Assert.Equal(new[] { alpha, Path.GetDirectoryName(deeper) }, started.Select(r => r.Plugin.Path));
+                Assert.Equal("ToolA", started[1].Plugin.Name);
+                Assert.True(started[1].Plugin.IsInstalled);
+                Assert.True(started[1].Plugin.IsTrusted);
+                Assert.NotNull(registry.Find("DEEPCMD"));
+            }
+        }
+
+        [Fact]
+        public void TheFoldersOfAPluginsTree_LoadDepthFirst_EachLevelInTheOrderOfItsNames()
+        {
+            string zeta = Emitted(_files.PluginFolder, "zeta", "ZETACMD");
+            string deepA = Emitted(Path.Combine(_files.PluginFolder, "Acme", "Tools", "ToolB"), "toolb", "TOOLBCMD");
+            string flat = Emitted(Path.Combine(_files.PluginFolder, "Acme", "ToolA"), "toola", "TOOLACMD");
+            string beta = Emitted(Path.Combine(_files.PluginFolder, "beta"), "beta", "BETACMD");
+
+            using (CadPluginManager manager = Manager())
+            {
+                IReadOnlyList<CadPluginResult> started = manager.LoadAtStart();
+
+                Assert.All(started, r => Assert.True(r.Succeeded, r.ToString()));
+                Assert.Equal(
+                    new[]
+                    {
+                        zeta,
+                        Path.GetDirectoryName(flat),
+                        Path.GetDirectoryName(deepA),
+                        Path.GetDirectoryName(beta),
+                    },
+                    started.Select(r => r.Plugin.Path)
+                );
+            }
+        }
+
+        [Fact]
+        public void AFolderWithDlls_IsOnePlugin_AndItsOwnSubfolderIsNotWalked()
+        {
+            string tool = Emitted(Path.Combine(_files.PluginFolder, "Company", "ToolA"), "toola", "TOOLACMD");
+            string inner = Emitted(Path.Combine(_files.PluginFolder, "Company", "ToolA", "lib"), "inner", "INNERCMD");
+
+            using (CadPluginManager manager = Manager())
+            {
+                CadPluginResult loaded = Assert.Single(manager.LoadAtStart());
+
+                Assert.True(loaded.Succeeded, loaded.ToString());
+                Assert.Equal(Path.GetDirectoryName(tool), loaded.Plugin.Path);
+                Assert.Null(manager.Find(Path.GetFileNameWithoutExtension(inner)));
+            }
+        }
+
+        [Fact]
+        public void AHiddenFolderOfThePluginsTree_IsNotWalked()
+        {
+            Emitted(Path.Combine(_files.PluginFolder, "Company", "ToolA"), "toola", "TOOLACMD");
+            string company = Path.Combine(_files.PluginFolder, "Company");
+            new DirectoryInfo(company).Attributes |= FileAttributes.Hidden;
+
+            using (CadPluginManager manager = Manager())
+            {
+                Assert.Empty(manager.LoadAtStart());
             }
         }
 

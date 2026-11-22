@@ -147,12 +147,17 @@ output of every project that uses the presenter. To install a plugin, put it the
 
 - **A .dll** directly in `Plugins`: one plugin, named as the file without its extension (`NumberCircles.dll` is the plugin
   `NumberCircles`). A `plugin.json` beside it is not read here, since one file could not name every .dll of the folder.
-- **A folder** in `Plugins`: one plugin made of the .dll files directly in it, its own and the libraries it needs. Where
-  the folder has a `plugin.json`, that gives the plugin its name, version and API, as above; where it has none, the plugin
-  is named after the folder. A folder with neither a .dll nor a `plugin.json` is passed over.
+- **A folder** in `Plugins`, at any depth, that holds .dll files directly: one plugin made of those .dll files, its own and
+  the libraries it needs, and the walk does not go below it. Where the folder has a `plugin.json`, that gives the plugin its
+  name, version and API, as above; where it has none, the plugin is named after the folder.
+- **A folder with no .dll and no `plugin.json`** is walked into: `Plugins\Company\ToolA\ToolA.dll` is the plugin `ToolA`,
+  and `Plugins\Company\ToolB\ToolB.dll` the plugin `ToolB`. A subfolder of a plugin's own folder is not looked at, since the
+  plugin is the folder above it. A subfolder that is a junction or a symbolic link, or is hidden or a system folder, is not
+  entered, and one that cannot be read is passed over.
 
-Everything there is loaded once, when the app starts: the .dll files first, by the order of their names (either case the
-same), then the folders in the same order; then the plugins of the startup list below. Loading goes through the manager
+Everything there is loaded once, when the app starts, in the order of the walk: the .dll files directly in `Plugins` first,
+by the order of their names (either case the same), then the folders, depth first, the folders of each level in the same
+name order; then the plugins of the startup list below. Loading goes through the manager
 described next, so a plugin of `Plugins` is copied to the shadow folder, loaded into its own load context on .NET 8, added
 to the Plugins tab and the command line, written in the load log and given the plugin API's window extensions. The folder
 lies under the program folder, so it is a trusted folder, and no question is asked. A file that is not a plugin (a library

@@ -392,6 +392,46 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
+        public void SecondAndThirdDrawingsDroppedOnTheDrawingsListOfABoundWorkspace_OpenOneAfterTheOther()
+        {
+            string second = RoomDwg("second.dwg");
+            string third = RoomDwg("third.dwg");
+
+            OnWindowThread(() =>
+            {
+                MainViewModel model = Opened();
+                var workspace = new CadWorkspace { DataContext = model };
+                workspace.Measure(new Size(1600, 960));
+                workspace.Arrange(new Rect(0, 0, 1600, 960));
+                workspace.UpdateLayout();
+
+                // The workspace answers the Missing SHX files question with a modal window, which nobody closes in a test host: a
+                // drawing written with the Standard style in txt.shx opens it, and the host waits for ever. Answered here with Cancel.
+                var asked = new List<string>();
+                model.ShowMissingShx = dialog =>
+                {
+                    asked.Add(dialog.Title);
+                    return false;
+                };
+
+                foreach (string file in new[] { second, third })
+                {
+                    var data = new DataObject();
+                    data.SetData(DataFormats.FileDrop, new[] { file });
+                    DragEventArgs onList = Drag(data, DragDrop.PreviewDropEvent);
+                    workspace.FileListPanel.RaiseEvent(onList);
+                    workspace.UpdateLayout();
+
+                    Assert.True(onList.Handled);
+                    Assert.Equal(Path.GetFullPath(file), Path.GetFullPath(model.Document.FileName));
+                    Assert.False(model.Session.IsRunning);
+                }
+
+                Assert.Equal(new[] { "Missing SHX files · second.dwg", "Missing SHX files · third.dwg" }, asked);
+            });
+        }
+
+        [Fact]
         public void TwoLspFilesDropped_LoadInTheOrderGiven_AndALspAfterADrawingLoadsIntoThatDrawing()
         {
             string b = Code(_folder, "b.lsp", "(setq ghb 1)\n");

@@ -102,7 +102,7 @@ compared by their values and by eye.
 - [x] L4. vla- and vlax- objects: the members the maintainer's routines use (about 40), on the presenter's own object
       model; COM to other programs (Excel) refused with a message
 - [ ] L4 parked: ObjectID as AutoCAD's small numbers, typed forms after a `c:` routine joining its undo step
-      (unmeasured), NOMUTT 1 muting `command` prompts, a fence's objects in the order along the fence, a crossing wholly
+      (unmeasured), a fence's objects in the order along the fence, a crossing wholly
       outside the view finding a long line (probe p4, unexplained), ZOOM's 5 % margin against AutoCAD's about 1 % and
       ZOOM n alone keeping the centre
 - [x] L5. DCL dialogs: the DCL parser and its tiles drawn as WPF, with action_tile, get_tile and set_tile (designed in
@@ -117,6 +117,20 @@ compared by their values and by eye.
 - [ ] L6 parked: the plugin manager's trusted folders kept apart from TRUSTEDPATHS and the app defaulting to SECURELOAD 1
       (the maintainer to confirm); the Security page's Add folder and writable-folder warning checked by screenshot and
       tests only, not by hand
+- [x] L7. Finishing AutoLISP in the app (maintainer 2026-11-22, "focus on finishing LISP first"). Done 2026-11-22: a
+      `Lisps` folder beside the app loaded into every drawing and on the search path, relative names (`Sub/x`, `./x.lsp`)
+      looked up along it as AutoCAD 2021 does; APPLOAD's Look in, typed folders and wildcards, list keys, Size column and
+      drops on Loaded Applications as measured in AutoCAD 2021; files dropped on the window (`(LOAD "...")`, `_SCRIPT`, the
+      Drag and Drop box, a drawing on the canvas INSERTed); 90 more functions (`command-s` and the error modes, `getenv`/`setenv`, `autoload`, `regapp`,
+      xdata, dictionaries, `vlax-ldata-*`, `entmakex`, `ssnamex`, `grdraw`/`grvecs`), 161 of AutoCAD's 489 non-vla
+      built-ins missing before, 72 after. The 19 L2 routines and L3's five against the stored AutoCAD side at e7c354e1:
+      13 of 19 and 4 of 5 identical (hh newly), the rest unchanged known differences
+- [ ] L7 parked: GRREAD; the 54 `vlr-` reactors; the rare functions (menucmd, help, trace, vmon, tablet, vports, setview,
+      `vl-exit-with-*`, `vlax-queueexpr` and the like); ldata kept as XRECORDs, which AutoCAD does not read back as ldata
+      (nor the presenter AutoCAD's VLO-VL); entmod of XRECORD, DICTIONARY and table records; ssnamex's fence crossing
+      points and the method of a pick-first set; GRCLEAR checked in the GUI; entdel keeping an extension dictionary;
+      APPLOAD's Create New Folder, View menu, visited chains in Look in and a wildcard with a folder part; dcd's MTEXT
+      42/43 still 0.0
 
 ### Python
 

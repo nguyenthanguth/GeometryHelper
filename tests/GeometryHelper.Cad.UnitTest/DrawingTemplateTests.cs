@@ -128,7 +128,7 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void TheTemplatesOfAFolder_AreTheDwtDwgAndDxfFiles_ByNameThenExtension_AndNothingElse()
+        public void TheTemplatesOfAFolder_AreTheDwtDwgAndDxfFiles_ByNameThenExtension_ThenThoseOfItsSubfolders_AndNothingElse()
         {
             foreach (string name in new[] { "b.dwt", "A.DWG", "a.dwt", "c.dxf", "notes.txt", "d.dwt.bak", "a.dxf" })
             {
@@ -139,7 +139,7 @@ namespace GeometryHelper.Cad.UnitTest
             File.WriteAllText(Path.Combine(_folder, "sub", "z.dwt"), "x");
 
             Assert.Equal(
-                new[] { "A.DWG", "a.dwt", "a.dxf", "b.dwt", "c.dxf" },
+                new[] { "A.DWG", "a.dwt", "a.dxf", "b.dwt", "c.dxf", "z.dwt" },
                 CadTemplate.FindIn(_folder).Select(Path.GetFileName)
             );
             Assert.Empty(CadTemplate.FindIn(Path.Combine(_folder, "missing")));

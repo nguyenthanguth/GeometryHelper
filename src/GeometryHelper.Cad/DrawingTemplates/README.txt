@@ -20,9 +20,11 @@ next to it.
 Where to find it: Global settings > Folder preference lists this folder, with Open folder.
 Save Drawing As to the Drawing Template type offers this folder first.
 
-What is listed: the .dwt, .dwg and .dxf files directly in this folder, by name; those in a
-subfolder are not. A template named with no folder (as typed at NEW with FILEDIA 0, or as the
-default template for QNEW) is looked for here, then as typed.
+What is listed: the .dwt, .dwg and .dxf files in this folder, by name, and then those of its
+subfolders, each in the same way, so a template at the top comes before one in a subfolder and,
+of two with one file name, the first is the one listed. A template named with no folder (as typed
+at NEW with FILEDIA 0, or as the default template for QNEW) is looked for here and in its
+subfolders, then as typed.
 
 A different folder: Global settings > Save and export > Template folder (TEMPLATEPATH) names
 one, and it is used in place of this one.

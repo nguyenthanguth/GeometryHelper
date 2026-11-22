@@ -15,9 +15,9 @@ namespace GeometryHelper.Cad.Lisp
     /// One instance belongs to one run of the program: it remembers that <c>acad.lsp</c> was loaded, so that the second
     /// drawing it is given to does not load it again. The window gives each drawing it opens to <see cref="OnDocumentOpened"/>.
     /// The Lisps folder takes the place AutoCAD gives the files that come with a program, a menu's <c>.mnl</c>, between
-    /// acaddoc.lsp and the Startup Suite. Its files load in name order, ignoring case; a file in a subfolder is not loaded
-    /// (<c>(load "Sub/x")</c> reaches it), and <c>acad.lsp</c> and <c>acaddoc.lsp</c> put there are the two files of those
-    /// names, found along the search path after the user's folders, and not loaded a second time here.
+    /// acaddoc.lsp and the Startup Suite. Its files load in the order of the walk (a folder's own files by name ignoring case, then its subfolders); a file in a subfolder is loaded too
+    /// (<c>(load "Sub/x")</c> reaches it as well), and <c>acad.lsp</c> and <c>acaddoc.lsp</c> put there are the two files of those
+    /// names, found along the search path after the user's folders, and not loaded a second time here; one in a subfolder is an ordinary file and loads in its turn.
     /// </remarks>
     public sealed class LispStartup
     {
@@ -85,57 +85,35 @@ namespace GeometryHelper.Cad.Lisp
         }
 
         /// <summary>
-        /// Loads each file of the Lisps folder, in the order of its name ignoring case: the <c>.lsp</c> files, and the compiled
-        /// ones too, which <c>load</c> refuses with its own line. <c>acad.lsp</c> and <c>acaddoc.lsp</c> are left to their own
-        /// steps. A folder that is missing or cannot be read has no files.
+        /// Loads each file of the Lisps folder and its subfolders, in the order of the walk (<see cref="CadSupportWalk"/>): a
+        /// folder's own files by name ignoring case, then its subfolders: the <c>.lsp</c> files, and the compiled ones too,
+        /// which <c>load</c> refuses with its own line. <c>acad.lsp</c> and <c>acaddoc.lsp</c> of the Lisps folder itself are
+        /// left to their own steps. A folder that is missing or cannot be read has no files.
         /// </summary>
         private static void LoadLisps(CadCommandSession session)
         {
-            foreach (string folder in session.Document.SupportRoots.ExistingOf(CadSupportKind.Lisps))
+            string root = session.Document.SupportRoots.FolderOf(CadSupportKind.Lisps);
+
+            foreach (string folder in session.Document.SupportRoots.SearchFoldersOf(CadSupportKind.Lisps))
             {
-                string[] paths;
+                bool top = string.Equals(folder, root, StringComparison.OrdinalIgnoreCase);
 
-                try
-                {
-                    paths = Directory.GetFiles(folder);
-                }
-                catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
-                {
-                    continue;
-                }
-
-                var files = new List<string>();
-
-                foreach (string path in paths)
-                {
-                    string name = Path.GetFileName(path);
-                    string extension = Path.GetExtension(name);
-
-                    if (
-                        (
-                            string.Equals(extension, ".lsp", StringComparison.OrdinalIgnoreCase)
-                            || string.Equals(extension, ".fas", StringComparison.OrdinalIgnoreCase)
-                            || string.Equals(extension, ".vlx", StringComparison.OrdinalIgnoreCase)
-                        )
-                        && !string.Equals(name, "acad.lsp", StringComparison.OrdinalIgnoreCase)
-                        && !string.Equals(name, "acaddoc.lsp", StringComparison.OrdinalIgnoreCase)
-                    )
+                foreach (string path in CadSupportWalk.FilesOf(folder, name =>
                     {
-                        files.Add(path);
-                    }
-                }
-
-                files.Sort(
-                    (a, b) =>
-                    {
-                        string x = Path.GetFileName(a);
-                        string y = Path.GetFileName(b);
-                        int order = string.Compare(x, y, StringComparison.OrdinalIgnoreCase);
-                        return order != 0 ? order : string.CompareOrdinal(x, y);
-                    }
-                );
-
-                foreach (string path in files)
+                        string extension = Path.GetExtension(name);
+                        return (
+                                string.Equals(extension, ".lsp", StringComparison.OrdinalIgnoreCase)
+                                || string.Equals(extension, ".fas", StringComparison.OrdinalIgnoreCase)
+                                || string.Equals(extension, ".vlx", StringComparison.OrdinalIgnoreCase)
+                            )
+                            && !(
+                                top
+                                && (
+                                    string.Equals(name, "acad.lsp", StringComparison.OrdinalIgnoreCase)
+                                    || string.Equals(name, "acaddoc.lsp", StringComparison.OrdinalIgnoreCase)
+                                )
+                            );
+                    }))
                 {
                     string file = path;
                     session.RunHosted(() => session.Lisp.Load(file));

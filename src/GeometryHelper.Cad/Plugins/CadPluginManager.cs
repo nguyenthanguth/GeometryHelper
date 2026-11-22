@@ -31,8 +31,8 @@ namespace GeometryHelper.Cad.Plugins
     /// </para>
     /// <para>
     /// <b>At every start</b> (<see cref="LoadAtStart"/>) the plugins of <see cref="PluginFolder"/> are loaded (each .dll
-    /// directly in it, then each subfolder as one plugin), then those on the startup list, which is kept with the trusted
-    /// folders in the JSON file <see cref="SettingsPath"/>.
+    /// directly in it, then each folder below it that holds .dll files as one plugin, at any depth), then those on the startup
+    /// list, which is kept with the trusted folders in the JSON file <see cref="SettingsPath"/>.
     /// </para>
     /// <para>The manager is used from one thread, the window's.</para>
     /// </remarks>
@@ -62,7 +62,7 @@ namespace GeometryHelper.Cad.Plugins
         /// <summary>Makes the manager of the presenter's plugins, reading its startup list and trusted folders from <paramref name="settingsPath"/>.</summary>
         /// <param name="loader">The loader of the runtime: <c>new CadPluginAssemblyLoader()</c> of GeometryHelper.Cad.Wpf.</param>
         /// <param name="pluginFolder">
-        /// The plugin folder, always trusted: each .dll directly in it and each subfolder of it is loaded at start. The app
+        /// The plugin folder, always trusted: each .dll directly in it and each folder below it that holds .dll files is loaded at start. The app
         /// gives its <c>Plugins</c> folder beside GeometryHelper.Cad.dll (<see cref="CadSupportKind.Plugins"/>).
         /// </param>
         /// <param name="settingsPath">The JSON file of the startup list and the trusted folders; read when it exists, written on each change.</param>
@@ -475,8 +475,8 @@ namespace GeometryHelper.Cad.Plugins
 
         /// <summary>
         /// Loads what is loaded at every start: each .dll directly in the plugin folder, in ordinal order of the names (either
-        /// case the same), then each subfolder of it as one plugin (one with a plugin.json, or with a .dll directly in it), in
-        /// the same order, then the startup list in its order. A subfolder with neither is passed over. The plugin folder is
+        /// case the same), then each folder below it that has a plugin.json or a .dll directly in it as one plugin, at any depth,
+        /// in the order of the walk (<see cref="CadSupportWalk"/>), then the startup list in its order. A folder with neither is walked into, and one with either is not. The plugin folder is
         /// trusted, so nothing is asked. A plugin loaded already is left; each other is a line of the log, and a .dll that is
         /// no plugin, or cannot be loaded, is refused with its line and does not stop the others.
         /// </summary>
@@ -677,7 +677,7 @@ namespace GeometryHelper.Cad.Plugins
                     || string.Equals(p.Path, full, StringComparison.OrdinalIgnoreCase)
                 )
             );
-            bool installed = SamePath(Path.GetDirectoryName(full), PluginFolder);
+            bool installed = IsInThePluginFolder(full);
             var entry = new CadLoadedPlugin(name, full, manifest, installed, trusted)
             {
                 Plugin = plugin,
@@ -817,9 +817,10 @@ namespace GeometryHelper.Cad.Plugins
         }
 
         /// <summary>
-        /// What the plugin folder loads at start, in its order: the full paths of the .dll files directly in it, then of the
-        /// subfolders that hold a plugin.json or a .dll directly, each group by name, either case the same, then ordinal. A
-        /// folder that is missing or cannot be read has none.
+        /// What the plugin folder loads at start, in the order of its walk (<see cref="CadSupportWalk"/>): the full paths of the
+        /// .dll files directly in it by name, then, subfolder by subfolder in name order, each folder at any depth that holds a
+        /// plugin.json or a .dll directly, as one plugin that the walk does not go below; a folder with neither is walked into,
+        /// so that Plugins\Company\ToolA\ToolA.dll is the plugin ToolA. A folder that is missing or cannot be read has none.
         /// </summary>
         private List<string> InThePluginFolder()
         {
@@ -832,18 +833,8 @@ namespace GeometryHelper.Cad.Plugins
 
             try
             {
-                var folders = new List<string>();
-
-                foreach (string folder in Directory.GetDirectories(PluginFolder))
-                {
-                    if (HoldsAPlugin(folder))
-                    {
-                        folders.Add(folder);
-                    }
-                }
-
                 found.AddRange(Sorted(DllsOf(PluginFolder)));
-                found.AddRange(Sorted(folders));
+                AddPluginFolders(PluginFolder, found);
             }
             catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException)
             {
@@ -855,6 +846,22 @@ namespace GeometryHelper.Cad.Plugins
             }
 
             return found;
+        }
+
+        /// <summary>Adds the subfolders of a folder that are a plugin, in name order, and walks into those that are not.</summary>
+        private static void AddPluginFolders(string folder, List<string> found)
+        {
+            foreach (string subfolder in CadSupportWalk.SubfoldersOf(folder))
+            {
+                if (HoldsAPlugin(subfolder))
+                {
+                    found.Add(subfolder);
+                }
+                else
+                {
+                    AddPluginFolders(subfolder, found);
+                }
+            }
         }
 
         /// <summary>Whether a subfolder of the plugin folder is a plugin: it has a plugin.json, or a .dll directly in it; one that cannot be read is not.</summary>
@@ -900,6 +907,14 @@ namespace GeometryHelper.Cad.Plugins
             );
             return paths;
         }
+
+        /// <summary>Whether a plugin's path is in the plugin folder at any depth, as a plugin of Plugins\Company\ToolA is.</summary>
+        private bool IsInThePluginFolder(string path) =>
+            path.StartsWith(
+                PluginFolder.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                    + Path.DirectorySeparatorChar,
+                StringComparison.OrdinalIgnoreCase
+            );
 
         private static bool SamePath(string a, string b) =>
             string.Equals(
