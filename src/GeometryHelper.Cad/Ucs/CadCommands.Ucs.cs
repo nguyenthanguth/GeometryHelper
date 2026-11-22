@@ -110,7 +110,7 @@ namespace GeometryHelper.Cad
             {
                 if (!systems.Previous())
                 {
-                    c.Write("No previous UCS saved.");
+                    c.Write("No previous coordinate system saved.");
                 }
             }
             else if (c.Input.Is("View"))
