@@ -122,7 +122,7 @@ namespace GeometryHelper.Cad
         /// Makes the drawing of the sample template <c>GeometryHelper-mm.dwt</c>, for a detail drawn at 1:1 in millimetres and
         /// printed on an A3 sheet: R2013, MEASUREMENT 1, INSUNITS 4 (millimetres), distances to two decimal places, limits of
         /// 42 000 by 29 700 (an A3 sheet at 1:100), LTSCALE and PSLTSCALE 1 (the dashes of the presenter's own linetypes are
-        /// millimetres: CENTER has a dash of 12), and nothing drawn.
+        /// millimetres: CENTER has a dash of 31.75), and nothing drawn.
         /// </summary>
         /// <remarks>
         /// <para>

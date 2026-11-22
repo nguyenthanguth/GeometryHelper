@@ -296,7 +296,7 @@ namespace GeometryHelper.Cad.Wpf
                     new LinetypeRowViewModel(
                         linetype.Name,
                         linetype.Description,
-                        linetype.Elements.Select(e => e.Length).ToList(),
+                        CadLinetypeFile.InUnitsOf(linetype, Document.Database).Elements.Select(e => e.Length).ToList(),
                         linetype,
                         from
                     )

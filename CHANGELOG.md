@@ -27,6 +27,8 @@ in the drawing, readable, as AutoCAD does, and a second `entdel` gives the entit
 **FIXED.** `entget` of a text style gave its slant in degrees (15.0); AutoCAD's list has radians (0.261799), and the whole list given back to
 `entmod` was refused for a style with a slant.
 
+**CHANGED.** The built-in linetypes that carry the names AutoCAD users type (BORDER, CENTER, DASHDOT, DASHED, DIVIDE, DOT, HIDDEN and PHANTOM, each with its `2` and `X2`, and GAS_LINE) take AutoCAD 2021's dash lengths, so that a drawing looks the same in both programs. In a metric drawing (MEASUREMENT 1) CENTER is `31.75, -6.35, 6.35, -6.35` (it was `12, -1.5, 3, -1.5`) and HIDDEN `6.35, -3.175` (it was `3, -1.5`), the inch values times 25.4; loaded into a drawing whose MEASUREMENT is 0 they are in inches, CENTER `1.25, -0.25, 0.25, -0.25` and HIDDEN `0.25, -0.125`, as AutoCAD takes `acad.lin` for such a drawing and `acadiso.lin` for a metric one. CENTER2 is not half of CENTER, as in AutoCAD (a dash of 19.05, not 15.875). Only the numbers are AutoCAD's: the descriptions are our own, and no Autodesk file ships. The ISO 128 names (`ACAD_ISO02W100` and the rest) are unchanged. A linetype a drawing has already is never changed by loading, so a drawing opened with the old CENTER keeps it. The shipped `Linetypes/GeometryHelper.lin` and the sample template `GeometryHelper-mm.dwt` carry the new lengths.
+
 **CHANGED.** UNDO starts with `Combine = No, Layer = No`, as AutoCAD 2021 reads them in its window and console on the maintainer's machine
 (UNDOCTL 5, and 13 inside a group), where it started with Yes and Yes. Consecutive real-time zooms and pans of the wheel are therefore a step
 of undo each until UNDO Control Combine is set to Yes, as in AutoCAD with the same profile.

@@ -22,4 +22,11 @@ that is a junction or a symbolic link, or is hidden or a system folder, is not r
 
 The drawing's own folder is not searched for linetype files.
 
+The built-in names BORDER, CENTER, DASHDOT, DASHED, DIVIDE, DOT, HIDDEN and PHANTOM (each with its 2 and X2) and
+GAS_LINE have the dash lengths AutoCAD gives those names, so that a drawing looks the same in both programs. The file
+here is in millimetres: CENTER is 31.75, -6.35, 6.35, -6.35 and HIDDEN 6.35, -3.175. Loaded into a drawing whose
+MEASUREMENT is 0 (imperial) they are in inches instead, CENTER 1.25, -0.25, 0.25, -0.25, as AutoCAD takes acad.lin for
+such a drawing and acadiso.lin for a metric one. A linetype the drawing has already is never changed by loading.
+The ACAD_ISO...W100 types are in millimetres in both.
+
 No file of Autodesk's (acad.lin, acadiso.lin) is shipped here.
