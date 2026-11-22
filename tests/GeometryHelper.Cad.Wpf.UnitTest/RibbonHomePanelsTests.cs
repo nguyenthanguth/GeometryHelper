@@ -1018,6 +1018,84 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
+        public void TheIconAndTheFirstLabelLineOfEveryLargeButtonStandAtOneHeight_PlainOrSplit()
+        {
+            OnHome(Full, (model, workspace, strip) =>
+            {
+                RibbonPanel draw = Panel(strip, "Draw");
+                List<FrameworkElement> body = BodyControls(draw);
+                var line = (ButtonBase)body[0];
+                var circle = (ButtonBase)body[2];
+                ButtonBase circleArrow = SplitArrowOf(circle);
+
+                double iconTop = Top(Descendants(line).OfType<IconView>().Single(), draw.Body);
+                double labelTop = Top(Descendants(line).OfType<TextBlock>().Single(t => t.Text == "Line"), draw.Body);
+
+                // A split: its icon is the top button's, its label the first line of the arrow's.
+                Assert.Equal(iconTop, Top(Descendants(circle).OfType<IconView>().Single(), draw.Body), 0.5);
+                Assert.Equal(
+                    labelTop,
+                    Top(Descendants(circleArrow).OfType<TextBlock>().First(t => t.Text == "Circle"), draw.Body),
+                    0.5
+                );
+
+                // And the others, plain or split, of every panel stand there too.
+                foreach (
+                    (string title, int index) in new[]
+                    {
+                        ("Draw", 1),
+                        ("Draw", 3),
+                        ("Annotation", 0),
+                        ("Annotation", 1),
+                        ("Block", 0),
+                        ("Groups", 0),
+                        ("Utilities", 0),
+                        ("Clipboard", 0),
+                        ("View", 0),
+                        ("View", 1),
+                    }
+                )
+                {
+                    RibbonPanel panel = Panel(strip, title);
+                    var button = (ButtonBase)BodyControls(panel)[index];
+                    ButtonBase arrow = SplitArrowOf(button);
+                    DependencyObject labelRoot = arrow ?? button;
+                    double icon = Top(Descendants(button).OfType<IconView>().First(), panel.Body);
+                    double label = Top(
+                        Descendants(labelRoot).OfType<TextBlock>().First(t => !string.IsNullOrWhiteSpace(t.Text)),
+                        panel.Body
+                    );
+
+                    Assert.True(
+                        Math.Abs(icon - iconTop) <= 0.5,
+                        title + " " + index + ": its icon is at " + icon + ", not " + iconTop + "."
+                    );
+                    Assert.True(
+                        Math.Abs(label - labelTop) <= 0.5,
+                        title + " " + index + ": its label is at " + label + ", not " + labelTop + "."
+                    );
+                }
+
+                ButtonBase match = Assert.Single(Descendants(Panel(strip, "Properties").Body).OfType<ButtonBase>(), b =>
+                    CommandWord(b) == "MATCHPROP"
+                );
+                Assert.Equal(
+                    iconTop,
+                    Top(Descendants(match).OfType<IconView>().First(), Panel(strip, "Properties").Body),
+                    0.5
+                );
+                Assert.Equal(
+                    labelTop,
+                    Top(
+                        Descendants(match).OfType<TextBlock>().First(t => !string.IsNullOrWhiteSpace(t.Text)),
+                        Panel(strip, "Properties").Body
+                    ),
+                    0.5
+                );
+            });
+        }
+
+        [Fact]
         public void TheIconOnlyTilesOfHomeAre24By22_ThoseOfAColumnOneUnderTheOther24Apart()
         {
             OnHome(Full, (model, workspace, strip) =>

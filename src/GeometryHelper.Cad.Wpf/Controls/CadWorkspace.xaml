@@ -35,6 +35,7 @@
                 <Setter Property="Padding" Value="3,3" />
                 <Setter Property="Margin" Value="0,0,1,0" />
                 <Setter Property="VerticalAlignment" Value="Top" />
+                <Setter Property="VerticalContentAlignment" Value="Top" />
                 <Setter Property="IsEnabled" Value="False" />
                 <Setter Property="ToolTip" Value="Not built yet" />
                 <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
@@ -591,6 +592,7 @@
                 <Setter Property="MinWidth" Value="38" />
                 <Setter Property="Height" Value="35" />
                 <Setter Property="Padding" Value="3,3,3,0" />
+                <Setter Property="VerticalContentAlignment" Value="Top" />
                 <Setter Property="HorizontalAlignment" Value="Stretch" />
                 <Setter
                     Property="AutomationProperties.Name"
@@ -1669,6 +1671,7 @@
                             <Style.Triggers>
                                 <Trigger Property="local:RibbonPanel.IsMedium" Value="True">
                                     <Setter Property="MinWidth" Value="0" />
+                                    <Setter Property="VerticalContentAlignment" Value="Center" />
                                     <Setter Property="Padding" Value="4,2" />
                                     <Setter Property="Margin" Value="0,0,8,2" />
                                     <Setter Property="HorizontalAlignment" Value="Left" />
@@ -5309,8 +5312,8 @@ widths are those of the content: no panel has a floor of its own.
                                                             Click="OnSplitChoice"
                                                             AutomationProperties.Name="Circle"
                                                             Command="{Binding StartCommandWithOptionCommand}"
-                                                            CommandParameter="CIRCLE 3P"
-                                                            ToolTip="Circle, Tan, Tan, Tan (CIRCLE, 3P): pick the three points with the Tangent object snap"
+                                                            CommandParameter="CIRCLE 3P TAN \ TAN \ TAN \"
+                                                            ToolTip="Circle, Tan, Tan, Tan (CIRCLE, 3P): pick a line, arc or circle three times; the circle touches all three"
                                                         />
                                                     </ContextMenu>
                                                 </Button.ContextMenu>

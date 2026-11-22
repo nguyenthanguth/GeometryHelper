@@ -391,7 +391,8 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>
         /// Starts the command of a line as "DRAWORDER F", keeping its option for the first prompt that offers it. A line as
         /// "ARC \ C A" keeps several, each for the first prompt that offers it once the one before is answered: a backslash
-        /// leaves the prompt it stands at to the user and a semicolon answers a prompt with Enter, as AutoCAD's ribbon macros do.
+        /// leaves the prompt it stands at to the user, a semicolon answers a prompt with Enter, and TAN is typed at a point prompt
+        /// that takes the tangent override (CIRCLE 3P TAN \ TAN \ TAN), as AutoCAD's ribbon macros do.
         /// </summary>
         internal void StartCommandWithOption(string line)
         {
@@ -455,6 +456,16 @@ namespace GeometryHelper.Cad.Wpf
             }
             else if (session.Prompt.MatchKeyword(option) != null)
             {
+                _pendingOptions.RemoveAt(0);
+                session.Feed(option);
+            }
+            else if (
+                string.Equals(option, "TAN", StringComparison.OrdinalIgnoreCase)
+                && session.Prompt.Kind == CadPromptKind.Point
+                && session.Prompt.AcceptsText
+            )
+            {
+                // The Tangent override typed at a point that takes it, as the macro of Tan, Tan, Tan types _tan before each point.
                 _pendingOptions.RemoveAt(0);
                 session.Feed(option);
             }

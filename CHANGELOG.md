@@ -45,8 +45,9 @@ on `MainViewModel`, as the other style boxes. 66 icons are new, in `Icons.xaml`.
 
 **NEW.** `MainViewModel.StartCommandWithOptionCommand` takes several options after the command, each given to the first prompt that
 offers it once the one before is answered: `ARC \ C A` starts ARC, leaves the start point to the user, then gives Center and Angle
-as AutoCAD's ribbon macro does, a backslash leaving a prompt to the user and a semicolon answering one with Enter. The Arc and
-Circle splits of Home use it.
+as AutoCAD's ribbon macro does, a backslash leaving a prompt to the user, a semicolon answering one with Enter and TAN typed at a
+point prompt that takes the tangent override. The Arc and Circle splits of Home use it: Tan, Tan, Tan runs
+`CIRCLE 3P TAN \ TAN \ TAN \` and draws the circle touching the three lines, arcs or circles picked.
 
 **CHANGED.** The Layers panel of Home is laid out as AutoCAD 2021's. Layer Properties stays the large button; the layer box is
 208 pixels wide (it was 168) over two rows of tiles 24 by 22 that show only their icon, the tooltip naming the command: Off,
