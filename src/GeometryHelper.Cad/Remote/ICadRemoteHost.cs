@@ -60,6 +60,15 @@ namespace GeometryHelper.Cad
         /// <param name="version">The version of the file, as <c>AC1024</c>, or null for the drawing's own.</param>
         /// <exception cref="InvalidOperationException">Thrown when it cannot be written; the message says why.</exception>
         void SaveAs(CadDocument document, string path, string version);
+
+        /// <summary>
+        /// Closes a drawing without asking and without saving, as the x of its row does once the question is answered Don't
+        /// save: it leaves <see cref="Documents"/>, and the next one is shown, or the start screen where it was the last. The
+        /// server has checked already that its changes are to be thrown away and that nothing runs in it, so the host asks the
+        /// user nothing and shows no dialog.
+        /// </summary>
+        /// <param name="document">The drawing, open.</param>
+        void Close(CadDocument document);
     }
 
     /// <summary>

@@ -57,6 +57,18 @@ namespace GeometryHelper.Cad.Remote
         /// <summary>Saves a drawing to a file of a name.</summary>
         public const string SaveAs = "saveAs";
 
+        /// <summary>The text styles of a drawing, in a fragment, with the names in order.</summary>
+        public const string TextStyles = "textStyles";
+
+        /// <summary>The dimension styles of a drawing, in a fragment, with the names in order.</summary>
+        public const string DimStyles = "dimStyles";
+
+        /// <summary>The blocks of a drawing that are no layout and not anonymous, in a fragment, with the names in order.</summary>
+        public const string Blocks = "blocks";
+
+        /// <summary>Closes a drawing without saving; refused where it has changes not saved, unless told to discard them.</summary>
+        public const string Close = "close";
+
         /// <summary>Waits for the user to pick a point, an object or objects in a drawing.</summary>
         public const string Pick = "pick";
 

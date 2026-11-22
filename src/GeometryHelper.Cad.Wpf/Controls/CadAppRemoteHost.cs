@@ -46,6 +46,8 @@ namespace GeometryHelper.Cad.Wpf
         public void SaveAs(CadDocument document, string path, string version) =>
             _model.SaveAsForRemote(document, path, version);
 
+        public void Close(CadDocument document) => _model.CloseForRemote(document);
+
         public void Invoke(Action action) => _dispatcher.Invoke(action, DispatcherPriority.Normal);
 
         public bool IsOwnerThread() => _dispatcher.CheckAccess();
