@@ -131,6 +131,15 @@ compared by their values and by eye.
       points and the method of a pick-first set; GRCLEAR checked in the GUI; entdel keeping an extension dictionary;
       APPLOAD's Create New Folder, View menu, visited chains in Look in and a wildcard with a folder part; dcd's MTEXT
       42/43 still 0.0
+- [x] L8. Round L8 (spec .claude/scratch/l8/spec.md, 2026-11-22): GRREAD with AutoCAD's window codes (measured by
+      SendInput), the 46 `vlr-` functions with command, lisp, sysvar, dwg and object events, menucmd, menugroup, vmon,
+      help, setfunhelp, getcname, fnsplitl, acdimenableupdate, `*error*`, the vl-exit functions, entmod of table records,
+      XRECORD and VERTEX, SELECT, 3DPOLY, UNDO No/No, REVCLOUD lengths kept, AutoCAD linetype lengths, the command
+      parity fixes, an open line continued as AutoCAD's and a waiting prompt written again. Acceptance: L2 19/19
+      transcripts (ll with its linetype-description and regen allowances), L3 5/5, L8 feeds rx, gk, fx the same.
+- [ ] L8 parked: ldata as VLO-VL; entmod of DICTIONARY and BLOCK_RECORD; ssnamex fence points; mouse and docmanager
+      reactors and persistent reactors; MLEADER's Options and landing-first orders; 3DPOLY's typed Z; FILLETRAD of a
+      header with none (10, AutoCAD 0: accepted); trace, tablet, vports, setview and the `_vl-` internals
 
 ### Python
 
