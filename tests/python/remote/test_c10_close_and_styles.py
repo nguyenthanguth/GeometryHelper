@@ -109,9 +109,7 @@ def test_closing_with_discard_closes_a_drawing_with_changes_and_leaves_its_file_
     assert path.read_bytes() == before
 
 
-# The keyword form is a .NET optional parameter called by name; whether pythonnet takes it on both runtimes is for the
-# coder to confirm, so the test is marked and reports an unexpected pass instead of failing.
-@pytest.mark.xfail(reason="Close(discard=True): keyword call of a .NET optional parameter, not confirmed", strict=False)
+# ``discard`` is an optional .NET parameter, which pythonnet takes by name on both runtimes.
 def test_closing_with_discard_by_keyword_closes_a_drawing_with_changes(
     app: Any, drawing: Any, line: Callable[..., Any]
 ) -> None:

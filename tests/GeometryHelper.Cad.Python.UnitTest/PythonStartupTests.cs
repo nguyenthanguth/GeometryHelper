@@ -224,7 +224,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
             Assert.Equal(new[] { "PYLOAD", "PYLOAD" }, Finished.Select(run => run.Name));
             Assert.Equal(
                 new[] { CadPythonOutcome.Completed, CadPythonOutcome.Completed },
-                Finished.Select(run => run.Outcome)
+                Finished.Select(run => run.Outcome.GetValueOrDefault())
             );
         }
 
@@ -286,7 +286,7 @@ namespace GeometryHelper.Cad.Python.UnitTest
             Assert.Contains("w1-good.py loaded: PYW1GOOD.", session.History);
             Assert.Equal(
                 new[] { CadPythonOutcome.Failed, CadPythonOutcome.Completed },
-                Finished.Select(run => run.Outcome)
+                Finished.Select(run => run.Outcome.GetValueOrDefault())
             );
         }
 
