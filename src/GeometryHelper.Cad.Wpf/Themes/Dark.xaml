@@ -849,6 +849,14 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+        <!-- A drop-down of 1 300 fonts makes the rows it shows (47 of them), not a row for every font, which took two seconds to open. -->
+        <Setter Property="ItemsPanel">
+            <Setter.Value>
+                <ItemsPanelTemplate>
+                    <VirtualizingStackPanel />
+                </ItemsPanelTemplate>
+            </Setter.Value>
+        </Setter>
         <Setter Property="ItemContainerStyle">
             <Setter.Value>
                 <Style TargetType="ComboBoxItem">

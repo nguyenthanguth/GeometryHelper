@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 namespace GeometryHelper.Cad.Wpf
 {
@@ -81,6 +82,14 @@ namespace GeometryHelper.Cad.Wpf
                 }
             }
         }
+
+        /// <summary>
+        /// Reads the font lists the Text Style dialog and the MTEXT editor show ahead (the TrueType families of the machine and
+        /// the SHX files of the folders Global settings give), on threads of their own at below normal priority, and gives back
+        /// at once. The app calls it once its window has drawn, and again where Global settings change the font folders.
+        /// </summary>
+        /// <returns>The task, complete when the lists are read.</returns>
+        internal Task WarmUpFonts() => FontListWarmUp.Start(_settings.ToFonts().FontFolders);
 
         /// <summary>The fonts of a document as Global settings give them, with the replacements the Missing SHX files dialog chose for it.</summary>
         private CadFonts FontsOf(CadDocument document)

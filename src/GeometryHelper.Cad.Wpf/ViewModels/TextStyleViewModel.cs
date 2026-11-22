@@ -1085,9 +1085,11 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>
         /// The SHX files of the font folders, each its name and whether it is a big font (its first line "AutoCAD-86 bigfont"),
-        /// the first folder's where two have one name, in the order of their names.
+        /// the first folder's where two have one name, in the order of their names. A file's head is read once for the process,
+        /// again where its size or time written has changed, so that the list costs a listing of each folder from the second
+        /// time on, and none of the reading where <see cref="FontListWarmUp"/> has been before.
         /// </summary>
-        private static List<KeyValuePair<string, bool>> ShxFiles(IEnumerable<string> folders)
+        internal static List<KeyValuePair<string, bool>> ShxFiles(IEnumerable<string> folders)
         {
             var found = new SortedDictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
 
@@ -1096,16 +1098,14 @@ namespace GeometryHelper.Cad.Wpf
                 try
                 {
                     foreach (
-                        string path in Directory
-                            .GetFiles(folder, "*.shx")
-                            .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+                        FileInfo file in new DirectoryInfo(folder)
+                            .GetFiles("*.shx")
+                            .OrderBy(f => f.FullName, StringComparer.OrdinalIgnoreCase)
                     )
                     {
-                        string name = Path.GetFileName(path);
-
-                        if (!found.ContainsKey(name))
+                        if (!found.ContainsKey(file.Name))
                         {
-                            found[name] = IsBigFont(path);
+                            found[file.Name] = IsBigFont(file);
                         }
                     }
                 }
@@ -1121,16 +1121,65 @@ namespace GeometryHelper.Cad.Wpf
             return found.ToList();
         }
 
-        private static bool IsBigFont(string path)
+        /// <summary>What was read of an SHX file, and of which file: its size and time written, to know it again.</summary>
+        private sealed class BigFontKnown
         {
+            internal long Length;
+            internal DateTime Written;
+            internal bool IsBig;
+        }
+
+        private static readonly Dictionary<string, BigFontKnown> BigFontHeads = new Dictionary<string, BigFontKnown>(
+            StringComparer.OrdinalIgnoreCase
+        );
+
+        /// <summary>Whether an SHX file is a big font: from what was read of it before where it is the same file, else read now.</summary>
+        private static bool IsBigFont(FileInfo file)
+        {
+            lock (BigFontHeads)
+            {
+                if (
+                    BigFontHeads.TryGetValue(file.FullName, out BigFontKnown known)
+                    && known.Length == file.Length
+                    && known.Written == file.LastWriteTimeUtc
+                )
+                {
+                    return known.IsBig;
+                }
+            }
+
+            bool big = TryReadBigFont(file.FullName, out bool read);
+
+            // A file that could not be read (open in another program) is not remembered as not a big font.
+            if (read)
+            {
+                lock (BigFontHeads)
+                {
+                    BigFontHeads[file.FullName] = new BigFontKnown
+                    {
+                        Length = file.Length,
+                        Written = file.LastWriteTimeUtc,
+                        IsBig = big,
+                    };
+                }
+            }
+
+            return big;
+        }
+
+        private static bool TryReadBigFont(string path, out bool read)
+        {
+            read = false;
+
             try
             {
                 using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
                     var head = new byte[22];
-                    int read = stream.Read(head, 0, head.Length);
+                    int count = stream.Read(head, 0, head.Length);
+                    read = true;
                     return Encoding
-                        .ASCII.GetString(head, 0, read)
+                        .ASCII.GetString(head, 0, count)
                         .StartsWith("AutoCAD-86 bigfont", StringComparison.Ordinal);
                 }
             }

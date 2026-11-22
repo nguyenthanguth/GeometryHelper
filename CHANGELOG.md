@@ -6,6 +6,18 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The first STYLE of a session took a few seconds, and the first click on the Font name box stalled again. The box
+made a row for each of the 1 325 fonts of the machine when it opened (2 100 to 2 500 ms, every time a Text Style dialog was
+opened); a drop-down of the app's own style now makes the rows it shows, 47 of them, and opens in 120 to 200 ms. The window
+read every font file of the machine when it opened (the name table of 2 447 files, 3 492 reads and 13 MB, and the head of the
+1 389 SHX files of AutoCAD 2021's Fonts folder, 1 419 reads), 130 to 140 ms from a warm disk and seconds from a cold one; the
+app now reads both lists ahead, once its window has drawn, on threads of their own at below normal priority
+(`CadTrueTypeFonts.WarmUp`), so that the first STYLE, the first MTEXT and the first Multileader or dimension preview find them
+read (the first Text Style dialog 202 ms before, 94 ms after; the first Multileader Style Manager 291 ms before, 175 ms after).
+A window opened while the reading still runs waits for the same reading and does not repeat it, the lists are the same in the
+same order, and the head of an SHX file is read once for the process and again only where the file's size or time written
+changes.
+
 **CHANGED.** Home is laid out as AutoCAD 2021's, panel by panel, and the ribbon takes AutoCAD's sizes on every tab: a panel is 98
 pixels high (it was 108), its body 80 over a title of 18 and its controls from 4 below the top; a large button is 72 high with its
 icon drawn at 28 in a slot of 32 and its label in at most two lines; a small button is 22 high, three to a column 24 apart; an
