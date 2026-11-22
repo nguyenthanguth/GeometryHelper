@@ -223,6 +223,18 @@ namespace GeometryHelper.Cad.Wpf
                 }
             };
 
+            // The font lists of the Text Style dialog and the MTEXT editor (2 500 font files and the SHX folders on a machine with
+            // many fonts) are read once the window has drawn, on threads of their own at below normal priority, so that the first
+            // STYLE finds them read; a font folder changed in Global settings is read as it is applied.
+            EventHandler drawn = null;
+            drawn = (s, e) =>
+            {
+                window.ContentRendered -= drawn;
+                model.WarmUpFonts();
+                model.SettingsApplied += (sender, changed) => model.WarmUpFonts();
+            };
+            window.ContentRendered += drawn;
+
             // The command plugins: those of the Plugins folder beside the app and of the startup list loaded now, each result a line of the command line.
             var plugins = new CadPluginManager(
                 new CadPluginAssemblyLoader(),

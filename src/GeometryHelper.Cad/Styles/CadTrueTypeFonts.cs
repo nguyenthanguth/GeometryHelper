@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace GeometryHelper.Cad
 {
@@ -36,6 +37,21 @@ namespace GeometryHelper.Cad
         private static Dictionary<string, string[]> _others = new Dictionary<string, string[]>(
             StringComparer.OrdinalIgnoreCase
         );
+
+        private static readonly Lazy<Task> Warming = new Lazy<Task>(() =>
+            CadWarmUp.Run("the TrueType fonts", () => _ = Files.Value)
+        );
+
+        /// <summary>
+        /// Reads the fonts of the machine ahead (the scan of the Fonts folders that the first of <see cref="Families"/>,
+        /// <see cref="FileOf"/>, <see cref="FamilyOf"/> or <see cref="LocalNamesOf"/> makes: some 2 500 files on a machine with
+        /// many fonts, a second or more from a cold disk), on a thread of its own at below normal priority, and gives back at
+        /// once. The app calls it after its window has drawn, so that the Text Style dialog and the MTEXT editor find the
+        /// list read. A call that comes while the scan runs waits for it and does not repeat it, and the lists are the same
+        /// whether or not this was called. Calling it again gives the same task.
+        /// </summary>
+        /// <returns>The task, complete when the fonts are read.</returns>
+        public static Task WarmUp() => Warming.Value;
 
         /// <summary>Gets the families found, in ordinal order, letters of either case the same: Arial, Calibri, ...</summary>
         public static IReadOnlyList<string> Families => Files.Value.Keys.ToList();
@@ -126,7 +142,7 @@ namespace GeometryHelper.Cad
                 : null;
         }
 
-        private static SortedDictionary<string, string> Scan()
+        internal static SortedDictionary<string, string> Scan()
         {
             // For each family the file of its regular face, else of the shortest name, ties by the name's letters.
             var best = new SortedDictionary<string, KeyValuePair<int, string>>(StringComparer.OrdinalIgnoreCase);
