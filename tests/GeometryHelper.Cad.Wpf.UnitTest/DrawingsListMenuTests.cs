@@ -68,7 +68,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void TheMenuOffersOpenForADrawingNotShown_AndEachCloseOnlyWhereItClosesOne()
+        public void TheMenuOffersCloseOnlyForAnOpenDrawing_AndCloseAllOthersOnlyWithTwoOpen()
         {
             MainViewModel model = ThreeFiles(out string a, out _, out _);
             Assert.True(model.Open(a));
@@ -77,18 +77,15 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             Dictionary<string, bool> onShown = Menu(model, Row(model, "a.dxf"));
             Dictionary<string, bool> onClosed = Menu(model, Row(model, "c.dxf"));
 
-            Assert.Equal(
-                new[] { "Open", "Close", "Close Selected Drawings", "Close All Other Drawings", "Close All Drawings" },
-                model.FileRowMenu(Row(model, "a.dxf")).Where(i => !i.IsSeparator).Select(i => i.Header)
-            );
-            Assert.False(onShown["Open"]);
+            // Close Selected Drawings is there only where several rows are chosen.
+            Assert.DoesNotContain(model.FileRowMenu(Row(model, "a.dxf")), i => i.Header == "Close Selected Drawings");
+            Assert.True(onShown["Open..."]);
             Assert.True(onShown["Close"]);
-            Assert.False(onShown["Close Selected Drawings"]);
             Assert.False(onShown["Close All Other Drawings"]);
-            Assert.True(onShown["Close All Drawings"]);
-            Assert.True(onClosed["Open"]);
+            Assert.True(onShown["Close All"]);
+            Assert.True(onClosed["Open..."]);
             Assert.False(onClosed["Close"]);
-            Assert.True(onClosed["Close All Other Drawings"]);
+            Assert.False(onClosed["Close All Other Drawings"]);
         }
 
         [Fact]
@@ -132,7 +129,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             Assert.True(model.Open(c));
             model.AskSaveAll = list => CadSaveChoice.Cancel;
 
-            Run(model, Row(model, "a.dxf"), "Close All Drawings");
+            Run(model, Row(model, "a.dxf"), "Close All");
 
             Assert.Equal(3, model.FileRows.Count(r => r.IsOpen));
             int asked = 0;

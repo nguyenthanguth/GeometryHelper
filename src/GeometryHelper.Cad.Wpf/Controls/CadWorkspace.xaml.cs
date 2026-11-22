@@ -1140,6 +1140,18 @@ namespace GeometryHelper.Cad.Wpf
             e.Handled = true;
         }
 
+        /// <summary>A right click on the empty part of the DRAWINGS list: New..., Open..., Save All and Close All.</summary>
+        private void OnFileListRightUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_model == null)
+            {
+                return;
+            }
+
+            ShowMenu(_model.FileListMenu(), (UIElement)sender);
+            e.Handled = true;
+        }
+
         /// <summary>A right click on OSNAP of the status bar: the menu of the object snaps, as its arrow gives.</summary>
         private void OnStatusToggleRightUp(object sender, MouseButtonEventArgs e)
         {
