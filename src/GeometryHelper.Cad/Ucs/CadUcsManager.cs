@@ -138,8 +138,9 @@ namespace GeometryHelper.Cad
 
         /// <summary>
         /// Makes a system current in the space the canvas shows, the one it replaces kept for <see cref="Previous"/>, ten at
-        /// most. A system of the same origin and axes as the current one, to the tolerance of <see cref="Tolerance.Default"/>,
-        /// changes nothing.
+        /// most. As in AutoCAD the current system is kept every time, a system of the same origin and axes as the current one,
+        /// to the tolerance of <see cref="Tolerance.Default"/>, included: UCS World in the World UCS adds one more World for
+        /// UCS Previous to give back.
         /// </summary>
         /// <param name="ucs">The system.</param>
         /// <exception cref="ArgumentNullException">Thrown when the system is null.</exception>
@@ -161,12 +162,19 @@ namespace GeometryHelper.Cad
 
             bool model = _document.WorkingSpace.IsModel;
             CadUcs now = model ? Model : Paper;
+            Remember(model, now);
 
             if (now.IsSameAs(ucs, Tolerance.Default) && string.Equals(now.Name, ucs.Name, StringComparison.Ordinal))
             {
                 return;
             }
 
+            Put(model, ucs);
+        }
+
+        /// <summary>Keeps the current system of a space for <see cref="Previous"/>, the oldest dropped past ten.</summary>
+        private void Remember(bool model, CadUcs now)
+        {
             List<CadUcs> previous = model ? _modelPrevious : _paperPrevious;
             previous.Add(now);
 
@@ -174,8 +182,6 @@ namespace GeometryHelper.Cad
             {
                 previous.RemoveAt(0);
             }
-
-            Put(model, ucs);
         }
 
         /// <summary>Makes the system current before the last change current again in the space the canvas shows, as UCS Previous.</summary>
@@ -203,7 +209,7 @@ namespace GeometryHelper.Cad
             return true;
         }
 
-        /// <summary>Saves the current system of the space the canvas shows under a name, replacing a named system of that name, and names the current system so, as UCS Save.</summary>
+        /// <summary>Saves the current system of the space the canvas shows under a name, replacing a named system of that name, and names the current system so, as UCS Save; the system as it was, unnamed, is kept for <see cref="Previous"/> first, as AutoCAD does.</summary>
         /// <param name="name">The name.</param>
         /// <exception cref="ArgumentNullException">Thrown when the name is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the name is one AutoCAD does not take, or that of a system of the file the presenter could not read.</exception>
@@ -215,6 +221,7 @@ namespace GeometryHelper.Cad
             _named.Add(checkedName, saved);
             _tableChanged = true;
             _modified = true;
+            Remember(_document.WorkingSpace.IsModel, Current);
             Put(_document.WorkingSpace.IsModel, saved);
         }
 

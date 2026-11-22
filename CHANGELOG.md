@@ -24,6 +24,14 @@ command of its own (the alias DTEXT of the default shortcuts is gone) and no lon
 <select all>:` with mOde, and `VPORTS` with no window asks the options of `-VPORTS`, as the console does, where it said the
 window shows it.
 
+**FIXED.** `UCS Previous` went back one system too far. Every UCS option now keeps the system it leaves for Previous, as
+AutoCAD 2021's console does (measured with `UCSXDIR`): `UCS World` in the World UCS, `UCS NAmed Restore` of the current system
+and `UCS NAmed Save` (which keeps the system unnamed) included, where the presenter kept nothing when the system did not
+change and nothing at all on Save. After a 3-point system, `UCS World` and `UCS World` again, Previous gives World, then the
+3-point system, then World, then `No previous coordinate system saved.` (it said `No previous UCS saved.`); the presenter went
+straight back to the 3-point system, so a routine running `(command "UCS" "W")` ... `(command "UCS" "P")` left the user's UCS
+on the old one. The ten systems kept are the same. `UcsPreviousTests` (7).
+
 **NEW.** A load-result line in Load/Unload Applications. A load that fails (a .lsp or a .dll, from Load…, a drop, Reload or the
 On box), a file type that is refused, and Load… with no drawing open used to write only to the command history behind the modal
 window, so the user saw nothing. The window now has a red line above the hint, as the design draws it: the file in bold, then

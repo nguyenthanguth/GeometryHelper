@@ -184,7 +184,7 @@ namespace GeometryHelper.Cad.UnitTest
                 Run(session, "UCS", "P");
             }
 
-            Assert.Equal("No previous UCS saved.", session.History.Last());
+            Assert.Equal("No previous coordinate system saved.", session.History.Last());
             Assert.True(systems.Current.IsWorld);
         }
 
