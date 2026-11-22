@@ -19,7 +19,7 @@ namespace GeometryHelper.Cad.Lisp
             lisp.Define("OSNAP", 2, 2, a => Osnap(lisp, session, a));
             lisp.Define("ALERT", 1, 1, a => Alert(lisp, session, LispInterpreter.Str(a[0])));
             lisp.Define("GRTEXT", 0, 3, a => GrText(a));
-            lisp.Define("REDRAW", 0, 2, a => Redraw(a));
+            lisp.Define("REDRAW", 0, 2, a => Redraw(lisp, session, a));
             lisp.Define("TEXTSCR", 0, 0, a => Screen(lisp, session, "TEXTSCR"));
             lisp.Define("TEXTPAGE", 0, 0, a => Screen(lisp, session, "TEXTSCR"));
             lisp.Define("GRAPHSCR", 0, 0, a => Screen(lisp, session, "GRAPHSCR"));
@@ -373,8 +373,11 @@ namespace GeometryHelper.Cad.Lisp
             return text;
         }
 
-        /// <summary><c>(redraw [ename [mode]])</c>: the drawing is shown as it is; an entity name that is no entity is an error, as in AutoCAD 2021 (q6). Gives nil.</summary>
-        private static object Redraw(object[] a)
+        /// <summary>
+        /// <c>(redraw [ename [mode]])</c>: the drawing is shown as it is, and with no argument the vectors <c>grdraw</c> and <c>grvecs</c>
+        /// put on the screen are taken off; an entity name that is no entity is an error, as in AutoCAD 2021 (q6). Gives nil.
+        /// </summary>
+        private static object Redraw(LispInterpreter lisp, CadCommandSession session, object[] a)
         {
             if (a.Length > 0)
             {
@@ -384,6 +387,15 @@ namespace GeometryHelper.Cad.Lisp
             if (a.Length > 1)
             {
                 LispInterpreter.Int(a[1]);
+            }
+
+            if (a.Length == 0)
+            {
+                lisp.OnOwner(() =>
+                {
+                    session.ClearTemporaryGraphics();
+                    return null;
+                });
             }
 
             return null;
