@@ -1483,29 +1483,29 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                 Assert.Equal(LineweightValues, items.Skip(3).Select(LeadingNumber));
                 Assert.True(weights.IsEnabled);
                 Assert.Equal("ByLayer", ItemText(weights.SelectedItem));
-                Assert.Equal(DxfLineWeight.ByLayer, db.Celweight);
+                Assert.Equal(DxfLineWeight.ByLayer, model.Document.Database.Celweight);
 
                 // A pick sets CELWEIGHT; one undo step takes it back, and a second finds nothing to undo.
                 weights.SelectedItem = weights.Items.Cast<object>().Single(i => ItemText(i).StartsWith("0.25"));
                 Pump(weights);
 
-                Assert.Equal(DxfLineWeight.LineWeight025, db.Celweight);
+                Assert.Equal(DxfLineWeight.LineWeight025, model.Document.Database.Celweight);
                 Assert.True(model.Undo());
-                Assert.Equal(DxfLineWeight.ByLayer, db.Celweight);
+                Assert.Equal(DxfLineWeight.ByLayer, model.Document.Database.Celweight);
                 Assert.False(model.Undo());
 
                 weights.SelectedItem = weights.Items.Cast<object>().Single(i => ItemText(i) == "ByBlock");
                 Pump(weights);
-                Assert.Equal(DxfLineWeight.ByBlock, db.Celweight);
+                Assert.Equal(DxfLineWeight.ByBlock, model.Document.Database.Celweight);
                 weights.SelectedItem = weights.Items.Cast<object>().Single(i => ItemText(i) == "Default");
                 Pump(weights);
-                Assert.Equal(DxfLineWeight.ByLineWeightDefault, db.Celweight);
+                Assert.Equal(DxfLineWeight.ByLineWeightDefault, model.Document.Database.Celweight);
 
                 // It shows what CELWEIGHT typed at the command line made it.
                 model.Execute("CELWEIGHT");
                 model.Execute("50");
                 Pump(weights);
-                Assert.Equal(DxfLineWeight.LineWeight050, db.Celweight);
+                Assert.Equal(DxfLineWeight.LineWeight050, model.Document.Database.Celweight);
                 Assert.Equal(0.5, LeadingNumber(ItemText(weights.SelectedItem)), 6);
             });
         }
