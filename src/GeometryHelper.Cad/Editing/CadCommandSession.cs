@@ -311,6 +311,7 @@ namespace GeometryHelper.Cad
             if (command == null)
             {
                 // AutoCAD 2021 names the command in capitals, as typed in any case: Unknown command "WORLD" (q3, runs/tca).
+                RaiseUnknownCommand(name.ToUpperInvariant());
                 Write(string.Format(CultureInfo.InvariantCulture, Unknown, name.ToUpperInvariant()));
                 Changed();
                 return false;
@@ -524,6 +525,7 @@ namespace GeometryHelper.Cad
             Current = command;
             _context = new CadCommandContext(this, command, preSelected);
             ClearGathering();
+            RaiseCommandStarts(command);
 
             try
             {
@@ -572,6 +574,12 @@ namespace GeometryHelper.Cad
             if (Prompt == null)
             {
                 return false;
+            }
+
+            // grread: the click is the answer, as the cursor was, with no snap.
+            if (IsGrRead)
+            {
+                return FeedGrRead(new GrEvent(GrClick, 0, point));
             }
 
             // The prompt of a point modifier, asked inside an option's, takes its point as any modifier's does.
@@ -704,6 +712,12 @@ namespace GeometryHelper.Cad
         /// <returns>Whether it was taken.</returns>
         public bool Feed(string text)
         {
+            // grread takes the text as the keys of a line typed, whatever it looks like.
+            if (IsGrRead)
+            {
+                return FeedGrReadText(text ?? string.Empty);
+            }
+
             if (string.IsNullOrWhiteSpace(text))
             {
                 Enter();
@@ -1109,6 +1123,13 @@ namespace GeometryHelper.Cad
                 return;
             }
 
+            // grread: Enter is the key 13.
+            if (IsGrRead)
+            {
+                FeedKey(13);
+                return;
+            }
+
             if (_option != null && _modifiers.Count == 0)
             {
                 OptionEnter();
@@ -1153,6 +1174,7 @@ namespace GeometryHelper.Cad
                 return;
             }
 
+            ForgetGrRead();
             Write(Prompt != null ? Prompt.Echo("*Cancel*") : "*Cancel*");
             Finish(CadCommandOutcome.Cancelled);
         }
@@ -1733,6 +1755,7 @@ namespace GeometryHelper.Cad
             }
 
             bool cleared = outcome == CadCommandOutcome.Completed && _context != null && _context.ClearsSelection;
+            CadCommand ended = Current;
             _body = null;
             _context = null;
             Current = null;
@@ -1751,6 +1774,7 @@ namespace GeometryHelper.Cad
             }
 
             Changed();
+            RaiseCommandEnds(ended, outcome);
             List<string> script = _script;
             _script = null;
 

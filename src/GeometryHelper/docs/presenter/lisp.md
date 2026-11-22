@@ -85,11 +85,12 @@ session.Feed("(command \"CIRCLE\" '(0 0) 5)");              // Command: (command
 | Tables | `tblsearch`, `tblnext`, `tblobjname` |
 | Extended data and dictionaries | `regapp`, `xdroom`, `xdsize`, `namedobjdict`, `dictsearch`, `dictnext`, `dictadd`, `dictremove`, `dictrename` |
 | Variables | `getvar`, `setvar` |
-| The session | `trans`, `osnap`, `alert`, `grtext`, `grdraw`, `grvecs`, `grclear`, `redraw`, `textbox`, `textscr`, `textpage`, `graphscr` |
+| The session | `trans`, `osnap`, `alert`, `grtext`, `grdraw`, `grvecs`, `grclear`, `grread`, `redraw`, `textbox`, `textscr`, `textpage`, `graphscr` |
 | ActiveX data | after `vl-load-com`: `vlax-ldata-put`, `vlax-ldata-get`, `vlax-ldata-delete`, `vlax-ldata-list`, `vlax-ldata-test` |
 | ActiveX curves | after `vl-load-com`: the eighteen `vlax-curve-` functions, `getStartParam` to `isPlanar` |
 | ActiveX objects | after `vl-load-com`: `vlax-get-acad-object`, `vlax-ename->vla-object`, `vlax-vla-object->ename`, `vlax-get-property`, `vlax-put-property`, `vlax-invoke-method`, `vlax-get`, `vlax-put`, `vlax-invoke`, `vlax-for` (before it too), `vlax-map-collection`, `vlax-property-available-p`, `vlax-method-applicable-p`, `vlax-object-released-p`, `vlax-release-object`, `vlax-erased-p`, `vlax-read-enabled-p`, `vlax-write-enabled-p`, `vlax-typeinfo-available-p`; refused with a message: `vlax-create-object`, `vlax-get-object`, `vlax-get-or-create-object`, `vlax-import-type-library`, `vlax-dump-object` |
 | ActiveX members | after `vl-load-com`: 143 `vla-get-`, `vla-put-` and method functions of the objects of the drawing |
+| Reactors | the 46 `vlr-` functions, the nineteen constructors among them (`vlr-command-reactor`, `vlr-lisp-reactor`, `vlr-sysvar-reactor`, `vlr-dwg-reactor`, `vlr-editor-reactor`, `vlr-object-reactor`, `vlr-acdb-reactor` and twelve more), `vlr-add`, `vlr-remove`, `vlr-reactors`, `vlr-data`, `vlr-owner-add` and the rest, with `vl-load-reactors` and `vlax-queueexpr`: [Reactors](#reactors) |
 | Dialogs | `load_dialog`, `unload_dialog`, `new_dialog`, `start_dialog`, `done_dialog`, `term_dialog`, `action_tile`, `get_tile`, `set_tile`, `mode_tile`, `get_attr`, `client_data_tile`, `start_list`, `add_list`, `end_list`, `start_image`, `fill_image`, `vector_image`, `slide_image`, `end_image`, `dimx_tile`, `dimy_tile`, and the variables `$key`, `$value`, `$reason`, `$data`, `$x` and `$y` inside an action |
 
 The functions of the last thirteen rows read or change the drawing, so they exist in the interpreter of a drawing and not in a bare
@@ -1074,6 +1075,30 @@ A point left with no end is `; error: grvecs missing endpoint`, a list that is n
 three rows, or `nil`, `bad argument type: matrix: nil`, and a colour that is no whole number `bad argument type: fixnump: 1.5`
 (AutoCAD 2021, probe g1; its console draws nothing and says `nil`, so the drawing of the canvas is the presenter's own, tested
 against its colours).
+
+### grread
+
+`(grread [track [allkeys [curtype]]])` waits for one key, one click or one move of the cursor and gives it as a list, which is how
+the loops that draw with `grdraw` and `grvecs` follow the mouse. The wait shows no words and writes no line: the command line
+shows nothing typed while it lasts, and each answer runs the routine's loop once.
+
+| The list | What gave it |
+|---|---|
+| `(2 code)` | a key: the character's code for a printable one (`(2 65)` for A), 13 for Enter, 32 for Space, 8 for Backspace, 9 for Tab |
+| `(3 (x y z))` | a click of the left button: the point as it lies under the cursor, in the current UCS, with no object snap, no grid snap and no ortho or polar; z is 0 |
+| `(5 (x y z))` | a move of the cursor, only with `track` not nil or the bit 1 of `allkeys`; the point as for a click |
+| `(11 0)` | a click of the right button: no shortcut menu opens and no Enter is made of it |
+
+A move that comes before the routine has asked again takes the place of the one before it, so a loop slower than the mouse never
+falls behind it: a loop that calls `grvecs` at each move took 19 ms for 1 000 moves headless. Keys and clicks are not dropped; they
+wait their turn in the order they came. The middle button and the wheel pan and zoom as ever and give the routine nothing, and so
+do Ctrl and Alt with a key and the function keys, which keep their meaning in the window. Esc ends the wait with
+`Function cancelled`, which `vl-catch-all-apply` and `*error*` see as they see it at any get function. `allkeys` and `curtype`
+must be whole numbers (`; error: bad argument type: fixnump: "a"`); their other bits are not used.
+
+A host that has no window answers through the session: `Feed` with a text gives the keys of its characters, one for each call of
+`grread`, then 13 (`abc` is `(2 97)`, `(2 98)`, `(2 99)`, `(2 13)`), and a point is a click. What is left over when the routine
+stops reading is dropped.
 
 ## Strings, lists and files
 
@@ -2321,8 +2346,9 @@ presenter does the same for a value it has none for. A value that is no object i
 
 ### What is parked in the ActiveX stage
 
-These are not defined, and a call is `; error: no function definition: NAME`: every `vlr-` function, with `vl-load-reactors`;
-there are no reactors. The `vlax-ldata-` functions are [built](#data-kept-in-the-drawing).
+The `vlr-` functions, with `vl-load-reactors` and `vlax-queueexpr`, are [built](#reactors). The `vlax-ldata-` functions are
+[built](#data-kept-in-the-drawing). These are not defined, and a call is `; error: no function definition: NAME`: the others
+listed here.
 `vlax-add-cmd`, `vlax-remove-cmd` and the product keys are [defined and refused](#functions-of-autocad-alone). The `Layouts` and `Documents`
 collections, the `Add...` methods of a space and `InsertBlock`, `Layers.Add` and `Blocks.Add`, writes to a table record,
 `Copy`, `Move`, `Rotate`, `Mirror`, `ScaleEntity`, `Explode`, `IntersectWith`, `Offset`, `GetXData` and `SetXData`,
@@ -2338,6 +2364,100 @@ Where the presenter differs from the full AutoCAD 2021 that measured it:
 - `Item` of a model space or a block takes an integer; AutoCAD also takes a handle in a string.
 - `ObjectID` and `OwnerID` are handle values, and a TEXT of a font the presenter cannot find has no box.
 - A ProgID that does not exist is `nil` in AutoCAD and an error here, as above.
+
+## Reactors
+
+A reactor is a list of reactions that Visual LISP keeps for a drawing: an event name and the function that answers it. The 46
+`vlr-` functions are defined, with the arguments, the messages and the print forms AutoCAD 2021 gave them. AutoCAD has them only
+after `(vl-load-com)`, and the presenter has them from the start, so that a routine that opens with `(vl-load-com)` and one that
+does not both load. The keywords they take (`:vlr-command-reactor`, `:vlr-commandWillStart`) evaluate to themselves, as in
+AutoCAD, and print in the case AutoCAD spells them in, whatever case they were typed in.
+
+```
+Command: (setq r (vlr-command-reactor "tag" '((:vlr-commandWillStart . cb) (:vlr-commandEnded . cb))))
+#<VLR-Command-Reactor>
+Command: (vlr-reactions r)
+((:VLR-commandEnded . CB) (:VLR-commandWillStart . CB))
+Command: (vlr-type r)
+:VLR-Command-Reactor
+```
+
+The nineteen constructors make a reactor and add it, so that `vlr-added-p` is `T` straight away; `(vlr-add r)` of a reactor that is
+added gives `nil`, and `(vlr-remove r)` gives the reactor and leaves it usable, `vlr-add` putting it back. The data and the
+reactions are optional: `(vlr-command-reactor)` is a reactor with none. `vlr-reactors` lists the reactors added as a list of
+groups, each the kind's keyword and then its reactors, the newest first and the kind of the newest first; the reactors of a kind
+answer an event oldest first, and one added again goes last. `vlr-reactions` lists the reactions the last one set first, with
+the callback as an upper-case symbol; a callback given as a string is the symbol of that name, and the function is looked up when
+the event comes, so a function defined or changed later is the one called. A reaction a kind does not have is
+`invalid reaction name: :VLR-modified`, and `vlr-reaction-names` lists the names of a kind or of a reactor. `vlr-remove-all`
+removes every reactor, or those of a kind, and gives what it removed in the shape of `vlr-reactors`.
+
+### The events that fire
+
+| Reactor | Events | The callback gets |
+|---|---|---|
+| command, editor | `:vlr-commandWillStart` before the first prompt, `:vlr-commandEnded`, `:vlr-commandCancelled` (Esc), `:vlr-unknownCommand` before the message of an unknown name | `(reactor ("LINE"))`: the name of the command in capitals, without `_`, `.` or the alias; also for a command a routine starts with `command`, and for a transparent `'ZOOM`, which has its own pair |
+| lisp, editor | `:vlr-lispWillStart`, `:vlr-lispEnded`, `:vlr-lispCancelled` | `(reactor ("(+ 1 2)"))` and `(reactor nil)`: the text of the form as typed, once for each form of a line, `("(C:T1)")` for a function typed as a command, `("(load \"x.lsp\")")` for a load, and for no form inside a loaded file; lispEnded comes with or without an error, lispCancelled only for Esc at a get function, before it |
+| sysvar, editor | `:vlr-sysVarWillChange`, `:vlr-sysVarChanged` | `(reactor ("LTSCALE"))` and `(reactor ("LTSCALE" T))`; a `setvar` of the same value fires both, one of a variable that is read only fires none |
+| dwg, editor | `:vlr-beginSave`, `:vlr-saveComplete`, `:vlr-beginClose` | `(reactor ("C:\\dwg\\a.dxf"))` with the full path, and `(reactor nil)` for the close |
+| object | `:vlr-modified`, `:vlr-erased`, `:vlr-unerased` of an object it owns | `(object reactor nil)`: the VLA object first |
+| acdb | `:vlr-objectAppended`, `:vlr-objectModified`, `:vlr-objectErased`, `:vlr-objectUnErased` | `(reactor (object))` |
+
+Every other reaction name of the nineteen kinds is accepted and stored, and never fires: the DXF, insert, wblock, deep clone, xref,
+undo, window, toolbar, mouse, linker, miscellaneous and document manager events, the open and DXF events of the drawing, and the
+object events the presenter does not raise (`:vlr-openedForModify`, `:vlr-subObjModified`, `:vlr-copied`, `:vlr-goodbye` ...). A
+callback for them is never called.
+
+The command events hold for every command, typed, started by a routine or by a script. `:vlr-commandFailed` fires when a command
+stops with an error of the presenter (`*Error* ...` in the history); none of the failures tried in AutoCAD 2021 fired it, so what
+fails there is not matched. An object reactor hears an entity changed by an edit, an erase and the undo
+of one (`U` after ERASE is `:vlr-unerased`); an erased owner stays in the reactor until it is removed. A database reactor hears
+the same for every entity of the drawing: an entity made, an entity changed, an erase, an undo. A routine that brings an
+entity back with a second `entdel` makes a new object, which is `:vlr-objectAppended`. The changes of the tables and of the
+dictionaries are not reported.
+
+A system variable set by the SETVAR command, or typed alone, fires the two events one after the other once its value is set, with
+the value already changed in the first. The variables a command changes itself (`CLAYER` by LAYER, `VIEWBACKSTATUS` by ZOOM) fire
+none.
+
+### When a callback runs
+
+- An event raised while nothing is evaluated (a command typed at the Command prompt) runs its callbacks at once, as an
+  evaluation of their own: no line is echoed, what they write goes to the command line, and what they change joins the step of the
+  command that is running or is one step named after the event. `:vlr-commandWillStart` runs before the command asks anything, so a
+  callback that sets `CLAYER` puts what the command makes on that layer.
+- An event raised while a routine is evaluated, by a `command`, an `entmod`, a `setvar`, is queued and its callbacks run as soon as
+  that call returns, before the routine's next form: in `(progn (princ "A") (command "_.LINE" "0,0" "10,0" "") (princ "B"))` the
+  callback of `:vlr-commandWillStart` writes between `A` and `B`, and so does that of `:vlr-commandEnded`, after the line is made.
+- An event raised while a routine waits at a get function is answered before the routine goes on.
+- An event a callback raises (a `setvar` in a callback of `:vlr-sysVarChanged`) waits until the callback is done, so that callbacks
+  never nest; a chain of more than 1 000 callbacks in one run is stopped with `; error: reactor cascade stopped` and a line in the
+  log (AutoCAD has no limit and would go on).
+- An error in a callback is what it is anywhere: `*error*` is called with the message where the routine defined it, and otherwise
+  `; error: divide by zero` is written after what the callback wrote. The command that raised the event goes on, and the reactor
+  stays. A callback of the wrong number of arguments is `; error: too few arguments` or `too many arguments`, and one that names
+  no function `; error: no function definition: NAME`.
+- A callback may not start a command: `command` and `vl-cmdf` are `; error: AutoCAD command rejected: "_.POINT"`, and `command-s`
+  is `; error: Unknown (command-s) failure.` Everything else works, `entmake`, `setvar` and `entmod` among it. A get function in a
+  callback that runs inside an evaluation waits for the user, as AutoCAD's does; in one that runs at once, for an event of a typed
+  command, it is `AutoCAD rejected function` (AutoCAD waits there, the presenter cannot).
+
+### The rest of the functions
+
+`vlr-data` and `vlr-data-set` keep any value with the reactor. `vlr-owners`, `vlr-owner-add` and `vlr-owner-remove` are for an
+object reactor, the owners objects of the drawing: any other reactor is `bad argument type: Object reactor: #<VLR-Command-Reactor>`,
+and an owner that is no object `parameter is not a valid dispatch interface (IDispatch) argument: 1`. `vlr-pers` marks a reactor
+persistent and `vlr-pers-p`, `vlr-pers-list` and `vlr-pers-release` read and clear the mark. **The mark is kept for the session
+only**: nothing is written to the drawing and nothing is read back, so a routine must make its reactors again when it loads, as
+the common ones do. `vlr-pers-dictname` is `"VL-REACTORS"`. `vlr-notification` and `vlr-set-notification` keep
+`active-document-only` or `all-documents` and do nothing with it: a reactor belongs to the drawing whose routine made it, as
+AutoCAD's does when the notification is `active-document-only`. `vlr-trace-reaction` writes `; Reaction: :VLR-commandWillStart;
+argument list: (...)`, `vlr-beep-reaction` writes nothing, `vlr-current-reaction-name` is the keyword of the callback running and
+`nil` outside one. `vl-load-reactors` gives the symbol with no name and does nothing, and `vlax-queueexpr` takes a string and gives
+`nil` without running it: AutoCAD's console never did, and its window's idle loop was not measured.
+
+What is parked: the mouse (double click) and document manager events, the events of the other kinds that never fire, reactors saved
+in the drawing, and the system variable events of changes a command makes itself.
 
 ## Dialogs (DCL)
 
@@ -2679,7 +2799,9 @@ from `Feed` where the routine waits and goes on with the next `Feed`. Only one t
 presenter never change the drawing together. What follows is for the window and for a host that drives a session itself.
 
 - The prompt a routine asks is a prompt of the session's own, so object snaps, OSMODE, FROM and M2P, transparent ZOOM and PAN, and
-  the rubber band work at it, and Esc ends the question with `Function cancelled`.
+  the rubber band work at it, and Esc ends the question with `Function cancelled`. `grread` is the exception: its prompt has no
+  words, no rubber band, no dynamic input and no snap, and every key, click and move of the window is its answer
+  ([grread](#grread)).
 - A line typed that starts with `(` or `!` is plain input while the routine waits, with `Can't reenter LISP.` at a get
   function and with no message at a command's prompt reached by a PAUSE.
 - Closing a drawing, reloading it, or closing all of them ends the routine that waits in it first: Esc is pressed until the
@@ -2796,9 +2918,8 @@ writes for a name it does not know, `; error: no function definition: NAME`, so 
 above runs, and one that reaches for a later stage stops at its first such call. A routine that defines its commands loads
 whole, and their names are offered by AutoComplete, whatever their bodies need.
 
-The drawing, the library, the ActiveX functions and the dialogs are built, with these left out. Of the library, `vl-load-reactors` (with the
-`vlr-` functions, which the ActiveX stage leaves out: there are no reactors), `grread`, `trace`, `untrace`, `tablet`, `vports`,
-`setview`, `report` and the `_vl-` internals are not defined. Of the ActiveX functions,
+The drawing, the library, the ActiveX functions and the dialogs are built, with these left out. Of the library, `trace`,
+`untrace`, `tablet`, `vports`, `setview`, `report` and the `_vl-` internals are not defined. Of the ActiveX functions,
 the `Add` methods and the editing methods of the spaces
 and a few more are parked, and a few measured differences remain; both lists are
 [at the end of that section](#what-is-parked-in-the-activex-stage). Of the dialogs, `slide_image` draws nothing, and the

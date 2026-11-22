@@ -49,6 +49,12 @@ namespace GeometryHelper.Cad.Lisp
         /// <summary><c>ssget</c> with no mode: "Select objects:" until Enter, answered as the handles taken.</summary>
         Selection,
 
+        /// <summary>
+        /// <c>grread</c>: one key, click or move of the cursor, answered as <c>(2 code)</c>, <c>(3 (x y z))</c>, <c>(5 (x y z))</c> or
+        /// <c>(11 0)</c>; the window answers it with the keys and the mouse, never as a line of the command line.
+        /// </summary>
+        Input,
+
         /// <summary>The <c>PAUSE</c> of <c>command</c>: the user answers the prompt the command running asks; nothing is answered to the wait.</summary>
         Pause,
     }
@@ -80,6 +86,9 @@ namespace GeometryHelper.Cad.Lisp
 
         /// <summary>Gets or sets, for a <see cref="LispAskKind.Pause"/>, whether the routine waits until the command ends, as <c>command-s</c> does, and not only until it asks its next prompt, as <c>PAUSE</c> does; Esc then gives the routine nil, not <c>Function cancelled</c>.</summary>
         internal bool UntilEnd { get; set; }
+
+        /// <summary>Gets or sets, for a <see cref="LispAskKind.Input"/>, whether the moves of the cursor are answered too, as <c>(grread T)</c> asks.</summary>
+        internal bool Moves { get; set; }
 
         /// <summary>Gets or sets whether a space is part of the text, as in <c>(getstring T)</c>.</summary>
         internal bool Spaces { get; set; }

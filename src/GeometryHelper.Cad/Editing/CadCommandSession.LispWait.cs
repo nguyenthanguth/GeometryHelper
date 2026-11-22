@@ -362,6 +362,11 @@ namespace GeometryHelper.Cad
             LispResult result = Lisp.CancelWait();
 
             // A routine the cancel ended is not told so again: the command line keeps what Esc made of the command.
+            if (!result.IsWaiting)
+            {
+                RaiseLispEnds(result);
+            }
+
             LispContinue(result, result.IsWaiting ? finished : null);
         }
 
@@ -428,6 +433,9 @@ namespace GeometryHelper.Cad
                 case LispAskKind.Entity:
                 case LispAskKind.NestedEntity:
                     return CadPrompt.ForEntity(text, keywords).Expecting("Last").AsRaw();
+                case LispAskKind.Input:
+                    // grread shows no words and writes no line; what is pressed or clicked answers it (CadCommandSession.GrRead.cs).
+                    return CadPrompt.ForGrRead(ask.Moves);
                 default:
                     CadPrompt selection = CadPrompt.ForSelection();
 
@@ -449,6 +457,13 @@ namespace GeometryHelper.Cad
         {
             answer = null;
             int flags = ask.Flags;
+
+            // grread: the list of the key, click or move that answered it.
+            if (ask.Kind == LispAskKind.Input)
+            {
+                answer = TakeGrAnswer();
+                return true;
+            }
 
             // A keyword of initget is the answer whatever kind asked.
             if (input.Kind == CadInputKind.Keyword)

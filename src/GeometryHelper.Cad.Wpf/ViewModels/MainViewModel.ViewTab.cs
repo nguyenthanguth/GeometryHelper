@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows.Input;
 using GeometryHelper.Dxf;
+using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Cad.Wpf
 {
@@ -21,6 +22,11 @@ namespace GeometryHelper.Cad.Wpf
 
         private IReadOnlyList<string> _namedViewItems = new[] { UnsavedView };
         private string _selectedNamedView = UnsavedView;
+
+        // What the window showed just after a view was picked, and in which space: the box keeps its pick only while the window
+        // still shows that. Null while the pick is being made, and for Unsaved View.
+        private DisplayBox? _pickedViewBox;
+        private CadSpace _pickedViewSpace;
         private CadDocument _namedViewsOf;
         private int _namedViewsAt = -1;
         private bool _namedViewsInModel;
@@ -73,7 +79,8 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>
         /// Gets or sets the item of the named view box shown: Unsaved View until a view is picked. Setting a view's name restores it
         /// as -VIEW Restore does, so that the window shows what the view saved; Unsaved View, or a name the box lost, restores
-        /// nothing.
+        /// nothing. A zoom or a pan that leaves the window showing another part of the drawing than the view picked puts the box
+        /// back on Unsaved View, so that the same view can be picked again.
         /// </summary>
         public string SelectedNamedView
         {
@@ -81,6 +88,7 @@ namespace GeometryHelper.Cad.Wpf
             set
             {
                 string name = string.IsNullOrEmpty(value) ? UnsavedView : value;
+                _pickedViewBox = null;
 
                 if (!Set(ref _selectedNamedView, name) || name == UnsavedView || _current == null)
                 {
@@ -90,6 +98,12 @@ namespace GeometryHelper.Cad.Wpf
                 StartCommand("-VIEW");
                 Execute("R");
                 Execute(name);
+
+                if (_selectedNamedView == name)
+                {
+                    _pickedViewSpace = Space;
+                    _pickedViewBox = View?.VisibleBox;
+                }
             }
         }
 
@@ -176,6 +190,7 @@ namespace GeometryHelper.Cad.Wpf
             {
                 Raise(nameof(IsUcsIconOn));
                 ReadNamedViews(true);
+                ForgetPickedViewIfMoved();
             }
             else if (e.PropertyName == nameof(HasDocument))
             {
@@ -184,6 +199,40 @@ namespace GeometryHelper.Cad.Wpf
                 Raise(nameof(IsUcsIconOn));
                 ReadNamedViews(true);
             }
+        }
+
+        /// <summary>
+        /// Puts the named view box back on Unsaved View where the window no longer shows what the view picked showed: another
+        /// space, or a part of it whose centre or size has moved by more than a hundred-thousandth of the larger side. A view the
+        /// user has panned or zoomed is then picked again to restore it, which a box still on that view would not do.
+        /// </summary>
+        private void ForgetPickedViewIfMoved()
+        {
+            if (!_pickedViewBox.HasValue || _selectedNamedView == UnsavedView)
+            {
+                return;
+            }
+
+            DisplayBox? now = ReferenceEquals(Space, _pickedViewSpace) ? View?.VisibleBox : null;
+
+            if (now.HasValue && SameBox(_pickedViewBox.Value, now.Value))
+            {
+                return;
+            }
+
+            _pickedViewBox = null;
+            _selectedNamedView = UnsavedView;
+            Raise(nameof(SelectedNamedView));
+        }
+
+        /// <summary>Whether a box shows what another shows, within a hundred-thousandth of the larger side: a move under a pixel is none.</summary>
+        private static bool SameBox(DisplayBox a, DisplayBox b)
+        {
+            double tolerance = Tolerance.Default.EqualVector * Math.Max(a.Width, a.Height);
+            return Math.Abs(a.MinX - b.MinX) <= tolerance
+                && Math.Abs(a.MinY - b.MinY) <= tolerance
+                && Math.Abs(a.MaxX - b.MaxX) <= tolerance
+                && Math.Abs(a.MaxY - b.MaxY) <= tolerance;
         }
 
         /// <summary>
