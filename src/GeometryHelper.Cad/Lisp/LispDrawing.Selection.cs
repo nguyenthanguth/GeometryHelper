@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -314,11 +315,61 @@ namespace GeometryHelper.Cad.Lisp
         }
 
         /// <summary>
+        /// The width and height the words of an MTEXT take, measured in the fonts of the document as the drawing is drawn in them
+        /// (the folders of <see cref="CadDocument.Fonts"/> and the Fonts folder of Windows) where the drawing has no search path of its
+        /// own, as the table editor and the multileader commands measure; as the record has them where no font measures the words.
+        /// </summary>
+        private static void MeasureWords(CadDocument document, DxfMText text, out double width, out double height)
+        {
+            DxfDatabase database = document.Database;
+            string searched = database.FontSearchPath;
+            bool borrow = document.Fonts != null && string.IsNullOrEmpty(searched);
+
+            try
+            {
+                if (borrow)
+                {
+                    database.FontSearchPath = string.Join(
+                        ";",
+                        document.Fonts.Folders.Concat(
+                            new[] { Environment.GetFolderPath(Environment.SpecialFolder.Fonts) }
+                        )
+                    );
+                }
+
+                width = text.ActualWidth;
+                height = text.ActualHeight;
+            }
+            finally
+            {
+                if (borrow)
+                {
+                    database.FontSearchPath = searched;
+                }
+            }
+        }
+
+        /// <summary>Gives a group the value, in its place where the list has one of its code, else last.</summary>
+        private static void SetOrAdd(List<KeyValuePair<int, object>> pairs, int code, object value)
+        {
+            int at = pairs.FindIndex(p => p.Key == code);
+
+            if (at >= 0)
+            {
+                pairs[at] = LispEntityData.Pair(code, value);
+            }
+            else
+            {
+                pairs.Add(LispEntityData.Pair(code, value));
+            }
+        }
+
+        /// <summary>
         /// The groups of an entity of a space or of a block definition, or of a record that follows one (a vertex, an attribute,
         /// the end of a sequence), as <c>entget</c> gives them: <see cref="LispEntityData.Complete"/> with the owner, the space the
         /// entity is in (no <c>410</c> in a block definition) and, where the record has none, the groups the presenter holds
-        /// elsewhere: an MTEXT's extents (42 and 43, measured by its own font, where AutoCAD 2021's are 24.1667 and 3.33333 for
-        /// "mtext body" at 2.5 in txt) and its direction and angle, a vertex of a 3D polyline's flag 32. A SEQEND ends with
+        /// elsewhere: an MTEXT's extents (42 and 43, always measured by its own font where the drawing's fonts measure the words,
+        /// as AutoCAD 2021 measures them: 24.1667 and 3.33333 for "mtext body" at 2.5 in txt) and its direction and angle, a vertex of a 3D polyline's flag 32. A SEQEND ends with
         /// <c>(-2 . the entity it ends)</c>, as AutoCAD 2021 lists it (console, l2p pa). <paramref name="pairs"/> is the caller's own list
         /// from <see cref="LispEntityData.Read"/>, which this adds to.
         /// </summary>
@@ -335,15 +386,11 @@ namespace GeometryHelper.Cad.Lisp
 
             if (item.Type == "MTEXT" && DxfEntity.Of(item) is DxfMText text)
             {
-                if (!pairs.Exists(p => p.Key == 42))
-                {
-                    pairs.Add(LispEntityData.Pair(42, text.ActualWidth));
-                }
-
-                if (!pairs.Exists(p => p.Key == 43))
-                {
-                    pairs.Add(LispEntityData.Pair(43, text.ActualHeight));
-                }
+                // AutoCAD works the extents out of the words each time and ignores a 42 and a 43 a list gives (console, l2p2 pf: 99 and
+                // 88 given, 24.1667 and 3.33333 listed); where no font measures the words they are the record's own.
+                MeasureWords(document, text, out double wide, out double high);
+                SetOrAdd(pairs, 42, wide);
+                SetOrAdd(pairs, 43, high);
 
                 if (!pairs.Exists(p => p.Key == 11))
                 {
@@ -389,7 +436,8 @@ namespace GeometryHelper.Cad.Lisp
         /// The groups of the BLOCK that opens a block definition (<c>(entget (tblobjname "BLOCK" name))</c>) as AutoCAD 2021 lists
         /// them (console, l2p pa): the owner and handle, <c>AcDbEntity</c> with 67 and the layer, <c>AcDbBlockBegin</c> with the
         /// flags and the base point, the first entity of the block (-2), then the name (2) and the path (1, empty for a block that
-        /// is no reference to a file). A block with no entity has no -2 (AutoCAD gives it the name of its ENDBLK: not given here).
+        /// is no reference to a file; the name the block was given for a block made by <c>entmake</c>, <c>*U</c> for an anonymous one).
+        /// A block with no entity has its ENDBLK as its -2 (AutoCAD 2021, console, l2p2 pf).
         /// </summary>
         internal static List<KeyValuePair<int, object>> BlockEntityList(
             CadDocument document,
@@ -443,19 +491,58 @@ namespace GeometryHelper.Cad.Lisp
 
             DxfBlockTable table = document.Database.BlockTable;
             string text = (string)name;
+            bool first = false;
 
             if (table.Has(text) && table[text] is DxfBlockTableRecord block)
             {
                 foreach (DxfItem entity in Items(block))
                 {
                     result.Add(LispEntityData.Pair(-2, new LispEntityName(entity.Handle)));
+                    first = true;
                     break;
                 }
+            }
+
+            // A block with no entity names its ENDBLK as its first (AutoCAD 2021, console, l2p2 pf).
+            if (!first && EndOf(document, text) is LispEntityName end)
+            {
+                result.Add(LispEntityData.Pair(-2, end));
             }
 
             result.Add(LispEntityData.Pair(2, name));
             result.Add(LispEntityData.Pair(1, path));
             return result;
+        }
+
+        /// <summary>The name of the ENDBLK of a block, the first entity (-2) of a block that holds none; null where it has no ENDBLK with a handle.</summary>
+        internal static LispEntityName EndOf(CadDocument document, string block) =>
+            document.Database.File.Blocks.TryGetValue(block, out DxfFileBlock found)
+            && found.Tail != null
+            && !found.Tail.IsRemoved
+            && !string.IsNullOrEmpty(found.Tail.Handle)
+                ? new LispEntityName(found.Tail.Handle)
+                : null;
+
+        /// <summary>
+        /// The groups of the ENDBLK that closes a block definition as AutoCAD 2021 lists them (console, l2p2 pf): the owner and
+        /// handle, <c>AcDbEntity</c> with 67 and the layer, then <c>AcDbBlockEnd</c>.
+        /// </summary>
+        internal static List<KeyValuePair<int, object>> EndBlockEntityList(
+            DxfItem tail,
+            List<KeyValuePair<int, object>> pairs
+        )
+        {
+            object owner = pairs.Find(p => p.Key == 330).Value;
+            object layer = pairs.Find(p => p.Key == 8).Value ?? "0";
+            return new List<KeyValuePair<int, object>>
+            {
+                LispEntityData.Pair(330, owner ?? new LispEntityName(tail.File.OwnerOf(tail) ?? "0")),
+                LispEntityData.Pair(5, tail.Handle),
+                LispEntityData.Pair(100, "AcDbEntity"),
+                LispEntityData.Pair(67, 0),
+                LispEntityData.Pair(8, layer),
+                LispEntityData.Pair(100, "AcDbBlockEnd"),
+            };
         }
 
         /// <summary>The handles a request finds in the drawing, in the order the set has them.</summary>

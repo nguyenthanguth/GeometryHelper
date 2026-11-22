@@ -159,12 +159,7 @@ namespace GeometryHelper.Cad
                 else if (c.Input.Is("Select objects"))
                 {
                     yield return CadPrompt.ForSelection();
-                    IReadOnlyList<CadBoundaryLoop> loops = CadBoundaryFinder.FromObjects(
-                        c.Document,
-                        c.Input.Handles,
-                        c.Session.Tolerance,
-                        out int passed
-                    );
+                    IReadOnlyList<CadBoundaryLoop> loops = LoopsOfSelected(c, out int passed);
 
                     if (passed > 0)
                     {

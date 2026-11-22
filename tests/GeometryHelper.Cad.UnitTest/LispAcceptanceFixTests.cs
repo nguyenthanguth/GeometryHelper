@@ -459,9 +459,9 @@ namespace GeometryHelper.Cad.UnitTest
             Feed(session, "(entmake '((0 . \"LINE\") (62 . 3) (10 0.0 0.0 0.0) (11 5.0 0.0 0.0)))");
 
             // AutoCAD 2021 (feed undo, group B): (... (410 . "Model") (8 . "0") (6 . "Continuous") (100 . "AcDbLine") (10 ...)
-            // (11 ...) (210 ...)); the colour follows the linetype
+            // (11 ...) (210 ...)); the colour comes before the linetype (console, l2p2 ph: (8 . "0") (62 . 3) (6 . "Continuous"))
             Assert.Equal(
-                "(-1 0 330 5 100 67 410 8 6 62 100 10 11 210)",
+                "(-1 0 330 5 100 67 410 8 62 6 100 10 11 210)",
                 Feed(session, "(mapcar 'car (entget (entlast)))")
             );
         }

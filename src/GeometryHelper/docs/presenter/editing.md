@@ -716,7 +716,9 @@ are 92 1, 16 and 0 (a loop made round a point is flagged as a polyline too, 3, 1
 would make AutoCAD 2021 want the pixel size of group 47). Every loop is stored whatever the island style is; the style,
 group 75, says which areas are filled, and is the value of HPISLANDDETECTION (0 Normal, 1 Outer, 2 Ignore; 1 at the start,
 as AutoCAD's, so `Enter hatching style [Ignore/Outer/Normal] <Outer>:`). The seed points, `98`, are the point picked once
-for each loop found round it, and one point at the origin for objects selected. For AutoLISP the points of a hatch's
+for each loop found round it, and one point at the origin for objects selected. The loops of objects selected are listed in the order the objects were selected, the nesting alone flagging them (a rectangle
+inside a rectangle selected first has its loop first, flagged 16, then the outer, flagged 1), and `ALL` gives the newest
+object first, as AutoCAD 2021 does (console, probes pg and pi). For AutoLISP the points of a hatch's
 edges and seeds are three-dimensional, `(72 . 1) (10 0.0 0.0 0.0) (11 10.0 0.0 0.0)`, as AutoCAD gives them. After SOLID
 the pattern prompt offers `<Solid>`.
 

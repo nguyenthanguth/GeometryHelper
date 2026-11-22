@@ -252,10 +252,11 @@ namespace GeometryHelper.Cad.UnitTest
             CadCommandSession session = Start();
 
             // AutoCAD 2021 (q5): (tblobjname "LAYER" "0") an entity name; its entget the whole record, with the owner (330), the
-            // handle (5), the subclass markers and the plot style (390). The presenter's record has no 290, 370, 347 or 348.
+            // handle (5), the subclass markers and, after the linetype, 290, 370, the plot style (390), 347 and 348 (console, l2p2 pf: (290 . 1)
+            // (370 . -3); the presenter keeps no material or visual style, so its 347 and 348 name no object).
             Assert.Equal("<Entity name: *>", Value(session, "(tblobjname \"LAYER\" \"0\")"));
             Assert.Equal(
-                "((-1 . <Entity name: *>) (0 . \"LAYER\") (330 . <Entity name: *>) (5 . \"10\") (100 . \"AcDbSymbolTableRecord\") (100 . \"AcDbLayerTableRecord\") (2 . \"0\") (70 . 0) (62 . 7) (6 . \"Continuous\") (390 . <Entity name: *>))",
+                "((-1 . <Entity name: *>) (0 . \"LAYER\") (330 . <Entity name: *>) (5 . \"10\") (100 . \"AcDbSymbolTableRecord\") (100 . \"AcDbLayerTableRecord\") (2 . \"0\") (70 . 0) (62 . 7) (6 . \"Continuous\") (290 . 1) (370 . -3) (390 . <Entity name: *>) (347 . <Entity name: *>) (348 . <Entity name: *>))",
                 Value(session, "(entget (tblobjname \"LAYER\" \"0\"))")
             );
             Assert.Equal("nil", Value(session, "(tblobjname \"LAYER\" \"NOPE\")"));

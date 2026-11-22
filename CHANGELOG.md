@@ -6,6 +6,21 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** AutoLISP's `entget` listed the groups of a block made by `entmake` and of the objects round it a way AutoCAD 2021 does not
+(each measured in its console): the BLOCK of such a block has its name as group `1` (`"*U"` for an anonymous one, whatever `1`
+the list gave; a block of `-BLOCK` keeps `""`); a block with no entity names its ENDBLK as `-2`, in `tblsearch` too, and
+`(entget it)` is the ENDBLK; `(entnext block)` goes to the block's first entity; the ATTRIB `entmake` makes and the SEQEND after
+a block reference's attributes (by `entmake` or by -INSERT) list the linetype and colour the drawing draws in, `(62 . 1) (6 .
+"GHDASH")`, which the SEQEND took from nothing; `entmake` takes CECOLOR as it took CELTYPE (`(62 . 1)`, `(62 . 0)` for ByBlock),
+and `entget` lists the colour `62` before the linetype `6`; an MTEXT's `42` and `43` are always worked out from its words in
+the fonts the document finds (a `42` given to `entmake` was kept: 99.0 where AutoCAD lists 24.1667); a layer ends, after its
+linetype, with `(290 . 1)` (0 after -LAYER Plot No plot), `(370 . -3)`, the plot style `390`, and the material `347` and visual
+style `348`, which name no object here.
+
+**CHANGED.** The loops of a hatch made of objects selected (-HATCH Select objects, and HATCH's) are in the order the objects
+were selected, flagged by their nesting, and `ALL` gives the newest object first, as AutoCAD 2021's are (a rectangle in a
+rectangle selected inner first has its loop first, flagged 16); they were sorted outermost first and by area.
+
 **NEW.** AutoLISP's `entmake` makes what AutoCAD 2021 makes by several calls and by records (each measured there): a POLYLINE
 with its VERTEX forms and its `SEQEND` (nothing is in the drawing until the end; a flag 8 makes a 3D polyline; a `SEQEND`
 with no vertex writes `Invalid POLYLINE object.`; another entity while one is pending writes `Invalid complex object.`), an

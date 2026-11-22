@@ -721,6 +721,46 @@ namespace GeometryHelper.Cad.Lisp
             return LispInterpreter.ListOf(items);
         }
 
+        /// <summary>
+        /// The tail of a layer's list as AutoCAD 2021 gives it (console, l2p2 pf): the plot flag (290, 1 where the record has none), the
+        /// lineweight (370, -3 for the default one), the plot style (390) and the material (347) and visual style (348) objects,
+        /// in that order after the colour and linetype. The presenter keeps no material or visual style object, so where the record
+        /// names none the two are the name of no object (handle 0): <c>entget</c> of it is nil, as AutoCAD's is for 348.
+        /// </summary>
+        internal static void CompleteLayer(List<KeyValuePair<int, object>> pairs)
+        {
+            var tail = new Dictionary<int, object>();
+
+            foreach (int code in new[] { 290, 370, 390, 347, 348 })
+            {
+                int at = pairs.FindIndex(p => p.Key == code);
+
+                if (at >= 0)
+                {
+                    tail[code] = pairs[at].Value;
+                    pairs.RemoveAt(at);
+                }
+            }
+
+            pairs.Add(LispEntityData.Pair(290, tail.TryGetValue(290, out object plot) ? plot : 1));
+            pairs.Add(LispEntityData.Pair(370, tail.TryGetValue(370, out object weight) ? weight : -3));
+
+            if (tail.TryGetValue(390, out object style))
+            {
+                pairs.Add(LispEntityData.Pair(390, style));
+            }
+
+            pairs.Add(
+                LispEntityData.Pair(
+                    347,
+                    tail.TryGetValue(347, out object material) ? material : new LispEntityName("0")
+                )
+            );
+            pairs.Add(
+                LispEntityData.Pair(348, tail.TryGetValue(348, out object visual) ? visual : new LispEntityName("0"))
+            );
+        }
+
         /// <summary>Puts a group last where the list has none of its code.</summary>
         private static void AddMissing(List<KeyValuePair<int, object>> pairs, int code, object value)
         {
@@ -792,6 +832,9 @@ namespace GeometryHelper.Cad.Lisp
                 LispEntityData.Pair(4, block?.Comments ?? string.Empty),
                 LispEntityData.Pair(10, origin),
             };
+
+            // A block with no entity names its ENDBLK (AutoCAD 2021, console, l2p2 pf).
+            first = first ?? EndOf(document, name);
 
             if (first != null)
             {

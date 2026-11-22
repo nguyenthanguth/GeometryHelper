@@ -631,6 +631,7 @@ namespace GeometryHelper.Cad
         )
         {
             int i = 0;
+            bool ended = insert.Item.File.RecordCount(insert.Item) > 1;
 
             foreach (DxfAttributeDefinition definition in Definitions(record))
             {
@@ -649,6 +650,56 @@ namespace GeometryHelper.Cad
 
                 insert.AttributeCollection.AppendAttribute(attribute);
                 i++;
+            }
+
+            if (i > 0 && !ended)
+            {
+                GiveSequenceEndTheCurrentLook(insert);
+            }
+        }
+
+        /// <summary>
+        /// Gives the SEQEND that ends the attributes of an INSERT the linetype and colour the drawing draws new objects in (CELTYPE and
+        /// CECOLOR), not the INSERT's or its attributes', as AutoCAD 2021 does (console, l2p2 pf: under a current linetype GHDASH and
+        /// colour 1 the SEQEND of an INSERT given Continuous and of an attribute taken from its definition was <c>(62 . 1) (6 .
+        /// "GHDASH")</c>); nothing where the linetype or the colour is ByLayer. The INSERT is in the drawing and its SEQEND made.
+        /// </summary>
+        internal static void GiveSequenceEndTheCurrentLook(DxfBlockReference insert)
+        {
+            DxfItem item = insert.Item;
+            DxfFile file = item.File;
+            DxfDatabase database = file.Database;
+            int last = file.RecordCount(item) - 1;
+
+            if (database == null || last < 1 || file.RecordType(item, last) != "SEQEND")
+            {
+                return;
+            }
+
+            if (!(DxfEntity.Of(file.FollowerOf(item, last)) is DxfEntity end))
+            {
+                return;
+            }
+
+            string linetype = database.Celtype;
+
+            if (
+                !string.IsNullOrEmpty(linetype)
+                && !string.Equals(linetype, "ByLayer", StringComparison.OrdinalIgnoreCase)
+                && (
+                    string.Equals(linetype, "ByBlock", StringComparison.OrdinalIgnoreCase)
+                    || database.LinetypeTable.Has(linetype)
+                )
+            )
+            {
+                end.Linetype = linetype;
+            }
+
+            DxfColor colour = database.Cecolor;
+
+            if (!colour.IsByLayer)
+            {
+                end.Color = colour;
             }
         }
 

@@ -29,10 +29,9 @@ The library stage was measured in nine probe files typed into AutoCAD 2021's con
 their expected values from them. The same routines then ran again: all 22 of the user's routines load alike in both
 programs, and for the five that call the library, forms making the same calls on the same shapes of data (numbers with
 repeats through `vl-sort`, a temporary dialog file written, read back and deleted, entity names filtered by type) were
-typed into both. For four of the five the command line and the drawing come out the same; the fifth writes the same
-command line and differs in two groups of its drawing: an MTEXT made by `entmake` has `(42 . 0.0)` and `(43 . 0.0)` where
-AutoCAD gives its width and height in the font, 24.1667 and 3.33333, and the SEQEND after a block reference's attributes
-lacks the `(6 . "Continuous")` AutoCAD gives it. A sixth feed, of the pick-first functions, differs in one row, [described
+typed into both. For the five the command line and the drawing come out the same, once the drawing's font search path finds the
+font AutoCAD measures with: an MTEXT made by `entmake` lists the width and height its words take in the font, 24.1667 and
+3.33333 for `mtext body` at 2.5 in txt, and `(42 . 0.0) (43 . 0.0)` where no font is found. A sixth feed, of the pick-first functions, differs in one row, [described
 below](#pick-first-and-nentselp).
 
 The ActiveX stage was measured in five probe files typed into AutoCAD 2021's console and in two runs of the full AutoCAD
@@ -561,20 +560,26 @@ type, and the `102` groups are kept. Extended data is `(-3 ("APP" ...))` for the
 the defaults AutoCAD 2021's list has for these types (measured in its console): an **ATTRIB** and an **ATTDEF** list the text's
 groups (`50 0.0`, `41 1.0`, `51 0.0`, `7 "Standard"`, `71 0`, `72 0`, `11`, `210`), then `(100 . "AcDbAttribute")` or
 `(100 . "AcDbAttributeDefinition")` with the version `(280 . 0)`, the prompt `3` of an ATTDEF, the tag `2`, the flags `70`, `73 0`,
-`74 0` and the lock of the position `280` last; a **SEQEND** is `(100 . "AcDbEntity") (67 . 0) (410 . "Model") (8 . "0")` and
-`(-2 . the entity it ends)`; an **MTEXT** has `41 0.0`, `46 0.0`, `72 5`, the text direction `11 (1.0 0.0 0.0)`, its extents
-`42` and `43` (measured in the font the drawing's search path finds; AutoCAD's are 24.1667 and 3.33333 for `mtext body` at 2.5
-in txt), `50 0.0`, `73 1` and `44 1.0`, its chunks of text `3` before the `1`; a **POLYLINE** is `(100 . "AcDb2dPolyline")` or
+`74 0` and the lock of the position `280` last; a **SEQEND** is `(100 . "AcDbEntity") (67 . 0) (410 . "Model") (8 . "0")`, the colour `62` and linetype `6` the drawing draws in
+when it is made (CECOLOR and CELTYPE: not the INSERT's or its attributes') and `(-2 . the entity it ends)`; an **MTEXT** has `41 0.0`, `46 0.0`, `72 5`, the text direction `11 (1.0 0.0 0.0)`, its extents
+`42` and `43` (worked out from its words each time, in the font the document's folders and the Fonts folder of Windows find,
+whatever a list gave; AutoCAD's are 24.1667 and 3.33333 for `mtext body` at 2.5 in txt; where no font is found, those of the
+record, `0.0` for an MTEXT made by `entmake`), `50 0.0`, `73 1` and `44 1.0`, its chunks of text `3` before the `1`; a **POLYLINE** is `(100 . "AcDb2dPolyline")` or
 `"AcDb3dPolyline"` (flag 8), `66 1`, `10`, `70`, `40 0.0`, `41 0.0`, `210`, `71`, `72`, `73`, `74` and `75` as 0, and each
 **VERTEX** `AcDbVertex` and `AcDb2dVertex` with `10`, `40`, `41`, `42 0.0`, `91 0`, `70` and `50 0.0`, or
-`AcDb3dPolylineVertex` with `70 32` and `71` to `74`; the owner `330` of a vertex and of a SEQEND is its polyline. The
-entities of a block definition have no `410`. The angles of a HATCH are radians, as an ARC's are: `53`, the angle of a pattern
+`AcDb3dPolylineVertex` with `70 32` and `71` to `74`; the owner `330` of a vertex and of a SEQEND is its polyline; a **LAYER** ends, after the linetype, with the plot flag `290`
+(1 where the record has none, 0 after -LAYER Plot No plot), the lineweight `370` (-3), the plot style `390`, and the material
+`347` and visual style `348`, which name no object, as the presenter keeps neither (`entget` of `348` is `nil` in AutoCAD too;
+`tblsearch` of a layer keeps its five groups). The
+entities of a block definition have no `410`. Where an entity has both, the colour `62` is listed before the linetype `6`. The angles of a HATCH are radians, as an ARC's are: `53`, the angle of a pattern
 line, is `0.785398` for ANSI31, `52` the pattern angle, and `50` and `51` the angles of an arc edge of its boundary. The
 `(tblobjname "BLOCK" name)` of a block is the name of the BLOCK that opens its definition, not of its record, and its `entget` is
 `((-1 . ename) (0 . "BLOCK") (330 . owner) (5 . handle) (100 . "AcDbEntity") (67 . 0) (8 . "0") (100 . "AcDbBlockBegin")
-(70 . flags) (10 base point) (-2 . first entity) (2 . name) (1 . path))`; the path is empty for a block made in the presenter
-(AutoCAD 2021 gave a block made by `entmake` its own name, and a block of `-BLOCK` was not measured), and a block with no entity has no
-`-2`. `vlax-ename->vla-object` of that name is still the block.
+(70 . flags) (10 base point) (-2 . first entity) (2 . name) (1 . path))`; the path is the name a block made by `entmake` was given (`"*U"` for an anonymous one, whatever `1` the list
+gave) and empty for a block of `-BLOCK`; a block with no entity has its ENDBLK as `-2`, whose `entget` is `((-1 . ename)
+(0 . "ENDBLK") (330 . owner) (5 . handle) (100 . "AcDbEntity") (67 . 0) (8 . "0") (100 . "AcDbBlockEnd"))`. `(entnext name)` of the BLOCK
+is the first entity of the block, `nil` for an empty block, and nothing follows the last entity or the ENDBLK.
+`vlax-ename->vla-object` of that name is still the block.
 
 `(entmod list)` gives the list, or `nil` for a list with no `-1`, an unknown or erased entity, a change of group `0`, or a
 value of the wrong kind. A group code the list gives twice has the last value, as in AutoCAD: `(entmod (append (entget e) '((62 . 5) (62 . 6))))`
@@ -597,8 +602,9 @@ the group `0`, is `nil`. This is what a routine needs that picks an attribute wi
 `(entmake '((0 . "LINE") (10 0.0 0.0)))` is `nil`, a LINE with no end. The defaults are AutoCAD's (a TEXT is made with
 rotation 0, width factor 1, style Standard, justification left, and the normal `(0 0 1)`), a layer that is missing is
 made, the entity goes into the current space, and `(entlast)` is it. A list with no group `6` takes the drawing's CELTYPE, so a LINE made on a blank drawing has `(6 . "Continuous")`, and
-none where CELTYPE is ByLayer; a `(6 . "ByLayer")` or `(62 . 256)` the list gives is dropped, as AutoCAD drops it, and the
-entity lists neither. A list straight from `entget` is taken: the leading
+none where CELTYPE is ByLayer, and a list with no group `62` takes CECOLOR, `(62 . 1)` for colour 1 and `(62 . 0)` for
+ByBlock, listed before the `6` (AutoCAD 2021, console, probe ph); a `(6 . "ByLayer")` or `(62 . 256)` the list gives is
+dropped, as AutoCAD drops it, and the entity lists neither. A list straight from `entget` is taken: the leading
 `-1`, and the `5` and `330` groups, are ignored, and a two-dimensional point is completed. The presenter makes LINE, POINT,
 CIRCLE, ARC, ELLIPSE, TEXT, MTEXT, ATTDEF, LWPOLYLINE, SOLID, TRACE, 3DFACE, RAY, XLINE, SPLINE and INSERT in one call, and
 by several calls what AutoCAD 2021 makes by several (probe pa). An ELLIPSE whose `41` or `42` is outside 0 to 2 pi is `nil`,
@@ -619,7 +625,10 @@ is pending. What is pending is kept for the drawing, not for a routine: it stays
 
 An INSERT with `(66 . 1)` is begun the same way and takes `ATTRIB` lists (a tag, a value, a point and a height are needed) up
 to the `SEQEND`, which makes the reference with its attributes; one with no ATTRIB is made too. An ATTRIB with no INSERT
-pending gives `nil`. Of an attribute's flags the presenter keeps the invisible one.
+pending gives `nil`. Of an attribute's flags the presenter keeps the invisible one. An ATTRIB takes CELTYPE and CECOLOR
+as any entity does where its list gives no `6` or `62`, and the SEQEND takes the CELTYPE and CECOLOR of the moment it is made,
+not the INSERT's or the ATTRIB's (with CELTYPE GHDASH, an INSERT given Continuous has an ATTRIB and a SEQEND of GHDASH); the
+SEQEND of a block reference the -INSERT command makes takes them too, its attributes the look of their definitions.
 
 A `BLOCK` (a name in `2`, a base point in `10`, the flags in `70`) gives its list at once and makes nothing; the entities
 made after it, ATTDEFs and polylines among them, go into the definition, not the space, and `(entlast)` does not change. Then
@@ -661,7 +670,7 @@ Command: (cdr (assoc 0 (entget e1)))
 viewport or application, the table and the name in any case: `(tblsearch "layer" "newlayer")` is `((0 . "LAYER") (2 .
 "NEWLAYER") (70 . 0) (62 . 7) (6 . "Continuous"))`. The `62` of a layer that is off is negative, and its `70` is 1 for
 frozen and 4 for locked. A record of BLOCK has its description `(4 . "")` after the flags and ends with `(-2 . ename)`, the first
-entity of the block. A linetype's list has no `74` group where it is 0, a text style's `50` is the obliquing in radians
+entity of the block, or the ENDBLK of a block with none. A linetype's list has no `74` group where it is 0, a text style's `50` is the obliquing in radians
 (`0.261799` for 15 degrees), a UCS ends with `(79 . 0) (146 . 0.0)` and a view with `(72 . 0) (110 0.0 0.0 0.0) (111 1.0 0.0
 0.0) (112 0.0 1.0 0.0) (79 . 0) (146 . 0.0)`. An unknown table is
 `AutoCAD rejected function: invalid table function argument(s): "FOO" "x"`. `(tblnext table [rewind])` walks the records in

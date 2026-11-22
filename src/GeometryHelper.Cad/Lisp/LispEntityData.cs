@@ -731,6 +731,17 @@ namespace GeometryHelper.Cad.Lisp
                 head.Insert(put, Pair(8, layer ?? "0"));
             }
 
+            // AutoCAD lists the colour before the linetype where an entity has both (console, l2p2 pf and ph), the file the other way.
+            int linetypeAt = head.FindIndex(p => p.Key == 6);
+            int colourAt = head.FindIndex(p => p.Key == 62);
+
+            if (linetypeAt >= 0 && colourAt > linetypeAt)
+            {
+                KeyValuePair<int, object> colour = head[colourAt];
+                head.RemoveAt(colourAt);
+                head.Insert(linetypeAt, colour);
+            }
+
             result.AddRange(head);
 
             var body = new List<KeyValuePair<int, object>>();

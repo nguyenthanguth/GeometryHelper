@@ -112,12 +112,18 @@ namespace GeometryHelper.Cad.Lisp
                 }
             }
 
-            // The BLOCK that opens a block definition: the entity (tblobjname "BLOCK" name) names.
+            // The BLOCK that opens a block definition: the entity (tblobjname "BLOCK" name) names; and the ENDBLK that closes it,
+            // which an empty block's BLOCK names as its first entity (-2).
             foreach (DxfFileBlock opening in database.File.Blocks.Values)
             {
                 if (opening.Head != null && !opening.Head.IsRemoved && SameHandle(opening.Head.Handle, handle))
                 {
                     return opening.Head;
+                }
+
+                if (opening.Tail != null && !opening.Tail.IsRemoved && SameHandle(opening.Tail.Handle, handle))
+                {
+                    return opening.Tail;
                 }
             }
 
@@ -286,6 +292,10 @@ namespace GeometryHelper.Cad.Lisp
             {
                 pairs = BlockEntityList(session.Document, item, pairs);
             }
+            else if (item.Type == "ENDBLK" && item.Space == null && item.Parent == null)
+            {
+                pairs = EndBlockEntityList(item, pairs);
+            }
             else if (item.Parent != null || item.Space != null)
             {
                 pairs = Listed(session.Document, item, pairs);
@@ -300,6 +310,11 @@ namespace GeometryHelper.Cad.Lisp
                     KeyValuePair<int, object> owner = pairs[handleAt + 1];
                     pairs[handleAt + 1] = pairs[handleAt];
                     pairs[handleAt] = owner;
+                }
+
+                if (item.Type == "LAYER")
+                {
+                    CompleteLayer(pairs);
                 }
             }
 
@@ -376,6 +391,28 @@ namespace GeometryHelper.Cad.Lisp
 
             if (found == null)
             {
+                return null;
+            }
+
+            // The BLOCK that opens a definition goes on to the first entity of the block, nil for an empty block, whose ENDBLK
+            // is no entity to walk to; the ENDBLK has nothing after it (AutoCAD 2021, console, l2p2 pf).
+            if (found.Type == "BLOCK" && found.Space == null && found.Parent == null)
+            {
+                foreach (DxfFileBlock opening in document.Database.File.Blocks.Values)
+                {
+                    if (
+                        ReferenceEquals(opening.Head, found)
+                        && document.Database.BlockTable.Has(opening.Name)
+                        && document.Database.BlockTable[opening.Name] is DxfBlockTableRecord definition
+                    )
+                    {
+                        foreach (DxfItem first in Items(definition))
+                        {
+                            return new LispEntityName(first.Handle);
+                        }
+                    }
+                }
+
                 return null;
             }
 
@@ -1196,13 +1233,15 @@ namespace GeometryHelper.Cad.Lisp
 
         /// <summary>
         /// Settles the linetype and colour groups of a list <c>entmake</c> is given as AutoCAD does (feeds ft, dcd and undo): a list
-        /// with no group 6 takes the drawing's CELTYPE (<c>(6 . "Continuous")</c> on a blank drawing, nothing where it is ByLayer),
-        /// and a <c>ByLayer</c> linetype or a colour 256 that is given is dropped, with CELTYPE not put in its place: an entity
-        /// that is ByLayer has no group for it.
+        /// with no group 6 takes the drawing's CELTYPE (<c>(6 . "Continuous")</c> on a blank drawing, nothing where it is ByLayer)
+        /// and one with no group 62 its CECOLOR (<c>(62 . 1)</c>, <c>(62 . 0)</c> for ByBlock, nothing for ByLayer; AutoCAD 2021,
+        /// console, l2p2 pf and ph: the colour first, then the linetype), and a <c>ByLayer</c> linetype or a colour 256 that is
+        /// given is dropped, with CELTYPE or CECOLOR not put in its place: an entity that is ByLayer has no group for it.
         /// </summary>
         private static void TakeLinetypeAndColour(DxfDatabase database, List<KeyValuePair<int, object>> groups)
         {
             bool linetypeGiven = groups.Exists(p => p.Key == 6);
+            bool colourGiven = groups.Exists(p => p.Key == 62);
             groups.RemoveAll(p =>
                 (
                     p.Key == 6
@@ -1211,15 +1250,11 @@ namespace GeometryHelper.Cad.Lisp
                 ) || (p.Key == 62 && p.Value is int color && color == 256)
             );
 
-            if (linetypeGiven)
-            {
-                return;
-            }
-
             string celtype = database.Celtype;
 
             if (
-                !string.IsNullOrEmpty(celtype)
+                !linetypeGiven
+                && !string.IsNullOrEmpty(celtype)
                 && !string.Equals(celtype, "ByLayer", StringComparison.OrdinalIgnoreCase)
                 && (
                     string.Equals(celtype, "ByBlock", StringComparison.OrdinalIgnoreCase)
@@ -1228,6 +1263,13 @@ namespace GeometryHelper.Cad.Lisp
             )
             {
                 groups.Insert(0, new KeyValuePair<int, object>(6, celtype));
+            }
+
+            short cecolor = database.Cecolor.ColorIndex;
+
+            if (!colourGiven && cecolor >= 0 && cecolor <= 255)
+            {
+                groups.Insert(0, new KeyValuePair<int, object>(62, (int)cecolor));
             }
         }
 
@@ -1376,6 +1418,12 @@ namespace GeometryHelper.Cad.Lisp
                     foreach (List<KeyValuePair<int, object>> given in attributes)
                     {
                         insert.AttributeCollection.AppendAttribute(NewAttribute(s.Document, given));
+                    }
+
+                    // The SEQEND takes the current linetype and colour, not the INSERT's or the attributes' (AutoCAD 2021, console, l2p2 pf).
+                    if (attributes.Count > 0)
+                    {
+                        CadCommands.GiveSequenceEndTheCurrentLook(insert);
                     }
                 }
 

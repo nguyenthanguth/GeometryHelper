@@ -1577,6 +1577,12 @@ namespace GeometryHelper.Dxf
                                 new DxfItem(this, i, 1, "BLOCK", null),
                                 end
                             )
+                            {
+                                Tail =
+                                    end < section.Last && _types[end] == "ENDBLK"
+                                        ? new DxfItem(this, end, 1, "ENDBLK", null)
+                                        : null,
+                            }
                         );
                     }
 

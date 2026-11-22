@@ -251,6 +251,7 @@ namespace GeometryHelper.Cad.Lisp
         {
             List<KeyValuePair<int, object>> groups = ChangesOf(given);
             CompletePoints("ATTRIB", groups);
+            TakeLinetypeAndColour(document.Database, groups);
 
             foreach (int required in RequiredOf("ATTRIB"))
             {
@@ -682,7 +683,14 @@ namespace GeometryHelper.Cad.Lisp
                 }
                 else
                 {
-                    record = new DxfBlockTableRecord { Name = name, Origin = origin };
+                    // The BLOCK entity of a block made by entmake lists the name it was given as its group 1 (AutoCAD 2021, console,
+                    // l2p2 pf: GHF1 and, for <c>*U</c>, "*U" though the block is *U5), where a block of -BLOCK lists an empty one.
+                    record = new DxfBlockTableRecord
+                    {
+                        Name = name,
+                        Origin = origin,
+                        MadePath = block.Name,
+                    };
                     s.Database.BlockTable.Add(record);
                 }
 

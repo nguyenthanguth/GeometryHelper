@@ -45,6 +45,9 @@ namespace GeometryHelper.Dxf
         /// <summary>The ENDBLK of a block added, before which its entities go; null for a block of the file as it was read.</summary>
         internal DxfFile.Piece EndPiece { get; set; }
 
+        /// <summary>The ENDBLK record of the block seen as an item, so that its handle names it; null where the file has none for the block.</summary>
+        internal DxfItem Tail { get; set; }
+
         /// <summary>The list of pieces the records of a block added are in; null for a block of the file as it was read.</summary>
         internal List<DxfFile.Piece> Home { get; set; }
 

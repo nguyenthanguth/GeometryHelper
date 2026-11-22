@@ -7631,6 +7631,7 @@ namespace GeometryHelper.Dxf
             {
                 EndPiece = endPiece,
                 Home = home,
+                Tail = new DxfItem(this, endPiece, "ENDBLK") { Home = home },
             };
 
             // Found by its name from then on, as a block of the file is, by the INSERTs of it among the rest.

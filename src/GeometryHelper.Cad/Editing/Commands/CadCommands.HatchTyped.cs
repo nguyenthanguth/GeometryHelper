@@ -156,12 +156,7 @@ namespace GeometryHelper.Cad
                 else if (c.Input.Is("Select objects"))
                 {
                     yield return CadPrompt.ForSelection();
-                    IReadOnlyList<CadBoundaryLoop> loops = CadBoundaryFinder.FromObjects(
-                        c.Document,
-                        c.Input.Handles,
-                        c.Session.Tolerance,
-                        out int passed
-                    );
+                    IReadOnlyList<CadBoundaryLoop> loops = LoopsOfSelected(c, out int passed);
 
                     if (passed > 0)
                     {
@@ -496,6 +491,42 @@ namespace GeometryHelper.Cad
                     yield break;
                 }
             }
+        }
+
+        /// <summary>
+        /// The loops of the closed objects a Select objects answer took, in the order the objects were selected, which a hatch lists
+        /// its loops in as AutoCAD 2021 does (console, l2p2 pg and pi: three rectangles picked 3, 1, 2 give loops 3, 1, 2, a
+        /// rectangle in a rectangle picked inner first its inner loop first; ALL gives the newest object first), the nesting alone
+        /// flagging them. <see cref="CadBoundaryFinder.FromObjects"/> gives them outermost first, which the other commands that
+        /// select objects for a boundary keep; the answer's handles are taken in their own order where the order picked is not known.
+        /// </summary>
+        private static IReadOnlyList<CadBoundaryLoop> LoopsOfSelected(CadCommandContext c, out int passed)
+        {
+            IReadOnlyList<string> order =
+                c.Input.PickOrder.Count == c.Input.Handles.Count ? c.Input.PickOrder : c.Input.Handles;
+            IReadOnlyList<CadBoundaryLoop> loops = CadBoundaryFinder.FromObjects(
+                c.Document,
+                order,
+                c.Session.Tolerance,
+                out passed
+            );
+            int PlaceOf(CadBoundaryLoop loop)
+            {
+                for (int i = 0; i < order.Count; i++)
+                {
+                    if (
+                        loop.Sources.Count > 0
+                        && string.Equals(order[i], loop.Sources[0], StringComparison.OrdinalIgnoreCase)
+                    )
+                    {
+                        return i;
+                    }
+                }
+
+                return int.MaxValue;
+            }
+
+            return loops.OrderBy(PlaceOf).ToList().AsReadOnly();
         }
 
         /// <summary>A Yes/No asked and kept in the session's memory under a key; the start is shown as its letter, as AutoCAD writes &lt;Y&gt;.</summary>
