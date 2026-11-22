@@ -1708,6 +1708,7 @@ namespace GeometryHelper.Cad.Wpf
                 _current.ViewOf(Space, _canvasWidth, _canvasHeight).FitPending = false;
             }
 
+            ForgetPickedViewIfMoved();
             RefreshViewGroup();
         }
 
