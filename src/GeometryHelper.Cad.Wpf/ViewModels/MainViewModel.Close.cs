@@ -88,6 +88,25 @@ namespace GeometryHelper.Cad.Wpf
         }
 
         /// <summary>
+        /// Closes a document for the remote channel, which has checked that its changes are to be thrown away and that nothing
+        /// runs in it: no question and no dialog, whatever <see cref="AskSaveChanges"/> is, and nothing saved. Its file is let go
+        /// as <see cref="CloseDocument"/> lets it go once the question is answered Don't save.
+        /// </summary>
+        /// <param name="document">The document.</param>
+        internal void CloseForRemote(CadDocument document)
+        {
+            KnownFile file = _files.Values.FirstOrDefault(f => f.Document == document);
+
+            if (file?.Document == null)
+            {
+                return;
+            }
+
+            EndCommands(file.Session);
+            Release(file);
+        }
+
+        /// <summary>
         /// Says whether the window may close: with documents not saved, <see cref="AskSaveAll"/> is asked once for all of them,
         /// and Save saves each; Cancel, or a save that fails, keeps the window open.
         /// </summary>
