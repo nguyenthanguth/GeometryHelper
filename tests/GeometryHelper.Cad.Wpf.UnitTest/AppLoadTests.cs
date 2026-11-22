@@ -18,7 +18,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
     /// footer and its refusals, Add to History and the History list, the Loaded Applications list with Unload, and the Startup
     /// Suite. Driven with no window; the last tests lay the two windows out offscreen.
     /// </summary>
-    public sealed class AppLoadTests : IDisposable
+    public sealed partial class AppLoadTests : IDisposable
     {
         private const string SampleName = "GeometryHelper.Cad.SamplePlugin";
         private readonly TestFolder _folder = new TestFolder();
@@ -162,7 +162,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void UpGoesToTheParent_BackToTheFolderShownBefore_AndAFolderThatIsARootHasNoUp()
+        public void UpGoesToTheParent_BackToTheFolderShownBefore_AndUpFromARootGoesToThisPc()
         {
             string sub = Directory.CreateDirectory(Path.Combine(Browsed, "old")).FullName;
             AppLoadViewModel dialog = Shown(Opened(s => s.AppLoadFolder = sub));
@@ -180,9 +180,12 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             Assert.False(dialog.CanBack);
 
             Assert.True(dialog.OpenFolder(Path.GetPathRoot(sub)));
+            Assert.True(dialog.CanUp);
+            dialog.Up();
+            Assert.True(dialog.IsThisPc);
             Assert.False(dialog.CanUp);
             dialog.Up();
-            Assert.Equal(Path.GetPathRoot(sub), dialog.Folder);
+            Assert.True(dialog.IsThisPc);
         }
 
         [Fact]
@@ -339,16 +342,22 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void ALspFileThatIsMissing_IsNotLoadedAndSaysWhy()
+        public void ALspFileThatIsMissing_IsNotLoaded_AndAnErrorBoxSaysWhy()
         {
             AppLoadViewModel dialog = Shown(Opened());
+            var box = new List<string[]>();
+            dialog.ShowMessage = (title, message, detail) => box.Add(new[] { title, message, detail });
             dialog.FileName = "missing.lsp";
 
             dialog.Load();
 
-            Assert.Equal(AppLoadStatusKind.Failed, dialog.StatusKind);
-            Assert.StartsWith("missing.lsp was not loaded: ; error: LOAD failed: ", dialog.Status);
+            Assert.Equal(
+                new[] { "Error", "The following file was not found:", Path.Combine(Browsed, "missing.lsp") },
+                Assert.Single(box)
+            );
+            Assert.Equal(string.Empty, dialog.Status);
             Assert.Empty(dialog.LoadedRows);
+            Assert.Empty(dialog.HistoryRows);
         }
 
         [Fact]
@@ -443,6 +452,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 
             for (int i = 0; i < 60; i++)
             {
+                Lisp("f" + i + ".lsp", "");
                 dialog.FileName = "f" + i + ".lsp";
                 dialog.Load();
             }
@@ -919,16 +929,19 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                 Layout(window.Body, 720, 600);
                 var look = (ComboBox)Named(window.Body)["Look in"];
                 var files = (ListBox)Named(window.Body)["Files"];
-                Assert.Equal(Browsed, look.SelectedItem);
+                Assert.Equal(Browsed, ((AppLoadPlace)look.SelectedItem).Path);
                 Assert.Single(files.Items);
                 string parent = Path.GetDirectoryName(Browsed);
 
-                look.SelectedItem = parent;
+                look.SetCurrentValue(
+                    System.Windows.Controls.Primitives.Selector.SelectedItemProperty,
+                    look.Items.Cast<AppLoadPlace>().Single(p => p.Path == parent)
+                );
                 Layout(window.Body, 720, 600);
 
                 Assert.Equal(parent, window.Model.Folder);
-                Assert.Equal(parent, look.SelectedItem);
-                Assert.Equal(window.Model.FolderChain, look.Items.Cast<string>());
+                Assert.Equal(parent, ((AppLoadPlace)look.SelectedItem).Path);
+                Assert.Equal(window.Model.Places, look.Items.Cast<AppLoadPlace>());
                 Assert.Contains("lisp", files.Items.Cast<AppLoadEntry>().Select(e => e.Name));
             });
         }

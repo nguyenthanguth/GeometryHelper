@@ -3,6 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:GeometryHelper.Cad.Wpf"
+    xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
     Title="Parameters Manager"
     Width="520"
     Height="380"
@@ -74,6 +75,17 @@
             </DataTemplate>
         </ResourceDictionary>
     </Window.Resources>
+
+    <!-- No frame of the system: with WindowStyle None and a resizable window, Windows 10 and 11 draw a light line along the top edge. -->
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome
+            CaptionHeight="0"
+            ResizeBorderThickness="6"
+            GlassFrameThickness="0"
+            CornerRadius="0"
+            UseAeroCaptionButtons="False"
+        />
+    </shell:WindowChrome.WindowChrome>
 
     <!-- The Parameters Manager: the title, dragged to move it, with New User Parameter, Delete and the close button; the list
          under a header row; the reason a refused edit gives at the foot. -->
