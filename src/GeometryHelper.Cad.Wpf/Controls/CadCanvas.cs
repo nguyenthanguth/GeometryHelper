@@ -1629,6 +1629,7 @@ namespace GeometryHelper.Cad.Wpf
                 DrawAuthoring(drawingContext, work, scale);
                 DrawTags(drawingContext, view, scale);
                 DrawActiveFrame(drawingContext);
+                DrawTemporaryGraphics(drawingContext, work, scale);
                 DrawGrips(drawingContext, work, scale);
                 DrawConstraintBars(drawingContext, work, scale);
                 DrawCells(drawingContext, work, scale);
@@ -2222,12 +2223,14 @@ namespace GeometryHelper.Cad.Wpf
             {
                 old.PromptChanged -= canvas.OnPromptChanged;
                 old.UiRequested -= canvas.OnImageRequested;
+                old.TemporaryGraphicsChanged -= canvas.OnTemporaryGraphicsChanged;
             }
 
             if (e.NewValue is CadCommandSession next)
             {
                 next.PromptChanged += canvas.OnPromptChanged;
                 next.UiRequested += canvas.OnImageRequested;
+                next.TemporaryGraphicsChanged += canvas.OnTemporaryGraphicsChanged;
             }
 
             canvas._ghost.Follow(e.NewValue as CadCommandSession);

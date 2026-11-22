@@ -141,7 +141,7 @@ plugin its own, so that the `CadCommandContext` it is handed is of the type it w
 
 ## Where a plugin lives
 
-The app has a `Plugins` folder beside `GeometryHelper.Cad.App.exe`, as it has `Fonts`, `Hatches`, `Linetypes` and `AutoLisps`
+The app has a `Plugins` folder beside `GeometryHelper.Cad.App.exe`, as it has `Fonts`, `Hatches`, `Linetypes` and `Lisps`
 ([`CadSupportKind.Plugins`](xref:GeometryHelper.Cad.CadSupportKind)). The build copies it, with a `README.txt`, to the
 output of every project that uses the presenter. To install a plugin, put it there:
 
@@ -207,7 +207,28 @@ app keeps them in a folder of its own, GeometryHelper CAD in `%AppData%\Geometry
 there but beside the app, so that every user of an install has the same plugins. A plugin that earlier versions installed
 into `%AppData%\GeometryHelper\Dxf\Plugins` is not loaded now: move its folder to `Plugins` beside the app.
 
-A plugin.json with `"kind": "drawing"` holds drawing plugins, which this presenter does not run: a library that makes model drawings gives the plugin manager a `DrawingPluginFinder`, and the manager then loads such a plugin through the same shadow copy, trusted folders, startup list and log, and lists it under the Drawing chip of the Plugin manager. Without a finder the presenter refuses the plugin with the manager's reason.
+## The sample plugin
+
+A sample plugin ships in `Plugins\DrawingInfo`: the command `GHDWGINFO`, which reads the drawing and writes what it holds on
+the command line, and changes nothing. It is the smallest plugin that does something useful, one class with one command that
+takes no prompt, and its source is the project `GeometryHelper.Cad.Plugins.DrawingInfo` of the repository, a netstandard2.0
+library that references `GeometryHelper.Cad` without copying it. The app loads it at every start with no question, and the
+Plugins tab has a button for its command, as for every command. A drawing of three circles and a line in model space, with one
+layer and no block, gives
+
+```
+Command: GHDWGINFO
+Drawing: circles.dxf
+Model space: 4 objects
+  Circle   3
+  Line     1
+Layers: 1, blocks: 0
+Extents: (-10.00,-40.00) to (110.00,30.00)
+```
+
+The folder holds the plugin's .dll and its `plugin.json` and nothing else, since the app gives a plugin its own
+`GeometryHelper.Cad.dll`. The build of `GeometryHelper.Cad.App` builds the plugin first and copies those two files there. To
+remove the sample, delete the folder `Plugins\DrawingInfo`; to start a plugin of your own, copy its project.
 
 ## What the window adds
 

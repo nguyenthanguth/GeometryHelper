@@ -148,13 +148,6 @@
                         Content="{Binding CommandChipText}"
                         Command="{Binding FilterCommand}"
                         CommandParameter="Command"
-                        Margin="0,0,6,0"
-                    />
-                    <RadioButton
-                        Style="{StaticResource GhChip}"
-                        Content="{Binding DrawingChipText}"
-                        Command="{Binding FilterCommand}"
-                        CommandParameter="Drawing"
                     />
                 </StackPanel>
 

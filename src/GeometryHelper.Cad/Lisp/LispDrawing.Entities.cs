@@ -22,6 +22,9 @@ namespace GeometryHelper.Cad.Lisp
                 StringComparer.OrdinalIgnoreCase
             );
 
+            /// <summary>The set <c>ssget</c> gave last, which the Previous set takes how it was selected from.</summary>
+            internal LispSelectionSet LastSet { get; set; }
+
             /// <summary>The objects <c>entdel</c> erased, by their handle: what is needed to put one back, and the space it stood in.</summary>
             internal Dictionary<string, KeyValuePair<CadClipboardData, string>> Erased { get; } =
                 new Dictionary<string, KeyValuePair<CadClipboardData, string>>(StringComparer.OrdinalIgnoreCase);
@@ -52,8 +55,11 @@ namespace GeometryHelper.Cad.Lisp
             DrawingState state = StateOf(lisp);
 
             lisp.Define("ENTGET", 1, 2, a => EntGet(lisp, session, state, a));
-            lisp.Define("ENTMOD", 1, 1, a => lisp.OnOwner(() => EntMod(session, state, a[0])));
+            lisp.Define("ENTMOD", 1, 1, a => lisp.OnOwner(() => EntMod(lisp, session, state, a[0])));
             lisp.Define("ENTMAKE", 0, 1, a => lisp.OnOwner(() => a.Length == 0 ? null : EntMake(lisp, session, a[0])));
+            lisp.Define("ENTMAKEX", 0, 1, a =>
+                lisp.OnOwner(() => a.Length == 0 ? null : EntMakeX(lisp, session, a[0]))
+            );
             lisp.Define("ENTDEL", 1, 1, a => EntDel(lisp, session, state, a[0]));
             lisp.Define("ENTNEXT", 0, 1, a => EntNext(lisp, session, state, a));
             lisp.Define("ENTLAST", 0, 0, a => lisp.OnOwner(() => EntLast(session)));
@@ -69,7 +75,8 @@ namespace GeometryHelper.Cad.Lisp
 
         /// <summary>
         /// The record of the object a handle names: an entity of a space, one of a block or a record that follows an entity (a
-        /// vertex), or a record of a table; null for none or one erased. Owner thread only.
+        /// vertex), a record of a table, or an object of the OBJECTS section (a dictionary, an XRECORD); null for none or one
+        /// erased. Owner thread only.
         /// </summary>
         internal static DxfItem FindItem(CadDocument document, string handle)
         {
@@ -146,7 +153,8 @@ namespace GeometryHelper.Cad.Lisp
                 }
             }
 
-            return null;
+            // An object of the OBJECTS section: a dictionary, an XRECORD, what entget lists as AutoCAD lists them.
+            return database.File.HoldsObjects ? database.File.ObjectItem(handle) : null;
         }
 
         private static bool SameHandle(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
@@ -260,9 +268,18 @@ namespace GeometryHelper.Cad.Lisp
             {
                 applications = new List<string>();
 
+                // AutoCAD 2021 (C4b, probe x2): a list of the names of applications, nothing else.
+                if (!(a[1] is LispCons))
+                {
+                    throw new LispException("bad list (or tail): " + LispInterpreter.Print(a[1], true));
+                }
+
                 foreach (object item in LispInterpreter.ItemsOf(a[1]))
                 {
-                    applications.Add(LispInterpreter.Str(item));
+                    applications.Add(
+                        item as string
+                            ?? throw new LispException("not a string in the list: " + LispInterpreter.Print(item, true))
+                    );
                 }
             }
 
@@ -315,6 +332,12 @@ namespace GeometryHelper.Cad.Lisp
                 if (item.Type == "LAYER")
                 {
                     CompleteLayer(pairs);
+                }
+                else if (item.Type == "DICTIONARY" && !pairs.Exists(p => p.Key == 280))
+                {
+                    // A dictionary of the file with no flag for its owner is soft owning, (280 . 0), in AutoCAD's list.
+                    int cloning = pairs.FindIndex(p => p.Key == 281);
+                    pairs.Insert(cloning < 0 ? pairs.Count : cloning, LispEntityData.Pair(280, 0));
                 }
             }
 
@@ -459,6 +482,12 @@ namespace GeometryHelper.Cad.Lisp
             LispEntityName name = NameOf(value);
             return lisp.OnOwner(() =>
             {
+                // An object of the OBJECTS section is not drawn: AutoCAD 2021 gives nil for one (C4b, probe d3).
+                if (IsObject(session.Document, state.Resolve(name.Handle)))
+                {
+                    return null;
+                }
+
                 session.Document.Regen();
                 return name;
             });
@@ -492,6 +521,11 @@ namespace GeometryHelper.Cad.Lisp
             CadDocument document = session.Document;
             string handle = state.Resolve(name.Handle);
             DxfEntity entity = document.FindEntity(handle);
+
+            if (entity == null && IsObject(document, handle))
+            {
+                return EraseObject(session, name, handle);
+            }
 
             if (entity == null)
             {
@@ -611,7 +645,7 @@ namespace GeometryHelper.Cad.Lisp
         /// subclass markers. Gives the list, or nil where the list has no name, the entity is not there, its type is changed,
         /// or a value is of the wrong kind.
         /// </summary>
-        private static object EntMod(CadCommandSession session, DrawingState state, object list)
+        private static object EntMod(LispInterpreter lisp, CadCommandSession session, DrawingState state, object list)
         {
             if (!LispEntityData.TryRead(list, out List<KeyValuePair<int, object>> given))
             {
@@ -664,9 +698,12 @@ namespace GeometryHelper.Cad.Lisp
                 return null;
             }
 
-            LispEntityData.Apply(item.Type, record, changes);
+            if (!TryXdata(lisp, document, given, out XdataChange xdata))
+            {
+                return null;
+            }
 
-            List<KeyValuePair<string, List<KeyValuePair<int, object>>>> extended = ExtendedOf(given);
+            LispEntityData.Apply(item.Type, record, changes);
 
             foreach (KeyValuePair<int, object> change in changes)
             {
@@ -706,9 +743,9 @@ namespace GeometryHelper.Cad.Lisp
 
                     target.Item.File.ReplaceTail(target.Item, 0, LispEntityData.ToGroups(target.Item.Type, record));
 
-                    if (extended.Count > 0)
+                    if (xdata != null)
                     {
-                        target.XData = ExtendedGroups(extended);
+                        WriteXdata(target.Item.File, target.Item, xdata);
                     }
 
                     if (target is DxfDBText text)
@@ -772,63 +809,6 @@ namespace GeometryHelper.Cad.Lisp
             }
 
             return changes;
-        }
-
-        /// <summary>The extended data of a list: the groups after -3, by application.</summary>
-        private static List<KeyValuePair<string, List<KeyValuePair<int, object>>>> ExtendedOf(
-            List<KeyValuePair<int, object>> given
-        )
-        {
-            var applications = new List<KeyValuePair<string, List<KeyValuePair<int, object>>>>();
-            int at = given.FindIndex(p => p.Key == -3);
-
-            if (at < 0)
-            {
-                return applications;
-            }
-
-            foreach (object application in LispInterpreter.ItemsOf(given[at].Value))
-            {
-                List<object> entries = LispInterpreter.ItemsOf(application);
-
-                if (entries.Count == 0 || !(entries[0] is string name))
-                {
-                    continue;
-                }
-
-                var groups = new List<KeyValuePair<int, object>>();
-
-                for (int i = 1; i < entries.Count; i++)
-                {
-                    if (LispEntityData.TryRead(LispInterpreter.ListOf(new[] { entries[i] }), out var one))
-                    {
-                        groups.Add(one[0]);
-                    }
-                }
-
-                applications.Add(new KeyValuePair<string, List<KeyValuePair<int, object>>>(name, groups));
-            }
-
-            return applications;
-        }
-
-        private static List<DxfTypedValue> ExtendedGroups(
-            List<KeyValuePair<string, List<KeyValuePair<int, object>>>> applications
-        )
-        {
-            var groups = new List<DxfTypedValue>();
-
-            foreach (var application in applications)
-            {
-                groups.Add(new DxfTypedValue(1001, application.Key));
-
-                foreach (KeyValuePair<int, string> group in LispEntityData.ToGroups("", application.Value))
-                {
-                    groups.Add(new DxfTypedValue(group.Key, group.Value));
-                }
-            }
-
-            return groups;
         }
 
         /// <summary>Whether the layer, linetype and text style a list names are in the drawing (a layer that is not is made later, as AutoCAD makes one); false for a linetype or a text style that is not.</summary>
@@ -1020,6 +1000,12 @@ namespace GeometryHelper.Cad.Lisp
         /// </summary>
         private static object EntMake(LispInterpreter lisp, CadCommandSession session, object list)
         {
+            // A dictionary and an XRECORD are objects, not entities: they are made with no owner (see TryMakeObject).
+            if (TryMakeObject(session, list, false, out object madeObject))
+            {
+                return madeObject;
+            }
+
             if (!LispEntityData.TryRead(list, out List<KeyValuePair<int, object>> given))
             {
                 return null;
@@ -1041,7 +1027,7 @@ namespace GeometryHelper.Cad.Lisp
             }
 
             // An entity that cannot be made while a BLOCK is pending drops the block (AutoCAD 2021, l2p pa: ENDBLK then gives nil).
-            object made = MakeEntity(session, type, given, list);
+            object made = MakeEntity(lisp, session, type, given, list);
 
             if (made == null)
             {
@@ -1053,6 +1039,7 @@ namespace GeometryHelper.Cad.Lisp
 
         /// <summary>One entity of a list, made in the current space or kept for the block that is pending; nil where it cannot be made.</summary>
         private static object MakeEntity(
+            LispInterpreter lisp,
             CadCommandSession session,
             string type,
             List<KeyValuePair<int, object>> given,
@@ -1060,6 +1047,12 @@ namespace GeometryHelper.Cad.Lisp
         )
         {
             if (Array.IndexOf(Makeable, type) < 0)
+            {
+                return null;
+            }
+
+            // The extended data of a group -3 is checked first: an entity whose application is not registered is not made.
+            if (!TryXdata(lisp, session.Document, given, out XdataChange xdata))
             {
                 return null;
             }
@@ -1129,7 +1122,36 @@ namespace GeometryHelper.Cad.Lisp
                 EnsureLayer(document, layer);
             }
 
-            return place != null && Put(session, space, place) ? list : null;
+            if (place == null || !Put(session, space, place))
+            {
+                return null;
+            }
+
+            if (xdata != null)
+            {
+                WriteMadeXdata(session, xdata);
+            }
+
+            return list;
+        }
+
+        /// <summary>Gives the entity just made, the last of the current space, the extended data of its list, in the step of the evaluation.</summary>
+        private static void WriteMadeXdata(CadCommandSession session, XdataChange xdata)
+        {
+            if (!(EntLast(session) is LispEntityName last))
+            {
+                return;
+            }
+
+            session.Apply("ENTMAKE", null, s =>
+            {
+                DxfEntity entity = s.Document.FindEntity(last.Handle);
+
+                if (entity != null)
+                {
+                    WriteXdata(entity.Item.File, entity.Item, xdata);
+                }
+            });
         }
 
         /// <summary>Whether the parameter of an ellipse's arc is in one turn, 0 to 2 pi.</summary>

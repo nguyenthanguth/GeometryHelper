@@ -1,0 +1,9 @@
+{
+  "id": "drawing-info",
+  "name": "Drawing info",
+  "version": "1.0.0",
+  "author": "GeometryHelper",
+  "kind": "command",
+  "minimumApiVersion": "1.0",
+  "commands": [ "GHDWGINFO" ]
+}

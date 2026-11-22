@@ -22,16 +22,12 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets its name.</summary>
         public string Name => Plugin.Name;
 
-        /// <summary>
-        /// Gets its kind as the manifest says, "Command" or "Drawing"; for a .dll with no manifest, "Drawing" where it holds
-        /// drawing plugins and no command, else "Command".
-        /// </summary>
+        /// <summary>Gets its kind as the manifest says, "Command"; for a .dll with no manifest, "Command" too.</summary>
         public string Kind
         {
             get
             {
-                bool drawingOnly = Plugin.DrawingPlugins.Count > 0 && Plugin.Plugin?.Commands.Count == 0;
-                string kind = Plugin.Manifest?.Kind ?? (drawingOnly ? CadPluginManifest.DrawingKind : null);
+                string kind = Plugin.Manifest?.Kind;
                 return string.IsNullOrEmpty(kind)
                     ? "Command"
                     : char.ToUpperInvariant(kind[0]) + kind.Substring(1).ToLowerInvariant();
@@ -44,11 +40,11 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets its version: the loaded plugin's, else the manifest's.</summary>
         public string Version => Plugin.Plugin?.Version ?? Plugin.Manifest?.Version ?? string.Empty;
 
-        /// <summary>Gets its commands' names then its drawing plugins' while it is loaded, or the manifest's commands while it is not.</summary>
+        /// <summary>Gets its commands' names while it is loaded, or the manifest's commands while it is not.</summary>
         public string Commands =>
             string.Join(
                 ", ",
-                (IEnumerable<string>)Plugin.Plugin?.Commands.Select(c => c.Name).Concat(Plugin.DrawingPlugins)
+                (IEnumerable<string>)Plugin.Plugin?.Commands.Select(c => c.Name)
                     ?? Plugin.Manifest?.Commands
                     ?? Array.Empty<string>()
             );
@@ -99,7 +95,7 @@ namespace GeometryHelper.Cad.Wpf
     /// The Plugin manager, as the design draws it: the plugins known in this session with a filter by kind; Load .dll,
     /// Reload and Unload; the one selected with its commands, author and API, its settings and
     /// whether it loads at start; the trusted folders; and the load log. It follows the manager while open and lets go of it
-    /// when disposed. A drawing plugin is refused with the manager's reason, said in <see cref="Message"/>.
+    /// when disposed. A plugin the manager refuses is said with its reason in <see cref="Message"/>.
     /// </summary>
     public sealed class PluginManagerViewModel : ObservableObject, IDisposable
     {
@@ -175,7 +171,7 @@ namespace GeometryHelper.Cad.Wpf
             }
         }
 
-        /// <summary>Gets or sets the filter: All, Command or Drawing.</summary>
+        /// <summary>Gets or sets the filter: All or Command.</summary>
         public string Filter
         {
             get => _filter;
@@ -197,14 +193,6 @@ namespace GeometryHelper.Cad.Wpf
             + _manager
                 .Plugins.Select(p => new PluginRowViewModel(p))
                 .Count(r => r.IsCommandKind)
-                .ToString(CultureInfo.InvariantCulture);
-
-        /// <summary>Gets the chip of drawing plugins: "Drawing plugins 0".</summary>
-        public string DrawingChipText =>
-            "Drawing plugins "
-            + _manager
-                .Plugins.Select(p => new PluginRowViewModel(p))
-                .Count(r => !r.IsCommandKind)
                 .ToString(CultureInfo.InvariantCulture);
 
         /// <summary>Gets or sets the plugin selected.</summary>
@@ -400,7 +388,6 @@ namespace GeometryHelper.Cad.Wpf
             Raise(nameof(Selected));
             Raise(nameof(AllChipText));
             Raise(nameof(CommandChipText));
-            Raise(nameof(DrawingChipText));
             Raise(nameof(TrustedFolders));
             RaiseSelected();
         }

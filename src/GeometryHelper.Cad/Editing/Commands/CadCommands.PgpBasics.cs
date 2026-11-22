@@ -62,9 +62,10 @@ namespace GeometryHelper.Cad
             registry.Add(new CadCommand("UNISOLATEOBJECTS", Unisolate));
         }
 
-        /// <summary>REDRAW and REDRAWALL: the window draws every change as it is made, so nothing is left to draw; AutoCAD says nothing either.</summary>
+        /// <summary>REDRAW and REDRAWALL: the window draws every change as it is made, so nothing is left to draw but the vectors <c>grdraw</c> put on the screen, which it takes off; AutoCAD says nothing either.</summary>
         private static IEnumerable<CadPrompt> Redraw(CadCommandContext c)
         {
+            c.Session.ClearTemporaryGraphics();
             yield break;
         }
 

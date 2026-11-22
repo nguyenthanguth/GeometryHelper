@@ -102,6 +102,49 @@
                 </Style.Triggers>
             </Style>
 
+            <!--
+            A tile of the ribbon, as AutoCAD's icon-only small button: 24 by 22 with its 16 pixel icon (the Tag) centred, no text; the
+            command's name is the Content, which screen readers read, and the ToolTip. Rows of tiles stand 24 apart.
+            -->
+            <Style x:Key="TileButton" TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
+                <Setter Property="Width" Value="24" />
+                <Setter Property="Height" Value="22" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Margin" Value="0,0,0,2" />
+                <Setter Property="HorizontalAlignment" Value="Left" />
+                <Setter Property="VerticalAlignment" Value="Top" />
+                <Setter Property="IsEnabled" Value="{Binding HasDocument}" />
+                <Setter
+                    Property="AutomationProperties.Name"
+                    Value="{Binding Content, RelativeSource={RelativeSource Self}}"
+                />
+                <Setter Property="ContentTemplate">
+                    <Setter.Value>
+                        <DataTemplate>
+                            <local:IconView
+                                Size="16"
+                                StrokeThickness="1.8"
+                                Data="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}"
+                            />
+                        </DataTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- A small button of a row of tiles that has its text (AutoCAD's Make Current, Match Layer): 22 high, a tile in a medium panel. -->
+            <Style x:Key="TileTextButton" TargetType="Button" BasedOn="{StaticResource SmallButton}">
+                <Setter Property="Height" Value="22" />
+                <Setter Property="Margin" Value="0,0,0,2" />
+                <Setter Property="VerticalAlignment" Value="Top" />
+                <Setter Property="IsEnabled" Value="{Binding HasDocument}" />
+                <Style.Triggers>
+                    <Trigger Property="local:RibbonPanel.IsMedium" Value="True">
+                        <Setter Property="Width" Value="24" />
+                        <Setter Property="Padding" Value="0" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
             <!-- A small toggle of the ribbon, as the drafting toggles of View: lit while on, as the status bar's are. -->
             <Style x:Key="SmallToggle" TargetType="ToggleButton" BasedOn="{StaticResource GhStatusToggle}">
                 <Setter Property="Padding" Value="4,2" />
@@ -3973,8 +4016,124 @@
                 </DataTemplate.Triggers>
             </DataTemplate>
 
+            <!--
+            The three state glyphs of a layer in the layer box, as AutoCAD 2021's: on or off, thawed or frozen, unlocked or locked,
+            each a small button that toggles that state of that layer through the model's commands (the same edit path as the Layer
+            manager's), the list left open. Each button is named for the glyph it shows (BulbOn, BulbOff, Sun, Snowflake, LockOpen,
+            LockClosed), which screen readers read and the tests find it by.
+            -->
+            <Style x:Key="LayerGlyph" TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
+                <Setter Property="Width" Value="18" />
+                <Setter Property="Height" Value="16" />
+                <Setter Property="Margin" Value="0,0,2,0" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Focusable" Value="False" />
+                <Setter Property="Content" Value="{Binding}" />
+                <Setter Property="CommandParameter" Value="{Binding}" />
+            </Style>
+
+            <DataTemplate x:Key="BulbGlyph">
+                <local:IconView
+                    x:Name="Glyph"
+                    Size="16"
+                    StrokeThickness="2"
+                    Stroke="#F2C744"
+                    Fill="#73F2C744"
+                    Data="{StaticResource GhGlyphBulbOn}"
+                />
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsOn}" Value="False">
+                        <Setter TargetName="Glyph" Property="Data" Value="{StaticResource GhGlyphBulbOff}" />
+                        <Setter TargetName="Glyph" Property="Stroke" Value="#6B7480" />
+                        <Setter TargetName="Glyph" Property="Fill" Value="{x:Null}" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <DataTemplate x:Key="FreezeGlyph">
+                <local:IconView
+                    x:Name="Glyph"
+                    Size="16"
+                    StrokeThickness="2"
+                    Stroke="#F0A030"
+                    Fill="#73F0A030"
+                    Data="{StaticResource GhGlyphSun}"
+                />
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsFrozen}" Value="True">
+                        <Setter TargetName="Glyph" Property="Data" Value="{StaticResource GhGlyphSnowflake}" />
+                        <Setter TargetName="Glyph" Property="Stroke" Value="#7CC4F2" />
+                        <Setter TargetName="Glyph" Property="Fill" Value="{x:Null}" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <DataTemplate x:Key="LockGlyph">
+                <local:IconView
+                    x:Name="Glyph"
+                    Size="16"
+                    StrokeThickness="2"
+                    Stroke="#D9B451"
+                    Data="{StaticResource GhGlyphLockOpen}"
+                />
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsLocked}" Value="True">
+                        <Setter TargetName="Glyph" Property="Data" Value="{StaticResource GhGlyphLockClosed}" />
+                        <Setter TargetName="Glyph" Property="Fill" Value="#73D9B451" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <Style x:Key="BulbGlyphButton" TargetType="Button" BasedOn="{StaticResource LayerGlyph}">
+                <Setter Property="ContentTemplate" Value="{StaticResource BulbGlyph}" />
+                <Setter Property="AutomationProperties.Name" Value="BulbOn" />
+                <Setter Property="ToolTip" Value="Turn a layer On or Off" />
+                <Setter
+                    Property="Command"
+                    Value="{Binding DataContext.ToggleLayerOnCommand, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsOn}" Value="False">
+                        <Setter Property="AutomationProperties.Name" Value="BulbOff" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="FreezeGlyphButton" TargetType="Button" BasedOn="{StaticResource LayerGlyph}">
+                <Setter Property="ContentTemplate" Value="{StaticResource FreezeGlyph}" />
+                <Setter Property="AutomationProperties.Name" Value="Sun" />
+                <Setter Property="ToolTip" Value="Freeze or thaw in ALL viewports" />
+                <Setter
+                    Property="Command"
+                    Value="{Binding DataContext.ToggleLayerFreezeCommand, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsFrozen}" Value="True">
+                        <Setter Property="AutomationProperties.Name" Value="Snowflake" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="LockGlyphButton" TargetType="Button" BasedOn="{StaticResource LayerGlyph}">
+                <Setter Property="ContentTemplate" Value="{StaticResource LockGlyph}" />
+                <Setter Property="AutomationProperties.Name" Value="LockOpen" />
+                <Setter Property="ToolTip" Value="Lock or Unlock a layer" />
+                <Setter
+                    Property="Command"
+                    Value="{Binding DataContext.ToggleLayerLockCommand, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsLocked}" Value="True">
+                        <Setter Property="AutomationProperties.Name" Value="LockClosed" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
             <DataTemplate x:Key="LayerItem">
                 <StackPanel Orientation="Horizontal">
+                    <Button Style="{StaticResource BulbGlyphButton}" />
+                    <Button Style="{StaticResource FreezeGlyphButton}" />
+                    <Button Style="{StaticResource LockGlyphButton}" Margin="0,0,4,0" />
                     <Border
                         Width="10"
                         Height="10"
@@ -5499,61 +5658,209 @@
                                     </WrapPanel>
                                 </StackPanel>
                             </local:RibbonPanel>
+                            <!--
+                            Layers, as AutoCAD 2021's: Layer Properties large, the layer box (208 by 22) with each layer drawn as three
+                            state glyphs a click toggles, two rows of tiles under it (24 by 22, icon only; Make Current and Match Layer
+                            keep their text at full size), and the title "Layers ▾" opening the slide-out of the Layer State box over
+                            Previous, Change to Current Layer, Copy Objects to New Layer, Layer Walk, VP Freeze in All Viewports except
+                            Current, Merge and Delete (design RibbonLayers). The width is held by the box, as AutoCAD's: a medium panel
+                            is as wide as a full one.
+                            -->
                             <local:RibbonPanel
                                 Title="Layers"
-                                MinFullWidth="354"
-                                MinMediumWidth="290"
                                 MinCollapsedWidth="60"
                                 Icon="{StaticResource GhIconLayers}"
                             >
+                                <local:RibbonPanel.Header>
+                                    <ToggleButton
+                                        Style="{StaticResource SlideOutTitle}"
+                                        IsEnabled="{Binding HasDocument}"
+                                        Content="Layers ▾"
+                                        ToolTip="More of Layers: the layer states, Previous, Change to Current Layer, Layer Walk, Merge, Delete"
+                                    />
+                                </local:RibbonPanel.Header>
+                                <local:RibbonPanel.SlideOut>
+                                    <StackPanel>
+                                        <ComboBox
+                                            Style="{StaticResource GhComboBox}"
+                                            Width="209"
+                                            Height="22"
+                                            Margin="0,0,0,2"
+                                            HorizontalAlignment="Left"
+                                            ItemsSource="{Binding LayerStateItems}"
+                                            SelectedItem="{Binding SelectedLayerState, Mode=TwoWay}"
+                                            IsEnabled="{Binding HasDocument}"
+                                            ToolTip="Layer State: pick a saved state to restore it"
+                                        />
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button
+                                                Style="{StaticResource TileButton}"
+                                                Tag="{StaticResource GhIconLayerPrevious}"
+                                                Content="Previous"
+                                                Command="{Binding StartCommandCommand}"
+                                                CommandParameter="LAYERP"
+                                                ToolTip="Previous (LAYERP)"
+                                            />
+                                            <Button
+                                                Style="{StaticResource TileButton}"
+                                                Tag="{StaticResource GhIconLayerChangeToCurrent}"
+                                                Content="Change to Current Layer"
+                                                Command="{Binding StartCommandCommand}"
+                                                CommandParameter="LAYCUR"
+                                                ToolTip="Change to Current Layer (LAYCUR)"
+                                            />
+                                            <Button
+                                                Style="{StaticResource TileButton}"
+                                                Tag="{StaticResource GhIconLayerCopyToNew}"
+                                                Content="Copy Objects to New Layer"
+                                                Command="{Binding StartCommandCommand}"
+                                                CommandParameter="COPYTOLAYER"
+                                                ToolTip="Copy Objects to New Layer (COPYTOLAYER)"
+                                            />
+                                            <Button
+                                                Style="{StaticResource TileButton}"
+                                                Tag="{StaticResource GhIconLayerWalk}"
+                                                Content="Layer Walk"
+                                                Command="{Binding StartCommandCommand}"
+                                                CommandParameter="LAYWALK"
+                                                ToolTip="Layer Walk (LAYWALK)"
+                                            />
+                                            <Button
+                                                Style="{StaticResource TileButton}"
+                                                Tag="{StaticResource GhIconLayerVpFreeze}"
+                                                Content="VP Freeze in All Viewports except Current"
+                                                Command="{Binding StartCommandCommand}"
+                                                CommandParameter="LAYVPI"
+                                                ToolTip="VP Freeze in All Viewports except Current (LAYVPI)"
+                                            />
+                                            <Button
+                                                Style="{StaticResource TileButton}"
+                                                Tag="{StaticResource GhIconLayerMerge}"
+                                                Content="Merge"
+                                                Command="{Binding StartCommandCommand}"
+                                                CommandParameter="LAYMRG"
+                                                ToolTip="Merge (LAYMRG)"
+                                            />
+                                            <Button
+                                                Style="{StaticResource TileButton}"
+                                                Tag="{StaticResource GhIconLayerDelete}"
+                                                Content="Delete"
+                                                Command="{Binding StartCommandCommand}"
+                                                CommandParameter="LAYDEL"
+                                                ToolTip="Delete (LAYDEL)"
+                                            />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </local:RibbonPanel.SlideOut>
                                 <StackPanel Orientation="Horizontal">
                                     <Button
                                         Style="{StaticResource BigButton}"
                                         Tag="{StaticResource GhIconLayers}"
                                         Content="Layer Properties"
+                                        Height="72"
                                         IsEnabled="{Binding HasDocument}"
                                         Command="{Binding LayerManagerCommand}"
-                                        ToolTip="Layer manager (LAYER)"
+                                        ToolTip="Layer Properties (LAYER)"
                                     />
-                                    <WrapPanel Style="{StaticResource SmallColumn}">
-                                        <Button
-                                            Style="{StaticResource SmallButton}"
-                                            Tag="{StaticResource GhIconCurrent}"
-                                            Content="Make Current"
+                                    <StackPanel VerticalAlignment="Top">
+                                        <ComboBox
+                                            x:Name="LayerBox"
+                                            Style="{StaticResource GhComboBox}"
+                                            Width="208"
+                                            Height="22"
+                                            Margin="0,0,0,2"
+                                            HorizontalAlignment="Left"
+                                            ItemsSource="{Binding Layers}"
+                                            SelectedItem="{Binding CurrentLayer, Mode=TwoWay}"
+                                            ItemTemplate="{StaticResource LayerItem}"
                                             IsEnabled="{Binding HasDocument}"
-                                            Command="{Binding MakeCurrentCommand}"
-                                            ToolTip="The layer of a selected object becomes current (LAYMCUR)"
+                                            ToolTip="The current layer: open the list to turn a layer on or off, freeze or thaw it, lock or unlock it, or make it current"
                                         />
-                                        <Button
-                                            Style="{StaticResource SmallButton}"
-                                            Tag="{StaticResource GhIconMatch}"
-                                            Content="Match Layer"
-                                            IsEnabled="{Binding HasDocument}"
-                                            Command="{Binding MatchLayerCommand}"
-                                            ToolTip="Objects go onto the layer of another (LAYMCH)"
-                                        />
-                                        <Button
-                                            Style="{StaticResource SmallButton}"
-                                            Tag="{StaticResource GhIconLayerPrevious}"
-                                            Content="Previous"
-                                            IsEnabled="{Binding HasDocument}"
-                                            Command="{Binding StartCommandCommand}"
-                                            CommandParameter="LAYERP"
-                                            ToolTip="Undoes the last change or set of changes made to layer settings (LAYERP)"
-                                        />
-                                    </WrapPanel>
-                                    <ComboBox
-                                        x:Name="LayerBox"
-                                        Style="{StaticResource GhComboBox}"
-                                        Width="168"
-                                        Margin="0,2,0,0"
-                                        VerticalAlignment="Top"
-                                        ItemsSource="{Binding Layers}"
-                                        SelectedItem="{Binding CurrentLayer, Mode=TwoWay}"
-                                        ItemTemplate="{StaticResource LayerItem}"
-                                        IsEnabled="{Binding HasDocument}"
-                                        ToolTip="The current layer"
-                                    />
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button
+                                                Style="{StaticResource TileButton}"
+                                                Tag="{StaticResource GhIconLayerOff}"
+                                                Content="Off"
+                                                Command="{Binding StartCommandCommand}"
+                                                CommandParameter="LAYOFF"
+                                                ToolTip="Off (LAYOFF)"
+                                            />
+                                            <Button
+                                                Style="{StaticResource TileButton}"
+                                                Tag="{StaticResource GhIconLayerIsolate}"
+                                                Content="Isolate"
+                                                Command="{Binding StartCommandCommand}"
+                                                CommandParameter="LAYISO"
+                                                ToolTip="Isolate (LAYISO)"
+                                            />
+                                            <Button
+                                                Style="{StaticResource TileButton}"
+                                                Tag="{StaticResource GhIconLayerFreeze}"
+                                                Content="Freeze"
+                                                Command="{Binding StartCommandCommand}"
+                                                CommandParameter="LAYFRZ"
+                                                ToolTip="Freeze (LAYFRZ)"
+                                            />
+                                            <Button
+                                                Style="{StaticResource TileButton}"
+                                                Tag="{StaticResource GhIconLayerLock}"
+                                                Content="Lock"
+                                                Command="{Binding StartCommandCommand}"
+                                                CommandParameter="LAYLCK"
+                                                ToolTip="Lock (LAYLCK)"
+                                            />
+                                            <Button
+                                                Style="{StaticResource TileTextButton}"
+                                                Tag="{StaticResource GhIconCurrent}"
+                                                Content="Make Current"
+                                                Command="{Binding StartCommandCommand}"
+                                                CommandParameter="LAYMCUR"
+                                                ToolTip="Make Current (LAYMCUR)"
+                                            />
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button
+                                                Style="{StaticResource TileButton}"
+                                                Tag="{StaticResource GhIconLayerOn}"
+                                                Content="Turn All Layers On"
+                                                Command="{Binding StartCommandCommand}"
+                                                CommandParameter="LAYON"
+                                                ToolTip="Turn All Layers On (LAYON)"
+                                            />
+                                            <Button
+                                                Style="{StaticResource TileButton}"
+                                                Tag="{StaticResource GhIconLayerUnisolate}"
+                                                Content="Unisolate"
+                                                Command="{Binding StartCommandCommand}"
+                                                CommandParameter="LAYUNISO"
+                                                ToolTip="Unisolate (LAYUNISO)"
+                                            />
+                                            <Button
+                                                Style="{StaticResource TileButton}"
+                                                Tag="{StaticResource GhIconLayerThaw}"
+                                                Content="Thaw All Layers"
+                                                Command="{Binding StartCommandCommand}"
+                                                CommandParameter="LAYTHW"
+                                                ToolTip="Thaw All Layers (LAYTHW)"
+                                            />
+                                            <Button
+                                                Style="{StaticResource TileButton}"
+                                                Tag="{StaticResource GhIconLayerUnlock}"
+                                                Content="Unlock"
+                                                Command="{Binding StartCommandCommand}"
+                                                CommandParameter="LAYULK"
+                                                ToolTip="Unlock (LAYULK)"
+                                            />
+                                            <Button
+                                                Style="{StaticResource TileTextButton}"
+                                                Tag="{StaticResource GhIconMatch}"
+                                                Content="Match Layer"
+                                                Command="{Binding StartCommandCommand}"
+                                                CommandParameter="LAYMCH"
+                                                ToolTip="Match Layer (LAYMCH)"
+                                            />
+                                        </StackPanel>
+                                    </StackPanel>
                                 </StackPanel>
                             </local:RibbonPanel>
                             <local:RibbonPanel

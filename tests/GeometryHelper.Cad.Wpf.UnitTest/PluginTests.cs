@@ -139,7 +139,6 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                 Assert.True(row.IsLoaded);
                 Assert.Equal("All 1", manager.AllChipText);
                 Assert.Equal("Command plugins 1", manager.CommandChipText);
-                Assert.Equal("Drawing plugins 0", manager.DrawingChipText);
                 Assert.Contains("NUMCIRCLES (NC): Number the selected circles", manager.SelectedCommands);
                 Assert.True(manager.HasSettings);
                 Assert.NotEmpty(manager.LogLines);
@@ -166,7 +165,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void ADrawingPluginIsRefusedWithTheManagersReason()
+        public void APluginOfTheKindDrawingIsRefusedWithTheManagersReason()
         {
             File.WriteAllText(
                 Path.Combine(Path.GetDirectoryName(_sample), "plugin.json"),
