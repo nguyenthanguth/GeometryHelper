@@ -539,7 +539,9 @@ namespace GeometryHelper.Cad.UnitTest
             Run(session, "LINE", "0,0", "10,0", Enter);
             Value(session, "(setq e (entlast))");
 
-            // AutoCAD 2021 (spec D50): (-3 ("APP" ...)) only for the applications named, '("*") every one
+            // AutoCAD 2021 (spec D50): (-3 ("APP" ...)) only for the applications named, '("*") every one; the application has to be
+            // registered (C4b, probe x1), as entmod refuses a name the table of applications does not list
+            Value(session, "(regapp \"GHAPP\")");
             Value(session, "(entmod (list (cons -1 e) (list -3 (list \"GHAPP\" (cons 1000 \"hi\") (cons 1040 2.5)))))");
 
             Assert.Equal(

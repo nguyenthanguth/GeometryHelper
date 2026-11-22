@@ -170,6 +170,15 @@ namespace GeometryHelper.Cad.Lisp
         /// <summary>The handles of the entities in the set, in the order they were added.</summary>
         public IReadOnlyList<string> Handles => _handles;
 
+        /// <summary>How the entities of the set were selected, as <c>ssnamex</c> numbers it: 0 by a program, <c>X</c>, Last, Previous or Implied, 1 by a pick, 2 by a window, 3 by a crossing, 4 by a fence.</summary>
+        internal int Method { get; set; }
+
+        /// <summary>The corners of the window, crossing or polygon that selected the set, as points of the UCS; null for the other methods.</summary>
+        internal IReadOnlyList<double[]> Region { get; set; }
+
+        /// <summary>The point that picked the set, a point of the UCS; null for the other methods.</summary>
+        internal double[] PickPoint { get; set; }
+
         /// <summary>The made-up number the set prints with.</summary>
         internal int Number { get; }
 

@@ -27,6 +27,7 @@ namespace GeometryHelper.Cad.Lisp
                 return at < 0 || at >= set.Handles.Count ? null : new LispEntityName(set.Handles[at]);
             });
             lisp.Define("SSADD", 0, 2, a => SsAdd(a));
+            lisp.Define("SSNAMEX", 1, 2, a => SsNameX(a));
             lisp.Define("SSDEL", 2, 2, a =>
             {
                 LispEntityName name = NameOf(a[0]);
@@ -126,7 +127,7 @@ namespace GeometryHelper.Cad.Lisp
                 return lisp.OnOwner(() => Taken(session, answer as List<string> ?? new List<string>()));
             }
 
-            return lisp.OnOwner(() => Taken(session, Find(session, request)));
+            return lisp.OnOwner(() => HowSelected(state, request, Taken(session, Find(session, request))));
         }
 
         /// <summary>
@@ -203,6 +204,142 @@ namespace GeometryHelper.Cad.Lisp
 
             return taken.Count == 0 ? null : new LispSelectionSet(taken);
         }
+
+        /// <summary>
+        /// Notes on a set <c>ssget</c> gave how it was selected, for <c>ssnamex</c>: the method, the corners of a window, crossing
+        /// or polygon (a window's four corners from the top left round, a polygon's points the other way round from the last)
+        /// and the point of a pick. The Previous set has the method and corners of the set it is.
+        /// </summary>
+        private static object HowSelected(DrawingState state, Request request, object taken)
+        {
+            if (!(taken is LispSelectionSet set))
+            {
+                return taken;
+            }
+
+            switch (request.Mode)
+            {
+                case "PICK":
+                    set.Method = 1;
+                    set.PickPoint = new[] { request.Point.Value.X, request.Point.Value.Y, 0.0 };
+                    break;
+                case "W":
+                case "C":
+                    GeoPoint2 a = request.Point.Value;
+                    GeoPoint2 b = request.Corner.Value;
+                    double left = Math.Min(a.X, b.X);
+                    double right = Math.Max(a.X, b.X);
+                    double bottom = Math.Min(a.Y, b.Y);
+                    double top = Math.Max(a.Y, b.Y);
+                    set.Method = request.Mode == "W" ? 2 : 3;
+                    set.Region = new[]
+                    {
+                        new[] { left, top, 0.0 },
+                        new[] { right, top, 0.0 },
+                        new[] { right, bottom, 0.0 },
+                        new[] { left, bottom, 0.0 },
+                    };
+                    break;
+                case "WP":
+                case "CP":
+                    var corners = new List<double[]>();
+
+                    for (int i = request.Points.Count - 1; i >= 0; i--)
+                    {
+                        corners.Add(new[] { request.Points[i].X, request.Points[i].Y, 0.0 });
+                    }
+
+                    set.Method = request.Mode == "WP" ? 2 : 3;
+                    set.Region = corners;
+                    break;
+                case "F":
+                    set.Method = 4;
+                    break;
+                case "P" when state.LastSet != null:
+                    set.Method = state.LastSet.Method;
+                    set.Region = state.LastSet.Region;
+                    set.PickPoint = state.LastSet.PickPoint;
+                    break;
+            }
+
+            state.LastSet = set;
+            return set;
+        }
+
+        /// <summary>
+        /// <c>(ssnamex set [index])</c>: how each entity of the set was selected, a list with one item for each, or for the one
+        /// of the index (a real is cut to a whole number, nil or a negative one gives all of them, one past the last gives nil;
+        /// AutoCAD 2021, probes e1 and e2 of C4b). An item is <c>(method name 0)</c>, the method as <see cref="LispSelectionSet.Method"/>
+        /// numbers it, with <c>-1</c> after it for a window or crossing and the point <c>(0 (x y z))</c> that picked it for a pick;
+        /// a window or crossing set gives the corners <c>(-1 (0 (x y z)) ...)</c> as a last item of the list, whichever item was
+        /// asked for. nil for a set with no entity. AutoCAD gives the points a fence crossed an entity at after each
+        /// entity of a fence set; here the item of a fence has none.
+        /// </summary>
+        private static object SsNameX(object[] a)
+        {
+            LispSelectionSet set = SetOf(a[0]);
+            int index = -1;
+
+            if (a.Length > 1 && a[1] != null)
+            {
+                double number =
+                    a[1] is int whole ? whole
+                    : a[1] is double real ? real
+                    : throw LispInterpreter.TypeError("numberp", a[1], colon: true);
+
+                if (Math.Abs(number) >= int.MaxValue)
+                {
+                    throw new LispException("Invalid integer value: " + LispInterpreter.Print(a[1], true));
+                }
+
+                index = (int)number;
+            }
+
+            if (set.Handles.Count == 0 || index >= set.Handles.Count)
+            {
+                return null;
+            }
+
+            var items = new List<object>();
+
+            for (int i = 0; i < set.Handles.Count; i++)
+            {
+                if (index >= 0 && i != index)
+                {
+                    continue;
+                }
+
+                var item = new List<object> { set.Method, new LispEntityName(set.Handles[i]), 0 };
+
+                if (set.Method == 2 || set.Method == 3)
+                {
+                    item.Add(-1);
+                }
+                else if (set.Method == 1 && set.PickPoint != null)
+                {
+                    item.Add(LispInterpreter.ListOf(new object[] { 0, PointList(set.PickPoint) }));
+                }
+
+                items.Add(LispInterpreter.ListOf(item));
+            }
+
+            if (set.Region != null && (set.Method == 2 || set.Method == 3))
+            {
+                var corners = new List<object> { -1 };
+
+                foreach (double[] corner in set.Region)
+                {
+                    corners.Add(LispInterpreter.ListOf(new object[] { 0, PointList(corner) }));
+                }
+
+                items.Add(LispInterpreter.ListOf(corners));
+            }
+
+            return LispInterpreter.ListOf(items);
+        }
+
+        private static object PointList(double[] point) =>
+            LispInterpreter.ListOf(new object[] { point[0], point[1], point[2] });
 
         /// <summary>Reads the arguments of <c>ssget</c>: <c>[mode] [points] [filter]</c>; false for arguments that ask for nothing.</summary>
         private static bool TryRequest(object[] a, Tolerance tolerance, out Request request)
