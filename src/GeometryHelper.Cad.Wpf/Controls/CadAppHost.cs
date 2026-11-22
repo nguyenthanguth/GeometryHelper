@@ -24,7 +24,8 @@ namespace GeometryHelper.Cad.Wpf
     /// <remarks>
     /// <para>
     /// <c>app.exe plan.dxf</c> opens the window on a drawing, reads the global settings from the user's file and loads the
-    /// command plugins of <see cref="PluginFolder"/> on its startup list.
+    /// command plugins of the <c>Plugins</c> folder beside the app (<see cref="CadSupportKind.Plugins"/>) and of the startup list
+    /// kept in <see cref="PluginFolder"/>.
     /// </para>
     /// <para>
     /// <c>app.exe --register</c> associates .dxf and .dwg files with the app for the user alone, under
@@ -78,8 +79,9 @@ namespace GeometryHelper.Cad.Wpf
         /// The name of the app, shown before the drawing's title in the title bar and on the start screen: "GeometryHelper CAD".
         /// </param>
         /// <param name="pluginFolder">
-        /// The folder of the app's command plugins: the plugins themselves in its <c>Plugins</c> folder, the startup list and the
-        /// trusted folders in its <c>plugins.json</c>, as <c>%AppData%\GeometryHelper\Dxf</c>.
+        /// The folder of the app's settings for command plugins: the startup list and the trusted folders in its
+        /// <c>plugins.json</c>, as <c>%AppData%\GeometryHelper\Dxf</c>. The plugins themselves are those of the <c>Plugins</c>
+        /// folder beside the app, not of a folder here.
         /// </param>
         /// <exception cref="ArgumentNullException">Thrown when the name or the folder is null.</exception>
         public CadAppHost(string appName, string pluginFolder)
@@ -91,7 +93,7 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets the name of the app, as "GeometryHelper CAD".</summary>
         public string AppName { get; }
 
-        /// <summary>Gets the folder of the app's command plugins, their startup list and their trusted folders.</summary>
+        /// <summary>Gets the folder of the app's settings for command plugins: their startup list and their trusted folders.</summary>
         public string PluginFolder { get; }
 
         /// <summary>
@@ -221,10 +223,10 @@ namespace GeometryHelper.Cad.Wpf
                 }
             };
 
-            // The command plugins: those installed and on the startup list loaded now, each result a line of the command line.
+            // The command plugins: those of the Plugins folder beside the app and of the startup list loaded now, each result a line of the command line.
             var plugins = new CadPluginManager(
                 new CadPluginAssemblyLoader(),
-                Path.Combine(PluginFolder, "Plugins"),
+                AppPluginsFolder(),
                 Path.Combine(PluginFolder, "plugins.json")
             );
             plugins.ConfirmUntrusted = path => CadQuestionWindow.ConfirmUntrustedPlugin(window, path);
@@ -283,6 +285,15 @@ namespace GeometryHelper.Cad.Wpf
             window.Activated += (s, e) => remote.NoteActivated();
             return remote;
         }
+
+        /// <summary>
+        /// The folder the app loads its command plugins from at every start: <c>Plugins</c> beside GeometryHelper.Cad.dll
+        /// (<see cref="CadSupportKind.Plugins"/>), which is the folder of the exe in the app; <c>Plugins</c> beside the program
+        /// where the dll has no place on disk.
+        /// </summary>
+        internal static string AppPluginsFolder() =>
+            CadSupportFolders.Default.FolderOf(CadSupportKind.Plugins)
+            ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins");
 
         /// <summary>
         /// Associates .dxf and .dwg files with the app for the user (<c>--register</c>), or takes the association out

@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using GeometryHelper.Cad.Plugins;
 using Xunit;
 
@@ -67,62 +65,21 @@ namespace GeometryHelper.Cad.Plugins.UnitTest
         }
 
         [Fact]
-        public void TheManifestOfAPackageIsReadFromTheZipWithoutUnpackingIt()
+        public void TheManifestOfAPluginJsonFileIsRead_AndAFileOfAnyOtherNameIsReadAsJsonToo()
         {
-            string package = _files.Package(PluginFiles.Manifest());
+            string path = Path.Combine(_files.Root, CadPluginManifest.FileName);
+            File.WriteAllText(path, PluginFiles.Manifest());
 
-            CadPluginManifest manifest = CadPluginManifest.Read(package);
+            CadPluginManifest manifest = CadPluginManifest.Read(path);
 
             Assert.Equal("Number circles", manifest.Name);
-            Assert.Equal(package, Assert.Single(Directory.GetFileSystemEntries(_files.Root)));
-        }
+            Assert.Equal(path, Assert.Single(Directory.GetFileSystemEntries(_files.Root)));
+            Assert.Throws<FileNotFoundException>(() => CadPluginManifest.Read(Path.Combine(_files.Root, "none.json")));
 
-        [Fact]
-        public void APackageIsUnpackedWithItsFolders()
-        {
-            string package = _files.Package(
-                PluginFiles.Manifest(),
-                "sample.ghplugin",
-                new KeyValuePair<string, string>("data/readme.txt", "Numbers circles.")
-            );
-            string folder = Path.Combine(_files.Root, "unpacked");
-
-            CadPluginManifest manifest = CadPluginPackage.Unpack(package, folder);
-
-            Assert.Equal("number-circles", manifest.Id);
-            Assert.True(File.Exists(Path.Combine(folder, CadPluginManifest.FileName)));
-            Assert.True(File.Exists(Path.Combine(folder, PluginFiles.SampleName + ".dll")));
-            Assert.Equal("Numbers circles.", File.ReadAllText(Path.Combine(folder, "data", "readme.txt")));
-        }
-
-        [Fact]
-        public void AnEntryThatWouldLandOutsideTheFolderIsRefusedAndNothingIsWritten()
-        {
-            string package = _files.Package(
-                PluginFiles.Manifest(),
-                "evil.ghplugin",
-                new KeyValuePair<string, string>("../evil.txt", "out")
-            );
-            string folder = Path.Combine(_files.Root, "unpacked");
-
-            FormatException refused = Assert.Throws<FormatException>(() => CadPluginPackage.Unpack(package, folder));
-
-            Assert.Contains("../evil.txt", refused.Message, StringComparison.Ordinal);
-            Assert.False(Directory.Exists(folder));
-            Assert.False(File.Exists(Path.Combine(_files.Root, "evil.txt")));
-        }
-
-        [Fact]
-        public void APackageWithNoManifestAtItsTopIsRefused()
-        {
-            string package = Path.Combine(_files.Root, "bare.ghplugin");
-
-            using (ZipArchive zip = ZipFile.Open(package, ZipArchiveMode.Create))
-            {
-                zip.CreateEntryFromFile(PluginFiles.BuiltSample, PluginFiles.SampleName + ".dll");
-            }
-
-            Assert.Throws<FileNotFoundException>(() => CadPluginManifest.Read(package));
+            // A .ghplugin is not a package any more: it is read as the JSON it is not.
+            string zip = Path.Combine(_files.Root, "sample.ghplugin");
+            File.WriteAllBytes(zip, new byte[] { 0x50, 0x4b, 3, 4 });
+            Assert.Throws<FormatException>(() => CadPluginManifest.Read(zip));
         }
     }
 }

@@ -742,7 +742,6 @@ namespace GeometryHelper.Cad.Wpf
                 _model.SaveAsRequested -= OnSaveAsRequested;
                 _model.LayerManagerRequested -= OnLayerManagerRequested;
                 _model.PluginLoadRequested -= OnPluginLoadRequested;
-                _model.PluginInstallRequested -= OnPluginInstallRequested;
                 _model.PluginManagerRequested -= OnPluginManagerRequested;
                 _model.SettingsRequested -= OnSettingsRequested;
                 _model.SettingsApplied -= OnSettingsApplied;
@@ -766,7 +765,6 @@ namespace GeometryHelper.Cad.Wpf
                 _model.SaveAsRequested += OnSaveAsRequested;
                 _model.LayerManagerRequested += OnLayerManagerRequested;
                 _model.PluginLoadRequested += OnPluginLoadRequested;
-                _model.PluginInstallRequested += OnPluginInstallRequested;
                 _model.PluginManagerRequested += OnPluginManagerRequested;
                 _model.SettingsRequested += OnSettingsRequested;
                 _model.SettingsApplied += OnSettingsApplied;
@@ -1000,9 +998,6 @@ namespace GeometryHelper.Cad.Wpf
 
         private void OnPluginLoadRequested(object sender, EventArgs e) =>
             PluginManagerWindow.PickPlugin(Window.GetWindow(this), path => _model.LoadPlugin(path));
-
-        private void OnPluginInstallRequested(object sender, EventArgs e) =>
-            PluginManagerWindow.PickPackage(Window.GetWindow(this), path => _model.InstallPlugin(path));
 
         private void OnPluginManagerRequested(object sender, EventArgs e) => ShowPluginManager();
 

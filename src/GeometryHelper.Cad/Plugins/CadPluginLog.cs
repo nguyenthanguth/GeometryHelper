@@ -9,7 +9,7 @@ namespace GeometryHelper.Cad.Plugins
     /// <summary>What was done to a plugin, as the load log says it.</summary>
     public enum CadPluginAction
     {
-        /// <summary>Loaded from a .dll, a .ghplugin or an installed folder.</summary>
+        /// <summary>Loaded from a .dll or the folder of a plugin.</summary>
         Load,
 
         /// <summary>Unloaded, or on .NET Framework switched off.</summary>
@@ -17,12 +17,6 @@ namespace GeometryHelper.Cad.Plugins
 
         /// <summary>Loaded again from its file.</summary>
         Reload,
-
-        /// <summary>A .ghplugin unpacked into the plugin folder.</summary>
-        Install,
-
-        /// <summary>Taken out of the plugin folder.</summary>
-        Uninstall,
     }
 
     /// <summary>One line of the load log the Plugin manager shows: when, which plugin, what, from where, whether trusted, and what came of it.</summary>
@@ -81,7 +75,7 @@ namespace GeometryHelper.Cad.Plugins
             + Result;
     }
 
-    /// <summary>What came of a load, unload, reload, install or uninstall: whether it was done, the sentence the command line writes, and what was left out.</summary>
+    /// <summary>What came of a load, unload or reload: whether it was done, the sentence the command line writes, and what was left out.</summary>
     public sealed class CadPluginResult
     {
         internal CadPluginResult(bool succeeded, string message, CadLoadedPlugin plugin, IReadOnlyList<string> warnings)
@@ -110,7 +104,7 @@ namespace GeometryHelper.Cad.Plugins
 
     /// <summary>
     /// A plugin <see cref="CadPluginManager"/> knows in this session: where it was loaded from, whether it is loaded now,
-    /// installed in the plugin folder or on the startup list, and the plugin itself while it is loaded.
+    /// whether it lies in the plugin folder or is on the startup list, and the plugin itself while it is loaded.
     /// </summary>
     public sealed class CadLoadedPlugin
     {
@@ -126,13 +120,13 @@ namespace GeometryHelper.Cad.Plugins
         /// <summary>Gets the name: the manifest's, or the .dll's without its extension.</summary>
         public string Name { get; }
 
-        /// <summary>Gets the full path it is loaded from: a .dll, a .ghplugin, or the folder of a plugin installed.</summary>
+        /// <summary>Gets the full path it is loaded from: a .dll, or the folder of a plugin.</summary>
         public string Path { get; }
 
         /// <summary>Gets the manifest; null for a bare .dll with no plugin.json beside it.</summary>
         public CadPluginManifest Manifest { get; }
 
-        /// <summary>Gets whether it is installed in the plugin folder, and so loaded at every start.</summary>
+        /// <summary>Gets whether it lies directly in the plugin folder (a .dll there, or a subfolder), and so is loaded at every start.</summary>
         public bool IsInstalled { get; }
 
         /// <summary>Gets whether its path lies in a trusted folder.</summary>
@@ -152,14 +146,7 @@ namespace GeometryHelper.Cad.Plugins
         {
             get
             {
-                if (
-                    Manifest?.Icon == null
-                    || string.Equals(
-                        System.IO.Path.GetExtension(Path),
-                        CadPluginPackage.Extension,
-                        StringComparison.OrdinalIgnoreCase
-                    )
-                )
+                if (Manifest?.Icon == null)
                 {
                     return null;
                 }

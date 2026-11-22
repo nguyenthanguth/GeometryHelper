@@ -148,6 +148,7 @@ namespace GeometryHelper.Cad
         private List<string> _appLoadHistory = new List<string>();
         private List<string> _pluginSnaps = new List<string>();
         private string _appLoadFolder = string.Empty;
+        private string _appLoadFileType = "lsp";
         private string _pythonPath = string.Empty;
         private string _plotStyleFolder = string.Empty;
         private int _secureLoad = 1;
@@ -822,6 +823,21 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>
+        /// Gets or sets the Files of type Load/Unload Applications (APPLOAD) shows first: <c>lsp</c> (AutoLISP Files, the
+        /// default), <c>dll</c> (Plugins) or <c>all</c> (All files); any other word reads as <c>lsp</c>. It is kept the moment
+        /// it is changed in the dialog. Saved in the settings file.
+        /// </summary>
+        public string AppLoadFileType
+        {
+            get => _appLoadFileType;
+            set
+            {
+                string word = (value ?? string.Empty).Trim().ToLowerInvariant();
+                _appLoadFileType = word == "dll" || word == "all" ? word : "lsp";
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the Python the app runs scripts with: the <c>python.exe</c> of a virtual environment or of an
         /// installation, or the folder that holds it. Empty by default, which finds the newest 64-bit CPython 3.11 to 3.15
         /// registered on the machine (PEP 514). It takes effect at the next start of the app once Python has started. Saved in
@@ -1366,6 +1382,7 @@ namespace GeometryHelper.Cad
 
             w.CloseList();
             w.Value("appLoadFolder", _appLoadFolder);
+            w.Value("appLoadFileType", _appLoadFileType);
             w.Value("pythonPath", _pythonPath);
             w.Value("appLoadAddToHistory", AppLoadAddToHistory);
             w.Value("plotStyleFolder", _plotStyleFolder);
@@ -1618,6 +1635,7 @@ namespace GeometryHelper.Cad
                 );
                 Take("support", "appLoadHistory", e => _s.AppLoadHistory = e.Elements().Select(f => f.Value).ToList());
                 Text("support", "appLoadFolder", v => _s.AppLoadFolder = v);
+                Text("support", "appLoadFileType", v => _s.AppLoadFileType = v);
                 Text("support", "pythonPath", v => _s.PythonPath = v);
                 Flag("support", "appLoadAddToHistory", v => _s.AppLoadAddToHistory = v);
                 Text("support", "plotStyleFolder", v => _s.PlotStyleFolder = v);

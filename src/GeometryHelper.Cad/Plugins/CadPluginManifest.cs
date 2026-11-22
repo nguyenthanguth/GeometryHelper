@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
@@ -62,7 +61,7 @@ namespace GeometryHelper.Cad.Plugins
             Icon = string.IsNullOrWhiteSpace(data.Icon) ? null : data.Icon.Trim();
         }
 
-        /// <summary>Gets the id, which names the folder the plugin is installed in.</summary>
+        /// <summary>Gets the id, a short name for the plugin; the name where not given.</summary>
         public string Id { get; }
 
         /// <summary>Gets the name, which the Plugin manager shows and PLUGINUNLOAD and PLUGINRELOAD are given.</summary>
@@ -166,12 +165,12 @@ namespace GeometryHelper.Cad.Plugins
             return new CadPluginManifest(data);
         }
 
-        /// <summary>Reads a manifest from a plugin.json file, or from the plugin.json at the top of a .ghplugin package, without loading any code.</summary>
-        /// <param name="path">The path of the plugin.json or of the package.</param>
+        /// <summary>Reads a manifest from a plugin.json file, without loading any code.</summary>
+        /// <param name="path">The path of the plugin.json.</param>
         /// <returns>The manifest.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
-        /// <exception cref="FileNotFoundException">Thrown when there is no such file, or the package has no plugin.json at its top.</exception>
-        /// <exception cref="FormatException">Thrown when the manifest cannot be read (see <see cref="Parse"/>), or the package is not a zip.</exception>
+        /// <exception cref="FileNotFoundException">Thrown when there is no such file.</exception>
+        /// <exception cref="FormatException">Thrown when the manifest cannot be read (see <see cref="Parse"/>).</exception>
         public static CadPluginManifest Read(string path)
         {
             if (path == null)
@@ -179,28 +178,7 @@ namespace GeometryHelper.Cad.Plugins
                 throw new ArgumentNullException(nameof(path));
             }
 
-            if (!string.Equals(Path.GetExtension(path), CadPluginPackage.Extension, StringComparison.OrdinalIgnoreCase))
-            {
-                return Parse(File.ReadAllText(path, Encoding.UTF8));
-            }
-
-            try
-            {
-                using (ZipArchive zip = ZipFile.OpenRead(path))
-                {
-                    ZipArchiveEntry entry = CadPluginPackage.ManifestEntry(zip)
-                        ?? throw new FileNotFoundException("The package has no " + FileName + " at its top.", path);
-
-                    using (var reader = new StreamReader(entry.Open(), Encoding.UTF8))
-                    {
-                        return Parse(reader.ReadToEnd());
-                    }
-                }
-            }
-            catch (InvalidDataException exception)
-            {
-                throw new FormatException("The package " + path + " is not a zip: " + exception.Message, exception);
-            }
+            return Parse(File.ReadAllText(path, Encoding.UTF8));
         }
 
         /// <inheritdoc/>
@@ -232,101 +210,6 @@ namespace GeometryHelper.Cad.Plugins
 
             [DataMember(Name = "icon")]
             public string Icon { get; set; }
-        }
-    }
-
-    /// <summary>
-    /// A plugin's package: one .ghplugin file, a zip of its .dll files with its <c>plugin.json</c> at the top (D18 of the
-    /// plan), which is handed round and installed as one file.
-    /// </summary>
-    public static class CadPluginPackage
-    {
-        /// <summary>The extension of a package: .ghplugin.</summary>
-        public const string Extension = ".ghplugin";
-
-        /// <summary>
-        /// Unpacks a package into a folder, made where it is missing; a file of the folder of the same name is overwritten.
-        /// An entry that would land outside the folder, as "..\evil.dll", is refused and nothing is written.
-        /// </summary>
-        /// <param name="packagePath">The path of the package.</param>
-        /// <param name="folder">The folder.</param>
-        /// <returns>The manifest of the package.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when either path is null.</exception>
-        /// <exception cref="FileNotFoundException">Thrown when there is no package, or it has no plugin.json at its top.</exception>
-        /// <exception cref="FormatException">Thrown when the package is not a zip, its manifest cannot be read, or an entry would land outside the folder.</exception>
-        public static CadPluginManifest Unpack(string packagePath, string folder)
-        {
-            if (packagePath == null)
-            {
-                throw new ArgumentNullException(nameof(packagePath));
-            }
-
-            if (folder == null)
-            {
-                throw new ArgumentNullException(nameof(folder));
-            }
-
-            CadPluginManifest manifest = CadPluginManifest.Read(packagePath);
-            string root = Path.GetFullPath(folder);
-            string inside = root.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)
-                ? root
-                : root + Path.DirectorySeparatorChar;
-
-            using (ZipArchive zip = ZipFile.OpenRead(packagePath))
-            {
-                var targets = new List<KeyValuePair<ZipArchiveEntry, string>>();
-
-                foreach (ZipArchiveEntry entry in zip.Entries)
-                {
-                    string target = Path.GetFullPath(Path.Combine(root, entry.FullName));
-
-                    if (!target.StartsWith(inside, StringComparison.OrdinalIgnoreCase))
-                    {
-                        throw new FormatException(
-                            "The package "
-                                + packagePath
-                                + " has an entry that lands outside the folder: "
-                                + entry.FullName
-                                + "."
-                        );
-                    }
-
-                    targets.Add(new KeyValuePair<ZipArchiveEntry, string>(entry, target));
-                }
-
-                Directory.CreateDirectory(root);
-
-                foreach (KeyValuePair<ZipArchiveEntry, string> target in targets)
-                {
-                    // An entry whose name ends in a slash is a folder.
-                    if (
-                        target.Key.FullName.EndsWith("/", StringComparison.Ordinal)
-                        || target.Key.FullName.EndsWith("\\", StringComparison.Ordinal)
-                    )
-                    {
-                        Directory.CreateDirectory(target.Value);
-                        continue;
-                    }
-
-                    Directory.CreateDirectory(Path.GetDirectoryName(target.Value));
-                    target.Key.ExtractToFile(target.Value, true);
-                }
-            }
-
-            return manifest;
-        }
-
-        internal static ZipArchiveEntry ManifestEntry(ZipArchive zip)
-        {
-            foreach (ZipArchiveEntry entry in zip.Entries)
-            {
-                if (string.Equals(entry.FullName, CadPluginManifest.FileName, StringComparison.OrdinalIgnoreCase))
-                {
-                    return entry;
-                }
-            }
-
-            return null;
         }
     }
 }

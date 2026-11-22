@@ -214,16 +214,26 @@ namespace GeometryHelper.Cad.Wpf
             }
             set
             {
-                if (_current != null && value == ManageMLeaderStyles)
+                // The box, its list replaced, clears its selection and pushes null in, and may push the style it already shows:
+                // reading those as a change raised the list again, which reset the box again, without end (a stack overflow on
+                // the first MLEADER of a drawing with no multileader style, which makes Standard and so replaces the list).
+                if (
+                    _current == null
+                    || value == null
+                    || (
+                        value != ManageMLeaderStyles
+                        && string.Equals(value, CurrentMLeaderStyle, StringComparison.Ordinal)
+                    )
+                )
+                {
+                    return;
+                }
+
+                if (value == ManageMLeaderStyles)
                 {
                     RequestStyleDialog("MLEADERSTYLE");
                 }
-                else if (
-                    _current != null
-                    && value != null
-                    && MLeaderStyleNames.Contains(value)
-                    && !string.Equals(value, CurrentMLeaderStyle, StringComparison.Ordinal)
-                )
+                else if (MLeaderStyleNames.Contains(value))
                 {
                     SayRefused(CadMLeaderStyleEditor.SetCurrent(_current.Document, value));
                 }

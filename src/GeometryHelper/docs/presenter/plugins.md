@@ -3,7 +3,8 @@
 A command written in a .dll of its own, loaded into the presenter while it runs, as AutoCAD's NETLOAD loads one, and
 unloaded or loaded again without a restart where the runtime allows. A plugin is a class whose methods are marked as
 commands; it asks its prompts as the presenter's own commands do, edits through the document, and is held to the same gate
-and the same undo steps.
+and the same undo steps. Put the .dll, or a folder with its .dlls, in the app's `Plugins` folder and it is loaded at every
+start, as [below](#where-a-plugin-lives) says.
 
 ## A command
 
@@ -120,7 +121,7 @@ A setting is read from and written to the plugin's property through [`CadPluginS
 is refused, the plugin keeping the one it had: setting the text height to 0.05 throws `The setting Text height lies from 0.1
 to 1000.`
 
-## The manifest and the package
+## The manifest
 
 A plugin says what it is in a `plugin.json`, read without loading any code:
 
@@ -135,10 +136,32 @@ why the presenter will not load it: a kind other than "command", or a newer plug
 (`CadPlugin.ApiVersion`): `The plugin Future needs version 2.0 of the plugin API, and this presenter has 1.1: it needs a
 newer presenter.` A plugin that adds to the window, as [below](#what-a-plugin-adds-to-the-window), states 1.1.
 
-A plugin ships as one `.ghplugin` file, a zip of its .dll files and its `plugin.json` at the top. A bare .dll is accepted as
-well, with the `plugin.json` beside it where there is one; the plugin's name is then its assembly's. A plugin targets
-netstandard2.0 and references `GeometryHelper.Cad` only, without copying it: the presenter gives a plugin its own,
-so that the `CadCommandContext` it is handed is of the type it was built against.
+A plugin targets netstandard2.0 and references `GeometryHelper.Cad` only, without copying it: the presenter gives a
+plugin its own, so that the `CadCommandContext` it is handed is of the type it was built against.
+
+## Where a plugin lives
+
+The app has a `Plugins` folder beside `GeometryHelper.Cad.App.exe`, as it has `Fonts`, `Hatches`, `Linetypes` and `Lisps`
+([`CadSupportKind.Plugins`](xref:GeometryHelper.Cad.CadSupportKind)). The build copies it, with a `README.txt`, to the
+output of every project that uses the presenter. To install a plugin, put it there:
+
+- **A .dll** directly in `Plugins`: one plugin, named as the file without its extension (`NumberCircles.dll` is the plugin
+  `NumberCircles`). A `plugin.json` beside it is not read here, since one file could not name every .dll of the folder.
+- **A folder** in `Plugins`: one plugin made of the .dll files directly in it, its own and the libraries it needs. Where
+  the folder has a `plugin.json`, that gives the plugin its name, version and API, as above; where it has none, the plugin
+  is named after the folder. A folder with neither a .dll nor a `plugin.json` is passed over.
+
+Everything there is loaded once, when the app starts: the .dll files first, by the order of their names (either case the
+same), then the folders in the same order; then the plugins of the startup list below. Loading goes through the manager
+described next, so a plugin of `Plugins` is copied to the shadow folder, loaded into its own load context on .NET 8, added
+to the Plugins tab and the command line, written in the load log and given the plugin API's window extensions. The folder
+lies under the program folder, so it is a trusted folder, and no question is asked. A file that is not a plugin (a library
+with no command, say) or that cannot be loaded is one line of the log, and the next file loads; a plugin loaded already is
+not loaded twice. A .ghplugin put there is not read: a plugin is no longer a package.
+
+A .dll or a folder at a place of your own, such as a build output, loads for the session with `PLUGINLOAD` (a `plugin.json`
+beside a .dll is read there, and the name is the assembly's where there is none), and at every start from
+the startup list below.
 
 ## Loading and unloading
 
@@ -147,17 +170,18 @@ are the ones AutoCAD users know:
 
 | Command | Alias | Does |
 |---|---|---|
-| `PLUGINLOAD` | `NETLOAD` | loads a .dll, a .ghplugin or the folder of an installed plugin, for this session |
+| `PLUGINLOAD` | `NETLOAD` | loads a .dll or the folder of a plugin, for this session |
 | `PLUGINUNLOAD` | | unloads a plugin by name: its commands go from every drawing |
 | `PLUGINRELOAD` | | loads it again from its file: change the code, build, reload, without restarting |
 
 The window's PLUGINLOAD shows a file dialog; the manager's own, which `Attach(registry)` adds to a command line, asks for a
-path on the line. `Install(package)` unpacks a .ghplugin into a folder of the plugin folder named by its id, replacing the
-plugin of that name, and loads it; `Uninstall(name)` takes it out; `SetLoadAtStartup(name, true)` puts a plugin on the
-startup list; `LoadAtStart()` loads each plugin installed, in the order of their folders' names, then the startup list.
+path on the line. `SetLoadAtStartup(name, true)` puts a plugin on the startup list, which a plugin of the `Plugins` folder
+needs not, as it loads at every start anyway; `LoadAtStart()` loads each .dll and each folder of the plugin folder, in the
+order [above](#where-a-plugin-lives), then the startup list. A plugin is taken out of the app by deleting its file or folder
+from `Plugins`: there is no install or uninstall command.
 
 **Trusted folders.** Loading a plugin runs its code with the user's rights, so, as AutoCAD's TRUSTEDPATHS does, a file
-outside `TrustedFolders` is loaded only when `ConfirmUntrusted` says yes, and never where it is not set. The plugin folder
+outside `TrustedFolders` is loaded only when `ConfirmUntrusted` says yes, and never where it is not set. The plugin folder (`Plugins` beside the app)
 is always trusted (`AddTrustedFolder`, `RemoveTrustedFolder`, `IsTrusted`). Without a confirmation, `Load` gives
 `...CircleTools.dll is outside the trusted folders, and loading it was not confirmed.`; with one, `Loaded Circle tools 1.0.0:
 NUMCIRCLES.` Every load is a line of `Log`, with the full path of the file and whether it was trusted. A yes to a folder outside the trusted ones holds for that folder for the life of the manager, so a reload does not ask again; it is never written to disk, and a no is asked again.
@@ -179,14 +203,16 @@ folder, one for each process, those of processes that have ended deleted at the 
 
 The presenter's own assemblies (`GeometryHelper`, `GeometryHelper.Cad` and the controls) are never loaded from a
 plugin's folder, on either runtime. The manager's files are `plugins.json`, the startup list and the trusted folders; the
-apps keep them with the plugin folder, GeometryHelper CAD in `%AppData%\GeometryHelper\Dxf`, and the plugin folder, `Plugins`, is loaded at every start.
+app keeps them in a folder of its own, GeometryHelper CAD in `%AppData%\GeometryHelper\Dxf`; the `Plugins` folder is not
+there but beside the app, so that every user of an install has the same plugins. A plugin that earlier versions installed
+into `%AppData%\GeometryHelper\Dxf\Plugins` is not loaded now: move its folder to `Plugins` beside the app.
 
 A plugin.json with `"kind": "drawing"` holds drawing plugins, which this presenter does not run: a library that makes model drawings gives the plugin manager a `DrawingPluginFinder`, and the manager then loads such a plugin through the same shadow copy, trusted folders, startup list and log, and lists it under the Drawing chip of the Plugin manager. Without a finder the presenter refuses the plugin with the manager's reason.
 
 ## What the window adds
 
 The window shows a Plugins ribbon tab with a button for each command of each plugin loaded, a Plugin manager (a list with
-its load log, the settings of each plugin, load at startup, install and uninstall, trusted folders) and a dialog before a
+its load log, the settings of each plugin, load at startup, trusted folders) and a dialog before a
 load outside the trusted folders. Its settings are drawn by the window from the `CadSetting` attributes; the plugin knows
 none of it.
 

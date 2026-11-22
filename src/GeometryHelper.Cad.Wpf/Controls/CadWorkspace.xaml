@@ -1106,7 +1106,7 @@
                                     IsEnabled="True"
                                     Command="{Binding ManagerCommand}"
                                     Margin="0"
-                                    ToolTip="Load, install, unload and trust plugins"
+                                    ToolTip="Load, unload and trust plugins"
                                 />
                             </StackPanel>
                         </DockPanel>

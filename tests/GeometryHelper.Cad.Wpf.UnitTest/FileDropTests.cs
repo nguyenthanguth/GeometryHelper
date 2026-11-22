@@ -158,6 +158,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         [Theory]
         [InlineData(".dcl")]
         [InlineData(".dll")]
+        [InlineData(".ghplugin")]
         [InlineData(".txt")]
         public void AnyOtherFileDropped_RaisesTheDragAndDropBoxOnce_AndWritesNothingOnTheCommandLine(string extension)
         {

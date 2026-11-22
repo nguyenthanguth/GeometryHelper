@@ -40,7 +40,7 @@ width factor of drawing text. A file that holds them keeps them, and OK writes t
 | Units and rounding | decimals of coordinates and angles; the separators | 2 and 1 decimals; thousands parted by a space, decimals by a point |
 | Layers, colours and lines | the layer table written to new drawings, with each layer's colour, linetype, lineweight and plot flag; NEW (Ctrl+N) adds it to the new drawing | Visible, Hidden, Centre, Hatch, Dimension, Mark, Symbol, Sheet, Viewport (not plotted) |
 | Text and fonts | the UI font, chosen from the font families installed on Windows (each shown in its own face) or typed; what Esc in the MTEXT editor with changes does (Hidden messages); the replacement font of a font not found (FONTALT), whether the Missing Fonts dialog is shown on opening a drawing, the font mapping file (FONTMAP) and the fonts drawn in others | UI font Inter, Esc asks, `ghsimplex`, the dialog on, no mapping file, no substitutions |
-| Folder preference | the font search folders and the support file search folders (linetypes, hatch patterns and AutoLISP files), each in order, with the default Fonts, Hatches, Linetypes, Lisps and DrawingTemplates folders next to the dll shown read-only under them; the Python the PYTHON palette, PYRUN and PYLOAD run scripts with (a `python.exe` or its folder, with the Python found beside it; see [Python in the app](python.md#finding-python)) | none; Python found automatically |
+| Folder preference | the font search folders and the support file search folders (linetypes, hatch patterns and AutoLISP files), each in order, with the default Fonts, Hatches, Linetypes, Lisps and DrawingTemplates folders next to the dll shown read-only under them (a Plugins folder is beside them too, but it holds no search path: see [Command plugins](plugins.md#where-a-plugin-lives)); the Python the PYTHON palette, PYRUN and PYLOAD run scripts with (a `python.exe` or its folder, with the Python found beside it; see [Python in the app](python.md#finding-python)) | none; Python found automatically |
 | Security | where AutoLISP and Python code may be loaded from: SECURELOAD, the trusted folders (TRUSTEDPATHS), LEGACYCODESEARCH and the files answered Always Load (see [The Security page](#the-security-page)) | SECURELOAD 1, no trusted folder but the app's own, LEGACYCODESEARCH 0, none |
 | Shortcuts | the aliases and the keys | AutoCAD's (see [Editing](editing.md#aliases-and-keys)) |
 | Save and export | the save folder, autosave (how often, and its format, DXF or DWG); Template settings: the template folder and the default template for QNEW (see [Drawing templates](#drawing-templates)); Other programs: whether other programs may connect and drive the app (see [Driving the app from another program](remote.md#the-setting)) | empty, which is the user's Documents, 10 minutes, DXF; template folder empty, which is the `DrawingTemplates` folder next to the dll, no default template for QNEW, which is the built-in metric one; other programs allowed to connect |
@@ -49,7 +49,7 @@ width factor of drawing text. A file that holds them keeps them, and OK writes t
 Folder preference lists the folders you add, each editable, and under them the default folder next to `GeometryHelper.Cad.dll`
 for each kind, read-only, marked "(default)" with its full path ("(default) not found" where the folder is missing) and an Open
 folder button; they are never saved into the settings file. A line under each list says the order. The default folders are
-`Fonts`, `Hatches`, `Linetypes`, `Lisps` and `DrawingTemplates` beside the dll (the dll's folder, not the exe's, so that an app which embeds it, such as
+`Fonts`, `Hatches`, `Linetypes`, `Lisps`, `Plugins` and `DrawingTemplates` beside the dll (the dll's folder, not the exe's, so that an app which embeds it, such as
 a host that makes model drawings, finds the same ones). Put SHX fonts and big fonts, `.ttf`, `.ttc` and `.otf` files in `Fonts`, `.pat` files
 in `Hatches`, `.lin` files in `Linetypes` and AutoLISP files (`.lsp`, and the `.dcl` files they use) in `Lisps`. A font, a pattern file or a linetype file is looked for in three places, in this
 order: (1) the folders you set in Folder preference, in order; (2) the default folder of its kind next to the dll; (3) the built-in
@@ -62,7 +62,7 @@ installing (and it is not listed as missing); the regular face of a family is pr
 listed again at each look and the family names of a file are read once, while its size and time stay as they were. `Hatches` holds
 `GeometryHelper.pat` and `Linetypes` holds `GeometryHelper.lin`, the 48 patterns and the 39 linetypes of the built-in sets in
 AutoCAD's `.pat` and `.lin` formats, as models for your own files; the name `GeometryHelper.pat` or `GeometryHelper.lin` always
-means the built-in set, so editing the copy changes nothing, and a test keeps the files equal to the sets. `Lisps` ships with no routine in it: every `.lsp` file directly in it is loaded into each drawing when it opens, after `acaddoc.lsp` and before the Startup Suite, in the order of the file names, and the folder is on the AutoLISP search path after the support folders (see [The Lisps folder](lisp.md#the-lisps-folder)); it is under the program folder, so SECURELOAD always trusts it. `DrawingTemplates` is where a drawing saved as a `.dwt` is
+means the built-in set, so editing the copy changes nothing, and a test keeps the files equal to the sets. `Lisps` ships with no routine in it: every `.lsp` file directly in it is loaded into each drawing when it opens, after `acaddoc.lsp` and before the Startup Suite, in the order of the file names, and the folder is on the AutoLISP search path after the support folders (see [The Lisps folder](lisp.md#the-lisps-folder)); it is under the program folder, so SECURELOAD always trusts it. `Plugins` holds command plugins and no search path: every `.dll` directly in it, and every subfolder of it as one plugin, is loaded once when the app starts, in the order of the names, with no question, as [Command plugins](plugins.md#where-a-plugin-lives) says; the Plugin manager shows it first among the trusted folders. `DrawingTemplates` is where a drawing saved as a `.dwt` is
 put to be used as a template (see [Drawing templates](#drawing-templates)). Each folder has a
 `README.txt` that says the same.
 
@@ -245,7 +245,7 @@ The presenter opens a DWG of AutoCAD 2000 to 2018 as it opens a DXF, read by the
 [DWG reader](../dxf/dwg.md), and saves one as a DWG of AutoCAD 2018, the version AutoCAD 2021 saves in.
 
 - Ctrl+O shows Select File, its types Drawing (*.dwg) first, then DXF (*.dxf), as AutoCAD 2021's; a DWG or DXF dropped on
-  the window opens (so does a `.ghplugin` install; a `.lsp`, `.fas` or `.vlx` loads as a typed `(LOAD "...")`, a `.scr` runs
+  the window opens (a `.lsp`, `.fas` or `.vlx` loads as a typed `(LOAD "...")`, a `.scr` runs
   as SCRIPT, a `.arx`, `.dbx` or `.dvb` is refused, and any other file gets the Drag and Drop box, as
   [AutoLISP](lisp.md#dropping-a-file-on-the-window) says); the file list lists the DWG and DXF files of the folder. A file is read as a DWG where its first bytes
   say so ("AC1032" of AutoCAD 2018), whatever its name; a DWG of a version not read, R14 among them, is said on the command
@@ -868,8 +868,8 @@ GeometryHelper.Cad.App.exe plan.dxf
 ```
 
 opens the window on a drawing, as double-clicking a file associated with the app does. The app reads the global settings from
-the user's file and loads the command plugins of its plugin folder on the startup list: GeometryHelper CAD keeps them in
-`%AppData%\GeometryHelper\Dxf`, so that a drawing plugin is never offered to an app that has no model drawing. The title bar and the start screen carry the app's name.
+the user's file and loads the command plugins of the `Plugins` folder beside the app and of the startup list: GeometryHelper CAD keeps the startup list in
+`%AppData%\GeometryHelper\Dxf`; the app gets its plugins from its own folder, so that a drawing plugin is never offered to an app that has no model drawing. The title bar and the start screen carry the app's name.
 
 The app starts through `CadAppHost` of `GeometryHelper.Cad.Wpf`, and its window is `CadAppWindow`. A host that makes model
 drawings derives from `CadAppHost` to add its parts: the host's protected members take its options off the command line, put

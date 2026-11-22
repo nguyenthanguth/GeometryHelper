@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.IO.Compression;
 using System.Text;
 using GeometryHelper.Cad.Plugins;
 using GeometryHelper.Cad.Wpf.Plugins;
@@ -88,40 +87,14 @@ namespace GeometryHelper.Cad.Plugins.UnitTest
             return path;
         }
 
-        /// <summary>A .ghplugin of the sample, with the manifest given.</summary>
-        public string Package(
-            string manifest,
-            string name = "sample.ghplugin",
-            params KeyValuePair<string, string>[] extra
-        )
+        /// <summary>A folder of its own outside the plugin folder holding the sample and a plugin.json with the manifest given.</summary>
+        public string SampleFolder(string manifest, string folder = "dev-folder")
         {
-            string path = Path.Combine(Root, name);
-
-            using (FileStream stream = File.Create(path))
-            using (var zip = new ZipArchive(stream, ZipArchiveMode.Create))
-            {
-                using (
-                    var writer = new StreamWriter(
-                        zip.CreateEntry(CadPluginManifest.FileName).Open(),
-                        new UTF8Encoding(false)
-                    )
-                )
-                {
-                    writer.Write(manifest);
-                }
-
-                zip.CreateEntryFromFile(BuiltSample, SampleName + ".dll");
-
-                foreach (KeyValuePair<string, string> entry in extra)
-                {
-                    using (var writer = new StreamWriter(zip.CreateEntry(entry.Key).Open(), new UTF8Encoding(false)))
-                    {
-                        writer.Write(entry.Value);
-                    }
-                }
-            }
-
-            return path;
+            string dir = Path.Combine(Root, folder);
+            Directory.CreateDirectory(dir);
+            File.WriteAllText(Path.Combine(dir, CadPluginManifest.FileName), manifest);
+            File.Copy(BuiltSample, Path.Combine(dir, SampleName + ".dll"), true);
+            return dir;
         }
 
         public static string Manifest(

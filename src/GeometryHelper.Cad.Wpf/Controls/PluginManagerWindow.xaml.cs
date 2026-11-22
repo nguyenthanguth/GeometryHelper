@@ -21,12 +21,7 @@ namespace GeometryHelper.Cad.Wpf
             Model = model ?? throw new ArgumentNullException(nameof(model));
             InitializeComponent();
             DataContext = model;
-            model.LoadRequested += (s, e) =>
-                Pick("Load a plugin", "Plugins (*.dll;*.ghplugin)|*.dll;*.ghplugin", path => Model.Load(path));
-            model.InstallRequested += (s, e) =>
-                Pick("Install a plugin package", "Plugin packages (*.ghplugin)|*.ghplugin", path =>
-                    Model.Install(path)
-                );
+            model.LoadRequested += (s, e) => Pick("Load a plugin", "Plugins (*.dll)|*.dll", path => Model.Load(path));
             model.AddFolderRequested += (s, e) => PickFolder();
             model.SettingsRequested += (s, e) => ShowSettings();
             model.LogLines.CollectionChanged += (s, e) => LogScroll.ScrollToEnd();
@@ -43,13 +38,7 @@ namespace GeometryHelper.Cad.Wpf
         /// <param name="owner">The window the dialog belongs to.</param>
         /// <param name="load">What is done with the path chosen.</param>
         public static void PickPlugin(Window owner, Action<string> load) =>
-            Pick(owner, "Load a plugin", "Plugins (*.dll;*.ghplugin)|*.dll;*.ghplugin", load);
-
-        /// <summary>Shows the Open dialog for a .ghplugin and installs the one chosen.</summary>
-        /// <param name="owner">The window the dialog belongs to.</param>
-        /// <param name="install">What is done with the path chosen.</param>
-        public static void PickPackage(Window owner, Action<string> install) =>
-            Pick(owner, "Install a plugin package", "Plugin packages (*.ghplugin)|*.ghplugin", install);
+            Pick(owner, "Load a plugin", "Plugins (*.dll)|*.dll", load);
 
         private static void Pick(Window owner, string title, string filter, Action<string> then)
         {

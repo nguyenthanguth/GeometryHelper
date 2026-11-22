@@ -15,11 +15,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Reference Include="System.IO.Compression" />
-        <Reference Include="System.IO.Compression.FileSystem" />
-    </ItemGroup>
-
-    <ItemGroup>
         <ProjectReference Include="..\..\src\GeometryHelper\GeometryHelper.csproj" />
         <ProjectReference Include="..\..\src\GeometryHelper.Cad\GeometryHelper.Cad.csproj" />
         <ProjectReference Include="..\..\src\GeometryHelper.Cad.Wpf\GeometryHelper.Cad.Wpf.csproj" />

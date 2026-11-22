@@ -12,7 +12,7 @@ namespace GeometryHelper.Cad.Plugins
 {
     /// <summary>
     /// The command plugins of the presenter, as AutoCAD's NETLOAD and APPLOAD keep them (A14 of the plan): loaded from a
-    /// .dll, a .ghplugin package or the plugin folder, unloaded and loaded again while the presenter runs, their commands
+    /// .dll, the folder of one, or the plugin folder, unloaded and loaded again while the presenter runs, their commands
     /// added to the command line of every drawing open (<see cref="Attach"/>), every load written in the load log
     /// (<see cref="Log"/>) and logged with its full path.
     /// </summary>
@@ -30,8 +30,9 @@ namespace GeometryHelper.Cad.Plugins
     /// it is not set.
     /// </para>
     /// <para>
-    /// <b>At every start</b> (<see cref="LoadAtStart"/>) the plugins installed in <see cref="PluginFolder"/> are loaded, then
-    /// those on the startup list, which is kept with the trusted folders in the JSON file <see cref="SettingsPath"/>.
+    /// <b>At every start</b> (<see cref="LoadAtStart"/>) the plugins of <see cref="PluginFolder"/> are loaded (each .dll
+    /// directly in it, then each subfolder as one plugin), then those on the startup list, which is kept with the trusted
+    /// folders in the JSON file <see cref="SettingsPath"/>.
     /// </para>
     /// <para>The manager is used from one thread, the window's.</para>
     /// </remarks>
@@ -60,7 +61,10 @@ namespace GeometryHelper.Cad.Plugins
 
         /// <summary>Makes the manager of the presenter's plugins, reading its startup list and trusted folders from <paramref name="settingsPath"/>.</summary>
         /// <param name="loader">The loader of the runtime: <c>new CadPluginAssemblyLoader()</c> of GeometryHelper.Cad.Wpf.</param>
-        /// <param name="pluginFolder">The plugin folder: each plugin installed in a folder of its own with its plugin.json; always trusted.</param>
+        /// <param name="pluginFolder">
+        /// The plugin folder, always trusted: each .dll directly in it and each subfolder of it is loaded at start. The app
+        /// gives its <c>Plugins</c> folder beside GeometryHelper.Cad.dll (<see cref="CadSupportKind.Plugins"/>).
+        /// </param>
         /// <param name="settingsPath">The JSON file of the startup list and the trusted folders; read when it exists, written on each change.</param>
         /// <param name="shadowFolder">The folder the plugins' files are copied to and loaded from; a folder of this process's
         /// under the temporary folder where null, those left by processes that have ended deleted.</param>
@@ -96,7 +100,7 @@ namespace GeometryHelper.Cad.Plugins
             ReadSettings();
         }
 
-        /// <summary>Raised when a plugin is loaded, unloaded, installed or uninstalled, or put on or off the startup list.</summary>
+        /// <summary>Raised when a plugin is loaded or unloaded, or put on or off the startup list.</summary>
         public event EventHandler PluginsChanged;
 
         /// <summary>Raised when a line is added to <see cref="Log"/>.</summary>
@@ -272,7 +276,7 @@ namespace GeometryHelper.Cad.Plugins
 
         /// <summary>
         /// Loads a plugin for this session, as PLUGINLOAD and NETLOAD do: from a .dll (with the plugin.json beside it, where
-        /// there is one), a .ghplugin package, or the folder of a plugin installed. Its commands are added to every registry
+        /// there is one), or the folder of a plugin. Its commands are added to every registry
         /// attached. Refused, with the reason, where the path is outside the trusted folders and not confirmed, the plugin
         /// needs a newer API, a plugin of its name or path is loaded already, or it has no command.
         /// </summary>
@@ -286,7 +290,7 @@ namespace GeometryHelper.Cad.Plugins
                 throw new ArgumentNullException(nameof(path));
             }
 
-            return LoadFrom(Unquote(path), CadPluginAction.Load, false);
+            return LoadFrom(Unquote(path), CadPluginAction.Load);
         }
 
         /// <summary>
@@ -361,204 +365,13 @@ namespace GeometryHelper.Cad.Plugins
                 UnloadQuietly(plugin);
             }
 
-            return LoadFrom(plugin.Path, CadPluginAction.Reload, false);
+            return LoadFrom(plugin.Path, CadPluginAction.Reload);
         }
 
-        /// <summary>
-        /// Installs a .ghplugin package: unpacked into a folder of the plugin folder named by its id, the plugin of the same
-        /// name or folder unloaded and replaced first, then loaded. A package outside the trusted folders is installed only
-        /// when confirmed, as a load is.
-        /// </summary>
-        /// <param name="packagePath">The path of the package.</param>
-        /// <returns>What came of it.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
-        public CadPluginResult Install(string packagePath)
-        {
-            if (packagePath == null)
-            {
-                throw new ArgumentNullException(nameof(packagePath));
-            }
-
-            string path = Path.GetFullPath(Unquote(packagePath));
-            string file = Path.GetFileName(path);
-
-            if (
-                !string.Equals(Path.GetExtension(path), CadPluginPackage.Extension, StringComparison.OrdinalIgnoreCase)
-                || !File.Exists(path)
-            )
-            {
-                return Refuse(
-                    CadPluginAction.Install,
-                    file,
-                    path,
-                    false,
-                    "There is no package " + path + ": a plugin is installed from a .ghplugin file."
-                );
-            }
-
-            CadPluginManifest manifest;
-
-            try
-            {
-                manifest = CadPluginManifest.Read(path);
-            }
-            catch (Exception exception)
-                when (exception is FormatException
-                    || exception is IOException
-                    || exception is UnauthorizedAccessException
-                )
-            {
-                return Refuse(
-                    CadPluginAction.Install,
-                    file,
-                    path,
-                    false,
-                    "The package " + path + " cannot be read: " + exception.Message,
-                    exception
-                );
-            }
-
-            string refusal = RefusalOf(manifest);
-            bool trusted = IsTrusted(path);
-
-            if (refusal != null)
-            {
-                return Refuse(CadPluginAction.Install, manifest.Name, path, trusted, refusal);
-            }
-
-            // Windows drops the dots and spaces a file name ends in, so "..." or ". ." would name the plugin folder itself and
-            // the delete below would take every installed plugin with it: the folder must lie strictly inside the plugin folder.
-            if (
-                manifest.Id.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0
-                || manifest.Id.EndsWith(".", StringComparison.Ordinal)
-                || manifest.Id.EndsWith(" ", StringComparison.Ordinal)
-                || !IsIn(
-                    Path.GetFullPath(Path.Combine(PluginFolder, manifest.Id)).TrimEnd(Path.DirectorySeparatorChar),
-                    PluginFolder
-                )
-            )
-            {
-                return Refuse(
-                    CadPluginAction.Install,
-                    manifest.Name,
-                    path,
-                    trusted,
-                    "The plugin's id \"" + manifest.Id + "\" cannot name a folder."
-                );
-            }
-
-            if (!trusted && !Confirmed(path))
-            {
-                return Refuse(CadPluginAction.Install, manifest.Name, path, false, NotTrusted(path));
-            }
-
-            string folder = Path.Combine(PluginFolder, manifest.Id);
-
-            foreach (CadLoadedPlugin old in _plugins.ToArray())
-            {
-                if (
-                    string.Equals(old.Path, folder, StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(old.Name, manifest.Name, StringComparison.OrdinalIgnoreCase)
-                )
-                {
-                    if (old.IsLoaded)
-                    {
-                        UnloadQuietly(old);
-                    }
-
-                    _plugins.Remove(old);
-                }
-            }
-
-            try
-            {
-                if (Directory.Exists(folder))
-                {
-                    Directory.Delete(folder, true);
-                }
-
-                CadPluginPackage.Unpack(path, folder);
-            }
-            catch (Exception exception)
-                when (exception is IOException
-                    || exception is UnauthorizedAccessException
-                    || exception is FormatException
-                )
-            {
-                Changed();
-                return Refuse(
-                    CadPluginAction.Install,
-                    manifest.Name,
-                    path,
-                    trusted,
-                    "The package " + path + " cannot be unpacked into " + folder + ": " + exception.Message,
-                    exception
-                );
-            }
-
-            Record(
-                CadPluginAction.Install,
-                manifest.Name,
-                path,
-                trusted,
-                true,
-                "Installed " + manifest.Name + " " + manifest.Version + " into " + folder + "."
-            );
-            return LoadFrom(folder, CadPluginAction.Load, true);
-        }
-
-        /// <summary>Takes a plugin installed in the plugin folder out of it, unloading it first.</summary>
-        /// <param name="name">The plugin's name, either case.</param>
-        /// <returns>What came of it; refused for a plugin not installed, which PLUGINUNLOAD unloads.</returns>
-        public CadPluginResult Uninstall(string name)
-        {
-            CadLoadedPlugin plugin = Find(name);
-
-            if (plugin == null || !plugin.IsInstalled)
-            {
-                return Refuse(
-                    CadPluginAction.Uninstall,
-                    name ?? string.Empty,
-                    plugin?.Path ?? string.Empty,
-                    false,
-                    "No plugin " + name + " is installed in the plugin folder."
-                );
-            }
-
-            if (plugin.IsLoaded)
-            {
-                UnloadQuietly(plugin);
-            }
-
-            _plugins.Remove(plugin);
-
-            try
-            {
-                Directory.Delete(plugin.Path, true);
-            }
-            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException)
-            {
-                Changed();
-                return Refuse(
-                    CadPluginAction.Uninstall,
-                    plugin.Name,
-                    plugin.Path,
-                    true,
-                    "The folder " + plugin.Path + " cannot be deleted: " + exception.Message,
-                    exception
-                );
-            }
-
-            string message = "Uninstalled " + plugin.Name + ".";
-            Record(CadPluginAction.Uninstall, plugin.Name, plugin.Path, true, true, message);
-            Changed();
-            return new CadPluginResult(true, message, plugin, null);
-        }
-
-        /// <summary>Puts a plugin on the startup list, or takes it off, and writes the list; a plugin installed is loaded at every start anyway.</summary>
+        /// <summary>Puts a plugin on the startup list, or takes it off, and writes the list; a plugin of the plugin folder is loaded at every start anyway.</summary>
         /// <param name="name">The plugin's name, either case.</param>
         /// <param name="loadAtStartup">Whether it is to be loaded at every start.</param>
-        /// <returns>False where no plugin of the name is known, or it is installed.</returns>
+        /// <returns>False where no plugin of the name is known, or it lies in the plugin folder.</returns>
         public bool SetLoadAtStartup(string name, bool loadAtStartup)
         {
             CadLoadedPlugin plugin = Find(name);
@@ -670,26 +483,22 @@ namespace GeometryHelper.Cad.Plugins
         }
 
         /// <summary>
-        /// Loads what is loaded at every start: each plugin installed in the plugin folder (a folder with its plugin.json), in
-        /// ordinal order of the folders' names, then the startup list in its order. Each is a line of the log; a plugin
-        /// refused does not stop the others.
+        /// Loads what is loaded at every start: each .dll directly in the plugin folder, in ordinal order of the names (either
+        /// case the same), then each subfolder of it as one plugin (one with a plugin.json, or with a .dll directly in it), in
+        /// the same order, then the startup list in its order. A subfolder with neither is passed over. The plugin folder is
+        /// trusted, so nothing is asked. A plugin loaded already is left; each other is a line of the log, and a .dll that is
+        /// no plugin, or cannot be loaded, is refused with its line and does not stop the others.
         /// </summary>
         /// <returns>What came of each, in the order they were loaded.</returns>
         public IReadOnlyList<CadPluginResult> LoadAtStart()
         {
             var results = new List<CadPluginResult>();
 
-            if (Directory.Exists(PluginFolder))
+            foreach (string path in InThePluginFolder())
             {
-                var folders = new List<string>(Directory.GetDirectories(PluginFolder));
-                folders.Sort(StringComparer.OrdinalIgnoreCase);
-
-                foreach (string folder in folders)
+                if (!IsLoaded(path))
                 {
-                    if (File.Exists(Path.Combine(folder, CadPluginManifest.FileName)) && !IsLoaded(folder))
-                    {
-                        results.Add(LoadFrom(folder, CadPluginAction.Load, false));
-                    }
+                    results.Add(LoadFrom(path, CadPluginAction.Load));
                 }
             }
 
@@ -697,7 +506,7 @@ namespace GeometryHelper.Cad.Plugins
             {
                 if (!IsLoaded(path))
                 {
-                    results.Add(LoadFrom(path, CadPluginAction.Load, false));
+                    results.Add(LoadFrom(path, CadPluginAction.Load));
                 }
             }
 
@@ -718,7 +527,7 @@ namespace GeometryHelper.Cad.Plugins
             TryDelete(ShadowFolder);
         }
 
-        private CadPluginResult LoadFrom(string path, CadPluginAction action, bool installing)
+        private CadPluginResult LoadFrom(string path, CadPluginAction action)
         {
             string full;
 
@@ -738,28 +547,27 @@ namespace GeometryHelper.Cad.Plugins
             string file = Path.GetFileName(full);
             string extension = Path.GetExtension(full);
             bool isFolder = Directory.Exists(full);
-            bool isPackage =
-                !isFolder && string.Equals(extension, CadPluginPackage.Extension, StringComparison.OrdinalIgnoreCase);
             bool isDll = !isFolder && string.Equals(extension, ".dll", StringComparison.OrdinalIgnoreCase);
 
-            if (!(isFolder || ((isPackage || isDll) && File.Exists(full))))
+            if (!(isFolder || (isDll && File.Exists(full))))
             {
                 return Refuse(
                     action,
                     file,
                     full,
                     false,
-                    "There is no plugin " + full + ": a plugin is a .dll, a .ghplugin, or the folder of one installed."
+                    "There is no plugin " + full + ": a plugin is a .dll, or the folder of one."
                 );
             }
 
-            bool trusted = installing || IsTrusted(full);
+            bool trusted = IsTrusted(full);
             CadPluginManifest manifest = null;
-            string manifestPath = isPackage
-                ? full
-                : Path.Combine(isFolder ? full : Path.GetDirectoryName(full), CadPluginManifest.FileName);
+            string folderOf = isFolder ? full : Path.GetDirectoryName(full);
+            string manifestPath = Path.Combine(folderOf, CadPluginManifest.FileName);
 
-            if (isPackage || isFolder || File.Exists(manifestPath))
+            // A plugin.json belongs to the folder of its plugin. Beside a .dll it is read for a plugin made by hand, but not
+            // in the plugin folder itself, where every .dll is a plugin of its own and one file could not name them all.
+            if (File.Exists(manifestPath) && (isFolder || !SamePath(folderOf, PluginFolder)))
             {
                 try
                 {
@@ -789,7 +597,7 @@ namespace GeometryHelper.Cad.Plugins
                 }
             }
 
-            string name = manifest?.Name ?? Path.GetFileNameWithoutExtension(full);
+            string name = manifest?.Name ?? (isFolder ? file : Path.GetFileNameWithoutExtension(full));
 
             foreach (CadLoadedPlugin loaded in _plugins)
             {
@@ -840,19 +648,11 @@ namespace GeometryHelper.Cad.Plugins
 
             try
             {
-                List<string> files = Copy(full, isFolder, isPackage, copies);
+                List<string> files = Copy(full, isFolder, copies);
                 assemblies = _loader.Load(name, files, isDll ? Path.GetDirectoryName(full) : null);
 
-                // The folder files beside the plugin are read from: where it was loaded from, or, for a package, where it was unpacked.
-                plugin = CadPlugin.MakeFrom(
-                    name,
-                    assemblies,
-                    manifest?.Version,
-                    !mayDraw,
-                    isPackage ? copies
-                        : isFolder ? full
-                        : Path.GetDirectoryName(full)
-                );
+                // The folder files beside the plugin are read from: where it was loaded from.
+                plugin = CadPlugin.MakeFrom(name, assemblies, manifest?.Version, !mayDraw, folderOf);
                 plugin.LeaveOutClashes(LoadedPlugins());
 
                 if (mayDraw)
@@ -911,7 +711,7 @@ namespace GeometryHelper.Cad.Plugins
                     || string.Equals(p.Path, full, StringComparison.OrdinalIgnoreCase)
                 )
             );
-            bool installed = isFolder && IsIn(full, PluginFolder);
+            bool installed = SamePath(Path.GetDirectoryName(full), PluginFolder);
             var entry = new CadLoadedPlugin(name, full, manifest, installed, trusted)
             {
                 Plugin = plugin,
@@ -952,15 +752,11 @@ namespace GeometryHelper.Cad.Plugins
         }
 
         /// <summary>Copies a plugin's files into its folder of copies; the .dll files to load, in ordinal order.</summary>
-        private static List<string> Copy(string path, bool isFolder, bool isPackage, string copies)
+        private static List<string> Copy(string path, bool isFolder, string copies)
         {
             Directory.CreateDirectory(copies);
 
-            if (isPackage)
-            {
-                CadPluginPackage.Unpack(path, copies);
-            }
-            else if (isFolder)
+            if (isFolder)
             {
                 CopyFolder(path, copies);
             }
@@ -1056,6 +852,98 @@ namespace GeometryHelper.Cad.Plugins
                 TryDelete(plugin.ShadowFolder);
             }
         }
+
+        /// <summary>
+        /// What the plugin folder loads at start, in its order: the full paths of the .dll files directly in it, then of the
+        /// subfolders that hold a plugin.json or a .dll directly, each group by name, either case the same, then ordinal. A
+        /// folder that is missing or cannot be read has none.
+        /// </summary>
+        private List<string> InThePluginFolder()
+        {
+            var found = new List<string>();
+
+            if (!Directory.Exists(PluginFolder))
+            {
+                return found;
+            }
+
+            try
+            {
+                var folders = new List<string>();
+
+                foreach (string folder in Directory.GetDirectories(PluginFolder))
+                {
+                    if (HoldsAPlugin(folder))
+                    {
+                        folders.Add(folder);
+                    }
+                }
+
+                found.AddRange(Sorted(DllsOf(PluginFolder)));
+                found.AddRange(Sorted(folders));
+            }
+            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException)
+            {
+                GeometryHelperLog.Warn(
+                    "CadPluginManager: the plugin folder " + PluginFolder + " cannot be read; nothing of it is loaded.",
+                    exception
+                );
+                found.Clear();
+            }
+
+            return found;
+        }
+
+        /// <summary>Whether a subfolder of the plugin folder is a plugin: it has a plugin.json, or a .dll directly in it; one that cannot be read is not.</summary>
+        private static bool HoldsAPlugin(string folder)
+        {
+            try
+            {
+                return File.Exists(Path.Combine(folder, CadPluginManifest.FileName)) || DllsOf(folder).Count > 0;
+            }
+            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException)
+            {
+                GeometryHelperLog.Debug(
+                    "CadPluginManager: the folder " + folder + " cannot be read; it is passed over."
+                );
+                return false;
+            }
+        }
+
+        /// <summary>The files directly in a folder whose extension is .dll: <c>*.dll</c> alone would take "x.dllx" too.</summary>
+        private static List<string> DllsOf(string folder)
+        {
+            var dlls = new List<string>();
+
+            foreach (string file in Directory.GetFiles(folder))
+            {
+                if (string.Equals(Path.GetExtension(file), ".dll", StringComparison.OrdinalIgnoreCase))
+                {
+                    dlls.Add(file);
+                }
+            }
+
+            return dlls;
+        }
+
+        private static List<string> Sorted(List<string> paths)
+        {
+            paths.Sort(
+                (a, b) =>
+                {
+                    int order = StringComparer.OrdinalIgnoreCase.Compare(a, b);
+                    return order != 0 ? order : string.CompareOrdinal(a, b);
+                }
+            );
+            return paths;
+        }
+
+        private static bool SamePath(string a, string b) =>
+            string.Equals(
+                a?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                b?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                StringComparison.OrdinalIgnoreCase
+            );
 
         private bool IsLoaded(string path) =>
             _plugins.Exists(p =>
@@ -1160,7 +1048,7 @@ namespace GeometryHelper.Cad.Plugins
 
         private IEnumerable<CadPrompt> LoadByPath(CadCommandContext c)
         {
-            yield return CadPrompt.ForString("Enter the path of a plugin (.dll or .ghplugin)");
+            yield return CadPrompt.ForString("Enter the path of a plugin (.dll or its folder)");
 
             if (c.Input.Kind != CadInputKind.Text || string.IsNullOrWhiteSpace(c.Input.Text))
             {

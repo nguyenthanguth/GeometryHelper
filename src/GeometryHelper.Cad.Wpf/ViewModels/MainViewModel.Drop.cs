@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace GeometryHelper.Cad.Wpf
 {
     /// <summary>
-    /// Files dropped on the window, as AutoCAD 2021 takes them: a drawing opens and a plugin package installs, an AutoLISP,
+    /// Files dropped on the window, as AutoCAD 2021 takes them: a drawing opens, an AutoLISP,
     /// compiled or script file runs the line a drafter would type, and any other file gets a box that says no program is
     /// associated with it.
     /// </summary>
@@ -20,11 +20,12 @@ namespace GeometryHelper.Cad.Wpf
         public Action<string, string> ShowDropMessage { get; set; }
 
         /// <summary>
-        /// Takes the files dropped on the window, each in the order given. A drawing opens, as before, and a <c>.ghplugin</c>
-        /// installs. A <c>.lsp</c>, <c>.fas</c> or <c>.vlx</c> runs <c>(LOAD "D:/x/tools.lsp")</c> as if typed at the command
+        /// Takes the files dropped on the window, each in the order given. A drawing opens, as before. A <c>.lsp</c>,
+        /// <c>.fas</c> or <c>.vlx</c> runs <c>(LOAD "D:/x/tools.lsp")</c> as if typed at the command
         /// line of the drawing shown, so that the echo, the SECURELOAD question and the <c>; error:</c> line are those of a typed
         /// load; a <c>.scr</c> runs SCRIPT and answers its prompt with the path in quotes; a <c>.arx</c>, <c>.dbx</c> or
-        /// <c>.dvb</c> is refused as APPLOAD refuses it; any other file gets the Drag and Drop box (see
+        /// <c>.dvb</c> is refused as APPLOAD refuses it; any other file, a <c>.dll</c> and a <c>.ghplugin</c> too (a plugin
+        /// goes in the Plugins folder, or loads with PLUGINLOAD), gets the Drag and Drop box (see
         /// <see cref="ShowDropMessage"/>). While a command or a routine waits, and with no drawing open, those files are
         /// passed over without a word, as AutoCAD passes them over.
         /// </summary>
@@ -42,10 +43,6 @@ namespace GeometryHelper.Cad.Wpf
                 {
                     Open(file);
                 }
-                else if (file.EndsWith(".ghplugin", StringComparison.OrdinalIgnoreCase))
-                {
-                    InstallPlugin(file);
-                }
                 else if (_current != null && !_current.Session.IsRunning && !_current.Session.IsLispWaiting)
                 {
                     DropFile(System.IO.Path.GetFullPath(file));
@@ -53,7 +50,7 @@ namespace GeometryHelper.Cad.Wpf
             }
         }
 
-        // One file that is not a drawing or a plugin package, dropped with the command prompt showing.
+        // One file that is not a drawing, dropped with the command prompt showing.
         private void DropFile(string full)
         {
             string extension = System.IO.Path.GetExtension(full).ToLowerInvariant();
