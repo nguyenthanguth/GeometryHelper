@@ -331,5 +331,27 @@ namespace GeometryHelper.Cad.UnitTest
                 }
             }
         }
+
+        /// <summary>
+        /// To write the file again after a change to HersheySimplex: set GH_WRITE_GHSIMPLEX to the full path of
+        /// src\GeometryHelper.Cad\Fonts\ghsimplex.shx and run this test once; it writes the bytes there and still compares the
+        /// copy beside the dll, which the next build refreshes.
+        /// </summary>
+        [Fact]
+        public void TheShippedShxFile_EqualsTheBytesOfTheBuiltInFont()
+        {
+            byte[] built = HersheySimplex.Unifont();
+            string target = Environment.GetEnvironmentVariable("GH_WRITE_GHSIMPLEX");
+
+            if (!string.IsNullOrWhiteSpace(target))
+            {
+                File.WriteAllBytes(target, built);
+            }
+
+            string path = Path.Combine(CadSupportFolders.Default.FolderOf(CadSupportKind.Fonts), "ghsimplex.shx");
+
+            Assert.True(File.Exists(path), "ghsimplex.shx is not in the Fonts folder.");
+            Assert.Equal(built, File.ReadAllBytes(path));
+        }
     }
 }

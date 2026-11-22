@@ -6,9 +6,16 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The `Fonts` folder beside `GeometryHelper.Cad.dll` holds `ghsimplex.shx`, the built-in font GeometryHelper Simplex written
+out as a compiled SHX unifont file (4 840 bytes), as `Hatches` holds `GeometryHelper.pat` and `Linetypes` `GeometryHelper.lin`.
+It is a copy for use elsewhere: put it in AutoCAD's Fonts folder, or beside a drawing, and a text style naming `ghsimplex.shx`
+draws there as here (AutoCAD 2021 reads it with no message, and `textbox` of six strings from 2.5 to 25 high agrees with the
+presenter's measure to four decimals). The name `ghsimplex` still always means the built-in font, so editing or deleting the file
+changes nothing here, and a test keeps the file equal to the bytes the font builds.
+
 **NEW.** New from template: a button right of New on the start screen, `New from template · Ctrl+Shift+N`, and the key
 Ctrl+Shift+N (on the start screen and with a drawing open) run NEW with Select Template opened in a `DrawingTemplates`
-folder beside GeometryHelper.Cad.dll, as Fonts, Hatches, Linetypes and Lisps are. A drawing saved as `.dwt` (SAVEAS, Files
+folder beside GeometryHelper.Cad.dll, as Fonts, Hatches, Linetypes and AutoLisps are. A drawing saved as `.dwt` (SAVEAS, Files
 of type: Drawing Template) and put there is listed, and starts an untitled Drawing1.dwg with its layers, styles, blocks,
 layouts and units; the dialog is shown with one template as with many, and with none it says how to make one. Ctrl+N and
 QNEW stay a blank drawing. `DrawingTemplates` is now where the template folder points while Global settings name none (Select
@@ -18,7 +25,7 @@ Open folder. The `Template` folder beside the settings file, the default until n
 `CadSupportKind.DrawingTemplates` is new, and `GlobalSettings.DefaultTemplateFolder` now gives the folder this works out.
 
 **NEW.** The app has a `Plugins` folder beside `GeometryHelper.Cad.App.exe`, as it has `Fonts`, `Hatches`, `Linetypes` and
-`Lisps` (`CadSupportKind.Plugins`; the build copies it with a `README.txt`). Put a plugin there and it loads when the app
+`AutoLisps` (`CadSupportKind.Plugins`; the build copies it with a `README.txt`). Put a plugin there and it loads when the app
 starts: every `.dll` directly in it, by the order of the names (either case the same), then every subfolder as one plugin,
 the same way, so a plugin of several .dll files lives in a folder of its own, named by the folder's `plugin.json` where it
 has one and by the folder where it has not. They load through the plugin manager as before (shadow copy, a load context of
@@ -149,8 +156,8 @@ only when disabled. Every button filled with the accent shares one style, `GhAcc
 the same flat grey as the Close, where it was the dark input colour with a border. The transparent and outlined buttons keep
 their grey hover.
 
-**NEW.** A `Lisps` folder beside `GeometryHelper.Cad.dll` (beside the exe in the app), the fourth default folder with `Fonts`,
-`Hatches` and `Linetypes` (`CadSupportKind.Lisps`, copied by the build with a `README.txt`). Every `.lsp` file directly in it
+**NEW.** An `AutoLisps` folder beside `GeometryHelper.Cad.dll` (beside the exe in the app), the fourth default folder with `Fonts`,
+`Hatches` and `Linetypes` (`CadSupportKind.AutoLisps`, copied by the build with a `README.txt`). Every `.lsp` file directly in it
 loads into each drawing when it opens, in the order of the file names ignoring case, after `acad.lsp` and `acaddoc.lsp` and
 before the Startup Suite and `S::STARTUP`: a folder holding `10-layers.lsp` and `20-dims.lsp` gives both commands in every
 drawing with no APPLOAD. An error in a file is written and the next loads; `x.lspx`, other extensions and files in a

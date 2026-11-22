@@ -141,7 +141,7 @@ plugin its own, so that the `CadCommandContext` it is handed is of the type it w
 
 ## Where a plugin lives
 
-The app has a `Plugins` folder beside `GeometryHelper.Cad.App.exe`, as it has `Fonts`, `Hatches`, `Linetypes` and `Lisps`
+The app has a `Plugins` folder beside `GeometryHelper.Cad.App.exe`, as it has `Fonts`, `Hatches`, `Linetypes` and `AutoLisps`
 ([`CadSupportKind.Plugins`](xref:GeometryHelper.Cad.CadSupportKind)). The build copies it, with a `README.txt`, to the
 output of every project that uses the presenter. To install a plugin, put it there:
 

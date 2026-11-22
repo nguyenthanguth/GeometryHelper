@@ -5,3 +5,5 @@
 *.gz binary
 # The icons of the apps, written by a script.
 *.ico binary
+# The built-in font as a compiled SHX file (Fonts/ghsimplex.shx), written by a test.
+*.shx binary
