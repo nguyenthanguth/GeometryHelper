@@ -112,6 +112,15 @@ namespace GeometryHelper.Cad.Lisp
                 }
             }
 
+            // The BLOCK that opens a block definition: the entity (tblobjname "BLOCK" name) names.
+            foreach (DxfFileBlock opening in database.File.Blocks.Values)
+            {
+                if (opening.Head != null && !opening.Head.IsRemoved && SameHandle(opening.Head.Handle, handle))
+                {
+                    return opening.Head;
+                }
+            }
+
             // A record that follows an entity and was added since the index of its block was made.
             foreach (DxfBlockTableRecord block in database.BlockTable)
             {
@@ -273,18 +282,13 @@ namespace GeometryHelper.Cad.Lisp
             IReadOnlyList<DxfTypedValue> groups = item.Groups;
             List<KeyValuePair<int, object>> pairs = LispEntityData.Read(groups, item.Type);
 
-            if (item.Parent == null && item.Space != null)
+            if (item.Type == "BLOCK")
             {
-                CadSpace space = session.Document.FindSpace(item.Handle);
-                string layer = pairs.Find(p => p.Key == 8).Value as string;
-                pairs = LispEntityData.Complete(
-                    item.Type,
-                    pairs,
-                    item.File.OwnerOf(item),
-                    space?.Name ?? "Model",
-                    space != null && !space.IsModel,
-                    layer
-                );
+                pairs = BlockEntityList(session.Document, item, pairs);
+            }
+            else if (item.Parent != null || item.Space != null)
+            {
+                pairs = Listed(session.Document, item, pairs);
             }
             else
             {

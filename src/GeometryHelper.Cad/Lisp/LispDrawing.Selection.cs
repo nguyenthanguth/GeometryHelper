@@ -74,6 +74,8 @@ namespace GeometryHelper.Cad.Lisp
 
             internal bool Single { get; set; }
 
+            internal bool Locked { get; set; }
+
             internal GeoPoint2? Point { get; set; }
 
             internal GeoPoint2? Corner { get; set; }
@@ -96,6 +98,11 @@ namespace GeometryHelper.Cad.Lisp
             {
                 LispAsk ask = lisp.NewAsk(LispAskKind.Selection, null);
                 ask.Single = request.Single;
+
+                if (request.Locked)
+                {
+                    ask.Locked = handle => OnLockedLayer(session, handle);
+                }
 
                 if (request.Filter != null)
                 {
@@ -128,11 +135,25 @@ namespace GeometryHelper.Cad.Lisp
                 request.Mode = mode;
                 next = 1;
 
+                // AutoCAD 2021 (console, l2p pb): (ssget "_X:L") is "bad ssget mode string"; :L is for the prompt alone.
+                if (!mode.StartsWith(":", StringComparison.Ordinal) && mode.IndexOf(":L", StringComparison.Ordinal) > 0)
+                {
+                    throw new LispException("bad ssget mode string");
+                }
+
                 if (mode.StartsWith(":", StringComparison.Ordinal))
                 {
                     request.Interactive = true;
                     request.Single = mode.IndexOf('S') > 0;
+                    request.Locked = mode.IndexOf('L') > 0;
                     filter = a.Length > 1 ? a[1] : null;
+
+                    // AutoCAD 2021 (console, l2p pb): (ssget "_:L" "x") is "bad point argument".
+                    if (request.Locked && filter is string)
+                    {
+                        throw new LispException("bad point argument");
+                    }
+
                     return LispSelectionFilter.TryParse(filter, tolerance, out LispSelectionFilter parsed)
                         && Assign(request, parsed);
                 }
@@ -245,6 +266,13 @@ namespace GeometryHelper.Cad.Lisp
             return new LispSelectionSet(handles);
         }
 
+        /// <summary>Whether the object of a handle is on a locked layer, for <c>ssget</c> with <c>:L</c>; owner thread only.</summary>
+        private static bool OnLockedLayer(CadCommandSession session, string handle)
+        {
+            DxfEntity entity = session.Document.FindEntity(handle);
+            return entity != null && CadLayerEditor.IsLocked(session.Document.Database, entity.Layer);
+        }
+
         /// <summary>Whether the filter keeps the object of a handle; owner thread only.</summary>
         internal static bool Accepted(CadCommandSession session, LispSelectionFilter filter, string handle)
         {
@@ -278,20 +306,156 @@ namespace GeometryHelper.Cad.Lisp
 
             if (item.Parent == null && item.Space != null)
             {
-                CadSpace space = document.FindSpace(item.Handle);
-                string layer = pairs.Find(p => p.Key == 8).Value as string;
-                pairs = LispEntityData.Complete(
-                    item.Type,
-                    pairs,
-                    item.File.OwnerOf(item),
-                    space?.Name ?? "Model",
-                    space != null && !space.IsModel,
-                    layer
-                );
+                pairs = Listed(document, item, pairs);
             }
 
             pairs.Insert(0, LispEntityData.Pair(0, item.Type));
             return pairs;
+        }
+
+        /// <summary>
+        /// The groups of an entity of a space or of a block definition, or of a record that follows one (a vertex, an attribute,
+        /// the end of a sequence), as <c>entget</c> gives them: <see cref="LispEntityData.Complete"/> with the owner, the space the
+        /// entity is in (no <c>410</c> in a block definition) and, where the record has none, the groups the presenter holds
+        /// elsewhere: an MTEXT's extents (42 and 43, measured by its own font, where AutoCAD 2021's are 24.1667 and 3.33333 for
+        /// "mtext body" at 2.5 in txt) and its direction and angle, a vertex of a 3D polyline's flag 32. A SEQEND ends with
+        /// <c>(-2 . the entity it ends)</c>, as AutoCAD 2021 lists it (console, l2p pa). <paramref name="pairs"/> is the caller's own list
+        /// from <see cref="LispEntityData.Read"/>, which this adds to.
+        /// </summary>
+        internal static List<KeyValuePair<int, object>> Listed(
+            CadDocument document,
+            DxfItem item,
+            List<KeyValuePair<int, object>> pairs
+        )
+        {
+            DxfItem top = item.Parent ?? item;
+            CadSpace space = document.FindSpace(top.Handle);
+            bool inBlock = space == null;
+            string layer = pairs.Find(p => p.Key == 8).Value as string;
+
+            if (item.Type == "MTEXT" && DxfEntity.Of(item) is DxfMText text)
+            {
+                if (!pairs.Exists(p => p.Key == 42))
+                {
+                    pairs.Add(LispEntityData.Pair(42, text.ActualWidth));
+                }
+
+                if (!pairs.Exists(p => p.Key == 43))
+                {
+                    pairs.Add(LispEntityData.Pair(43, text.ActualHeight));
+                }
+
+                if (!pairs.Exists(p => p.Key == 11))
+                {
+                    GeoVector3 direction = text.Direction;
+                    pairs.Add(LispEntityData.Pair(11, new[] { direction.X, direction.Y, direction.Z }));
+                }
+
+                if (!pairs.Exists(p => p.Key == 50))
+                {
+                    pairs.Add(LispEntityData.Pair(50, text.Rotation));
+                }
+            }
+            else if (
+                item.Type == "VERTEX"
+                && item.Parent != null
+                && !pairs.Exists(p => p.Key == 70)
+                && LispEntityData
+                    .Read(item.Parent.Groups, item.Parent.Type)
+                    .Exists(p => p.Key == 70 && p.Value is int flags && (flags & 8) != 0)
+            )
+            {
+                pairs.Add(LispEntityData.Pair(70, 32));
+            }
+
+            pairs = LispEntityData.Complete(
+                item.Type,
+                pairs,
+                item.File.OwnerOf(item),
+                inBlock ? null : space?.Name ?? "Model",
+                space != null && !space.IsModel,
+                layer
+            );
+
+            if (item.Type == "SEQEND" && item.Parent != null)
+            {
+                pairs.Add(LispEntityData.Pair(-2, new LispEntityName(item.Parent.Handle)));
+            }
+
+            return pairs;
+        }
+
+        /// <summary>
+        /// The groups of the BLOCK that opens a block definition (<c>(entget (tblobjname "BLOCK" name))</c>) as AutoCAD 2021 lists
+        /// them (console, l2p pa): the owner and handle, <c>AcDbEntity</c> with 67 and the layer, <c>AcDbBlockBegin</c> with the
+        /// flags and the base point, the first entity of the block (-2), then the name (2) and the path (1, empty for a block that
+        /// is no reference to a file). A block with no entity has no -2 (AutoCAD gives it the name of its ENDBLK: not given here).
+        /// </summary>
+        internal static List<KeyValuePair<int, object>> BlockEntityList(
+            CadDocument document,
+            DxfItem head,
+            List<KeyValuePair<int, object>> pairs
+        )
+        {
+            object owner = null;
+            object name = string.Empty;
+            object path = string.Empty;
+            object layer = "0";
+            object flags = 0;
+            object origin = new[] { 0.0, 0.0, 0.0 };
+
+            foreach (KeyValuePair<int, object> pair in pairs)
+            {
+                switch (pair.Key)
+                {
+                    case 330 when owner == null:
+                        owner = pair.Value;
+                        break;
+                    case 8:
+                        layer = pair.Value;
+                        break;
+                    case 2:
+                        name = pair.Value;
+                        break;
+                    case 70:
+                        flags = pair.Value;
+                        break;
+                    case 1:
+                        path = pair.Value;
+                        break;
+                    case 10 when pair.Value is double[] point:
+                        origin = new[] { point[0], point[1], point.Length > 2 ? point[2] : 0.0 };
+                        break;
+                }
+            }
+
+            var result = new List<KeyValuePair<int, object>>
+            {
+                LispEntityData.Pair(330, owner ?? new LispEntityName(head.File.OwnerOf(head) ?? "0")),
+                LispEntityData.Pair(5, head.Handle),
+                LispEntityData.Pair(100, "AcDbEntity"),
+                LispEntityData.Pair(67, 0),
+                LispEntityData.Pair(8, layer),
+                LispEntityData.Pair(100, "AcDbBlockBegin"),
+                LispEntityData.Pair(70, flags),
+                LispEntityData.Pair(10, origin),
+            };
+
+            DxfBlockTable table = document.Database.BlockTable;
+            string text = (string)name;
+
+            if (table.Has(text) && table[text] is DxfBlockTableRecord block)
+            {
+                foreach (DxfItem entity in Items(block))
+                {
+                    result.Add(LispEntityData.Pair(-2, new LispEntityName(entity.Handle)));
+                    break;
+                }
+            }
+
+            result.Add(LispEntityData.Pair(2, name));
+            result.Add(LispEntityData.Pair(1, path));
+            return result;
         }
 
         /// <summary>The handles a request finds in the drawing, in the order the set has them.</summary>

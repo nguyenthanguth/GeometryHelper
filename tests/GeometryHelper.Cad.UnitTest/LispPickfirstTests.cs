@@ -358,7 +358,7 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void NentselpAndNentselOnTheSameBlockPoint_GiveTheSameList()
+        public void NentselpAndNentselOnTheSameBlockPoint_GiveTheSameObjectPointAndReferences_ButNotTheSameMatrix()
         {
             CadCommandSession session = WithABlockReference();
 
@@ -366,7 +366,11 @@ namespace GeometryHelper.Cad.UnitTest
             Value(session, "(setq m (nentsel))");
             Run(session, "100,50");
 
-            Assert.Equal("T", Value(session, "(equal n m)"));
+            // AutoCAD 2021 (GUI, l2p g1): nentselp has the 4 by 4 form and nentsel the 4 by 3 one
+            Assert.Equal("T", Value(session, "(equal (car n) (car m))"));
+            Assert.Equal("T", Value(session, "(equal (cadr n) (cadr m))"));
+            Assert.Equal("T", Value(session, "(equal (cadddr n) (cadddr m))"));
+            Assert.Equal("nil", Value(session, "(equal (caddr n) (caddr m))"));
         }
 
         [Fact]

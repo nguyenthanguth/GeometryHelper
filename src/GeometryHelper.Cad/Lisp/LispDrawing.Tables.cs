@@ -291,7 +291,31 @@ namespace GeometryHelper.Cad.Lisp
         {
             List<DxfItem> records = RecordsOf(session.Document, table);
             int at = IndexOfRecord(records, name);
-            return at < 0 ? null : new LispEntityName(records[at].Handle);
+
+            if (at < 0)
+            {
+                return null;
+            }
+
+            // A block gives the name of its BLOCK entity, whose entget is the list of the block's beginning (AutoCAD 2021, console,
+            // l2p pa), not that of its record.
+            if (table == "BLOCK")
+            {
+                foreach (DxfFileBlock block in session.Document.Database.File.Blocks.Values)
+                {
+                    if (
+                        block.Head != null
+                        && !block.Head.IsRemoved
+                        && !string.IsNullOrEmpty(block.Head.Handle)
+                        && string.Equals(block.Name, NameOfRecord(records[at]), StringComparison.OrdinalIgnoreCase)
+                    )
+                    {
+                        return new LispEntityName(block.Head.Handle);
+                    }
+                }
+            }
+
+            return new LispEntityName(records[at].Handle);
         }
 
         #region The lists

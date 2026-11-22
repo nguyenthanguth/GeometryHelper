@@ -149,7 +149,12 @@ namespace GeometryHelper.Cad.Lisp
 
             if (!at.HasValue)
             {
-                return NestedAnswer(lisp, session, lisp.Ask(lisp.NewAsk(LispAskKind.NestedEntity, message)));
+                return NestedAnswer(
+                    lisp,
+                    session,
+                    lisp.Ask(lisp.NewAsk(LispAskKind.NestedEntity, message)),
+                    fourByFour: true
+                );
             }
 
             GeoPoint3 given = at.Value;
@@ -175,7 +180,7 @@ namespace GeometryHelper.Cad.Lisp
                 );
             });
 
-            return NestedAnswer(lisp, session, answer);
+            return NestedAnswer(lisp, session, answer, fourByFour: true);
         }
     }
 }

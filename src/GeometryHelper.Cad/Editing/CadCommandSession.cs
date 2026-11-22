@@ -109,6 +109,10 @@ namespace GeometryHelper.Cad
         // whole all the same: -ATTEDIT takes only the attributes a window took.
         private readonly List<Tuple<string, DisplayBox, bool>> _windows = new List<Tuple<string, DisplayBox, bool>>();
         private readonly SortedSet<string> _unwindowed = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // Whether an earlier pick of this selection found objects on a locked layer (ssget with :L), which AutoCAD counts in the
+        // "total" of the next "N found" though it did not select them.
+        private bool _lockedSeen;
         private IEnumerator<CadPrompt> _body;
         private CadCommandContext _context;
 
@@ -1338,10 +1342,14 @@ namespace GeometryHelper.Cad
             _whole.Clear();
             _windows.Clear();
             _unwindowed.Clear();
+            _lockedSeen = false;
         }
 
-        /// <summary>The end of "Select objects:": the objects gathered answer it, kept for Previous.</summary>
-        private void EndSelection()
+        /// <summary>
+        /// The end of "Select objects:": the objects gathered answer it, kept for Previous. <paramref name="silent"/> writes no echo
+        /// of the end, as the one pick or window of <c>ssget</c> with <c>:S</c> ends the selection with nothing written after it.
+        /// </summary>
+        private void EndSelection(bool silent = false)
         {
             var handles = new List<string>(_gathered);
             var pickOrder = new List<string>(_pickOrder);
@@ -1349,7 +1357,7 @@ namespace GeometryHelper.Cad
             List<Tuple<string, DisplayBox, bool>> windows = _windows.FindAll(w =>
                 _gathered.Contains(w.Item1) && !_unwindowed.Contains(w.Item1)
             );
-            string echo = Prompt.Text;
+            string echo = silent ? null : Prompt.Text;
             ClearGathering();
 
             // Previous gives the set in the order it was made, as AutoCAD's does: a window's objects newest first.
@@ -1379,6 +1387,22 @@ namespace GeometryHelper.Cad
                 handles = handles.FindAll(h => _lispAsk.Accepts(h));
             }
 
+            // With :L the objects on a locked layer are found, and said to be, but not taken: AutoCAD 2021 (console, l2p pb).
+            int found = handles.Count;
+            int locked = 0;
+            bool lockedBefore = _lockedSeen;
+
+            if (!remove && _lispAsk?.Locked != null)
+            {
+                List<string> open = handles.FindAll(h => !_lispAsk.Locked(h));
+                locked = handles.Count - open.Count;
+                handles = open;
+                _lockedSeen |= locked > 0;
+            }
+
+            // The one pick or window of ssget with :S ends the selection, and it writes neither "found" nor the end.
+            bool quiet =
+                !remove && found > 0 && ReferenceEquals(Prompt, _lispAskPrompt) && _lispAsk != null && _lispAsk.Single;
             int before = _gathered.Count;
             int duplicates = 0;
             var changed = new List<string>();
@@ -1425,11 +1449,11 @@ namespace GeometryHelper.Cad
                 );
             }
 
-            string found = handles.Count.ToString(CultureInfo.InvariantCulture) + " found";
+            string foundText = found.ToString(CultureInfo.InvariantCulture) + " found";
 
             if (remove)
             {
-                found +=
+                foundText +=
                     ", "
                     + changed.Count.ToString(CultureInfo.InvariantCulture)
                     + " removed, "
@@ -1440,25 +1464,37 @@ namespace GeometryHelper.Cad
             {
                 if (duplicates > 0)
                 {
-                    found += " (" + duplicates.ToString(CultureInfo.InvariantCulture) + " duplicate)";
+                    foundText += " (" + duplicates.ToString(CultureInfo.InvariantCulture) + " duplicate)";
                 }
 
-                if (before > 0 || duplicates > 0)
+                if (before > 0 || duplicates > 0 || lockedBefore)
                 {
-                    found += ", " + _gathered.Count.ToString(CultureInfo.InvariantCulture) + " total";
+                    foundText += ", " + _gathered.Count.ToString(CultureInfo.InvariantCulture) + " total";
                 }
             }
 
-            Write(found);
-
-            if (_single && !remove && handles.Count > 0 && Prompt != null && Prompt.Kind == CadPromptKind.Selection)
+            if (!quiet)
             {
-                EndSelection();
+                Write(foundText);
+            }
+
+            if (locked > 0)
+            {
+                Write(
+                    locked.ToString(CultureInfo.InvariantCulture)
+                        + (locked == 1 ? " was" : " were")
+                        + " on a locked layer."
+                );
+            }
+
+            if (_single && !remove && found > 0 && Prompt != null && Prompt.Kind == CadPromptKind.Selection)
+            {
+                EndSelection(quiet);
                 return true;
             }
 
             Changed();
-            return handles.Count > 0;
+            return found > 0;
         }
 
         /// <summary>

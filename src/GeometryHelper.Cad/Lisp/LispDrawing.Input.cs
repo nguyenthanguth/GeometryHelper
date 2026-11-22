@@ -25,32 +25,38 @@ namespace GeometryHelper.Cad.Lisp
             lisp.Define("GETKWORD", 0, 1, a => lisp.Ask(WithMessage(lisp, LispAskKind.Keyword, a)));
             lisp.Define("ENTSEL", 0, 1, a => lisp.Ask(WithMessage(lisp, LispAskKind.Entity, a)));
             lisp.Define("NENTSEL", 0, 1, a =>
-                NestedAnswer(lisp, session, lisp.Ask(WithMessage(lisp, LispAskKind.NestedEntity, a)))
+                NestedAnswer(lisp, session, lisp.Ask(WithMessage(lisp, LispAskKind.NestedEntity, a)), fourByFour: false)
             );
             lisp.Define("GETSTRING", 0, 2, a => lisp.Ask(WithText(lisp, a)));
         }
 
         /// <summary>
         /// What <c>nentsel</c> gives for an object picked: where it is a block reference with an object under the point inside it,
-        /// <c>(ename pt matrix (insert ...))</c> of that object: its name, the point picked, the 4 by 4 matrix, row by row, that
-        /// carries the block's coordinates into the world (the world images of the three axes in its columns, the origin in the
-        /// fourth, <c>(0 0 0 1)</c> under them; AutoCAD 2021, GUI, measured, not the 4 by 3 form its documentation gives) and the
-        /// names of the references it is in, the innermost first. Where the point is on
+        /// <c>(ename pt matrix (insert ...))</c> of that object: its name, the point picked, the matrix that carries the block's
+        /// coordinates into the world and the names of the references it is in, the innermost first. For <c>nentsel</c> the matrix
+        /// is the 4 by 3 form of AutoCAD's documentation: the world images of the three axes as rows, then the origin (AutoCAD 2021,
+        /// GUI, l2p g1); for <c>nentselp</c> (<paramref name="fourByFour"/>) it is 4 by 4, row by row, the images of the axes in its
+        /// columns, the origin in the fourth, <c>(0 0 0 1)</c> under them (AutoCAD 2021, GUI, L5 X2 and l2p g1). Where the point is on
         /// the text of a visible attribute of the reference, the answer is <c>(ename pt)</c> of the ATTRIB itself, nothing after the
         /// point (AutoCAD 2021, GUI, measured), and an attribute wins over the objects of the block where both are under the point
         /// (ours: the attribute is drawn last). Anything else is as <c>entsel</c> gives it.
         /// </summary>
-        private static object NestedAnswer(LispInterpreter lisp, CadCommandSession session, object answer)
+        private static object NestedAnswer(
+            LispInterpreter lisp,
+            CadCommandSession session,
+            object answer,
+            bool fourByFour
+        )
         {
             if (!(answer is LispCons))
             {
                 return answer;
             }
 
-            return lisp.OnOwner(() => Nested(session, (LispCons)answer));
+            return lisp.OnOwner(() => Nested(session, (LispCons)answer, fourByFour));
         }
 
-        private static object Nested(CadCommandSession session, LispCons answer)
+        private static object Nested(CadCommandSession session, LispCons answer, bool fourByFour)
         {
             List<object> items = LispInterpreter.ItemsOf(answer);
             GeoPoint3? at = items.Count > 1 ? PointOf(items[1]) : null;
@@ -96,25 +102,42 @@ namespace GeometryHelper.Cad.Lisp
                 placing = placing.Multiply(chain[i].BlockTransform);
             }
 
-            // AutoCAD 2021 (GUI, L5 X2): a 4 by 4 matrix row by row, the images of the three axes in its columns, the origin in the
-            // fourth and (0 0 0 1) under them.
             GeoPoint3 origin = placing.Transform(GeoPoint3.Origin);
             GeoPoint3 xAxis = placing.Transform(new GeoPoint3(1, 0, 0));
             GeoPoint3 yAxis = placing.Transform(new GeoPoint3(0, 1, 0));
             GeoPoint3 zAxis = placing.Transform(new GeoPoint3(0, 0, 1));
-            var matrix = new List<object>
+            List<object> matrix;
+
+            if (fourByFour)
             {
-                LispInterpreter.ListOf(
-                    new object[] { xAxis.X - origin.X, yAxis.X - origin.X, zAxis.X - origin.X, origin.X }
-                ),
-                LispInterpreter.ListOf(
-                    new object[] { xAxis.Y - origin.Y, yAxis.Y - origin.Y, zAxis.Y - origin.Y, origin.Y }
-                ),
-                LispInterpreter.ListOf(
-                    new object[] { xAxis.Z - origin.Z, yAxis.Z - origin.Z, zAxis.Z - origin.Z, origin.Z }
-                ),
-                LispInterpreter.ListOf(new object[] { 0.0, 0.0, 0.0, 1.0 }),
-            };
+                // AutoCAD 2021 (GUI, L5 X2, l2p g1) for nentselp: a 4 by 4 matrix row by row, the images of the three axes in its
+                // columns, the origin in the fourth and (0 0 0 1) under them.
+                matrix = new List<object>
+                {
+                    LispInterpreter.ListOf(
+                        new object[] { xAxis.X - origin.X, yAxis.X - origin.X, zAxis.X - origin.X, origin.X }
+                    ),
+                    LispInterpreter.ListOf(
+                        new object[] { xAxis.Y - origin.Y, yAxis.Y - origin.Y, zAxis.Y - origin.Y, origin.Y }
+                    ),
+                    LispInterpreter.ListOf(
+                        new object[] { xAxis.Z - origin.Z, yAxis.Z - origin.Z, zAxis.Z - origin.Z, origin.Z }
+                    ),
+                    LispInterpreter.ListOf(new object[] { 0.0, 0.0, 0.0, 1.0 }),
+                };
+            }
+            else
+            {
+                // AutoCAD 2021 (GUI, l2p g1) for nentsel: the 4 by 3 form, the images of the three axes as rows and the origin as
+                // the fourth row, so the 3 by 3 part is the transpose of the one nentselp gives.
+                matrix = new List<object>
+                {
+                    LispInterpreter.ListOf(new object[] { xAxis.X - origin.X, xAxis.Y - origin.Y, xAxis.Z - origin.Z }),
+                    LispInterpreter.ListOf(new object[] { yAxis.X - origin.X, yAxis.Y - origin.Y, yAxis.Z - origin.Z }),
+                    LispInterpreter.ListOf(new object[] { zAxis.X - origin.X, zAxis.Y - origin.Y, zAxis.Z - origin.Z }),
+                    LispInterpreter.ListOf(new object[] { origin.X, origin.Y, origin.Z }),
+                };
+            }
 
             var inserts = new List<object>();
 

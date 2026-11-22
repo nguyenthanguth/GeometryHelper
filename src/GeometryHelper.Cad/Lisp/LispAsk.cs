@@ -86,5 +86,8 @@ namespace GeometryHelper.Cad.Lisp
 
         /// <summary>Gets or sets what a selection keeps: whether an object, by its handle, matches the filter of <c>ssget</c>; null for every object.</summary>
         internal Func<string, bool> Accepts { get; set; }
+
+        /// <summary>Gets or sets whether an object, by its handle, is on a locked layer, for <c>ssget</c> with <c>:L</c>, which leaves such objects out and says how many it did; null for a selection that keeps them.</summary>
+        internal Func<string, bool> Locked { get; set; }
     }
 }
