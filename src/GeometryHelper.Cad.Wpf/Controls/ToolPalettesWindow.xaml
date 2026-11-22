@@ -3,6 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:GeometryHelper.Cad.Wpf"
+    xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
     Title="Tool Palettes"
     Width="340"
     Height="640"
@@ -216,6 +217,17 @@
             />
         </ResourceDictionary>
     </Window.Resources>
+
+    <!-- No frame of the system: with WindowStyle None and a resizable window, Windows 10 and 11 draw a light line along the top edge. -->
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome
+            CaptionHeight="0"
+            ResizeBorderThickness="6"
+            GlassFrameThickness="0"
+            CornerRadius="0"
+            UseAeroCaptionButtons="False"
+        />
+    </shell:WindowChrome.WindowChrome>
 
     <Border
         x:Name="Root"

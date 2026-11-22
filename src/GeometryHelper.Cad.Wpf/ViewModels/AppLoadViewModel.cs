@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using GeometryHelper.Cad.Plugins;
 
 namespace GeometryHelper.Cad.Wpf
@@ -59,7 +60,68 @@ namespace GeometryHelper.Cad.Wpf
         public override string ToString() => Label;
     }
 
-    /// <summary>A folder or a file of the list of Load/Unload Applications: how the list shows it.</summary>
+    /// <summary>What kind of place a row of Look in is, which gives it its icon and colour.</summary>
+    public enum AppLoadPlaceKind
+    {
+        /// <summary>The Desktop, the top of the list.</summary>
+        Desktop,
+
+        /// <summary>The user's own folder, Documents or Downloads.</summary>
+        UserFolder,
+
+        /// <summary>This PC, which has no path: its list is the drives.</summary>
+        ThisPc,
+
+        /// <summary>A drive, as <c>Data (D:)</c>.</summary>
+        Drive,
+
+        /// <summary>A folder on the way down to the folder shown.</summary>
+        Folder,
+    }
+
+    /// <summary>One row of Look in's drop-down: a place (Desktop, the user's folders, This PC, a drive, an ancestor of the folder shown).</summary>
+    public sealed class AppLoadPlace
+    {
+        internal AppLoadPlace(
+            string name,
+            string path,
+            int level,
+            AppLoadPlaceKind kind,
+            DriveType driveType,
+            bool isCurrent
+        )
+        {
+            Name = name;
+            Path = path;
+            Level = level;
+            Kind = kind;
+            DriveType = driveType;
+            IsCurrent = isCurrent;
+        }
+
+        /// <summary>Gets the name the row shows: <c>Desktop</c>, <c>Documents</c>, <c>This PC</c>, <c>Local Disk (C:)</c>, or a folder's own name.</summary>
+        public string Name { get; }
+
+        /// <summary>Gets the full path; null for This PC.</summary>
+        public string Path { get; }
+
+        /// <summary>Gets how far the row is indented: 0 for Desktop, 1 for the user's folders and This PC, 2 for a drive, and one more for each folder down.</summary>
+        public int Level { get; }
+
+        /// <summary>Gets what kind of place it is.</summary>
+        public AppLoadPlaceKind Kind { get; }
+
+        /// <summary>Gets the kind of drive, which picks the drive's icon; <see cref="System.IO.DriveType.Unknown"/> for a row that is not a drive.</summary>
+        public DriveType DriveType { get; }
+
+        /// <summary>Gets whether it is the folder the list shows, the row Look in has chosen.</summary>
+        public bool IsCurrent { get; }
+
+        /// <inheritdoc/>
+        public override string ToString() => Name;
+    }
+
+    /// <summary>A folder or a file of the list of Load/Unload Applications, or a drive of This PC: how the list shows it.</summary>
     public sealed class AppLoadEntry
     {
         internal AppLoadEntry(FileSystemInfo info)
@@ -69,6 +131,21 @@ namespace GeometryHelper.Cad.Wpf
             Name = info.Name;
             Type = IsFolder ? "File folder" : TypeOf(info.Extension);
             Modified = info.LastWriteTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+            Size = info is FileInfo file
+                ? ((file.Length + 1023L) / 1024L).ToString(CultureInfo.InvariantCulture) + " KB"
+                : string.Empty;
+            DriveType = DriveType.Unknown;
+        }
+
+        internal AppLoadEntry(AppLoadDrive drive)
+        {
+            IsFolder = true;
+            Path = drive.Root;
+            Name = drive.Name;
+            Type = drive.TypeName;
+            Modified = string.Empty;
+            Size = string.Empty;
+            DriveType = drive.DriveType;
         }
 
         /// <summary>Gets the full path.</summary>
@@ -77,14 +154,23 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets the name, with its extension for a file.</summary>
         public string Name { get; }
 
-        /// <summary>Gets whether it is a folder.</summary>
+        /// <summary>Gets whether it is a folder; a drive of This PC is one too, and opens as a folder does.</summary>
         public bool IsFolder { get; }
 
-        /// <summary>Gets what it is, as the list's Type column says it: File folder, AutoLISP file, Plugin, Compiled AutoLISP, or the extension's words.</summary>
+        /// <summary>Gets the kind of drive for a row of This PC, which picks the drive's icon; <see cref="System.IO.DriveType.Unknown"/> for a folder or a file.</summary>
+        public DriveType DriveType { get; }
+
+        /// <summary>Gets whether it is a drive of This PC.</summary>
+        public bool IsDrive => DriveType != DriveType.Unknown;
+
+        /// <summary>Gets what it is, as the list's Type column says it: File folder, AutoLISP file, Plugin, Compiled AutoLISP, or the extension's words; Local Disk, CD Drive or Network Drive for a drive.</summary>
         public string Type { get; }
 
-        /// <summary>Gets when it was last written, as <c>2026-11-20 10:31</c>.</summary>
+        /// <summary>Gets when it was last written, as <c>2026-11-20 10:31</c>; empty for a drive.</summary>
         public string Modified { get; }
+
+        /// <summary>Gets the size of a file in kilobytes, rounded up, as Explorer writes it: <c>1 KB</c> for a file of 1 to 1 024 bytes, <c>2 KB</c> for 1 025, <c>0 KB</c> for an empty one; empty for a folder or a drive.</summary>
+        public string Size { get; }
 
         /// <inheritdoc/>
         public override string ToString() => Name;
@@ -155,22 +241,29 @@ namespace GeometryHelper.Cad.Wpf
     }
 
     /// <summary>
-    /// AutoCAD 2021's Load/Unload Applications, shown by APPLOAD: a folder browser of its own (Look in, Back, Up, the files of
-    /// the type chosen) over Load, Add to History, the Loaded Applications and History list tabs with their Unload or Remove
-    /// button, and the Startup Suite. Load takes a file typed or chosen into the document shown, an AutoLISP file as
-    /// <see cref="CadCommandSession.LoadLisp"/> does and a .dll through the plugin manager; the footer says what came of the
-    /// last Load or Unload. The History list, the folder last used and Add to History are kept in Global settings
-    /// (<see cref="GlobalSettings.AppLoadHistory"/>, <see cref="GlobalSettings.AppLoadFolder"/>,
+    /// AutoCAD 2021's Load/Unload Applications, shown by APPLOAD: a folder browser of its own (Look in with its places, Back,
+    /// Up, This PC, the files of the type chosen) over Load, Add to History, the Loaded Applications and History list tabs with
+    /// their Unload or Remove button, and the Startup Suite. Load takes a file typed or chosen into the document shown, an
+    /// AutoLISP file as <see cref="CadCommandSession.LoadLisp"/> does and a .dll through the plugin manager; a typed folder
+    /// opens, a typed pattern filters the list and a typed name that is not there is answered with a box; the footer says
+    /// what came of the last Load or Unload. The History list, the folder last used (kept by a Load only), the Files of type
+    /// and Add to History are kept in Global settings (<see cref="GlobalSettings.AppLoadHistory"/>,
+    /// <see cref="GlobalSettings.AppLoadFolder"/>, <see cref="GlobalSettings.AppLoadFileType"/>,
     /// <see cref="GlobalSettings.AppLoadAddToHistory"/>).
     /// </summary>
     public sealed class AppLoadViewModel : ObservableObject
     {
         private const string LispKind = "AutoLISP";
         private const string PluginKind = "Plugin";
+        private static readonly char[] Wildcards = { '*', '?' };
 
         private readonly MainViewModel _model;
+        private readonly IAppLoadPlaceSource _source;
         private readonly Stack<string> _back = new Stack<string>();
         private readonly HashSet<string> _switchedOff = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private IReadOnlyList<AppLoadDrive> _drives;
+        private IReadOnlyList<AppLoadPlace> _places = Array.Empty<AppLoadPlace>();
+        private string _pattern;
         private string _folder;
         private IReadOnlyList<string> _folderChain = Array.Empty<string>();
         private IReadOnlyList<AppLoadEntry> _entries = Array.Empty<AppLoadEntry>();
@@ -183,26 +276,67 @@ namespace GeometryHelper.Cad.Wpf
         private string _status = string.Empty;
         private AppLoadStatusKind _statusKind;
 
-        internal AppLoadViewModel(MainViewModel model)
+        internal AppLoadViewModel(MainViewModel model, IAppLoadPlaceSource source = null)
         {
             _model = model;
+            _source = source ?? new AppLoadSystemPlaces();
             FileTypes = new[]
             {
                 new AppLoadFileType("AutoLISP Files (*.lsp)", ".lsp"),
                 new AppLoadFileType("Plugins (*.dll)", ".dll"),
                 new AppLoadFileType("All files (*.*)", null),
             };
-            _fileType = FileTypes[0];
+            string kept = model.Settings.AppLoadFileType;
+            _fileType =
+                kept == "dll" ? FileTypes[1]
+                : kept == "all" ? FileTypes[2]
+                : FileTypes[0];
             StartupSuite = new StartupSuiteViewModel(model);
             Navigate(StartFolder());
             RefreshRows();
         }
 
-        /// <summary>Gets the full path of the folder the list shows.</summary>
+        /// <summary>Gets the full path of the folder the list shows; null at This PC.</summary>
         public string Folder => _folder;
 
-        /// <summary>Gets the folders from the root down to <see cref="Folder"/>, the drop-down of Look in.</summary>
+        /// <summary>Gets whether the list shows This PC, which has no folder: its rows are the drives.</summary>
+        public bool IsThisPc => _folder == null;
+
+        /// <summary>Gets the folders from the root down to <see cref="Folder"/>; empty at This PC.</summary>
         public IReadOnlyList<string> FolderChain => _folderChain;
+
+        /// <summary>
+        /// Gets the rows of Look in's drop-down, in the order Windows shows them: Desktop; the user's folder, Documents and
+        /// Downloads, those that exist; This PC; each drive that is ready, by letter; and the folders on the way down to the
+        /// folder shown, indented under its drive (or under Documents, Downloads or the user's folder when it lies inside
+        /// them), the last of them chosen. A drive or This PC shown is its own row chosen, with nothing under it.
+        /// </summary>
+        public IReadOnlyList<AppLoadPlace> Places => _places;
+
+        /// <summary>
+        /// Gets or sets the row Look in has chosen, the folder shown; choosing another row opens it, as
+        /// <see cref="OpenFolder"/> does, and This PC shows the drives. Setting null does nothing.
+        /// </summary>
+        public AppLoadPlace Place
+        {
+            get => _places.FirstOrDefault(p => p.IsCurrent);
+            set
+            {
+                if (value == null || value.IsCurrent)
+                {
+                    return;
+                }
+
+                if (value.Kind == AppLoadPlaceKind.ThisPc)
+                {
+                    GoTo(null);
+                }
+                else
+                {
+                    OpenFolder(value.Path);
+                }
+            }
+        }
 
         /// <summary>Gets or sets the folder Look in shows; choosing another one in the drop-down opens it, as <see cref="OpenFolder"/> does.</summary>
         public string LookIn
@@ -217,21 +351,43 @@ namespace GeometryHelper.Cad.Wpf
             }
         }
 
-        /// <summary>Gets the folders, then the files of the type chosen, in the folder shown, each group by name in ordinal order, either case the same.</summary>
+        /// <summary>Gets the folders, then the files of the type chosen, in the folder shown, each group by name in ordinal order, either case the same; the drives at This PC.</summary>
         public IReadOnlyList<AppLoadEntry> Entries => _entries;
+
+        /// <summary>
+        /// Gets or sets how the window shows a box of one button (title, message, detail), as <see cref="CadQuestionWindow.ShowMessage(System.Windows.Window, string, string, string)"/>
+        /// does: what Load answers to a typed name that is not there. Null for none, when the footer says it instead.
+        /// </summary>
+        public Action<string, string, string> ShowMessage { get; set; }
 
         /// <summary>Gets the three file types: AutoLISP Files, Plugins and All files.</summary>
         public IReadOnlyList<AppLoadFileType> FileTypes { get; }
 
-        /// <summary>Gets or sets the file type shown; AutoLISP Files at the start.</summary>
+        /// <summary>
+        /// Gets or sets the file type shown, AutoLISP Files at the first start; choosing one ends a typed pattern and is kept in
+        /// Global settings (<see cref="GlobalSettings.AppLoadFileType"/>) the moment it changes, so that the dialog opens on it next time.
+        /// </summary>
         public AppLoadFileType FileType
         {
             get => _fileType;
             set
             {
-                if (value != null && Set(ref _fileType, value))
+                if (value == null)
                 {
-                    Refresh();
+                    return;
+                }
+
+                bool changed = Set(ref _fileType, value);
+                _pattern = null;
+                Refresh();
+
+                if (changed)
+                {
+                    string word =
+                        value == FileTypes[1] ? "dll"
+                        : value == FileTypes[2] ? "all"
+                        : "lsp";
+                    _model.ChangeSettings(s => s.AppLoadFileType = word, "APPLOAD changed Files of type");
                 }
             }
         }
@@ -317,8 +473,8 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets whether Back can go: a folder was shown before this one.</summary>
         public bool CanBack => _back.Count > 0;
 
-        /// <summary>Gets whether Up can go: the folder shown is not a root.</summary>
-        public bool CanUp => Directory.GetParent(_folder) != null;
+        /// <summary>Gets whether Up can go: any folder has an Up, a drive's root going to This PC; This PC is the top, with none.</summary>
+        public bool CanUp => _folder != null;
 
         /// <summary>
         /// Gets whether Load can load: a drawing is open, and on the Loaded Applications tab a name is typed or chosen, on the
@@ -362,18 +518,23 @@ namespace GeometryHelper.Cad.Wpf
         public bool OpenFolder(string path)
         {
             string full = FullFolder(path);
+            return full != null && GoTo(full);
+        }
 
-            if (full == null || string.Equals(full, _folder, StringComparison.Ordinal))
+        /// <summary>Shows a folder, or This PC for null; the folder left is kept for Back. False where it is the one shown.</summary>
+        private bool GoTo(string folder)
+        {
+            if (string.Equals(folder, _folder, StringComparison.Ordinal))
             {
                 return false;
             }
 
             _back.Push(_folder);
-            Navigate(full);
+            Navigate(folder);
             return true;
         }
 
-        /// <summary>Goes back to the folder shown before this one; nothing where there is none.</summary>
+        /// <summary>Goes back to the folder, or This PC, shown before this one; nothing where there is none.</summary>
         public void Back()
         {
             if (_back.Count > 0)
@@ -382,14 +543,23 @@ namespace GeometryHelper.Cad.Wpf
             }
         }
 
-        /// <summary>Goes up one level, as <see cref="OpenFolder"/> does; nothing in a root.</summary>
+        /// <summary>Goes up one level, as <see cref="OpenFolder"/> does; from a drive's root to This PC; nothing at This PC.</summary>
         public void Up()
         {
+            if (_folder == null)
+            {
+                return;
+            }
+
             DirectoryInfo parent = Directory.GetParent(_folder);
 
             if (parent != null)
             {
                 OpenFolder(parent.FullName);
+            }
+            else
+            {
+                GoTo(null);
             }
         }
 
@@ -443,44 +613,146 @@ namespace GeometryHelper.Cad.Wpf
         }
 
         /// <summary>
-        /// Loads the files, in the order of the list: those the History list rows chosen name, or those the File name box names
-        /// (a typed name is looked for in the folder shown). Each is loaded as the command line would, an AutoLISP file into
-        /// the drawing shown and a .dll through the plugin manager; .arx, .dbx, .dvb, .fas and .vlx files are refused and any
-        /// other type said not to be one or the other. With Add to History ticked each file given goes first in the History
-        /// list, loaded or not, and a load from the folder shown keeps that folder for next time. The footer shows the last
-        /// file's outcome. Nothing happens where <see cref="CanLoad"/> is false.
+        /// File name's Enter: puts the text in the File name box and does what <see cref="Load"/> does with it.
+        /// </summary>
+        /// <param name="text">The text typed.</param>
+        public void Enter(string text)
+        {
+            FileName = text;
+            Load();
+        }
+
+        /// <summary>
+        /// Loads the files, in the order of the list: those the History list rows chosen name, or those the File name box names.
+        /// A single name typed is taken for what it names, in this order: a folder, full or relative to the folder shown
+        /// (<c>..</c> too), is opened and the box emptied; a text with <c>*</c> or <c>?</c> limits the list to the names it
+        /// matches, folders kept, the text staying in the box, and a text that is the pattern of one of the Files of type
+        /// chooses it; a name with no file or folder behind it is answered with a box (<see cref="ShowMessage"/>) and nothing
+        /// is loaded, with several names the box for the first that is missing. Otherwise each file is loaded as the command
+        /// line would, an AutoLISP file into the drawing shown and a .dll through the plugin manager; .arx, .dbx, .dvb, .fas
+        /// and .vlx files are refused and any other type said not to be one or the other. With Add to History ticked each file
+        /// given goes first in the History list, loaded or not, and a load from the folder shown keeps that folder for next
+        /// time. The footer shows the last file's outcome. Loading nothing happens where <see cref="CanLoad"/> is false.
         /// </summary>
         public void Load()
         {
+            List<string> typed = null;
+
+            if (!_historyTab)
+            {
+                typed = TypedNames();
+
+                if (typed.Count == 1 && OpenOrLimit(typed[0]))
+                {
+                    return;
+                }
+            }
+
             if (!CanLoad)
             {
                 return;
             }
 
-            List<string> named = (_historyTab ? _chosenRows.Select(r => r.FullPath) : TypedPaths()).ToList();
+            List<string> named;
+
+            if (_historyTab)
+            {
+                named = _chosenRows.Select(r => r.FullPath).ToList();
+            }
+            else
+            {
+                string missing = typed.FirstOrDefault(IsMissing);
+
+                if (missing != null)
+                {
+                    ShowNotFound(missing);
+                    return;
+                }
+
+                named = typed.Select(InFolder).ToList();
+            }
 
             if (named.Count == 0)
             {
                 return;
             }
 
+            List<AppLoadResult> results = LoadNamed(named, !_historyTab);
+            AppLoadResult last = results.LastOrDefault();
+
+            if (last != null)
+            {
+                SetStatus(last.Message, last.Kind);
+            }
+
+            RefreshRows();
+        }
+
+        /// <summary>
+        /// Loads files dropped on the Loaded Applications list, from Explorer or from this dialog's own list: at once, in the
+        /// order of the drop, each as <see cref="Load"/> loads one and with Add to History as it does, though the folder kept
+        /// is not changed. The footer says <c>Successfully loaded 2 files.</c> for several loaded, the file's own line for one,
+        /// and the line of the last failure where any file failed. A folder is passed over, and so is a drop on the History
+        /// list tab or with no drawing open.
+        /// </summary>
+        /// <param name="paths">The full paths dropped.</param>
+        public void LoadDropped(IEnumerable<string> paths)
+        {
+            if (_historyTab || !_model.HasDocument)
+            {
+                return;
+            }
+
+            List<string> files = (paths ?? Enumerable.Empty<string>())
+                .Where(p => !string.IsNullOrWhiteSpace(p) && File.Exists(p))
+                .ToList();
+
+            if (files.Count == 0)
+            {
+                return;
+            }
+
+            List<AppLoadResult> results = LoadNamed(files, false);
+            AppLoadResult failure = results.LastOrDefault(r => r.Kind != AppLoadStatusKind.Loaded);
+
+            if (failure != null)
+            {
+                SetStatus(failure.Message, failure.Kind);
+            }
+            else if (results.Count > 1)
+            {
+                SetStatus(
+                    "Successfully loaded " + results.Count.ToString(CultureInfo.InvariantCulture) + " files.",
+                    AppLoadStatusKind.Loaded
+                );
+            }
+            else
+            {
+                SetStatus(results[0].Message, results[0].Kind);
+            }
+
+            RefreshRows();
+        }
+
+        /// <summary>Loads the files, each as the command line would, and keeps them in the History list with Add to History ticked, and the folder shown where asked.</summary>
+        private List<AppLoadResult> LoadNamed(IReadOnlyList<string> named, bool keepFolder)
+        {
             var given = new List<string>();
-            AppLoadResult last = null;
+            var results = new List<AppLoadResult>();
 
             foreach (string path in named)
             {
                 if (!TryFullPath(path, out string full))
                 {
-                    last = new AppLoadResult(AppLoadStatusKind.Refused, path + " is not a valid file name.");
+                    results.Add(new AppLoadResult(AppLoadStatusKind.Refused, path + " is not a valid file name."));
                     continue;
                 }
 
                 given.Add(full);
-                last = _model.LoadApplication(full);
+                results.Add(_model.LoadApplication(full));
             }
 
-            bool fromFolder = !_historyTab;
-            string folder = _folder;
+            string folder = keepFolder ? _folder : null;
             bool add = _model.Settings.AppLoadAddToHistory;
 
             _model.ChangeSettings(
@@ -498,7 +770,7 @@ namespace GeometryHelper.Cad.Wpf
                         s.AppLoadHistory = history;
                     }
 
-                    if (fromFolder)
+                    if (folder != null)
                     {
                         s.AppLoadFolder = folder;
                     }
@@ -506,12 +778,122 @@ namespace GeometryHelper.Cad.Wpf
                 "APPLOAD loaded files"
             );
 
-            if (last != null)
+            return results;
+        }
+
+        /// <summary>A single text typed that names a folder (opened, the box emptied) or holds a wildcard (the list limited): true where it did either.</summary>
+        private bool OpenOrLimit(string text)
+        {
+            if (text.IndexOfAny(Wildcards) >= 0)
             {
-                SetStatus(last.Message, last.Kind);
+                Limit(text);
+                return true;
             }
 
-            RefreshRows();
+            string full = Resolve(text);
+
+            if (full != null && Directory.Exists(full))
+            {
+                OpenFolder(full);
+                FileName = string.Empty;
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>Limits the list to the names a pattern matches, or chooses the Files of type whose pattern it is; the text typed stays.</summary>
+        private void Limit(string pattern)
+        {
+            AppLoadFileType own = FileTypes.FirstOrDefault(t =>
+                string.Equals(PatternOf(t), pattern, StringComparison.OrdinalIgnoreCase)
+            );
+
+            if (own != null)
+            {
+                FileType = own;
+                return;
+            }
+
+            _pattern = pattern;
+            Refresh();
+        }
+
+        private static string PatternOf(AppLoadFileType type) => type.Extension == null ? "*.*" : "*" + type.Extension;
+
+        /// <summary>Whether a name matches a pattern with <c>*</c> and <c>?</c>, either case; <c>*.*</c> matches every name.</summary>
+        private static bool Matches(string name, string pattern)
+        {
+            if (pattern == "*.*")
+            {
+                return true;
+            }
+
+            string expression = "^" + Regex.Escape(pattern).Replace("\\*", ".*").Replace("\\?", ".") + "$";
+            return Regex.IsMatch(name, expression, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        }
+
+        /// <summary>The full path a typed name stands for: itself where it is a full path, else in the folder shown; null at This PC for a name that is not, and for one no path can hold.</summary>
+        private string Resolve(string name)
+        {
+            string path;
+
+            try
+            {
+                if (Path.IsPathRooted(name))
+                {
+                    path = name;
+                }
+                else if (_folder == null)
+                {
+                    return null;
+                }
+                else
+                {
+                    path = Path.Combine(_folder, name);
+                }
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+
+            return TryFullPath(path, out string full) ? full : null;
+        }
+
+        /// <summary>Whether a typed name has no file and no folder behind it; a name no path can hold is left to the load, which refuses it.</summary>
+        private bool IsMissing(string name)
+        {
+            string full = Resolve(name);
+
+            if (full == null)
+            {
+                return _folder == null && !HasInvalidCharacter(name);
+            }
+
+            return !File.Exists(full) && !Directory.Exists(full);
+        }
+
+        private static bool HasInvalidCharacter(string name) => name.IndexOfAny(Path.GetInvalidPathChars()) >= 0;
+
+        /// <summary>Answers a typed name that is not there with a box, as AutoCAD does; the footer says it where the window has no box.</summary>
+        private void ShowNotFound(string name)
+        {
+            string full = Resolve(name) ?? name;
+            bool folder = name.EndsWith("\\", StringComparison.Ordinal) || name.EndsWith("/", StringComparison.Ordinal);
+            string title = folder ? "Load/Unload Applications" : "Error";
+            string message = folder
+                ? "Path does not exist. Check the path and try again."
+                : "The following file was not found:";
+
+            if (ShowMessage != null)
+            {
+                ShowMessage(title, message, full);
+            }
+            else
+            {
+                SetStatus(message + " " + full, AppLoadStatusKind.Refused);
+            }
         }
 
         /// <summary>
@@ -584,9 +966,18 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Shows the Startup Suite over this dialog (Contents…), where the window can.</summary>
         public void ShowContents() => ShowStartupSuite?.Invoke(StartupSuite);
 
-        /// <summary>Lists the folder shown again, as after a file was written there.</summary>
+        /// <summary>Lists the folder shown again, as after a file was written there; at This PC the drives are read again.</summary>
         public void Refresh()
         {
+            if (_folder == null)
+            {
+                _drives = null;
+                _entries = Drives.Select(d => new AppLoadEntry(d)).ToList();
+                Raise(nameof(Entries));
+                SetPlaces();
+                return;
+            }
+
             var entries = new List<AppLoadEntry>();
 
             try
@@ -598,11 +989,7 @@ namespace GeometryHelper.Cad.Wpf
                         continue;
                     }
 
-                    if (
-                        info is DirectoryInfo
-                        || _fileType.Extension == null
-                        || string.Equals(info.Extension, _fileType.Extension, StringComparison.OrdinalIgnoreCase)
-                    )
+                    if (info is DirectoryInfo || (_pattern != null ? Matches(info.Name, _pattern) : OfType(info)))
                     {
                         entries.Add(new AppLoadEntry(info));
                     }
@@ -618,6 +1005,148 @@ namespace GeometryHelper.Cad.Wpf
             entries.Sort(Compare);
             _entries = entries;
             Raise(nameof(Entries));
+        }
+
+        private bool OfType(FileSystemInfo file) =>
+            _fileType.Extension == null
+            || string.Equals(file.Extension, _fileType.Extension, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>The drives that are ready, read once and again when This PC is refreshed, so that moving about never waits on one.</summary>
+        private IReadOnlyList<AppLoadDrive> Drives => _drives ?? (_drives = _source.Drives());
+
+        private void SetPlaces()
+        {
+            _places = BuildPlaces();
+            Raise(nameof(Places));
+            Raise(nameof(Place));
+        }
+
+        private static string Trimmed(string path) => path.TrimEnd('\\', '/');
+
+        private static bool Same(string a, string b) =>
+            string.Equals(Trimmed(a), Trimmed(b), StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>Whether a path lies below another, either case.</summary>
+        private static bool IsInside(string path, string above)
+        {
+            string top = Trimmed(above);
+            return path.Length > top.Length
+                && path.StartsWith(top, StringComparison.OrdinalIgnoreCase)
+                && (path[top.Length] == '\\' || path[top.Length] == '/');
+        }
+
+        /// <summary>The rows of Look in for the folder shown, as <see cref="Places"/> describes them.</summary>
+        private IReadOnlyList<AppLoadPlace> BuildPlaces()
+        {
+            string folder = _folder;
+            string desktop = _source.Desktop;
+            string user = _source.UserFolder;
+            string documents = _source.Documents;
+            string downloads = _source.Downloads;
+            bool isHome =
+                folder != null && new[] { desktop, user, documents, downloads }.Any(h => h != null && Same(h, folder));
+            string root = folder == null ? null : Path.GetPathRoot(folder);
+
+            // The home folder the folder shown hangs under: Documents or Downloads first, then the user's folder.
+            string under = null;
+
+            if (folder != null && !isHome)
+            {
+                under = new[] { documents, downloads, user }.FirstOrDefault(h => h != null && IsInside(folder, h));
+            }
+
+            var rows = new List<AppLoadPlace>();
+
+            void AddChain(string above, int level)
+            {
+                if (folder == null || isHome || !IsInside(folder, above))
+                {
+                    return;
+                }
+
+                string path = folder.Substring(0, Trimmed(above).Length);
+                string[] parts = folder
+                    .Substring(path.Length)
+                    .Split(new[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
+
+                for (int i = 0; i < parts.Length; i++)
+                {
+                    path += "\\" + parts[i];
+                    rows.Add(
+                        new AppLoadPlace(
+                            parts[i],
+                            path,
+                            level + i,
+                            AppLoadPlaceKind.Folder,
+                            DriveType.Unknown,
+                            i == parts.Length - 1
+                        )
+                    );
+                }
+            }
+
+            void AddHome(string name, string path, int level, AppLoadPlaceKind kind)
+            {
+                rows.Add(
+                    new AppLoadPlace(name, path, level, kind, DriveType.Unknown, folder != null && Same(path, folder))
+                );
+
+                if (under != null && Same(path, under))
+                {
+                    AddChain(path, level + 1);
+                }
+            }
+
+            if (desktop != null)
+            {
+                AddHome("Desktop", desktop, 0, AppLoadPlaceKind.Desktop);
+            }
+
+            if (user != null)
+            {
+                AddHome(Path.GetFileName(Trimmed(user)), user, 1, AppLoadPlaceKind.UserFolder);
+            }
+
+            if (documents != null)
+            {
+                AddHome("Documents", documents, 1, AppLoadPlaceKind.UserFolder);
+            }
+
+            if (downloads != null)
+            {
+                AddHome("Downloads", downloads, 1, AppLoadPlaceKind.UserFolder);
+            }
+
+            rows.Add(new AppLoadPlace("This PC", null, 1, AppLoadPlaceKind.ThisPc, DriveType.Unknown, folder == null));
+
+            List<AppLoadDrive> drives = Drives.ToList();
+
+            // A folder on a drive the list does not have (a network share, a drive that was busy) still hangs under its own row.
+            if (root != null && !drives.Any(d => Same(d.Root, root)))
+            {
+                drives.Add(new AppLoadDrive(root, null, DriveType.Unknown));
+            }
+
+            foreach (AppLoadDrive drive in drives.OrderBy(d => d.Root, StringComparer.OrdinalIgnoreCase))
+            {
+                rows.Add(
+                    new AppLoadPlace(
+                        drive.Name,
+                        drive.Root,
+                        2,
+                        AppLoadPlaceKind.Drive,
+                        drive.DriveType,
+                        folder != null && Same(drive.Root, folder)
+                    )
+                );
+
+                if (under == null && root != null && Same(drive.Root, root))
+                {
+                    AddChain(drive.Root, 3);
+                }
+            }
+
+            return rows;
         }
 
         private static int Compare(AppLoadEntry a, AppLoadEntry b)
@@ -667,9 +1196,10 @@ namespace GeometryHelper.Cad.Wpf
             return string.Equals(full, root, StringComparison.OrdinalIgnoreCase) ? full : full.TrimEnd('\\', '/');
         }
 
+        /// <summary>Shows a folder, or This PC for null: the File name box is emptied and a typed pattern dropped.</summary>
         private void Navigate(string path)
         {
-            _folder = FullFolder(path) ?? path;
+            _folder = path == null ? null : FullFolder(path) ?? path;
             var chain = new List<string>();
 
             for (string p = _folder; p != null; p = Path.GetDirectoryName(p))
@@ -679,8 +1209,11 @@ namespace GeometryHelper.Cad.Wpf
 
             _folderChain = chain;
             _fileName = string.Empty;
+            _pattern = null;
             Refresh();
+            SetPlaces();
             Raise(nameof(Folder));
+            Raise(nameof(IsThisPc));
             Raise(nameof(FolderChain));
             Raise(nameof(LookIn));
             Raise(nameof(FileName));
@@ -689,8 +1222,8 @@ namespace GeometryHelper.Cad.Wpf
             RaiseCanLoad();
         }
 
-        /// <summary>The paths the File name box names: each name in quotes, or the whole text as one name; a name with no folder is in the folder shown.</summary>
-        private IEnumerable<string> TypedPaths()
+        /// <summary>The names the File name box names, as typed: each name in quotes, or the whole text as one name.</summary>
+        private List<string> TypedNames()
         {
             string text = _fileName.Trim();
             var names = new List<string>();
@@ -710,7 +1243,7 @@ namespace GeometryHelper.Cad.Wpf
                 names.Add(text);
             }
 
-            return names.Select(InFolder).ToList();
+            return names;
         }
 
         /// <summary>The name as it is where it is a full path, else in the folder shown; a name with a character no path may hold is left as it is, for the load to refuse.</summary>
@@ -718,7 +1251,7 @@ namespace GeometryHelper.Cad.Wpf
         {
             try
             {
-                return Path.IsPathRooted(name) ? name : Path.Combine(_folder, name);
+                return Path.IsPathRooted(name) || _folder == null ? name : Path.Combine(_folder, name);
             }
             catch (ArgumentException)
             {

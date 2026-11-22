@@ -1,15 +1,30 @@
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace GeometryHelper.Cad.Wpf
 {
+    /// <summary>The indent of a row of Look in's drop-down: 12 pixels for each level.</summary>
+    internal sealed class AppLoadIndent : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+            new Thickness(value is int level ? 12 * level : 0, 0, 0, 0);
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+            throw new NotSupportedException();
+    }
+
     /// <summary>
-    /// AutoCAD's Load/Unload Applications, from APPLOAD, as the design draws it: 720 by 600, a folder browser over Load and the
-    /// Loaded Applications and History list tabs; its logic is <see cref="AppLoadViewModel"/>. The Startup Suite's briefcase
-    /// takes an AutoLISP file dragged from the list or from Explorer.
+    /// AutoCAD's Load/Unload Applications, from APPLOAD, as the design draws it: 720 by 600, a folder browser (Look in with its
+    /// places, Back, Up) over Load and the Loaded Applications and History list tabs; its logic is
+    /// <see cref="AppLoadViewModel"/>. The keys are Windows' own for a file dialog: Enter, Backspace and letters in the list,
+    /// Alt+Up, Alt+Left, F5, F4 and Alt+Down anywhere. The Startup Suite's briefcase takes an AutoLISP file dragged from the
+    /// list or from Explorer, and the Loaded Applications list takes files to load.
     /// </summary>
     public partial class AppLoadWindow : Window
     {
@@ -40,8 +55,114 @@ namespace GeometryHelper.Cad.Wpf
         {
             var window = new AppLoadWindow(model) { Owner = owner };
             model.ShowStartupSuite = suite => StartupSuiteWindow.Show(window, suite);
+            model.ShowMessage = (title, message, detail) =>
+                CadQuestionWindow.ShowMessage(window, title, message, detail);
             return window.ShowDialog() == true;
         }
+
+        private void OnPreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            bool alt = e.Key == Key.System;
+
+            if (HandleKey(alt ? e.SystemKey : e.Key, alt, e.OriginalSource as DependencyObject))
+            {
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>
+        /// The keys of the dialog: anywhere Alt+Up goes up, Alt+Left back, F5 lists the folder again, F4 and Alt+Down open Look
+        /// in (its own box and Files of type keep theirs); in the list Enter opens the folder chosen or loads the files
+        /// chosen, and Backspace goes up. Letters find by name through the list's text search.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="alt">Whether Alt is held.</param>
+        /// <param name="source">The element that has the focus.</param>
+        /// <returns>Whether the key did something, so that it goes no further.</returns>
+        internal bool HandleKey(Key key, bool alt, DependencyObject source)
+        {
+            if (alt)
+            {
+                switch (key)
+                {
+                    case Key.Up:
+                        Model.Up();
+                        return true;
+                    case Key.Left:
+                        Model.Back();
+                        return true;
+                    case Key.Down:
+                        return OpenLookIn(source);
+                    default:
+                        return false;
+                }
+            }
+
+            switch (key)
+            {
+                case Key.F5:
+                    Model.Refresh();
+                    return true;
+                case Key.F4:
+                    return OpenLookIn(source);
+                case Key.Back when IsWithin(source, EntryList):
+                    Model.Up();
+                    return true;
+                case Key.Enter when IsWithin(source, EntryList):
+                    return EnterInList();
+                default:
+                    return false;
+            }
+        }
+
+        private bool OpenLookIn(DependencyObject source)
+        {
+            if (IsWithin(source, LookInBox) || IsWithin(source, FileTypeBox))
+            {
+                return false;
+            }
+
+            LookInBox.Focus();
+            LookInBox.IsDropDownOpen = true;
+            return true;
+        }
+
+        private bool EnterInList()
+        {
+            AppLoadEntry[] chosen = EntryList.SelectedItems.Cast<AppLoadEntry>().ToArray();
+
+            if (chosen.Length == 1 && chosen[0].IsFolder)
+            {
+                Model.Activate(chosen[0]);
+                return true;
+            }
+
+            if (chosen.Any(e => !e.IsFolder))
+            {
+                Model.Load();
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool IsWithin(DependencyObject source, DependencyObject container)
+        {
+            for (DependencyObject d = source; d != null; d = ParentOf(d))
+            {
+                if (ReferenceEquals(d, container))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static DependencyObject ParentOf(DependencyObject d) =>
+            d is Visual
+                ? VisualTreeHelper.GetParent(d) ?? LogicalTreeHelper.GetParent(d)
+                : LogicalTreeHelper.GetParent(d);
 
         private void OnHeaderDown(object sender, MouseButtonEventArgs e)
         {
@@ -55,7 +176,17 @@ namespace GeometryHelper.Cad.Wpf
 
         private void OnUp(object sender, RoutedEventArgs e) => Model.Up();
 
-        private void OnLoad(object sender, RoutedEventArgs e) => Model.Load();
+        /// <summary>Load, or Enter in File name; a pattern typed stays in the box, selected, as in AutoCAD.</summary>
+        private void OnLoad(object sender, RoutedEventArgs e)
+        {
+            Model.Load();
+
+            if (Model.FileName.IndexOfAny(new[] { '*', '?' }) >= 0)
+            {
+                FileNameBox.Focus();
+                FileNameBox.SelectAll();
+            }
+        }
 
         private void OnAct(object sender, RoutedEventArgs e) => Model.Act();
 
@@ -64,6 +195,18 @@ namespace GeometryHelper.Cad.Wpf
         private void OnHelp(object sender, RoutedEventArgs e) => PlotHelp.Open(Model.HelpUrl);
 
         private void OnClose(object sender, RoutedEventArgs e) => DialogResult = true;
+
+        /// <summary>
+        /// A row of Look in chosen opens it. The box follows the model one way only: a two-way binding writes null back when
+        /// the model replaces the rows, reads the place again at once, and leaves the box holding a place with no row.
+        /// </summary>
+        private void OnLookInChosen(object sender, SelectionChangedEventArgs e)
+        {
+            if (LookInBox.SelectedItem is AppLoadPlace place && !place.IsCurrent)
+            {
+                Model.Place = place;
+            }
+        }
 
         private void OnEntriesChosen(object sender, SelectionChangedEventArgs e) =>
             Model.ChooseEntries(EntryList.SelectedItems.Cast<AppLoadEntry>());
@@ -123,6 +266,32 @@ namespace GeometryHelper.Cad.Wpf
         private void OnBriefcaseDragOver(object sender, DragEventArgs e)
         {
             e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void OnApplicationsDragOver(object sender, DragEventArgs e)
+        {
+            e.Effects =
+                !Model.IsHistoryTab && e.Data.GetDataPresent(DataFormats.FileDrop)
+                    ? DragDropEffects.Copy
+                    : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        /// <summary>
+        /// Files dropped on the Loaded Applications list are loaded in the order of the drop, but after the drop has ended, so
+        /// that Explorer is not held while a question about an untrusted file is asked.
+        /// </summary>
+        private void OnApplicationsDrop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetData(DataFormats.FileDrop) is string[] files)
+            {
+                Dispatcher.BeginInvoke(
+                    new Action(() => Model.LoadDropped(files)),
+                    System.Windows.Threading.DispatcherPriority.Background
+                );
+            }
+
             e.Handled = true;
         }
 
