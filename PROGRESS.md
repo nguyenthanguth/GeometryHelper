@@ -92,9 +92,11 @@ compared by their values and by eye.
       `getstring`, `getkword`, `initget`; `getvar`, `setvar`, `trans`, `polar`, `inters`, `osnap`; `princ` and `prompt`
 - [ ] L2 parked (most done 2026-11-22: entmake of complex objects and table records, entget slots, `ssget ":L"`,
       -HATCH edges, ELLIPSE Parameter, DIMBLK, -STYLE Annotative, the block, layer and AUDIT prompts, nentsel 4 by 3;
-      12 of 17 L2 routines now identical): what is left is the BLOCK entity's `(1 . name)` and an empty block's `-2`,
-      `(6 . "Continuous")` on entmade ATTRIB/SEQEND and -INSERT's SEQEND, an entmade MTEXT's 42/43, the order of a
-      hatch's loops, LAYER's 290/347/348; our linetype dashes stay ISO mm against acad.lin's inches (decided)
+      12 of 17 L2 routines now identical; round 2 the same day: BLOCK group 1, an empty block's ENDBLK, the look of
+      ATTRIB/SEQEND, MTEXT 42/43, hatch loop order, LAYER 290/347/348): what is left is an entmade MTEXT's group 50
+      with no 11 read as degrees, -HATCH's second Select objects adding to the first, the SELECT command, the MATERIAL
+      object of a layer's 347, U's message, entget of MTEXT about 0.05 ms slower (no measure cache); our linetype
+      dashes stay ISO mm against acad.lin's inches (decided)
 - [x] L3. vl- functions and files: `vl-string-*`, `vl-sort`, `vl-remove`, `vl-position`, `vl-file-*`, `open`, `close`,
       `read-line`, `write-line`, `findfile`, `getfiled`
 - [x] L4. vla- and vlax- objects: the members the maintainer's routines use (about 40), on the presenter's own object
@@ -138,8 +140,7 @@ scripts inside the app, and a script outside that drives a running app.
       step. Done 2026-11-21: GeometryHelper.Cad.Python embeds CPython 3.11-3.15 on the window thread, Esc stops Python
       code in about 20 ms, one undo step per run, PYLOAD with `@cad_command`, a script connecting to its own app refused
 - [ ] P3 parked: the command and function names (PYTHON, PYRUN, PYLOAD, get_point...) await the maintainer's word; the
-      CLAUDE.md verify line for the Cad.Python suite; a Wpf test of CadAppRemoteHost.IsOwnerThread; the ribbon layer box
-      blank after U; EntityCount cached inside an open group and a failed ApplyEdit taking back a run's whole group
+      CLAUDE.md verify line for the Cad.Python suite; a Wpf test of CadAppRemoteHost.IsOwnerThread; EntityCount cached inside an open group and a failed ApplyEdit taking back a run's whole group
       silently (the maintainer to decide); output flushed only when the window is next idle during a long run
 - [x] P4. Driving a running app from outside: a Python client over `GeometryHelper.Cad.Remote`'s named pipe (open,
       draw, select, run commands, read the drawing). Done 2026-11-21: the .NET CadApplication through pythonnet in a

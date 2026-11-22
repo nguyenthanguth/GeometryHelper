@@ -84,15 +84,7 @@
                         Click="OnThird"
                         Visibility="Collapsed"
                     />
-                    <Button
-                        x:Name="YesButton"
-                        Style="{StaticResource GhDialogButton}"
-                        Background="{StaticResource GhAccent}"
-                        Foreground="{StaticResource GhAccentInk}"
-                        FontWeight="SemiBold"
-                        BorderThickness="0"
-                        Click="OnYes"
-                    />
+                    <Button x:Name="YesButton" Style="{StaticResource GhAccentButton}" Click="OnYes" />
                 </StackPanel>
             </Border>
         </StackPanel>

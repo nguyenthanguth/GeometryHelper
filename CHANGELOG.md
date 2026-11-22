@@ -21,6 +21,13 @@ style `348`, which name no object here.
 were selected, flagged by their nesting, and `ALL` gives the newest object first, as AutoCAD 2021's are (a rectangle in a
 rectangle selected inner first has its loop first, flagged 16); they were sorted outermost first and by area.
 
+**FIXED.** The blue buttons of the app (Open DXF on the start screen, and the OK, Apply and Modify of the dialogs) turned
+grey under the mouse, the grey of a flat button, and went dark grey when pressed. They stay blue now: a lighter blue
+(`#63AFFF`) under the mouse and a darker one (`#2F86E0`) pressed, as the orange Close does with its own two steps, and grey
+only when disabled. Every button filled with the accent shares one style, `GhAccentButton`; a disabled OK of a style dialog is
+the same flat grey as the Close, where it was the dark input colour with a border. The transparent and outlined buttons keep
+their grey hover.
+
 **NEW.** AutoLISP's `entmake` makes what AutoCAD 2021 makes by several calls and by records (each measured there): a POLYLINE
 with its VERTEX forms and its `SEQEND` (nothing is in the drawing until the end; a flag 8 makes a 3D polyline; a `SEQEND`
 with no vertex writes `Invalid POLYLINE object.`; another entity while one is pending writes `Invalid complex object.`), an
@@ -337,6 +344,12 @@ a public constructor, `CadSnapKind.Custom` and `CadSnapResult.CustomSnap` report
 **NEW.** An extension of the presenter can edit its own objects as the presenter's are, with four additions to `CadWorkspaceExtension` and its rows, none removing or renaming anything. `CanvasMenuItems(document, handles)` returns `CadExtensionMenuItem`s (text, action, grey, ticked, submenu, separator) that the canvas's right-click menu shows first in its Edit menu, in the presenter's own look, for the objects selected. A `CadPropertyRow` made with a setter (`new CadPropertyRow("Scale", "1:50", text => ...)`, with a list of choices as a drop-down, or `CadPropertyRow.Check` as a check box given "Yes" or "No") is typed into, chosen or ticked in the PROPERTIES palette and committed on Enter, on leaving the box and on a choice like its own rows; the setter returns null where it made the change or the words of its refusal, which go on the command line while the row goes back to its value, and a row with no setter is read-only as before. `FileListButtons` returns `CadExtensionButton`s (a drawn icon, a tooltip, an action) shown in the header of the DRAWINGS list, left of Refresh and Open. The guide is [Settings, autosave and the window](src/GeometryHelper/docs/presenter/app.md#what-an-extension-adds-to-the-menu-properties-and-the-drawings-header).
 **FIXED.** An extension of the presenter that throws no longer takes the presenter with it. `CanvasMenuItems` and `DescribeSelection` were called with no guard, so an exception in either escaped from the right-click menu and from the selection: each is now caught for the extension that threw it and written as a Warn line of `GeometryHelperLog`, and that extension adds no menu item and no row while the presenter's own and the other extensions' stay, as a setter that throws already did. A setter whose action makes the extension ask for its rows again (`RefreshFromExtensions`) no longer has the rows rebuilt under the row still in its own setter, and again after it; they are read once, when the setter is done.
 **CHANGED.** The Hatch Editor, Image, PDF Underlay and Array tabs are no longer opened for objects whose [owner](src/GeometryHelper/docs/presenter/owners.md) answers `MoveOnly` or `ReadOnly`, nor for those of an owner that is not registered (which is `ReadOnly`): a section's hatch, or the cut circles of a group of bars drawn as hatches, selected with an owner registered, opens no Hatch Editor, whose edits the owner would refuse. Objects with no owner, or with one that answers `Free` or `Edit`, open the tabs as before. Of two hatches selected, one free and one an owner only lets move, the tab opens over the free one.
+**FIXED.** The layer box of the ribbon went blank after U, REDO or UNDO: each of them makes the list of layers again, and the
+box, its list replaced, clears its selection and pushes null into `CurrentLayer`, after which WPF read `CurrentLayer` at once
+and handed the box a layer in the middle of its own reset, which left it empty although the drawing's current layer was
+still `0` (`LINE;0,0;10,10;;U` in `--screenshot` mode). `CurrentLayer` now reads null while the list is replaced, and the
+change that follows puts the layer in the box. The box also did not follow a current layer set by a command with no table
+changed (`-LAYER` Set, `CLAYER`, LAYMCUR): it kept the layer it showed before; it follows now.
 
 ## 13.12.0 (2026-11-19)
 

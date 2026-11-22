@@ -20,9 +20,7 @@
             </ResourceDictionary.MergedDictionaries>
             <local:BoolToVisibilityConverter x:Key="Shown" />
 
-            <Style x:Key="Primary" TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
-                <Setter Property="Background" Value="{StaticResource GhAccent}" />
-                <Setter Property="Foreground" Value="{StaticResource GhAccentInk}" />
+            <Style x:Key="Primary" TargetType="Button" BasedOn="{StaticResource GhAccentButton}">
                 <Setter Property="FontSize" Value="12" />
                 <Setter Property="FontWeight" Value="SemiBold" />
                 <Setter Property="Padding" Value="12,5" />

@@ -117,19 +117,7 @@
     </Style>
 
     <!-- The button of a dialog that does its work (OK, Apply, Modify…): the accent, its words dark. -->
-    <Style x:Key="StylePrimaryButton" TargetType="Button" BasedOn="{StaticResource GhDialogButton}">
-        <Setter Property="Background" Value="{StaticResource GhAccent}" />
-        <Setter Property="Foreground" Value="{StaticResource GhAccentInk}" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="FontWeight" Value="SemiBold" />
-        <Style.Triggers>
-            <Trigger Property="IsEnabled" Value="False">
-                <Setter Property="Background" Value="{StaticResource GhInput}" />
-                <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
-                <Setter Property="BorderThickness" Value="1" />
-            </Trigger>
-        </Style.Triggers>
-    </Style>
+    <Style x:Key="StylePrimaryButton" TargetType="Button" BasedOn="{StaticResource GhAccentButton}" />
 
     <!-- A tab of the dimension style's dialog: the selection's colour when shown, rounded at the top only. -->
     <Style x:Key="StyleTab" TargetType="RadioButton">

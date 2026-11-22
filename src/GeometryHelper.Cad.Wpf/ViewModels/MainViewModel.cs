@@ -110,6 +110,7 @@ namespace GeometryHelper.Cad.Wpf
         private bool _propertiesAsked;
         private IReadOnlyList<PropertyGroupViewModel> _groups = Array.Empty<PropertyGroupViewModel>();
         private IReadOnlyList<CadLayerInfo> _layers = Array.Empty<CadLayerInfo>();
+        private bool _replacingLayers;
         private string _commandText = string.Empty;
         private int _recall = -1;
         private string _cursorText = Coordinates(0.0, 0.0);
@@ -513,7 +514,22 @@ namespace GeometryHelper.Cad.Wpf
         public IReadOnlyList<CadLayerInfo> Layers
         {
             get => _layers;
-            private set => Set(ref _layers, value);
+            private set
+            {
+                // The layer box, its list replaced, clears its selection and pushes null into CurrentLayer; WPF then reads
+                // CurrentLayer again and hands the box a layer in the middle of its own reset, which leaves it blank. Reading
+                // null while the list is replaced leaves the box to the PropertyChanged of CurrentLayer the callers raise after.
+                _replacingLayers = true;
+
+                try
+                {
+                    Set(ref _layers, value);
+                }
+                finally
+                {
+                    _replacingLayers = false;
+                }
+            }
         }
 
         /// <summary>Gets or sets the current layer, as the layer box of the ribbon sets it; a frozen layer is refused, said on the command line.</summary>
@@ -521,7 +537,7 @@ namespace GeometryHelper.Cad.Wpf
         {
             get
             {
-                if (_current == null)
+                if (_current == null || _replacingLayers)
                 {
                     return null;
                 }
@@ -2313,8 +2329,10 @@ namespace GeometryHelper.Cad.Wpf
             if (e.TablesChanged || e.Kind == CadChangeKind.Undo || e.Kind == CadChangeKind.Redo)
             {
                 Layers = SortedLayers(file.Document);
-                Raise(nameof(CurrentLayer));
             }
+
+            // CLAYER, -LAYER Set and LAYMCUR change the current layer with no table changed, and the box follows too.
+            Raise(nameof(CurrentLayer));
 
             // The drawing read back holds the snap and grid it had then, of model space and of every viewport.
             if (e.Kind == CadChangeKind.Undo || e.Kind == CadChangeKind.Redo || e.Kind == CadChangeKind.Rollback)

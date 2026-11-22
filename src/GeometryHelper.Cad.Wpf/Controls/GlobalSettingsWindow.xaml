@@ -22,19 +22,11 @@
             <local:BoolToVisibilityConverter x:Key="Hidden" Invert="True" />
             <local:RgbBrushConverter x:Key="RgbBrush" />
 
-            <Style x:Key="Primary" TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
-                <Setter Property="Background" Value="{StaticResource GhAccent}" />
-                <Setter Property="Foreground" Value="{StaticResource GhAccentInk}" />
+            <Style x:Key="Primary" TargetType="Button" BasedOn="{StaticResource GhAccentButton}">
                 <Setter Property="FontSize" Value="12" />
                 <Setter Property="FontWeight" Value="SemiBold" />
                 <Setter Property="Padding" Value="14,5" />
                 <Setter Property="Margin" Value="8,0,0,0" />
-                <Style.Triggers>
-                    <Trigger Property="IsEnabled" Value="False">
-                        <Setter Property="Background" Value="{StaticResource GhBorder}" />
-                        <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
-                    </Trigger>
-                </Style.Triggers>
             </Style>
             <Style x:Key="Secondary" TargetType="Button" BasedOn="{StaticResource GhDialogButton}">
                 <Setter Property="Padding" Value="14,5" />
