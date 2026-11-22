@@ -1,5 +1,5 @@
-GeometryHelper CAD - Lisps folder
-=================================
+GeometryHelper CAD - AutoLisps folder
+=====================================
 
 Put AutoLISP files (.lsp) in this folder, and the dialog files (.dcl) they use. Every .lsp
 file directly in this folder is loaded into each drawing when it opens, so the commands and

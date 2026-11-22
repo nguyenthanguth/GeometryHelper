@@ -7,14 +7,14 @@ namespace GeometryHelper.Cad.Lisp
     /// <summary>
     /// What AutoCAD loads when a drawing is opened, in its order: <c>acad.lsp</c> from the support folders once for the
     /// session of the program (for every drawing with <see cref="AcadLspAsDoc"/>), <c>acaddoc.lsp</c> for every drawing,
-    /// then, which AutoCAD has no step for, each <c>.lsp</c> file of the <c>Lisps</c> folder beside the program
-    /// (<see cref="CadSupportKind.Lisps"/>), each file of the Startup Suite, and last the function <c>S::STARTUP</c> where a
+    /// then, which AutoCAD has no step for, each <c>.lsp</c> file of the <c>AutoLisps</c> folder beside the program
+    /// (<see cref="CadSupportKind.AutoLisps"/>), each file of the Startup Suite, and last the function <c>S::STARTUP</c> where a
     /// file defined one. An error in a step is written and the next step runs.
     /// </summary>
     /// <remarks>
     /// One instance belongs to one run of the program: it remembers that <c>acad.lsp</c> was loaded, so that the second
     /// drawing it is given to does not load it again. The window gives each drawing it opens to <see cref="OnDocumentOpened"/>.
-    /// The Lisps folder takes the place AutoCAD gives the files that come with a program, a menu's <c>.mnl</c>, between
+    /// The AutoLisps folder takes the place AutoCAD gives the files that come with a program, a menu's <c>.mnl</c>, between
     /// acaddoc.lsp and the Startup Suite. Its files load in name order, ignoring case; a file in a subfolder is not loaded
     /// (<c>(load "Sub/x")</c> reaches it), and <c>acad.lsp</c> and <c>acaddoc.lsp</c> put there are the two files of those
     /// names, found along the search path after the user's folders, and not loaded a second time here.
@@ -32,9 +32,9 @@ namespace GeometryHelper.Cad.Lisp
         /// <summary>
         /// Runs the startup of a drawing in its session: <c>acad.lsp</c> found along the document's search path (the first
         /// time this is called, or every time with <see cref="AcadLspAsDoc"/>), <c>acaddoc.lsp</c>, every <c>.lsp</c> file
-        /// directly in the Lisps folder, the Startup Suite and <c>S::STARTUP</c>. What the files write goes to the
+        /// directly in the AutoLisps folder, the Startup Suite and <c>S::STARTUP</c>. What the files write goes to the
         /// session's history; a file not found is a <c>; error: LOAD failed:</c> line for a file of the Startup Suite and no
-        /// line for the two named files. A file of the Lisps folder that errors is written and the next one loads; a
+        /// line for the two named files. A file of the AutoLisps folder that errors is written and the next one loads; a
         /// compiled <c>.fas</c> or <c>.vlx</c> there is the compiled-AutoLISP refusal, once for the drawing.
         /// </summary>
         /// <param name="session">The session of the drawing just opened.</param>
@@ -53,7 +53,7 @@ namespace GeometryHelper.Cad.Lisp
             }
 
             LoadFound(session, "acaddoc.lsp");
-            LoadLisps(session);
+            LoadAutoLisps(session);
 
             foreach (string file in StartupSuite)
             {
@@ -85,13 +85,13 @@ namespace GeometryHelper.Cad.Lisp
         }
 
         /// <summary>
-        /// Loads each file of the Lisps folder, in the order of its name ignoring case: the <c>.lsp</c> files, and the compiled
+        /// Loads each file of the AutoLisps folder, in the order of its name ignoring case: the <c>.lsp</c> files, and the compiled
         /// ones too, which <c>load</c> refuses with its own line. <c>acad.lsp</c> and <c>acaddoc.lsp</c> are left to their own
         /// steps. A folder that is missing or cannot be read has no files.
         /// </summary>
-        private static void LoadLisps(CadCommandSession session)
+        private static void LoadAutoLisps(CadCommandSession session)
         {
-            foreach (string folder in session.Document.SupportRoots.ExistingOf(CadSupportKind.Lisps))
+            foreach (string folder in session.Document.SupportRoots.ExistingOf(CadSupportKind.AutoLisps))
             {
                 string[] paths;
 

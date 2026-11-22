@@ -11,50 +11,6 @@ using System.Xml.Linq;
 namespace GeometryHelper.Cad
 {
     /// <summary>
-    /// A layer of the default layer table written to new drawings (Global settings › Layers, colours and lines): its name,
-    /// colour, linetype, lineweight and whether it is plotted.
-    /// </summary>
-    public sealed class GlobalLayer
-    {
-        /// <summary>Makes a layer of the table.</summary>
-        /// <param name="name">The name; not empty.</param>
-        /// <param name="rgb">The colour as 0xRRGGBB.</param>
-        /// <param name="linetype">The linetype, as Continuous or HIDDEN; Continuous where empty.</param>
-        /// <param name="lineWeight">The lineweight in millimetres, from 0 to 2.11.</param>
-        /// <param name="plot">Whether it is plotted.</param>
-        /// <exception cref="ArgumentException">Thrown when the name is empty.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the colour or the lineweight is out of range.</exception>
-        public GlobalLayer(string name, int rgb, string linetype, double lineWeight, bool plot = true)
-        {
-            Name = string.IsNullOrWhiteSpace(name)
-                ? throw new ArgumentException("A layer needs a name.", nameof(name))
-                : name.Trim();
-            Rgb = GlobalSettings.Colour(rgb, nameof(rgb));
-            Linetype = string.IsNullOrWhiteSpace(linetype) ? "Continuous" : linetype.Trim();
-            LineWeight = GlobalSettings.Range(lineWeight, 0.0, 2.11, nameof(lineWeight));
-            Plot = plot;
-        }
-
-        /// <summary>Gets the name.</summary>
-        public string Name { get; }
-
-        /// <summary>Gets the colour as 0xRRGGBB.</summary>
-        public int Rgb { get; }
-
-        /// <summary>Gets the linetype.</summary>
-        public string Linetype { get; }
-
-        /// <summary>Gets the lineweight in millimetres.</summary>
-        public double LineWeight { get; }
-
-        /// <summary>Gets whether the layer is plotted.</summary>
-        public bool Plot { get; }
-
-        /// <inheritdoc/>
-        public override string ToString() => Name;
-    }
-
-    /// <summary>
     /// The presenter's Global settings (16-settings.md, D13): what applies to the whole app and every drawing on this machine,
     /// kept as JSON in the user's file <see cref="DefaultPath"/>. Every setting has its default in code, so deleting the file
     /// gives the defaults back; a value read that is not valid (a colour that does not read, a pickbox of 500 pixels) falls
@@ -62,8 +18,8 @@ namespace GeometryHelper.Cad
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The categories of the presenter's dialog are Appearance, Canvas and cursor, Units and rounding, Layers, colours and
-    /// lines, Text and fonts, Folder preference, Shortcuts, and Save and export. The settings of drawings made from a model
+    /// The categories of the presenter's dialog are Appearance, Canvas and cursor, Units and rounding, Text and fonts,
+    /// Folder preference, Shortcuts, and Save and export. The settings of drawings made from a model
     /// (the preset, sheet, orientation and projection of a new drawing, the model-change check, the DXF layout and opening
     /// the folder after an export, the colour of hidden lines, the decimals of dimensions and the height of view titles)
     /// are kept in the file too, for a host that makes them, though neither that dialog nor the presenter shows or applies
@@ -168,7 +124,6 @@ namespace GeometryHelper.Cad
         private string _autosaveFormat = "DXF";
         private string _exportLayout = "LayoutAndViewports";
         private string _mtextUnsavedChanges = "Ask";
-        private List<GlobalLayer> _layers = DefaultLayers();
         private SortedDictionary<string, string> _aliases = Copy(CadShortcuts.Default.Aliases);
         private SortedDictionary<string, string> _keys = Copy(CadShortcuts.Default.Keys);
 
@@ -629,36 +584,6 @@ namespace GeometryHelper.Cad
                             nameof(DecimalSeparator)
                         )
                         : v;
-            }
-        }
-
-        // ---- Layers, colours and lines
-
-        /// <summary>
-        /// Gets or sets the layer table written to new drawings, in order: by default the layers a model drawing writes, Visible,
-        /// Hidden, Centre, Hatch, Dimension, Mark, Symbol, Sheet and Viewport, the last not plotted. A file that lists its own
-        /// table is read as it lists it, so one written before Symbol and Viewport were added keeps the seven it has.
-        /// </summary>
-        /// <exception cref="ArgumentException">Thrown when the value is null, holds a null layer, or holds two layers of one name.</exception>
-        public IReadOnlyList<GlobalLayer> Layers
-        {
-            get => _layers.AsReadOnly();
-            set
-            {
-                if (value == null || value.Any(l => l == null))
-                {
-                    throw new ArgumentException("The layer table holds no null layer.", nameof(Layers));
-                }
-
-                string twice = value
-                    .GroupBy(l => l.Name, StringComparer.OrdinalIgnoreCase)
-                    .Where(g => g.Count() > 1)
-                    .Select(g => g.Key)
-                    .FirstOrDefault();
-                _layers =
-                    twice == null
-                        ? value.ToList()
-                        : throw new ArgumentException("The layer " + twice + " is in the table twice.", nameof(Layers));
             }
         }
 
@@ -1174,7 +1099,6 @@ namespace GeometryHelper.Cad
         public GlobalSettings Clone()
         {
             var copy = (GlobalSettings)MemberwiseClone();
-            copy._layers = new List<GlobalLayer>(_layers);
             copy._fontFolders = new List<string>(_fontFolders);
             copy._supportFolders = new List<string>(_supportFolders);
             copy._lispStartupSuite = new List<string>(_lispStartupSuite);
@@ -1339,20 +1263,6 @@ namespace GeometryHelper.Cad
             w.Value("thousandsSeparator", _thousands);
             w.Value("decimalSeparator", _decimal);
             w.Close();
-            w.OpenList("layers");
-
-            foreach (GlobalLayer layer in _layers)
-            {
-                w.Open(null);
-                w.Value("name", layer.Name);
-                w.Value("colour", Hex(layer.Rgb));
-                w.Value("linetype", layer.Linetype);
-                w.Value("lineweight", layer.LineWeight);
-                w.Value("plot", layer.Plot);
-                w.Close();
-            }
-
-            w.CloseList();
             w.Open("text");
             w.Value("uiFont", _uiFont);
             w.Value("drawingFont", _drawingFont);
@@ -1578,20 +1488,6 @@ namespace GeometryHelper.Cad
             return copy;
         }
 
-        private static List<GlobalLayer> DefaultLayers() =>
-            new List<GlobalLayer>
-            {
-                new GlobalLayer("Visible", 0xFFFFFF, "Continuous", 0.35),
-                new GlobalLayer("Hidden", 0x9AA4B1, "HIDDEN", 0.18),
-                new GlobalLayer("Centre", 0xF85149, "CENTER", 0.18),
-                new GlobalLayer("Hatch", 0x9AA4B1, "Continuous", 0.13),
-                new GlobalLayer("Dimension", 0x3FB950, "Continuous", 0.18),
-                new GlobalLayer("Mark", 0x39C5CF, "Continuous", 0.18),
-                new GlobalLayer("Symbol", 0xBC8CFF, "Continuous", 0.18),
-                new GlobalLayer("Sheet", 0xFFFFFF, "Continuous", 0.25),
-                new GlobalLayer("Viewport", 0x9AA4B1, "Continuous", 0.13, plot: false),
-            };
-
         /// <summary>Reads the values of the JSON file, each on its own: a value that is not valid falls back to its default with a Warn.</summary>
         private sealed class Reader
         {
@@ -1707,7 +1603,6 @@ namespace GeometryHelper.Cad
                 Flag("input", "sortAlphabetically", v => _s.SortAlphabetically = v);
                 Flag("input", "separateSystemVariables", v => _s.SeparateSystemVariables = v);
                 Number("input", "autoCorrectMistypes", v => _s.AutoCorrectMistypes = Whole(v));
-                ReadLayers();
                 ReadShortcuts();
                 _s.ReadRecords(_root, _path);
             }
@@ -1785,69 +1680,6 @@ namespace GeometryHelper.Cad
                 Take(group, name, e => set(bool.Parse(e.Value)));
 
             private void Text(string group, string name, Action<string> set) => Take(group, name, e => set(e.Value));
-
-            private void ReadLayers()
-            {
-                XElement list = _root.Element("layers");
-
-                if (list == null)
-                {
-                    return;
-                }
-
-                var layers = new List<GlobalLayer>();
-
-                foreach (XElement item in list.Elements())
-                {
-                    try
-                    {
-                        layers.Add(
-                            new GlobalLayer(
-                                item.Element("name")?.Value,
-                                TryParseHex(item.Element("colour")?.Value, out int rgb)
-                                    ? rgb
-                                    : throw new FormatException("A colour is written #RRGGBB."),
-                                item.Element("linetype")?.Value,
-                                double.Parse(
-                                    item.Element("lineweight")?.Value ?? "0",
-                                    NumberStyles.Float,
-                                    CultureInfo.InvariantCulture
-                                ),
-                                !string.Equals(item.Element("plot")?.Value, "false", StringComparison.OrdinalIgnoreCase)
-                            )
-                        );
-                    }
-                    catch (Exception exception)
-                        when (exception is ArgumentException
-                            || exception is FormatException
-                            || exception is OverflowException
-                        )
-                    {
-                        GeometryHelperLog.Warn(
-                            "GlobalSettings: a layer of "
-                                + _path
-                                + " is not valid ("
-                                + exception.Message.Split('\n')[0].Trim()
-                                + "); it is left out."
-                        );
-                    }
-                }
-
-                try
-                {
-                    _s.Layers = layers;
-                }
-                catch (ArgumentException exception)
-                {
-                    GeometryHelperLog.Warn(
-                        "GlobalSettings: the layers of "
-                            + _path
-                            + " are not valid ("
-                            + exception.Message.Split('\n')[0].Trim()
-                            + "); the default table is used."
-                    );
-                }
-            }
 
             private void ReadShortcuts()
             {

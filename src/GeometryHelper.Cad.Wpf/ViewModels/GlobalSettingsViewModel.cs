@@ -272,100 +272,6 @@ namespace GeometryHelper.Cad.Wpf
         public override string ToString() => Name;
     }
 
-    /// <summary>A layer of the default table as the Layers page edits it.</summary>
-    public sealed class GlobalLayerRow : ObservableObject
-    {
-        private string _name;
-        private string _colour;
-        private string _linetype;
-        private string _lineWeight;
-        private bool _plot;
-
-        internal GlobalLayerRow(GlobalLayer layer)
-        {
-            _name = layer.Name;
-            _colour = GlobalSettings.Hex(layer.Rgb);
-            _linetype = layer.Linetype;
-            _lineWeight = layer.LineWeight.ToString("0.00", CultureInfo.InvariantCulture);
-            _plot = layer.Plot;
-        }
-
-        /// <summary>Gets or sets the name.</summary>
-        public string Name
-        {
-            get => _name;
-            set => Set(ref _name, value ?? string.Empty);
-        }
-
-        /// <summary>Gets or sets the colour, #RRGGBB.</summary>
-        public string Colour
-        {
-            get => _colour;
-            set
-            {
-                if (Set(ref _colour, value ?? string.Empty))
-                {
-                    Raise(nameof(Rgb));
-                }
-            }
-        }
-
-        /// <summary>Gets the colour as 0xRRGGBB for the swatch; 0 where it does not read.</summary>
-        public int Rgb => GlobalSettings.TryParseHex(_colour, out int rgb) ? rgb : 0;
-
-        /// <summary>Gets or sets the linetype.</summary>
-        public string Linetype
-        {
-            get => _linetype;
-            set => Set(ref _linetype, value ?? string.Empty);
-        }
-
-        /// <summary>Gets or sets the lineweight in millimetres, as text.</summary>
-        public string LineWeight
-        {
-            get => _lineWeight;
-            set => Set(ref _lineWeight, value ?? string.Empty);
-        }
-
-        /// <summary>Gets or sets whether it is plotted.</summary>
-        public bool Plot
-        {
-            get => _plot;
-            set => Set(ref _plot, value);
-        }
-
-        /// <summary>The layer, or why it is not one.</summary>
-        internal GlobalLayer ToLayer(out string error)
-        {
-            error = null;
-
-            try
-            {
-                if (!GlobalSettings.TryParseHex(_colour, out int rgb))
-                {
-                    throw new FormatException("A colour is written #RRGGBB.");
-                }
-
-                return new GlobalLayer(
-                    _name,
-                    rgb,
-                    _linetype,
-                    double.Parse(_lineWeight, NumberStyles.Float, CultureInfo.InvariantCulture),
-                    _plot
-                );
-            }
-            catch (Exception ex) when (ex is FormatException || ex is ArgumentException || ex is OverflowException)
-            {
-                error =
-                    "The layer "
-                    + (_name.Length == 0 ? "with no name" : _name)
-                    + ": "
-                    + ex.Message.Split('\n')[0].Trim();
-                return null;
-            }
-        }
-    }
-
     /// <summary>
     /// A command of the Shortcuts page: its aliases, typed parted by commas, its keys, taken by pressing them in the Keys cell,
     /// and what clashes with them.
@@ -536,7 +442,7 @@ namespace GeometryHelper.Cad.Wpf
 
     /// <summary>
     /// A default support folder beside GeometryHelper.Cad.dll, as the Folder preference page shows it, read-only: its kind
-    /// (Fonts, Hatch patterns, Linetypes, Lisps, Drawing templates), its full path, whether it is there, and Open folder.
+    /// (Fonts, Hatch patterns, Linetypes, AutoLisps, Drawing templates), its full path, whether it is there, and Open folder.
     /// </summary>
     public sealed class DefaultFolderRow : ObservableObject
     {
@@ -548,7 +454,7 @@ namespace GeometryHelper.Cad.Wpf
             OpenCommand = open;
         }
 
-        /// <summary>Gets the kind of file the folder holds: Fonts, Hatch patterns, Linetypes, Lisps or Drawing templates.</summary>
+        /// <summary>Gets the kind of file the folder holds: Fonts, Hatch patterns, Linetypes, AutoLisps or Drawing templates.</summary>
         public string Kind { get; }
 
         /// <summary>Gets the full path of the folder.</summary>
@@ -1103,10 +1009,6 @@ namespace GeometryHelper.Cad.Wpf
                     "Units are millimetres throughout; these settings change how values are shown."
                 ),
                 new GlobalSettingCategory(
-                    "Layers, colours and lines",
-                    "The layers written to new drawings, with their colour, linetype and lineweight."
-                ),
-                new GlobalSettingCategory(
                     "Text and fonts",
                     "The font of the app, what draws a font of a drawing not found (FONTALT, the font mapping file and the substitutions), and the answers of hidden messages (AutoCAD’s Hidden Message Settings): set one back to Ask, or Reset to defaults, to be asked again. A font not found is drawn in GeometryHelper Simplex (ghsimplex), the presenter's own single-stroke font, by default."
                 ),
@@ -1154,8 +1056,6 @@ namespace GeometryHelper.Cad.Wpf
                     ImportPgp(path);
                 }
             });
-            AddLayerCommand = new DelegateCommand(_ => AddLayer());
-            RemoveLayerCommand = new DelegateCommand(p => RemoveLayer(p as GlobalLayerRow));
             AddFontFolderCommand = new DelegateCommand(p => FontFolders.Add(new FontFolderRow(p as string)));
             RemoveFontFolderCommand = new DelegateCommand(p => FontFolders.Remove(p as FontFolderRow));
             AddFontSubstitutionCommand = new DelegateCommand(_ =>
@@ -1217,9 +1117,6 @@ namespace GeometryHelper.Cad.Wpf
                 ? page
                 : Array.Empty<GlobalSettingSection>();
 
-        /// <summary>Gets whether the layer table is shown.</summary>
-        public bool IsLayersPage => _category.Name == "Layers, colours and lines";
-
         /// <summary>Gets whether the shortcuts are shown.</summary>
         public bool IsShortcutsPage => _category.Name == "Shortcuts";
 
@@ -1228,9 +1125,6 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>Gets whether Folder preference is shown: the font search folders and the support file search folders.</summary>
         public bool IsFolderPreferencePage => _category.Name == "Folder preference";
-
-        /// <summary>Gets the layers of the default table, edited in place.</summary>
-        public ObservableCollection<GlobalLayerRow> Layers { get; } = new ObservableCollection<GlobalLayerRow>();
 
         /// <summary>Gets the folders fonts are looked for in, in order, edited in place; a blank one is left out.</summary>
         public ObservableCollection<FontFolderRow> FontFolders { get; } = new ObservableCollection<FontFolderRow>();
@@ -1264,7 +1158,7 @@ namespace GeometryHelper.Cad.Wpf
         public ObservableCollection<DefaultFolderRow> DefaultFontFolders { get; } =
             new ObservableCollection<DefaultFolderRow>();
 
-        /// <summary>Gets the Hatches, Linetypes, Lisps and DrawingTemplates folders beside the dll, read-only rows that are not saved into the settings.</summary>
+        /// <summary>Gets the Hatches, Linetypes, AutoLisps and DrawingTemplates folders beside the dll, read-only rows that are not saved into the settings.</summary>
         public ObservableCollection<DefaultFolderRow> DefaultSupportFolders { get; } =
             new ObservableCollection<DefaultFolderRow>();
 
@@ -1315,7 +1209,7 @@ namespace GeometryHelper.Cad.Wpf
                 new DefaultFolderRow("Linetypes", _roots.FolderOf(CadSupportKind.Linetypes), OpenDefaultFolderCommand)
             );
             DefaultSupportFolders.Add(
-                new DefaultFolderRow("Lisps", _roots.FolderOf(CadSupportKind.Lisps), OpenDefaultFolderCommand)
+                new DefaultFolderRow("AutoLisps", _roots.FolderOf(CadSupportKind.AutoLisps), OpenDefaultFolderCommand)
             );
             DefaultSupportFolders.Add(
                 new DefaultFolderRow(
@@ -1431,12 +1325,6 @@ namespace GeometryHelper.Cad.Wpf
             Raise(nameof(HasPythonStarted));
         }
 
-        /// <summary>Gets the command of Add layer.</summary>
-        public ICommand AddLayerCommand { get; }
-
-        /// <summary>Gets the command that takes a layer out of the table, given its row.</summary>
-        public ICommand RemoveLayerCommand { get; }
-
         /// <summary>Gets the command of Apply.</summary>
         public ICommand ApplyCommand { get; }
 
@@ -1516,13 +1404,6 @@ namespace GeometryHelper.Cad.Wpf
         {
             _working = settings;
             Build();
-            Layers.Clear();
-
-            foreach (GlobalLayer layer in settings.Layers)
-            {
-                Layers.Add(new GlobalLayerRow(layer));
-            }
-
             FontFolders.Clear();
             FontSubstitutions.Clear();
 
@@ -1548,7 +1429,7 @@ namespace GeometryHelper.Cad.Wpf
             RaisePage();
         }
 
-        /// <summary>Takes the layer table and the shortcuts into the settings edited; false, said in the notice, where one does not read.</summary>
+        /// <summary>Takes the pages that are edited in place, the folders, the font substitutions and the shortcuts, into the settings edited; false, said in the notice, where one does not read.</summary>
         private bool Commit()
         {
             if (HasErrors)
@@ -1557,24 +1438,8 @@ namespace GeometryHelper.Cad.Wpf
                 return false;
             }
 
-            var layers = new List<GlobalLayer>();
-
-            foreach (GlobalLayerRow row in Layers)
-            {
-                GlobalLayer layer = row.ToLayer(out string error);
-
-                if (layer == null)
-                {
-                    Notice = error;
-                    return false;
-                }
-
-                layers.Add(layer);
-            }
-
             try
             {
-                _working.Layers = layers;
                 _working.FontSearchFolders = FontFolders.Select(r => r.Folder).ToList();
                 _working.SupportSearchFolders = SupportFolders.Select(r => r.Folder).ToList();
                 _working.SetFontSubstitutions(
@@ -2200,38 +2065,6 @@ namespace GeometryHelper.Cad.Wpf
             }
         }
 
-        private void AddLayer()
-        {
-            int n = 1;
-
-            while (
-                Layers.Any(l =>
-                    string.Equals(
-                        l.Name,
-                        "Layer" + n.ToString(CultureInfo.InvariantCulture),
-                        StringComparison.OrdinalIgnoreCase
-                    )
-                )
-            )
-            {
-                n++;
-            }
-
-            Layers.Add(
-                new GlobalLayerRow(
-                    new GlobalLayer("Layer" + n.ToString(CultureInfo.InvariantCulture), 0xFFFFFF, "Continuous", 0.25)
-                )
-            );
-        }
-
-        private void RemoveLayer(GlobalLayerRow row)
-        {
-            if (row != null)
-            {
-                Layers.Remove(row);
-            }
-        }
-
         private void Changed() => RaiseErrors();
 
         private void RaiseErrors()
@@ -2246,7 +2079,6 @@ namespace GeometryHelper.Cad.Wpf
             Raise(nameof(SelectedCategory));
             Raise(nameof(Intro));
             Raise(nameof(Sections));
-            Raise(nameof(IsLayersPage));
             Raise(nameof(IsShortcutsPage));
             Raise(nameof(IsTextAndFontsPage));
             Raise(nameof(IsFolderPreferencePage));

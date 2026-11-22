@@ -27,7 +27,7 @@ spaces of indent, 7 984 characters for the defaults.
 
 ### The categories
 
-The presenter's Global settings dialog has nine categories, none of them about drawings made from a model. The JSON keeps the
+The presenter's Global settings dialog has eight categories, none of them about drawings made from a model. The JSON keeps the
 settings of those, which a host that makes model drawings reads and neither that dialog nor the presenter shows or applies: the preset,
 sheet, orientation and projection of a new drawing, the model-change check and its interval, the DXF layout and opening the
 folder after an export, the colour of hidden lines, the decimals of dimensions and the height of titles, and the font, height and
@@ -38,9 +38,8 @@ width factor of drawing text. A file that holds them keeps them, and OK writes t
 | Appearance | the colours of the canvas, paper, visible lines, selection and grips; the crosshair, pickbox and grip size; the grid; line weights | canvas `#000000`, paper `#FFFFFF`, selection and grips `#3D9BFF`, crosshair 5 %, pickbox 5 pixels, grip size 5 (a square 15 pixels across; 1 to 255), grid off, line weights shown |
 | Canvas and cursor | the wheel zoom and its direction, the object snaps, the aperture, the polar increment, what F3 does | 1.5 a notch (1.01 to 4, ZOOMWHEEL turns it round; a file saved with 1.2 keeps 1.2), every snap but Nearest, 10 pixels (2 to 50), 90 degrees (above 0 to 360, POLARANG), F3 toggles them |
 | Units and rounding | decimals of coordinates and angles; the separators | 2 and 1 decimals; thousands parted by a space, decimals by a point |
-| Layers, colours and lines | the layer table written to new drawings, with each layer's colour, linetype, lineweight and plot flag; NEW (Ctrl+N) adds it to the new drawing | Visible, Hidden, Centre, Hatch, Dimension, Mark, Symbol, Sheet, Viewport (not plotted) |
 | Text and fonts | the UI font, chosen from the font families installed on Windows (each shown in its own face) or typed; what Esc in the MTEXT editor with changes does (Hidden messages); the replacement font of a font not found (FONTALT), whether the Missing Fonts dialog is shown on opening a drawing, the font mapping file (FONTMAP) and the fonts drawn in others | UI font Inter, Esc asks, `ghsimplex`, the dialog on, no mapping file, no substitutions |
-| Folder preference | the font search folders and the support file search folders (linetypes, hatch patterns and AutoLISP files), each in order, with the default Fonts, Hatches, Linetypes, Lisps and DrawingTemplates folders next to the dll shown read-only under them (a Plugins folder is beside them too, but it holds no search path: see [Command plugins](plugins.md#where-a-plugin-lives)); the Python the PYTHON palette, PYRUN and PYLOAD run scripts with (a `python.exe` or its folder, with the Python found beside it; see [Python in the app](python.md#finding-python)) | none; Python found automatically |
+| Folder preference | the font search folders and the support file search folders (linetypes, hatch patterns and AutoLISP files), each in order, with the default Fonts, Hatches, Linetypes, AutoLisps and DrawingTemplates folders next to the dll shown read-only under them (a Plugins folder is beside them too, but it holds no search path: see [Command plugins](plugins.md#where-a-plugin-lives)); the Python the PYTHON palette, PYRUN and PYLOAD run scripts with (a `python.exe` or its folder, with the Python found beside it; see [Python in the app](python.md#finding-python)) | none; Python found automatically |
 | Security | where AutoLISP and Python code may be loaded from: SECURELOAD, the trusted folders (TRUSTEDPATHS), LEGACYCODESEARCH and the files answered Always Load (see [The Security page](#the-security-page)) | SECURELOAD 1, no trusted folder but the app's own, LEGACYCODESEARCH 0, none |
 | Shortcuts | the aliases and the keys | AutoCAD's (see [Editing](editing.md#aliases-and-keys)) |
 | Save and export | the save folder, autosave (how often, and its format, DXF or DWG); Template settings: the template folder and the default template for QNEW (see [Drawing templates](#drawing-templates)); Other programs: whether other programs may connect and drive the app (see [Driving the app from another program](remote.md#the-setting)) | empty, which is the user's Documents, 10 minutes, DXF; template folder empty, which is the `DrawingTemplates` folder next to the dll, no default template for QNEW, which is the built-in metric one; other programs allowed to connect |
@@ -49,9 +48,9 @@ width factor of drawing text. A file that holds them keeps them, and OK writes t
 Folder preference lists the folders you add, each editable, and under them the default folder next to `GeometryHelper.Cad.dll`
 for each kind, read-only, marked "(default)" with its full path ("(default) not found" where the folder is missing) and an Open
 folder button; they are never saved into the settings file. A line under each list says the order. The default folders are
-`Fonts`, `Hatches`, `Linetypes`, `Lisps`, `Plugins` and `DrawingTemplates` beside the dll (the dll's folder, not the exe's, so that an app which embeds it, such as
+`Fonts`, `Hatches`, `Linetypes`, `AutoLisps`, `Plugins` and `DrawingTemplates` beside the dll (the dll's folder, not the exe's, so that an app which embeds it, such as
 a host that makes model drawings, finds the same ones). Put SHX fonts and big fonts, `.ttf`, `.ttc` and `.otf` files in `Fonts`, `.pat` files
-in `Hatches`, `.lin` files in `Linetypes` and AutoLISP files (`.lsp`, and the `.dcl` files they use) in `Lisps`. A font, a pattern file or a linetype file is looked for in three places, in this
+in `Hatches`, `.lin` files in `Linetypes` and AutoLISP files (`.lsp`, and the `.dcl` files they use) in `AutoLisps`. A font, a pattern file or a linetype file is looked for in three places, in this
 order: (1) the folders you set in Folder preference, in order; (2) the default folder of its kind next to the dll; (3) the built-in
 font (GeometryHelper Simplex), patterns (48) and linetypes (39). A folder that does not exist is passed over without a word. The
 folder of the drawing is not looked in for fonts, patterns or linetypes (xrefs and images are still found relative to the
@@ -59,10 +58,13 @@ drawing). TrueType fonts installed in Windows are found as before, first: a styl
 style naming a `.ttf` file finds it in the Windows Fonts folder; for a typeface Windows does not have, a `.ttf`, `.ttc` or `.otf`
 file whose family name is that typeface is looked for in the folders of (1) and then in `Fonts` of (2), and drawn from it with no
 installing (and it is not listed as missing); the regular face of a family is preferred to its bold or italic one. Each folder is
-listed again at each look and the family names of a file are read once, while its size and time stay as they were. `Hatches` holds
+listed again at each look and the family names of a file are read once, while its size and time stay as they were. `Fonts` holds
+`ghsimplex.shx`, the built-in font as a compiled SHX unifont file of 4 840 bytes, to use elsewhere (put it in AutoCAD's Fonts folder
+and a style naming `ghsimplex.shx` draws there as it does here; AutoCAD 2021 gives the same text boxes to four decimals);
+`Hatches` holds
 `GeometryHelper.pat` and `Linetypes` holds `GeometryHelper.lin`, the 48 patterns and the 39 linetypes of the built-in sets in
-AutoCAD's `.pat` and `.lin` formats, as models for your own files; the name `GeometryHelper.pat` or `GeometryHelper.lin` always
-means the built-in set, so editing the copy changes nothing, and a test keeps the files equal to the sets. `Lisps` ships with no routine in it: every `.lsp` file directly in it is loaded into each drawing when it opens, after `acaddoc.lsp` and before the Startup Suite, in the order of the file names, and the folder is on the AutoLISP search path after the support folders (see [The Lisps folder](lisp.md#the-lisps-folder)); it is under the program folder, so SECURELOAD always trusts it. `Plugins` holds command plugins and no search path: every `.dll` directly in it, and every subfolder of it as one plugin, is loaded once when the app starts, in the order of the names, with no question, as [Command plugins](plugins.md#where-a-plugin-lives) says; the Plugin manager shows it first among the trusted folders. `DrawingTemplates` is where a drawing saved as a `.dwt` is
+AutoCAD's `.pat` and `.lin` formats, as models for your own files; the name `ghsimplex`, `GeometryHelper.pat` or `GeometryHelper.lin` always
+means the built-in font or set, so editing the copy changes nothing, and a test keeps the files equal to the font and the sets. `AutoLisps` ships with no routine in it: every `.lsp` file directly in it is loaded into each drawing when it opens, after `acaddoc.lsp` and before the Startup Suite, in the order of the file names, and the folder is on the AutoLISP search path after the support folders (see [The AutoLisps folder](lisp.md#the-autolisps-folder)); it is under the program folder, so SECURELOAD always trusts it. `Plugins` holds command plugins and no search path: every `.dll` directly in it, and every subfolder of it as one plugin, is loaded once when the app starts, in the order of the names, with no question, as [Command plugins](plugins.md#where-a-plugin-lives) says; the Plugin manager shows it first among the trusted folders. `DrawingTemplates` is where a drawing saved as a `.dwt` is
 put to be used as a template, and ships with the sample `GeometryHelper-mm.dwt` (see [Drawing templates](#drawing-templates)). Each folder has a
 `README.txt` that says the same.
 
@@ -89,7 +91,6 @@ with a comma for the thousands `12,345.68`. The thousands cannot be parted by th
 "Point"` with `DecimalSeparator = "Point"` throws. `SetShortcuts(aliases, keys)` replaces the aliases and keys, and
 `ShortcutConflicts(names)` says an alias that is the name of another command ("The alias DU is the name of the command DU");
 `ToShortcuts()` gives the [`CadShortcuts`](xref:GeometryHelper.Cad.CadShortcuts) a registry takes.
-[`GlobalLayer`](xref:GeometryHelper.Cad.GlobalLayer) is a layer of the default table: name, colour, linetype, line weight and whether it plots.
 
 ### What the text settings reach
 
@@ -289,12 +290,10 @@ The presenter opens a DWG of AutoCAD 2000 to 2018 as it opens a DXF, read by the
   in its name: `plan.dwg.autosave.dxf` for `plan.dwg`, where `plan.dxf` beside it has `plan.autosave.dxf`.
 - A new drawing (NEW, QNEW, Ctrl+N) is named Drawing1.dwg, then Drawing2.dwg, as AutoCAD names its own, so that Save As and
   QSAVE offer it as a DWG first. Of the presenter's own template (Open with no Template - Metric, what QNEW starts where no
-  default template is set) it has the layer 0 and the layers of Global settings > Layers, colours and lines, each
-  with its colour (a true colour), linetype, lineweight and plot flag: Hidden is #9AA4B1 in HIDDEN at 0.18 mm, Centre
-  #F85149 in CENTER at 0.18 mm, Viewport is not plotted, and the linetypes HIDDEN and CENTER come with them from the
-  presenter's own set. A linetype that set does not hold is not made up: the layer is Continuous. The current layer stays 0,
-  and a drawing opened from a file is left as it is. A new drawing of a template file has what the template has instead
-  (see [Drawing templates](#drawing-templates)).
+  default template is set) it has the layer 0 and no other, as AutoCAD's Open with no Template - Metric has; a drawing's
+  layers come from its template, not from a list in Global settings (there is none), so put the layers you want in a `.dwt`
+  in the `DrawingTemplates` folder. The current layer is 0, and a drawing opened from a file is left as it is. A new
+  drawing of a template file has what the template has instead (see [Drawing templates](#drawing-templates)).
 
 ### Drawing templates
 
@@ -305,7 +304,7 @@ AutoCAD's `.dwt` is a DWG with that extension; a `.dwg` or a `.dxf` is as good a
   name with what it is, the first selected and its description (the text its Template Options kept) under the list, Open to
   start from the one selected (a double click too), Browse… for a file in another folder (Drawing Template, Drawing and DXF
   types), and Open with no Template - Metric or Imperial. The new drawing is untitled, Drawing1.dwg and on, takes the
-  template as it is (the layers of Global settings are not added to it) and is listed under Open drawings until it is
+  template as it is and is listed under Open drawings until it is
   saved. The metric one has millimetres, ISO-25 and limits of 420 by 297; the imperial one inches, the dimension style
   Standard (arrowheads and text 0.18, four places) and limits of 12 by 9. A template that cannot be read is said on the
   command line and starts nothing; Cancel starts nothing. The application menu's New › Drawing shows the same dialog; with

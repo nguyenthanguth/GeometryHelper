@@ -22,9 +22,16 @@ code, had the default 45 degrees, so AutoCAD 2021 read it as 58 degrees and list
 read from a DWG, a non-default angle came back as radians in a group that holds degrees. DWG files written and read now keep it in
 radians as AutoCAD does, as the other angles are. A DWG written before this keeps the wrong angle in its styles and is not repaired.
 
+**NEW.** The `Fonts` folder beside `GeometryHelper.Cad.dll` holds `ghsimplex.shx`, the built-in font GeometryHelper Simplex written
+out as a compiled SHX unifont file (4 840 bytes), as `Hatches` holds `GeometryHelper.pat` and `Linetypes` `GeometryHelper.lin`.
+It is a copy for use elsewhere: put it in AutoCAD's Fonts folder, or beside a drawing, and a text style naming `ghsimplex.shx`
+draws there as here (AutoCAD 2021 reads it with no message, and `textbox` of six strings from 2.5 to 25 high agrees with the
+presenter's measure to four decimals). The name `ghsimplex` still always means the built-in font, so editing or deleting the file
+changes nothing here, and a test keeps the file equal to the bytes the font builds.
+
 **NEW.** New from template: a button right of New on the start screen, `New from template · Ctrl+Shift+N`, and the key
 Ctrl+Shift+N (on the start screen and with a drawing open) run NEW with Select Template opened in a `DrawingTemplates`
-folder beside GeometryHelper.Cad.dll, as Fonts, Hatches, Linetypes and Lisps are. A drawing saved as `.dwt` (SAVEAS, Files
+folder beside GeometryHelper.Cad.dll, as Fonts, Hatches, Linetypes and AutoLisps are. A drawing saved as `.dwt` (SAVEAS, Files
 of type: Drawing Template) and put there is listed, and starts an untitled Drawing1.dwg with its layers, styles, blocks,
 layouts and units; the dialog is shown with one template as with many, and with none it says how to make one. Ctrl+N and
 QNEW stay a blank drawing. `DrawingTemplates` is now where the template folder points while Global settings name none (Select
@@ -34,7 +41,7 @@ Open folder. The `Template` folder beside the settings file, the default until n
 `CadSupportKind.DrawingTemplates` is new, and `GlobalSettings.DefaultTemplateFolder` now gives the folder this works out.
 
 **NEW.** The app has a `Plugins` folder beside `GeometryHelper.Cad.App.exe`, as it has `Fonts`, `Hatches`, `Linetypes` and
-`Lisps` (`CadSupportKind.Plugins`; the build copies it with a `README.txt`). Put a plugin there and it loads when the app
+`AutoLisps` (`CadSupportKind.Plugins`; the build copies it with a `README.txt`). Put a plugin there and it loads when the app
 starts: every `.dll` directly in it, by the order of the names (either case the same), then every subfolder as one plugin,
 the same way, so a plugin of several .dll files lives in a folder of its own, named by the folder's `plugin.json` where it
 has one and by the folder where it has not. They load through the plugin manager as before (shadow copy, a load context of
@@ -44,6 +51,18 @@ plugin, or cannot be loaded, is one line of the log and stops no other; a plugin
 `plugin.json` beside a `.dll` directly in `Plugins` is not read (one file cannot name every .dll there), though it is for a
 `.dll` loaded from elsewhere. `PLUGINLOAD` (`NETLOAD`), `PLUGINRELOAD`, `PLUGINUNLOAD`, the startup list ("Load at every
 start") and the trusted folders stay for plugins kept elsewhere.
+
+**BREAKING.** The layer list of Global settings is removed, since a drawing's layers now come from its template (a `.dwt` in
+the `DrawingTemplates` folder). Removed: the Global settings category Layers, colours and lines, with its Add layer button
+and rows; the class `GlobalLayer`; `GlobalSettings.Layers`; `CadTemplate.AddLayers`; and, from the view model of the dialog,
+`GlobalSettingsViewModel.IsLayersPage`, `Layers`, `AddLayerCommand`, `RemoveLayerCommand` and the class `GlobalLayerRow`. The
+dialog has eight categories. A blank drawing (NEW, Open with no Template, Ctrl+N, and QNEW where no default template is set)
+now holds layer 0 and no other, as AutoCAD's Open with no Template - Metric does, instead of layer 0 with Visible, Hidden, Centre,
+Hatch, Dimension, Mark, Symbol, Sheet and Viewport; its units (millimetres, ISO-25, limits 420 by 297) are as before. No command
+depended on those layers: DIMLINEAR and the others draw on the current layer. A settings file that still has a `layers` section
+loads without a warning and the section is ignored; the next save leaves it out. To keep a layer set, make a drawing with the
+layers (colour, linetype, lineweight, plot flag), save it as a `.dwt` in `DrawingTemplates`, and start from it with NEW, or set
+it as the default template for QNEW under Save and export.
 
 **BREAKING.** Plugins are no longer packaged and installed: the `.ghplugin` file is gone, and a plugin is put in the `Plugins`
 folder beside the app. Removed: `CadPluginManager.Install(string)` and `Uninstall(string)`; the class `CadPluginPackage` (its
@@ -153,8 +172,8 @@ only when disabled. Every button filled with the accent shares one style, `GhAcc
 the same flat grey as the Close, where it was the dark input colour with a border. The transparent and outlined buttons keep
 their grey hover.
 
-**NEW.** A `Lisps` folder beside `GeometryHelper.Cad.dll` (beside the exe in the app), the fourth default folder with `Fonts`,
-`Hatches` and `Linetypes` (`CadSupportKind.Lisps`, copied by the build with a `README.txt`). Every `.lsp` file directly in it
+**NEW.** An `AutoLisps` folder beside `GeometryHelper.Cad.dll` (beside the exe in the app), the fourth default folder with `Fonts`,
+`Hatches` and `Linetypes` (`CadSupportKind.AutoLisps`, copied by the build with a `README.txt`). Every `.lsp` file directly in it
 loads into each drawing when it opens, in the order of the file names ignoring case, after `acad.lsp` and `acaddoc.lsp` and
 before the Startup Suite and `S::STARTUP`: a folder holding `10-layers.lsp` and `20-dims.lsp` gives both commands in every
 drawing with no APPLOAD. An error in a file is written and the next loads; `x.lspx`, other extensions and files in a
