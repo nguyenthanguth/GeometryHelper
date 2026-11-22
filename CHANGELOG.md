@@ -43,6 +43,11 @@ endpoint of line or [Undo]:` for the first two endpoints and `[Close/Undo]` from
 polyline (a POLYLINE of flag 8, its vertices of flag 32); the presenter's points are those of a plane, so a Z typed is read and
 left out and every vertex is on Z 0. `(command "_.3DPOLY" "0,0,0" "10,0,0" "10,10,0" "")` gave `Unknown command` before.
 
+**FIXED.** Remove Vertex in the hover menu of a polyline's or spline's grip asked `Pick to remove vertex:` (`Pick to remove fit
+point:` for a fit point) and waited for a point. AutoCAD 2021 takes the vertex out at once, asking nothing, and the entity stays
+selected with its grips redrawn; so does the presenter now, as one undo step. A polyline of 4 vertices chosen on vertex 2 has
+3 at once. Add Vertex, Stretch, Convert to Arc and Convert to Line still ask for their point, as AutoCAD's do.
+
 **FIXED.** Commands typed as `(command ...)` against AutoCAD 2021's console, from a scan of 119 of them. With no window a
 session had no view, so `ZOOM` said `There is no view to zoom.`, `-VIEW Save` `There is no view to save.` and `PAN` `There is no
 view to pan.`, where AutoCAD prompts and works; the cause was the missing view of the window, not a missing `*Active` viewport

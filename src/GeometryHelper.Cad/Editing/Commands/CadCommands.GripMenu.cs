@@ -75,11 +75,7 @@ namespace GeometryHelper.Cad
 
                     break;
                 case CadGripAction.RemoveVertex:
-                    foreach (CadPrompt prompt in GripRemoveVertex(c, handle, gripIndex))
-                    {
-                        yield return prompt;
-                    }
-
+                    GripRemoveVertex(c, handle, gripIndex);
                     break;
                 default:
                     foreach (CadPrompt prompt in GripDimension(c, handle, gripIndex, action))
@@ -92,26 +88,12 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>
-        /// "** REMOVE VERTEX **" and "Pick to remove vertex:" of a polyline's vertex, "** REMOVE CONTROL VERTEX **" and "Pick to
-        /// remove vertex:" of a spline's control vertex, "** REMOVE FIT POINT **" and "Pick to remove fit point:" of a fit point,
-        /// as AutoCAD 2021's string table words them: any point picked takes the vertex out, Enter or Esc leaves it.
+        /// Takes the vertex of the grip out at once, with no prompt, as the Remove Vertex item of AutoCAD 2021's menu does (a
+        /// spline's fit point or control vertex likewise): one undo step, the entity staying selected. Where it cannot lose
+        /// the vertex the item is grey and never gets here.
         /// </summary>
-        private static IEnumerable<CadPrompt> GripRemoveVertex(CadCommandContext c, string handle, int gripIndex)
+        private static void GripRemoveVertex(CadCommandContext c, string handle, int gripIndex)
         {
-            DxfSpline spline = c.Document.FindEntity(handle) as DxfSpline;
-            bool fit = spline != null && spline.HasFitData;
-            c.Write(
-                fit ? "** REMOVE FIT POINT **"
-                : spline != null ? "** REMOVE CONTROL VERTEX **"
-                : "** REMOVE VERTEX **"
-            );
-            yield return CadPrompt.ForPoint(fit ? "Pick to remove fit point" : "Pick to remove vertex");
-
-            if (!c.Input.IsPoint)
-            {
-                yield break;
-            }
-
             c.OpenUndoStep();
             CadEditResult result = CadGrips.RemoveVertex(c.Document, handle, gripIndex);
 

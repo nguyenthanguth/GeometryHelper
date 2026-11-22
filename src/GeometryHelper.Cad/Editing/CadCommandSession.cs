@@ -504,8 +504,8 @@ namespace GeometryHelper.Cad
         /// the grip's vertex (with Copy on it asks again, each vertex after the last, until eXit or Enter; Undo takes the last
         /// one back). Convert to Arc asks "** CONVERT TO ARC **" and "Specify midpoint of arc segment:" and makes the segment the arc
         /// through the point; Convert to Line asks "** CONVERT TO LINE **" and "Pick to convert to line segment:" and makes the
-        /// segment straight at a pick. Remove Vertex asks "** REMOVE VERTEX **" and "Pick to remove vertex:" ("** REMOVE FIT POINT **"
-        /// and "Pick to remove fit point:" for a spline's fit point) and takes the vertex out at a pick. A line's or an arc's end offers Lengthen ("** LENGTHEN **",
+        /// segment straight at a pick. Remove Vertex takes the vertex out at once, asking nothing (a spline's fit point or control vertex likewise).
+        /// A line's or an arc's end offers Lengthen ("** LENGTHEN **",
         /// "Specify end point:"), the middle of an arc Radius ("** RADIUS **", "Specify radius:"), a hatch Hatch Scale, Hatch Angle
         /// and Origin Point, a spline's point its own Add Vertex ("** ADD FIT POINT **" or "** ADD CONTROL VERTEX **"). Lengthen
         /// and Radius also have Copy and Undo. A linear dimension's grips offer Continue Dimension and Baseline Dimension (the

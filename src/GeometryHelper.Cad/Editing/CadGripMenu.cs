@@ -16,7 +16,7 @@ namespace GeometryHelper.Cad
         /// <summary>A polyline's vertex or segment middle: asks for a new vertex, put after the vertex of the grip.</summary>
         AddVertex,
 
-        /// <summary>A polyline's or spline's vertex: asks for a pick ("Pick to remove vertex:") and takes the vertex out.</summary>
+        /// <summary>A polyline's or spline's vertex: takes the vertex out at once, with no prompt, as AutoCAD 2021 does.</summary>
         RemoveVertex,
 
         /// <summary>The middle of a straight segment: asks for the arc's middle and makes the segment an arc.</summary>

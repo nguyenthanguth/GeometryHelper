@@ -4601,11 +4601,11 @@ undo step named GRIP, and Esc at its prompt changes nothing:
   made back while it runs: the polyline is read back as it was before that vertex, the segment it split with its bulge and
   widths, and the next vertex is asked after the one before. Undo with no vertex made yet changes nothing. The whole run
   stays one undo step.
-- Remove Vertex says `** REMOVE VERTEX **` and asks `Pick to remove vertex:`, as AutoCAD 2021's strings have it: any point picked
-  takes the vertex out (one undo step), Enter or Esc leaves it. AutoCAD words it "Remove vertex, and replace neighboring
+- Remove Vertex asks nothing, as in AutoCAD 2021: choosing it takes the vertex of the grip out at once (one undo step), and
+  the polyline stays selected with its grips redrawn. AutoCAD words it "Remove vertex, and replace neighboring
   segments with line": the segment that now joins its neighbours is straight, whether the segment either side of the vertex
   was an arc or not. It is grey on a polyline of two vertices, and a closed polyline of three keeps two. A spline's
-  says `** REMOVE FIT POINT **` and `Pick to remove fit point:`, or `** REMOVE CONTROL VERTEX **` and `Pick to remove vertex:`.
+  fit point or control vertex goes out at once the same way.
 - Convert to Arc says `** CONVERT TO ARC **` and asks `Specify midpoint of arc segment:`, the polyline drawn bent through the
   cursor; a chord of 100 with the point 20 off its middle gets a bulge of 0.4 (the sagitta over half the chord), above
   nought where the point is to the right of the way the segment runs. A point on the line of the segment is refused.
