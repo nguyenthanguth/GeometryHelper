@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** GeometryHelper CAD died with a stack overflow on the first MLEADER of a drawing that had no multileader style, once its
+words were committed with Enter and the Annotate tab was showing. MLEADER makes the style Standard there, so the list of the
+Multileader Style box is replaced; the box clears its selection and pushes null into the current multileader style, and that
+setter raised the list again for any value it was given, which reset the box and pushed null again, without end (the same drawing
+with the Home tab showing had no box to loop, and a drawing with a style had no change of list). A null, or the style the box
+already shows, now changes nothing and raises nothing, as the text style and dimension style boxes already did; "Multileader
+style…" still opens the manager and sets the box back.
+
 **FIXED.** AutoLISP's `entget` listed the groups of a block made by `entmake` and of the objects round it a way AutoCAD 2021 does not
 (each measured in its console): the BLOCK of such a block has its name as group `1` (`"*U"` for an anonymous one, whatever `1`
 the list gave; a block of `-BLOCK` keeps `""`); a block with no entity names its ENDBLK as `-2`, in `tblsearch` too, and
