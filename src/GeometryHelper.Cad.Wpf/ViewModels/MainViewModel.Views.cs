@@ -21,6 +21,12 @@ namespace GeometryHelper.Cad.Wpf
             switch (e.Payload)
             {
                 case CadViewManagerRequest views when ShowViewManager != null:
+                    // New View of the ribbon: the manager is shown over its New View dialog, as after its Define window.
+                    if (_openNewViewFirst)
+                    {
+                        views.IsNewViewOpen = true;
+                    }
+
                     e.Handled = ShowViewManager(new ViewManagerViewModel(views));
                     break;
                 case CadUnitsRequest units when ShowDrawingUnits != null:

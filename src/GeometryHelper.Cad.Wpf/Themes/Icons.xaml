@@ -49,6 +49,48 @@
     <Geometry x:Key="GhIconAngular">M4 20h16M4 20 15 5M11 20a7 7 0 0 0-2.1-5</Geometry>
     <Geometry x:Key="GhIconLeader">M4 20 14 10l6 0M14 6l6 4</Geometry>
     <Geometry x:Key="GhIconLayers">M12 3 3 8l9 5 9-5zM3 13l9 5 9-5M3 17l9 5 9-5</Geometry>
+
+    <!-- Ribbon wave 4 -->
+    <Geometry x:Key="GhIconDcHorizontal">M4 6v10M20 6v10M4 11h16M7 9l-3 2 3 2M17 9l3 2-3 2M9 20h6</Geometry>
+    <Geometry x:Key="GhIconDcVertical">M6 4h10M6 20h10M11 4v16M9 7l2-3 2 3M9 17l2 3 2-3M20 9v6</Geometry>
+    <Geometry x:Key="GhIconDcModeDynamic">
+        M4 8v8M20 8v8M4 12h16M7 10l-3 2 3 2M17 10l3 2-3 2M9.5 18h5v3.5h-5zM10.45 18V16.43a1.55 1.55 0 0 1 3.1 0V18
+    </Geometry>
+    <Geometry x:Key="GhIconDcModeAnnotational">M4 8v8M20 8v8M4 12h16M7 10l-3 2 3 2M17 10l3 2-3 2M8 4h8M12 4v4</Geometry>
+    <Geometry x:Key="GhIconUcsIcon">M5 19V4M5 19h15M2.5 6.5 5 4l2.5 2.5M17.5 16.5 20 19l-2.5 2.5</Geometry>
+    <Geometry x:Key="GhIconNewView">M2 8h11v10H2zM13 12l5-3v8l-5-3M19.5 2v5M17 4.5h5</Geometry>
+    <Geometry x:Key="GhIconViewManager">M2 3h11v8H2zM13 6l5-3v8l-5-3M3 15h18M3 19h18</Geometry>
+    <Geometry x:Key="GhIconVpSingle">M3 4h18v16H3z</Geometry>
+    <Geometry x:Key="GhIconVpTwoVertical">M3 4h18v16H3zM12 4v16</Geometry>
+    <Geometry x:Key="GhIconVpTwoHorizontal">M3 4h18v16H3zM3 12h18</Geometry>
+    <Geometry x:Key="GhIconVpThreeRight">M3 4h18v16H3zM12 4v16M3 12h9</Geometry>
+    <Geometry x:Key="GhIconVpThreeLeft">M3 4h18v16H3zM12 4v16M12 12h9</Geometry>
+    <Geometry x:Key="GhIconVpThreeAbove">M3 4h18v16H3zM3 12h18M12 12v8</Geometry>
+    <Geometry x:Key="GhIconVpThreeBelow">M3 4h18v16H3zM3 12h18M12 4v8</Geometry>
+    <Geometry x:Key="GhIconVpThreeVertical">M3 4h18v16H3zM9 4v16M15 4v16</Geometry>
+    <Geometry x:Key="GhIconVpThreeHorizontal">M3 4h18v16H3zM3 9.33h18M3 14.67h18</Geometry>
+    <Geometry x:Key="GhIconVpFourEqual">M3 4h18v16H3zM12 4v16M3 12h18</Geometry>
+    <Geometry x:Key="GhIconVpNamed">M3 4h13v10H3zM9.5 4v10M3 9h6.5M13 16h7l2 2.5-2 2.5h-7z</Geometry>
+    <Geometry x:Key="GhIconVpJoin">
+        M3 4h18v16H3zM12 4v4M12 16v4M6 12h4M14 12h4M8.5 10l1.5 2-1.5 2M15.5 10 14 12l1.5 2
+    </Geometry>
+    <Geometry x:Key="GhIconVpRestore">M3 4h18v16H3zM12 4v16M17 8.5l-2 2 2 2M15 10.5h3a2 2 0 0 1 0 4h-1</Geometry>
+    <Geometry x:Key="GhIconPropertiesPalette">M4 3h16v18H4zM7 7h3M12 7h5M7 11h3M12 11h5M7 15h3M12 15h5</Geometry>
+    <Geometry x:Key="GhIconCommandLine">M2 13h20v8H2zM5 15.5l2.5 1.5L5 18.5M10 18.5h5M5 4h14M5 8h10</Geometry>
+    <Geometry x:Key="GhIconDesignCenter">M3 3h18v18H3zM9 3v18M5 7h2M5 11h2M5 15h2M12 7h6v6h-6z</Geometry>
+    <Geometry x:Key="GhIconUserInterface">M3 4h18v16H3zM3 8h18M6 11h4v3H6zM12 11h6M12 14h4</Geometry>
+    <Geometry x:Key="GhIconLayerTranslator">
+        M2 6l5-3 5 3-5 3zM2 9l5 3 5-3M12 16l5-3 5 3-5 3zM12 19l5 3 5-3M14 5h5a2 2 0 0 1 2 2v3M19 8l2 2 2-2
+    </Geometry>
+    <Geometry x:Key="GhIconStandardsCheck">M5 3h10l4 4v14H5zM14 3v5h5M8 14l3 3 5-6</Geometry>
+    <Geometry x:Key="GhIconStandardsConfigure">M5 3h10l4 4v14H5zM14 3v5h5M8 12h8M8 16h8M11 10.5v3M14 14.5v3</Geometry>
+    <Geometry x:Key="GhIconPurge">M15.5 2l-4 9M6 11h9l1.5 2.5L15 21H5l-1.5-7.5zM8 15v5M11 15v5M14 15v5</Geometry>
+    <Geometry x:Key="GhIconFindNonPurgeable">
+        M10 10m-6.5 0a6.5 6.5 0 1 0 13 0a6.5 6.5 0 1 0-13 0M15 15l6 6M10 6.5v4M10 13.5h.01
+    </Geometry>
+    <Geometry x:Key="GhIconExportDwf">
+        M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M7.5 13l2 5 2.5-4 2.5 4 2-5
+    </Geometry>
     <Geometry x:Key="GhIconCurrent">M4 12l5 5L20 6</Geometry>
     <Geometry x:Key="GhIconMatch">M4 4h10v6H4zM10 14h10v6H10zM9 10v4</Geometry>
     <Geometry x:Key="GhIconLayerPrevious">M10 6 4 12l6 6M4 12h12a4 4 0 0 1 0 8h-3</Geometry>

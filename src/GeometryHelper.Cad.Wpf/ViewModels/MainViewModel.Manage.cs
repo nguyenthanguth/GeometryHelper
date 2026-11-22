@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows.Input;
 using GeometryHelper.Cad.Plugins;
 
 namespace GeometryHelper.Cad.Wpf
@@ -8,14 +9,15 @@ namespace GeometryHelper.Cad.Wpf
     /// <summary>
     /// The Manage ribbon tab, as AutoCAD 2021's for what the presenter has: Customization (User Interface and Edit Aliases open Global settings on Shortcuts, Tool Palettes shows the tool palettes), Applications
     /// (Load Application, which opens Load/Unload Applications, greyed where the window cannot show it; Run Script), CAD Standards
-    /// (parked, greyed) and Cleanup (Purge, Overkill, Audit, Recover). A button starts its command through
-    /// <see cref="MainViewModel.StartCommandCommand"/>, as the buttons of Home do.
+    /// (Layer Translator; Check and Configure parked, greyed) and Cleanup (Purge, Find Non-Purgeable Items, Overkill, Audit,
+    /// Recover). A button starts its command through <see cref="MainViewModel.StartCommandCommand"/>, as the buttons of Home do.
     /// </summary>
     public sealed class ManageRibbonViewModel : ObservableObject
     {
         internal ManageRibbonViewModel(MainViewModel model)
         {
             Model = model;
+            FindNonPurgeableCommand = new DelegateCommand(_ => model.FindNonPurgeableItems(), _ => model.HasDocument);
             model.PropertyChanged += (s, e) =>
             {
                 if (
@@ -24,6 +26,7 @@ namespace GeometryHelper.Cad.Wpf
                 )
                 {
                     Raise(nameof(CanLoadApplication));
+                    (FindNonPurgeableCommand as DelegateCommand)?.RaiseCanExecuteChanged();
                 }
             };
         }
@@ -33,6 +36,9 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>Gets whether Load Application can be pressed: a drawing is open and the window can show Load/Unload Applications.</summary>
         public bool CanLoadApplication => Model.HasDocument && Model.ShowAppLoad != null;
+
+        /// <summary>Gets the command of Find Non-Purgeable Items: PURGE started, its window opening on the named items in use and why each cannot be purged.</summary>
+        public ICommand FindNonPurgeableCommand { get; }
     }
 
     /// <summary>
@@ -43,6 +49,7 @@ namespace GeometryHelper.Cad.Wpf
     {
         private CadBuiltInTab _manageTab;
         private Func<AppLoadViewModel, bool> _showAppLoad;
+        private bool _openNonPurgeable;
 
         // What APPLOAD refuses to load: AutoCAD's other kinds of application, which the presenter cannot run.
         private static readonly string[] RefusedApplicationTypes = { ".arx", ".dbx", ".dvb", ".fas", ".vlx" };
@@ -71,6 +78,24 @@ namespace GeometryHelper.Cad.Wpf
             registry.Add(new CadCommand("CUI", c => RunWindow(() => RequestSettings("Shortcuts"))));
             registry.Add(new CadCommand("ALIASEDIT", c => RunWindow(() => RequestSettings("Shortcuts"))));
             registry.Add(new CadCommand("APPLOAD", c => RunWindow(LoadApplications)));
+        }
+
+        /// <summary>
+        /// Find Non-Purgeable Items of the Manage tab: PURGE started, the window opening on its second view, the named items in use,
+        /// which the command's own Purgeable Items view starts on.
+        /// </summary>
+        internal void FindNonPurgeableItems()
+        {
+            _openNonPurgeable = true;
+
+            try
+            {
+                StartCommand("PURGE");
+            }
+            finally
+            {
+                _openNonPurgeable = false;
+            }
         }
 
         /// <summary>

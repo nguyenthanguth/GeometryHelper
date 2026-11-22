@@ -3,8 +3,9 @@ using System;
 namespace GeometryHelper.Cad.Wpf
 {
     /// <summary>
-    /// The Output ribbon tab, as AutoCAD 2021's basics: Plot (Plot, Page Setup Manager, Preview, Plot Stamp, Batch Plot), Export to DWF/PDF
-    /// (Export PDF, Export) and Import, each button starting its command through <see cref="MainViewModel.StartCommandCommand"/>.
+    /// The Output ribbon tab, as AutoCAD 2021's basics: Plot (Plot, Batch Plot, Preview, Page Setup Manager, Plot Stamp) and Export to
+    /// DWF/PDF (the Export split of Export PDF, Export DWF and Export), each button starting its command through
+    /// <see cref="MainViewModel.StartCommandCommand"/>. Import is on the Insert tab.
     /// </summary>
     public sealed class OutputRibbonViewModel
     {

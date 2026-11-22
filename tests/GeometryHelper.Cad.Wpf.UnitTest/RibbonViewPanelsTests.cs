@@ -545,11 +545,11 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                 (model, workspace, strip) =>
                 {
                     List<RibbonPanel> panels = Panels(strip);
-                    var steps = Squeeze(ViewSteps)
+                    var steps = ViewSteps
                         .Split(';')
                         .Select(s =>
                             (
-                                Title: s.Split(':')[0],
+                                Title: s.Split(':')[0].Trim(),
                                 Size: (RibbonPanelSize)Enum.Parse(typeof(RibbonPanelSize), s.Split(':')[1])
                             )
                         )

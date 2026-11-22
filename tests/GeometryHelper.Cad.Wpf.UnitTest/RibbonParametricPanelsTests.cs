@@ -203,7 +203,11 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     Assert.All(tiles, t => Assert.False(HasText(t), NameOf(t) + " shows text."));
                     Assert.All(tiles, t => Assert.Equal(TileWidth, t.ActualWidth, 0.5));
                     Assert.Equal(Pitch, Top(tiles[1], dimensional.Body) - Top(tiles[0], dimensional.Body), 0.5);
-                    Assert.InRange(Left(tiles[2], dimensional.Body) - Left(tiles[0], dimensional.Body), TileWidth - 0.5, TileWidth + 2.5);
+                    Assert.InRange(
+                        Left(tiles[2], dimensional.Body) - Left(tiles[0], dimensional.Body),
+                        TileWidth - 0.5,
+                        TileWidth + 2.5
+                    );
 
                     // The three of DCDISPLAY have text and stand in a column 24 apart.
                     List<FrameworkElement> bars = controls.Skip(6).ToList();

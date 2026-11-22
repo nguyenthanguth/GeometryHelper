@@ -3242,18 +3242,320 @@
             </DataTemplate>
 
             <!--
-            The panels of the View tab: Navigate, Views, Model Viewports, Interface and the drafting toggles of the status bar. As
-            the window narrows, Drafting and Navigate draw their small buttons by their icons, then Interface, Model Viewports and
-            Views collapse. Navigate and Drafting never collapse.
+            The View tab, as AutoCAD 2021's: Viewport Tools (UCS Icon), Named Views (the named view box, New View, View Manager), Model
+            Viewports (Viewport Configuration, Named, Join, Restore), Palettes (Tool Palettes, Properties and the tiles), Interface (Drawings,
+            the launcher of Global settings), then ours: Navigate, Views and the drafting toggles of the status bar. Ours shrink first, then
+            AutoCAD's panels below 1 100: Drafting and Navigate draw their small buttons by their icons, Views collapses, then Drafting and
+            Navigate collapse, Named Views and Model Viewports go medium and Interface collapses. Viewport Tools and Palettes never shrink.
+            The widths are those of the content: no panel has a floor of its own.
             -->
             <DataTemplate DataType="{x:Type local:ViewRibbonViewModel}">
-                <local:RibbonStrip Steps="Drafting:Medium; Navigate:Medium; Interface:Collapsed; Model Viewports:Collapsed; Views:Collapsed">
+                <local:RibbonStrip Steps="Drafting:Medium; Navigate:Medium; Views:Collapsed; Drafting:Collapsed; Navigate:Collapsed; Named Views:Medium; Model Viewports:Medium; Interface:Collapsed">
+                    <local:RibbonStrip.Resources>
+                        <!--
+                        The box of Named Views: 22 high, 200 wide as AutoCAD's, 160 in a medium panel.
+                        -->
+                        <Style x:Key="NamedViewBox" TargetType="ComboBox" BasedOn="{StaticResource GhComboBox}">
+                            <Setter Property="Width" Value="200" />
+                            <Setter Property="Height" Value="22" />
+                            <Setter Property="Margin" Value="0,0,0,2" />
+                            <Setter Property="HorizontalAlignment" Value="Left" />
+                            <Setter Property="VerticalAlignment" Value="Top" />
+                            <Style.Triggers>
+                                <Trigger Property="local:RibbonPanel.IsMedium" Value="True">
+                                    <Setter Property="Width" Value="160" />
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                        <!--
+                        The label of the Viewport Configuration split: wide enough for Configuration (69 pixels), which the 66 of a big split's label
+                        broke inside the word; two lines, the word whole.
+                        -->
+                        <DataTemplate x:Key="ViewportConfigurationLabel">
+                            <StackPanel>
+                                <TextBlock
+                                    Text="{Binding}"
+                                    HorizontalAlignment="Center"
+                                    MaxWidth="80"
+                                    TextWrapping="Wrap"
+                                    TextAlignment="Center"
+                                />
+                                <TextBlock
+                                    Text="▾"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    HorizontalAlignment="Center"
+                                />
+                            </StackPanel>
+                        </DataTemplate>
+                    </local:RibbonStrip.Resources>
+                    <local:RibbonPanel Title="Viewport Tools" Icon="{StaticResource GhIconUcsIcon}">
+                        <ToggleButton
+                            Style="{StaticResource BigToggle}"
+                            Tag="{StaticResource GhIconUcsIcon}"
+                            Content="UCS Icon"
+                            IsEnabled="{Binding Model.HasDocument}"
+                            IsChecked="{Binding Model.IsUcsIconOn, Mode=TwoWay}"
+                            Margin="0"
+                            ToolTip="UCS Icon (UCSICON): lit while the icon is shown; a click turns it on or off"
+                        />
+                    </local:RibbonPanel>
+                    <local:RibbonPanel Title="Named Views" Icon="{StaticResource GhIconViewManager}">
+                        <WrapPanel Style="{StaticResource SmallColumn}">
+                            <ComboBox
+                                Style="{StaticResource NamedViewBox}"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                ItemsSource="{Binding Model.NamedViewItems}"
+                                SelectedItem="{Binding Model.SelectedNamedView, Mode=TwoWay}"
+                                AutomationProperties.Name="Named Views"
+                                ToolTip="Named Views: restore a saved view (-VIEW, Restore)"
+                            />
+                            <Button
+                                Style="{StaticResource SmallButton}"
+                                Tag="{StaticResource GhIconNewView}"
+                                Content="New View"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Command="{Binding Model.NewViewCommand}"
+                                CommandParameter="VIEW New"
+                                ToolTip="New View (VIEW, New): save the view on screen, or a window, under a name"
+                            />
+                            <Button
+                                Style="{StaticResource SmallButton}"
+                                Tag="{StaticResource GhIconViewManager}"
+                                Content="View Manager"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Command="{Binding Model.StartCommandCommand}"
+                                CommandParameter="VIEW"
+                                ToolTip="View Manager (VIEW): the named views, their properties and Set Current"
+                            />
+                        </WrapPanel>
+                    </local:RibbonPanel>
+                    <local:RibbonPanel Title="Model Viewports" Icon="{StaticResource GhIconViewports}">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Style="{StaticResource BigSplitFrame}">
+                                <StackPanel>
+                                    <Button
+                                        Style="{StaticResource BigSplitTop}"
+                                        Tag="{StaticResource GhIconViewports}"
+                                        Content="Viewport Configuration"
+                                        IsEnabled="{Binding Model.HasDocument}"
+                                        Command="{Binding Model.StartCommandCommand}"
+                                        CommandParameter="VPORTS"
+                                        ToolTip="Viewport Configuration (VPORTS): the Viewports dialog, on its New Viewports tab"
+                                    />
+                                    <Button
+                                        Style="{StaticResource BigSplitArrow}"
+                                        Content="{Binding Children[0].Content, RelativeSource={RelativeSource AncestorType=StackPanel}}"
+                                        ContentTemplate="{StaticResource ViewportConfigurationLabel}"
+                                        IsEnabled="{Binding Model.HasDocument}"
+                                        Click="OnRibbonMenu"
+                                        ToolTip="Viewport Configuration: Single, Two, Three or Four viewports of model space"
+                                    >
+                                        <Button.ContextMenu>
+                                            <ContextMenu
+                                                Style="{StaticResource GhContextMenu}"
+                                                DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                                            >
+                                                <MenuItem
+                                                    Style="{StaticResource GhMenuItem}"
+                                                    Header="Single"
+                                                    Tag="{StaticResource GhIconVpSingle}"
+                                                    Command="{Binding Model.StartCommandWithOptionCommand}"
+                                                    CommandParameter="-VPORTS SI"
+                                                    ToolTip="Single (-VPORTS, SIngle): one viewport again"
+                                                />
+                                                <MenuItem
+                                                    Style="{StaticResource GhMenuItem}"
+                                                    Header="Two: Vertical"
+                                                    Tag="{StaticResource GhIconVpTwoVertical}"
+                                                    Command="{Binding Model.StartCommandWithOptionCommand}"
+                                                    CommandParameter="-VPORTS 2 Vertical"
+                                                    ToolTip="Two: Vertical (-VPORTS 2, Vertical)"
+                                                />
+                                                <MenuItem
+                                                    Style="{StaticResource GhMenuItem}"
+                                                    Header="Two: Horizontal"
+                                                    Tag="{StaticResource GhIconVpTwoHorizontal}"
+                                                    Command="{Binding Model.StartCommandWithOptionCommand}"
+                                                    CommandParameter="-VPORTS 2 Horizontal"
+                                                    ToolTip="Two: Horizontal (-VPORTS 2, Horizontal)"
+                                                />
+                                                <MenuItem
+                                                    Style="{StaticResource GhMenuItem}"
+                                                    Header="Three: Right"
+                                                    Tag="{StaticResource GhIconVpThreeRight}"
+                                                    Command="{Binding Model.StartCommandWithOptionCommand}"
+                                                    CommandParameter="-VPORTS 3 Right"
+                                                    ToolTip="Three: Right (-VPORTS 3, Right)"
+                                                />
+                                                <MenuItem
+                                                    Style="{StaticResource GhMenuItem}"
+                                                    Header="Three: Left"
+                                                    Tag="{StaticResource GhIconVpThreeLeft}"
+                                                    Command="{Binding Model.StartCommandWithOptionCommand}"
+                                                    CommandParameter="-VPORTS 3 Left"
+                                                    ToolTip="Three: Left (-VPORTS 3, Left)"
+                                                />
+                                                <MenuItem
+                                                    Style="{StaticResource GhMenuItem}"
+                                                    Header="Three: Above"
+                                                    Tag="{StaticResource GhIconVpThreeAbove}"
+                                                    Command="{Binding Model.StartCommandWithOptionCommand}"
+                                                    CommandParameter="-VPORTS 3 Above"
+                                                    ToolTip="Three: Above (-VPORTS 3, Above)"
+                                                />
+                                                <MenuItem
+                                                    Style="{StaticResource GhMenuItem}"
+                                                    Header="Three: Below"
+                                                    Tag="{StaticResource GhIconVpThreeBelow}"
+                                                    Command="{Binding Model.StartCommandWithOptionCommand}"
+                                                    CommandParameter="-VPORTS 3 Below"
+                                                    ToolTip="Three: Below (-VPORTS 3, Below)"
+                                                />
+                                                <MenuItem
+                                                    Style="{StaticResource GhMenuItem}"
+                                                    Header="Three: Vertical"
+                                                    Tag="{StaticResource GhIconVpThreeVertical}"
+                                                    Command="{Binding Model.StartCommandWithOptionCommand}"
+                                                    CommandParameter="-VPORTS 3 Vertical"
+                                                    ToolTip="Three: Vertical (-VPORTS 3, Vertical)"
+                                                />
+                                                <MenuItem
+                                                    Style="{StaticResource GhMenuItem}"
+                                                    Header="Three: Horizontal"
+                                                    Tag="{StaticResource GhIconVpThreeHorizontal}"
+                                                    Command="{Binding Model.StartCommandWithOptionCommand}"
+                                                    CommandParameter="-VPORTS 3 Horizontal"
+                                                    ToolTip="Three: Horizontal (-VPORTS 3, Horizontal)"
+                                                />
+                                                <MenuItem
+                                                    Style="{StaticResource GhMenuItem}"
+                                                    Header="Four: Equal"
+                                                    Tag="{StaticResource GhIconVpFourEqual}"
+                                                    Command="{Binding Model.StartCommandWithOptionCommand}"
+                                                    CommandParameter="-VPORTS 4"
+                                                    ToolTip="Four: Equal (-VPORTS 4)"
+                                                />
+                                            </ContextMenu>
+                                        </Button.ContextMenu>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+                            <WrapPanel Style="{StaticResource SmallColumn}">
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconVpNamed}"
+                                    Content="Named"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.NamedViewportsCommand}"
+                                    CommandParameter="VPORTS Named"
+                                    ToolTip="Named (VPORTS, Named Viewports): the saved configurations"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconVpJoin}"
+                                    Content="Join"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandWithOptionCommand}"
+                                    CommandParameter="-VPORTS Join"
+                                    ToolTip="Join (-VPORTS, Join): two viewports made one"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconVpRestore}"
+                                    Content="Restore"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandWithOptionCommand}"
+                                    CommandParameter="-VPORTS Restore"
+                                    ToolTip="Restore (-VPORTS, Restore): a saved configuration brought back"
+                                />
+                            </WrapPanel>
+                        </StackPanel>
+                    </local:RibbonPanel>
+                    <local:RibbonPanel Title="Palettes" Icon="{StaticResource GhIconToolPalette}">
+                        <StackPanel Orientation="Horizontal">
+                            <Button
+                                Style="{StaticResource BigButton}"
+                                Tag="{StaticResource GhIconToolPalette}"
+                                Content="Tool Palettes"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Command="{Binding Model.StartCommandCommand}"
+                                CommandParameter="TOOLPALETTES"
+                                ToolTip="Tool Palettes (TOOLPALETTES): the palettes of tools to draw, hatch and insert blocks with"
+                            />
+                            <ToggleButton
+                                Style="{StaticResource BigToggle}"
+                                Tag="{StaticResource GhIconPropertiesPalette}"
+                                Content="Properties"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                IsChecked="{Binding Model.IsPropertiesPanelShown, Mode=TwoWay}"
+                                ToolTip="Properties (PROPERTIES, PROPERTIESCLOSE): lit while the Properties panel is shown"
+                            />
+                            <WrapPanel Style="{StaticResource SmallColumn}">
+                                <ToggleButton
+                                    Style="{StaticResource TileToggle}"
+                                    Tag="{StaticResource GhIconCommandLine}"
+                                    Content="Command Line"
+                                    IsChecked="{Binding Model.IsCommandLineShown, Mode=TwoWay}"
+                                    ToolTip="Command Line (COMMANDLINE, COMMANDLINEHIDE): lit while the command line is shown"
+                                />
+                                <Button
+                                    Style="{StaticResource TileButton}"
+                                    Tag="{StaticResource GhIconLayers}"
+                                    Content="Layer Properties"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="LAYER"
+                                    ToolTip="Layer Properties (LAYER)"
+                                />
+                                <Button
+                                    Style="{StaticResource TileButton}"
+                                    Tag="{StaticResource GhIconDesignCenter}"
+                                    Content="Design Center"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="ADCENTER"
+                                    ToolTip="Design Center (ADCENTER)"
+                                />
+                                <Border Width="24" Height="22" Margin="0,0,0,2" />
+                                <Button
+                                    Style="{StaticResource TileButton}"
+                                    Tag="{StaticResource GhIconQuickCalc}"
+                                    Content="Quick Calculator"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="QUICKCALC"
+                                    ToolTip="Quick Calculator (QUICKCALC)"
+                                />
+                                <Button
+                                    Style="{StaticResource TileButton}"
+                                    Tag="{StaticResource GhIconExternalReferences}"
+                                    Content="External References"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="EXTERNALREFERENCES"
+                                    ToolTip="External References (EXTERNALREFERENCES)"
+                                />
+                            </WrapPanel>
+                        </StackPanel>
+                    </local:RibbonPanel>
+                    <!-- A floor (D1317): the title and its launcher need 79, as the board draws it, where the one toggle is 60. -->
                     <local:RibbonPanel
-                        Title="Navigate"
-                        MinFullWidth="250"
-                        MinMediumWidth="128"
-                        Icon="{StaticResource GhIconExtents}"
+                        Title="Interface"
+                        MinFullWidth="79"
+                        Icon="{StaticResource GhIconPanelLeft}"
+                        Launcher="{Binding Model.AppearanceSettingsCommand}"
+                        LauncherToolTip="Global settings: Appearance"
                     >
+                        <ToggleButton
+                            Style="{StaticResource BigToggle}"
+                            Tag="{StaticResource GhIconPanelLeft}"
+                            Content="Drawings"
+                            IsChecked="{Binding Model.IsFileListShown, Mode=TwoWay}"
+                            Margin="0"
+                            ToolTip="Drawings: the list of open drawings, shown or hidden"
+                        />
+                    </local:RibbonPanel>
+                    <local:RibbonPanel Title="Navigate" Icon="{StaticResource GhIconExtents}">
                         <StackPanel Orientation="Horizontal">
                             <Button
                                 Style="{StaticResource BigButton}"
@@ -3292,6 +3594,8 @@
                                     CommandParameter="PAN"
                                     ToolTip="PAN"
                                 />
+                            </WrapPanel>
+                            <WrapPanel Style="{StaticResource SmallColumn}">
                                 <Button
                                     Style="{StaticResource NarrowSmallButton}"
                                     Tag="{StaticResource GhIconZoomIn}"
@@ -3322,12 +3626,7 @@
                             </WrapPanel>
                         </StackPanel>
                     </local:RibbonPanel>
-                    <local:RibbonPanel
-                        Title="Views"
-                        MinFullWidth="130"
-                        MinCollapsedWidth="56"
-                        Icon="{StaticResource GhIconModel}"
-                    >
+                    <local:RibbonPanel Title="Views" Icon="{StaticResource GhIconModel}">
                         <StackPanel Orientation="Horizontal">
                             <Button
                                 Style="{StaticResource BigButton}"
@@ -3343,63 +3642,12 @@
                                 Content="Layout"
                                 IsEnabled="{Binding Model.HasDocument}"
                                 Command="{Binding LayoutCommand}"
+                                Margin="0"
                                 ToolTip="Show the first layout"
-                                Margin="0"
                             />
                         </StackPanel>
                     </local:RibbonPanel>
-                    <!-- Model Viewports, as AutoCAD 2021's: Viewport Configuration, the Viewports dialog of VPORTS (design RibbonBodies). -->
-                    <local:RibbonPanel
-                        Title="Model Viewports"
-                        MinFullWidth="96"
-                        MinCollapsedWidth="64"
-                        Icon="{StaticResource GhIconViewports}"
-                    >
-                        <Button
-                            Style="{StaticResource BigButton}"
-                            Width="80"
-                            Padding="1,4"
-                            Margin="0"
-                            Tag="{StaticResource GhIconViewports}"
-                            Content="Viewport Configuration"
-                            IsEnabled="{Binding Model.HasDocument}"
-                            Command="{Binding RunCommand}"
-                            CommandParameter="VPORTS"
-                            ToolTip="Viewport Configuration (VPORTS)"
-                        />
-                    </local:RibbonPanel>
-                    <local:RibbonPanel
-                        Title="Interface"
-                        MinFullWidth="130"
-                        MinCollapsedWidth="64"
-                        Icon="{StaticResource GhIconPanelLeft}"
-                    >
-                        <StackPanel Orientation="Horizontal">
-                            <ToggleButton
-                                Style="{StaticResource BigToggle}"
-                                Padding="3,4"
-                                Tag="{StaticResource GhIconPanelLeft}"
-                                Content="Drawings"
-                                IsChecked="{Binding Model.IsFileListShown, Mode=TwoWay}"
-                                ToolTip="Show or hide the DRAWINGS list"
-                            />
-                            <ToggleButton
-                                Style="{StaticResource BigToggle}"
-                                Padding="3,4"
-                                Tag="{StaticResource GhIconPanelRight}"
-                                Content="Properties"
-                                IsChecked="{Binding Model.IsPropertiesPanelShown, Mode=TwoWay}"
-                                ToolTip="Show or hide Properties (PROPERTIES, PROPERTIESCLOSE)"
-                                Margin="0"
-                            />
-                        </StackPanel>
-                    </local:RibbonPanel>
-                    <local:RibbonPanel
-                        Title="Drafting"
-                        MinFullWidth="160"
-                        MinMediumWidth="64"
-                        Icon="{StaticResource GhIconGrid}"
-                    >
+                    <local:RibbonPanel Title="Drafting" Icon="{StaticResource GhIconGrid}">
                         <WrapPanel Style="{StaticResource SmallColumn}">
                             <ToggleButton
                                 Style="{StaticResource SmallToggle}"
@@ -3442,23 +3690,31 @@
             </DataTemplate>
 
             <!--
-            The panels of the Output tab (design OutputTab), AutoCAD 2021's basics: Plot (Plot, Page Setup Manager, Preview, Plot
-            Stamp), Export to DWF/PDF (Export PDF, Export) and Import. Some 600 wide, so no panel shrinks: the strip has no steps.
-            -->
-            <!--
-            Parametric, AutoCAD 2021's tab for what the presenter has: Geometric (Auto Constrain; the twelve constraints in four
-            columns of three; Show All, Hide All and Show/Hide of the constraint bars; the launcher opens Constraint Settings),
-            Dimensional (Linear, Aligned, Angular, Radius, Diameter, Convert, Constraint Form, Show Dynamic) and Manage (Delete
-            Constraints, Parameters Manager, Constraint Settings).
+            Parametric, as AutoCAD 2021's: Geometric (Auto Constrain; the twelve constraints as three rows of four tiles; a separator;
+            Show/Hide, Show All and Hide All of the constraint bars; the launcher opens Constraint Settings on its Geometric tab), Dimensional
+            (Linear, a split of Linear, Horizontal and Vertical; Aligned; Radius, Diameter, Angular and Convert as tiles; Show/Hide, Show All
+            and Hide All of the dynamic constraints; the slide-out holds the two constraint modes; the launcher opens Constraint Settings on its
+            Dimensional tab) and Manage (Delete Constraints, Parameters Manager). About 630 wide, so no panel shrinks: the strip has no steps.
             -->
             <DataTemplate DataType="{x:Type local:ParametricRibbonViewModel}">
                 <local:RibbonStrip>
+                    <local:RibbonStrip.Resources>
+                        <!--
+                        The line between the tiles of a panel and the buttons with text after them: 1 wide, 68 high.
+                        -->
+                        <Style x:Key="BodySeparator" TargetType="Border">
+                            <Setter Property="Width" Value="1" />
+                            <Setter Property="Height" Value="68" />
+                            <Setter Property="Margin" Value="3,2,3,0" />
+                            <Setter Property="VerticalAlignment" Value="Top" />
+                            <Setter Property="Background" Value="{StaticResource GhBorder}" />
+                        </Style>
+                    </local:RibbonStrip.Resources>
                     <local:RibbonPanel
                         Title="Geometric"
-                        MinFullWidth="740"
-                        Icon="{StaticResource GhIconGcCoincident}"
+                        Icon="{StaticResource GhIconAutoConstrain}"
                         Launcher="{Binding SettingsCommand}"
-                        LauncherToolTip="Constraint Settings (CONSTRAINTSETTINGS)"
+                        LauncherToolTip="Constraint Settings, Geometric (CONSTRAINTSETTINGS)"
                     >
                         <StackPanel Orientation="Horizontal">
                             <Button
@@ -3472,7 +3728,7 @@
                             />
                             <WrapPanel Style="{StaticResource SmallColumn}">
                                 <Button
-                                    Style="{StaticResource SmallButton}"
+                                    Style="{StaticResource TileButton}"
                                     Tag="{StaticResource GhIconGcCoincident}"
                                     Content="Coincident"
                                     IsEnabled="{Binding Model.HasDocument}"
@@ -3481,36 +3737,7 @@
                                     ToolTip="Coincident (GCCOINCIDENT): two points on one place, or a point on an object"
                                 />
                                 <Button
-                                    Style="{StaticResource SmallButton}"
-                                    Tag="{StaticResource GhIconGcCollinear}"
-                                    Content="Collinear"
-                                    IsEnabled="{Binding Model.HasDocument}"
-                                    Command="{Binding Model.StartCommandCommand}"
-                                    CommandParameter="GCCOLLINEAR"
-                                    ToolTip="Collinear (GCCOLLINEAR): lines on one line"
-                                />
-                                <Button
-                                    Style="{StaticResource SmallButton}"
-                                    Tag="{StaticResource GhIconGcConcentric}"
-                                    Content="Concentric"
-                                    IsEnabled="{Binding Model.HasDocument}"
-                                    Command="{Binding Model.StartCommandCommand}"
-                                    CommandParameter="GCCONCENTRIC"
-                                    ToolTip="Concentric (GCCONCENTRIC): circles or arcs about one centre"
-                                />
-                            </WrapPanel>
-                            <WrapPanel Style="{StaticResource SmallColumn}">
-                                <Button
-                                    Style="{StaticResource SmallButton}"
-                                    Tag="{StaticResource GhIconGcFix}"
-                                    Content="Fix"
-                                    IsEnabled="{Binding Model.HasDocument}"
-                                    Command="{Binding Model.StartCommandCommand}"
-                                    CommandParameter="GCFIX"
-                                    ToolTip="Fix (GCFIX): points held where they are"
-                                />
-                                <Button
-                                    Style="{StaticResource SmallButton}"
+                                    Style="{StaticResource TileButton}"
                                     Tag="{StaticResource GhIconGcParallel}"
                                     Content="Parallel"
                                     IsEnabled="{Binding Model.HasDocument}"
@@ -3519,36 +3746,7 @@
                                     ToolTip="Parallel (GCPARALLEL): lines with one direction"
                                 />
                                 <Button
-                                    Style="{StaticResource SmallButton}"
-                                    Tag="{StaticResource GhIconGcPerpendicular}"
-                                    Content="Perpendicular"
-                                    IsEnabled="{Binding Model.HasDocument}"
-                                    Command="{Binding Model.StartCommandCommand}"
-                                    CommandParameter="GCPERPENDICULAR"
-                                    ToolTip="Perpendicular (GCPERPENDICULAR): lines at a right angle"
-                                />
-                            </WrapPanel>
-                            <WrapPanel Style="{StaticResource SmallColumn}">
-                                <Button
-                                    Style="{StaticResource SmallButton}"
-                                    Tag="{StaticResource GhIconGcHorizontal}"
-                                    Content="Horizontal"
-                                    IsEnabled="{Binding Model.HasDocument}"
-                                    Command="{Binding Model.StartCommandCommand}"
-                                    CommandParameter="GCHORIZONTAL"
-                                    ToolTip="Horizontal (GCHORIZONTAL): a line, or two points, level with the x axis"
-                                />
-                                <Button
-                                    Style="{StaticResource SmallButton}"
-                                    Tag="{StaticResource GhIconGcVertical}"
-                                    Content="Vertical"
-                                    IsEnabled="{Binding Model.HasDocument}"
-                                    Command="{Binding Model.StartCommandCommand}"
-                                    CommandParameter="GCVERTICAL"
-                                    ToolTip="Vertical (GCVERTICAL): a line, or two points, level with the y axis"
-                                />
-                                <Button
-                                    Style="{StaticResource SmallButton}"
+                                    Style="{StaticResource TileButton}"
                                     Tag="{StaticResource GhIconGcTangent}"
                                     Content="Tangent"
                                     IsEnabled="{Binding Model.HasDocument}"
@@ -3556,10 +3754,26 @@
                                     CommandParameter="GCTANGENT"
                                     ToolTip="Tangent (GCTANGENT): a line and a circle, or two circles, touching"
                                 />
-                            </WrapPanel>
-                            <WrapPanel Style="{StaticResource SmallColumn}">
                                 <Button
-                                    Style="{StaticResource SmallButton}"
+                                    Style="{StaticResource TileButton}"
+                                    Tag="{StaticResource GhIconGcCollinear}"
+                                    Content="Collinear"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="GCCOLLINEAR"
+                                    ToolTip="Collinear (GCCOLLINEAR): lines on one line"
+                                />
+                                <Button
+                                    Style="{StaticResource TileButton}"
+                                    Tag="{StaticResource GhIconGcPerpendicular}"
+                                    Content="Perpendicular"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="GCPERPENDICULAR"
+                                    ToolTip="Perpendicular (GCPERPENDICULAR): lines at a right angle"
+                                />
+                                <Button
+                                    Style="{StaticResource TileButton}"
                                     Tag="{StaticResource GhIconGcSmooth}"
                                     Content="Smooth"
                                     IsEnabled="{Binding Model.HasDocument}"
@@ -3568,7 +3782,25 @@
                                     ToolTip="Smooth (GCSMOOTH): a spline joined smoothly to a line; the presenter does not solve splines yet"
                                 />
                                 <Button
-                                    Style="{StaticResource SmallButton}"
+                                    Style="{StaticResource TileButton}"
+                                    Tag="{StaticResource GhIconGcConcentric}"
+                                    Content="Concentric"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="GCCONCENTRIC"
+                                    ToolTip="Concentric (GCCONCENTRIC): circles or arcs about one centre"
+                                />
+                                <Button
+                                    Style="{StaticResource TileButton}"
+                                    Tag="{StaticResource GhIconGcHorizontal}"
+                                    Content="Horizontal"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="GCHORIZONTAL"
+                                    ToolTip="Horizontal (GCHORIZONTAL): a line, or two points, level with the x axis"
+                                />
+                                <Button
+                                    Style="{StaticResource TileButton}"
                                     Tag="{StaticResource GhIconGcSymmetric}"
                                     Content="Symmetric"
                                     IsEnabled="{Binding Model.HasDocument}"
@@ -3577,7 +3809,25 @@
                                     ToolTip="Symmetric (GCSYMMETRIC): two points or objects mirror images about a line"
                                 />
                                 <Button
-                                    Style="{StaticResource SmallButton}"
+                                    Style="{StaticResource TileButton}"
+                                    Tag="{StaticResource GhIconGcFix}"
+                                    Content="Fix"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="GCFIX"
+                                    ToolTip="Fix (GCFIX): points held where they are"
+                                />
+                                <Button
+                                    Style="{StaticResource TileButton}"
+                                    Tag="{StaticResource GhIconGcVertical}"
+                                    Content="Vertical"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="GCVERTICAL"
+                                    ToolTip="Vertical (GCVERTICAL): a line, or two points, level with the y axis"
+                                />
+                                <Button
+                                    Style="{StaticResource TileButton}"
                                     Tag="{StaticResource GhIconGcEqual}"
                                     Content="Equal"
                                     IsEnabled="{Binding Model.HasDocument}"
@@ -3586,23 +3836,8 @@
                                     ToolTip="Equal (GCEQUAL): lines of one length, circles or arcs of one radius"
                                 />
                             </WrapPanel>
-                            <WrapPanel Style="{StaticResource SmallColumn}" Margin="8,2,0,0">
-                                <Button
-                                    Style="{StaticResource SmallButton}"
-                                    Tag="{StaticResource GhIconBarShowAll}"
-                                    Content="Show All"
-                                    IsEnabled="{Binding Model.HasDocument}"
-                                    Command="{Binding ShowAllCommand}"
-                                    ToolTip="Show All: the constraint bars of every constrained object"
-                                />
-                                <Button
-                                    Style="{StaticResource SmallButton}"
-                                    Tag="{StaticResource GhIconBarHideAll}"
-                                    Content="Hide All"
-                                    IsEnabled="{Binding Model.HasDocument}"
-                                    Command="{Binding HideAllCommand}"
-                                    ToolTip="Hide All: the constraint bars of every constrained object"
-                                />
+                            <Border Style="{StaticResource BodySeparator}" />
+                            <WrapPanel Style="{StaticResource SmallColumn}">
                                 <Button
                                     Style="{StaticResource SmallButton}"
                                     Tag="{StaticResource GhIconBarToggle}"
@@ -3612,92 +3847,200 @@
                                     CommandParameter="CONSTRAINTBAR"
                                     ToolTip="Show/Hide (CONSTRAINTBAR): the bars of the objects selected shown, hidden or put back"
                                 />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconBarShowAll}"
+                                    Content="Show All"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding ShowAllCommand}"
+                                    ToolTip="Show All (CONSTRAINTBAR, Showall): the constraint bars of every constrained object"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconBarHideAll}"
+                                    Content="Hide All"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding HideAllCommand}"
+                                    ToolTip="Hide All (CONSTRAINTBAR, Hideall): the constraint bars of every constrained object"
+                                />
                             </WrapPanel>
                         </StackPanel>
                     </local:RibbonPanel>
-                    <local:RibbonPanel Title="Dimensional" MinFullWidth="560" Icon="{StaticResource GhIconDcLinear}">
+                    <local:RibbonPanel
+                        Title="Dimensional"
+                        Icon="{StaticResource GhIconDcLinear}"
+                        Launcher="{Binding DimensionalSettingsCommand}"
+                        LauncherToolTip="Constraint Settings, Dimensional (CONSTRAINTSETTINGS)"
+                    >
+                        <local:RibbonPanel.Header>
+                            <ToggleButton
+                                Style="{StaticResource SlideOutTitle}"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Content="Dimensional ▾"
+                                ToolTip="More of Dimensional: Dynamic Constraint Mode and Annotational Constraint Mode, the form new dimensional constraints take (CCONSTRAINTFORM)"
+                            />
+                        </local:RibbonPanel.Header>
+                        <local:RibbonPanel.SlideOut>
+                            <StackPanel>
+                                <ToggleButton
+                                    Style="{StaticResource SmallToggle}"
+                                    Tag="{StaticResource GhIconDcModeDynamic}"
+                                    Content="Dynamic Constraint Mode"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    IsChecked="{Binding IsDynamicMode, Mode=TwoWay}"
+                                    ToolTip="Dynamic Constraint Mode (CCONSTRAINTFORM 0): new dimensional constraints are dynamic, shown only while their objects are selected"
+                                />
+                                <ToggleButton
+                                    Style="{StaticResource SmallToggle}"
+                                    Tag="{StaticResource GhIconDcModeAnnotational}"
+                                    Content="Annotational Constraint Mode"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    IsChecked="{Binding IsAnnotationalMode, Mode=TwoWay}"
+                                    ToolTip="Annotational Constraint Mode (CCONSTRAINTFORM 1): new dimensional constraints are annotational, always shown"
+                                />
+                            </StackPanel>
+                        </local:RibbonPanel.SlideOut>
                         <StackPanel Orientation="Horizontal">
+                            <Border Style="{StaticResource BigSplitFrame}">
+                                <StackPanel>
+                                    <Button
+                                        Style="{StaticResource BigSplitTop}"
+                                        Tag="{StaticResource GhIconDcLinear}"
+                                        Content="Linear"
+                                        IsEnabled="{Binding Model.HasDocument}"
+                                        Command="{Binding Model.StartCommandCommand}"
+                                        CommandParameter="DCLINEAR"
+                                        ToolTip="Linear (DCLINEAR): a horizontal or vertical distance between two points, named d1, d2 ..."
+                                    />
+                                    <Button
+                                        Style="{StaticResource BigSplitArrow}"
+                                        Content="{Binding Children[0].Content, RelativeSource={RelativeSource AncestorType=StackPanel}}"
+                                        ContentTemplate="{StaticResource BigSplitLabel}"
+                                        IsEnabled="{Binding Model.HasDocument}"
+                                        Click="OnRibbonMenu"
+                                        ToolTip="Linear: Linear, Horizontal, Vertical"
+                                    >
+                                        <Button.ContextMenu>
+                                            <ContextMenu
+                                                Style="{StaticResource GhContextMenu}"
+                                                DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                                            >
+                                                <MenuItem
+                                                    Style="{StaticResource GhMenuItem}"
+                                                    Header="Linear"
+                                                    Tag="{StaticResource GhIconDcLinear}"
+                                                    Click="OnSplitChoice"
+                                                    Command="{Binding Model.StartCommandCommand}"
+                                                    CommandParameter="DCLINEAR"
+                                                    ToolTip="Linear (DCLINEAR): a horizontal or vertical distance between two points, named d1, d2 ..."
+                                                />
+                                                <MenuItem
+                                                    Style="{StaticResource GhMenuItem}"
+                                                    Header="Horizontal"
+                                                    Tag="{StaticResource GhIconDcHorizontal}"
+                                                    Click="OnSplitChoice"
+                                                    Command="{Binding Model.StartCommandCommand}"
+                                                    CommandParameter="DCHORIZONTAL"
+                                                    ToolTip="Horizontal (DCHORIZONTAL): the distance between two points along the x axis"
+                                                />
+                                                <MenuItem
+                                                    Style="{StaticResource GhMenuItem}"
+                                                    Header="Vertical"
+                                                    Tag="{StaticResource GhIconDcVertical}"
+                                                    Click="OnSplitChoice"
+                                                    Command="{Binding Model.StartCommandCommand}"
+                                                    CommandParameter="DCVERTICAL"
+                                                    ToolTip="Vertical (DCVERTICAL): the distance between two points along the y axis"
+                                                />
+                                            </ContextMenu>
+                                        </Button.ContextMenu>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
                             <Button
                                 Style="{StaticResource BigButton}"
-                                Tag="{StaticResource GhIconDcLinear}"
-                                Content="Linear"
+                                Tag="{StaticResource GhIconDcAligned}"
+                                Content="Aligned"
                                 IsEnabled="{Binding Model.HasDocument}"
                                 Command="{Binding Model.StartCommandCommand}"
-                                CommandParameter="DCLINEAR"
-                                ToolTip="Linear (DCLINEAR): a horizontal or vertical distance between two points, named d1, d2 ..."
+                                CommandParameter="DCALIGNED"
+                                ToolTip="Aligned (DCALIGNED): the distance between two points"
                             />
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+                                <StackPanel>
+                                    <Button
+                                        Style="{StaticResource TileButton}"
+                                        Tag="{StaticResource GhIconDcRadius}"
+                                        Content="Radius"
+                                        IsEnabled="{Binding Model.HasDocument}"
+                                        Command="{Binding Model.StartCommandCommand}"
+                                        CommandParameter="DCRADIUS"
+                                        ToolTip="Radius (DCRADIUS): the radius of a circle or arc, named rad1 ..."
+                                    />
+                                    <Button
+                                        Style="{StaticResource TileButton}"
+                                        Tag="{StaticResource GhIconDcAngular}"
+                                        Content="Angular"
+                                        IsEnabled="{Binding Model.HasDocument}"
+                                        Command="{Binding Model.StartCommandCommand}"
+                                        CommandParameter="DCANGULAR"
+                                        ToolTip="Angular (DCANGULAR): the angle from one line to another, named ang1 ..."
+                                    />
+                                </StackPanel>
+                                <StackPanel>
+                                    <Button
+                                        Style="{StaticResource TileButton}"
+                                        Tag="{StaticResource GhIconDcDiameter}"
+                                        Content="Diameter"
+                                        IsEnabled="{Binding Model.HasDocument}"
+                                        Command="{Binding Model.StartCommandCommand}"
+                                        CommandParameter="DCDIAMETER"
+                                        ToolTip="Diameter (DCDIAMETER): the diameter of a circle or arc, named dia1 ..."
+                                    />
+                                    <Button
+                                        Style="{StaticResource TileButton}"
+                                        Tag="{StaticResource GhIconDcConvert}"
+                                        Content="Convert"
+                                        IsEnabled="{Binding Model.HasDocument}"
+                                        Command="{Binding Model.StartCommandCommand}"
+                                        CommandParameter="DCCONVERT"
+                                        ToolTip="Convert (DCCONVERT): associative dimensions made dimensional constraints"
+                                    />
+                                </StackPanel>
+                            </StackPanel>
+                            <Border Style="{StaticResource BodySeparator}" />
                             <WrapPanel Style="{StaticResource SmallColumn}">
-                                <Button
-                                    Style="{StaticResource SmallButton}"
-                                    Tag="{StaticResource GhIconDcAligned}"
-                                    Content="Aligned"
-                                    IsEnabled="{Binding Model.HasDocument}"
-                                    Command="{Binding Model.StartCommandCommand}"
-                                    CommandParameter="DCALIGNED"
-                                    ToolTip="Aligned (DCALIGNED): the distance between two points"
-                                />
-                                <Button
-                                    Style="{StaticResource SmallButton}"
-                                    Tag="{StaticResource GhIconDcAngular}"
-                                    Content="Angular"
-                                    IsEnabled="{Binding Model.HasDocument}"
-                                    Command="{Binding Model.StartCommandCommand}"
-                                    CommandParameter="DCANGULAR"
-                                    ToolTip="Angular (DCANGULAR): the angle from one line to another, named ang1 ..."
-                                />
-                                <Button
-                                    Style="{StaticResource SmallButton}"
-                                    Tag="{StaticResource GhIconDcRadius}"
-                                    Content="Radius"
-                                    IsEnabled="{Binding Model.HasDocument}"
-                                    Command="{Binding Model.StartCommandCommand}"
-                                    CommandParameter="DCRADIUS"
-                                    ToolTip="Radius (DCRADIUS): the radius of a circle or arc, named rad1 ..."
-                                />
-                            </WrapPanel>
-                            <WrapPanel Style="{StaticResource SmallColumn}">
-                                <Button
-                                    Style="{StaticResource SmallButton}"
-                                    Tag="{StaticResource GhIconDcDiameter}"
-                                    Content="Diameter"
-                                    IsEnabled="{Binding Model.HasDocument}"
-                                    Command="{Binding Model.StartCommandCommand}"
-                                    CommandParameter="DCDIAMETER"
-                                    ToolTip="Diameter (DCDIAMETER): the diameter of a circle or arc, named dia1 ..."
-                                />
-                                <Button
-                                    Style="{StaticResource SmallButton}"
-                                    Tag="{StaticResource GhIconDcConvert}"
-                                    Content="Convert"
-                                    IsEnabled="{Binding Model.HasDocument}"
-                                    Command="{Binding Model.StartCommandCommand}"
-                                    CommandParameter="DCCONVERT"
-                                    ToolTip="Convert (DCCONVERT): associative dimensions made dimensional constraints"
-                                />
-                                <Button
-                                    Style="{StaticResource SmallButton}"
-                                    Tag="{StaticResource GhIconDcForm}"
-                                    Content="Constraint Form"
-                                    IsEnabled="{Binding Model.HasDocument}"
-                                    Command="{Binding Model.StartCommandCommand}"
-                                    CommandParameter="DCFORM"
-                                    ToolTip="Constraint Form (DCFORM): new dimensional constraints dynamic or annotational"
-                                />
-                            </WrapPanel>
-                            <WrapPanel Style="{StaticResource SmallColumn}" Margin="8,2,0,0">
                                 <Button
                                     Style="{StaticResource SmallButton}"
                                     Tag="{StaticResource GhIconDcShow}"
-                                    Content="Show Dynamic"
+                                    Content="Show/Hide"
                                     IsEnabled="{Binding Model.HasDocument}"
                                     Command="{Binding Model.StartCommandCommand}"
                                     CommandParameter="DCDISPLAY"
-                                    ToolTip="Show Dynamic Constraints (DCDISPLAY): the dynamic dimensional constraints of the objects selected shown or hidden"
+                                    ToolTip="Show/Hide (DCDISPLAY): the dynamic dimensional constraints of the objects selected shown or hidden"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconBarShowAll}"
+                                    Content="Show All"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding DisplayAllCommand}"
+                                    CommandParameter="DCDISPLAY Showall"
+                                    ToolTip="Show All (DCDISPLAY, Showall): the dynamic dimensional constraints of every object shown"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconBarHideAll}"
+                                    Content="Hide All"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding DisplayAllCommand}"
+                                    CommandParameter="DCDISPLAY Hideall"
+                                    ToolTip="Hide All (DCDISPLAY, Hideall): the dynamic dimensional constraints of every object hidden"
                                 />
                             </WrapPanel>
                         </StackPanel>
                     </local:RibbonPanel>
-                    <local:RibbonPanel Title="Manage" MinFullWidth="300" Icon="{StaticResource GhIconParameters}">
+                    <local:RibbonPanel Title="Manage" Icon="{StaticResource GhIconParameters}">
                         <StackPanel Orientation="Horizontal">
                             <Button
                                 Style="{StaticResource BigButton}"
@@ -3715,31 +4058,56 @@
                                 IsEnabled="{Binding Model.HasDocument}"
                                 Command="{Binding Model.StartCommandCommand}"
                                 CommandParameter="PARAMETERS"
-                                ToolTip="Parameters Manager (PARAMETERS): the names, expressions and values of the dimensional constraints, and user parameters"
-                            />
-                            <Button
-                                Style="{StaticResource BigButton}"
-                                Tag="{StaticResource GhIconGear}"
-                                Content="Constraint Settings"
-                                IsEnabled="{Binding Model.HasDocument}"
-                                Command="{Binding Model.StartCommandCommand}"
-                                CommandParameter="CONSTRAINTSETTINGS"
                                 Margin="0"
-                                ToolTip="Constraint Settings (CONSTRAINTSETTINGS): the bars, the form and the names, and what Auto Constrain applies"
+                                ToolTip="Parameters Manager (PARAMETERS): the named values the dimensional constraints use"
                             />
                         </StackPanel>
                     </local:RibbonPanel>
                 </local:RibbonStrip>
             </DataTemplate>
 
-            <!-- Manage: CAD Standards is parked (greyed with a tooltip saying so); the rest run commands. -->
+            <!--
+            Manage, as AutoCAD 2021's for what the presenter has: Customization (User Interface and Tool Palettes, Edit Aliases), Applications
+            (Load Application, Run Script), CAD Standards (Layer Translator; Check and Configure greyed with a tooltip saying they are not built
+            yet) and Cleanup (Purge, Find Non-Purgeable Items, Overkill, Audit, Recover). About 660 wide, so no panel shrinks: the strip has no steps.
+            -->
             <DataTemplate DataType="{x:Type local:ManageRibbonViewModel}">
                 <local:RibbonStrip>
-                    <local:RibbonPanel Title="Customization" MinFullWidth="270" Icon="{StaticResource GhIconGear}">
+                    <local:RibbonStrip.Resources>
+                        <!--
+                        A big button whose label may be as wide as Find Non-Purgeable (about 100 pixels), so that the label is two lines and no word is
+                        broken: the label of BigButton is 66 at most.
+                        -->
+                        <Style x:Key="WideLabelButton" TargetType="Button" BasedOn="{StaticResource BigButton}">
+                            <Setter Property="ContentTemplate">
+                                <Setter.Value>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <local:IconView
+                                                Size="28"
+                                                StrokeThickness="1.5"
+                                                Margin="0,2,0,2"
+                                                HorizontalAlignment="Center"
+                                                Data="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}"
+                                            />
+                                            <TextBlock
+                                                Text="{Binding}"
+                                                HorizontalAlignment="Center"
+                                                MaxWidth="110"
+                                                TextWrapping="Wrap"
+                                                TextAlignment="Center"
+                                            />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </local:RibbonStrip.Resources>
+                    <local:RibbonPanel Title="Customization" Icon="{StaticResource GhIconUserInterface}">
                         <StackPanel Orientation="Horizontal">
                             <Button
                                 Style="{StaticResource BigButton}"
-                                Tag="{StaticResource GhIconGear}"
+                                Tag="{StaticResource GhIconUserInterface}"
                                 Content="User Interface"
                                 IsEnabled="{Binding Model.HasDocument}"
                                 Command="{Binding Model.StartCommandCommand}"
@@ -3768,7 +4136,7 @@
                             </WrapPanel>
                         </StackPanel>
                     </local:RibbonPanel>
-                    <local:RibbonPanel Title="Applications" MinFullWidth="160" Icon="{StaticResource GhIconPluginLoad}">
+                    <local:RibbonPanel Title="Applications" Icon="{StaticResource GhIconPluginLoad}">
                         <StackPanel Orientation="Horizontal">
                             <Button
                                 Style="{StaticResource BigButton}"
@@ -3792,19 +4160,20 @@
                             />
                         </StackPanel>
                     </local:RibbonPanel>
-                    <local:RibbonPanel Title="CAD Standards" MinFullWidth="130" Icon="{StaticResource GhIconStandards}">
+                    <local:RibbonPanel Title="CAD Standards" Icon="{StaticResource GhIconStandards}">
                         <WrapPanel Style="{StaticResource SmallColumn}">
                             <Button
                                 Style="{StaticResource SmallButton}"
-                                Tag="{StaticResource GhIconStandards}"
-                                Content="Configure"
-                                IsEnabled="False"
-                                ToolTipService.ShowOnDisabled="True"
-                                ToolTip="Configure (STANDARDS): CAD standards are not built yet"
+                                Tag="{StaticResource GhIconLayerTranslator}"
+                                Content="Layer Translator"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Command="{Binding Model.StartCommandCommand}"
+                                CommandParameter="LAYTRANS"
+                                ToolTip="Layer Translator (LAYTRANS): map the layers of the drawing to those of a standards file and translate them"
                             />
                             <Button
                                 Style="{StaticResource SmallButton}"
-                                Tag="{StaticResource GhIconCheckSpelling}"
+                                Tag="{StaticResource GhIconStandardsCheck}"
                                 Content="Check"
                                 IsEnabled="False"
                                 ToolTipService.ShowOnDisabled="True"
@@ -3812,25 +4181,32 @@
                             />
                             <Button
                                 Style="{StaticResource SmallButton}"
-                                Tag="{StaticResource GhIconLayers}"
-                                Content="Layer Translator"
-                                IsEnabled="{Binding Model.HasDocument}"
-                                Command="{Binding Model.StartCommandCommand}"
-                                CommandParameter="LAYTRANS"
-                                ToolTip="Layer Translator (LAYTRANS): map the layers of the drawing to those of a standards file and translate them"
+                                Tag="{StaticResource GhIconStandardsConfigure}"
+                                Content="Configure"
+                                IsEnabled="False"
+                                ToolTipService.ShowOnDisabled="True"
+                                ToolTip="Configure (STANDARDS): CAD standards are not built yet"
                             />
                         </WrapPanel>
                     </local:RibbonPanel>
-                    <local:RibbonPanel Title="Cleanup" MinFullWidth="180" Icon="{StaticResource GhIconErase}">
+                    <local:RibbonPanel Title="Cleanup" Icon="{StaticResource GhIconPurge}">
                         <StackPanel Orientation="Horizontal">
                             <Button
                                 Style="{StaticResource BigButton}"
-                                Tag="{StaticResource GhIconErase}"
+                                Tag="{StaticResource GhIconPurge}"
                                 Content="Purge"
                                 IsEnabled="{Binding Model.HasDocument}"
                                 Command="{Binding Model.StartCommandCommand}"
                                 CommandParameter="PURGE"
                                 ToolTip="Purge (PURGE): remove unused blocks, layers, styles and other named objects"
+                            />
+                            <Button
+                                Style="{StaticResource WideLabelButton}"
+                                Tag="{StaticResource GhIconFindNonPurgeable}"
+                                Content="Find Non-Purgeable Items"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Command="{Binding FindNonPurgeableCommand}"
+                                ToolTip="Find Non-Purgeable Items (PURGE): the Purge window on the named items in use, and why each cannot be purged"
                             />
                             <WrapPanel Style="{StaticResource SmallColumn}">
                                 <Button
@@ -3866,9 +4242,14 @@
                 </local:RibbonStrip>
             </DataTemplate>
 
+            <!--
+            Output, as AutoCAD 2021's for what the presenter has: Plot (Plot, Batch Plot and Preview; Page Setup Manager and Plot Stamp) and
+            Export to DWF/PDF (the Export split of Export PDF, Export DWF and Export). Import is on the Insert tab. About 390 wide, so no panel
+            shrinks: the strip has no steps, and no launcher stands on Plot: there is no Plot and Publish page to open.
+            -->
             <DataTemplate DataType="{x:Type local:OutputRibbonViewModel}">
                 <local:RibbonStrip>
-                    <local:RibbonPanel Title="Plot" MinFullWidth="330" Icon="{StaticResource GhIconPlot}">
+                    <local:RibbonPanel Title="Plot" Icon="{StaticResource GhIconPlot}">
                         <StackPanel Orientation="Horizontal">
                             <Button
                                 Style="{StaticResource BigButton}"
@@ -3878,6 +4259,24 @@
                                 Command="{Binding Model.StartCommandCommand}"
                                 CommandParameter="PLOT"
                                 ToolTip="Plot (PLOT)"
+                            />
+                            <Button
+                                Style="{StaticResource BigButton}"
+                                Tag="{StaticResource GhIconBatchPlot}"
+                                Content="Batch Plot"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Command="{Binding Model.StartCommandCommand}"
+                                CommandParameter="PUBLISH"
+                                ToolTip="Batch Plot (PUBLISH): several drawings and layouts at once"
+                            />
+                            <Button
+                                Style="{StaticResource BigButton}"
+                                Tag="{StaticResource GhIconPlotPreview}"
+                                Content="Preview"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Command="{Binding Model.StartCommandCommand}"
+                                CommandParameter="PREVIEW"
+                                ToolTip="Preview (PREVIEW)"
                             />
                             <WrapPanel Style="{StaticResource SmallColumn}">
                                 <Button
@@ -3891,15 +4290,6 @@
                                 />
                                 <Button
                                     Style="{StaticResource SmallButton}"
-                                    Tag="{StaticResource GhIconPlotPreview}"
-                                    Content="Preview"
-                                    IsEnabled="{Binding Model.HasDocument}"
-                                    Command="{Binding Model.StartCommandCommand}"
-                                    CommandParameter="PREVIEW"
-                                    ToolTip="Preview (PREVIEW)"
-                                />
-                                <Button
-                                    Style="{StaticResource SmallButton}"
                                     Tag="{StaticResource GhIconPlotStamp}"
                                     Content="Plot Stamp"
                                     IsEnabled="{Binding Model.HasDocument}"
@@ -3908,58 +4298,68 @@
                                     ToolTip="Plot Stamp (PLOTSTAMP)"
                                 />
                             </WrapPanel>
-                            <WrapPanel Style="{StaticResource SmallColumn}">
-                                <Button
-                                    Style="{StaticResource SmallButton}"
-                                    Tag="{StaticResource GhIconBatchPlot}"
-                                    Content="Batch Plot"
-                                    IsEnabled="{Binding Model.HasDocument}"
-                                    Command="{Binding Model.StartCommandCommand}"
-                                    CommandParameter="PUBLISH"
-                                    ToolTip="Batch Plot (PUBLISH): several drawings and layouts at once"
-                                />
-                            </WrapPanel>
                         </StackPanel>
                     </local:RibbonPanel>
-                    <local:RibbonPanel
-                        Title="Export to DWF/PDF"
-                        MinFullWidth="196"
-                        Icon="{StaticResource GhIconExportPdf}"
-                    >
-                        <StackPanel Orientation="Horizontal">
-                            <Button
-                                Style="{StaticResource BigButton}"
-                                Tag="{StaticResource GhIconExportPdf}"
-                                Content="Export PDF"
-                                IsEnabled="{Binding Model.HasDocument}"
-                                Command="{Binding Model.StartCommandCommand}"
-                                CommandParameter="EXPORTPDF"
-                                ToolTip="Export PDF (EXPORTPDF)"
-                            />
-                            <WrapPanel Style="{StaticResource SmallColumn}">
+                    <local:RibbonPanel Title="Export to DWF/PDF" Icon="{StaticResource GhIconExportPdf}">
+                        <Border Style="{StaticResource BigSplitFrame}">
+                            <StackPanel>
                                 <Button
-                                    Style="{StaticResource SmallButton}"
-                                    Tag="{StaticResource GhIconExport}"
+                                    Style="{StaticResource BigSplitTop}"
+                                    Tag="{StaticResource GhIconExportPdf}"
                                     Content="Export"
                                     IsEnabled="{Binding Model.HasDocument}"
                                     Command="{Binding Model.StartCommandCommand}"
-                                    CommandParameter="EXPORT"
-                                    ToolTip="Export (EXPORT)"
+                                    CommandParameter="EXPORTPDF"
+                                    ToolTip="Export PDF (EXPORTPDF)"
                                 />
-                            </WrapPanel>
-                        </StackPanel>
-                    </local:RibbonPanel>
-                    <local:RibbonPanel Title="Import" MinFullWidth="76" Icon="{StaticResource GhIconImport}">
-                        <Button
-                            Style="{StaticResource BigButton}"
-                            Tag="{StaticResource GhIconImport}"
-                            Content="Import"
-                            Margin="0"
-                            IsEnabled="{Binding Model.HasDocument}"
-                            Command="{Binding Model.StartCommandCommand}"
-                            CommandParameter="IMPORT"
-                            ToolTip="Import (IMPORT): a DWG or DXF brought in as a block"
-                        />
+                                <Button
+                                    Style="{StaticResource BigSplitArrow}"
+                                    Content="{Binding Children[0].Content, RelativeSource={RelativeSource AncestorType=StackPanel}}"
+                                    ContentTemplate="{StaticResource BigSplitLabel}"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Click="OnRibbonMenu"
+                                    ToolTip="Export: Export PDF, Export DWF, Export"
+                                >
+                                    <Button.ContextMenu>
+                                        <ContextMenu
+                                            Style="{StaticResource GhContextMenu}"
+                                            DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                                        >
+                                            <MenuItem
+                                                Style="{StaticResource GhMenuItem}"
+                                                Header="Export PDF"
+                                                Tag="{StaticResource GhIconExportPdf}"
+                                                Click="OnSplitChoice"
+                                                AutomationProperties.Name="Export"
+                                                Command="{Binding Model.StartCommandCommand}"
+                                                CommandParameter="EXPORTPDF"
+                                                ToolTip="Export PDF (EXPORTPDF)"
+                                            />
+                                            <MenuItem
+                                                Style="{StaticResource GhMenuItem}"
+                                                Header="Export DWF"
+                                                Tag="{StaticResource GhIconExportDwf}"
+                                                Click="OnSplitChoice"
+                                                AutomationProperties.Name="Export"
+                                                Command="{Binding Model.StartCommandCommand}"
+                                                CommandParameter="EXPORTDWF"
+                                                ToolTip="Export DWF (EXPORTDWF)"
+                                            />
+                                            <MenuItem
+                                                Style="{StaticResource GhMenuItem}"
+                                                Header="Export"
+                                                Tag="{StaticResource GhIconExport}"
+                                                Click="OnSplitChoice"
+                                                AutomationProperties.Name="Export"
+                                                Command="{Binding Model.StartCommandCommand}"
+                                                CommandParameter="EXPORT"
+                                                ToolTip="Export (EXPORT)"
+                                            />
+                                        </ContextMenu>
+                                    </Button.ContextMenu>
+                                </Button>
+                            </StackPanel>
+                        </Border>
                     </local:RibbonPanel>
                 </local:RibbonStrip>
             </DataTemplate>

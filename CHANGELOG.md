@@ -700,6 +700,27 @@ still `0` (`LINE;0,0;10,10;;U` in `--screenshot` mode). `CurrentLayer` now reads
 change that follows puts the layer in the box. The box also did not follow a current layer set by a command with no table
 changed (`-LAYER` Set, `CLAYER`, LAYMCUR): it kept the layer it showed before; it follows now.
 
+**CHANGED.** Parametric, View, Manage and Output are laid out as AutoCAD 2021's, as Home is. Parametric: Geometric has the twelve
+constraints as three rows of four tiles and Show/Hide, Show All and Hide All after a separator; Dimensional has the Linear split
+(Linear, Horizontal, Vertical), Aligned, four tiles and its own Show/Hide, Show All and Hide All, and its title Dimensional ▾ drops
+Dynamic Constraint Mode and Annotational Constraint Mode, toggles of CCONSTRAINTFORM, the one in force pressed; the launchers of
+Geometric and Dimensional open Constraint Settings on their own tabs; Constraint Form and the Constraint Settings button of Manage
+are gone. View is Viewport Tools (UCS Icon, pressed while UCSICON is on), Named Views (a box that lists the drawing's views and
+restores the one picked, New View, View Manager), Model Viewports (the Viewport Configuration split with the ten layouts -VPORTS
+makes, Named, Join, Restore), Palettes (Tool Palettes, Properties, which leaves Interface, and the tiles Command Line, Layer
+Properties, Quick Calculator, Design Center, External References) and Interface (Drawings, with a launcher to Global settings on
+Appearance), then Navigate, Views and Drafting; the tab is 1 123 pixels wide and takes no step down to a ribbon 1 264 wide, one at
+1 084 and six at 884. Manage has Layer Translator, Check and Configure in that order, and Find Non-Purgeable Items large in
+Cleanup, which starts PURGE with its window on the named items in use. Output has Plot, Batch Plot and Preview large, Page Setup
+Manager and Plot Stamp, and one large Export split (Export PDF, Export DWF, Export); its Import panel is gone, Import being on
+Insert. New: `MainViewModel.IsUcsIconOn`, `NamedViewItems`, `SelectedNamedView`, `NewViewCommand`, `NamedViewportsCommand` and
+`AppearanceSettingsCommand`, `ManageRibbonViewModel.FindNonPurgeableCommand`, and `ParametricRibbonViewModel.IsDynamicMode`,
+`IsAnnotationalMode`, `DimensionalSettingsCommand` and `DisplayAllCommand`.
+
+**FIXED.** The label of Viewport Configuration was broken inside its second word ("Configuratio" and "n"): the label of a big
+split was at most 66 pixels wide and the word is 69. The label of that split may now be 80 wide, so the word stands whole on its
+own line.
+
 ## 13.12.0 (2026-11-19)
 
 A minor release: public types and members are added to the four libraries and none is removed or renamed, as Microsoft's

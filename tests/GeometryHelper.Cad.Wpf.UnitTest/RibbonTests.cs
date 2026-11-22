@@ -309,20 +309,30 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                 // View: Navigate runs its line, Views switches the space, Interface and Drafting toggle the state they show.
                 model.SelectedTab = model.ViewTab;
                 Layout(workspace);
-                // The panels' own toggles, which a collapsed panel draws, and the titles that open a slide-out are not the tab's
-                // buttons; Model Viewports adds Viewport Configuration (VPORTS).
+                // The panels' own toggles, which a collapsed panel draws, the titles that open a slide-out and the drop-down button
+                // of the Named Views box are not the tab's buttons. Wave 4 laid View out as AutoCAD 2021's: 30 buttons (the UCS Icon
+                // toggle; New View and View Manager; Viewport Configuration, its arrow, Named, Join and Restore; Tool Palettes,
+                // Properties and five tiles; Drawings; Navigate's seven; Model and Layout; the five drafting toggles).
                 List<ButtonBase> view = ButtonsOf(workspace, model.ViewTab.TabContent)
                     .Where(b =>
                         !(b.TemplatedParent is RibbonPanel)
+                        && !(b.TemplatedParent is ComboBox)
                         && !(
                             b is ToggleButton t
                             && (t.Content as string)?.EndsWith(" ▾", StringComparison.Ordinal) == true
                         )
                     )
                     .ToList();
-                Assert.Equal(17, view.Count);
+                Assert.Equal(30, view.Count);
 
-                foreach (Button button in view.OfType<Button>().Where(b => b.CommandParameter is string))
+                // Pressed here are the buttons that show no window of their own: Navigate's lines, and Viewport Configuration, Named,
+                // Join and Restore (the Viewports dialog answered Cancel above). View Manager, New View and the palettes open windows.
+                string[] pressed = { "ZOOM", "PAN", "REGEN", "VPORTS", "-VPORTS" };
+
+                foreach (
+                    Button button in view.OfType<Button>()
+                        .Where(b => b.CommandParameter is string s && pressed.Contains(s.Split(' ')[0]))
+                )
                 {
                     Press(model, button, ((string)button.CommandParameter).Split(' ')[0]);
                 }
@@ -343,8 +353,11 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                 properties.IsChecked = false;
                 Assert.False(model.IsPropertiesPanelShown);
 
+                string[] drafting = { "Grid", "Snap", "Ortho", "Polar", "Osnap" };
+
                 foreach (
-                    ToggleButton toggle in view.OfType<ToggleButton>().Where(b => b != drawings && b != properties)
+                    ToggleButton toggle in view.OfType<ToggleButton>()
+                        .Where(b => drafting.Contains(b.Content as string))
                 )
                 {
                     StatusToggleViewModel state = model.Toggles.Single(t =>

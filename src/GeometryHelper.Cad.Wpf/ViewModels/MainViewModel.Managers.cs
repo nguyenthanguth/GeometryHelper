@@ -108,7 +108,15 @@ namespace GeometryHelper.Cad.Wpf
                     e.Handled = ShowEditAttributes(new EditAttributesViewModel(values));
                     break;
                 case CadPurgeRequest purge when ShowPurge != null:
-                    e.Handled = ShowPurge(new PurgeViewModel(purge));
+                    var purging = new PurgeViewModel(purge);
+
+                    // Find Non-Purgeable Items of the ribbon: the window opens on the named items in use.
+                    if (_openNonPurgeable)
+                    {
+                        purging.Mode = purging.Modes[1];
+                    }
+
+                    e.Handled = ShowPurge(purging);
                     break;
                 case string question when e.Name == "PURGEITEM" && ConfirmPurgeItem != null:
                     bool? answer = ConfirmPurgeItem(question);

@@ -30,7 +30,8 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         private const string AnnotateSteps =
             "Leaders:Medium; Text:Medium; Dimensions:Medium; Leaders:Collapsed; Text:Collapsed";
         private const string ViewSteps =
-            "Drafting:Medium; Navigate:Medium; Interface:Collapsed; Model Viewports:Collapsed; Views:Collapsed";
+            "Drafting:Medium; Navigate:Medium; Views:Collapsed; Drafting:Collapsed; Navigate:Collapsed; Named Views:Medium; "
+            + "Model Viewports:Medium; Interface:Collapsed";
 
         [Fact]
         public void InsertComesAfterTheExtensionTabsAndBeforeAnnotate_AndItsButtonsStartTheirCommands()
@@ -454,23 +455,38 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             Steps(
                 model => model.ViewTab,
                 ViewSteps,
-                new[] { "Navigate", "Views", "Model Viewports", "Interface", "Drafting" },
+                new[]
+                {
+                    "Viewport Tools",
+                    "Named Views",
+                    "Model Viewports",
+                    "Palettes",
+                    "Interface",
+                    "Navigate",
+                    "Views",
+                    "Drafting",
+                },
                 new[]
                 {
                     (2300, 0),
                     (1280, 0),
-                    // Model Viewports (dialogs7) makes the tab 100 wider: all full down to 790, no longer 694. D1319: the metrics of the
-                    // ribbon work (3 pixels of padding to a panel, 72 high large buttons) moved the steps 4 pixels from the 794 before.
-                    (790, 0),
-                    (789, 1),
-                    (694, 1),
-                    (693, 2),
-                    (572, 2),
-                    (571, 3),
-                    (506, 3),
-                    (505, 4),
-                    (474, 4),
-                    (473, 5),
+                    // Wave 4 laid View out as AutoCAD 2021's (D1342, D1343): the tab is 1 123 wide, all full down to a window 1 147, and
+                    // takes the eight steps of ViewSteps; Drafting collapsing (61 wide) is 6 wider than Drafting medium (55), so the
+                    // fifth step is taken with the fourth.
+                    (1147, 0),
+                    (1146, 1),
+                    (1076, 1),
+                    (1075, 2),
+                    (972, 2),
+                    (971, 3),
+                    (946, 3),
+                    (945, 5),
+                    (914, 5),
+                    (913, 6),
+                    (874, 6),
+                    (873, 7),
+                    (830, 7),
+                    (829, 8),
                 }
             );
         }

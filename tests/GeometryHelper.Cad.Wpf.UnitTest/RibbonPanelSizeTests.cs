@@ -463,7 +463,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void TheOutputTab_ShowsPlotExportAndImport_AndEachButtonStartsItsCommand()
+        public void TheOutputTab_ShowsPlotAndExport_AndEachButtonStartsItsCommand()
         {
             OnWorkspace(1600, (model, workspace) =>
             {
@@ -477,7 +477,9 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     .Single(s => ReferenceEquals(s.DataContext, model.OutputTab.TabContent));
                 List<RibbonPanel> panels = strip.Children.OfType<RibbonPanel>().ToList();
 
-                Assert.Equal(new[] { "Plot", "Export to DWF/PDF", "Import" }, panels.Select(p => p.Title));
+                // Import is on Insert (wave 4 of the ribbon work); Plot holds Plot, Batch Plot and Preview large, then Page Setup
+                // Manager and Plot Stamp, and Export to DWF/PDF the one Export split.
+                Assert.Equal(new[] { "Plot", "Export to DWF/PDF" }, panels.Select(p => p.Title));
                 Assert.All(panels, p => Assert.Equal(RibbonPanelSize.Full, p.Size));
                 Assert.Contains(Descendants(workspace).OfType<ToggleButton>(), t =>
                     Equals(t.Content, "Output") && t.IsChecked == true
@@ -487,7 +489,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     .Where(b => b.CommandParameter is string)
                     .ToList();
                 Assert.Equal(
-                    new[] { "PLOT", "PAGESETUP", "PREVIEW", "PLOTSTAMP", "PUBLISH", "EXPORTPDF", "EXPORT", "IMPORT" },
+                    new[] { "PLOT", "PUBLISH", "PREVIEW", "PAGESETUP", "PLOTSTAMP", "EXPORTPDF" },
                     buttons.Select(b => (string)b.CommandParameter)
                 );
 

@@ -1,14 +1,17 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Input;
 
 namespace GeometryHelper.Cad.Wpf
 {
     /// <summary>
     /// The Parametric ribbon tab, as AutoCAD 2021's for what the presenter has: Geometric (Auto Constrain, the twelve
-    /// geometric constraints, Show All, Hide All, Show/Hide), Dimensional (Linear, Aligned, Angular, Radius, Diameter, Convert,
-    /// Constraint Form, Show Dynamic Constraints) and Manage (Delete Constraints, Parameters Manager, Constraint Settings). A
-    /// button starts its command through <see cref="MainViewModel.StartCommandCommand"/>, as the buttons of Home do; Show All
-    /// and Hide All work on the bars of the working space through the document.
+    /// geometric constraints, Show/Hide, Show All, Hide All), Dimensional (Linear with Horizontal and Vertical, Aligned, Radius,
+    /// Diameter, Angular, Convert, Show/Hide, Show All, Hide All and, in its slide-out, the two constraint modes) and Manage
+    /// (Delete Constraints, Parameters Manager). The launchers of Geometric and Dimensional open Constraint Settings on their
+    /// tabs. A button starts its command through <see cref="MainViewModel.StartCommandCommand"/>, as the buttons of Home do;
+    /// Show All and Hide All of Geometric work on the bars of the working space through the document.
     /// </summary>
     public sealed class ParametricRibbonViewModel : ObservableObject
     {
@@ -21,12 +24,32 @@ namespace GeometryHelper.Cad.Wpf
                 _ => model.HasDocument
             );
             HideAllCommand = new DelegateCommand(_ => model.ShowAllConstraintBars(false), _ => model.HasDocument);
+            DimensionalSettingsCommand = new DelegateCommand(
+                _ => model.OpenConstraintSettings(1),
+                _ => model.HasDocument
+            );
+            DisplayAllCommand = new DelegateCommand(
+                p => model.DisplayAllDimensionalConstraints(((p as string) ?? string.Empty).EndsWith("Showall")),
+                _ => model.HasDocument
+            );
             model.PropertyChanged += (s, e) =>
             {
                 if (e.PropertyName == nameof(MainViewModel.HasDocument))
                 {
                     (ShowAllCommand as DelegateCommand)?.RaiseCanExecuteChanged();
                     (HideAllCommand as DelegateCommand)?.RaiseCanExecuteChanged();
+                    (DimensionalSettingsCommand as DelegateCommand)?.RaiseCanExecuteChanged();
+                    (DisplayAllCommand as DelegateCommand)?.RaiseCanExecuteChanged();
+                }
+
+                // CCONSTRAINTFORM typed on the command line, or the drawing changed: the pressed mode follows.
+                if (
+                    e.PropertyName == nameof(MainViewModel.Revision)
+                    || e.PropertyName == nameof(MainViewModel.HasDocument)
+                )
+                {
+                    Raise(nameof(IsDynamicMode));
+                    Raise(nameof(IsAnnotationalMode));
                 }
             };
         }
@@ -37,8 +60,50 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets the command of Show All: every constraint bar of the working space shown.</summary>
         public ICommand ShowAllCommand { get; }
 
-        /// <summary>Gets the command of the panel's launcher: Constraint Settings.</summary>
+        /// <summary>Gets the command of the launcher of Geometric: Constraint Settings on its Geometric tab.</summary>
         public ICommand SettingsCommand { get; }
+
+        /// <summary>Gets the command of the launcher of Dimensional: Constraint Settings on its Dimensional tab.</summary>
+        public ICommand DimensionalSettingsCommand { get; }
+
+        /// <summary>
+        /// Gets the command of Show All and Hide All of Dimensional, given "DCDISPLAY Showall" or "DCDISPLAY Hideall": DCDISPLAY run
+        /// over every object of the drawing, answered Display or Hide.
+        /// </summary>
+        public ICommand DisplayAllCommand { get; }
+
+        /// <summary>
+        /// Gets or sets whether new dimensional constraints are dynamic (CCONSTRAINTFORM 0, the Dynamic Constraint Mode of the
+        /// slide-out of Dimensional): true while that is the form in force. Setting true puts it in force; setting false changes
+        /// nothing, one of the two modes always being in force.
+        /// </summary>
+        public bool IsDynamicMode
+        {
+            get => Model.Session != null && Model.Session.Constraints.Form == 0;
+            set => SetForm(0, value);
+        }
+
+        /// <summary>
+        /// Gets or sets whether new dimensional constraints are annotational (CCONSTRAINTFORM 1, the Annotational Constraint Mode
+        /// of the slide-out of Dimensional): true while that is the form in force. Setting true puts it in force; setting false
+        /// changes nothing, one of the two modes always being in force.
+        /// </summary>
+        public bool IsAnnotationalMode
+        {
+            get => Model.Session != null && Model.Session.Constraints.Form == 1;
+            set => SetForm(1, value);
+        }
+
+        private void SetForm(int form, bool on)
+        {
+            if (on && Model.Session != null)
+            {
+                Model.Session.Constraints.Form = form;
+            }
+
+            Raise(nameof(IsDynamicMode));
+            Raise(nameof(IsAnnotationalMode));
+        }
 
         /// <summary>Gets the command of Hide All: every constraint bar of the working space hidden.</summary>
         public ICommand HideAllCommand { get; }
@@ -53,6 +118,7 @@ namespace GeometryHelper.Cad.Wpf
     {
         private CadBuiltInTab _parametricTab;
         private ParametersPaletteViewModel _parameters;
+        private int _constraintSettingsTab;
 
         /// <summary>Gets the Parametric ribbon tab, always shown, after Annotate and before View.</summary>
         public CadWorkspaceExtension ParametricTab
@@ -75,6 +141,25 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets or sets how the workspace shows (true) or closes (false) the Parameters Manager palette.</summary>
         public Action<ParametersPaletteViewModel, bool> ShowParameters { get; set; }
 
+        /// <summary>
+        /// The launchers of Geometric and Dimensional: CONSTRAINTSETTINGS started, the dialog opening on the tab given (0
+        /// Geometric, 1 Dimensional), which the command itself, typed, opens on Geometric.
+        /// </summary>
+        /// <param name="tab">The tab.</param>
+        internal void OpenConstraintSettings(int tab)
+        {
+            _constraintSettingsTab = tab;
+
+            try
+            {
+                StartCommand("CONSTRAINTSETTINGS");
+            }
+            finally
+            {
+                _constraintSettingsTab = 0;
+            }
+        }
+
         /// <summary>CONSTRAINTSETTINGS' dialog: over the session's settings, OK giving the command those the boxes hold.</summary>
         private void OnConstraintSettingsRequested(CadUiRequestEventArgs e)
         {
@@ -83,7 +168,7 @@ namespace GeometryHelper.Cad.Wpf
                 return;
             }
 
-            var dialog = new ConstraintSettingsViewModel(request);
+            var dialog = new ConstraintSettingsViewModel(request) { Tab = _constraintSettingsTab };
             request.Action = CadDialogAction.Cancel;
 
             if (ShowConstraintSettings(dialog) && dialog.IsValid)
@@ -144,6 +229,33 @@ namespace GeometryHelper.Cad.Wpf
             }
 
             Revision++;
+        }
+
+        /// <summary>
+        /// Show All and Hide All of Dimensional: DCDISPLAY run over every object of the drawing and answered Display or Hide, as
+        /// AutoCAD's macro does with its Showall and Hideall; the objects selected before are selected again after it.
+        /// </summary>
+        /// <param name="show">True to show the dynamic dimensional constraints, false to hide them.</param>
+        internal void DisplayAllDimensionalConstraints(bool show)
+        {
+            CadDocument document = Document;
+
+            if (document == null)
+            {
+                return;
+            }
+
+            List<string> kept = document.Selection.Handles.OrderBy(h => h, StringComparer.Ordinal).ToList();
+            document.Selection.Clear();
+            StartCommand("DCDISPLAY");
+            Execute("ALL");
+            Enter();
+            Execute(show ? "Display" : "Hide");
+
+            if (kept.Count > 0)
+            {
+                document.Selection.Set(kept);
+            }
         }
 
         /// <summary>Redraws the canvas where the constraint bars changed without the drawing changing.</summary>

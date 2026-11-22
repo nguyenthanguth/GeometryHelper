@@ -181,6 +181,12 @@ namespace GeometryHelper.Cad.Wpf
                             ? new ViewportsViewModel(document)
                             : new ViewportsViewModel((CadTiledViewports)e.Payload);
 
+                        // Named of the ribbon: the dialog opens on its Named Viewports tab.
+                        if (_openNamedViewports)
+                        {
+                            dialog.IsNamedTab = true;
+                        }
+
                         while (ShowViewports(dialog) && !dialog.Apply()) { }
 
                         e.Handled = true;
