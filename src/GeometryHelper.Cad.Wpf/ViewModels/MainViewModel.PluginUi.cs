@@ -11,7 +11,7 @@ using WpfGeometry = System.Windows.Media.Geometry;
 namespace GeometryHelper.Cad.Wpf
 {
     /// <summary>
-    /// What the command plugins loaded add to the window: the ribbon tabs and the panels of the Plugins tab, rows of Properties,
+    /// What the command plugins loaded add to the window: the ribbon tabs and the panels of the Plugins tab (shown while a plugin has panels), rows of Properties,
     /// buttons and row items of the DRAWINGS list and items of the canvas's right-click menu. All of it is read from the
     /// <see cref="CadPluginHost"/> of each plugin loaded when the manager says the plugins changed, plugin by plugin in the order
     /// they were loaded, and none of it is kept once a plugin is unloaded.
@@ -125,6 +125,7 @@ namespace GeometryHelper.Cad.Wpf
             _pluginPanels = plugins;
             _pluginDrawingsButtons = drawings;
             PluginRibbon.SetPanels(plugins);
+            ShowPluginsTab(plugins.Count > 0);
             Raise(nameof(PluginTabs));
             Raise(nameof(PluginContextTabs));
             Raise(nameof(FileListButtons));
@@ -138,6 +139,24 @@ namespace GeometryHelper.Cad.Wpf
 
             RefreshPluginUi();
             UpdateProperties();
+        }
+
+        /// <summary>Shows the Plugins tab while a plugin has added a panel to it and hides it otherwise; Home is shown where it was the tab shown.</summary>
+        private void ShowPluginsTab(bool shown)
+        {
+            var tab = (CadBuiltInTab)PluginsTab;
+
+            if (tab.IsTabVisible == shown)
+            {
+                return;
+            }
+
+            if (!shown && _selectedTab == tab)
+            {
+                SelectedTab = null;
+            }
+
+            tab.SetVisible(shown);
         }
 
         /// <summary>The plugins loaded and on, in the order they were loaded; none without a manager.</summary>

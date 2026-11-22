@@ -148,6 +148,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     "CUI",
                     "ALIASEDIT",
                     "APPLOAD",
+                    "LISPLOAD",
                     "SCRIPT",
                     "PURGE",
                     "OVERKILL",
@@ -175,7 +176,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void LoadApplication_IsGreyedUntilTheWindowCanShowTheDialog_AndTheManagerButtonOpensTheSameDialog()
+        public void LoadManager_IsGreyedUntilTheWindowCanShowTheDialog_AndTheManagerButtonOpensTheSameDialog()
         {
             MainViewModel model = Opened();
             var ribbon = (ManageRibbonViewModel)model.ManageTab.TabContent;
@@ -205,9 +206,9 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                 };
                 Assert.True(ribbon.CanLoadApplication);
 
-                // APPLOAD and the Plugin manager button open the same window.
+                // APPLOAD typed and the Load Manager button open the same window.
                 model.StartCommand("APPLOAD");
-                model.PluginRibbon.ManagerCommand.Execute(null);
+                model.StartCommandCommand.Execute("APPLOAD");
                 Assert.Equal(2, shown);
             }
         }

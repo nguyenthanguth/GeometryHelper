@@ -911,6 +911,8 @@ namespace GeometryHelper.Cad.Wpf
                 _model.ShowMTextFindReplace = editor => MTextFindReplaceWindow.Open(Window.GetWindow(this), editor);
                 _model.AskImportTextFile = AskImportTextFile;
                 _model.ShowAppLoad = dialog => AppLoadWindow.Show(Window.GetWindow(this), dialog);
+                _model.AskLispFiles = (filter, folder) =>
+                    AppLoadWindow.PickLisp(Window.GetWindow(this), filter, folder);
                 _model.ShowAlert = text =>
                     MessageBox.Show(
                         Window.GetWindow(this),

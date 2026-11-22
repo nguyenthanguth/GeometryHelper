@@ -25,6 +25,19 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
+        public void LispLoad_IsListedOnTheShortcutsPage_WithItsDescription()
+        {
+            var model = new MainViewModel();
+            GlobalSettingsViewModel dialog = model.CreateGlobalSettings("Shortcuts");
+            dialog.ShortcutSearch = string.Empty;
+
+            Assert.Equal(
+                "Choose AutoLISP files to load",
+                dialog.Shortcuts.Single(r => r.Command == "LISPLOAD").Description
+            );
+        }
+
+        [Fact]
         public void TheDescriptions_AreShortAndStartWithACapital()
         {
             var model = new MainViewModel();

@@ -323,39 +323,42 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         #region The Plugins tab
 
         [Fact]
-        public void ThePluginsTab_HoldsTheCircleToolsPanel_AndTheCommandStillHasItsButton()
+        public void ThePluginsTab_ShowsOnlyWhileAPluginHasAPanel_AndHoldsTheCircleToolsPanel_AndTheCommandStillRuns()
         {
             MainViewModel model = _kit.Opened(out _, out _, out _);
             Assert.Empty(model.PluginRibbon.Panels);
+            Assert.False(model.PluginsTab.IsTabVisible);
 
             _kit.LoadSample(model);
 
             PluginPanelViewModel panel = Assert.Single(model.PluginRibbon.Panels);
+            Assert.True(model.PluginsTab.IsTabVisible);
             Assert.Equal("Circle tools", panel.Title);
             Assert.Equal(new[] { "Count" }, Shapes(panel));
             Assert.Equal("Count the circles of the drawing", ButtonOf(panel, "Count").ToolTipInfo.Title);
-            Assert.Equal(new[] { "NUMCIRCLES2" }, model.PluginRibbon.Commands.Select(b => b.Name));
+            Assert.NotNull(model.Session.Registry.Find("NUMCIRCLES2"));
         }
 
         [Fact]
-        public void APluginThatShowsItsOwnButtons_GetsNoneInCommandPlugins_AndKeepsItsCommand()
+        public void APluginThatAddsNoPanel_LeavesThePluginsTabHidden_WhateverShowsCommandButtonsSays_AndKeepsItsCommand()
         {
             MainViewModel model = _kit.Opened(out _, out _, out _);
 
             _kit.LoadHook(model, host => host.ShowsCommandButtons = false);
 
-            Assert.Empty(model.PluginRibbon.Commands);
+            Assert.False(model.PluginsTab.IsTabVisible);
             Assert.NotNull(model.Session.Registry.Find("HOOKCMD"));
         }
 
         [Fact]
-        public void APluginThatShowsItsCommandButtons_HasHookCmdInCommandPlugins()
+        public void APluginThatShowsItsCommandButtons_GetsNoPluginsTab_AndItsCommandRunsFromTheCommandLine()
         {
             MainViewModel model = _kit.Opened(out _, out _, out _);
 
             _kit.LoadHook(model, host => { });
 
-            Assert.Equal(new[] { "HOOKCMD" }, model.PluginRibbon.Commands.Select(b => b.Name));
+            Assert.False(model.PluginsTab.IsTabVisible);
+            Assert.NotNull(model.Session.Registry.Find("HOOKCMD"));
         }
 
         #endregion
@@ -1217,17 +1220,20 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void AfterUnloading_ThePluginsTabPanelAndTheCommandButtonAreGone_AndTheCommandIsNotKnownAnyMore()
+        public void AfterUnloading_ThePluginsTabPanelIsGoneAndTheTabHidden_AndTheCommandIsNotKnownAnyMore()
         {
             MainViewModel model = _kit.Opened(out string first, out _, out _);
             _kit.LoadSample(model);
             Assert.Single(model.PluginRibbon.Panels);
+            model.SelectedTab = model.PluginsTab;
+            Assert.True(model.PluginsTab.IsTabSelected);
 
             Assert.True(model.UnloadPlugin(PluginWindowKit.SampleName).Succeeded);
             model.Document.Selection.Set(new[] { first });
 
             Assert.Empty(model.PluginRibbon.Panels);
-            Assert.Empty(model.PluginRibbon.Commands);
+            Assert.False(model.PluginsTab.IsTabVisible);
+            Assert.False(model.PluginsTab.IsTabSelected);
             Assert.Null(model.Session.Registry.Find("NUMCIRCLES2"));
         }
 
@@ -1588,6 +1594,24 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
+        public void TheTabStrip_HasNoPluginsTab_WhereNoPluginAddsAPanel_AndAPluginsOwnTabStillShows()
+        {
+            MainViewModel model = _kit.Opened(out _, out _, out _);
+            _kit.LoadHook(model, host => host.AddRibbonTab(new CadRibbonTab("Hook", "Hook")));
+
+            OnWorkspace(model, workspace =>
+            {
+                Assert.DoesNotContain(Descendants(workspace).OfType<ToggleButton>(), b =>
+                    b.ActualWidth > 0 && Equals(b.Content, "Plugins")
+                );
+                double hook = Box(TabHeader(workspace, "Hook"), workspace).Left;
+                double settings = Box(TabHeader(workspace, "Settings"), workspace).Left;
+                Assert.True(hook < settings);
+                Assert.Equal(new[] { "Hook" }, model.PluginTabs.Select(t => t.TabHeader));
+            });
+        }
+
+        [Fact]
         public void TheCirclesTab_DrawsTheLargeButtonLeftOfThreeStandardOnesStackedTopDown()
         {
             MainViewModel model = _kit.Opened(out _, out _, out _);
@@ -1609,7 +1633,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void ThePluginsTab_DrawsTheCircleToolsPanelBetweenCommandPluginsAndManage()
+        public void ThePluginsTab_DrawsTheCircleToolsPanelAlone_WithNoCommandPluginsOrManagePanel()
         {
             MainViewModel model = _kit.Opened(out _, out _, out _);
             _kit.LoadSample(model);
@@ -1617,17 +1641,16 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 
             OnWorkspace(model, workspace =>
             {
-                double Left(string title) =>
-                    Box(
-                        Descendants(workspace).OfType<TextBlock>().First(t => t.ActualWidth > 0 && t.Text == title),
-                        workspace
-                    ).Left;
+                List<string> titles = Descendants(workspace)
+                    .OfType<TextBlock>()
+                    .Where(t => t.ActualWidth > 0)
+                    .Select(t => t.Text)
+                    .ToList();
 
-                double commands = Left("Command plugins");
-                double tools = Left("Circle tools");
-                double manage = Left("Manage");
-
-                Assert.True(commands < tools && tools < manage, commands + " < " + tools + " < " + manage);
+                Assert.Contains("Circle tools", titles);
+                Assert.DoesNotContain("Command plugins", titles);
+                Assert.DoesNotContain("Load .dll", titles);
+                Assert.DoesNotContain("Plugin manager", titles);
             });
         }
 

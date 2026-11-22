@@ -64,12 +64,31 @@ namespace GeometryHelper.Cad.Wpf
         }
 
         /// <summary>Load…: an Open dialog for .lsp and .dll files, several allowed, opened on the folder of the last Load.</summary>
-        private static System.Collections.Generic.IReadOnlyList<string> AskFiles(Window owner, string folder)
+        private static System.Collections.Generic.IReadOnlyList<string> AskFiles(Window owner, string folder) =>
+            AskFiles(owner, "Load Applications", AppLoadViewModel.OpenFilter, folder);
+
+        /// <summary>LISPLOAD: an Open dialog for AutoLISP files, several allowed, opened on the folder of the last load.</summary>
+        /// <param name="owner">The window the dialog belongs to.</param>
+        /// <param name="filter">The filter, in the form the Windows dialogs take.</param>
+        /// <param name="folder">The folder to start in; empty for the dialog's own.</param>
+        /// <returns>The paths chosen; null when the user cancelled.</returns>
+        public static System.Collections.Generic.IReadOnlyList<string> PickLisp(
+            Window owner,
+            string filter,
+            string folder
+        ) => AskFiles(owner, "Load AutoLISP files", filter, folder);
+
+        private static System.Collections.Generic.IReadOnlyList<string> AskFiles(
+            Window owner,
+            string title,
+            string filter,
+            string folder
+        )
         {
             var dialog = new OpenFileDialog
             {
-                Title = "Load Applications",
-                Filter = AppLoadViewModel.OpenFilter,
+                Title = title,
+                Filter = filter,
                 FilterIndex = 1,
                 Multiselect = true,
             };

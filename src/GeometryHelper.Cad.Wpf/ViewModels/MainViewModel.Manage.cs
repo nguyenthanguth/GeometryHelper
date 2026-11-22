@@ -8,7 +8,8 @@ namespace GeometryHelper.Cad.Wpf
 {
     /// <summary>
     /// The Manage ribbon tab, as AutoCAD 2021's for what the presenter has: Customization (User Interface and Edit Aliases open Global settings on Shortcuts, Tool Palettes shows the tool palettes), Applications
-    /// (Load Application, which opens Load/Unload Applications, greyed where the window cannot show it; Run Script), CAD Standards
+    /// (Load Manager, which opens Load/Unload Applications, greyed where the window cannot show it; Load Lisp, Load Plugin and Load
+    /// Python, which ask for files; Run Script), CAD Standards
     /// (Layer Translator; Check and Configure parked, greyed) and Cleanup (Purge, Find Non-Purgeable Items, Overkill, Audit,
     /// Recover). A button starts its command through <see cref="MainViewModel.StartCommandCommand"/>, as the buttons of Home do.
     /// </summary>
@@ -34,7 +35,7 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets the window's view model, whose commands the buttons run.</summary>
         public MainViewModel Model { get; }
 
-        /// <summary>Gets whether Load Application can be pressed: a drawing is open and the window can show Load/Unload Applications.</summary>
+        /// <summary>Gets whether Load Manager can be pressed: a drawing is open and the window can show Load/Unload Applications.</summary>
         public bool CanLoadApplication => Model.HasDocument && Model.ShowAppLoad != null;
 
         /// <summary>Gets the command of Find Non-Purgeable Items: PURGE started, its window opening on the named items in use and why each cannot be purged.</summary>
@@ -71,13 +72,45 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>
         /// Adds CUI and ALIASEDIT, which show Global settings on the Shortcuts page (the aliases and the keys the presenter lets
-        /// a drafter change), and APPLOAD, which shows Load/Unload Applications and says so where the window cannot.
+        /// a drafter change), APPLOAD, which shows Load/Unload Applications and says so where the window cannot, and LISPLOAD,
+        /// which asks for AutoLISP files in a file dialog and loads them.
         /// </summary>
         private void AddManageWindowCommands(CadCommandRegistry registry)
         {
             registry.Add(new CadCommand("CUI", c => RunWindow(() => RequestSettings("Shortcuts"))));
             registry.Add(new CadCommand("ALIASEDIT", c => RunWindow(() => RequestSettings("Shortcuts"))));
             registry.Add(new CadCommand("APPLOAD", c => RunWindow(LoadApplications)));
+            registry.Add(new CadCommand("LISPLOAD", c => RunWindow(LoadLispByDialog)));
+        }
+
+        /// <summary>
+        /// Gets or sets how the window asks for the files of LISPLOAD: given the filter (<see cref="AppLoadViewModel.LispFilter"/>)
+        /// and the folder of the last load, it shows an Open dialog with several files allowed and gives the paths chosen; null
+        /// where none was. Null where no window shows one, when LISPLOAD says so.
+        /// </summary>
+        public Func<string, string, IReadOnlyList<string>> AskLispFiles { get; set; }
+
+        /// <summary>
+        /// LISPLOAD: asks for AutoLISP files with <see cref="AskLispFiles"/> and loads them in the order chosen, as the Load…
+        /// button of Load/Unload Applications does, the folder chosen kept for the next load.
+        /// </summary>
+        private void LoadLispByDialog()
+        {
+            if (AskLispFiles == null)
+            {
+                Say("LISPLOAD needs a file dialog, which the window cannot show here.");
+                return;
+            }
+
+            IReadOnlyList<string> paths = AskLispFiles(AppLoadViewModel.LispFilter, Settings.AppLoadFolder);
+
+            if (paths != null && paths.Count > 0)
+            {
+                using (var loading = new AppLoadViewModel(this))
+                {
+                    loading.Load(paths);
+                }
+            }
         }
 
         /// <summary>
@@ -100,7 +133,7 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>
         /// Gets or sets how the window shows Load/Unload Applications, over the view model it is given, until the dialog is
-        /// closed; the window is modal. It is the one window of APPLOAD and of the Plugin manager button. Null where no window
+        /// closed; the window is modal. It is the window of APPLOAD and of the Load Manager button. Null where no window
         /// does, when APPLOAD says so.
         /// </summary>
         public Func<AppLoadViewModel, bool> ShowAppLoad
@@ -110,7 +143,7 @@ namespace GeometryHelper.Cad.Wpf
         }
 
         /// <summary>
-        /// APPLOAD, and the Plugin manager button: shows Load/Unload Applications with <see cref="ShowAppLoad"/>, which lists
+        /// APPLOAD, and the Load Manager button: shows Load/Unload Applications with <see cref="ShowAppLoad"/>, which lists
         /// the AutoLISP files and the plugins loaded. A window with no such dialog says that it cannot show it.
         /// </summary>
         private void LoadApplications()

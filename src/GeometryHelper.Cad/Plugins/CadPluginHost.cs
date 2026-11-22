@@ -61,15 +61,15 @@ namespace GeometryHelper.Cad.Plugins
         public string Folder { get; }
 
         /// <summary>
-        /// Gets or sets whether the plugin's commands get a button each in the "Command plugins" panel of the Plugins tab:
-        /// true until set; false for a plugin that puts its commands on its own tab.
+        /// Gets or sets whether the plugin's commands get a button each: true until set. The presenter no longer has a
+        /// "Command plugins" panel, so the value changes nothing in it; it is kept for plugins written against it.
         /// </summary>
         public bool ShowsCommandButtons { get; set; } = true;
 
         /// <summary>Gets the tabs added, in the order added.</summary>
         public IReadOnlyList<CadRibbonTab> RibbonTabs => _tabs;
 
-        /// <summary>Gets the panels added to the Plugins tab, in the order added.</summary>
+        /// <summary>Gets the panels added to the Plugins tab, which shows while a plugin has added a panel, in the order added.</summary>
         public IReadOnlyList<CadRibbonPanel> RibbonPanels => _panels;
 
         /// <summary>Gets the Properties providers added, in the order added.</summary>
@@ -111,7 +111,7 @@ namespace GeometryHelper.Cad.Plugins
             _tabs.Add(tab ?? throw new ArgumentNullException(nameof(tab)));
         }
 
-        /// <summary>Adds a panel to the Plugins tab, after its "Command plugins" panel and before "Manage".</summary>
+        /// <summary>Adds a panel to the Plugins tab, which shows only while a plugin has added a panel.</summary>
         /// <param name="panel">The panel.</param>
         /// <exception cref="ArgumentNullException">Thrown when the panel is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when <c>Initialize</c> has returned.</exception>

@@ -5,7 +5,7 @@ using GeometryHelper.Cad.Plugins;
 
 namespace GeometryHelper.Cad.Wpf
 {
-    /// <summary>The command plugins of the presenter's window: the manager, the Plugins tab and the commands that reach them.</summary>
+    /// <summary>The command plugins of the presenter's window: the manager and the commands that reach them.</summary>
     public sealed partial class MainViewModel
     {
         private readonly List<CadWorkspaceExtension> _builtInTabs = new List<CadWorkspaceExtension>();
@@ -13,23 +13,26 @@ namespace GeometryHelper.Cad.Wpf
         private CadBuiltInTab _pluginsTab;
         private PluginRibbonViewModel _pluginRibbon;
 
-        /// <summary>Raised by PLUGINLOAD (NETLOAD) and the Load .dll buttons: the window shows its Open dialog for a .dll, then calls <see cref="LoadPlugin"/>.</summary>
+        /// <summary>Raised by PLUGINLOAD (NETLOAD, and the Load Plugin button): the window shows its Open dialog for a .dll, then calls <see cref="LoadPlugin"/>.</summary>
         public event EventHandler PluginLoadRequested;
 
         /// <summary>Gets the manager of the command plugins; null until <see cref="UsePlugins"/>.</summary>
         public CadPluginManager Plugins => _plugins;
 
-        /// <summary>Gets the view model of the Plugins ribbon tab: a button per command of each plugin loaded, and Manage.</summary>
-        public PluginRibbonViewModel PluginRibbon => _pluginRibbon ?? (_pluginRibbon = new PluginRibbonViewModel(this));
+        /// <summary>Gets the view model of the Plugins ribbon tab: the panels the plugins loaded add with <see cref="CadPluginHost.AddRibbonPanel"/>.</summary>
+        public PluginRibbonViewModel PluginRibbon => _pluginRibbon ?? (_pluginRibbon = new PluginRibbonViewModel());
 
-        /// <summary>Gets the Plugins ribbon tab, always shown, after the extensions' tabs and Annotate and View.</summary>
+        /// <summary>
+        /// Gets the Plugins ribbon tab, after the extensions' tabs and Annotate and View. The presenter has no panel of its own
+        /// on it, so it is shown only while a plugin has added a panel with <see cref="CadPluginHost.AddRibbonPanel"/>.
+        /// </summary>
         public CadWorkspaceExtension PluginsTab
         {
             get
             {
                 if (_pluginsTab == null)
                 {
-                    _pluginsTab = new CadBuiltInTab("Plugins", PluginRibbon);
+                    _pluginsTab = new CadBuiltInTab("Plugins", PluginRibbon, false);
                     _builtInTabs.Add(_pluginsTab);
                 }
 
@@ -39,8 +42,7 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>
         /// Puts the command plugins into the window: their commands on the command line of every document, open or opened later
-        /// (after LAYMCUR and LAYMCH, and after the window's own PLUGINLOAD where the window shows a file dialog), and on the
-        /// Plugins tab; with <paramref name="loadAtStart"/> the plugins of the plugin folder and the startup list are loaded,
+        /// (after LAYMCUR and LAYMCH, and after the window's own PLUGINLOAD where the window shows a file dialog); with <paramref name="loadAtStart"/> the plugins of the plugin folder and the startup list are loaded,
         /// each result a line of the command line.
         /// </summary>
         /// <param name="plugins">The manager.</param>
@@ -63,7 +65,6 @@ namespace GeometryHelper.Cad.Wpf
             _plugins = plugins;
             plugins.PluginsChanged += (s, e) =>
             {
-                PluginRibbon.Refresh();
                 RebuildPluginUi();
             };
 
@@ -81,7 +82,6 @@ namespace GeometryHelper.Cad.Wpf
                 Say(result.ToString());
             }
 
-            PluginRibbon.Refresh();
             RebuildPluginUi();
             Raise(nameof(Plugins));
             return results;
@@ -105,9 +105,6 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>Asks the window for the file dialog of PLUGINLOAD.</summary>
         internal void RequestPluginLoad() => PluginLoadRequested?.Invoke(this, EventArgs.Empty);
-
-        /// <summary>Shows Load/Unload Applications, which the Plugin manager button opens as APPLOAD does.</summary>
-        internal void RequestPluginManager() => LoadApplications();
 
         /// <summary>
         /// Adds the plugins' commands to a document's command line: first the window's own PLUGINLOAD, which shows a file dialog,
@@ -149,23 +146,24 @@ namespace GeometryHelper.Cad.Wpf
             }
 
             Say(result.ToString());
-            PluginRibbon.Refresh();
             return result;
         }
     }
 
-    /// <summary>A ribbon tab of the presenter's own, as Plugins and Settings: always shown, its content given.</summary>
+    /// <summary>A ribbon tab of the presenter's own, as Manage and Settings: shown unless made otherwise, its content given.</summary>
     internal sealed class CadBuiltInTab : CadWorkspaceExtension
     {
         private readonly string _header;
 
-        public CadBuiltInTab(string header, object content)
+        public CadBuiltInTab(string header, object content, bool isShown = true)
         {
             _header = header;
             TabContent = content;
-            IsTabVisible = true;
+            IsTabVisible = isShown;
         }
 
         public override string TabHeader => _header;
+
+        public void SetVisible(bool visible) => IsTabVisible = visible;
     }
 }

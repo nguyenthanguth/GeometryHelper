@@ -144,7 +144,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void UnloadOfThatRow_MakesItsCommandsUnknown_TheRowLeaves_AndOtherFunctionsStay()
+        public void UnloadOfThatRow_MakesItsCommandsUnknown_TheRowStaysUnticked_AndOtherFunctionsStay()
         {
             MainViewModel model = Opened();
             string path = Lisp("pair.lsp", "(defun c:ZA () 1)\n(defun helper () 2)\n(defun c:ZB () 3)");
@@ -154,13 +154,47 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 
             dialog.UnloadCommand.Execute(null);
 
-            Assert.Empty(dialog.Rows);
+            AppLoadRow row = Assert.Single(dialog.Rows);
+            Assert.Equal("pair.lsp", row.Name);
+            Assert.False(row.IsOn);
+            Assert.Equal(string.Empty, row.Commands);
             Assert.Empty(model.Session.LispCommandNames);
             Assert.Equal("pair.lsp unloaded.", model.History.Last());
             model.Execute("ZA");
             Assert.Contains("Unknown command", model.History.Last());
             model.Execute("(helper)");
             Assert.Equal("2", model.History.Last());
+        }
+
+        [Fact]
+        public void AfterUnload_TickingTheRowAgainLoadsTheFile_AndAnUnloadedRowIsGoneOnceTheWindowIsClosed()
+        {
+            MainViewModel model = Opened();
+            string path = Lisp("again.lsp", "(defun c:RA () 1)");
+            AppLoadViewModel dialog = Shown(model);
+            dialog.Load(new[] { path });
+            dialog.ChooseRows(dialog.Rows);
+            dialog.UnloadCommand.Execute(null);
+            Assert.False(Assert.Single(dialog.Rows).IsOn);
+
+            // Unload again on the row that is off keeps it too.
+            dialog.ChooseRows(dialog.Rows);
+            dialog.UnloadCommand.Execute(null);
+            AppLoadRow row = Assert.Single(dialog.Rows);
+            Assert.False(row.IsOn);
+
+            row.IsOn = true;
+
+            row = Assert.Single(dialog.Rows);
+            Assert.True(row.IsOn);
+            Assert.Equal("RA", row.Commands);
+            Assert.Equal(new[] { "RA" }, model.Session.LispCommandNames);
+
+            // Unloaded once more and the window closed: a new window has no row for a file that is neither loaded nor in the suite.
+            dialog.ChooseRows(dialog.Rows);
+            dialog.UnloadCommand.Execute(null);
+            Assert.Single(dialog.Rows);
+            Assert.Empty(Created(model).Rows);
         }
 
         [Fact]
@@ -464,6 +498,76 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             Assert.Equal(Path.GetDirectoryName(first), GlobalSettings.Load(SettingsFile).AppLoadFolder);
         }
 
+        // ---- LISPLOAD
+
+        [Fact]
+        public void LispLoad_AsksForLspFilesOnTheRememberedFolder_AndLoadsTheOnesChosenInOrder()
+        {
+            MainViewModel model = Opened();
+            string first = Lisp("one.lsp", "(defun c:ONE () 1)");
+            string second = Lisp("two.lsp", "(defun c:TWO () 1)");
+            var asked = new List<string>();
+            model.AskLispFiles = (filter, folder) =>
+            {
+                asked.Add(filter + "@" + folder);
+                return new[] { second, first };
+            };
+
+            model.StartCommand("LISPLOAD");
+            model.StartCommand("LISPLOAD");
+
+            string remembered = Path.GetDirectoryName(first);
+            Assert.Equal(new[] { "Lisp files (*.lsp)|*.lsp@", "Lisp files (*.lsp)|*.lsp@" + remembered }, asked);
+            Assert.Equal(
+                new[] { "two.lsp successfully loaded.", "one.lsp successfully loaded." },
+                model.History.Where(l => l.EndsWith("successfully loaded.", StringComparison.Ordinal)).Take(2)
+            );
+            Assert.Equal(
+                new[] { "ONE", "TWO" },
+                model.Session.LispCommandNames.OrderBy(n => n, StringComparer.Ordinal)
+            );
+            Assert.Equal(remembered, GlobalSettings.Load(SettingsFile).AppLoadFolder);
+            Assert.False(model.IsCommandRunning);
+        }
+
+        [Fact]
+        public void LispLoad_CancelledLoadsNothing_AndWithNoFileDialogSaysSo()
+        {
+            MainViewModel model = Opened();
+            model.StartCommand("LISPLOAD");
+            Assert.Contains("LISPLOAD needs a file dialog, which the window cannot show here.", model.History);
+            model.AskLispFiles = (filter, folder) => null;
+            int before = model.History.Count;
+
+            model.StartCommand("LISPLOAD");
+
+            Assert.DoesNotContain(model.History.Skip(before), l => l.Contains("loaded"));
+        }
+
+        [Fact]
+        public void AppLoad_StillOpensTheManagerAndAsksForNoFile()
+        {
+            MainViewModel model = Opened();
+            int asked = 0;
+            int shown = 0;
+            model.AskLispFiles = (filter, folder) =>
+            {
+                asked++;
+                return null;
+            };
+            model.ShowAppLoad = dialog =>
+            {
+                shown++;
+                dialog.Dispose();
+                return true;
+            };
+
+            model.StartCommand("APPLOAD");
+
+            Assert.Equal(1, shown);
+            Assert.Equal(0, asked);
+        }
+
         [Fact]
         public void LoadAskedAndCancelled_LoadsNothing()
         {
@@ -521,7 +625,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         // ---- The commands that open it
 
         [Fact]
-        public void AppLoadAndThePluginManagerButton_OpenTheSameWindow()
+        public void AppLoadTypedAndTheLoadManagerButton_OpenTheSameWindow()
         {
             CadPluginManager manager = Manager(out _);
             var model = new MainViewModel { SettingsPath = SettingsFile };
@@ -535,7 +639,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             };
 
             model.StartCommand("APPLOAD");
-            model.PluginRibbon.ManagerCommand.Execute(null);
+            model.StartCommandCommand.Execute("APPLOAD");
 
             Assert.Equal(2, shown);
         }

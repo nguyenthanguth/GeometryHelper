@@ -203,9 +203,8 @@ refused.
 
 ### APPLOAD
 
-APPLOAD (Manage tab, Applications, Load Application) shows Load/Unload Applications, a window of 900 by 700 that waits over
-the presenter until Close; the Plugin manager button of the Plugins tab opens the same window, so there is one place for
-AutoLISP files and plugins. What a file writes goes to the command line as it loads. The window has a toolbar, three chips and
+APPLOAD (Manage tab, Applications, Load Manager) shows Load/Unload Applications, a window of 900 by 700 that waits over
+the presenter until Close, so there is one place for AutoLISP files and plugins. What a file writes goes to the command line as it loads. The window has a toolbar, three chips and
 one table.
 
 **Load… (.lsp, .dll)** shows the Windows Open dialog, several files allowed, with the filters "Applications (\*.lsp;\*.dll)"
@@ -222,12 +221,13 @@ the settings keep (`appLoadFolder` under `support`). Each file is loaded in the 
 Every line goes to the command history, and a load that fails is also told in the window, by the
 [load-result line](#the-load-result-line). **Reload** loads the rows chosen again: an AutoLISP file is
 loaded as Load loads it, a plugin as PLUGINRELOAD does. **Unload** unloads the rows chosen, and so does the
-Delete key: a plugin as PLUGINUNLOAD does; an AutoLISP file leaves the list and the `c:` commands it defined are removed from
+Delete key: a plugin as PLUGINUNLOAD does; an AutoLISP file has the `c:` commands it defined removed from
 the interpreter, so that typing one is an unknown command, though a name that is also an alias, such as `AA` for AREA, goes
 back to the alias. The other functions it defined stay until the drawing is closed, as in AutoCAD, which cannot unload an
-AutoLISP file either. Unticking the On box of an AutoLISP file unloads it the same way, but the row stays in the table, off,
-until the window closes, so that a second click on the same box (a double click is two) ticks it again and touches no other
-row; Unload or Delete on that row takes it off the list, unless the file is in the Startup Suite. Reload and a tick of a box
+AutoLISP file either. The row of an AutoLISP file stays in the table, unticked, as the row of a plugin does, whether it was
+unloaded by Unload, by Delete or by unticking its On box: a second click on the same box (a double click is two) ticks it
+again and loads the file, and no other row moves. A row leaves the table only when the window closes, and only for a file
+that is neither loaded nor in the Startup Suite then; the next time the window opens it is not listed. Reload and a tick of a box
 keep the rows chosen. A file loaded again drops the `c:` commands it no longer defines: a `pair.lsp` that defined `c:KEEP1`
 and `c:GONE1`, edited to define `c:KEEP1` only and reloaded, leaves `GONE1` an unknown command, so that no command stays bound
 that no row lists.
@@ -261,6 +261,16 @@ onto the table are loaded in the order of the drop.
 A window that shows no such dialog (`MainViewModel.ShowAppLoad` null) says `Load/Unload Applications cannot be shown here.`
 for APPLOAD. The History list, Add to History, Files of type and the Startup Suite window of earlier versions are gone, and
 the keys `appLoadHistory`, `appLoadFileType` and `appLoadAddToHistory` of a settings file are ignored when it is read.
+
+#### LISPLOAD
+
+LISPLOAD (Manage tab, Applications, Load Lisp) loads AutoLISP files without opening the window: it shows the Windows Open
+dialog filtered to "Lisp files (\*.lsp)", several files allowed, opened in the folder of the last load (`appLoadFolder`), and
+loads the files chosen in the order chosen, as Load… does, with the same lines on the command history; the folder of the last
+file is kept for the next time. Cancelling the dialog loads nothing. A window with no Open dialog
+(`MainViewModel.AskLispFiles` null) says `LISPLOAD needs a file dialog, which the window cannot show here.` The Shortcuts page of
+Global settings lists it as "Choose AutoLISP files to load". The Applications panel of the Manage tab has Load Plugin (NETLOAD,
+the Open dialog for a plugin `.dll`) and Load Python (PYLOAD, the Open dialog for a `.py` file).
 
 #### The load-result line
 

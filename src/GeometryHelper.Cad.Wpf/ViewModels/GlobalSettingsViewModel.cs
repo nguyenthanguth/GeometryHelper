@@ -673,6 +673,7 @@ namespace GeometryHelper.Cad.Wpf
             ["TOOLPALETTES"] = "Show the tool palettes",
             ["TOOLPALETTESCLOSE"] = "Close the tool palettes",
             ["APPLOAD"] = "Load an AutoLISP file or a plugin",
+            ["LISPLOAD"] = "Choose AutoLISP files to load",
             ["BACTION"] = "Add an action to a parameter in the Block Editor",
             ["CUI"] = "Customize the keys and aliases",
             ["INPUTSEARCHDELAY"] = "Milliseconds before AutoComplete lists names",

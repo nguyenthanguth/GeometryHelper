@@ -159,7 +159,7 @@ Everything there is loaded once, when the app starts, in the order of the walk: 
 by the order of their names (either case the same), then the folders, depth first, the folders of each level in the same
 name order; then the plugins of the startup list below. Loading goes through the manager
 described next, so a plugin of `Plugins` is copied to the shadow folder, loaded into its own load context on .NET 8, added
-to the Plugins tab and the command line, written in the load log and given the plugin API's window extensions. The folder
+to the command line of every drawing, written in the load log and given the plugin API's window extensions. The folder
 lies under the program folder, so it is a trusted folder, and no question is asked. A file that is not a plugin (a library
 with no command, say) or that cannot be loaded is one line of the log, and the next file loads; a plugin loaded already is
 not loaded twice. A .ghplugin put there is not read: a plugin is no longer a package.
@@ -217,8 +217,8 @@ into `%AppData%\GeometryHelper\Dxf\Plugins` is not loaded now: move its folder t
 A sample plugin ships in `Plugins\DrawingInfo`: the command `GHDWGINFO`, which reads the drawing and writes what it holds on
 the command line, and changes nothing. It is the smallest plugin that does something useful, one class with one command that
 takes no prompt, and its source is the project `examples/GeometryHelper.Cad.Plugins.DrawingInfo` of the repository, a netstandard2.0
-library that references `GeometryHelper.Cad` without copying it. The app loads it at every start with no question, and the
-Plugins tab has a button for its command, as for every command. A drawing of three circles and a line in model space, with one
+library that references `GeometryHelper.Cad` without copying it. The app loads it at every start with no question, and its
+command is typed at the command line, as every command is. A drawing of three circles and a line in model space, with one
 layer and no block, gives
 
 ```
@@ -237,9 +237,11 @@ remove the sample, delete the folder `Plugins\DrawingInfo`; to start a plugin of
 
 ## What the window adds
 
-The window shows a Plugins ribbon tab with a button for each command of each plugin loaded, the Plugin manager button,
-which opens [Load/Unload Applications](lisp.md#appload) (a table of the plugins and the AutoLISP files, with On, Commands,
-File and At start, Load…, Reload and Unload) and a dialog before a load outside the trusted folders. The plugin's load
+The window has no ribbon tab of its own for plugins and no button per command: a plugin's commands are typed at the command
+line, or started by name. A plugin is loaded from the Applications panel of the Manage tab: Load Plugin runs NETLOAD, the
+Open dialog for a `.dll`, and Load Manager opens [Load/Unload Applications](lisp.md#appload) (APPLOAD: a table of the
+plugins and the AutoLISP files, with On, Commands, File and At start, Load…, Reload and Unload), with a dialog before a load
+outside the trusted folders. The plugin's load
 lines go to the command history, and a plugin that fails to load is also told by the red [load-result line](lisp.md#the-load-result-line) of that window. A plugin's `CadSetting` attributes remain in the plugin API, but the window has no page
 that shows them now.
 
@@ -303,8 +305,9 @@ An `Initialize` that throws leaves the plugin's commands loaded and everything i
 `CadPlugin.Problems` and a Warn in the log.
 
 **Ribbon.** [`CadRibbonTab`](xref:GeometryHelper.Cad.Plugins.CadRibbonTab)s come after the Plugins tab, in the order the
-plugins were loaded; `AddRibbonPanel` puts a panel on the Plugins tab instead, between "Command plugins" and "Manage", and
-`ShowsCommandButtons = false` keeps the plugin's commands off "Command plugins". A panel's items are buttons and split
+plugins were loaded; `AddRibbonPanel` puts a panel on the Plugins tab instead, which shows only while a plugin has added a
+panel and holds nothing but those panels, plugin by plugin. The presenter has no "Command plugins" or "Manage" panel any more,
+so `ShowsCommandButtons` changes nothing. A panel's items are buttons and split
 buttons. A `Large` item has its icon in a slot of 32 pixels over its text, alone in its column; `Standard` items have a
 slot of 16 beside their text, or the icon alone where `ShowText` is false, and stand three to a column, as AutoCAD's row
 panels do. An icon is a path on a square of 24 drawn 2 wide like the presenter's own (`FromPathData`), or a PNG, BMP,

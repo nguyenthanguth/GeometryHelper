@@ -131,10 +131,7 @@ namespace GeometryHelper.Cad.Wpf
         public bool CanChangeAtStart => !IsAtStartFixed;
 
         /// <summary>Gets the tooltip of the On box, which says what a click does to this row: unload it where it is on, load it where it is off.</summary>
-        public string OnToolTip =>
-            _isOn
-                ? "Loaded: untick to unload it"
-                : "Not loaded: tick to load it again, or press Unload to take it off the list";
+        public string OnToolTip => _isOn ? "Loaded: untick to unload it" : "Not loaded: tick to load it again";
 
         internal void ShowAtStart(bool value)
         {
@@ -152,8 +149,8 @@ namespace GeometryHelper.Cad.Wpf
     /// Commands, File, At start) sorted by name and then by file, with chips that filter it by kind. Load takes .lsp and .dll
     /// files (an AutoLISP file as <see cref="CadCommandSession.LoadLisp"/> does, a .dll through the plugin manager as NETLOAD
     /// does), Reload loads the rows chosen again and Unload unloads them: a plugin as the plugin manager does, an AutoLISP file
-    /// by leaving the list and losing the <c>c:</c> commands it defined, which become unknown commands; AutoLISP can unload no
-    /// more than that. What each action did is a line of the command history. The folder of the last Load is kept in Global
+    /// by losing the <c>c:</c> commands it defined, which become unknown commands, its row staying in the table unticked until
+    /// the window closes; AutoLISP can unload no more than that. What each action did is a line of the command history. The folder of the last Load is kept in Global
     /// settings (<see cref="GlobalSettings.AppLoadFolder"/>), the Startup Suite in <see cref="GlobalSettings.LispStartupSuite"/>.
     /// A load that fails (a .lsp or a .dll, from Load…, a drop, Reload or the On box), a file type refused, or Load… with no
     /// drawing open is also told by a red line above the hint, until the next load that has no failure
@@ -164,6 +161,9 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>The filter of the file dialog Load… shows: applications (.lsp and .dll), AutoLISP, plugins, and all files.</summary>
         public const string OpenFilter =
             "Applications (*.lsp;*.dll)|*.lsp;*.dll|Lisp files (*.lsp)|*.lsp|Plugins (*.dll)|*.dll|All files (*.*)|*.*";
+
+        /// <summary>The filter of the file dialog LISPLOAD shows: AutoLISP files.</summary>
+        public const string LispFilter = "Lisp files (*.lsp)|*.lsp";
 
         private const string LispKind = "Lisp";
         private const string PluginKind = "Plugin";
@@ -179,7 +179,7 @@ namespace GeometryHelper.Cad.Wpf
         // The failures of the load going on, in order: the file's name and what to say after it. The line is made from them when it ends.
         private List<KeyValuePair<string, string>> _failures;
 
-        // The AutoLISP files unticked in this window, by full path: they stay in the table, off, until it closes or Unload takes them out.
+        // The AutoLISP files unticked in this window, by full path: they stay in the table, off, until it closes; Unload keeps them too.
         private readonly HashSet<string> _off = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         internal AppLoadViewModel(MainViewModel model)
@@ -331,10 +331,10 @@ namespace GeometryHelper.Cad.Wpf
         }
 
         /// <summary>
-        /// Unload: unloads the rows chosen that are loaded. A plugin is unloaded as PLUGINUNLOAD does. An AutoLISP file leaves
-        /// the list, unless it is in the Startup Suite, when it stays unticked so that it can be taken out of the suite; the
-        /// <c>c:</c> commands it defined are removed from the interpreter, and the other functions it defined stay. A file
-        /// unticked earlier, which stays in the list off, is taken out of it the same way.
+        /// Unload: unloads the rows chosen that are loaded. A plugin is unloaded as PLUGINUNLOAD does. An AutoLISP file stays in
+        /// the table, unticked, as a plugin does, so that ticking it loads it again; the <c>c:</c> commands it defined are
+        /// removed from the interpreter, and the other functions it defined stay. The row leaves the table only when the window
+        /// closes, if the file is neither loaded nor in the Startup Suite then.
         /// </summary>
         public void Unload()
         {
@@ -347,7 +347,7 @@ namespace GeometryHelper.Cad.Wpf
 
                 if (!row.IsPlugin)
                 {
-                    _off.Remove(Normal(row.File));
+                    _off.Add(Normal(row.File));
                 }
             }
 

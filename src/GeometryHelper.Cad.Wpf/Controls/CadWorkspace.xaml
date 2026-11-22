@@ -1177,116 +1177,15 @@
                 </Button>
             </DataTemplate>
 
-            <!-- The groups of the Plugins tab: a button per command of each plugin loaded, the panels plugins add, then Manage. -->
+            <!-- The Plugins tab: the panels plugins add (CadPluginHost.AddRibbonPanel); the tab shows only while there is one. -->
             <DataTemplate DataType="{x:Type local:PluginRibbonViewModel}">
-                <StackPanel Orientation="Horizontal">
-                    <Border Style="{StaticResource GroupBorder}">
-                        <DockPanel>
-                            <TextBlock
-                                DockPanel.Dock="Bottom"
-                                Style="{StaticResource GroupTitle}"
-                                Text="Command plugins"
-                            />
-                            <Grid>
-                                <TextBlock
-                                    Text="No command plugin is loaded.&#x0a;Load .dll adds one."
-                                    Foreground="{StaticResource GhTextMuted}"
-                                    Margin="4,8,8,0"
-                                    Visibility="{Binding HasCommands, Converter={StaticResource Hidden}}"
-                                />
-                                <ItemsControl ItemsSource="{Binding Commands}" Focusable="False">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <StackPanel Orientation="Horizontal" />
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate DataType="{x:Type local:PluginCommandButton}">
-                                            <Button
-                                                Style="{StaticResource BigButton}"
-                                                Tag="{StaticResource GhIconPluginCommand}"
-                                                Content="{Binding Label}"
-                                                ToolTip="{Binding ToolTip}"
-                                                IsEnabled="True"
-                                                Command="{Binding DataContext.RunCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                CommandParameter="{Binding}"
-                                            >
-                                                <!-- A command's name is one long word: kept on one line, cut with an ellipsis past 96 pixels. -->
-                                                <Button.ContentTemplate>
-                                                    <DataTemplate>
-                                                        <StackPanel>
-                                                            <local:IconView
-                                                                Size="26"
-                                                                StrokeThickness="1.6"
-                                                                HorizontalAlignment="Center"
-                                                                Data="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}"
-                                                            />
-                                                            <TextBlock
-                                                                Text="{Binding}"
-                                                                Margin="0,4,0,0"
-                                                                HorizontalAlignment="Center"
-                                                                MaxWidth="96"
-                                                                TextTrimming="CharacterEllipsis"
-                                                            />
-                                                        </StackPanel>
-                                                    </DataTemplate>
-                                                </Button.ContentTemplate>
-                                            </Button>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </Grid>
-                        </DockPanel>
-                    </Border>
-                    <!-- The panels plugins add to this tab, between Command plugins and Manage (CadPluginHost.AddRibbonPanel). -->
-                    <ItemsControl ItemsSource="{Binding Panels}" Focusable="False">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <StackPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                    </ItemsControl>
-                    <Border Style="{StaticResource GroupBorder}">
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Manage" />
-                            <StackPanel Orientation="Horizontal">
-                                <Button
-                                    Style="{StaticResource BigButton}"
-                                    Tag="{StaticResource GhIconPluginLoad}"
-                                    Content="Load .dll"
-                                    IsEnabled="True"
-                                    Command="{Binding LoadCommand}"
-                                    ToolTip="Load a plugin (PLUGINLOAD, NETLOAD)"
-                                />
-                                <Button
-                                    Style="{StaticResource BigButton}"
-                                    Tag="{StaticResource GhIconRefresh}"
-                                    Content="Reload"
-                                    IsEnabled="True"
-                                    Command="{Binding ReloadCommand}"
-                                    ToolTip="Load the plugin again from its file (PLUGINRELOAD)"
-                                />
-                                <Button
-                                    Style="{StaticResource BigButton}"
-                                    Tag="{StaticResource GhIconPluginUnload}"
-                                    Content="Unload"
-                                    IsEnabled="True"
-                                    Command="{Binding UnloadCommand}"
-                                    ToolTip="Unload the plugin (PLUGINUNLOAD)"
-                                />
-                                <Button
-                                    Style="{StaticResource BigButton}"
-                                    Tag="{StaticResource GhIconPluginManager}"
-                                    Content="Plugin manager"
-                                    IsEnabled="True"
-                                    Command="{Binding ManagerCommand}"
-                                    Margin="0"
-                                    ToolTip="Load, unload and trust plugins"
-                                />
-                            </StackPanel>
-                        </DockPanel>
-                    </Border>
-                </StackPanel>
+                <ItemsControl ItemsSource="{Binding Panels}" Focusable="False">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
             </DataTemplate>
 
             <!-- The groups of the Settings tab: Global settings, opened on a category. -->
@@ -4819,7 +4718,7 @@ Annotation Scaling, Leaders and Dimensions collapse; Text and Centerlines never 
 
             <!--
             Manage, as AutoCAD 2021's for what the presenter has: Customization (User Interface and Tool Palettes, Edit Aliases), Applications
-            (Load Application, Run Script), CAD Standards (Layer Translator; Check and Configure greyed with a tooltip saying they are not built
+            (Load Manager, Load Lisp, Load Plugin, Load Python, Run Script), CAD Standards (Layer Translator; Check and Configure greyed with a tooltip saying they are not built
             yet) and Cleanup (Purge, Find Non-Purgeable Items, Overkill, Audit, Recover). About 660 wide, so no panel shrinks: the strip has no steps.
             -->
             <DataTemplate DataType="{x:Type local:ManageRibbonViewModel}">
@@ -4891,14 +4790,43 @@ Annotation Scaling, Leaders and Dimensions collapse; Text and Centerlines never 
                         <StackPanel Orientation="Horizontal">
                             <Button
                                 Style="{StaticResource BigButton}"
-                                Tag="{StaticResource GhIconPluginLoad}"
-                                Content="Load Application"
+                                Tag="{StaticResource GhIconAppManager}"
+                                Content="Load Manager"
                                 IsEnabled="{Binding CanLoadApplication}"
                                 Command="{Binding Model.StartCommandCommand}"
                                 CommandParameter="APPLOAD"
                                 ToolTipService.ShowOnDisabled="True"
-                                ToolTip="Load Application (APPLOAD): load an AutoLISP file or a plugin; the Plugin manager is on the Plugins tab"
+                                ToolTip="Load Manager (APPLOAD): the Load/Unload Applications window, where AutoLISP files and plugins are loaded, unloaded and kept for every start"
                             />
+                            <WrapPanel Style="{StaticResource SmallColumn}">
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconLoadLisp}"
+                                    Content="Load Lisp"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="LISPLOAD"
+                                    ToolTip="Load Lisp (LISPLOAD): choose .lsp files and load them"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconLoadPlugin}"
+                                    Content="Load Plugin"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="NETLOAD"
+                                    ToolTip="Load Plugin (NETLOAD): choose a plugin .dll and load it"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconLoadPython}"
+                                    Content="Load Python"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="PYLOAD"
+                                    ToolTip="Load Python (PYLOAD): choose a .py file and load it; its commands are added"
+                                />
+                            </WrapPanel>
                             <Button
                                 Style="{StaticResource BigButton}"
                                 Tag="{StaticResource GhIconScript}"
@@ -5793,6 +5721,7 @@ Annotation Scaling, Leaders and Dimensions collapse; Text and Centerlines never 
                         IsChecked="{Binding PluginsTab.IsTabSelected, Mode=OneWay}"
                         Command="{Binding SelectTabCommand}"
                         CommandParameter="{Binding PluginsTab}"
+                        Visibility="{Binding PluginsTab.IsTabVisible, Converter={StaticResource Shown}}"
                         Margin="0,0,4,0"
                     />
                     <!-- The tabs plugins add (CadPluginHost.AddRibbonTab), in the colours of the other tabs. -->

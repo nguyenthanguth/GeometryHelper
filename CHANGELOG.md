@@ -6,6 +6,29 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The Applications panel of the Manage tab, as the design draws it: Load Manager (large, APPLOAD, which still opens
+Load/Unload Applications), then Load Lisp (LISPLOAD), Load Plugin (NETLOAD) and Load Python (PYLOAD) as small buttons with text,
+then Run Script (large). The button that was called Load Application is Load Manager, with a new icon, and
+`ManageRibbonViewModel.CanLoadApplication` still says whether it can be pressed.
+
+**NEW.** `LISPLOAD`, which shows the Windows Open dialog filtered to "Lisp files (*.lsp)", several files allowed, in the folder
+of the last load, and loads the files chosen in the order chosen as Load… of Load/Unload Applications does; it has a
+description on the Shortcuts page and a hook, `MainViewModel.AskLispFiles`, for a window to show the dialog. `NETLOAD` and
+`PYLOAD` already opened a file picker (for a `.dll` and a `.py`) and are unchanged.
+
+**CHANGED.** Unload, the Delete key and unticking On in Load/Unload Applications all leave the row of an AutoLISP file in the
+table, unticked, as they do for a plugin, so that ticking it loads the file again; Unload and Delete used to take the row away
+unless the file was in the Startup Suite. A row leaves the table only when the window closes, and only for a file that is
+neither loaded nor in the Startup Suite then. The `c:` commands the file defined are still removed at once.
+
+**BREAKING.** The built-in Plugins ribbon tab no longer has its "Command plugins" panel (a button for each command of each
+plugin loaded) or its "Manage" panel (Load .dll, Reload, Unload, Plugin manager); plugin commands run from the command line, and
+plugins are loaded from the Applications panel of the Manage tab. The tab itself shows only while a plugin has added a panel to
+it with `CadPluginHost.AddRibbonPanel`; the tabs added with `AddRibbonTab` are unchanged. Removed from `GeometryHelper.Cad.Wpf`:
+the class `PluginCommandButton`, and the members `PluginRibbonViewModel.Commands`, `HasCommands`, `HasManager`, `RunCommand`,
+`LoadCommand`, `ReloadCommand`, `UnloadCommand` and `ManagerCommand`. `CadPluginHost.ShowsCommandButtons` stays, and changes
+nothing now.
+
 **NEW.** `3DPOLY` in the presenter, as AutoCAD 2021's console asks it: `Specify start point of polyline:`, then `Specify
 endpoint of line or [Undo]:` for the first two endpoints and `[Close/Undo]` from the third, Enter ending it. It makes one 3D
 polyline (a POLYLINE of flag 8, its vertices of flag 32); the presenter's points are those of a plane, so a Z typed is read and

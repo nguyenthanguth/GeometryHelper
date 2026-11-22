@@ -10,7 +10,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 {
     /// <summary>
     /// Manage as AutoCAD 2021's (D1345), found in the window drawn offscreen: Customization (User Interface and Tool Palettes large,
-    /// Edit Aliases), Applications (Load Application and Run Script large), CAD Standards (Layer Translator, Check, Configure, the
+    /// Edit Aliases), Applications (Load Manager and Run Script large, Load Lisp, Load Plugin and Load Python small), CAD Standards (Layer Translator, Check, Configure, the
     /// last two greyed as not built yet) and Cleanup (Purge and Find Non-Purgeable Items large, then Overkill, Audit and Recover).
     /// The tab has no steps: its panels are full down to 884 pixels. A strip width is the width the RibbonStrip gets, which is the
     /// window's less the pixels the window gives to what is around it.
@@ -92,7 +92,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void ApplicationsHoldsLoadApplicationAndRunScript_LoadApplicationOpeningTheApplicationsWindow()
+        public void ApplicationsHoldsLoadManagerLarge_ThenLoadLispLoadPluginLoadPythonSmall_ThenRunScriptLarge()
         {
             OnTab(
                 m => m.ManageTab,
@@ -102,23 +102,49 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     RibbonPanel applications = Panel(strip, "Applications");
                     List<FrameworkElement> controls = BodyControls(applications);
 
-                    AssertControls(new[] { "Load Application|APPLOAD", "Run Script|SCRIPT" }, controls);
-                    Assert.All(controls, c => Assert.Equal(LargeHeight, c.ActualHeight, 0.5));
-                    Assert.All(controls, c => Assert.True(HasText(c), NameOf(c) + " shows no label."));
-                    Assert.Same(model.StartCommandCommand, ((ButtonBase)controls[1]).Command);
+                    AssertControls(
+                        new[]
+                        {
+                            "Load Manager|APPLOAD",
+                            "Load Lisp|LISPLOAD",
+                            "Load Plugin|NETLOAD",
+                            "Load Python|PYLOAD",
+                            "Run Script|SCRIPT",
+                        },
+                        controls
+                    );
 
-                    // Load Application shows Load/Unload Applications; the window is answered Cancel here.
+                    // Load Manager and Run Script are large with their labels; the three loaders small, with text, 24 apart.
+                    Assert.Equal(LargeHeight, controls[0].ActualHeight, 0.5);
+                    Assert.Equal(LargeHeight, controls[4].ActualHeight, 0.5);
+                    Assert.All(controls.Skip(1).Take(3), c => Assert.Equal(TileHeight, c.ActualHeight, 0.5));
+                    Assert.Equal(Pitch, Top(controls[2], applications.Body) - Top(controls[1], applications.Body), 0.5);
+                    Assert.Equal(Pitch, Top(controls[3], applications.Body) - Top(controls[2], applications.Body), 0.5);
+                    Assert.All(controls, c => Assert.True(HasText(c), NameOf(c) + " shows no label."));
+                    Assert.All(controls.OfType<ButtonBase>(), b => Assert.Same(model.StartCommandCommand, b.Command));
+                    Assert.All(controls, c => Assert.True(c.IsEnabled, NameOf(c) + " is not enabled."));
+
+                    // Load Manager shows Load/Unload Applications; the window is answered Cancel here.
                     int shown = 0;
                     model.ShowAppLoad = dialog =>
                     {
                         shown++;
                         return false;
                     };
+                    var asked = new List<string>();
+                    model.AskLispFiles = (filter, folder) =>
+                    {
+                        asked.Add(filter);
+                        return null;
+                    };
 
                     Click((ButtonBase)controls[0]);
+                    Click((ButtonBase)controls[1]);
 
                     Assert.Equal(1, shown);
+                    Assert.Equal(new[] { "Lisp files (*.lsp)|*.lsp" }, asked);
                     Assert.Contains("Command: APPLOAD", model.History);
+                    Assert.Contains("Command: LISPLOAD", model.History);
                 }
             );
         }

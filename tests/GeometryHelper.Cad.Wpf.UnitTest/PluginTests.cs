@@ -46,27 +46,23 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void TheSamplePutsNumCirclesOnThePluginsTabThatRunsOnTheCommandLineUndoesAndGoesWhenUnloaded()
+        public void TheSampleGivesNumCirclesToTheCommandLineWithNoPluginsTab_ItRunsUndoesAndGoesWhenUnloaded()
         {
             var model = new MainViewModel();
             model.UsePlugins(_manager, loadAtStart: false);
             model.OpenDocument(Circles());
-            Assert.False(model.PluginRibbon.HasCommands);
+            Assert.Null(model.Session.Registry.Find("NUMCIRCLES"));
 
             CadPluginResult loaded = model.LoadPlugin(_sample);
 
             Assert.True(loaded.Succeeded, loaded.ToString());
             Assert.Contains(loaded.ToString(), model.History);
-            Assert.Equal(new[] { "FAILNOW", "NUMCIRCLES" }, model.PluginRibbon.Commands.Select(b => b.Name));
-            PluginCommandButton button = model.PluginRibbon.Commands.Single(b => b.Name == "NUMCIRCLES");
-            Assert.Equal("NC", button.Alias);
-            Assert.Equal("NUMCIRCLES", button.Label);
-            Assert.Contains("Number the selected circles", button.ToolTip);
+            Assert.NotNull(model.Session.Registry.Find("FAILNOW"));
 
-            model.SelectedTab = model.PluginsTab;
-            Assert.True(model.PluginsTab.IsTabSelected);
-            Assert.Same(model.PluginRibbon, model.PluginsTab.TabContent);
-            model.PluginRibbon.RunCommand.Execute(button);
+            // The sample adds no panel, so no Plugins tab shows: the command is typed or started by name.
+            Assert.False(model.PluginsTab.IsTabVisible);
+            Assert.Empty(model.PluginRibbon.Panels);
+            model.StartCommand("NUMCIRCLES");
             Assert.StartsWith("Select objects", model.Prompt);
             model.Session.FeedSelection(
                 model.Document.Database.ModelSpace.Cast<DxfEntity>().Select(e => e.Handle).ToList()
@@ -87,7 +83,6 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             CadPluginResult unloaded = model.UnloadPlugin(loaded.Plugin.Name);
 
             Assert.True(unloaded.Succeeded, unloaded.ToString());
-            Assert.Empty(model.PluginRibbon.Commands);
             Assert.Null(model.Session.Registry.Find("NUMCIRCLES"));
         }
 
