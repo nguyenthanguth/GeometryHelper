@@ -322,11 +322,12 @@ namespace GeometryHelper.Cad.Lisp
         #region Finding files
 
         /// <summary>
-        /// <c>findfile</c>: a name with a folder is looked for where it points; a bare name in the current folder, then the
-        /// folder of the drawing, then the support folders. A file or a folder is found, and the answer is its full path. A bare
-        /// name of a file of code (<see cref="CadLoadSecurity.IsCodeFile"/>) is looked for in the support folders alone unless
-        /// <see cref="LegacyCodeSearch"/> says to look beside the drawing: <c>findfile "label.lsp"</c> does not find the file
-        /// lying next to the drawing, <c>findfile "label.txt"</c> does.
+        /// <c>findfile</c>: a rooted name is looked for where it points; any other, a bare name or one with a relative folder
+        /// (<c>Sub/x.txt</c>, <c>./x.lsp</c>), in the current folder, then the folder of the drawing, then the support folders.
+        /// A file or a folder is found, and the answer is its full path. A name of a file of code
+        /// (<see cref="CadLoadSecurity.IsCodeFile"/>) is looked for in the support folders alone unless
+        /// <see cref="LegacyCodeSearch"/> says to look beside the drawing: <c>findfile "label.lsp"</c> and
+        /// <c>findfile "Sub/label.lsp"</c> do not find the file lying next to the drawing, <c>findfile "label.txt"</c> does.
         /// </summary>
         private object FindOnPath(string name)
         {
@@ -337,7 +338,7 @@ namespace GeometryHelper.Cad.Lisp
 
             try
             {
-                if (name.IndexOfAny(Separators) >= 0 || Path.IsPathRooted(name))
+                if (Path.IsPathRooted(name))
                 {
                     return Exists(name) ? Path.GetFullPath(Resolve(name)) : null;
                 }

@@ -40,7 +40,7 @@ width factor of drawing text. A file that holds them keeps them, and OK writes t
 | Units and rounding | decimals of coordinates and angles; the separators | 2 and 1 decimals; thousands parted by a space, decimals by a point |
 | Layers, colours and lines | the layer table written to new drawings, with each layer's colour, linetype, lineweight and plot flag; NEW (Ctrl+N) adds it to the new drawing | Visible, Hidden, Centre, Hatch, Dimension, Mark, Symbol, Sheet, Viewport (not plotted) |
 | Text and fonts | the UI font, chosen from the font families installed on Windows (each shown in its own face) or typed; what Esc in the MTEXT editor with changes does (Hidden messages); the replacement font of a font not found (FONTALT), whether the Missing Fonts dialog is shown on opening a drawing, the font mapping file (FONTMAP) and the fonts drawn in others | UI font Inter, Esc asks, `ghsimplex`, the dialog on, no mapping file, no substitutions |
-| Folder preference | the font search folders and the support file search folders (linetypes and hatch patterns), each in order, with the default Fonts, Hatches and Linetypes folders next to the dll shown read-only under them; the Python the PYTHON palette, PYRUN and PYLOAD run scripts with (a `python.exe` or its folder, with the Python found beside it; see [Python in the app](python.md#finding-python)) | none; Python found automatically |
+| Folder preference | the font search folders and the support file search folders (linetypes, hatch patterns and AutoLISP files), each in order, with the default Fonts, Hatches, Linetypes and Lisps folders next to the dll shown read-only under them; the Python the PYTHON palette, PYRUN and PYLOAD run scripts with (a `python.exe` or its folder, with the Python found beside it; see [Python in the app](python.md#finding-python)) | none; Python found automatically |
 | Security | where AutoLISP and Python code may be loaded from: SECURELOAD, the trusted folders (TRUSTEDPATHS), LEGACYCODESEARCH and the files answered Always Load (see [The Security page](#the-security-page)) | SECURELOAD 1, no trusted folder but the app's own, LEGACYCODESEARCH 0, none |
 | Shortcuts | the aliases and the keys | AutoCAD's (see [Editing](editing.md#aliases-and-keys)) |
 | Save and export | the save folder, autosave (how often, and its format, DXF or DWG); Template settings: the template folder and the default template for QNEW (see [Drawing templates](#drawing-templates)); Other programs: whether other programs may connect and drive the app (see [Driving the app from another program](remote.md#the-setting)) | empty, which is the user's Documents, 10 minutes, DXF; template folder empty, which is `%AppData%\GeometryHelper\Drawing\Template`, no default template for QNEW, which is the built-in metric one; other programs allowed to connect |
@@ -49,9 +49,9 @@ width factor of drawing text. A file that holds them keeps them, and OK writes t
 Folder preference lists the folders you add, each editable, and under them the default folder next to `GeometryHelper.Cad.dll`
 for each kind, read-only, marked "(default)" with its full path ("(default) not found" where the folder is missing) and an Open
 folder button; they are never saved into the settings file. A line under each list says the order. The default folders are
-`Fonts`, `Hatches` and `Linetypes` beside the dll (the dll's folder, not the exe's, so that an app which embeds it, such as
+`Fonts`, `Hatches`, `Linetypes` and `Lisps` beside the dll (the dll's folder, not the exe's, so that an app which embeds it, such as
 a host that makes model drawings, finds the same ones). Put SHX fonts and big fonts, `.ttf`, `.ttc` and `.otf` files in `Fonts`, `.pat` files
-in `Hatches` and `.lin` files in `Linetypes`. A font, a pattern file or a linetype file is looked for in three places, in this
+in `Hatches`, `.lin` files in `Linetypes` and AutoLISP files (`.lsp`, and the `.dcl` files they use) in `Lisps`. A font, a pattern file or a linetype file is looked for in three places, in this
 order: (1) the folders you set in Folder preference, in order; (2) the default folder of its kind next to the dll; (3) the built-in
 font (GeometryHelper Simplex), patterns (48) and linetypes (39). A folder that does not exist is passed over without a word. The
 folder of the drawing is not looked in for fonts, patterns or linetypes (xrefs and images are still found relative to the
@@ -62,7 +62,7 @@ installing (and it is not listed as missing); the regular face of a family is pr
 listed again at each look and the family names of a file are read once, while its size and time stay as they were. `Hatches` holds
 `GeometryHelper.pat` and `Linetypes` holds `GeometryHelper.lin`, the 48 patterns and the 39 linetypes of the built-in sets in
 AutoCAD's `.pat` and `.lin` formats, as models for your own files; the name `GeometryHelper.pat` or `GeometryHelper.lin` always
-means the built-in set, so editing the copy changes nothing, and a test keeps the files equal to the sets. Each folder has a
+means the built-in set, so editing the copy changes nothing, and a test keeps the files equal to the sets. `Lisps` ships with no routine in it: every `.lsp` file directly in it is loaded into each drawing when it opens, after `acaddoc.lsp` and before the Startup Suite, in the order of the file names, and the folder is on the AutoLISP search path after the support folders (see [The Lisps folder](lisp.md#the-lisps-folder)); it is under the program folder, so SECURELOAD always trusts it. Each folder has a
 `README.txt` that says the same.
 
 The crosshair size (`CrosshairPercent`, CURSORSIZE) is a share of the canvas: at 5 % each line is 5 % of the larger side of

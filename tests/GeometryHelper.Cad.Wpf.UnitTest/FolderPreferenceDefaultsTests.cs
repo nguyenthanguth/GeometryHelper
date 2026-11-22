@@ -44,11 +44,35 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             Assert.Equal("Fonts", fonts.Kind);
             Assert.Equal(Path.Combine(program, "Fonts"), fonts.Folder);
             Assert.Equal("(default)", fonts.Mark);
-            Assert.Equal(new[] { "Hatch patterns", "Linetypes" }, dialog.DefaultSupportFolders.Select(r => r.Kind));
+            Assert.Equal(
+                new[] { "Hatch patterns", "Linetypes", "Lisps" },
+                dialog.DefaultSupportFolders.Select(r => r.Kind)
+            );
             Assert.Equal("(default) not found", dialog.DefaultSupportFolders[0].Mark);
             Assert.Equal("(default)", dialog.DefaultSupportFolders[1].Mark);
             Assert.Equal(Path.Combine(program, "Hatches"), dialog.DefaultSupportFolders[0].Folder);
             Assert.Empty(dialog.FontFolders);
+            Assert.Empty(dialog.SupportFolders);
+        }
+
+        [Fact]
+        public void TheLispsFolder_IsAReadOnlyRowAfterLinetypes_WithOpenFolder_AndIsNotSaved()
+        {
+            string program = Path.Combine(_folder.FullPath, "dll");
+            GlobalSettingsViewModel missing = Dialog(program, out _);
+            DefaultFolderRow absent = Assert.Single(missing.DefaultSupportFolders, r => r.Kind == "Lisps");
+            Assert.Equal("(default) not found", absent.Mark);
+            Directory.CreateDirectory(Path.Combine(program, "Lisps"));
+
+            GlobalSettingsViewModel dialog = Dialog(program, out List<string> opened);
+
+            Assert.Equal("Lisps", dialog.DefaultSupportFolders.Last().Kind);
+            DefaultFolderRow lisps = dialog.DefaultSupportFolders.Last();
+            Assert.Equal(Path.Combine(program, "Lisps"), lisps.Folder);
+            Assert.Equal("(default)", lisps.Mark);
+            Assert.True(dialog.OpenDefaultFolderCommand.CanExecute(lisps));
+            dialog.OpenDefaultFolderCommand.Execute(lisps);
+            Assert.Equal(new[] { Path.Combine(program, "Lisps") }, opened);
             Assert.Empty(dialog.SupportFolders);
         }
 

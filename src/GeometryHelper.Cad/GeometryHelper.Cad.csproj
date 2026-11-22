@@ -20,7 +20,7 @@
 
     <!-- The default support folders, beside GeometryHelper.Cad.dll in the output of every project that uses it. -->
     <ItemGroup>
-        <None Update="Fonts\**;Hatches\**;Linetypes\**" CopyToOutputDirectory="PreserveNewest" />
+        <None Update="Fonts\**;Hatches\**;Linetypes\**;Lisps\**" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
     <ItemGroup>
