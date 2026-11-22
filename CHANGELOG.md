@@ -14,6 +14,15 @@ with the Home tab showing had no box to loop, and a drawing with a style had no 
 already shows, now changes nothing and raises nothing, as the text style and dimension style boxes already did; "Multileader
 style…" still opens the manager and sets the box back.
 
+**NEW.** Files dropped on the window are taken as AutoCAD 2021 takes them (each measured in the full program), anywhere on
+it: the command line's box, the ribbon and the palettes no longer swallow them. A `.lsp`, `.fas` or `.vlx` runs the line
+typed at the command line, `Command: (LOAD "D:/x/u1.lsp")` and then what the file writes, with the SECURELOAD question of a
+typed `load` (Do Not Load gives `; error: File load canceled: D:/x/u1.lsp`; a `.fas` is asked about, then refused as
+compiled AutoLISP); a `.scr` runs `_SCRIPT` with its path in quotes; a `.arx`, `.dbx` or `.dvb` writes APPLOAD's refusal
+line; any other file (`.dcl`, `.dll`, `.txt`) gets a box titled Drag and Drop reading `No association..D:\x\notes.txt`,
+and nothing on the command line. While a command or a routine waits these files are ignored. Drawings still open, and
+`.ghplugin` packages still install. Several files are taken in the order of the drop.
+
 **FIXED.** AutoLISP's `entget` listed the groups of a block made by `entmake` and of the objects round it a way AutoCAD 2021 does not
 (each measured in its console): the BLOCK of such a block has its name as group `1` (`"*U"` for an anonymous one, whatever `1`
 the list gave; a block of `-BLOCK` keeps `""`); a block with no entity names its ENDBLK as `-2`, in `tblsearch` too, and

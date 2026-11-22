@@ -228,6 +228,24 @@ The History list, the folder last used and Add to History are kept in the settin
 window that shows no such dialog (`MainViewModel.ShowAppLoad` null) shows the Plugin manager for APPLOAD, as APPLOAD did
 before it loaded AutoLISP.
 
+#### Dropping a file on the window
+
+A file dropped anywhere on the window (the drawing, the command line, the ribbon, the palettes) is taken as AutoCAD 2021
+takes it, each file in the order of the drop. A `.lsp`, `.fas` or `.vlx` runs the line a drafter would type at the command
+line of the drawing shown, `(LOAD "D:/x/tools.lsp")` (LOAD in capitals, the path with forward slashes), so the history
+reads `Command: (LOAD "D:/x/tools.lsp")` and then what the file writes. The SECURELOAD question comes as for a typed
+`load`: outside the trusted folders at SECURELOAD 1 it asks, Do Not Load leaves `; error: File load canceled:
+D:/x/tools.lsp`, and Load Once holds for that file for the session. A `.fas` or `.vlx` gets the question too, then the
+interpreter's refusal of compiled AutoLISP as its `; error:` line. The History list of APPLOAD is not touched, and the file
+shows in Loaded Applications as every loaded file does. A `.scr` runs `_SCRIPT` and answers its file prompt with the path
+in quotes, `Enter script file name <...>: "D:\x\draw.scr"`, with no question, as SCRIPT typed. A `.arx`, `.dbx` or `.dvb`
+writes APPLOAD's refusal line, `tools.arx cannot be loaded: .arx, .dbx, .dvb, .fas and .vlx files are not supported.`; any
+other file (`.dcl`, `.dll`, `.txt`) gets a box titled Drag and Drop that reads `No association..D:\x\notes.txt`, with OK, and
+nothing on the command line. A drawing still opens and a `.ghplugin` still installs. While a command or a routine waits
+for an answer, the files that load, run or show the box are ignored with no word, as AutoCAD ignores them: nothing is
+loaded, the command is not cancelled and nothing is queued; with no drawing open they are passed over too. The `.py` files
+of the Python console's transcript are still its own.
+
 ### When a drawing opens
 
 Each drawing that opens runs, in this order:

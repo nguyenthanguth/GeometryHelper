@@ -613,13 +613,61 @@ namespace GeometryHelper.Cad.Wpf
         }
 
         /// <inheritdoc/>
+        protected override void OnPreviewDragOver(DragEventArgs e)
+        {
+            base.OnPreviewDragOver(e);
+
+            // Files are taken in the Preview events, so that the command line's box, the ribbon and the palettes do not
+            // swallow them; the transcript of the Python console takes its .py files first, as it did.
+            if (e.Data.GetDataPresent(DataFormats.FileDrop) && !IsOverPythonTranscript(e.OriginalSource))
+            {
+                e.Effects = DragDropEffects.Copy;
+                e.Handled = true;
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void OnPreviewDrop(DragEventArgs e)
+        {
+            base.OnPreviewDrop(e);
+
+            if (e.Data.GetDataPresent(DataFormats.FileDrop) && !IsOverPythonTranscript(e.OriginalSource))
+            {
+                if (_model != null && e.Data.GetData(DataFormats.FileDrop) is string[] files)
+                {
+                    _model.DropFiles(files);
+                }
+
+                e.Handled = true;
+            }
+        }
+
+        private static bool IsOverPythonTranscript(object source)
+        {
+            for (
+                DependencyObject d = source as DependencyObject;
+                d != null;
+                d =
+                        d is Visual || d is System.Windows.Media.Media3D.Visual3D
+                            ? VisualTreeHelper.GetParent(d)
+                            : LogicalTreeHelper.GetParent(d)
+            )
+            {
+                if (d is RichTextBox box && box.Name == "Transcript")
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <inheritdoc/>
         protected override void OnDragOver(DragEventArgs e)
         {
             base.OnDragOver(e);
             e.Effects =
-                e.Data.GetDataPresent(DataFormats.FileDrop)
-                || e.Data.GetDataPresent(DesignCenterDrag.Format)
-                || e.Data.GetDataPresent(ToolPaletteDrag.Format)
+                e.Data.GetDataPresent(DesignCenterDrag.Format) || e.Data.GetDataPresent(ToolPaletteDrag.Format)
                     ? DragDropEffects.Copy
                     : DragDropEffects.None;
             e.Handled = true;
@@ -642,23 +690,6 @@ namespace GeometryHelper.Cad.Wpf
             if (_model != null && e.Data.GetData(ToolPaletteDrag.Format) is string tool)
             {
                 _model.DropToolPaletteTool(tool, CanvasView.DrawingPointAt(e.GetPosition(CanvasView)));
-                e.Handled = true;
-                return;
-            }
-
-            if (_model != null && e.Data.GetData(DataFormats.FileDrop) is string[] files)
-            {
-                foreach (string file in files.Where(CadDrawingFile.IsDrawingName))
-                {
-                    _model.Open(file);
-                }
-
-                // A plugin package dropped is installed, as the Plugin manager's Install does.
-                foreach (string file in files.Where(f => f.EndsWith(".ghplugin", StringComparison.OrdinalIgnoreCase)))
-                {
-                    _model.InstallPlugin(file);
-                }
-
                 e.Handled = true;
             }
         }
@@ -822,6 +853,8 @@ namespace GeometryHelper.Cad.Wpf
                         MessageBoxButton.OK,
                         MessageBoxImage.Warning
                     );
+                _model.ShowDropMessage = (title, text) =>
+                    CadQuestionWindow.ShowMessage(Window.GetWindow(this), title, text, string.Empty);
                 _model.AskGetFile = request => CadGetFileDialog.Show(Window.GetWindow(this), request);
                 _model.DclHost = new DclWindowHost(() => Window.GetWindow(this));
                 _model.LoadSecurity.Ask = AskLoadSecurity;
