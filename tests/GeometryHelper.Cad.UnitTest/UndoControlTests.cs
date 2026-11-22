@@ -16,7 +16,7 @@ namespace GeometryHelper.Cad.UnitTest
     /// </summary>
     public class UndoControlTests
     {
-        private const string Settings = "Current settings: Auto = On, Control = All, Combine = Yes, Layer = Yes";
+        private const string Settings = "Current settings: Auto = On, Control = All, Combine = No, Layer = No";
 
         /// <summary>Erases the three lines and the circle one command each: ERASE is the name of each step.</summary>
         private static CadCommandSession Erase(CadCommandSession session, params string[] handles)
@@ -161,7 +161,7 @@ namespace GeometryHelper.Cad.UnitTest
             Run(session, "UNDO");
 
             Assert.Equal(
-                "Current settings: Auto = Off, Control = None, Combine = Yes, Layer = Yes",
+                "Current settings: Auto = Off, Control = None, Combine = No, Layer = No",
                 session.History.Last()
             );
             Assert.Equal("Enter an UNDO control option [All/None/One/Combine/Layer] <All>:", session.PromptText);
@@ -218,7 +218,7 @@ namespace GeometryHelper.Cad.UnitTest
             Run(session, "UNDO");
 
             Assert.Equal(
-                "Current settings: Auto = Off, Control = One, Combine = Yes, Layer = Yes",
+                "Current settings: Auto = Off, Control = One, Combine = No, Layer = No",
                 session.History.Last()
             );
             Assert.Equal("Enter an option [Control] <1>:", session.PromptText);
@@ -263,7 +263,10 @@ namespace GeometryHelper.Cad.UnitTest
             );
 
             Run(session, Esc, "UNDO", "C", "C", Enter, "UNDO", "C", "L", Enter, "UNDO");
-            Assert.Equal(Settings, session.History.Last());
+            Assert.Equal(
+                "Current settings: Auto = On, Control = All, Combine = Yes, Layer = Yes",
+                session.History.Last()
+            );
         }
 
         [Fact]
@@ -274,7 +277,7 @@ namespace GeometryHelper.Cad.UnitTest
 
             Run(session, "OFF", "UNDO");
             Assert.Equal(
-                "Current settings: Auto = Off, Control = All, Combine = Yes, Layer = Yes",
+                "Current settings: Auto = Off, Control = All, Combine = No, Layer = No",
                 session.History.Last()
             );
 

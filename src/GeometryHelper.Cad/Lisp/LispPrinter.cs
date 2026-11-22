@@ -179,6 +179,9 @@ namespace GeometryHelper.Cad.Lisp
                 case LispSafeArray _:
                     builder.Append("#<safearray...>");
                     break;
+                case LispReactor reactor:
+                    builder.Append(reactor.PrintForm);
+                    break;
                 case LispVlaObject vla:
                     builder.Append(vla.PrintForm);
                     break;

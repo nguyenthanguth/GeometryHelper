@@ -190,6 +190,7 @@ namespace GeometryHelper.Cad
             }
 
             // Where the file waits for the user the line comes when it is done; a load asked while a routine waits is refused.
+            RaiseLispStarts("(load \"" + path.Replace("\\", "\\\\") + "\")");
             LispResult result = RunHosted(
                 () => Lisp.Load(path),
                 done =>
@@ -198,6 +199,8 @@ namespace GeometryHelper.Cad
                     {
                         Write(Path.GetFileName(path) + " successfully loaded.");
                     }
+
+                    RaiseLispEnds(done);
                 }
             );
 
@@ -246,7 +249,12 @@ namespace GeometryHelper.Cad
             _lispStepName = LastCommandName;
             _lispAnswers = false;
             _lispPrefix = null;
-            LispContinue(Lisp.RunCommand(name), done => LastOutcome = CadCommandOutcome.Completed);
+            RaiseLispStarts("(C:" + name.ToUpperInvariant() + ")");
+            LispContinue(Lisp.RunCommand(name), done =>
+            {
+                LastOutcome = CadCommandOutcome.Completed;
+                RaiseLispEnds(done);
+            });
             Changed();
         }
 
@@ -285,11 +293,12 @@ namespace GeometryHelper.Cad
             CadCommand interrupted = Current;
             _lispAnswers = atPrompt;
             _lispTyped = atPrompt;
+            RaiseLispStarts(source);
             LispResult result = Lisp.Run(source[0] == '!' ? source.Substring(1) : source);
             _lispTyped = false;
 
             // A routine that waits for the user is asked as a command of its own; the line is over when it is.
-            LispContinue(result, null);
+            LispContinue(result, RaiseLispEnds);
 
             if (result.IsWaiting)
             {
@@ -362,7 +371,7 @@ namespace GeometryHelper.Cad
             _lispText = null;
             _lispPrompt = null;
 
-            if (Lisp.GetValue("*ERROR*") == null)
+            if (!Lisp.HasErrorHandler)
             {
                 Write("; error: Function cancelled");
             }

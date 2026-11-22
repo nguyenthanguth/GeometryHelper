@@ -217,7 +217,9 @@ namespace GeometryHelper.Cad.Wpf
         {
             CadDocument document = file.Document;
 
-            // The files a routine left open are closed with the drawing, so that they can be deleted and read by others.
+            // The routines' reactors hear of the close first (vlr-beginClose), then the files a routine left open are closed with
+            // the drawing, so that they can be deleted and read by others.
+            file.Session.RaiseClosing();
             file.Session.CloseLispFiles();
             ForgetPython(document);
             DetachPlugins(file.Session.Registry);

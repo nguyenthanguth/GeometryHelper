@@ -453,6 +453,25 @@ namespace GeometryHelper.Cad.Lisp
         }
 
         /// <summary>
+        /// Gives an entity brought back by <c>entdel</c> the extension dictionary the entity was erased with: the dictionary stayed in
+        /// the drawing, its owner the erased entity (AutoCAD 2021, probe m/entmod d1), and is the same object after, its owner the
+        /// entity that is there now.
+        /// </summary>
+        private static void GiveExtensionBack(DxfItem entity, string erasedHandle, string dictionaryHandle)
+        {
+            DxfFile file = entity.File;
+            DxfItem dictionary = file.HoldsObjects ? file.ObjectItem(dictionaryHandle) : null;
+
+            if (dictionary == null)
+            {
+                return;
+            }
+
+            file.SetExtensionDictionary(entity, dictionaryHandle);
+            DxfField.Reown(file, dictionary, erasedHandle, entity.Handle);
+        }
+
+        /// <summary>
         /// Gives an object that has no owner (its 330 is 0) the dictionary for its owner and its reactor, as AutoCAD does when
         /// <c>dictadd</c> takes it (the dictionary <c>entmakex</c> makes with entries gives its objects its name as owner and no
         /// reactor); an object with an owner is left as it is.
@@ -528,7 +547,22 @@ namespace GeometryHelper.Cad.Lisp
                 return null;
             }
 
-            DxfItem owner = file.OwnerOf(item) is string handleOfOwner ? file.ObjectItem(handleOfOwner) : null;
+            string ownerHandle = file.OwnerOf(item);
+            DxfItem owner = ownerHandle == null ? null : file.ObjectItem(ownerHandle);
+
+            // The extension dictionary of an entity is erased by itself, its owner keeping the pointer (AutoCAD 2021, probe m/entmod d1).
+            if (
+                owner == null
+                && item.Type == "DICTIONARY"
+                && FindItem(session.Document, ownerHandle) is DxfItem entity
+                && string.Equals(file.ExtensionDictionaryOf(entity), handle, StringComparison.OrdinalIgnoreCase)
+            )
+            {
+                ApplyToObjects(session, "ERASE", handle, s =>
+                    s.Database.File.RemoveRecord(s.Database.File.ObjectItem(handle))
+                );
+                return name;
+            }
 
             if (
                 owner == null

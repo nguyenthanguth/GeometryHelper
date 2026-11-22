@@ -311,6 +311,7 @@ namespace GeometryHelper.Cad
             if (command == null)
             {
                 // AutoCAD 2021 names the command in capitals, as typed in any case: Unknown command "WORLD" (q3, runs/tca).
+                RaiseUnknownCommand(name.ToUpperInvariant());
                 Write(string.Format(CultureInfo.InvariantCulture, Unknown, name.ToUpperInvariant()));
                 Changed();
                 return false;
@@ -524,6 +525,7 @@ namespace GeometryHelper.Cad
             Current = command;
             _context = new CadCommandContext(this, command, preSelected);
             ClearGathering();
+            RaiseCommandStarts(command);
 
             try
             {
@@ -1753,6 +1755,7 @@ namespace GeometryHelper.Cad
             }
 
             bool cleared = outcome == CadCommandOutcome.Completed && _context != null && _context.ClearsSelection;
+            CadCommand ended = Current;
             _body = null;
             _context = null;
             Current = null;
@@ -1771,6 +1774,7 @@ namespace GeometryHelper.Cad
             }
 
             Changed();
+            RaiseCommandEnds(ended, outcome);
             List<string> script = _script;
             _script = null;
 

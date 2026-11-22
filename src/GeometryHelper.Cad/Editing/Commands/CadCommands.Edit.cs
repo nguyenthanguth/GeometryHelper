@@ -1234,7 +1234,7 @@ namespace GeometryHelper.Cad
             return escaped.ToString();
         }
 
-        /// <summary>"Current settings: Auto = On, Control = All, Combine = Yes, Layer = Yes", written by UNDO before it asks.</summary>
+        /// <summary>"Current settings: Auto = On, Control = All, Combine = No, Layer = No", written by UNDO before it asks (Yes and Yes once UNDO Control Combine and Layer have been set).</summary>
         private static string UndoSettings(CadDocument document) =>
             "Current settings: Auto = "
             + (document.UndoAuto ? "On" : "Off")

@@ -103,6 +103,8 @@ namespace GeometryHelper.Cad
         private List<string> _lispStartupSuite = new List<string>();
         private List<string> _pluginSnaps = new List<string>();
         private string _appLoadFolder = string.Empty;
+        private double _revcloudMinimumArcLength;
+        private double _revcloudMaximumArcLength;
         private SortedDictionary<string, string> _lispEnvironment = new SortedDictionary<string, string>(
             StringComparer.OrdinalIgnoreCase
         );
@@ -752,6 +754,29 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>
+        /// Gets or sets the shortest arc of a revision cloud, REVCLOUDMINARCLENGTH, which AutoCAD keeps in the profile between
+        /// sessions: a cloud drawn by a routine's command, with the older prompts, offers it as <c>Specify minimum length of arc</c>.
+        /// 0 by default, which keeps none. Saved in the settings file.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is below nought or not a finite number.</exception>
+        public double RevcloudMinimumArcLength
+        {
+            get => _revcloudMinimumArcLength;
+            set => _revcloudMinimumArcLength = Range(value, 0.0, double.MaxValue, nameof(RevcloudMinimumArcLength));
+        }
+
+        /// <summary>
+        /// Gets or sets the longest arc of a revision cloud, REVCLOUDMAXARCLENGTH, kept between sessions as
+        /// <see cref="RevcloudMinimumArcLength"/> is. 0 by default, which keeps none. Saved in the settings file.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is below nought or not a finite number.</exception>
+        public double RevcloudMaximumArcLength
+        {
+            get => _revcloudMaximumArcLength;
+            set => _revcloudMaximumArcLength = Range(value, 0.0, double.MaxValue, nameof(RevcloudMaximumArcLength));
+        }
+
+        /// <summary>
         /// Gets or sets the Python the app runs scripts with: the <c>python.exe</c> of a virtual environment or of an
         /// installation, or the folder that holds it. Empty by default, which finds the newest 64-bit CPython 3.11 to 3.15
         /// registered on the machine (PEP 514). It takes effect at the next start of the app once Python has started. Saved in
@@ -1270,6 +1295,8 @@ namespace GeometryHelper.Cad
 
             w.CloseList();
             w.Value("appLoadFolder", _appLoadFolder);
+            w.Value("revcloudMinArcLength", _revcloudMinimumArcLength);
+            w.Value("revcloudMaxArcLength", _revcloudMaximumArcLength);
             w.Open("lispEnvironment");
 
             foreach (KeyValuePair<string, string> pair in _lispEnvironment)
@@ -1514,6 +1541,9 @@ namespace GeometryHelper.Cad
                     _s.LispStartupSuite = e.Elements().Select(f => f.Value).ToList()
                 );
                 Text("support", "appLoadFolder", v => _s.AppLoadFolder = v);
+                Text("support", "appLoadFolder", v => _s.AppLoadFolder = v);
+                Number("support", "revcloudMinArcLength", v => _s.RevcloudMinimumArcLength = v);
+                Number("support", "revcloudMaxArcLength", v => _s.RevcloudMaximumArcLength = v);
                 Take("support", "lispEnvironment", e => _s.SetLispEnvironment(Pairs(e)));
                 Text("support", "pythonPath", v => _s.PythonPath = v);
                 Text("support", "plotStyleFolder", v => _s.PlotStyleFolder = v);

@@ -261,6 +261,8 @@ namespace GeometryHelper.Cad.Lisp
                     return Intern("SAFEARRAY");
                 case LispVlaObject _:
                     return Intern("VLA-OBJECT");
+                case LispReactor reactor:
+                    return Registered(LispReactions.TypeName(reactor.Kind));
                 default:
                     return null;
             }

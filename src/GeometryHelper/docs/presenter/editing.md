@@ -166,6 +166,12 @@ view (the window has, a script or a test does not), Window, Crossing and WPolygo
 2021's console did with a view zoomed on three of five lines (the lines at 10, 20 and 30 and not those at 0 and 40; a line across
 the edge counts, one wholly outside does not); CPolygon and Fence are not held to the view.
 
+SELECT asks `Select objects:` with every one of these ways, and Last, Previous, Remove and Add, until Enter, and keeps what it took as
+the Previous set (`(ssget "_P")`, or `P` at the next command's prompt); an Enter with nothing picked leaves the Previous set of the
+command before. Typed, it leaves the objects it took selected, as the implied set the next command takes at once, and the next typed
+SELECT takes them with `1 found` and no prompt; run by a routine, `(command "_.SELECT" ss "")`, it leaves nothing selected
+(AutoCAD 2021, console).
+
 The commands that ask the corners themselves draw the same band. STRETCH's `Specify opposite corner:` draws the box of
 `Select objects:` (solid blue, filled, dragged left to right; dashed green, filled, right to left; the crossing or
 window the typed C or W makes), and its CP the polygon through the points given. The crossing and the fence of TRIM and
@@ -304,7 +310,7 @@ command is typed; the console does not clear it between lines as long as the lin
 | dimension | DIM (Angular, Baseline, Continue, Ordinate, aliGn, Distribute, Layer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMINSPECT, -DIMINSPECT (Add, Remove; Round, Angular, None), DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE, DIMCENTER, CENTERMARK, CENTERLINE, -DIMSTYLE (ANnotative, Save, Restore, STatus, Variables, Apply, ?), DIMUPDATE |
 | parametric | GCCOINCIDENT (Object, Autoconstrain), GCCOLLINEAR, GCEQUAL (Multiple), GCCONCENTRIC, GCPARALLEL, GCPERPENDICULAR, GCTANGENT, GCFIX (Object), GCHORIZONTAL, GCVERTICAL (2Points), GCSYMMETRIC (2Points), GCSMOOTH, GEOMCONSTRAINT, AUTOCONSTRAIN (Settings), CONSTRAINTBAR (Show, Hide, Reset), DELCONSTRAINT, DCLINEAR, DCHORIZONTAL, DCVERTICAL, DCALIGNED, DCANGULAR, DCRADIUS, DCDIAMETER, DIMCONSTRAINT, DCCONVERT, DCFORM, DCDISPLAY, -PARAMETERS (New, Edit, Rename, Delete, ?), PARAMETERS, PARAMETERSCLOSE, CONSTRAINTSETTINGS; the variables CCONSTRAINTFORM, CONSTRAINTBARDISPLAY, CONSTRAINTBARMODE, CONSTRAINTINFER, CONSTRAINTNAMEFORMAT, DYNCONSTRAINTMODE, CONSTRAINTSOLVEMODE, PARAMETERCOPYMODE, PARAMETERSSTATUS, CONSTRAINTRELAX (see Parametric constraints below) |
 | tables | TABLE, -TABLE (Style, Width, Height, data Link), TABLESTYLE, TABLEDIT, TABLEEXPORT, DATALINK, DATALINKUPDATE, DATAEXTRACTION, -DATAEXTRACTION |
-| selection | QSELECT, FILTER, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP, GROUPEDIT (Name; Add objects, Remove objects, REName) |
+| selection | SELECT, QSELECT, FILTER, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP, GROUPEDIT (Name; Add objects, Remove objects, REName) |
 | OLE objects | INSERTOBJ (a bitmap or a PNG, as a static picture), and the variables OLEFRAME, OLEHIDE and OLEQUALITY (see OLE objects below) |
 | metafiles | WMFIN (Basepoint, Scale, X, Y, Z, Rotate, Explode, REpeat), and the variables WMFBKGND and WMFFOREGND (see WMFIN below) |
 | references and images | XATTACH, IMAGEATTACH, PDFATTACH, -PDFATTACH (Unit), PDFADJUST, -PDFADJUST (Fade, Contrast, Monochrome), PDFCLIP (ON, OFF, Delete, New boundary), PDFLAYERS, -PDFUNDERLAY (?, Detach, Path, Reload, Unload), XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), XOPEN, XBIND, -XBIND (Block, Dimstyle, LAyer, LType, Style), -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), IMAGEQUALITY (High, Draft), IMAGEADJUST, -IMAGEADJUST (Contrast, Fade, Brightness), XCLIP (ON, OFF, Clipdepth, Delete, generate Polyline, New boundary), TRANSPARENCY |
@@ -1886,7 +1892,7 @@ arcs.` and asks again, Rectangular and Polygonal say `Invalid shape to create re
 5 by 5 at arcs of 20). Below six vertices Rectangular says it all the same and draws what it has (25 by 25, five vertices), and
 Polygonal draws nothing (the square of 25 gives none, the square of 28 six). The first cloud drawn while REVCLOUDAPPROXARCLEN
 is nought sets it to the length it was drawn with, and the next clouds keep that length whatever the view shows; a command
-ended before it drew anything, and Modify, leave it. REVCLOUDMINARCLENGTH and REVCLOUDMAXARCLENGTH (0.5 to begin with) are
+ended before it drew anything, and Modify, leave it. REVCLOUDMINARCLENGTH and REVCLOUDMAXARCLENGTH (0.5 to begin with, and kept in the settings file from one session to the next, as AutoCAD keeps them in its profile; the approximate length is not kept) are
 written by Arc length and by REVCLOUDPROPERTIES, to two thirds and four thirds of the length at REVCLOUDARCVARIANCE 1 and to the
 length itself at 0 (30 gives 20 and 40, or 30 and 30), and nothing else changes them; the command goes by the approximate
 length, not by them. Run by a routine's `command` (`(command "_.revcloud" "_A" 10 "" "_O" (entlast) "")`) REVCLOUD asks as AutoCAD 2021 does then: `Minimum arc length: 0.5000   Maximum arc length: 0.5000   Style: Normal   Type: Freehand`, `Specify start point or [Arc length/Object/Style] <Object>:`, and Arc length asks `Specify minimum length of arc <0.5000>:` and `Specify maximum length of arc <10.0000>:`, which offers the longer of the new minimum and the maximum it had; both are kept as REVCLOUDMINARCLENGTH and REVCLOUDMAXARCLENGTH and read back at the next start (15 for both in a metric drawing that has none set). An underscore in front of an option, `_A`, is taken off at every prompt. REVCLOUDARCSTYLE is a text, "Normal" or "Calligraphy" as the Style option sets it, which SETVAR takes
@@ -2826,8 +2832,8 @@ A circle's radius says `Requires numeric radius, point on circumference, or "D".
 distance or second point.`; nought or below at either is `Value must be positive and nonzero.` and the prompt is asked
 again, where the command ended with that line. DONUT's inside diameter takes nought (a filled ring) and says `Value must be
 positive.` below it, its outside diameter `Value must be positive and nonzero.` at nought and below, each asked again, and
-`Requires numeric distance or two points.` to text. UNDO writes `Current settings: Auto = On, Control = All, Combine = Yes,
-Layer = Yes` and asks `Enter the number of operations to undo or [Auto/Control/BEgin/End/Mark/Back] <1>:`, saying
+`Requires numeric distance or two points.` to text. UNDO writes `Current settings: Auto = On, Control = All, Combine = No,
+Layer = No` (Yes once Combine and Layer were answered Yes; AutoCAD 2021 on the machine measured says No and No, UNDOCTL 5, and 13 inside a group) and asks `Enter the number of operations to undo or [Auto/Control/BEgin/End/Mark/Back] <1>:`, saying
 `Requires an integer between 1 and 32767, or option keyword.` to text, 1.5, nought, a negative number and 32768 or more, and
 asking again; Mark keeps the place in the history of steps, and Back takes the steps back down to it, `Mark encountered`,
 or asks `This will undo everything. OK? <Y>` where no mark was kept. The names of the steps UNDO, U and Back take back stand
@@ -4226,7 +4232,7 @@ the viewport left out.
 The wheel, the middle button and ZOOM and PAN change the viewport's view, not the paper. ZOOM and PAN typed are one undo
 step each, as AutoCAD 2021's console undoes ZOOM 2X, ZOOM 2X and -PAN one U each. The wheel's rolls and the middle
 button's drags made one after another are one step together, however often the view is drawn again between them, as
-AutoCAD combines consecutive real-time zooms and pans by default (UNDO Control Combine, UNDOCTL 61 holding its 16);
+AutoCAD combines consecutive real-time zooms and pans where UNDO Control Combine is Yes (UNDOCTL holding its 16; a drawing starts with No, as AutoCAD 2021 reads it on the machine measured, so each is a step until Combine is set to Yes);
 `SetViewportView(handle, center, height, name, realTime: true)` joins such a change to the one before. ZOOM Previous goes
 back through views of the viewport worked through alone, as AutoCAD keeps a list for each viewport, for the paper of each
 layout and for model space: a viewport never zoomed answers "No previous view saved." while another has views to go back

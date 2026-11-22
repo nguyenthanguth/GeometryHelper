@@ -6,6 +6,53 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The menu and help functions a routine calls, as AutoCAD 2021's console answers them: `menucmd` (a `"M=$(getvar,clayer)"` string
+gives its DIESEL result, any other menu string `nil`), `menugroup`, `vmon`, `getcname` (`"LINE"` is `"_LINE"` and back), `fnsplitl`
+(`"c:/a/b.lsp"` is `("C:\a\\" "b" ".lsp")`), `setfunhelp`, `help` (a `.chm`, `.htm`, `.html` or `.pdf` file that is there opens with the
+program Windows gives its type, and gives its name back), and `acdimenableupdate`, which keeps its flag. `*error*` holds AutoCAD's own SUBR in a
+fresh session (`(type *error*)` is `SUBR`, calling it by hand gives `nil`, an uncaught error writes `; error: message` as before), and
+`vl-exit-with-error` and `vl-exit-with-value` end the evaluation quietly: nothing is written, no `*error*` is called, and
+`vl-catch-all-apply` gives an error object with no message.
+
+**NEW.** SELECT, as AutoCAD 2021's: `Select objects:` with every mode of that prompt, ending at Enter, what it took kept as the Previous
+set. Typed, it leaves the objects selected as the implied set; run by `(command "_.SELECT" ss "")`, it leaves nothing selected.
+
+**NEW.** `entmod` changes the records of the tables and XRECORDs as AutoCAD 2021 does, and a VERTEX of an old-style polyline: a layer's
+colour (negative for off), frozen and locked bits, linetype, plot flag, lineweight and name (not layer 0, not into a name another has, the
+current layer included), a text style's font, height, width factor, slant and name (not Standard), a linetype's, dimension style's, UCS's
+and view's groups and names, each one step of undo with the routine's, and the layer box follows. An XRECORD takes the groups of the list
+added after its data, as AutoCAD adds them, and does not replace it. `entdel` of an entity with an extension dictionary leaves the dictionary
+in the drawing, readable, as AutoCAD does, and a second `entdel` gives the entity back with that same dictionary and its data.
+
+**FIXED.** `entget` of a text style gave its slant in degrees (15.0); AutoCAD's list has radians (0.261799), and the whole list given back to
+`entmod` was refused for a style with a slant.
+
+**CHANGED.** UNDO starts with `Combine = No, Layer = No`, as AutoCAD 2021 reads them in its window and console on the maintainer's machine
+(UNDOCTL 5, and 13 inside a group), where it started with Yes and Yes. Consecutive real-time zooms and pans of the wheel are therefore a step
+of undo each until UNDO Control Combine is set to Yes, as in AutoCAD with the same profile.
+
+**NEW.** REVCLOUDMINARCLENGTH and REVCLOUDMAXARCLENGTH are kept in the settings file from one session to the next, as AutoCAD keeps them in its
+profile (a run that set 15 left 10 and 20 for the next one): the older prompts of REVCLOUD, `Specify minimum length of arc <10.0000>:`,
+offer them again. REVCLOUDAPPROXARCLEN is not kept, as in AutoCAD.
+
+**NEW.** Visual LISP reactors in the presenter's AutoLISP. The 46 `vlr-` functions are defined, as AutoCAD 2021 gave them
+(AutoCAD has them only after `(vl-load-com)`; here they exist from the start): the nineteen constructors
+(`vlr-command-reactor`, `vlr-lisp-reactor`, `vlr-sysvar-reactor`, `vlr-dwg-reactor`, `vlr-editor-reactor`, `vlr-object-reactor`,
+`vlr-acdb-reactor` and twelve more, each printing as `#<VLR-Command-Reactor>`), `vlr-add`, `vlr-remove`, `vlr-remove-all`,
+`vlr-reactors`, `vlr-types`, `vlr-reactions`, `vlr-reaction-set`, `vlr-reaction-names`, `vlr-data`, the owner and persistence
+functions, `vlr-current-reaction-name` and the rest, with `vl-load-reactors` and `vlax-queueexpr`. Events fire as AutoCAD fired
+them: `:vlr-commandWillStart` before a command's first prompt, `:vlr-commandEnded` and `:vlr-commandCancelled`,
+`:vlr-unknownCommand` before the message, `:vlr-lispWillStart` and `:vlr-lispEnded` for each form typed or loaded,
+`:vlr-sysVarWillChange` and `:vlr-sysVarChanged` for `setvar` and the SETVAR command, `:vlr-beginSave`, `:vlr-saveComplete` and
+`:vlr-beginClose`, and for the entities of the drawing `:vlr-modified`, `:vlr-erased` and `:vlr-unerased` of an owner and
+`:vlr-objectAppended`, `-Modified`, `-Erased` and `-UnErased` of every entity, an undo included. A callback of an event typed at
+the Command prompt runs at once with no echo, so one for `:vlr-commandWillStart` that sets `CLAYER` puts the text TEXT is about to
+make on that layer; one for an event raised inside a routine runs before the routine's next form, and a callback that raises its
+own event again is stopped after 1 000 callbacks with `; error: reactor cascade stopped`. An error in a callback is written (or
+handed to `*error*`) and the command goes on; `command` in a callback is `; error: AutoCAD command rejected: "_.POINT"`. A
+reactor made persistent with `vlr-pers` is marked for the session only; the other reaction names are accepted and never fire.
+See [Reactors](src/GeometryHelper/docs/presenter/lisp.md#reactors).
+
 **NEW.** AutoLISP's `grread`, in GeometryHelper.Cad and its window. `(grread [track [allkeys [curtype]]])` waits for one key,
 click or move of the cursor and gives `(2 code)` for a key (13 Enter, 32 Space, 8 Backspace, 9 Tab, the character's code for
 the rest), `(3 (x y z))` for a left click and `(5 (x y z))` for a move, in the UCS and with no snap, and `(11 0)` for the right
