@@ -95,39 +95,50 @@ compared by their values and by eye.
       `acaddoc.lsp` and `S::STARTUP`; LISP expressions typed at the command line
 - [x] L1b. APPLOAD dialog (design first): the Load/Unload Applications dialog with the Startup Suite, designed in the
       Design artifact before it is built
-- [ ] L1 parked: acad.lsp/acaddoc.lsp order in AutoCAD and Unicode strings typed at the console (the console cannot
-      show them); the harness's Enter-repeat echo and U naming `L` for LINE
+- [x] L1 parked, closed by L9 (2026-11-23): U naming `L` for LINE measured the same (`LINE`). Left with their reasons:
+      acad.lsp/acaddoc.lsp order in AutoCAD (the maintainer has neither file, his Support folder holds only AutoCAD's own
+      acad2021.lsp; ours follows AutoCAD's documented order); Unicode strings typed at the console (the app's command line is
+      Unicode end to end, only accoreconsole's ANSI stdin cannot show it); the harness's Enter-repeat echo (a harness artefact)
 - [x] L2. Drawing functions: `command` and `vl-cmdf` driving the presenter's commands with their prompts; `ssget` with
       its modes and filters, `ssname`, `sslength`, `ssadd`; `entsel`, `nentsel`, `entget`, `entmod`, `entmake`,
       `entdel`, `entnext`, `tblsearch`; `getpoint`, `getcorner`, `getdist`, `getangle`, `getreal`, `getint`,
       `getstring`, `getkword`, `initget`; `getvar`, `setvar`, `trans`, `polar`, `inters`, `osnap`; `princ` and `prompt`
-- [ ] L2 parked (most done 2026-11-22: entmake of complex objects and table records, entget slots, `ssget ":L"`,
-      -HATCH edges, ELLIPSE Parameter, DIMBLK, -STYLE Annotative, the block, layer and AUDIT prompts, nentsel 4 by 3;
-      12 of 17 L2 routines now identical; round 2 the same day: BLOCK group 1, an empty block's ENDBLK, the look of
-      ATTRIB/SEQEND, MTEXT 42/43, hatch loop order, LAYER 290/347/348; SELECT and the linetype lengths done in L8):
-      what is left is an entmade MTEXT's group 50 with no 11 read as degrees, -HATCH's second Select objects adding
-      to the first, the MATERIAL object of a layer's 347, U's message, entget of MTEXT about 0.05 ms slower (no
-      measure cache)
+- [x] L2 parked, closed by L9 (2026-11-23): an entmade MTEXT's group 50 (radians, the later of 11 and 50 wins, as
+      AutoCAD) and the words U writes for a routine's commands are fixed. Left with their reasons: -HATCH's second Select
+      objects adding to the first (no routine of the maintainer's does it); the MATERIAL object of a layer's 347 (no routine
+      reads it); entget of MTEXT about 0.05 ms slower (10 000 MTEXTs cost half a second); a `c:` routine with only `entmod`
+      is a step of its own where AutoCAD's console made none (u4, decided to leave: AutoCAD's merge is odd and rare; ours
+      undoes only what the routine did); REDO after a typed `(ssget "_X")` or REGEN redoes here and says Nothing to redo in
+      AutoCAD; `(getvar "VIEWSIZE")` is nil in the headless runner after ZOOM W (AutoCAD 60.0)
 - [x] L3. vl- functions and files: `vl-string-*`, `vl-sort`, `vl-remove`, `vl-position`, `vl-file-*`, `open`, `close`,
       `read-line`, `write-line`, `findfile`, `getfiled`
 - [x] L4. vla- and vlax- objects: the members the maintainer's routines use (about 40), on the presenter's own object
       model; COM to other programs (Excel) refused with a message
-- [ ] L4 parked: ObjectID as AutoCAD's small numbers, typed forms after a `c:` routine joining its undo step
-      (unmeasured), a fence's objects in the order along the fence, a crossing wholly
-      outside the view finding a long line (probe p4, unexplained), ZOOM's 5 % margin against AutoCAD's about 1 % and
-      ZOOM n alone keeping the centre
+- [x] L4 parked, closed by L9 (2026-11-23): a fence's objects now in the order along the fence. Left with their reasons:
+      ObjectID as AutoCAD's small numbers (ours are handle values, unique and stable, and fields resolve them; only the
+      printed number differs); typed forms after a `c:` routine joining its undo step (typing forms by hand after a routine is
+      a developer's act; U after the routine itself is right); a crossing wholly outside the view finding a long line (probe
+      p4: view-dependent, unexplained, no routine hits it); ZOOM's 5 % margin against AutoCAD's about 1 % (the view only);
+      ZOOM n alone keeping the centre (routines write `ZOOM 0.8X` or `E`)
 - [x] L5. DCL dialogs: the DCL parser and its tiles drawn as WPF, with action_tile, get_tile and set_tile (designed in
       the Design artifact first). Accepted 2026-11-21: E1 and FDVAL run in the full AutoCAD and the presenter with the
       same dialog values and E1 transcript
-- [ ] L5 parked: a dialog of ok_cancel alone (162 x 93, a minimum body height), AutoCAD's narrower dialog text (FDVAL
-      219 against Segoe's 242), list double click, slider drag, Ctrl-click and getpoint in an action unmeasured
+- [x] L5 parked, closed by L9 (2026-11-23): list clicks (plain, Ctrl, Shift), the list double click and the slider drag
+      measured in AutoCAD 2021 with real clicks and the same as ours; a click that changes nothing now runs a list's action
+      again (reason 1). Left with their reasons: a dialog of ok_cancel alone (162 x 93; two buttons and nothing else is not a
+      real dialog, looks only); AutoCAD's narrower dialog text (FDVAL 219 against 242: Segoe UI was L5's choice, values the
+      same); getpoint in an action (AutoCAD's help forbids input while a dialog is active, so no working routine does it)
 - [x] L6. Trusted folders and SECURELOAD, as AutoCAD 2021, shared with the Python stages. Done 2026-11-22:
       SECURELOAD, TRUSTEDPATHS (`\...` for subfolders) and LEGACYCODESEARCH as measured in AutoCAD 2021, the warning
       "Security - Unsigned Executable File" (Always Load by file content), a Security page in Global settings; the four
       harness feeds and the L2/L5 routines give the same transcripts as before
-- [ ] L6 parked: the plugin manager's trusted folders kept apart from TRUSTEDPATHS and the app defaulting to SECURELOAD 1
-      (the maintainer to confirm); the Security page's Add folder and writable-folder warning checked by screenshot and
-      tests only, not by hand
+- [x] L6 parked, closed by L9 (2026-11-23): the app keeps SECURELOAD 1 (AutoCAD 2021's default) and the plugin manager keeps
+      its trusted folders apart from TRUSTEDPATHS (decided on the recommendation: the app's own folder with its subfolders,
+      Lisps and Plugins, is trusted, so daily use does not ask; folding the plugin list into TRUSTEDPATHS would change how
+      plugins in subfolders load). The Security page was driven by hand with the app (UIA, our PID only): the warning for a
+      writable folder is right; two faults found and fixed (Add folder now a folder picker, as a Save dialog could not choose
+      a read-only folder; Apply and OK held off by a stale DTEXT alias in the saved settings). Left: Remove, Move up and
+      down, Include subfolders and the "(not found)" mark were covered by tests only
 - [x] L7. Finishing AutoLISP in the app (maintainer 2026-11-22, "focus on finishing LISP first"). Done 2026-11-22: a
       `Lisps` folder beside the app loaded into every drawing and on the search path, relative names (`Sub/x`, `./x.lsp`)
       looked up along it as AutoCAD 2021 does; APPLOAD's Look in, typed folders and wildcards, list keys, Size column and
@@ -147,12 +158,20 @@ compared by their values and by eye.
       XRECORD and VERTEX, SELECT, 3DPOLY, UNDO No/No, REVCLOUD lengths kept, AutoCAD linetype lengths, the command
       parity fixes, an open line continued as AutoCAD's and a waiting prompt written again. Acceptance: L2 19/19
       transcripts (ll with its linetype-description and regen allowances), L3 5/5, L8 feeds rx, gk, fx the same.
-- [ ] L8 parked: ldata as VLO-VL; entmod of DICTIONARY and BLOCK_RECORD; ssnamex fence points and the method of a
-      pick-first set; mouse and docmanager
-      reactors and persistent reactors; MLEADER's Options and landing-first orders; 3DPOLY's typed Z; FILLETRAD of a
-      header with none (10, AutoCAD 0: accepted); trace, tablet, vports, setview and the `_vl-` internals
-- [ ] L9. The AutoLISP leftovers (maintainer 2026-11-23, "finish AutoLISP"): the L1, L2, L4, L5, L6 and L8 parked
-      lines above, each fixed or measured in AutoCAD and closed, or left with the reason
+- [x] L8 parked, closed by L9 (2026-11-23), all left with their reasons: ldata as VLO-VL (no routine of the maintainer's uses
+      ldata; VLO-VL is AutoCAD's own class); entmod of DICTIONARY and BLOCK_RECORD (routines change dictionaries through
+      dictadd and dictremove, which work); ssnamex fence points and the method of a pick-first set (rare; the pick points
+      routines read are given); mouse and docmanager reactors and persistent reactors (double-click reactors are rare and
+      need canvas hooks, docmanager is multi-document, persistence needs reactors saved in the drawing); MLEADER's Options
+      and landing-first orders (interactive; routines give points only); 3DPOLY's typed Z (rare in 2D drawings); FILLETRAD of
+      a header with none (10, AutoCAD 0: accepted); trace, tablet, vports, setview and the `_vl-` internals (debugging and
+      internals, no routine calls them)
+- [x] L9. The AutoLISP leftovers (maintainer 2026-11-23, "finish AutoLISP"): the L1, L2, L4, L5, L6 and L8 parked
+      lines above, each fixed or measured in AutoCAD and closed, or left with the reason. Done 2026-11-23 (spec
+      .claude/scratch/l9/spec.md, measurements m/console.md and m/dcl.md): an entmade MTEXT's 50 (radians, the later of 11
+      and 50 wins), `ssget "F"` in the order along the fence, the words U and REDO write for a routine's commands, and a list
+      click that changes nothing running the action again; list selections, the list double click and the slider drag
+      measured the same; the rest closed with their reasons
 
 ### Python
 

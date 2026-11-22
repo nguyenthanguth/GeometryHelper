@@ -439,6 +439,10 @@ namespace GeometryHelper.Cad
             // A command of its own is a step of its own: the changes the routine made outside a command are closed first.
             CloseLispStep();
             _lispStarted = command;
+            _commandStepRoutine =
+                _routineName == null ? null
+                : _routineCommands++ == 0 ? _routineName
+                : "(Lisp Expression)";
             Run(command, _lispAnswersFollow ? Array.Empty<string>() : PreSelectedFor(command));
         }
 

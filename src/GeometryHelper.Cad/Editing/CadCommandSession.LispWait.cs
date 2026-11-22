@@ -36,6 +36,13 @@ namespace GeometryHelper.Cad
         // The step that was the last when the command running now started: the command made a step of its own where it is another now.
         private CadUndoStep _stepBeforeCommand;
 
+        // The name of the c: routine running, and how many commands it has started; and the words U writes for the step of the
+        // command it started last, which the command's end gives that step (AutoCAD 2021, L9 rows M1-b u3 and u8: the routine's
+        // first command is "GH9A GROUP", the ones after it "(Lisp Expression) GROUP").
+        private string _routineName;
+        private int _routineCommands;
+        private string _commandStepRoutine;
+
         // The value a form typed at a prompt ended with, which answers the prompt it interrupted; whether the evaluation began
         // at a command's prompt, so that its value is to answer it.
         private object _lispValue;
@@ -158,6 +165,18 @@ namespace GeometryHelper.Cad
 
             bool undoes = Current.Name == "U" || Current.Name == "UNDO" || Current.Name == "REDO";
             CadUndoStep last = Document.LastStep;
+
+            // The step a command of a c: routine made is worded as the routine's, whichever words U and UNDO write for it.
+            if (_commandStepRoutine != null)
+            {
+                if (!undoes && last != null && !ReferenceEquals(last, _stepBeforeCommand))
+                {
+                    last.Routine = _commandStepRoutine;
+                }
+
+                _commandStepRoutine = null;
+            }
+
             _lispTypedStep = undoes || !ReferenceEquals(last, _stepBeforeCommand) ? last : null;
         }
 

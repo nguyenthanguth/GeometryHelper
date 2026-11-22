@@ -163,27 +163,33 @@ namespace GeometryHelper.Cad
 
                 List<CadUndoStep> steps = StepsToUndo(out _);
                 steps.Reverse();
-                return LabelOf(steps);
+                return LabelOf(steps, false);
             }
         }
 
         /// <summary>What UNDO and REDO write for the next redo, worded as <see cref="NextUndoLabel"/> words an undo; null where there is nothing to redo.</summary>
-        internal string NextRedoLabel => CanRedo ? LabelOf(StepsToRedo(out _)) : null;
+        internal string NextRedoLabel => CanRedo ? LabelOf(StepsToRedo(out _), true) : null;
+
+        /// <summary>The words for one step: its name, or for a step of a routine's command the routine's word and GROUP, in the order U writes them and the reverse for REDO.</summary>
+        private static string RoutineLabel(CadUndoStep step, bool redo) =>
+            step.Routine == null ? step.Name
+            : redo ? "GROUP " + step.Routine
+            : step.Routine + " GROUP";
 
         /// <summary>The label of steps in the order they were made.</summary>
-        private string LabelOf(List<CadUndoStep> steps)
+        private string LabelOf(List<CadUndoStep> steps, bool redo)
         {
             // A step that is not of a group keeps the name it always had: a joined step carries the name of the one it joins.
             if (steps[0].GroupId == 0 || steps[0].GroupId == _undoGroup)
             {
-                return steps[0].Name;
+                return RoutineLabel(steps[0], redo);
             }
 
             var names = new List<string> { "GROUP" };
 
             foreach (CadUndoStep step in steps)
             {
-                names.Add(step.Name);
+                names.Add(step.Routine ?? step.Name);
             }
 
             return string.Join(" ", names);

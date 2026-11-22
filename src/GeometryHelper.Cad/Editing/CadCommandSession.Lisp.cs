@@ -297,6 +297,24 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>
+        /// Writes a line as <see cref="Write"/> does, but on the line of the echo of the command a routine started with
+        /// <c>command</c> where its echo is written, as AutoCAD does for the names U writes (<c>_.U CIRCLE</c>, AutoCAD 2021, L9
+        /// rows M1-b u6 and u7).
+        /// </summary>
+        /// <param name="line">The text of the line.</param>
+        internal void WriteOnEchoLine(string line)
+        {
+            if (RunsForLisp && CommandEchoOn && !PromptsMuted && !Quiet && _history.Count > 0)
+            {
+                _history[_history.Count - 1] += " " + line;
+                _extendedFrom = Math.Min(_extendedFrom, _history.Count - 1);
+                return;
+            }
+
+            Write(line);
+        }
+
+        /// <summary>
         /// Tells a window that follows the history which lines it already has were made longer since, once: the first of them.
         /// A line of the history is made longer where the text of a routine is continued (<see cref="WriteLisp"/>).
         /// </summary>
@@ -320,11 +338,14 @@ namespace GeometryHelper.Cad
             LastCommandName = name.ToUpperInvariant();
             _lispStep = false;
             _lispStepName = LastCommandName;
+            _routineName = LastCommandName;
+            _routineCommands = 0;
             _lispAnswers = false;
             _lispPrefix = null;
             RaiseLispStarts("(C:" + name.ToUpperInvariant() + ")");
             LispContinue(Lisp.RunCommand(name), done =>
             {
+                _routineName = null;
                 LastOutcome = CadCommandOutcome.Completed;
                 RaiseLispEnds(done);
             });

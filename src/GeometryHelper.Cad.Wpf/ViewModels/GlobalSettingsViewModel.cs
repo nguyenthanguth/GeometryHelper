@@ -1772,8 +1772,18 @@ namespace GeometryHelper.Cad.Wpf
                     c,
                     string.Join(
                         ", ",
+                        // A name wins over an alias where a word is typed, so an alias that is another command's name, which a
+                        // file saved before ImportPgp left such out may hold (DTEXT for TEXT), could never be used and would keep
+                        // Apply and OK off on every page, the cause shown only on this one; it is left out here and so from the
+                        // settings once they are applied.
                         aliases
-                            .Where(a => string.Equals(a.Value, c, StringComparison.OrdinalIgnoreCase))
+                            .Where(a =>
+                                string.Equals(a.Value, c, StringComparison.OrdinalIgnoreCase)
+                                && (
+                                    string.Equals(a.Key, c, StringComparison.OrdinalIgnoreCase)
+                                    || !commands.Contains(a.Key)
+                                )
+                            )
                             .Select(a => a.Key)
                     ),
                     string.Join(
