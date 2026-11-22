@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Cad.Remote
 {
@@ -71,6 +72,75 @@ namespace GeometryHelper.Cad.Remote
                 }
 
                 Ask(RemoteOps.CurrentLayer, request => request.Set("name", value));
+            }
+        }
+
+        /// <summary>
+        /// Gets the text styles of the drawing, sorted by name without regard to case, then by ordinal order. They are copies,
+        /// asked of the app each time: changing one changes nothing in the app.
+        /// </summary>
+        /// <exception cref="CadRemoteException">Thrown when the drawing is closed.</exception>
+        public IReadOnlyList<DxfTextStyleTableRecord> TextStyles
+        {
+            get
+            {
+                JsonObject answer = Ask(RemoteOps.TextStyles);
+                DxfDatabase fragment = DxfDatabase.Parse(answer.GetString("fragment"));
+                var styles = new List<DxfTextStyleTableRecord>();
+
+                foreach (object name in answer.GetArray("names"))
+                {
+                    styles.Add(fragment.TextStyleTable[(string)name]);
+                }
+
+                return styles;
+            }
+        }
+
+        /// <summary>
+        /// Gets the dimension styles of the drawing, sorted by name without regard to case, then by ordinal order. They are
+        /// copies, asked of the app each time, with the text style, linetypes and arrowhead blocks they point at: changing one
+        /// changes nothing in the app.
+        /// </summary>
+        /// <exception cref="CadRemoteException">Thrown when the drawing is closed.</exception>
+        public IReadOnlyList<DxfDimStyleTableRecord> DimensionStyles
+        {
+            get
+            {
+                JsonObject answer = Ask(RemoteOps.DimStyles);
+                DxfDatabase fragment = DxfDatabase.Parse(answer.GetString("fragment"));
+                var styles = new List<DxfDimStyleTableRecord>();
+
+                foreach (object name in answer.GetArray("names"))
+                {
+                    styles.Add(fragment.DimStyleTable[(string)name]);
+                }
+
+                return styles;
+            }
+        }
+
+        /// <summary>
+        /// Gets the blocks of the drawing with their objects, sorted by name without regard to case, then by ordinal order, as
+        /// the Block manager lists them: the blocks of the layouts (<c>*Model_Space</c>, <c>*Paper_Space</c>) and those AutoCAD
+        /// names itself (<c>*D1</c>, <c>*U1</c>) are left out. They are copies, asked of the app each time: changing one
+        /// changes nothing in the app.
+        /// </summary>
+        /// <exception cref="CadRemoteException">Thrown when the drawing is closed.</exception>
+        public IReadOnlyList<DxfBlockTableRecord> Blocks
+        {
+            get
+            {
+                JsonObject answer = Ask(RemoteOps.Blocks);
+                DxfDatabase fragment = DxfDatabase.Parse(answer.GetString("fragment"));
+                var blocks = new List<DxfBlockTableRecord>();
+
+                foreach (object name in answer.GetArray("names"))
+                {
+                    blocks.Add(fragment.BlockTable[(string)name]);
+                }
+
+                return blocks;
             }
         }
 

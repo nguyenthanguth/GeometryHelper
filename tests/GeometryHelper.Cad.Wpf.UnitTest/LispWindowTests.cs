@@ -283,7 +283,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 
             model.StartCommand("APPLOAD");
 
-            Assert.Equal("notes.txt is not an AutoLISP file or a plugin.", model.History.Last());
+            Assert.Equal("notes.txt is not an AutoLISP file, a Python file or a plugin.", model.History.Last());
             Assert.Empty(model.Session.LispCommandNames);
         }
 

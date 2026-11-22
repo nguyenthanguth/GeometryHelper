@@ -45,6 +45,7 @@
                 <Setter Property="TextTrimming" Value="CharacterEllipsis" />
             </Style>
             <SolidColorBrush x:Key="KindLisp" Color="#3FB950" />
+            <SolidColorBrush x:Key="KindPython" Color="#E3B341" />
             <SolidColorBrush x:Key="KindPlugin" Color="#6CB6FF" />
         </ResourceDictionary>
     </Window.Resources>
@@ -170,6 +171,14 @@
                         Content="{Binding LispChipText}"
                         Command="{Binding FilterCommand}"
                         CommandParameter="Lisp"
+                        Margin="0,0,6,0"
+                    />
+                    <RadioButton
+                        x:Name="PythonChip"
+                        Style="{StaticResource GhChip}"
+                        Content="{Binding PythonChipText}"
+                        Command="{Binding FilterCommand}"
+                        CommandParameter="Python"
                         Margin="0,0,6,0"
                     />
                     <RadioButton
@@ -303,6 +312,13 @@
                                         />
                                     </Grid>
                                     <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsPython}" Value="True">
+                                            <Setter
+                                                TargetName="Kind"
+                                                Property="Foreground"
+                                                Value="{StaticResource KindPython}"
+                                            />
+                                        </DataTrigger>
                                         <DataTrigger Binding="{Binding IsPlugin}" Value="True">
                                             <Setter
                                                 TargetName="Kind"

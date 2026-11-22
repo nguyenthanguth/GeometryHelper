@@ -172,6 +172,14 @@ namespace GeometryHelper.Cad
                     return Save(Find(request));
                 case RemoteOps.SaveAs:
                     return SaveAs(Find(request), request);
+                case RemoteOps.TextStyles:
+                    return TextStyles(Find(request));
+                case RemoteOps.DimStyles:
+                    return DimStyles(Find(request));
+                case RemoteOps.Blocks:
+                    return Blocks(Find(request));
+                case RemoteOps.Close:
+                    return Close(Find(request), request.GetBool("discard"));
                 case RemoteOps.Layers:
                     return Layers(Find(request));
                 case RemoteOps.CurrentLayer:
@@ -343,6 +351,37 @@ namespace GeometryHelper.Cad
             }
 
             return Shown(document);
+        }
+
+        // ---- Close ---------------------------------------------------------------------------------------------------
+
+        /// <summary>
+        /// Closes a drawing without asking and without saving. Refused, before anything changes, where the drawing has changes
+        /// not saved and <paramref name="discard"/> is not set, and where a command runs in it or a routine waits for the
+        /// user, whose Esc the close would have to press for them.
+        /// </summary>
+        private JsonObject Close(CadDocument document, bool discard)
+        {
+            if (document.IsModified && !discard)
+            {
+                throw new Refusal(document.Title + " has changes not saved: save it, or close it with discard.");
+            }
+
+            CadCommandSession session = _host.SessionOf(document);
+
+            if (document.IsInGroup || (session != null && (session.IsRunning || session.IsLispWaiting)))
+            {
+                throw new Refusal(
+                    "The drawing "
+                        + document.Title
+                        + " is busy with the command "
+                        + (session?.Current?.Name ?? "running in it")
+                        + ": end it, then close the drawing again."
+                );
+            }
+
+            _host.Close(document);
+            return new JsonObject();
         }
 
         // ---- Commands ------------------------------------------------------------------------------------------------

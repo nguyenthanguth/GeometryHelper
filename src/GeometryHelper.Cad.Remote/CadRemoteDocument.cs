@@ -594,6 +594,23 @@ namespace GeometryHelper.Cad.Remote
             Ask(RemoteOps.SaveAs, request => request.Set("path", full).Set("version", version));
         }
 
+        /// <summary>
+        /// Closes the drawing in the app, as the x of its row does, but with no question and no dialog: the app never asks the
+        /// user about a drawing closed from here. A drawing with changes not saved is refused unless <paramref name="discard"/>
+        /// is set, which throws the changes away. The app shows the next drawing, or its start screen where this was the last;
+        /// the drawing is no longer in <see cref="CadApplication.Documents"/>, and every later call on it throws.
+        /// </summary>
+        /// <param name="discard">Whether to close a drawing with changes not saved, without saving them.</param>
+        /// <exception cref="CadRemoteException">
+        /// Thrown when the drawing is closed already, has changes not saved and <paramref name="discard"/> is false
+        /// (<c>A-101.dwg has changes not saved: save it, or close it with discard.</c>), or has a command running in it or a
+        /// routine of AutoLISP or Python waiting for the user.
+        /// </exception>
+        public void Close(bool discard = false)
+        {
+            Ask(RemoteOps.Close, request => request.Set("discard", discard));
+        }
+
         /// <inheritdoc/>
         public override string ToString() => Name + (IsActive ? " (active)" : string.Empty);
     }

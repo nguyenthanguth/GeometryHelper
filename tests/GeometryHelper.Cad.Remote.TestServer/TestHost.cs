@@ -95,6 +95,17 @@ namespace GeometryHelper.Cad.Remote.TestServer
 
         public void SaveAs(CadDocument document, string path, string version) => document.SaveAs(path, version, null);
 
+        public void Close(CadDocument document)
+        {
+            _documents.Remove(document);
+            _sessions.Remove(document);
+
+            if (ReferenceEquals(ActiveDocument, document))
+            {
+                ActiveDocument = _documents.LastOrDefault();
+            }
+        }
+
         private CadDocument Add(CadDocument document)
         {
             _documents.Add(document);

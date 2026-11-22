@@ -11,6 +11,7 @@ namespace GeometryHelper.Cad.Python
     {
         private readonly List<CadCommandRegistry> _registries = new List<CadCommandRegistry>();
         private readonly List<Defined> _defined = new List<Defined>();
+        private readonly List<string> _loaded = new List<string>();
 
         /// <summary>A command a loaded file defined with <c>@cad_command</c>.</summary>
         private sealed class Defined
@@ -93,7 +94,10 @@ namespace GeometryHelper.Cad.Python
 
             if (load)
             {
-                LoadFile(c.Session, name);
+                // The command is running now: the load is posted, to begin when it has ended.
+                CadCommandSession session = c.Session;
+                string file = name;
+                _owner.Post(() => LoadNow(session, file, false));
             }
             else
             {
@@ -107,22 +111,117 @@ namespace GeometryHelper.Cad.Python
             yield break;
         }
 
-        private void LoadNow(CadCommandSession session, string path)
+        /// <summary>Gets the files loaded and not unloaded, as full paths, in the order they first loaded.</summary>
+        public IReadOnlyList<string> LoadedFiles => _loaded.ToArray();
+
+        /// <summary>
+        /// Gets the names of the commands a loaded file defined, in the order the file defined them, without their aliases; empty
+        /// where the file is not loaded, or defined none (a name another command held is not one of them).
+        /// </summary>
+        /// <param name="path">The file, as a full path or any path to it.</param>
+        /// <returns>The names.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
+        public IReadOnlyList<string> CommandsOf(string path)
         {
-            if (!Prepare(session, CadPythonNames.Load, path, out string source, out string full))
+            if (path == null)
             {
-                return;
+                throw new ArgumentNullException(nameof(path));
+            }
+
+            string full = FullPath(path);
+            var names = new List<string>();
+
+            foreach (Defined defined in _defined)
+            {
+                if (string.Equals(defined.File, full, StringComparison.OrdinalIgnoreCase))
+                {
+                    names.Add(defined.Name);
+                }
+            }
+
+            return names;
+        }
+
+        /// <summary>
+        /// Takes the commands and aliases of a loaded file out of every registry the host holds, and the file out of
+        /// <see cref="LoadedFiles"/>. Nothing is written; what the module defined besides commands stays in Python.
+        /// </summary>
+        /// <param name="path">The file, as a full path or any path to it.</param>
+        /// <returns>False when the file was not loaded, or a Python run is going on.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
+        public bool UnloadFile(string path)
+        {
+            if (path == null)
+            {
+                throw new ArgumentNullException(nameof(path));
+            }
+
+            string full = FullPath(path);
+            int index = _loaded.FindIndex(f => string.Equals(f, full, StringComparison.OrdinalIgnoreCase));
+
+            if (index < 0 || _current != null || _disposed)
+            {
+                return false;
+            }
+
+            using (Py.GIL())
+            {
+                RemoveDefinedOf(full);
+            }
+
+            _loaded.RemoveAt(index);
+            return true;
+        }
+
+        /// <summary>Starts the engine for the files of the start; where Python cannot start, writes the one line that says so (not a run's refusal) and gives false.</summary>
+        internal bool StartForFiles(CadCommandSession session)
+        {
+            if (EnsureStarted())
+            {
+                return true;
+            }
+
+            string text = "Python files were not loaded: " + Problem;
+            session.Write(text);
+            Emit(text, true, false);
+            return false;
+        }
+
+        private static string FullPath(string path)
+        {
+            try
+            {
+                return Path.GetFullPath(path);
+            }
+            catch (Exception exception)
+                when (exception is ArgumentException
+                    || exception is NotSupportedException
+                    || exception is PathTooLongException
+                )
+            {
+                return path;
+            }
+        }
+
+        private bool LoadNow(CadCommandSession session, string path, bool inCommand)
+        {
+            if (!Prepare(session, CadPythonNames.Load, path, out string source, out string full, inCommand))
+            {
+                return false;
             }
 
             string folder = Path.GetDirectoryName(full);
             string file = Path.GetFileName(full);
             string module = "geometryhelper_user_" + Identifier(Path.GetFileNameWithoutExtension(full));
+            bool reached = false;
 
-            Execute(
+            CadPythonOutcome outcome = Execute(
                 session,
                 CadPythonNames.Load,
                 () =>
                 {
+                    reached = true;
+
                     // Loading a file again replaces its commands: the old ones go first.
                     RemoveDefinedOf(full);
 
@@ -139,9 +238,25 @@ namespace GeometryHelper.Cad.Python
                         return Result.Of(answer);
                     }
                 },
-                result => Register(file, full),
+                result =>
+                {
+                    Register(file, full);
+
+                    if (!_loaded.Exists(f => string.Equals(f, full, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        _loaded.Add(full);
+                    }
+                },
                 full
             );
+
+            // A file that fails keeps no command (its old ones went before it ran), so it is no longer loaded.
+            if (outcome != CadPythonOutcome.Completed && reached)
+            {
+                _loaded.RemoveAll(f => string.Equals(f, full, StringComparison.OrdinalIgnoreCase));
+            }
+
+            return outcome == CadPythonOutcome.Completed;
         }
 
         private static string Identifier(string stem)

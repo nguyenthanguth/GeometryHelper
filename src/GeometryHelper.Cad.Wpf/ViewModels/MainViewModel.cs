@@ -1897,6 +1897,7 @@ namespace GeometryHelper.Cad.Wpf
             );
 
             _lispStartup.OnDocumentOpened(file.Session);
+            RunPythonStartup(file.Session);
         }
 
         internal void Say(string line)

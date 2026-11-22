@@ -215,7 +215,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 
             dialog.Load(new[] { _folder.WriteText("notes.txt", "x") });
 
-            Assert.Equal("notes.txt is not an AutoLISP file or a plugin.", dialog.LoadError);
+            Assert.Equal("notes.txt is not an AutoLISP file, a Python file or a plugin.", dialog.LoadError);
         }
 
         [Fact]

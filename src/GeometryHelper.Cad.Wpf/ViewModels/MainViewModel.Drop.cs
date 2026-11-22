@@ -29,7 +29,8 @@ namespace GeometryHelper.Cad.Wpf
         /// drawing opens, as AutoCAD opens it then. A <c>.lsp</c>,
         /// <c>.fas</c> or <c>.vlx</c> runs <c>(LOAD "D:/x/tools.lsp")</c> as if typed at the command
         /// line of the drawing shown, so that the echo, the SECURELOAD question and the <c>; error:</c> line are those of a typed
-        /// load; a <c>.scr</c> runs SCRIPT and answers its prompt with the path in quotes; a <c>.arx</c>, <c>.dbx</c> or
+        /// load; a <c>.py</c> is loaded as the Load button of Load/Unload Applications loads it (<see cref="LoadApplication"/>:
+        /// no typed line, the Python host writes <c>tools.py loaded: C1, DOT.</c>, or the error); a <c>.scr</c> runs SCRIPT and answers its prompt with the path in quotes; a <c>.arx</c>, <c>.dbx</c> or
         /// <c>.dvb</c> is refused as APPLOAD refuses it; any other file, a <c>.dll</c> and a <c>.ghplugin</c> too (a plugin
         /// goes in the Plugins folder, or loads with PLUGINLOAD), gets the Drag and Drop box (see
         /// <see cref="ShowDropMessage"/>). While a command or a routine waits, and with no drawing open, those files are
@@ -81,6 +82,11 @@ namespace GeometryHelper.Cad.Wpf
             {
                 // The typed line of AutoCAD's echo: LOAD in capitals, the path in quotes with forward slashes.
                 Execute("(LOAD \"" + full.Replace('\\', '/') + "\")");
+            }
+            else if (extension == ".py")
+            {
+                // Loaded as the Load button of APPLOAD loads it: no typed line, the host writes its own.
+                LoadApplication(full);
             }
             else if (extension == ".scr")
             {
