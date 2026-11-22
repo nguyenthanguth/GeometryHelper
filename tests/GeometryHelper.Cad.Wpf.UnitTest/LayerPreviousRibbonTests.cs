@@ -15,22 +15,22 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
     /// </summary>
     public class LayerPreviousRibbonTests
     {
-        private const string Tip = "Undoes the last change or set of changes made to layer settings (LAYERP)";
+        // Previous moved from the body of Layers to its slide-out, as AutoCAD 2021 keeps it, and its tooltip is the tile's: the name
+        // and the command.
+        private const string Tip = "Previous (LAYERP)";
 
         [Fact]
-        public void LayersHasAPreviousButtonNextToMatchLayer_ThatStartsLayerp_WithAnAutoCadTooltip()
+        public void TheLayersSlideOutHasAPreviousTile_ThatStartsLayerp_WithAnAutoCadTooltip()
         {
             OnLayers(
                 (model, group) =>
                 {
-                    Button previous = Buttons(group).Single(b => "LAYERP".Equals(b.CommandParameter));
+                    Button previous = PreviousOf(group);
 
                     Assert.Equal("Previous", previous.Content);
                     Assert.Equal(Tip, previous.ToolTip);
                     Assert.True(previous.IsEnabled);
                     Assert.Same(model.StartCommandCommand, previous.Command);
-                    Button match = Buttons(group).Single(b => Equals(b.Content, "Match Layer"));
-                    Assert.Equal(match.Style, previous.Style);
 
                     int before = model.History.Count;
                     previous.Command.Execute(previous.CommandParameter);
@@ -55,7 +55,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     manager.Dispose();
                     Assert.True(model.Document.Database.LayerTable["WALLS"].IsOff);
 
-                    Button previous = Buttons(group).Single(b => "LAYERP".Equals(b.CommandParameter));
+                    Button previous = PreviousOf(group);
                     previous.Command.Execute(previous.CommandParameter);
 
                     Assert.Equal(
@@ -69,8 +69,36 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             );
         }
 
-        private static System.Collections.Generic.List<Button> Buttons(Border group) =>
-            Descendants(group).OfType<Button>().ToList();
+        /// <summary>The Previous tile of Layers, in its slide-out: not in the visual tree while the slide-out is shut, so found in the logical one.</summary>
+        private static Button PreviousOf(Border group)
+        {
+            DependencyObject panel = group;
+
+            while (panel != null && !(panel is RibbonPanel))
+            {
+                panel = VisualTreeHelper.GetParent(panel);
+            }
+
+            return LogicalDescendants(((RibbonPanel)panel).SlideOut)
+                .OfType<Button>()
+                .Single(b => "LAYERP".Equals(b.CommandParameter));
+        }
+
+        private static System.Collections.Generic.IEnumerable<object> LogicalDescendants(DependencyObject root)
+        {
+            yield return root;
+
+            foreach (object child in LogicalTreeHelper.GetChildren(root))
+            {
+                if (child is DependencyObject below)
+                {
+                    foreach (object found in LogicalDescendants(below))
+                    {
+                        yield return found;
+                    }
+                }
+            }
+        }
 
         private static void OnLayers(Action<MainViewModel, Border> check)
         {

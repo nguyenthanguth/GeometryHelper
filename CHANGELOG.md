@@ -6,6 +6,29 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The Layers panel of Home is laid out as AutoCAD 2021's. Layer Properties stays the large button; the layer box is
+208 pixels wide (it was 168) over two rows of tiles 24 by 22 that show only their icon, the tooltip naming the command: Off,
+Isolate, Freeze, Lock and Make Current (LAYOFF, LAYISO, LAYFRZ, LAYLCK, LAYMCUR), then Turn All Layers On, Unisolate, Thaw All
+Layers, Unlock and Match Layer (LAYON, LAYUNISO, LAYTHW, LAYULK, LAYMCH); Make Current and Match Layer keep their text at full
+size and drop it in a medium panel. Previous (LAYERP) is no longer in the panel's body: it is the first tile of the slide-out
+that the title Layers ▾ opens, with Change to Current Layer (LAYCUR), Copy Objects to New Layer (COPYTOLAYER), Layer Walk
+(LAYWALK), VP Freeze in All Viewports except Current (LAYVPI), Merge (LAYMRG) and Delete (LAYDEL). AutoCAD's Locked Layer Fading
+row is left out: the presenter has no LAYLOCKFADECTL. The panel's width is the box's (289 pixels at full size, 354 before), so
+Layers going medium no longer narrows Home, and Home is full from a window 2 225 pixels wide, where it was 2 290. 14 icons for
+its tiles and six state glyphs are new, in `Icons.xaml`, and `IconView` has a `Fill` for the lit glyphs.
+
+**NEW.** The layer box of the ribbon draws each layer as three state glyphs before its colour and name: a lit or dark bulb (on or
+off), a sun or a snowflake (thawed or frozen), an open or a closed padlock (unlocked or locked), as AutoCAD 2021's does, and the
+closed box shows the current layer so. In the open list a click on a glyph toggles that state of that layer at once, leaves the
+list open and the current layer as it is, and is one undo step that UNDO and LAYERP take back, made through `CadLayerEditor` as the
+Layer manager's cells are. Freezing the current layer is refused on the command line in the Layer manager's words and changes
+nothing; turning it off is allowed, as in AutoCAD.
+
+**NEW.** The Layer State box in the slide-out of Layers: it lists the drawing's layer states by name (Unsaved Layer State where no
+state matches the layers), picking one restores it as one undo step, as LAYERSTATE's Restore, and New Layer State... and Manage
+Layer States... at the end of the list open LAYERSTATE. `MainViewModel` has `ToggleLayerOnCommand`, `ToggleLayerFreezeCommand`,
+`ToggleLayerLockCommand`, `LayerStateItems` and `SelectedLayerState` for them.
+
 **NEW.** A sample drawing template, `GeometryHelper-mm.dwt`, ships in the `DrawingTemplates` folder, so that New from template ·
 Ctrl+Shift+N has something to offer on a fresh install. It is metric and in millimetres (MEASUREMENT 1, INSUNITS 4, distances to
 two decimal places, limits of 42 000 by 29 700, LTSCALE 1) and holds the layers Axis (red, CENTER, 0.18), Outline (0.50), Thin,

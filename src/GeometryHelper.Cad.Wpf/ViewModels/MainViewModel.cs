@@ -530,6 +530,9 @@ namespace GeometryHelper.Cad.Wpf
                 {
                     _replacingLayers = false;
                 }
+
+                // The layers changed with a table edit, an undo or another drawing shown; the Layer State box follows.
+                RaiseLayerStates();
             }
         }
 
