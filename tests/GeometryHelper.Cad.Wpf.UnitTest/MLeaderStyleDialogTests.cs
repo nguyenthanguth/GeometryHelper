@@ -227,7 +227,8 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             string asked = null;
             model.StyleDialogRequested += (sender, name) => asked = name;
 
-            Assert.Equal(new[] { "Multileader style…" }, model.MLeaderStyleItems.Select(i => i.Name));
+            // A drawing with no multileader style lists Standard, as AutoCAD's blank drawing shows it (P8), then the manager's item.
+            Assert.Equal(new[] { "Standard", "Multileader style…" }, model.MLeaderStyleItems.Select(i => i.Name));
             Assert.True(model.MLeaderStyleItems.Last().IsDialog);
 
             model.CurrentMLeaderStyle = MainViewModel.ManageMLeaderStyles;

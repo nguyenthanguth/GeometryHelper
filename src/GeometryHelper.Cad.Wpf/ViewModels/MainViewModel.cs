@@ -1990,6 +1990,7 @@ namespace GeometryHelper.Cad.Wpf
 
             // PICKSTYLE typed or switched by its key: Group Selection follows. A split button's option answers its prompt.
             Raise(nameof(IsGroupSelectionOn));
+            RaiseRibbonSettings();
             AnswerPendingOption();
         }
 

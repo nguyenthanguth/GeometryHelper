@@ -499,7 +499,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gives the entity the look a drawing gives new entities, as AutoCAD's <c>SetDatabaseDefaults</c>: the layer
         /// (<c>$CLAYER</c>), colour (<c>$CECOLOR</c>), linetype (<c>$CELTYPE</c>) and, in a drawing of R2000 or later,
-        /// linetype scale (<c>$CELTSCALE</c>) and lineweight (<c>$CELWEIGHT</c>) of its header.
+        /// linetype scale (<c>$CELTSCALE</c>) and lineweight (<c>$CELWEIGHT</c>) of its header and, in a drawing of R2004 or
+        /// later, the transparency of <see cref="DxfDatabase.Cetransparency"/>: a drawing whose CETRANSPARENCY is the alpha 100
+        /// gives a line the alpha 100, and one whose CETRANSPARENCY is by layer leaves it by layer. An R2000 drawing has no
+        /// transparency to give, and leaves the entity as it was.
         /// </summary>
         /// <param name="database">The drawing whose header gives the look.</param>
         /// <exception cref="ArgumentNullException">Thrown when the drawing is null.</exception>
@@ -535,6 +538,16 @@ namespace GeometryHelper.Dxf
             }
 
             LineWeight = database.Celweight;
+
+            if (database.File.Supports(1018))
+            {
+                DxfTransparency transparency = database.Cetransparency;
+
+                if (!transparency.IsInvalid)
+                {
+                    Transparency = transparency;
+                }
+            }
         }
 
         /// <summary>

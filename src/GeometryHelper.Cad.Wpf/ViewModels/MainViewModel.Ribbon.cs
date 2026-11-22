@@ -9,9 +9,10 @@ namespace GeometryHelper.Cad.Wpf
 {
     /// <summary>
     /// The Insert ribbon tab, as AutoCAD 2021's for what the presenter has built: Block (Insert, its gallery of the drawing's
-    /// blocks, Edit Attribute), Block Definition (Create Block, Define Attributes, Set Base Point) and Reference (Attach, Clip,
-    /// External References, the image frame box, Transparency). A drawing with the blocks DOOR_900 and GRID_BUBBLE shows
-    /// their two tiles in the gallery in that order, and a click on DOOR_900 starts INSERT placing it.
+    /// blocks, Edit Attribute), Block Definition (Create Block, Define Attributes, Manage Attributes, Block Editor), Reference
+    /// (Attach, Clip, Adjust, Underlay Layers, the frames and the snap of underlays; its launcher opens External References),
+    /// Import, Data and Linking and Extraction. A drawing with the blocks DOOR_900 and GRID_BUBBLE shows their two tiles in the
+    /// gallery in that order, and a click on DOOR_900 starts INSERT placing it.
     /// </summary>
     public sealed class InsertRibbonViewModel : ObservableObject
     {
@@ -32,10 +33,14 @@ namespace GeometryHelper.Cad.Wpf
                 IsGalleryOpen = false;
                 model.OpenBlocksPalette(p as string);
             });
+            ExternalReferencesLauncherCommand = new DelegateCommand(_ => model.StartCommand("EXTERNALREFERENCES"));
         }
 
         /// <summary>Gets the window's view model, whose commands the buttons run.</summary>
         public MainViewModel Model { get; }
+
+        /// <summary>Gets the command of the launcher of Reference: EXTERNALREFERENCES, the External References palette.</summary>
+        public ICommand ExternalReferencesLauncherCommand { get; }
 
         /// <summary>Gets the command of Insert ▾, which drops the gallery.</summary>
         public ICommand OpenGalleryCommand { get; }
@@ -96,19 +101,38 @@ namespace GeometryHelper.Cad.Wpf
     }
 
     /// <summary>
-    /// The Annotate ribbon tab: Text (Multiline Text, Single Line), Dimensions (Linear, Aligned, Angular, Radius, Diameter) and
-    /// Leaders (Multileader), each button starting its command through <see cref="MainViewModel.StartCommandCommand"/>, as
-    /// the buttons of Home do.
+    /// The Annotate ribbon tab, as AutoCAD 2021's: Text, Dimensions, Centerlines, Leaders, Tables, Markup and Annotation Scaling,
+    /// each button starting its command through <see cref="MainViewModel.StartCommandCommand"/> or
+    /// <see cref="MainViewModel.StartCommandWithOptionCommand"/>, as the buttons of Home do. The launchers of Text, Dimensions,
+    /// Leaders and Tables start STYLE, DIMSTYLE, MLEADERSTYLE and TABLESTYLE.
     /// </summary>
     public sealed class AnnotateRibbonViewModel
     {
         internal AnnotateRibbonViewModel(MainViewModel model)
         {
             Model = model;
+            TextLauncherCommand = Launcher("STYLE");
+            DimensionsLauncherCommand = Launcher("DIMSTYLE");
+            LeadersLauncherCommand = Launcher("MLEADERSTYLE");
+            TablesLauncherCommand = Launcher("TABLESTYLE");
         }
 
         /// <summary>Gets the window's view model, whose commands the buttons run.</summary>
         public MainViewModel Model { get; }
+
+        /// <summary>Gets the command of the launcher of Text: STYLE, the Text Style dialog.</summary>
+        public ICommand TextLauncherCommand { get; }
+
+        /// <summary>Gets the command of the launcher of Dimensions: DIMSTYLE, the Dimension Style Manager.</summary>
+        public ICommand DimensionsLauncherCommand { get; }
+
+        /// <summary>Gets the command of the launcher of Leaders: MLEADERSTYLE, the Multileader Style Manager.</summary>
+        public ICommand LeadersLauncherCommand { get; }
+
+        /// <summary>Gets the command of the launcher of Tables: TABLESTYLE, the Table Style dialog.</summary>
+        public ICommand TablesLauncherCommand { get; }
+
+        private ICommand Launcher(string command) => new DelegateCommand(_ => Model.StartCommand(command));
     }
 
     /// <summary>
@@ -466,6 +490,15 @@ namespace GeometryHelper.Cad.Wpf
             )
             {
                 // The Tangent override typed at a point that takes it, as the macro of Tan, Tan, Tan types _tan before each point.
+                _pendingOptions.RemoveAt(0);
+                session.Feed(option);
+            }
+            else if (
+                session.Prompt.Kind == CadPromptKind.Integer
+                && int.TryParse(option, NumberStyles.Integer, CultureInfo.InvariantCulture, out _)
+            )
+            {
+                // A whole number typed at the prompt for one, as the macro of Display and Plot Frames types 1 at IMAGEFRAME's.
                 _pendingOptions.RemoveAt(0);
                 session.Feed(option);
             }

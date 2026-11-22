@@ -106,9 +106,20 @@ namespace GeometryHelper.Cad.Wpf
                 return;
             }
 
-            ShowFindReplace(
-                new FindReplaceViewModel(document, _current?.Session, e.Payload as IReadOnlyList<string>, ZoomToObjects)
+            var dialog = new FindReplaceViewModel(
+                document,
+                _current?.Session,
+                e.Payload as IReadOnlyList<string>,
+                ZoomToObjects
             );
+
+            // The Find Text box of Annotate › Text opens it with the words typed there.
+            if (FindWhatNext != null)
+            {
+                dialog.FindWhat = FindWhatNext;
+            }
+
+            ShowFindReplace(dialog);
             e.Handled = true;
         }
     }

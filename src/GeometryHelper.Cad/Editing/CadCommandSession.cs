@@ -1215,6 +1215,9 @@ namespace GeometryHelper.Cad
         /// <summary>The layer new dimensions are put on, as AutoCAD's DIMLAYER that DIM's LAyer sets; null for the current layer.</summary>
         internal string DimLayer { get; set; }
 
+        /// <summary>The layer new text (TEXT and MTEXT) is put on, as AutoCAD's TEXTLAYER; null for the current layer.</summary>
+        internal string TextLayer { get; set; }
+
         /// <summary>
         /// REVCLOUDARCSTYLE: the style of the arcs REVCLOUD draws, "Normal" or "Calligraphy" as its Style option sets it. SETVAR
         /// takes any text, as AutoCAD's does, and REVCLOUD draws Calligraphy only for exactly "Calligraphy" (not "calligraphy",

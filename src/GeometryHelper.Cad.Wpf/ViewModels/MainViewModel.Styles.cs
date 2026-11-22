@@ -228,12 +228,18 @@ namespace GeometryHelper.Cad.Wpf
             }
         }
 
-        /// <summary>Gets the items of the multileader style box: the styles, the current one ticked, then "Multileader style…" under a line.</summary>
+        /// <summary>
+        /// Gets the items of the multileader style box: the styles, the current one ticked, then "Multileader style…" under a
+        /// line. A drawing with no multileader style lists Standard, ticked, as AutoCAD's blank drawing does; the first
+        /// multileader or the Multileader Style Manager makes it.
+        /// </summary>
         public IReadOnlyList<StyleBoxItemViewModel> MLeaderStyleItems =>
             _current == null
                 ? Array.Empty<StyleBoxItemViewModel>()
                 : Items(
-                    MLeaderStyleNames.Concat(new[] { ManageMLeaderStyles }).ToList(),
+                    (MLeaderStyleNames.Count > 0 ? MLeaderStyleNames : new[] { "Standard" })
+                        .Concat(new[] { ManageMLeaderStyles })
+                        .ToList(),
                     CurrentMLeaderStyle,
                     ManageMLeaderStyles
                 );
@@ -356,6 +362,7 @@ namespace GeometryHelper.Cad.Wpf
             Raise(nameof(CurrentMLeaderStyle));
             Raise(nameof(TableStyleItems));
             Raise(nameof(CurrentTableStyle));
+            RaiseRibbonBoxes();
         }
 
         /// <summary>The items of a style box from its names, the dialog's item last where the names end in it.</summary>

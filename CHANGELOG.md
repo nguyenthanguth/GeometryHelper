@@ -26,8 +26,8 @@ Home is 1 695 pixels wide and full from a window 1 719 wide (2 225 before): it t
 1 424, 10 at 1 264, 12 at 1 084 and all 13 at 884, where AutoCAD takes 2, 4, 10, 12 and 13. Home's steps are now Block, Properties,
 Modify, Annotation and Layers medium; View, Clipboard, Utilities and Groups collapsed; then Properties, Block, Layers and
 Annotation collapsed. The Layer State box of the slide-out shows the layer state icon before its name, and the open layer list
-draws the current layer's row selected. The other tabs take the same sizes: Insert is 1 134 pixels wide, full from a window 1 158
-(1 191 before), and View 766, full from 790 (794 before). A plugin's standard button with no text is a tile of 24 by 22, one with
+draws the current layer's row selected. The other tabs take the same sizes: View is 766 pixels wide, full from a window 790
+(794 before); Insert and Annotate are laid out anew, below. A plugin's standard button with no text is a tile of 24 by 22, one with
 text the small button of the ribbon, and a large button the 72-high one.
 
 **NEW.** Home › Block, between Layers and Properties as in AutoCAD 2021: Insert large (INSERT, with the gallery of the drawing's
@@ -687,6 +687,47 @@ and handed the box a layer in the middle of its own reset, which left it empty a
 still `0` (`LINE;0,0;10,10;;U` in `--screenshot` mode). `CurrentLayer` now reads null while the list is replaced, and the
 change that follows puts the layer in the box. The box also did not follow a current layer set by a command with no table
 changed (`-LAYER` Set, `CLAYER`, LAYMCUR): it kept the layer it showed before; it follows now.
+
+**CHANGED.** Insert and Annotate are laid out as AutoCAD 2021's, as Home is. Insert has six panels in AutoCAD's order: Block
+(Insert with its gallery; Edit Attribute with Single and Multiple, `-ATTEDIT`, where it had Edit Attributes… and a greyed
+Multiple; Block ▾ drops the Attribute Display split), Block Definition (Create Block with Write Block, Define Attributes,
+Manage Attributes, Block Editor; Block Definition ▾ drops Set Base Point and Synchronize), Reference (Attach with DXF, Image
+and PDF only, the choices the presenter lacks no longer drawn greyed; Clip, Adjust, Underlay Layers, and two splits that show
+the drawing's setting, "Display and Plot Frames" and "Snap to Underlays ON", where the frame box and the Snap button were;
+Reference ▾ drops Edit Reference; the launcher opens External References, which is no longer a button, and Transparency, which
+Insert had, is gone), Import (Import, now here from Output; Combine Text, `TXT2MTXT`), Data (Field, Update Fields, OLE Object,
+Hyperlink) and Linking & Extraction (Data Link, Download from Source and Upload to Source, which answer Update and Write of
+`DATALINKUPDATE`, and Extract Data). Annotate has seven: Text (Multiline Text and Single Line, Check Spelling, Text Align,
+Justify, the text style, Find Text and text height boxes 200 wide; Text ▾ drops Scale and the Text Layer box), Dimensions
+(Dimension, the style box with Break, Adjust Space and Jog Line, the Dim Layer box with Inspect, Update and Reassociate,
+Linear, Quick and Continue; Dimensions ▾ drops Tolerance, Oblique, Text Angle, Left, Center and Right Justify and Override),
+Centerlines, Leaders, Tables (Table, the table style box, Download from Source and Upload to Source, Extract Data, Link Data),
+Markup (Wipeout, the Revision Cloud split) and Annotation Scaling (the Add Current Scale split, Scale List, Add/Delete
+Scales); Text, Dimensions, Leaders and Tables have launchers that open their style dialogs. The panels take the width of
+their content (22 new icons), and shrink in AutoCAD's order: Insert is 1 046 pixels wide, full from a window 1 070, and takes
+no step at a ribbon 1 904, 1 584, 1 424, 1 264 or 1 084 pixels wide and three at 884 (AutoCAD six: its Import is 270 wide,
+ours 102); Annotate is 1 550 wide, full from a window 1 574, and takes none at 1 904 and 1 584, two at 1 424, three at 1 264,
+five at 1 084 and all six at 884, which leaves Text and Centerlines full and the rest collapsed, as AutoCAD's ribbon does. The
+large Text button of Home › Annotation draws the T of the Text icon where it drew the page of Multiline Text.
+
+**NEW.** The Lineweight box of Home › Properties works: ByLayer, ByBlock, Default and the widths 0.00 mm to 2.11 mm as the
+LWEIGHT dialog lists them, each drawn as a line of its width; a pick sets CELWEIGHT as one undo step, and the box shows what
+CELWEIGHT typed made it. The Transparency box of its slide-out works too: ByLayer, ByBlock and 0, 10 to 90 per cent set
+CETRANSPARENCY, which is now a system variable typed or set with SETVAR (ByLayer, ByBlock or a whole number from 0 to 90, as
+AutoCAD takes it; anything else is refused in words and asked again), and the next line drawn carries it.
+`CadPropertyEditor.Set` takes the row Transparency for the current settings. TEXTLAYER is a new system variable like DIMLAYER:
+the layer new text goes on (`.` for the current layer); TEXT and MTEXT put the text on it where the drawing has that layer,
+and the Text Layer box of Annotate › Text sets it. Annotate › Dimensions has a Dim Layer box, DIMLAYER, the same for
+dimensions. Words typed in the Find Text box of Annotate › Text and Enter start FIND with them in Find what. A split button's
+option may now be a whole number (`IMAGEFRAME 1`), given to the prompt for one.
+
+**CHANGED.** `DxfEntity.SetDatabaseDefaults` gives the entity the transparency of the drawing's CETRANSPARENCY too, in a
+drawing of R2004 or later, as AutoCAD's `setDatabaseDefaults` does: a line given the defaults of a drawing whose
+`Cetransparency` is the alpha 100 now has the alpha 100, where it was left by layer; by layer stays by layer, and an R2000
+drawing, which has no transparency to give, leaves the entity as it was.
+
+**FIXED.** The Multileader Style box of Annotate was empty in a drawing with no multileader style (a blank drawing), where
+AutoCAD shows Standard; it lists Standard, ticked, until the first multileader or the Multileader Style Manager makes it.
 
 ## 13.12.0 (2026-11-19)
 

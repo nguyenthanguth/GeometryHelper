@@ -1420,7 +1420,7 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>A transparency as the palette writes it: ByLayer, ByBlock, or a per cent from 0, solid, to 90.</summary>
-        private static string TransparencyText(DxfTransparency transparency)
+        internal static string TransparencyText(DxfTransparency transparency)
         {
             if (transparency.IsByBlock)
             {
