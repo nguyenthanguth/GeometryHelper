@@ -342,8 +342,8 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>
         /// Makes a new drawing and shows it, as AutoCAD's QNEW: of the default template of Global settings (Default Template
         /// File Name for QNEW) where one is set and found (<see cref="NewDrawingFrom"/>), else of the presenter's metric
-        /// template (<see cref="CadTemplate"/>, the settings of acadiso.dwt: millimetres, ISO-25) with the layer 0, the layers of
-        /// Global settings (<see cref="CadTemplate.AddLayers"/>, the current layer staying 0) and Layout1
+        /// template (<see cref="CadTemplate"/>, the settings of acadiso.dwt: millimetres, ISO-25) with the layer 0 only, the
+        /// current layer 0, and Layout1
         /// (<see cref="NewDrawingWithNoTemplate"/>), named Drawing1.dwg, then Drawing2.dwg, as AutoCAD's DWGNAME of a new
         /// drawing, so that Save As offers a DWG first; listed under Open drawings until it is saved to a file of its own.
         /// </summary>

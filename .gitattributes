@@ -5,5 +5,7 @@
 *.gz binary
 # The icons of the apps, written by a script.
 *.ico binary
+# The sample drawing template of the app, written from code by SampleTemplateTests.
+*.dwt binary
 # The built-in font as a compiled SHX file (Fonts/ghsimplex.shx), written by a test.
 *.shx binary

@@ -6,6 +6,22 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** A sample drawing template, `GeometryHelper-mm.dwt`, ships in the `DrawingTemplates` folder, so that New from template ·
+Ctrl+Shift+N has something to offer on a fresh install. It is metric and in millimetres (MEASUREMENT 1, INSUNITS 4, distances to
+two decimal places, limits of 42 000 by 29 700, LTSCALE 1) and holds the layers Axis (red, CENTER, 0.18), Outline (0.50), Thin,
+Hidden (HIDDEN), Dimension, Text, Hatch, Rebar, Title block, Viewport and Defpoints (the last two not plotted), with linetypes of
+`GeometryHelper.lin` only; the text styles Standard, Notes and Titles in `ghsimplex.shx` (width factor 0.8) and Arial in Arial,
+no font of Autodesk's; the dimension styles GH (current: text and arrowheads 2.5, extension lines offset and extended 1.5, no
+decimals, colours by layer) and GH-Annotative; the multileader style GH; and the layouts Model and A3 (420 by 297 on its side).
+`CadTemplate.CreateSample()` makes the drawing in code, `CadTemplate.SampleFileName` and `CadTemplate.SampleDescription` name the
+file and its description, and a test keeps the shipped file equal to it in every layer, style, layout and variable. AutoCAD 2021
+opens the file with AUDIT finding no errors.
+
+**FIXED.** The jog angle of a dimension style (DIMJOGANG, group 50) was written to a DWG as 45 radians where the style, made in
+code, had the default 45 degrees, so AutoCAD 2021 read it as 58 degrees and listed it as an override of the current style; and
+read from a DWG, a non-default angle came back as radians in a group that holds degrees. DWG files written and read now keep it in
+radians as AutoCAD does, as the other angles are. A DWG written before this keeps the wrong angle in its styles and is not repaired.
+
 **NEW.** The `Fonts` folder beside `GeometryHelper.Cad.dll` holds `ghsimplex.shx`, the built-in font GeometryHelper Simplex written
 out as a compiled SHX unifont file (4 840 bytes), as `Hatches` holds `GeometryHelper.pat` and `Linetypes` `GeometryHelper.lin`.
 It is a copy for use elsewhere: put it in AutoCAD's Fonts folder, or beside a drawing, and a text style naming `ghsimplex.shx`
@@ -35,6 +51,18 @@ plugin, or cannot be loaded, is one line of the log and stops no other; a plugin
 `plugin.json` beside a `.dll` directly in `Plugins` is not read (one file cannot name every .dll there), though it is for a
 `.dll` loaded from elsewhere. `PLUGINLOAD` (`NETLOAD`), `PLUGINRELOAD`, `PLUGINUNLOAD`, the startup list ("Load at every
 start") and the trusted folders stay for plugins kept elsewhere.
+
+**BREAKING.** The layer list of Global settings is removed, since a drawing's layers now come from its template (a `.dwt` in
+the `DrawingTemplates` folder). Removed: the Global settings category Layers, colours and lines, with its Add layer button
+and rows; the class `GlobalLayer`; `GlobalSettings.Layers`; `CadTemplate.AddLayers`; and, from the view model of the dialog,
+`GlobalSettingsViewModel.IsLayersPage`, `Layers`, `AddLayerCommand`, `RemoveLayerCommand` and the class `GlobalLayerRow`. The
+dialog has eight categories. A blank drawing (NEW, Open with no Template, Ctrl+N, and QNEW where no default template is set)
+now holds layer 0 and no other, as AutoCAD's Open with no Template - Metric does, instead of layer 0 with Visible, Hidden, Centre,
+Hatch, Dimension, Mark, Symbol, Sheet and Viewport; its units (millimetres, ISO-25, limits 420 by 297) are as before. No command
+depended on those layers: DIMLINEAR and the others draw on the current layer. A settings file that still has a `layers` section
+loads without a warning and the section is ignored; the next save leaves it out. To keep a layer set, make a drawing with the
+layers (colour, linetype, lineweight, plot flag), save it as a `.dwt` in `DrawingTemplates`, and start from it with NEW, or set
+it as the default template for QNEW under Save and export.
 
 **BREAKING.** Plugins are no longer packaged and installed: the `.ghplugin` file is gone, and a plugin is put in the `Plugins`
 folder beside the app. Removed: `CadPluginManager.Install(string)` and `Uninstall(string)`; the class `CadPluginPackage` (its

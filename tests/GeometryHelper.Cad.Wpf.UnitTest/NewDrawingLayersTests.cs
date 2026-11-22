@@ -5,148 +5,77 @@ using Xunit;
 namespace GeometryHelper.Cad.Wpf.UnitTest
 {
     /// <summary>
-    /// A new drawing (NEW, Ctrl+N) gets the layers Global settings list under Layers, colours and lines, each with its colour,
-    /// linetype, lineweight and plot flag; a drawing opened from a file is left as it is.
+    /// A blank drawing (NEW with no template, Ctrl+N, QNEW with no default template) holds layer 0 and no other: the layers
+    /// of a drawing come from its template, no longer from a list in Global settings. A drawing opened from a file is left
+    /// as it is.
     /// </summary>
     public class NewDrawingLayersTests
     {
-        private static readonly string[] DefaultNames =
-        {
-            "0",
-            "Visible",
-            "Hidden",
-            "Centre",
-            "Hatch",
-            "Dimension",
-            "Mark",
-            "Symbol",
-            "Sheet",
-            "Viewport",
-        };
-
         [Fact]
-        public void ANewDrawing_HasTheDefaultLayersOfGlobalSettings_WithTheirLooks()
+        public void ABlankDrawing_HasLayer0Only_InTheMetricTemplate()
         {
             var model = new MainViewModel();
 
             model.Execute("NEW");
 
             DxfDatabase database = model.Document.Database;
-            Assert.Equal(DefaultNames, database.LayerTable.Select(l => l.Name));
+            Assert.Equal(new[] { "0" }, database.LayerTable.Select(l => l.Name));
             Assert.Equal("0", database.Clayer);
-
-            DxfLayerTableRecord hidden = database.LayerTable["Hidden"];
-            Assert.Equal(0x9AA4B1, hidden.TrueColor);
-            Assert.Equal("HIDDEN", hidden.LinetypeName);
-            Assert.Equal(DxfLineWeight.LineWeight018, hidden.LineWeight);
-            Assert.True(hidden.IsPlottable);
-            Assert.True(database.LinetypeTable.Has("HIDDEN"));
-
-            DxfLayerTableRecord centre = database.LayerTable["Centre"];
-            Assert.Equal(0xF85149, centre.TrueColor);
-            Assert.Equal("CENTER", centre.LinetypeName);
-            Assert.True(database.LinetypeTable.Has("CENTER"));
-
-            DxfLayerTableRecord visible = database.LayerTable["Visible"];
-            Assert.Equal("Continuous", visible.LinetypeName);
-            Assert.Equal(DxfLineWeight.LineWeight035, visible.LineWeight);
-
-            DxfLayerTableRecord viewport = database.LayerTable["Viewport"];
-            Assert.False(viewport.IsPlottable);
-            Assert.Equal(DxfLineWeight.LineWeight013, viewport.LineWeight);
+            Assert.Equal(DxfMeasurementValue.Metric, database.Measurement);
+            Assert.Equal(CadTemplate.DimensionStyle, database.Dimstyle);
         }
 
         [Fact]
-        public void EveryNewDrawing_GetsThem_AndTheLayersSurviveSavingAndReading()
+        public void EveryBlankDrawing_HasLayer0Only_MetricOrImperial_AndItSurvivesSavingAsDxfAndDwg()
         {
             using (var folder = new TestFolder())
             {
                 var model = new MainViewModel();
                 model.NewDrawing();
                 CadDocument second = model.NewDrawing();
+                CadDocument imperial = model.NewDrawingWithNoTemplate(false);
 
-                Assert.Equal(DefaultNames, second.Database.LayerTable.Select(l => l.Name));
+                Assert.Equal(new[] { "0" }, second.Database.LayerTable.Select(l => l.Name));
+                Assert.Equal(new[] { "0" }, imperial.Database.LayerTable.Select(l => l.Name));
 
-                string path = System.IO.Path.Combine(folder.FullPath, "new.dxf");
-                Assert.True(model.SaveAs(path));
-                DxfDatabase read = DxfDatabase.Open(path);
+                string dxf = System.IO.Path.Combine(folder.FullPath, "new.dxf");
+                Assert.True(model.SaveAs(dxf));
+                Assert.Equal(new[] { "0" }, DxfDatabase.Open(dxf).LayerTable.Select(l => l.Name));
 
-                Assert.Equal(DefaultNames, read.LayerTable.Select(l => l.Name));
-                Assert.Equal("HIDDEN", read.LayerTable["Hidden"].LinetypeName);
-                Assert.Equal(0xF85149, read.LayerTable["Centre"].TrueColor);
+                string dwg = System.IO.Path.Combine(folder.FullPath, "new.dwg");
+                Assert.True(model.SaveAs(dwg));
+                Assert.Equal(new[] { "0" }, GeometryHelper.Dwg.DwgReader.Open(dwg).LayerTable.Select(l => l.Name));
             }
         }
 
         [Fact]
-        public void TheLayersSurviveSavingAsADwg()
+        public void ASettingsFileThatStillListsLayers_DoesNotGiveABlankDrawingAny()
         {
             using (var folder = new TestFolder())
             {
+                string path = folder.WriteText(
+                    "settings.json",
+                    "{ \"layers\": [ { \"name\": \"Steel\", \"colour\": \"#112233\", \"linetype\": \"DASHED\", \"lineweight\": 0.5 } ] }"
+                );
                 var model = new MainViewModel();
+                model.ApplySettings(GlobalSettings.Load(path));
+
                 model.NewDrawing();
-                string path = System.IO.Path.Combine(folder.FullPath, "new.dwg");
-                Assert.True(model.SaveAs(path));
 
-                DxfDatabase read = GeometryHelper.Dwg.DwgReader.Open(path);
-
-                Assert.Equal(DefaultNames, read.LayerTable.Select(l => l.Name));
-                Assert.Equal("CENTER", read.LayerTable["Centre"].LinetypeName);
-                Assert.Equal(0xF85149, read.LayerTable["Centre"].TrueColor);
-                Assert.Equal(DxfLineWeight.LineWeight018, read.LayerTable["Centre"].LineWeight);
-                Assert.False(read.LayerTable["Viewport"].IsPlottable);
+                Assert.Equal(new[] { "0" }, model.Document.Database.LayerTable.Select(l => l.Name));
             }
         }
 
         [Fact]
-        public void TheLayersOfTheSettingsInUse_AreWhatANewDrawingGets_AnUnknownLinetypeBeingContinuous()
+        public void GlobalSettings_HasNoLayersPage()
         {
-            var settings = new GlobalSettings
-            {
-                Layers = new[]
-                {
-                    new GlobalLayer("Steel", 0x112233, "DASHED", 0.5),
-                    new GlobalLayer("Notes", 0x445566, "NoSuchLinetype", 0.24, plot: false),
-                },
-            };
-            var model = new MainViewModel();
-            model.ApplySettings(settings);
+            GlobalSettingsViewModel dialog = new MainViewModel().CreateGlobalSettings();
 
-            model.NewDrawing();
-
-            DxfDatabase database = model.Document.Database;
-            Assert.Equal(new[] { "0", "Steel", "Notes" }, database.LayerTable.Select(l => l.Name));
-            Assert.Equal("DASHED", database.LayerTable["Steel"].LinetypeName);
-            Assert.Equal(DxfLineWeight.LineWeight050, database.LayerTable["Steel"].LineWeight);
-            Assert.Equal(0x112233, database.LayerTable["Steel"].TrueColor);
-            Assert.Equal("Continuous", database.LayerTable["Notes"].LinetypeName);
-            Assert.Equal(DxfLineWeight.LineWeight025, database.LayerTable["Notes"].LineWeight);
-            Assert.False(database.LayerTable["Notes"].IsPlottable);
-            Assert.False(database.LinetypeTable.Has("NoSuchLinetype"));
+            Assert.DoesNotContain(dialog.Categories, c => c.Name.Contains("Layers"));
         }
 
         [Fact]
-        public void ATableWithNoLayers_GivesALayer0Drawing_AndALayerNamed0IsLeftAsTheTemplateMakesIt()
-        {
-            var settings = new GlobalSettings();
-            settings.Layers = new GlobalLayer[0];
-            var model = new MainViewModel();
-            model.ApplySettings(settings);
-
-            model.NewDrawing();
-
-            Assert.Equal(new[] { "0" }, model.Document.Database.LayerTable.Select(l => l.Name));
-
-            settings.Layers = new[] { new GlobalLayer("0", 0x112233, "Continuous", 0.5) };
-            model.ApplySettings(settings);
-            model.NewDrawing();
-
-            DxfLayerTableRecord zero = model.Document.Database.LayerTable["0"];
-            Assert.Single(model.Document.Database.LayerTable);
-            Assert.NotEqual(0x112233, zero.TrueColor);
-        }
-
-        [Fact]
-        public void ADrawingOpenedFromAFile_IsNotGivenTheLayers()
+        public void ADrawingOpenedFromAFile_IsLeftAsItIs()
         {
             using (var folder = new TestFolder())
             {

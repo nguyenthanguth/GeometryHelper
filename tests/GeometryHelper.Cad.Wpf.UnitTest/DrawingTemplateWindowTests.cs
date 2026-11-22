@@ -333,7 +333,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             model.Execute("QNEW");
 
             Assert.Equal(DxfMeasurementValue.Metric, model.Document.Database.Measurement);
-            Assert.Equal(10, model.Document.Database.LayerTable.Count());
+            Assert.Single(model.Document.Database.LayerTable);
             Assert.DoesNotContain(model.History, l => l.Contains("QNEW is not found"));
 
             model.ApplySettings(
@@ -342,7 +342,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             model.Execute("QNEW");
 
             Assert.Equal("Drawing2.dwg", model.Title);
-            Assert.Equal(10, model.Document.Database.LayerTable.Count());
+            Assert.Single(model.Document.Database.LayerTable);
             Assert.Contains(model.History, l => l.Contains("for QNEW is not found; the built-in template is used."));
         }
 
