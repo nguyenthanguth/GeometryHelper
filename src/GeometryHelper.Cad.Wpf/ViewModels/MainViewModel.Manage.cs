@@ -154,7 +154,12 @@ namespace GeometryHelper.Cad.Wpf
                         l.StartsWith("; error:", StringComparison.Ordinal) || l == "Can't reenter LISP."
                     )
                     ?? string.Empty;
-                return new AppLoadResult(AppLoadStatusKind.Failed, (name + " was not loaded: " + error).TrimEnd());
+                return new AppLoadResult(
+                    AppLoadStatusKind.Failed,
+                    (name + " was not loaded: " + error).TrimEnd(),
+                    name,
+                    error
+                );
             }
 
             if (extension == ".dll")
@@ -163,22 +168,24 @@ namespace GeometryHelper.Cad.Wpf
                 {
                     const string none = "No plugin manager is in use: applications cannot be loaded.";
                     Say(none);
-                    return new AppLoadResult(AppLoadStatusKind.Failed, none);
+                    return new AppLoadResult(AppLoadStatusKind.Failed, none, name, none);
                 }
 
                 CadPluginResult result = LoadPlugin(path);
                 return new AppLoadResult(
                     result.Succeeded ? AppLoadStatusKind.Loaded : AppLoadStatusKind.Failed,
+                    result.ToString(),
+                    name,
                     result.ToString()
                 );
             }
 
-            string refused =
+            string why =
                 Array.IndexOf(RefusedApplicationTypes, extension) >= 0
-                    ? name + " cannot be loaded: .arx, .dbx, .dvb, .fas and .vlx files are not supported."
-                    : name + " is not an AutoLISP file or a plugin.";
-            Say(refused);
-            return new AppLoadResult(AppLoadStatusKind.Refused, refused);
+                    ? " cannot be loaded: .arx, .dbx, .dvb, .fas and .vlx files are not supported."
+                    : " is not an AutoLISP file or a plugin.";
+            Say(name + why);
+            return new AppLoadResult(AppLoadStatusKind.Refused, name + why, name, why);
         }
 
         /// <summary>Gets the AutoLISP files loaded into the document shown, as full paths in the order they loaded; empty with no document.</summary>

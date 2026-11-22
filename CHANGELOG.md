@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** A load-result line in Load/Unload Applications. A load that fails (a .lsp or a .dll, from Load…, a drop, Reload or the
+On box), a file type that is refused, and Load… with no drawing open used to write only to the command history behind the modal
+window, so the user saw nothing. The window now has a red line above the hint, as the design draws it: the file in bold, then
+`failed to load: ` and the error as the history wrote it (`; error: bad argument type: consp 5`), with `(ERRONE was defined before
+the error)` for an AutoLISP file that defined commands first, and `Shown until the next load` on the right. Several failures in one
+Load… show the last with `(and 1 more)`; a load with no failure hides the line, and a load that succeeds shows nothing. See
+[Load/Unload Applications](src/GeometryHelper/docs/presenter/lisp.md#the-load-result-line).
+
 **NEW.** Visual LISP reactors in the presenter's AutoLISP. The 46 `vlr-` functions are defined, as AutoCAD 2021 gave them
 (AutoCAD has them only after `(vl-load-com)`; here they exist from the start): the nineteen constructors
 (`vlr-command-reactor`, `vlr-lisp-reactor`, `vlr-sysvar-reactor`, `vlr-dwg-reactor`, `vlr-editor-reactor`, `vlr-object-reactor`,

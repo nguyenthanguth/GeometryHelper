@@ -211,7 +211,8 @@ the settings keep (`appLoadFolder` under `support`). Each file is loaded in the 
 | `.arx`, `.dbx`, `.dvb`, `.fas`, `.vlx` | refused with `tools.fas cannot be loaded: .arx, .dbx, .dvb, .fas and .vlx files are not supported.` |
 | any other file | refused with `readme.txt is not an AutoLISP file or a plugin.` |
 
-Every line goes to the command history, none to the window. **Reload** loads the rows chosen again: an AutoLISP file is
+Every line goes to the command history, and a load that fails is also told in the window, by the
+[load-result line](#the-load-result-line). **Reload** loads the rows chosen again: an AutoLISP file is
 loaded as Load loads it, a plugin as PLUGINRELOAD does. **Unload** unloads the rows chosen, and so does the
 Delete key: a plugin as PLUGINUNLOAD does; an AutoLISP file leaves the list and the `c:` commands it defined are removed from
 the interpreter, so that typing one is an unknown command, though a name that is also an alias, such as `AA` for AREA, goes
@@ -252,6 +253,18 @@ onto the table are loaded in the order of the drop.
 A window that shows no such dialog (`MainViewModel.ShowAppLoad` null) says `Load/Unload Applications cannot be shown here.`
 for APPLOAD. The History list, Add to History, Files of type and the Startup Suite window of earlier versions are gone, and
 the keys `appLoadHistory`, `appLoadFileType` and `appLoadAddToHistory` of a settings file are ignored when it is read.
+
+#### The load-result line
+
+Above the hint at the foot of the table sits a red line, hidden until a load fails: a dark red fill, a red border and a round
+error icon. It names the file in bold, then says `failed to load: ` and the error as the command history wrote it, so a
+`bad.lsp` that stops at `(car 5)` reads **bad.lsp** `failed to load: ; error: bad argument type: consp 5`; for an AutoLISP file
+that defined `c:` commands before the error it adds `(ERRONE was defined before the error)`, or `(AA, BB were defined before
+the error)` for two. On the right, in grey, it says `Shown until the next load`. It is shown for a .lsp or a .dll that fails
+from Load…, from a drop, from Reload or from the On box, for a file type that is refused (`old.arx cannot be loaded: ...`), and
+for Load… with no drawing open (`Open a drawing to load tools.lsp.`). Where several files fail in one Load…, it shows the last
+one with `(and 1 more)`. A load with no failure hides it; a load that succeeds shows nothing, as no success banner is drawn.
+The history keeps every line as before. In code, `AppLoadViewModel.HasLoadError`, `LoadErrorName` and `LoadErrorText` carry it.
 
 #### Dropping a file on the window
 
