@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Threading;
 using GeometryHelper.Cad.Python;
@@ -6,9 +7,49 @@ using GeometryHelper.Cad.Python;
 namespace GeometryHelper.Cad.Wpf
 {
     /// <summary>
+    /// How the window reaches the Python files loaded in the process: load one into a drawing, list those loaded and the
+    /// commands each defined, and unload one. Over <see cref="CadPythonHost"/> in the app; a test gives a fake, since the
+    /// engine starts once per process.
+    /// </summary>
+    internal interface IPythonFiles
+    {
+        /// <summary>Loads a file as <see cref="CadPythonHost.LoadFile"/> does; true when it loaded with no error.</summary>
+        bool Load(CadCommandSession session, string path);
+
+        /// <summary>Gets the files loaded and not unloaded, as full paths, in the order they first loaded.</summary>
+        IReadOnlyList<string> Loaded { get; }
+
+        /// <summary>Gets the names of the commands a loaded file defined, in its order; empty for a file not loaded.</summary>
+        IReadOnlyList<string> CommandsOf(string path);
+
+        /// <summary>Takes a loaded file's commands out of every drawing; false where it was not loaded.</summary>
+        bool Unload(string path);
+    }
+
+    /// <summary>The Python files of the process, over the host.</summary>
+    internal sealed class HostPythonFiles : IPythonFiles
+    {
+        private readonly CadPythonHost _host;
+
+        internal HostPythonFiles(CadPythonHost host)
+        {
+            _host = host;
+        }
+
+        public bool Load(CadCommandSession session, string path) => _host.LoadFile(session, path);
+
+        public IReadOnlyList<string> Loaded => _host.LoadedFiles;
+
+        public IReadOnlyList<string> CommandsOf(string path) => _host.CommandsOf(path);
+
+        public bool Unload(string path) => _host.UnloadFile(path);
+    }
+
+    /// <summary>
     /// Python in the window: one <see cref="CadPythonHost"/> for the process, made when the host of the app asks for it
     /// (<see cref="CadAppHost.EnablePython"/>), PYRUN, PYLOAD, PYTHON and PYTHONCLOSE in every drawing's commands, and the
-    /// PYTHON palette's view model, which follows the drawing shown.
+    /// PYTHON palette's view model, which follows the drawing shown. The <c>.py</c> files of the Pythons folder and of the
+    /// Python Startup Suite load once, when the first drawing opens.
     /// </summary>
     public sealed partial class MainViewModel
     {
@@ -16,10 +57,25 @@ namespace GeometryHelper.Cad.Wpf
         private const string PythonShowName = "PYTHON";
         private const string PythonHideName = "PYTHONCLOSE";
 
+        // The window's PYLOAD, which replaces the host's: the same name as CadPythonNames.Load, which the host keeps to itself.
+        private const string PythonLoadName = "PYLOAD";
+
         private CadPythonHost _pythonHost;
         private CadPythonWindowOwner _pythonOwner;
         private CadPythonConsoleHost _pythonSeam;
+        private CadPythonStartup _pythonStartup;
+        private bool _pythonStartupDone;
         private string _pythonPathUsed;
+
+        /// <summary>Gets or sets the Python files of the process, as Load/Unload Applications reaches them; set over the host by <see cref="UsePython"/>, null where the app does not use Python.</summary>
+        internal IPythonFiles PythonFiles { get; set; }
+
+        /// <summary>
+        /// Gets or sets how the window asks for the files of PYLOAD: given the filter (<see cref="AppLoadViewModel.PythonFilter"/>)
+        /// and the folder of the last load, it shows an Open dialog with several files allowed and gives the paths chosen; null
+        /// where none was. Null where no window shows one, when PYLOAD says so.
+        /// </summary>
+        public Func<string, string, IReadOnlyList<string>> AskPythonFiles { get; set; }
 
         /// <summary>Gets the view model of the PYTHON palette; null where the app does not use Python (<see cref="CadAppHost.EnablePython"/> is false).</summary>
         public PythonConsoleViewModel PythonConsole { get; private set; }
@@ -72,7 +128,70 @@ namespace GeometryHelper.Cad.Wpf
             _pythonHost?.Dispose();
             _pythonHost = host;
             _pythonSeam.Use(host);
+            _pythonStartup = new CadPythonStartup(host);
+            PythonFiles = new HostPythonFiles(host);
         }
+
+        /// <summary>
+        /// Loads the Python files of the start, once, when the first drawing opens and after its AutoLISP start: the <c>.py</c>
+        /// files directly in the Pythons folder, then the Python Startup Suite. The engine starts only where there is a file
+        /// to load; nothing happens where the app does not use Python.
+        /// </summary>
+        /// <param name="session">The session of the drawing that opened.</param>
+        private void RunPythonStartup(CadCommandSession session)
+        {
+            if (_pythonStartup == null || _pythonStartupDone)
+            {
+                return;
+            }
+
+            _pythonStartupDone = true;
+            _pythonStartup.Run(
+                session,
+                CadPythonStartup.FilesToLoad(
+                    session.Document.SupportRoots.ExistingOf(CadSupportKind.Pythons),
+                    _settings.PythonStartupSuite
+                )
+            );
+        }
+
+        /// <summary>
+        /// PYLOAD: asks for Python files with <see cref="AskPythonFiles"/> and loads them in the order chosen, as the Load…
+        /// button of Load/Unload Applications does, the folder chosen kept for the next load.
+        /// </summary>
+        private void LoadPythonByDialog()
+        {
+            if (AskPythonFiles == null)
+            {
+                Say("PYLOAD needs a file dialog, which the window cannot show here.");
+                return;
+            }
+
+            IReadOnlyList<string> paths = AskPythonFiles(AppLoadViewModel.PythonFilter, Settings.AppLoadFolder);
+
+            if (paths != null && paths.Count > 0)
+            {
+                using (var loading = new AppLoadViewModel(this))
+                {
+                    loading.Load(paths);
+                }
+            }
+        }
+
+        /// <summary>Gives a drawing's commands the window's PYLOAD, which replaces the host's: a registry holds one PYLOAD.</summary>
+        private void AddPythonLoad(CadCommandRegistry registry) =>
+            registry.Add(new CadCommand(PythonLoadName, c => RunWindow(LoadPythonByDialog)));
+
+        /// <summary>Gets the Python files loaded, as full paths in the order they loaded; empty where the app does not use Python.</summary>
+        internal IReadOnlyList<string> LoadedPythonFiles =>
+            PythonFiles?.Loaded ?? (IReadOnlyList<string>)Array.Empty<string>();
+
+        /// <summary>Gets the commands a loaded Python file defined, in the order it defined them; empty where it is not loaded.</summary>
+        internal IReadOnlyList<string> PythonCommandsOf(string path) =>
+            PythonFiles?.CommandsOf(path) ?? (IReadOnlyList<string>)Array.Empty<string>();
+
+        /// <summary>Unloads a Python file: its commands are unknown again in every drawing.</summary>
+        internal bool UnloadPythonFile(string path) => PythonFiles != null && PythonFiles.Unload(path);
 
         /// <summary>
         /// A Python set in Global settings and applied takes effect at once while the engine has not started: the host is made
@@ -91,6 +210,7 @@ namespace GeometryHelper.Cad.Wpf
             foreach (KnownFile file in _files.Values.Where(f => f.Session != null))
             {
                 _pythonHost.AddCommandsTo(file.Session.Registry);
+                AddPythonLoad(file.Session.Registry);
             }
 
             PythonConsole.Refresh();
@@ -109,6 +229,7 @@ namespace GeometryHelper.Cad.Wpf
             }
 
             _pythonHost.AddCommandsTo(registry);
+            AddPythonLoad(registry);
             registry.Add(new CadCommand(PythonShowName, c => RunWindow(() => PythonConsole.Show())));
             registry.Add(new CadCommand(PythonHideName, c => RunWindow(() => PythonConsole.IsShown = false)));
         }

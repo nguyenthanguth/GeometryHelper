@@ -913,6 +913,8 @@ namespace GeometryHelper.Cad.Wpf
                 _model.ShowAppLoad = dialog => AppLoadWindow.Show(Window.GetWindow(this), dialog);
                 _model.AskLispFiles = (filter, folder) =>
                     AppLoadWindow.PickLisp(Window.GetWindow(this), filter, folder);
+                _model.AskPythonFiles = (filter, folder) =>
+                    AppLoadWindow.PickPython(Window.GetWindow(this), filter, folder);
                 _model.ShowAlert = text =>
                     MessageBox.Show(
                         Window.GetWindow(this),

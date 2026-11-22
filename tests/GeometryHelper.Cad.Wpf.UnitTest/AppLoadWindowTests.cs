@@ -865,7 +865,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         public void TheOpenDialogOffersApplicationsFirst_ThenLispPluginsAndAllFiles()
         {
             Assert.Equal(
-                "Applications (*.lsp;*.dll)|*.lsp;*.dll|Lisp files (*.lsp)|*.lsp|Plugins (*.dll)|*.dll|All files (*.*)|*.*",
+                "Applications (*.lsp;*.py;*.dll)|*.lsp;*.py;*.dll|Lisp files (*.lsp)|*.lsp|Python files (*.py)|*.py|Plugins (*.dll)|*.dll|All files (*.*)|*.*",
                 AppLoadViewModel.OpenFilter
             );
         }
@@ -880,7 +880,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 
             dialog.Load(new[] { notes, tools });
 
-            Assert.Contains("notes.txt is not an AutoLISP file or a plugin.", model.History);
+            Assert.Contains("notes.txt is not an AutoLISP file, a Python file or a plugin.", model.History);
             Assert.Contains(
                 "tools.arx cannot be loaded: .arx, .dbx, .dvb, .fas and .vlx files are not supported.",
                 model.History
