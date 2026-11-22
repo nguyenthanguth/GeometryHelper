@@ -29,6 +29,15 @@ the class `PluginCommandButton`, and the members `PluginRibbonViewModel.Commands
 `LoadCommand`, `ReloadCommand`, `UnloadCommand` and `ManagerCommand`. `CadPluginHost.ShowsCommandButtons` stays, and changes
 nothing now.
 
+**FIXED.** The command line breaks a line a routine left open where AutoCAD 2021's console continues it. Text written with
+`princ` and no new line after it is now continued by the next thing written: the echo of a command (`(princ "A") (command
+"_.LINE" ...)` writes `A_.LINE`, not `A` over `_.LINE`), the keys a `grread` loop echoes (`Type: abc`, not `Type:` and one
+line for each key), and the prompt of a get function with its answer (`(princ "A") (getstring "q: ")` answered `x` writes
+`Aq: x`). A routine that returns while a command it started still waits, `(command "ucs" "e")` ending in `(princ)`, now
+writes the waiting prompt as a line, `Select object to align UCS:`, as AutoCAD writes it again where the routine returns; Esc
+then ends the prompt shown again, `Select object to align UCS: *Cancel*`. The history window follows a line made longer
+after it was shown.
+
 **NEW.** `3DPOLY` in the presenter, as AutoCAD 2021's console asks it: `Specify start point of polyline:`, then `Specify
 endpoint of line or [Undo]:` for the first two endpoints and `[Close/Undo]` from the third, Enter ending it. It makes one 3D
 polyline (a POLYLINE of flag 8, its vertices of flag 32); the presenter's points are those of a plane, so a Z typed is read and

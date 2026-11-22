@@ -169,6 +169,13 @@ What an evaluation writes comes first, then its value on the same line, as AutoC
 `hi"hi"`, where `(progn (princ "hi") (princ))` writes `hi` alone, the empty `(princ)` returning nothing to write. A new
 line in the text starts a new line of the command line.
 
+Text with no new line after it leaves its line open, and what comes next goes on that line, as in AutoCAD's console: the
+echo of a command the routine starts (`(princ "A") (command "_.LINE" ...)` writes `A_.LINE`), the keys a `grread` loop
+echoes with `princ` (`"\nType: "` and a key of `a`, `b`, `c` write `Type: abc`, not `Type:` over three lines), and the
+prompt of a get function with the answer typed to it (`(princ "A") (getstring "q: ")` answered `x` writes `Aq: x`). With
+CMDECHO 0 the command writes no echo, so the text before it and the text after it are one line. A new line, or any line
+the command line writes, closes it: the text a routine writes after a get function was answered is a line of its own.
+
 A `c:` command can be typed in either case and is offered by AutoComplete from its first letters. Enter repeats it, as it
 does any command. A command that changes nothing leaves no undo step. It is the evaluation of its function, not a command
 with a body of its own, so the function can run commands with [`command`](#commands-command-and-vl-cmdf) and ask the user
@@ -525,7 +532,10 @@ Invalid point.
 **A command left running.** A command still asking after the last argument stays running, and the next `command` goes on
 feeding it. When the routine ends with the command still running, it waits for the user at its prompt, and the text the
 routine writes after it comes after that prompt: `(defun c:ghk () (command "LINE" '(0 0)) (princ "left"))` typed as `GHK`
-ends at `Specify next point or [Undo]: left"left"`, and `4,4` typed then is LINE's next point. A command that would go on
+ends at `Specify next point or [Undo]: left"left"`, and `4,4` typed then is LINE's next point. A routine that writes
+nothing after the prompt, `(defun c:ee () (command "ucs" "e") (princ))`, writes the prompt as a line of its own where it
+returns, as AutoCAD does (`Select object to align UCS:`), and Esc then ends the prompt shown again:
+`Select object to align UCS: *Cancel*`. A command that would go on
 asking for more of the same, TEXT's next line or COPY's next second point, takes one go and ends, so that it does not take
 the routine's next command for an answer: `(command "TEXT" '(0 0) 2.5 0 "Hello")` ends with `Enter text: Hello` and then
 `Command: nil`.

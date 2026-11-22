@@ -933,15 +933,15 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void TheLinesOfARoutine_ComeInTheOrderTheyWereMade()
         {
-            // ours: text written before a command comes before the command's lines
+            // AutoCAD 2021 (probe m1c): text written before a command comes before the command's lines, and the echo goes on its line
             CadCommandSession session = Typed(
                 "(defun c:gho () (princ \"first\") (command \"CIRCLE\" '(0 0) 1) (princ \"last\"))",
                 "GHO"
             );
 
             string[] lines = After(session, 3);
-            Assert.Equal("first", lines[0]);
-            Assert.Equal("CIRCLE", lines[1]);
+            Assert.Equal("firstCIRCLE", lines[0]);
+            Assert.StartsWith("Specify center point for circle", lines[1]);
         }
 
         #endregion
