@@ -138,8 +138,7 @@ scripts inside the app, and a script outside that drives a running app.
       step. Done 2026-11-21: GeometryHelper.Cad.Python embeds CPython 3.11-3.15 on the window thread, Esc stops Python
       code in about 20 ms, one undo step per run, PYLOAD with `@cad_command`, a script connecting to its own app refused
 - [ ] P3 parked: the command and function names (PYTHON, PYRUN, PYLOAD, get_point...) await the maintainer's word; the
-      CLAUDE.md verify line for the Cad.Python suite; a Wpf test of CadAppRemoteHost.IsOwnerThread; the ribbon layer box
-      blank after U; EntityCount cached inside an open group and a failed ApplyEdit taking back a run's whole group
+      CLAUDE.md verify line for the Cad.Python suite; a Wpf test of CadAppRemoteHost.IsOwnerThread; EntityCount cached inside an open group and a failed ApplyEdit taking back a run's whole group
       silently (the maintainer to decide); output flushed only when the window is next idle during a long run
 - [x] P4. Driving a running app from outside: a Python client over `GeometryHelper.Cad.Remote`'s named pipe (open,
       draw, select, run commands, read the drawing). Done 2026-11-21: the .NET CadApplication through pythonnet in a
