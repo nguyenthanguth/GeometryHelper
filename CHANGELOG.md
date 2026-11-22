@@ -6,6 +6,24 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** Visual LISP reactors in the presenter's AutoLISP. The 46 `vlr-` functions are defined, as AutoCAD 2021 gave them
+(AutoCAD has them only after `(vl-load-com)`; here they exist from the start): the nineteen constructors
+(`vlr-command-reactor`, `vlr-lisp-reactor`, `vlr-sysvar-reactor`, `vlr-dwg-reactor`, `vlr-editor-reactor`, `vlr-object-reactor`,
+`vlr-acdb-reactor` and twelve more, each printing as `#<VLR-Command-Reactor>`), `vlr-add`, `vlr-remove`, `vlr-remove-all`,
+`vlr-reactors`, `vlr-types`, `vlr-reactions`, `vlr-reaction-set`, `vlr-reaction-names`, `vlr-data`, the owner and persistence
+functions, `vlr-current-reaction-name` and the rest, with `vl-load-reactors` and `vlax-queueexpr`. Events fire as AutoCAD fired
+them: `:vlr-commandWillStart` before a command's first prompt, `:vlr-commandEnded` and `:vlr-commandCancelled`,
+`:vlr-unknownCommand` before the message, `:vlr-lispWillStart` and `:vlr-lispEnded` for each form typed or loaded,
+`:vlr-sysVarWillChange` and `:vlr-sysVarChanged` for `setvar` and the SETVAR command, `:vlr-beginSave`, `:vlr-saveComplete` and
+`:vlr-beginClose`, and for the entities of the drawing `:vlr-modified`, `:vlr-erased` and `:vlr-unerased` of an owner and
+`:vlr-objectAppended`, `-Modified`, `-Erased` and `-UnErased` of every entity, an undo included. A callback of an event typed at
+the Command prompt runs at once with no echo, so one for `:vlr-commandWillStart` that sets `CLAYER` puts the text TEXT is about to
+make on that layer; one for an event raised inside a routine runs before the routine's next form, and a callback that raises its
+own event again is stopped after 1 000 callbacks with `; error: reactor cascade stopped`. An error in a callback is written (or
+handed to `*error*`) and the command goes on; `command` in a callback is `; error: AutoCAD command rejected: "_.POINT"`. A
+reactor made persistent with `vlr-pers` is marked for the session only; the other reaction names are accepted and never fire.
+See [Reactors](src/GeometryHelper/docs/presenter/lisp.md#reactors).
+
 **FIXED.** Load/Unload Applications, after a real mouse, the Delete key and an Open dialog were driven against it. The table
 was rebuilt on every click, so a double click on the On box of the second of three files unticked it and then unloaded the
 third (the second click landed on the neighbour that had moved up); an unticked AutoLISP file now stays in the table, off,

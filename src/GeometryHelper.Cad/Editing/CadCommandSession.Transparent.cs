@@ -129,6 +129,7 @@ namespace GeometryHelper.Cad
             Clear();
             Current = command;
             _context = new CadCommandContext(this, command, Array.Empty<string>());
+            RaiseCommandStarts(command);
 
             try
             {
@@ -171,6 +172,7 @@ namespace GeometryHelper.Cad
         private void EndTransparent(CadCommandOutcome outcome)
         {
             Suspended outer = _suspended.Pop();
+            CadCommand ended = Current;
 
             // A form of AutoLISP typed at a prompt that waited for the user ends by answering the prompt with its value, as
             // L1's decision 9 says; the command it interrupted does not end with it, nor does it say it is resuming.
@@ -195,6 +197,7 @@ namespace GeometryHelper.Cad
             }
 
             outer.Restore(this);
+            RaiseCommandEnds(ended, outcome);
 
             if (outcome == CadCommandOutcome.Cancelled && !outer.ForLisp)
             {

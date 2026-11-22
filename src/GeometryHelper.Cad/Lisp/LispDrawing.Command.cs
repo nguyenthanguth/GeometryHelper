@@ -34,6 +34,14 @@ namespace GeometryHelper.Cad.Lisp
                 throw lisp.EndEvaluation("AutoCAD rejected function");
             }
 
+            // A reaction answers an event with what it computes: it starts no command (D1463).
+            if (lisp.IsReacting)
+            {
+                throw new LispException(
+                    "AutoCAD command rejected: " + LispInterpreter.Print(a.Length > 0 ? a[0] : null, true)
+                );
+            }
+
             // *error* may call command only where the routine said so before the error came.
             lisp.CheckCommandAllowed();
 
@@ -111,6 +119,12 @@ namespace GeometryHelper.Cad.Lisp
             if (lisp.RunningDialogs > 0)
             {
                 throw lisp.EndEvaluation("AutoCAD rejected function");
+            }
+
+            // A reaction answers an event with what it computes: it starts no command (D1463).
+            if (lisp.IsReacting)
+            {
+                throw new LispException("Unknown (command-s) failure.");
             }
 
             if (a.Length == 0)

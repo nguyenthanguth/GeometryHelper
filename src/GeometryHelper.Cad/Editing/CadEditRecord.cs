@@ -253,7 +253,8 @@ namespace GeometryHelper.Cad
             string stepName,
             IReadOnlyList<string> handles,
             IReadOnlyList<CadSpace> spaces,
-            bool tablesChanged
+            bool tablesChanged,
+            IReadOnlyList<CadEditRecord> records = null
         )
         {
             Kind = kind;
@@ -261,7 +262,11 @@ namespace GeometryHelper.Cad
             Handles = handles;
             Spaces = spaces;
             TablesChanged = tablesChanged;
+            Records = records;
         }
+
+        /// <summary>Gets what the edits, or the steps undone or redone, did to each entity, in the order they were made; null for a change that has no record (a regen, a save, a rollback). The reactors of AutoLISP tell appended, modified and erased by them.</summary>
+        internal IReadOnlyList<CadEditRecord> Records { get; }
 
         /// <summary>Gets what made the change.</summary>
         public CadChangeKind Kind { get; }

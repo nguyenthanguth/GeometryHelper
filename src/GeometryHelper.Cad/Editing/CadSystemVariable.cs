@@ -509,7 +509,10 @@ namespace GeometryHelper.Cad
                 return false;
             }
 
-            return _setFromLisp(new CadCommandContext(session, setvar, Array.Empty<string>()), value);
+            session.RaiseSysVarWillChange(Name);
+            bool taken = _setFromLisp(new CadCommandContext(session, setvar, Array.Empty<string>()), value);
+            session.RaiseSysVarChanged(Name, taken);
+            return taken;
         }
 
         private static string Unquoted(string shown) =>
@@ -719,7 +722,36 @@ namespace GeometryHelper.Cad
                 return Array.Empty<CadPrompt>();
             }
 
-            return _ask(c);
+            return c.Session.AddedReactors.Count == 0 ? _ask(c) : Observed(c, _ask(c));
+        }
+
+        /// <summary>
+        /// The prompts of the variable, with the sysVarWillChange and sysVarChanged of the reactors raised once the value an answer
+        /// gave is set: told by the value read before and after the answer is taken, so the two come one after the other.
+        /// </summary>
+        private IEnumerable<CadPrompt> Observed(CadCommandContext c, IEnumerable<CadPrompt> prompts)
+        {
+            using (IEnumerator<CadPrompt> asking = prompts.GetEnumerator())
+            {
+                while (true)
+                {
+                    string was = GetValue(c.Session);
+                    bool more = asking.MoveNext();
+
+                    if (!string.Equals(GetValue(c.Session), was, StringComparison.Ordinal))
+                    {
+                        c.Session.RaiseSysVarWillChange(Name);
+                        c.Session.RaiseSysVarChanged(Name, true);
+                    }
+
+                    if (!more)
+                    {
+                        yield break;
+                    }
+
+                    yield return asking.Current;
+                }
+            }
         }
 
         internal static string Show(double value, bool plain) =>

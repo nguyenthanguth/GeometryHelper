@@ -80,6 +80,9 @@ namespace GeometryHelper.Cad
         /// <summary>Raised after the drawing changed: an edit applied, a step undone or redone, a regen, a save.</summary>
         public event EventHandler<CadDocumentChangedEventArgs> Changed;
 
+        /// <summary>Raised just before the drawing is written to a file, with the file's full path: the session tells the <c>vlr-beginSave</c> reactors.</summary>
+        internal event EventHandler<string> Saving;
+
         /// <summary>
         /// Gets or sets the gate every planned change of an existing entity is asked through before it is written (see
         /// <see cref="ICadEditGate"/>); the gate of the document's <see cref="Owners"/> (<see cref="CadOwnerEditGate"/>) until another
@@ -1024,6 +1027,7 @@ namespace GeometryHelper.Cad
             }
 
             string full = Path.GetFullPath(path);
+            Saving?.Invoke(this, full);
             _shownState = null;
             _ucs?.WriteTo(Database);
             _tiles?.WriteTo(Database);
@@ -2114,7 +2118,7 @@ namespace GeometryHelper.Cad
             var spaces = AllSpaces.FindAll(touched.Contains);
             Changed?.Invoke(
                 this,
-                new CadDocumentChangedEventArgs(kind, name, new List<string>(handles), spaces, tables)
+                new CadDocumentChangedEventArgs(kind, name, new List<string>(handles), spaces, tables, records)
             );
         }
     }
