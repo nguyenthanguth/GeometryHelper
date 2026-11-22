@@ -274,7 +274,7 @@ namespace GeometryHelper.Cad.UnitTest
             Assert.Equal("Do you want island detection? [Yes/No] <Y>:", session.PromptText);
             Run(session, "N");
             Run(session, "S");
-            Assert.Equal("Enter hatching style [Ignore/Outer/Normal] <Normal>:", session.PromptText);
+            Assert.Equal("Enter hatching style [Ignore/Outer/Normal] <Outer>:", session.PromptText);
             Run(session, Enter, "A");
             Assert.Equal("Do you want associativity? [Yes/No] <Y>:", session.PromptText);
             Run(session, "N", Enter, P(10, 10), Enter);

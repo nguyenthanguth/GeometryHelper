@@ -11,7 +11,7 @@ namespace GeometryHelper.Cad
     /// AutoCAD 2021 gives it (checked in its console). The units of the drawing, LUNITS, LUPREC, AUNITS, AUPREC, ANGBASE,
     /// ANGDIR and INSUNITS, are the header's own and what UNITS sets; PLINEWID is the width PLINE starts at and PLINEGEN is
     /// given to the polylines PLINE, RECTANG and POLYGON make; FILLMODE 0 draws solids, wide polylines and solid or gradient
-    /// hatches by their outlines; HPNAME, HPSCALE, HPANG, HPLAYER, HPASSOC, HPDOUBLE, HPGAPTOL and HPORIGINMODE are the
+    /// hatches by their outlines; HPNAME, HPSCALE, HPANG, HPLAYER, HPASSOC, HPDOUBLE, HPGAPTOL, HPISLANDDETECTION and HPORIGINMODE are the
     /// settings of the next hatch (<see cref="CadDocument.HatchSettings"/>); DIMLAYER is the layer new dimensions go on;
     /// CIRCLERAD, POLYSIDES and TRIMEXTENDMODE are what CIRCLE, POLYGON, TRIM and EXTEND start with. Those the presenter has no
     /// behaviour for, CMDECHO, EXPERT, HIGHLIGHT, PICKAUTO, PICKDRAG, OSNAPZ, ARRAYASSOCIATIVITY, ELEVATION, THICKNESS, MEASUREMENT,
@@ -255,6 +255,16 @@ namespace GeometryHelper.Cad
                     s => s.Document.HatchSettings.GapTolerance,
                     (c, v) => c.Document.HatchSettings.GapTolerance = v,
                     check: v => v < 0.0 || v > 5000.0 ? "Cannot set HPGAPTOL to that value." : null
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "HPISLANDDETECTION",
+                    false,
+                    0,
+                    2,
+                    s => (int)s.Document.HatchSettings.IslandStyle,
+                    (c, v) => c.Document.HatchSettings.IslandStyle = (DxfHatchStyle)v
                 )
             );
             registry.AddVariable(

@@ -372,9 +372,9 @@ namespace GeometryHelper.Cad.UnitTest
             CadCommandSession session = Start(document, "ELLIPSE", "A");
             Assert.Equal("Specify axis endpoint of elliptical arc or [Center]:", session.PromptText);
             Run(session, P(0, 0), P(100, 0), "25");
-            Assert.Equal("Specify start angle:", session.PromptText);
+            Assert.Equal("Specify start angle or [Parameter]:", session.PromptText);
             Run(session, "0");
-            Assert.Equal("Specify end angle or [Included angle]:", session.PromptText);
+            Assert.Equal("Specify end angle or [Parameter/Included angle]:", session.PromptText);
             Run(session, "90");
 
             DxfEllipse arc = Assert.Single(All<DxfEllipse>(document.ModelSpace));

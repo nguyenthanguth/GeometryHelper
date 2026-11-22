@@ -76,7 +76,7 @@ namespace GeometryHelper.Cad
                     }
                 }
 
-                AppendLoops(hatch, KeptLoops(new List<IReadOnlyList<CadBoundaryLoop>>(picks) { region }, settings));
+                AppendLoops(hatch, KeptLoops(new List<IReadOnlyList<CadBoundaryLoop>>(picks) { region }));
                 return new[] { hatch };
             }
 
@@ -248,7 +248,7 @@ namespace GeometryHelper.Cad
         private static IEnumerable<CadPrompt> HatchPropertiesTyped(CadCommandContext c, CadHatchSettings settings)
         {
             string offered =
-                settings.Type == CadHatchType.Solid ? "SOLID"
+                settings.Type == CadHatchType.Solid ? "Solid"
                 : settings.Type == CadHatchType.UserDefined ? "_USER"
                 : settings.Type == CadHatchType.Gradient ? settings.GradientName
                 : settings.PatternName;
@@ -440,6 +440,7 @@ namespace GeometryHelper.Cad
             DxfHatch hatch = s.Append(c.Space, Current(c, new DxfHatch()));
             fault = WithOrigin(settings, loops, onceOrigin).ApplyTo(hatch, s.Database, s.Document);
             AppendLoops(hatch, loops, run);
+            AppendSeeds(hatch, loops);
 
             if (settings.Associative)
             {
@@ -489,42 +490,43 @@ namespace GeometryHelper.Cad
             return polyline;
         }
 
-        /// <summary>The loops of the picks a hatch is made of, each pick's as its island style keeps them.</summary>
-        private static List<CadBoundaryLoop> KeptLoops(
-            List<IReadOnlyList<CadBoundaryLoop>> picks,
-            CadHatchSettings settings
-        )
+        /// <summary>
+        /// The loops of the picks a hatch is made of, all of each pick's: AutoCAD 2021 stores every loop whatever the island style
+        /// is (three squares one in another, 91 3 at HPISLANDDETECTION 0, 1 and 2) and the style in group 75 decides which areas
+        /// are filled.
+        /// </summary>
+        private static List<CadBoundaryLoop> KeptLoops(List<IReadOnlyList<CadBoundaryLoop>> picks)
         {
             var loops = new List<CadBoundaryLoop>();
 
             foreach (IReadOnlyList<CadBoundaryLoop> pick in picks)
             {
-                loops.AddRange(CadBoundaryFinder.Kept(pick, settings.IslandStyle));
+                loops.AddRange(pick);
             }
 
             return loops;
         }
 
         /// <summary>
-        /// Adds the loops to a hatch: the outer loop of each pick flagged External, the islands with none (a loop flagged Derived,
-        /// as a loop picked is, makes AutoCAD 2021 expect the pixel size, group 47, which the library does not write, and refuse
-        /// the file: "expected group code 47"). The loops draW boundary
-        /// drew (those of <paramref name="run"/>) are flagged as AutoCAD 2021 flags them: External for none round them, Outermost
-        /// for one, none for more; a loop left open is a loop of edges flagged NotClosed, not closed across.
+        /// Adds the loops to a hatch, flagged as AutoCAD 2021 flags them: External for the outer loop of each pick, Outermost for
+        /// one inside it, none for one inside that (a loop flagged Derived, as a loop picked is in AutoCAD, makes it expect the
+        /// pixel size, group 47, which the library does not write, and refuse the file: "expected group code 47"). A closed
+        /// object selected is stored as its edges, as AutoCAD stores it: lines for the straight sides, arcs for the bulged ones,
+        /// from the first vertex and the way the polyline runs, a circle as one arc round; a loop found round a point keeps its
+        /// polyline. A loop left open by draW boundary (those of <paramref name="run"/>) is a loop of edges flagged NotClosed, not
+        /// closed across.
         /// </summary>
         private static void AppendLoops(DxfHatch hatch, List<CadBoundaryLoop> loops, HatchRun run = null)
         {
             foreach (CadBoundaryLoop loop in loops)
             {
-                DxfHatchLoopTypes type = loop.Depth == 0 ? DxfHatchLoopTypes.External : DxfHatchLoopTypes.Default;
+                DxfHatchLoopTypes type =
+                    loop.Depth == 0 ? DxfHatchLoopTypes.External
+                    : loop.Depth == 1 ? DxfHatchLoopTypes.Outermost
+                    : DxfHatchLoopTypes.Default;
 
                 if (run != null && run.Drawn.Contains(loop))
                 {
-                    type =
-                        loop.Depth == 0 ? DxfHatchLoopTypes.External
-                        : loop.Depth == 1 ? DxfHatchLoopTypes.Outermost
-                        : DxfHatchLoopTypes.Default;
-
                     if (run.Open.Contains(loop))
                     {
                         var corners = loop.Vertices.Select(v => new GeoPoint3(v.X, v.Y, 0.0)).ToList();
@@ -539,10 +541,63 @@ namespace GeometryHelper.Cad
                 {
                     hatch.AppendLoop(new DxfHatchLoop(type, new[] { loop.Curve }));
                 }
-                else
+                else if (!loop.Selected || !AppendEdges(hatch, type, loop))
                 {
                     hatch.AppendLoop(type, loop.Vertices, loop.Bulges);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Adds a loop of corners and bulges as its edges, in the world on the floor: one circle for the two half circles a circle
+        /// selected is, else the loop's own sides in its order. False, and nothing added, where the corners make no sides a hatch
+        /// takes (the loop is then kept as a polyline).
+        /// </summary>
+        private static bool AppendEdges(DxfHatch hatch, DxfHatchLoopTypes type, CadBoundaryLoop loop)
+        {
+            var up = new GeoVector3(0.0, 0.0, 1.0);
+            var corners = loop.Vertices.Select(v => new GeoPoint3(v.X, v.Y, 0.0)).ToList();
+
+            try
+            {
+                object edge =
+                    corners.Count == 2 && Math.Abs(loop.Bulges[0] - 1.0) < 1E-9 && Math.Abs(loop.Bulges[1] - 1.0) < 1E-9
+                        ? new GeoCircle3(
+                            new GeoPoint3(
+                                (corners[0].X + corners[1].X) / 2.0,
+                                (corners[0].Y + corners[1].Y) / 2.0,
+                                0.0
+                            ),
+                            up,
+                            corners[0].DistanceTo(corners[1]) / 2.0
+                        )
+                        : (object)new GeoPolygonArc3(corners, loop.Bulges, loop.Bulges.Select(b => up));
+                hatch.AppendLoop(new DxfHatchLoop(type, new[] { edge }));
+                return true;
+            }
+            catch (ArgumentException)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Gives a hatch its seed points as AutoCAD 2021 does: the point picked once for each loop it found, and for objects
+        /// selected one point at the origin; none for the loops draW boundary drew.
+        /// </summary>
+        private static void AppendSeeds(DxfHatch hatch, List<CadBoundaryLoop> loops)
+        {
+            foreach (CadBoundaryLoop loop in loops)
+            {
+                if (loop.Seed is GeoPoint2 seed)
+                {
+                    hatch.AppendSeedPoint(seed);
+                }
+            }
+
+            if (hatch.NumSeedPoints == 0 && loops.Exists(l => l.Selected))
+            {
+                hatch.AppendSeedPoint(new GeoPoint2(0.0, 0.0));
             }
         }
 

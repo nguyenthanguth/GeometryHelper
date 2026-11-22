@@ -288,7 +288,7 @@ command is typed; the console does not clear it between lines as long as the lin
 |---|---|
 | view | ZOOM ([All/Center/Dynamic/Extents/Previous/Scale/Window/Object]: Center asks the centre and a height or an `nX`, Scale a factor, Object the objects whose box is shown, and a factor typed as `2` or `0.5x`; `nXP` through a viewport; Dynamic says it is the window's), PAN, -PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, VPCLIP (Polygonal, Delete), VPMAX, VPMIN, SCALELISTEDIT, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window), REDRAW, REDRAWALL, REGENALL, ISOLATEOBJECTS, HIDEOBJECTS, UNISOLATEOBJECTS, VPORTS, -VPORTS (Save, Restore, Delete, Join, SIngle, ?, 2, 3, 4, Toggle) |
 | edit | MOVE, COPY (Array, Fit, mOde Single and Multiple; COPYMODE), ERASE, OOPS, ROTATE, SCALE, MIRROR, MIRROR3D (Object, Last, Zaxis, View, XY, YZ, ZX, 3points), EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
-| draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG (Chamfer, Elevation, Fillet, Thickness, Width; Area, Dimensions, Rotation), WIPEOUT (points, Polyline, Frames), SPLINE (Method: Fit, CV; Knots, Degree, Object; start and end Tangency, toLerance, Undo, Close), BLEND (CONtinuity: Tangent, Smooth), ELLIPSE (Arc; the major axis runs from the centre to the first end of an axis given, or a quarter turn from there where the other axis is the longer, and an arc's angles count from it), POINT, XLINE (Hor, Ver, Ang with Reference, Bisect, Offset with Through), RAY, POLYGON, DONUT, TRACE, SKETCH (Type, Increment, toLerance), TEXT (Justify, Style; Enter goes on below the last text), MTEXT and -MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT and -LAYOUT (Copy, Delete, New, Template, Rename, SAveas, Set, ?), DIVIDE (Block), MEASURE (Block) |
+| draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG (Chamfer, Elevation, Fillet, Thickness, Width; Area, Dimensions, Rotation), WIPEOUT (points, Polyline, Frames), SPLINE (Method: Fit, CV; Knots, Degree, Object; start and end Tangency, toLerance, Undo, Close), BLEND (CONtinuity: Tangent, Smooth), ELLIPSE (Arc; the major axis runs from the centre to the first end of an axis given, or a quarter turn from there where the other axis is the longer, and an arc's angles count from it; its start and end are asked as angles or, with Parameter, as parameters, and the end is kept past the start, even past 2 pi), POINT, XLINE (Hor, Ver, Ang with Reference, Bisect, Offset with Through), RAY, POLYGON, DONUT, TRACE, SKETCH (Type, Increment, toLerance), TEXT (Justify, Style; Enter goes on below the last text), MTEXT and -MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT and -LAYOUT (Copy, Delete, New, Template, Rename, SAveas, Set, ?), DIVIDE (Block), MEASURE (Block) |
 | shapes and hatching | SOLID, REGION, HATCH, HATCHSETORIGIN, -HATCH (Properties, Select objects, draW boundary, remove Boundaries, Advanced: Boundary set, Retain boundary, Island detection, Style, Associativity, Gap tolerance, separate Hatches; DRaw order, Origin, ANnotative, hatch COlor, LAyer, Transparency, Undo), GRADIENT, HATCHEDIT, -HATCHEDIT (DIsassociate, Style, Properties, DRaw order, ADd boundaries, Remove boundaries, recreate Boundary, ASsociate, separate Hatches, Origin, ANnotative, hatch COlor, LAyer, Transparency), HATCHGENERATEBOUNDARY, HATCHSETBOUNDARY, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Fit data: Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance; Close, Open, Join, Move vertex, Refine: Add, Delete, Elevate order, Move, Weight; rEverse, convert to Polyline, Undo), CLASSICINSERT |
 | multilines | MLINE (Justification, Scale, STyle; Close, Undo), MLEDIT (CC, OC, MC, CT, OT, MT, CJ, AV, DV, CS, CA, WA; Undo), MLSTYLE (?, Current, New, Modify, Rename, Delete, Load, Save), and the variables CMLJUST, CMLSCALE and CMLSTYLE (see [Multilines](#multilines)) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea, Quick, Mode), MASSPROP (regions), STATUS, TIME (Display, ON, OFF, Reset), LIMITS (ON, OFF) |, Mode) |
@@ -680,6 +680,19 @@ written as AutoCAD writes one of one colour: the colour at 0, its shade or tint 
 462. The end is the colour's hue and saturation at the lightness the value says (red at 0.25 ends in 128, 0, 0; at 1 in white;
 (255, 200, 200) at 0.5 in a full red), the way AutoCAD 2021 worked out the ends of 45 pairs of colour and tint it was probed
 with; a value outside 0 to 1 is the nearer end.
+
+-HATCH stores what it is given as AutoCAD 2021 does. A closed object selected is a loop of edges: a rectangle `0,0 10,10` is
+four line edges, (0 0)-(10 0), (10 0)-(10 10), (10 10)-(0 10), (0 10)-(0 0), in the polyline's own order from its first
+vertex and the way it runs, a bulged side an arc edge (`72 2`, with its centre, radius and start and end angles, `73` 0 for
+one that runs clockwise), a circle one arc edge from 0 round; a loop found round a point keeps its polyline. The outer loop
+of each area is flagged 1, a loop inside it 16 and one inside that 0, so three squares 30, 20 and 10 wide one in another
+are 92 1, 16 and 0 (a loop made round a point is flagged as a polyline too, 3, 18 and 2, without the derived bit that
+would make AutoCAD 2021 want the pixel size of group 47). Every loop is stored whatever the island style is; the style,
+group 75, says which areas are filled, and is the value of HPISLANDDETECTION (0 Normal, 1 Outer, 2 Ignore; 1 at the start,
+as AutoCAD's, so `Enter hatching style [Ignore/Outer/Normal] <Outer>:`). The seed points, `98`, are the point picked once
+for each loop found round it, and one point at the origin for objects selected. For AutoLISP the points of a hatch's
+edges and seeds are three-dimensional, `(72 . 1) (10 0.0 0.0 0.0) (11 10.0 0.0 0.0)`, as AutoCAD gives them. After SOLID
+the pattern prompt offers `<Solid>`.
 
 The Hatch dialog of HATCH's seTtings and of HATCHEDIT has the same settings in a third column: Gradient colours (One color
 with a Shade to Tint slider, the second swatch hidden, or Two color), Hatch color, Background, Layer and Transparency (Use
@@ -3717,6 +3730,17 @@ MTEXT drawn in an annotative text style are annotative: the height asked is the 
 annotation scale high (2.5 at 1:50 is 125). The Annotative box of the Text Style dialog (`CadTextStyleSettings.Annotative`, the style's extended data AcadAnnotative, live in a drawing of AutoCAD 2007 or later) makes the style so, and the Annotative button of the Style panel of the MTEXT editor makes an MTEXT being made annotative or not, over what its style says, ticked at first for an annotative style; an MTEXT already made keeps its state, its button grey saying that Properties, AIOBJECTSCALEADD and OBJECTSCALE change it. The Edit Drawing Scales list is given the scale an object is first made
 annotative at where it has none.
 
+-STYLE asks `Enter name of text style or [?] <Standard>:`, `Specify font name or font filename (for SHX) <txt>:`, then
+`Specify height of text or [Annotative] <0.0000>:`, the width factor, the obliquing angle, backwards, upside-down and, for an
+SHX font, `Vertical? [Yes/No] <No>:`. A new style starts from the defaults, txt with a height of 0 and a width of 1, whatever
+the current style is; an existing one offers its own font file, `<txt.shx>`, and says `Existing style.` (and `Full font name
+= Arial` for a TrueType font). A font typed with no extension is the SHX file of AutoCAD's own names (`romans` is
+`romans.shx`, `txt` is `txt.shx`; the TrueType files of the same names that Windows may hold are not taken), else a TrueType
+family of that exact name (`Arial`), else an SHX file of the name typed (`nosuch` is `nosuch.shx`, drawn in the presenter's
+own font where the drawing's font folders hold none). Annotative at the height asks `Create annotative text style [Yes/No]
+<Yes>:`, for Yes `Match text orientation to layout? [Yes/No] <No>:` (asked, not kept), and then the height again; the style
+has the extended data AcadAnnotative, and No adds nothing.
+
 A dimension drawn by an annotative dimension style (the Annotative box of the Fit tab in the Dimension Style Manager, which is the
 style's extended data AcadAnnotative, written by Modify and New and copied by Start With) is annotative at the annotation scale of
 its space, as AutoCAD 2021 draws it: its DIMSCALE is that of the scale (50 at 1:50, 1 in a layout), whatever the header says, written
@@ -3789,7 +3813,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 | the window's lineweight toggle | LWDISPLAY | at once, no undo step; written into the drawing |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE, TDCREATE, TDUCREATE, TDUPDATE, TDUUPDATE, TDINDWG, TDUSRTIMER | |
 | the header of the drawing, too | LUNITS, LUPREC, AUNITS, AUPREC, ANGBASE, ANGDIR, INSUNITS, MEASUREMENT, UNITMODE, PLINEWID, PLINEGEN, FILLMODE, ELEVATION, THICKNESS, LIMCHECK, SPLFRAME, QTEXTMODE, ATTMODE, SPLINETYPE, SPLINESEGS, USERI1 to USERI5, USERR1 to USERR5, SKETCHINC | one undo step |
-| the document or the session, too | HPNAME, HPSCALE, HPANG, HPLAYER, HPASSOC, HPDOUBLE, HPGAPTOL, HPORIGINMODE, HPDLGMODE, HPBOUNDRETAIN (the hatch settings), DIMLAYER, CIRCLERAD, POLYSIDES, TRIMEXTENDMODE, CMDECHO, EXPERT, HIGHLIGHT, PICKAUTO, PICKDRAG, OSNAPZ, ARRAYASSOCIATIVITY, LASTPOINT, SKPOLY, SKTOLERANCE, USRTIMER | at once, no undo step |
+| the document or the session, too | HPNAME, HPSCALE, HPANG, HPLAYER, HPASSOC, HPDOUBLE, HPGAPTOL, HPISLANDDETECTION, HPORIGINMODE, HPDLGMODE, HPBOUNDRETAIN (the hatch settings), DIMLAYER, CIRCLERAD, POLYSIDES, TRIMEXTENDMODE, CMDECHO, EXPERT, HIGHLIGHT, PICKAUTO, PICKDRAG, OSNAPZ, ARRAYASSOCIATIVITY, LASTPOINT, SKPOLY, SKTOLERANCE, USRTIMER | at once, no undo step |
 | the window's Global settings, too | SAVETIME, ZOOMFACTOR | at once, no undo step; kept in the settings file |
 | read only, too | DISTANCE, AREA, PERIMETER | |
 
@@ -3802,7 +3826,7 @@ linetype generation of the whole polyline. FILLMODE 0 draws a SOLID, a wide poly
 outline, every space drawn again; 1 fills them. HPNAME takes SOLID, a gradient (GR_LINEAR), `_USER` or `U` and any pattern
 of the presenter's set, `xyz` being `Cannot set HPNAME to that value.`; HPSCALE above nought, HPANG, HPLAYER (`.` for the
 current layer, any name taken, and a layer the drawing has not leaves the hatch on the current one), HPASSOC, HPDOUBLE,
-HPGAPTOL 0 to 5000 and HPORIGINMODE 0 to 5 are the settings the next HATCH makes its hatch with, which the hatch dialog and
+HPGAPTOL 0 to 5000, HPISLANDDETECTION 0 to 2 (the island style, 1 Outer at the start) and HPORIGINMODE 0 to 5 are the settings the next HATCH makes its hatch with, which the hatch dialog and
 -HATCH hold too. DIMLAYER is the layer new dimensions go on (`.` for the current layer), the same DIM's LAyer sets.
 CIRCLERAD is the radius CIRCLE offers (`Specify radius of circle or [Diameter] <12.5000>:`), POLYSIDES the number of sides
 POLYGON offers, 3 to 1024, and TRIMEXTENDMODE 1 Quick or 0 Standard the mode TRIM and EXTEND start in. SAVETIME is the

@@ -478,6 +478,7 @@ namespace GeometryHelper.Cad.UnitTest
                     "HPDLGMODE",
                     "HPDOUBLE",
                     "HPGAPTOL",
+                    "HPISLANDDETECTION",
                     "HPLAYER",
                     "HPNAME",
                     "HPORIGINMODE",

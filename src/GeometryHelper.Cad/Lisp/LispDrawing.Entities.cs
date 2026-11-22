@@ -929,6 +929,29 @@ namespace GeometryHelper.Cad.Lisp
             "INSERT",
         };
 
+        /// <summary>
+        /// Whether the start and end parameters an ellipse is given (groups 41 and 42) are both from nought up to 2 pi, as AutoCAD 2021's
+        /// <c>entmake</c> takes them: 5.0 and 8.0, 1.0 and 20.0, and -1.0 and 1.0 are all refused. The ends of the range are not measured.
+        /// </summary>
+        private static bool WithinATurn(List<KeyValuePair<int, object>> groups)
+        {
+            foreach (KeyValuePair<int, object> pair in groups)
+            {
+                double? value = pair.Value as double? ?? (pair.Value as int?);
+
+                if (
+                    (pair.Key == 41 || pair.Key == 42)
+                    && value.HasValue
+                    && (value < 0.0 || value > 2.0 * Math.PI + 1E-9)
+                )
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         /// <summary>The groups an entity cannot be made without.</summary>
         private static int[] RequiredOf(string type)
         {
@@ -1012,6 +1035,11 @@ namespace GeometryHelper.Cad.Lisp
                 {
                     return null;
                 }
+            }
+
+            if (type == "ELLIPSE" && !WithinATurn(groups))
+            {
+                return null;
             }
 
             CadDocument document = session.Document;

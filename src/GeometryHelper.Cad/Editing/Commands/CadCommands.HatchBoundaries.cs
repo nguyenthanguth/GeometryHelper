@@ -484,7 +484,7 @@ namespace GeometryHelper.Cad
                     objects.Add(h.GetAssociatedObjectsAt(i));
                 }
 
-                List<CadBoundaryLoop> added = KeptLoops(picks, new CadHatchSettings { IslandStyle = h.HatchStyle });
+                List<CadBoundaryLoop> added = KeptLoops(picks);
                 AppendLoops(h, added);
 
                 if (follow)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Cad
@@ -43,7 +44,9 @@ namespace GeometryHelper.Cad
         /// -STYLE: "Enter name of text style or [?]", then the font ("Specify font name or font filename (for SHX)", as AutoCAD 2021's
         /// console words it for TrueType fonts too), height, width factor (shown as 1.0000), obliquing angle, backwards, upside down
         /// and, for an SHX font, "Vertical?"; an existing style with a TrueType font is said so, "Existing style. Full font name =
-        /// Arial". The style made or changed is current. The whole run is one undo step.
+        /// Arial". The style made or changed is current. The whole run is one undo step. A new style starts from the defaults (txt, 0
+        /// high, 1 wide), not from the current style; the height prompt offers Annotative, which asks "Create annotative text style" and
+        /// for Yes "Match text orientation to layout?" and then the height again.
         /// </summary>
         private static IEnumerable<CadPrompt> StyleTyped(CadCommandContext c)
         {
@@ -66,9 +69,11 @@ namespace GeometryHelper.Cad
                     ? (typeface.Length > 0 ? "Existing style. Full font name = " + typeface : "Existing style.")
                     : "New style."
             );
+            // A new style starts from the defaults, txt 0 high and 1 wide, and not from the current style, as AutoCAD's does.
             CadTextStyleSettings settings = exists
                 ? CadTextStyleSettings.Of(c.Database.TextStyleTable[name])
-                : CadTextStyleSettings.Of(c.Database.TextStyleTable[current]);
+                : new CadTextStyleSettings();
+            string[] yesNo = { "Yes", "No" };
             string font = settings.Font.TypeFace.Length > 0 ? settings.Font.TypeFace : settings.FileName;
             yield return CadPrompt.ForString("Specify font name or font filename (for SHX)", font);
 
@@ -77,7 +82,30 @@ namespace GeometryHelper.Cad
                 Font(c, settings, c.Input.Text.Trim());
             }
 
-            yield return CadPrompt.ForDistance("Specify height of text", null, null, Length(settings.Height));
+            // Annotative asks whether the style is, and whether its text matches the orientation of the layout (not kept: the library
+            // holds no such flag), and the height is asked again.
+            while (true)
+            {
+                yield return CadPrompt.ForDistance(
+                    "Specify height of text",
+                    null,
+                    new[] { "Annotative" },
+                    Length(settings.Height)
+                );
+
+                if (!c.Input.Is("Annotative"))
+                {
+                    break;
+                }
+
+                yield return CadPrompt.ForKeyword("Create annotative text style", yesNo, "Yes");
+                settings.Annotative = !c.Input.Is("No");
+
+                if (settings.Annotative)
+                {
+                    yield return CadPrompt.ForKeyword("Match text orientation to layout?", yesNo, "No");
+                }
+            }
 
             if (c.Input.Kind == CadInputKind.Number)
             {
@@ -111,7 +139,6 @@ namespace GeometryHelper.Cad
                 settings.ObliqueAngle = c.Input.Number;
             }
 
-            string[] yesNo = { "Yes", "No" };
             yield return CadPrompt.ForKeyword("Display text backwards?", yesNo, settings.Backwards ? "Yes" : "No");
             settings.Backwards = c.Input.Is("Yes") || (settings.Backwards && !c.Input.Is("No"));
             yield return CadPrompt.ForKeyword("Display text upside-down?", yesNo, settings.UpsideDown ? "Yes" : "No");
@@ -136,9 +163,56 @@ namespace GeometryHelper.Cad
             );
         }
 
+        // The SHX files AutoCAD 2021 installs, which a font typed with no extension names before any TrueType family does (the
+        // TrueType files of the same names, romans__.ttf and txt____.ttf, are another thing): named here, no file of them is read.
+        private static readonly string[] AutoCadShxFonts =
+        {
+            "txt",
+            "monotxt",
+            "simplex",
+            "complex",
+            "italic",
+            "italicc",
+            "italict",
+            "romans",
+            "romanc",
+            "romand",
+            "romant",
+            "scripts",
+            "scriptc",
+            "greeks",
+            "greekc",
+            "gothice",
+            "gothicg",
+            "gothici",
+            "symap",
+            "symath",
+            "symeteo",
+            "symusic",
+            "syastro",
+            "iso",
+            "isocp",
+            "isocp2",
+            "isocp3",
+            "isoct",
+            "isoct2",
+            "isoct3",
+            "amgdt",
+            "whgtxt",
+            "whgdtxt",
+            "whtgtxt",
+            "whtmtxt",
+            "ltypeshp",
+            "bigfont",
+            "extfont",
+            "extfont2",
+        };
+
         /// <summary>
-        /// Takes a font typed: an SHX by its file (romans, romans.shx) where the fonts find it, it is named .shx or it is the
-        /// presenter's own (ghsimplex, written ghsimplex.shx), else a TrueType family or file.
+        /// Takes a font typed, as AutoCAD's -STYLE does: an SHX where it is named .shx, is one of AutoCAD's own SHX files (romans,
+        /// txt), is the presenter's own (ghsimplex, written ghsimplex.shx) or is found by the fonts of the drawing; a TrueType
+        /// family where one of that exact name is installed (Arial) or the file is named .ttf, .ttc or .otf; else an SHX file by
+        /// the name typed (nosuchfont.shx), which the presenter draws in its substitute.
         /// </summary>
         private static void Font(CadCommandContext c, CadTextStyleSettings settings, string typed)
         {
@@ -149,7 +223,13 @@ namespace GeometryHelper.Cad
                     extension.Length == 0
                     && (
                         CadFonts.IsBuiltIn(typed)
+                        || Array.Exists(AutoCadShxFonts, n =>
+                            string.Equals(n, typed, StringComparison.OrdinalIgnoreCase)
+                        )
                         || c.Document.Fonts.Locate(typed + ".shx", c.Document.FontFolder) != null
+                        || !CadTrueTypeFonts.Families.Any(f =>
+                            string.Equals(f, typed, StringComparison.OrdinalIgnoreCase)
+                        )
                     )
                 );
 

@@ -396,7 +396,7 @@ namespace GeometryHelper.Cad
         /// <summary>
         /// The Advanced options of -HATCH, each asked as AutoCAD asks it, until Enter: Boundary set
         /// (<see cref="HatchBoundarySet"/>), "Retain derived boundaries? [Yes/No] &lt;N&gt;:", "Do you want island detection?
-        /// [Yes/No] &lt;Y&gt;:", "Enter hatching style [Ignore/Outer/Normal] &lt;Normal&gt;:", "Do you want associativity?
+        /// [Yes/No] &lt;Y&gt;:", "Enter hatching style [Ignore/Outer/Normal] &lt;Outer&gt;:" at HPISLANDDETECTION 1, "Do you want associativity?
         /// [Yes/No] &lt;Y&gt;:", Gap tolerance (<see cref="HatchGapTolerance"/>) and "Create separate hatches? [Yes/No]
         /// &lt;N&gt;:".
         /// </summary>
@@ -545,7 +545,7 @@ namespace GeometryHelper.Cad
             {
                 foreach (List<IReadOnlyList<CadBoundaryLoop>> group in groups)
                 {
-                    List<CadBoundaryLoop> loops = KeptLoops(group, settings);
+                    List<CadBoundaryLoop> loops = KeptLoops(group);
 
                     // The polylines of the shapes drawn are made before the hatch, as AutoCAD makes them, so that it can follow them.
                     Dictionary<CadBoundaryLoop, DxfPolyline> polylines = AppendDrawnPolylines(

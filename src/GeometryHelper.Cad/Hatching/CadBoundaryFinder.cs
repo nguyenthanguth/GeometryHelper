@@ -48,6 +48,12 @@ namespace GeometryHelper.Cad
         /// <summary>Gets how deep the loop lies: nought the outer loop, 1 an island in it, 2 an island in an island.</summary>
         public int Depth { get; internal set; }
 
+        /// <summary>The point picked that found the loop, which a hatch keeps as a seed point; null for a loop of an object selected.</summary>
+        internal GeoPoint2? Seed { get; set; }
+
+        /// <summary>Whether the loop is one closed object selected, which a hatch stores as its edges, as AutoCAD does, and not as a polyline.</summary>
+        internal bool Selected { get; set; }
+
         /// <summary>The points the loop is drawn through, for testing what lies inside it.</summary>
         internal IReadOnlyList<GeoPoint2> Outline { get; }
 
@@ -173,6 +179,12 @@ namespace GeometryHelper.Cad
                     .ThenBy(l => l.Outline[0].X)
                     .ThenBy(l => l.Outline[0].Y)
             );
+
+            foreach (CadBoundaryLoop found in loops)
+            {
+                found.Seed = point;
+            }
+
             return loops.AsReadOnly();
         }
 
@@ -226,6 +238,7 @@ namespace GeometryHelper.Cad
                 }
                 else
                 {
+                    loop.Selected = true;
                     loops.Add(loop);
                 }
             }

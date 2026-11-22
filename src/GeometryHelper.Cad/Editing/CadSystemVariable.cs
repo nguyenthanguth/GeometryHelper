@@ -357,20 +357,37 @@ namespace GeometryHelper.Cad
 
         /// <summary>
         /// A text that may be none, as DIMLAYER: asked "Enter new value for DIMLAYER, or . for use current &lt;"use current"&gt;:",
-        /// a period handed to the take as an empty text; the take gives null, or why it refused.
+        /// a period handed to the take as an empty text; the take gives null, or why it refused. With <paramref name="blocks"/>
+        /// the text names a block, as DIMBLK does: AutoLISP's <c>setvar</c> refuses an empty name (a period is the default) and
+        /// writes <c>Block "nosuch" not defined</c> for a name the take did not find.
         /// </summary>
         internal static CadSystemVariable Optional(
             string name,
             string none,
             Func<CadCommandSession, string> get,
             Func<CadCommandContext, string, string> take,
-            bool inDrawing = false
+            bool inDrawing = false,
+            bool blocks = false
         )
         {
             var variable = new CadSystemVariable(name, CadVariableKind.Text, inDrawing, s => "\"" + get(s) + "\"");
             variable._ask = c => AskOptional(c, variable, none, take);
             variable._setFromLisp = (c, v) =>
-                v is string text && string.IsNullOrEmpty(take(c, text == "." ? string.Empty : text));
+            {
+                if (!(v is string text) || (blocks && text.Length == 0))
+                {
+                    return false;
+                }
+
+                string why = take(c, text == "." ? string.Empty : text);
+
+                if (blocks && why != null && why.StartsWith("Block \"", StringComparison.Ordinal))
+                {
+                    c.Write("Block \"" + text + "\" not defined");
+                }
+
+                return string.IsNullOrEmpty(why);
+            };
             return variable;
         }
 
