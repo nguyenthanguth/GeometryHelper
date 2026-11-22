@@ -298,6 +298,36 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
+        public void RemoveVertexChosenFromTheMenu_TakesTheVertexOutAtOnce_WithNoPrompt_AsOneUndoStep()
+        {
+            CadDocument document = CadDocument.From(
+                TestDrawings.Drawing(
+                    null,
+                    null,
+                    TestDrawings.Polyline("0", "W4", false, 0, 0, 0, 100, 0, 0, 100, 50, 0, 0, 50, 0)
+                ),
+                "removemenu.dxf"
+            );
+            CadCommandSession session = Session(document);
+            session.Tolerance = Tolerance.Default;
+            document.Selection.Set(new[] { "W4" });
+
+            Assert.True(session.StartGripAction("W4", 2, CadGripAction.RemoveVertex));
+
+            Assert.False(session.IsRunning);
+            Assert.Null(session.Prompt);
+            DxfPolyline polyline = Poly(document, "W4");
+            Assert.Equal(3, polyline.NumberOfVertices);
+            Near(P(0, 50), polyline.GetPoint2dAt(2));
+            Assert.Equal(new[] { "W4" }, document.Selection.Handles.ToArray());
+            Assert.Equal("GRIP", document.NextUndo.Name);
+
+            Assert.True(document.Undo());
+            Assert.Equal(4, Poly(document, "W4").NumberOfVertices);
+            Near(P(100, 50), Poly(document, "W4").GetPoint2dAt(2));
+        }
+
+        [Fact]
         public void RemoveVertexRefusesBelowTwoVertices_AndOnASegmentGrip()
         {
             CadDocument two = CadDocument.From(
@@ -601,20 +631,13 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void RemoveVertexFromTheMenu_AsksForAPickLikeConvertToLine_OneUndoStepEach()
+        public void RemoveVertexFromTheMenu_TakesTheVertexOutAtOnce_ConvertToLineAsksForAPick_OneUndoStepEach()
         {
             CadDocument document = Rectangle();
             CadCommandSession session = Session(document);
 
+            // AutoCAD 2021 removes the vertex at once: no prompt, one undo step.
             Assert.True(session.StartGripAction("R1", 0, CadGripAction.RemoveVertex));
-
-            // AutoCAD 2021's string table (acdb24res.dll): "** REMOVE VERTEX **" and "Pick to remove vertex:".
-            Assert.True(session.IsRunning);
-            Assert.Equal("** REMOVE VERTEX **", session.History.Last());
-            Assert.Equal("Pick to remove vertex:", session.PromptText);
-            Assert.Equal(4, Poly(document).NumberOfVertices);
-            Run(session, P(50, 5));
-
             Assert.False(session.IsRunning);
             Assert.Equal(3, Poly(document).NumberOfVertices);
             Assert.Equal("GRIP", document.NextUndo.Name);

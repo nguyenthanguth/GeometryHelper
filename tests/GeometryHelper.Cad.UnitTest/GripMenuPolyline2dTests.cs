@@ -296,6 +296,24 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
+        public void RemoveVertexChosenFromTheMenu_OfA2dPolyline_TakesItOutAtOnce_AsOneUndoStep()
+        {
+            CadDocument document = Blank();
+            string handle = Add(document, false, new[] { 0.0, 0.0, 0.0, 0.0 }, 0, 0, 100, 0, 100, 50, 0, 50);
+            CadCommandSession session = Session(document);
+            session.Tolerance = Tolerance.Default;
+
+            Assert.True(session.StartGripAction(handle, 2, CadGripAction.RemoveVertex));
+
+            Assert.False(session.IsRunning);
+            List<DxfVertex2d> vertices = Vertices(document, handle);
+            Assert.Equal(3, vertices.Count);
+            Near(P(0, 50), new GeoPoint2(vertices[2].Position.X, vertices[2].Position.Y));
+            Assert.True(document.Undo());
+            Assert.Equal(4, Vertices(document, handle).Count);
+        }
+
+        [Fact]
         public void ConvertToArcThroughAPoint_AndConvertToLine_AreOneUndoStepEach()
         {
             CadDocument document = Blank();

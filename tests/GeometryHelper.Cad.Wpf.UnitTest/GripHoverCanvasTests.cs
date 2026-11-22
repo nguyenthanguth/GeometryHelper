@@ -445,7 +445,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void ARowChosen_StartsItsItem_RemoveVertexAsksForAPickThenIsOneUndoStep()
+        public void ARowChosen_StartsItsItem_RemoveVertexTakesTheVertexOutAtOnceAsOneUndoStep()
         {
             OnElbow(
                 (model, canvas) =>
@@ -463,9 +463,6 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     CanvasMouseTests.Click(canvas, row);
 
                     Assert.False(canvas.IsGripMenuOpen);
-                    Assert.True(model.Session.IsRunning);
-                    Assert.Equal("Pick to remove vertex:", model.Session.PromptText);
-                    Assert.True(model.Session.Feed(new GeoPoint2(50, 5)));
                     Assert.False(model.Session.IsRunning);
                     DxfPolyline polyline = (DxfPolyline)
                         model.Document.FindEntity(model.Document.Selection.Handles.Single());

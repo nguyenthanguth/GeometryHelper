@@ -210,7 +210,7 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void RemoveVertexFromTheMenu_AsksForAPick_AndStretchVertexAsksStretch()
+        public void RemoveVertexFromTheMenu_OfAFitPoint_TakesItOutAtOnce_AndStretchVertexAsksStretch()
         {
             CadDocument document = Blank();
             string handle = FitSpline(document);
@@ -218,15 +218,11 @@ namespace GeometryHelper.Cad.UnitTest
             session.Tolerance = Tolerance.Default;
 
             Assert.True(session.StartGripAction(handle, 2, CadGripAction.RemoveVertex));
-            Assert.True(session.IsRunning);
-            Assert.Equal("** REMOVE FIT POINT **", session.History.Last());
-            Assert.Equal("Pick to remove fit point:", session.PromptText);
-            Assert.Equal(4, Entity<DxfSpline>(document, handle).NumFitPoints);
-            Run(session, Esc);
+            Assert.False(session.IsRunning);
+            Assert.Equal(3, Entity<DxfSpline>(document, handle).NumFitPoints);
+            Assert.True(document.Undo());
             Assert.Equal(4, Entity<DxfSpline>(document, handle).NumFitPoints);
             Assert.True(session.StartGripAction(handle, 2, CadGripAction.RemoveVertex));
-            Run(session, P(60, 60));
-            Assert.False(session.IsRunning);
             Assert.Equal(3, Entity<DxfSpline>(document, handle).NumFitPoints);
 
             Assert.True(session.StartGripAction(handle, 1, CadGripAction.StretchVertex));
@@ -236,18 +232,15 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void RemoveVertexOfAControlVertex_SaysRemoveControlVertex_AndTakesItOutAtAPick()
+        public void RemoveVertexOfAControlVertex_TakesItOutAtOnce_AsOneUndoStep()
         {
             CadDocument document = Blank();
             string handle = ControlSpline(document);
             CadCommandSession session = Session(document);
             session.Tolerance = Tolerance.Default;
 
-            Assert.True(session.StartGripAction(handle, 2, CadGripAction.RemoveVertex));
-            Assert.Equal("** REMOVE CONTROL VERTEX **", session.History.Last());
-            Assert.Equal("Pick to remove vertex:", session.PromptText);
             Assert.Equal(5, Entity<DxfSpline>(document, handle).NumControlPoints);
-            Run(session, P(10, 10));
+            Assert.True(session.StartGripAction(handle, 2, CadGripAction.RemoveVertex));
             Assert.False(session.IsRunning);
             Assert.Equal(4, Entity<DxfSpline>(document, handle).NumControlPoints);
             Assert.True(document.Undo());
