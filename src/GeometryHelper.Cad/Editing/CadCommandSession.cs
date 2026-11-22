@@ -158,6 +158,33 @@ namespace GeometryHelper.Cad
         /// <summary>Gets or sets the view of the canvas, which ZOOM and PAN change; null where there is none, as in a test.</summary>
         public CadView View { get; set; }
 
+        private CadView _consoleView;
+
+        /// <summary>
+        /// The view ZOOM, PAN and -VIEW work on: <see cref="View"/> where the window gave one, else a view of this session's own,
+        /// 942 by 534 pixels showing 10 units of height about the origin, as AutoCAD 2021's console starts a drawing, so that a
+        /// session with no window zooms, pans and saves views as the console does. <see cref="View"/> stays null, and what a
+        /// drawing with no view does by that (a size in pixels it has none of) is as it was.
+        /// </summary>
+        internal CadView CommandView
+        {
+            get
+            {
+                if (View != null)
+                {
+                    return View;
+                }
+
+                if (_consoleView == null)
+                {
+                    _consoleView = new CadView(942.0, 534.0);
+                    _consoleView.ZoomToHeight(0.0, 0.0, 10.0);
+                }
+
+                return _consoleView;
+            }
+        }
+
         /// <summary>The view of the canvas in the units of the space worked in: through the viewport worked in, in model units; else <see cref="View"/>.</summary>
         internal CadView WorkView =>
             View != null && Document.ActiveViewport is DxfViewport viewport

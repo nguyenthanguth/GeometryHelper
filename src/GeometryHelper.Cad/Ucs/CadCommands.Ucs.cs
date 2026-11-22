@@ -453,11 +453,7 @@ namespace GeometryHelper.Cad
         private static IEnumerable<CadPrompt> Plan(CadCommandContext c)
         {
             CadUcsManager systems = c.Document.Ucs;
-            yield return CadPrompt.ForKeyword(
-                "Enter an option",
-                new[] { "Current ucs", "Ucs", "World" },
-                "Current ucs"
-            );
+            yield return CadPrompt.ForKeyword("Enter an option", new[] { "Current ucs", "Ucs", "World" }, "Current");
             CadUcs of = c.Session.Ucs;
 
             if (c.Input.Is("World"))

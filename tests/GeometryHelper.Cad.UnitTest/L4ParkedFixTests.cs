@@ -355,7 +355,7 @@ namespace GeometryHelper.Cad.UnitTest
         #region ZOOM Object, Center, Scale and Dynamic (probe p2)
 
         private const string ZoomPrompt =
-            "Specify corner of window, enter a scale factor (nX or nXP) or [All/Center/Dynamic/Extents/Previous/Scale/Window/Object] <real time>:";
+            "Specify corner of window, enter a scale factor (nX or nXP), or\n[All/Center/Dynamic/Extents/Previous/Scale/Window/Object] <real time>:";
 
         private static double ViewHeight(CadCommandSession session) => session.View.Height / session.View.PixelsPerUnit;
 

@@ -2738,7 +2738,7 @@ namespace GeometryHelper.Cad
         /// </summary>
         private static IEnumerable<CadPrompt> AttributeEditTyped(CadCommandContext c)
         {
-            yield return CadPrompt.ForKeyword("Edit attributes one at a time?", new[] { "Yes", "No" }, "Yes");
+            yield return CadPrompt.ForKeyword("Edit attributes one at a time?", new[] { "Yes", "No" }, "Y");
 
             if (c.Input.Is("No"))
             {

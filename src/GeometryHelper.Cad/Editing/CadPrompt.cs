@@ -526,9 +526,12 @@ namespace GeometryHelper.Cad
         public static CadPrompt ForSelection(string message = null) =>
             new CadPrompt(CadPromptKind.Selection, message ?? "Select objects", null, null, null);
 
-        /// <summary>Asks "Select objects or [Name/Description]:", as GROUP asks: objects until Enter, or a keyword.</summary>
-        internal static CadPrompt ForSelection(string message, IReadOnlyList<string> keywords) =>
-            new CadPrompt(CadPromptKind.Selection, message, keywords, null, null);
+        /// <summary>Asks "Select objects or [Name/Description]:", as GROUP asks: objects until Enter, or a keyword; a default is only shown, as TRIM's "Select objects or [mOde] &lt;select all&gt;:" shows it, since Enter ends a selection.</summary>
+        internal static CadPrompt ForSelection(
+            string message,
+            IReadOnlyList<string> keywords,
+            string defaultValue = null
+        ) => new CadPrompt(CadPromptKind.Selection, message, keywords, defaultValue, null);
 
         /// <summary>Asks for one object: "Select arc or circle:".</summary>
         /// <param name="message">The message.</param>

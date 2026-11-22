@@ -33,6 +33,7 @@ namespace GeometryHelper.Cad
             "XLINE",
             "RAY",
             "TEXT",
+            "DTEXT",
             "MTEXT",
             "TRACE",
             "MLINE",

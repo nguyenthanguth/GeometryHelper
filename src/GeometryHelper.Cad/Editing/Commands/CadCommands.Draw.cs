@@ -667,7 +667,21 @@ namespace GeometryHelper.Cad
                 );
             }
 
-            yield return CadPrompt.ForPoint("Specify leader arrowhead location");
+            // AutoCAD 2021's first prompt offers the order the parts are asked in and the options, Options being what Enter takes.
+            yield return CadPrompt.ForPoint(
+                "Specify leader arrowhead location",
+                null,
+                new[] { "leader Landing first", "Content first", "Options" },
+                "Options"
+            );
+
+            if (c.Input.Kind == CadInputKind.Keyword)
+            {
+                c.Write(
+                    "MLEADER draws the leader arrowhead first, in the current multileader style: leader Landing first, Content first and Options are not offered."
+                );
+                yield break;
+            }
 
             if (!c.Input.IsPoint)
             {

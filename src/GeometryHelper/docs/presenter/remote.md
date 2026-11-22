@@ -333,8 +333,8 @@ with CadApplication() as app:                              # the app the user wo
 
 The script runs here against a headless app in a process of its own, with the pick answered by typing `120,80` on its command
 line: it prints `11`, `10`, `3`, `True` and `(120, 80, 0)` in turn, on .NET 8 and on .NET Framework 4.8 alike, and
-`sample.dxf` is a file of 6 046 bytes. In the app the `ZOOM E` shows the drawing's extents; the headless app has no window
-to zoom, and answers `Completed` all the same.
+`sample.dxf` is a file of 6 046 bytes. In the app the `ZOOM E` shows the drawing's extents; the headless app has no window,
+so the zoom moves a view of its own that nothing shows (the one `-VIEW Save` keeps), and answers `Completed`.
 
 Where Python differs from the C# of the sections above, measured on .NET 8 and on .NET Framework 4.8 with the same result:
 

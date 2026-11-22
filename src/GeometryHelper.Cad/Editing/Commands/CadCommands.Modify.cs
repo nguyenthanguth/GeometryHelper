@@ -45,7 +45,7 @@ namespace GeometryHelper.Cad
 
             if (c.Remembered(ModeKey, 1.0) == 0.0)
             {
-                foreach (CadPrompt prompt in SelectEdges(c, extend, edges))
+                foreach (CadPrompt prompt in SelectEdges(c, extend, edges, true))
                 {
                     yield return prompt;
                 }
@@ -231,11 +231,16 @@ namespace GeometryHelper.Cad
             }
         }
 
-        /// <summary>Asks the cutting or boundary edges, as Standard mode and the edges option do; Enter takes every object.</summary>
+        /// <summary>
+        /// Asks the cutting or boundary edges, as Standard mode and the edges option do; Enter takes every object. The first ask
+        /// of a command started in Standard mode also offers mOde, "Select objects or [mOde] &lt;select all&gt;:", which asks the
+        /// mode and goes on in it: Quick takes every object as an edge, Standard asks the edges again.
+        /// </summary>
         private static IEnumerable<CadPrompt> SelectEdges(
             CadCommandContext c,
             bool extend,
-            Ref<IReadOnlyList<string>> edges
+            Ref<IReadOnlyList<string>> edges,
+            bool offersMode = false
         )
         {
             c.Write(extend ? "Select boundary edges ..." : "Select cutting edges ...");
@@ -249,8 +254,34 @@ namespace GeometryHelper.Cad
                 yield break;
             }
 
-            yield return CadPrompt.ForSelection("Select objects or <select all>");
-            edges.Value = c.Input.Kind == CadInputKind.Selection && c.Input.Handles.Count > 0 ? c.Input.Handles : null;
+            while (true)
+            {
+                yield return offersMode
+                    ? CadPrompt.ForSelection("Select objects or", new[] { "mOde" }, "select all").WithoutOr()
+                    : CadPrompt.ForSelection("Select objects or <select all>");
+
+                if (offersMode && c.Input.Is("mOde"))
+                {
+                    yield return CadPrompt.ForKeyword(
+                        extend ? "Enter an extend mode option" : "Enter a trim mode option",
+                        new[] { "Quick", "Standard" },
+                        "Standard"
+                    );
+
+                    if (c.Input.Is("Quick"))
+                    {
+                        c.Remember(ModeKey, 1.0);
+                        edges.Value = null;
+                        yield break;
+                    }
+
+                    continue;
+                }
+
+                edges.Value =
+                    c.Input.Kind == CadInputKind.Selection && c.Input.Handles.Count > 0 ? c.Input.Handles : null;
+                yield break;
+            }
         }
 
         /// <summary>Asks the points of a fence and gives each crossing of it with an object, along the fence.</summary>

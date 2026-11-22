@@ -412,10 +412,9 @@ namespace GeometryHelper.Cad
         /// <summary>VIEWCTR: the point of the drawing at the centre of the view worked in, in the user coordinate system.</summary>
         private static GeoPoint3 ViewCentre(CadCommandSession session)
         {
-            CadView view = session.WorkView;
-            return view == null
-                ? new GeoPoint3(0.0, 0.0, 0.0)
-                : session.Ucs.ToUcs(new GeoPoint3(view.CenterX, view.CenterY, 0.0));
+            // With no window the view is the session's own (CommandView), the origin until a ZOOM or a PAN moves it.
+            CadView view = session.WorkView ?? session.CommandView;
+            return session.Ucs.ToUcs(new GeoPoint3(view.CenterX, view.CenterY, 0.0));
         }
 
         /// <summary>UNDOCTL: the bits of UNDO's state, 0 where Control is None.</summary>

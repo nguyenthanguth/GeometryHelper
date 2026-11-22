@@ -6,6 +6,24 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `3DPOLY` in the presenter, as AutoCAD 2021's console asks it: `Specify start point of polyline:`, then `Specify
+endpoint of line or [Undo]:` for the first two endpoints and `[Close/Undo]` from the third, Enter ending it. It makes one 3D
+polyline (a POLYLINE of flag 8, its vertices of flag 32); the presenter's points are those of a plane, so a Z typed is read and
+left out and every vertex is on Z 0. `(command "_.3DPOLY" "0,0,0" "10,0,0" "10,10,0" "")` gave `Unknown command` before.
+
+**FIXED.** Commands typed as `(command ...)` against AutoCAD 2021's console, from a scan of 119 of them. With no window a
+session had no view, so `ZOOM` said `There is no view to zoom.`, `-VIEW Save` `There is no view to save.` and `PAN` `There is no
+view to pan.`, where AutoCAD prompts and works; the cause was the missing view of the window, not a missing `*Active` viewport
+record (a drawing with and one without give the same). They now work on a view of the session's own, 942 by 534 pixels at 10
+units high about the origin as the console starts a drawing, which `View` leaves null as before. ZOOM's prompt is now
+`Specify corner of window, enter a scale factor (nX or nXP), or` over `[All/Center/...] <real time>:`, with the comma and the
+break AutoCAD writes. `MLEADER`'s first prompt is `Specify leader arrowhead
+location or [leader Landing first/Content first/Options] <Options>:`; a keyword or Enter says the other orders and the options
+are not offered yet. `-ATTEDIT` offers `<Y>` where it said `<Yes>`, `PLAN` `<Current>` where it said `<Current ucs>`, `DTEXT` is a
+command of its own (the alias DTEXT of the default shortcuts is gone) and no longer writes `TEXT` before it, TRIM and EXTEND in Standard mode ask `Select objects or [mOde]
+<select all>:` with mOde, and `VPORTS` with no window asks the options of `-VPORTS`, as the console does, where it said the
+window shows it.
+
 **NEW.** AutoLISP's `grread`, in GeometryHelper.Cad and its window. `(grread [track [allkeys [curtype]]])` waits for one key,
 click or move of the cursor and gives `(2 code)` for a key (13 Enter, 32 Space, 8 Backspace, 9 Tab, the character's code for
 the rest), `(3 (x y z))` for a left click and `(5 (x y z))` for a move, in the UCS and with no snap, and `(11 0)` for the right

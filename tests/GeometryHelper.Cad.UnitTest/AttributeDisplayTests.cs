@@ -129,7 +129,7 @@ namespace GeometryHelper.Cad.UnitTest
         {
             CadDocument document = Tagged();
             CadCommandSession session = Run(Session(document), "-ATTEDIT");
-            Assert.Equal("Edit attributes one at a time? [Yes/No] <Yes>:", session.PromptText);
+            Assert.Equal("Edit attributes one at a time? [Yes/No] <Y>:", session.PromptText);
             Run(session, "N");
             Assert.Contains("Performing global editing of attribute values.", session.History);
             Assert.Equal("Edit only attributes visible on screen? [Yes/No] <Y>:", session.PromptText);

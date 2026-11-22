@@ -66,7 +66,6 @@ namespace GeometryHelper.Cad.UnitTest
                     new[] { "DIMLIN", "DIMLINEAR" },
                     new[] { "DIMALI", "DIMALIGNED" },
                     new[] { "DIMSTY", "DIMSTYLE" },
-                    new[] { "DTEXT", "TEXT" },
                     new[] { "DOUGHNUT", "DONUT" },
                     new[] { "RECTANGLE", "RECTANG" },
                     new[] { "PAINTER", "MATCHPROP" },

@@ -42,7 +42,7 @@ namespace GeometryHelper.Cad
 
         /// <summary>
         /// VPORTS: the Viewports dialog over the tiled viewports of model space, its changes one undo step; in a layout the
-        /// prompts of MVIEW, as AutoCAD's. With no window, the command says so.
+        /// prompts of MVIEW, as AutoCAD's. With no window it asks the prompts of -VPORTS, as the console does.
         /// </summary>
         private static IEnumerable<CadPrompt> Vports(CadCommandContext c)
         {
@@ -62,7 +62,12 @@ namespace GeometryHelper.Cad
 
             if (!c.Session.Request("VPORTS", c.Document, tiles))
             {
-                c.Write("Viewports is shown by the window.");
+                // No window to show the dialog: the prompts of -VPORTS, as AutoCAD 2021's console asks them.
+                foreach (CadPrompt prompt in VportsTyped(c))
+                {
+                    yield return prompt;
+                }
+
                 yield break;
             }
 

@@ -33,7 +33,10 @@ namespace GeometryHelper.Cad.UnitTest
 
             Assert.True(session.IsTransparent);
             Assert.Equal("ZOOM", session.Current.Name);
-            Assert.StartsWith(">>Specify corner of window, enter a scale factor (nX or nXP) or [", session.PromptText);
+            Assert.StartsWith(
+                ">>Specify corner of window, enter a scale factor (nX or nXP), or\n[",
+                session.PromptText
+            );
             Assert.Contains("Specify next point or [Undo]: 'ZOOM", session.History);
 
             Run(session, "E");

@@ -598,8 +598,7 @@ namespace GeometryHelper.Cad
             string.IsNullOrEmpty(name) || !c.Database.ViewTable.Has(name) ? null : c.Database.ViewTable[name];
 
         /// <summary>What the canvas shows of the space on screen; null where it shows none.</summary>
-        private static DisplayBox? Shown(CadCommandContext c) =>
-            c.Session.View == null ? (DisplayBox?)null : c.Session.View.VisibleBox;
+        private static DisplayBox? Shown(CadCommandContext c) => c.Session.CommandView.VisibleBox;
 
         private static DisplayBox Box(GeoPoint2 a, GeoPoint2 b) =>
             new DisplayBox(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Max(a.X, b.X), Math.Max(a.Y, b.Y));

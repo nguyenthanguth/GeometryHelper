@@ -49,10 +49,12 @@ namespace GeometryHelper.Cad
 
             registry.Add(new CadCommand("LINE", Line));
             registry.Add(new CadCommand("PLINE", Polyline));
+            registry.Add(new CadCommand("3DPOLY", Polyline3d));
             registry.Add(new CadCommand("CIRCLE", Circle));
             registry.Add(new CadCommand("ARC", Arc));
             registry.Add(new CadCommand("RECTANG", Rectangle));
             registry.Add(new CadCommand("TEXT", Text));
+            registry.Add(new CadCommand("DTEXT", Text));
             registry.Add(new CadCommand("MTEXT", MText));
             registry.Add(new CadCommand("MLEADER", MLeader));
             registry.Add(new CadCommand("MLEADERSTYLE", MLeaderStyleDialog));
@@ -387,21 +389,19 @@ namespace GeometryHelper.Cad
                 yield break;
             }
 
-            CadView view = c.Session.View;
+            // The window's view, or the session's own where there is no window, as the console has one.
+            CadView view = c.Session.CommandView;
 
-            if (view == null)
-            {
-                c.Write("There is no view to zoom.");
-                yield break;
-            }
-
-            yield return CadPrompt.ForPoint(
-                "Specify corner of window, enter a scale factor (nX or nXP)",
-                null,
-                ZoomOptions,
-                "real time",
-                true
-            );
+            // AutoCAD 2021 writes a comma before the "or" and breaks the line there, the options on the second.
+            yield return CadPrompt
+                .ForPoint(
+                    "Specify corner of window, enter a scale factor (nX or nXP),",
+                    null,
+                    ZoomOptions,
+                    "real time",
+                    true
+                )
+                .BreakingBeforeKeywords();
             DisplayBox before = view.VisibleBox;
             CadSpace shown = c.Document.CurrentSpace;
 
@@ -870,13 +870,7 @@ namespace GeometryHelper.Cad
                 yield break;
             }
 
-            CadView view = c.Session.View;
-
-            if (view == null)
-            {
-                c.Write("There is no view to pan.");
-                yield break;
-            }
+            CadView view = c.Session.CommandView;
 
             foreach (CadPrompt prompt in PanBase(c, typed))
             {

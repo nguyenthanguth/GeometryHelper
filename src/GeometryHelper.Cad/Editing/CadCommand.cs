@@ -297,7 +297,6 @@ namespace GeometryHelper.Cad
                     ["DDVIEW"] = "VIEW",
                     ["DOUGHNUT"] = "DONUT",
                     ["ML"] = "MLINE",
-                    ["DTEXT"] = "TEXT",
                     ["PAINTER"] = "MATCHPROP",
                     ["PREFERENCES"] = "OPTIONS",
                     ["RECTANGLE"] = "RECTANG",

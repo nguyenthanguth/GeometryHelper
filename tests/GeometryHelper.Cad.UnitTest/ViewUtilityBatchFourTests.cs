@@ -354,11 +354,12 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void Vports_WithAWindow_AsksItForTheDialog_AndWithNoneSaysSo()
+        public void Vports_WithAWindow_AsksItForTheDialog_AndWithNoneAsksTheTypedOptions()
         {
             CadDocument document = Plan();
             CadCommandSession session = Start(document, "VPORTS");
-            Assert.Equal("Viewports is shown by the window.", session.History.Last());
+            Assert.Equal(VportsPrompt, session.PromptText);
+            Run(session, Esc);
 
             session.UiRequested += (s, e) =>
             {

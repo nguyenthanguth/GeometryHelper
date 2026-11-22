@@ -124,7 +124,9 @@ namespace GeometryHelper.Cad.UnitTest
         {
             CadCommandSession session = Run(Session(Blank()), "(getpoint \"P: \")", "'ZOOM");
 
-            // A blank drawing has no view to zoom: ZOOM says so, ends, and the question of the routine is asked again.
+            // ZOOM asks its prompt over the routine's, as AutoCAD does; Extents ends it, and the question of the routine is asked again.
+            Assert.StartsWith(">>Specify corner of window", session.PromptText, StringComparison.Ordinal);
+            Run(session, "E");
             Assert.Contains("Resuming LISP command.", session.History);
             Assert.Equal("P: ", session.PromptText);
             Run(session, "1,2");
