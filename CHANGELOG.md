@@ -6,6 +6,21 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The folders beside `GeometryHelper.Cad.App.exe` (`Fonts`, `Hatches`, `Linetypes`, `Lisps`, `Plugins` and
+`DrawingTemplates`) are now all read with their subfolders, at any depth, in one order: depth first, a folder's own files first by
+name (letters of either case the same, then as written), then its subfolders in the same order, each walked the same way. A file
+at the top level always comes before one in a subfolder, and of two files with one name (a font, a pattern file, a linetype file or
+a template) the first wins and the others are named in one line of the debug log: `Fonts\Company\abc.shx` is found, and a
+`mine.lin` in `Linetypes` hides a `mine.lin` in `Linetypes\Old`. A subfolder that is a junction or a symbolic link, or is hidden or
+a system folder, is not entered, and one that cannot be read is passed over with a debug line. Every `.lsp` file of `Lisps` at any
+depth loads at start (before, the files in a subfolder were left alone; the search path of `load` is still the folder itself). In
+`Plugins`, a folder at any depth that holds `.dll` files directly is one plugin, as a top-level folder was, and the walk does not go
+below it; a folder with no `.dll` is walked into, so `Plugins\Company\ToolA\ToolA.dll` is the plugin ToolA. Select Template lists
+the templates of the subfolders of the template folder too (`DrawingTemplates`, or the folder named in Global settings), and
+`CadTemplate.FindIn` and `CadTemplate.Find` read them. The folders
+you add in Folder preference are read as they were, without their subfolders. `CadSupportFiles.List` now gives its files in the
+order of the walk (the folders in the order searched) where it gave them by name alone.
+
 **CHANGED.** A `.dwg` or `.dxf` dropped on the drawing area is now inserted as a block, as AutoCAD 2021 does (measured: it runs
 `_-INSERT Enter block name or [?]: "<path>"`, writes the Units line and waits for the insertion point, then the scale and the
 rotation), where every drop of a drawing used to open it. Dropped on the DRAWINGS list or the title bar it still opens, and

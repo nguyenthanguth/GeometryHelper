@@ -352,8 +352,11 @@ namespace GeometryHelper.Cad
         public static readonly IReadOnlyList<string> Extensions = new[] { ".dwt", ".dwg", ".dxf" };
 
         /// <summary>
-        /// Lists the templates of a folder: the .dwt, .dwg and .dxf files in it, not those of its subfolders, by name (letters
-        /// of either case the same, then as written) and then by extension; empty where the folder is not there.
+        /// Lists the templates of a folder and its subfolders: the .dwt, .dwg and .dxf files, in the order of the walk
+        /// (<see cref="CadSupportWalk"/>): the folder's own files by name (letters of either case the same, then as written) and
+        /// then by extension, then the files of its subfolders in the same way, each subfolder after the folder it is in. Of two
+        /// files of one name (sheet.dwt in the folder and in a subfolder) the first is listed, so the one at the top wins;
+        /// empty where the folder is not there.
         /// </summary>
         /// <param name="folder">The folder.</param>
         /// <returns>The full paths of the files.</returns>
@@ -366,13 +369,22 @@ namespace GeometryHelper.Cad
                     return Array.Empty<string>();
                 }
 
-                return Directory
-                    .EnumerateFiles(folder)
-                    .Where(f => Extensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase))
-                    .OrderBy(f => Path.GetFileNameWithoutExtension(f), StringComparer.OrdinalIgnoreCase)
-                    .ThenBy(f => Path.GetFileNameWithoutExtension(f), StringComparer.Ordinal)
-                    .ThenBy(f => Path.GetExtension(f).ToLowerInvariant(), StringComparer.Ordinal)
-                    .ToList();
+                var found = new List<string>();
+
+                foreach (string each in CadSupportWalk.Folders(folder))
+                {
+                    found.AddRange(
+                        CadSupportWalk
+                            .FilesOf(each, name =>
+                                Extensions.Contains(Path.GetExtension(name), StringComparer.OrdinalIgnoreCase)
+                            )
+                            .OrderBy(f => Path.GetFileNameWithoutExtension(f), StringComparer.OrdinalIgnoreCase)
+                            .ThenBy(f => Path.GetFileNameWithoutExtension(f), StringComparer.Ordinal)
+                            .ThenBy(f => Path.GetExtension(f).ToLowerInvariant(), StringComparer.Ordinal)
+                    );
+                }
+
+                return CadSupportWalk.FirstOfEachName("templates", found);
             }
             catch (Exception exception)
                 when (exception is IOException
@@ -411,8 +423,8 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>
-        /// Finds the file of a template named as typed: as typed, else in the template folder; a name with no extension is given
-        /// .dwt, as AutoCAD does.
+        /// Finds the file of a template named as typed: as typed, else in the template folder, else, for a name with no folder, the
+        /// first of that name in the folder's subfolders; a name with no extension is given .dwt, as AutoCAD does.
         /// </summary>
         /// <param name="typed">The name or path.</param>
         /// <param name="folder">The template folder.</param>
@@ -441,7 +453,19 @@ namespace GeometryHelper.Cad
                 if (!Path.IsPathRooted(name) && !string.IsNullOrWhiteSpace(folder))
                 {
                     string inFolder = Path.Combine(folder, name);
-                    return File.Exists(inFolder) ? Path.GetFullPath(inFolder) : null;
+
+                    if (File.Exists(inFolder))
+                    {
+                        return Path.GetFullPath(inFolder);
+                    }
+
+                    // A name with no folder is looked for in the subfolders too, the first of the walk winning; one with a folder is not.
+                    return name.IndexOfAny(new[] { '\\', '/' }) >= 0
+                        ? null
+                        : FindIn(folder)
+                            .FirstOrDefault(f =>
+                                string.Equals(Path.GetFileName(f), name, StringComparison.OrdinalIgnoreCase)
+                            );
                 }
             }
             catch (Exception exception)

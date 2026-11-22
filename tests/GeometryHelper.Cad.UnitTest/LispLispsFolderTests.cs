@@ -9,7 +9,7 @@ using static GeometryHelper.Cad.UnitTest.EditingDrawings;
 namespace GeometryHelper.Cad.UnitTest
 {
     /// <summary>
-    /// The Lisps folder beside the program (D1210 to D1216 of the lispux spec): every <c>.lsp</c> directly in it loads into each
+    /// The Lisps folder beside the program (D1210 to D1216 of the lispux spec): every <c>.lsp</c> in it, at any depth, loads into each
     /// drawing when it opens, between acaddoc.lsp and the Startup Suite, in name order; the folder is on the AutoLISP search
     /// path after the user's support folders. AutoCAD has no such folder, so the rules are ours; the order of the steps is the
     /// published one of AutoCAD 2021 with the program's own files (a menu's .mnl) between acaddoc.lsp and the Startup Suite.
@@ -145,7 +145,7 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void OnlyTheLspFilesDirectlyInTheFolder_Load()
+        public void OnlyTheLspFiles_Load_ThoseInASubfolderToo_AfterTheTopOnes()
         {
             Mark("a.lsp");
             Mark("x.lspx");
@@ -155,7 +155,7 @@ namespace GeometryHelper.Cad.UnitTest
 
             CadCommandSession session = Opened(new LispStartup());
 
-            Assert.Equal(new[] { "[a.lsp]" }, session.History);
+            Assert.Equal(new[] { "[a.lsp]", "[c]" }, session.History);
         }
 
         [Fact]

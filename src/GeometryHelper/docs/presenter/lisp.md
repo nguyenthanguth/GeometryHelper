@@ -301,7 +301,7 @@ Each drawing that opens runs, in this order:
 1. `acad.lsp`, the first one found along the search path (the support folders, then the Lisps folder), once for the run of
    the program, and not again for the drawings opened after the first;
 2. `acaddoc.lsp`, the first one found along the search path, for every drawing;
-3. each `.lsp` file directly in [the Lisps folder](#the-lisps-folder), in the order of their names;
+3. each `.lsp` file in [the Lisps folder](#the-lisps-folder) and its subfolders, in the order of the walk;
 4. each file of the Startup Suite, in order;
 5. the function `S::STARTUP`, where one of these files defined it. It may be made with `defun` or with `defun-q`, which
    AutoCAD's documents recommend so that several routines can add to it; its value is not written.
@@ -316,19 +316,23 @@ and the Lisps folder takes that place.
 ### The Lisps folder
 
 `Lisps` is the fourth default folder beside `GeometryHelper.Cad.dll`, with `Fonts`, `Hatches` and `Linetypes` (in the app,
-beside the exe). Put AutoLISP files in it, and the `.dcl` files they use: every `.lsp` file directly in it is loaded into
-each drawing when the drawing opens, so a folder of 12 routines is there for every drawing with no APPLOAD and no Startup
-Suite entry.
+beside the exe). Put AutoLISP files in it, and the `.dcl` files they use: every `.lsp` file in it, at any depth, is loaded
+into each drawing when the drawing opens, so a folder of 12 routines is there for every drawing with no APPLOAD and no
+Startup Suite entry.
 
-- **Order.** The files load in the order of their names, ignoring case, so `10-layers.lsp` comes before `20-dims.lsp` and
-  `a-b.lsp` before `a.lsp`; name them with a number to say which first. An error in a file is written and the next one
-  loads. The extension must be exactly `.lsp`: `x.lspx` and `notes.txt` are left alone, and so are the files in a subfolder
-  (`Lisps\Sub\x.lsp` is loaded by `(load "Sub/x")` from a routine). A compiled `.fas` or `.vlx` writes the same refusal a
-  `load` of it does, once for each drawing, and the rest load. `acad.lsp` and `acaddoc.lsp` put here are found as those two
-  files (steps 1 and 2) and load once, not again in step 3; a file of the same name in a support folder wins.
+- **Order.** The folder is walked depth first: its own files load in the order of their names, ignoring case, so
+  `10-layers.lsp` comes before `20-dims.lsp` and `a-b.lsp` before `a.lsp`; name them with a number to say which first. Then
+  come its subfolders, in the same name order, each walked the same way, so `Lisps\z.lsp` loads before `Lisps\Acme\a.lsp`
+  and `Lisps\Acme\Old\x.lsp` after `Lisps\Acme\y.lsp`. A subfolder that is a junction or a symbolic link, or is hidden or a
+  system folder, is not entered, and one that cannot be read is passed over. An error in a file is written and the next
+  one loads. The extension must be exactly `.lsp`: `x.lspx` and `notes.txt` are left alone. A compiled `.fas` or `.vlx`
+  writes the same refusal a `load` of it does, once for each drawing, and the rest load. `acad.lsp` and `acaddoc.lsp` put
+  in the folder itself are found as those two files (steps 1 and 2) and load once, not again in step 3; a file of the same
+  name in a support folder wins. One in a subfolder is an ordinary file and loads in its turn.
 - **Search path.** The folder is on the search path after the support folders of Folder preference, where it exists, so
   `load`, `findfile` and `load_dialog` find a file in it by its bare name, and a routine can `(load "helpers")` the file
-  beside it. It is not on the path of linetypes and hatch patterns. A folder you list yourself in Folder preference, the
+  beside it. Its subfolders are not on the path, so a file in one is named with its folder, `(load "Acme/helpers")`. It is
+  not on the path of linetypes and hatch patterns. A folder you list yourself in Folder preference, the
   Lisps folder included, is searched once, where you put it.
 - **Trusted.** The folder lies under the program folder, which [SECURELOAD](#trusted-folders-and-secureload) always
   trusts, so its files load with no question at SECURELOAD 1 and 2. A test or a host that places `Lisps` elsewhere gets the

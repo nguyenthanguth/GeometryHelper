@@ -19,12 +19,17 @@ is seen the next time the drawing is opened or the settings are applied.
 Search order for a font:
 
   1. The folders set in Global settings > Folder preference, in the order listed.
-  2. This folder, next to GeometryHelper.Cad.dll.
+  2. This folder and its subfolders, next to GeometryHelper.Cad.dll.
   3. The built-in font (GeometryHelper Simplex).
 
 A TrueType typeface installed in Windows is found first, as before; the folders above are
 looked in only for a typeface Windows does not have, and for a style's .ttf file name before
 the Fonts folder of Windows.
+
+Subfolders are read too, so you can keep fonts by company or project: the files directly in
+this folder come first, by name, then those of each subfolder in the same way. A file at the top
+comes before one in a subfolder, and of two files with one name the first is used. A subfolder
+that is a junction or a symbolic link, or is hidden or a system folder, is not read.
 
 The drawing's own folder is not searched for fonts.
 
