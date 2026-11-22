@@ -240,7 +240,7 @@ remove the sample, delete the folder `Plugins\DrawingInfo`; to start a plugin of
 The window shows a Plugins ribbon tab with a button for each command of each plugin loaded, the Plugin manager button,
 which opens [Load/Unload Applications](lisp.md#appload) (a table of the plugins and the AutoLISP files, with On, Commands,
 File and At start, Load…, Reload and Unload) and a dialog before a load outside the trusted folders. The plugin's load
-lines go to the command history. A plugin's `CadSetting` attributes remain in the plugin API, but the window has no page
+lines go to the command history, and a plugin that fails to load is also told by the red [load-result line](lisp.md#the-load-result-line) of that window. A plugin's `CadSetting` attributes remain in the plugin API, but the window has no page
 that shows them now.
 
 A command that works long shows it on the status bar's progress meter through `c.Progress`:

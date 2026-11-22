@@ -165,6 +165,7 @@ namespace GeometryHelper.Cad.UnitTest
         {
             CadDocument document = Blank();
             CadCommandSession session = Session(document);
+            document.UndoCombine = true; // the combine of UNDO Control, which the presenter starts without as AutoCAD 2021 does here
             CadView view = ViewOf(session);
             double start = view.PixelsPerUnit;
 

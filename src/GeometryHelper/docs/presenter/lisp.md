@@ -77,6 +77,7 @@ session.Feed("(command \"CIRCLE\" '(0 0) 5)");              // Command: (command
 | Environment | `getenv`, `setenv`, `getcfg`, `setcfg` |
 | Memory and the old interpreter | `gc`, `mem`, `alloc`, `expand`, `pragma`, `arx`, `ads`, which do nothing or give what an empty session gives |
 | AutoCAD alone | `arxload`, `arxunload`, the twenty `vlisp-` functions, `vlax-add-cmd`, `vlax-remove-cmd`, `vlax-reg-app`, the three product keys, `vl-init`, `vlarts-init`, `vl-bt`, `vl-bt-on`, `vl-bt-off`, `c:vlide` and `c:vldebug`, which are defined and refused |
+| Menus and help | `menugroup`, `vmon`, `help`, `setfunhelp`, `fnsplitl`, `acdimenableupdate`, and, in a drawing's interpreter, `menucmd` and `getcname`; `vl-exit-with-error` and `vl-exit-with-value` are with the errors |
 | Commands | `command`, `vl-cmdf`, `command-s`, and the symbol `PAUSE` |
 | Asking | `getpoint`, `getcorner`, `getdist`, `getangle`, `getorient`, `getint`, `getreal`, `getstring`, `getkword`, `initget`, `entsel`, `nentsel`, `nentselp`, `getfiled` |
 | Selection sets | `ssget`, `sslength`, `ssname`, `ssadd`, `ssdel`, `ssmemb`, `ssnamex`, `sssetfirst`, `ssgetfirst` |
@@ -134,6 +135,13 @@ the local variables back as they were.
 
 Esc while a routine asks the user is the error `Function cancelled`, and it is seen the same way: `*error*` is called
 with it, with the locals of the function that asked.
+
+`*error*` holds AutoCAD's own SUBR in a fresh session, as AutoCAD 2021 does: `(type *error*)` is `SUBR`, calling it by hand gives
+`nil` and writes nothing, and an error that reaches the top writes `; error: message` as before. A routine that saves it, puts its own
+function there and puts the saved one back (`(setq *error* old)`) leaves the session as it was; `(setq *error* nil)` leaves the same
+default line. `vl-exit-with-error` and `vl-exit-with-value` end the evaluation quietly, with whatever argument: nothing is written, no
+`*error*` is called, the rest of a handler that calls one does not run, and under `vl-catch-all-apply` the error object has no message
+(`vl-catch-all-error-message` is `nil`).
 
 ### Speed
 
@@ -211,7 +219,8 @@ the settings keep (`appLoadFolder` under `support`). Each file is loaded in the 
 | `.arx`, `.dbx`, `.dvb`, `.fas`, `.vlx` | refused with `tools.fas cannot be loaded: .arx, .dbx, .dvb, .fas and .vlx files are not supported.` |
 | any other file | refused with `readme.txt is not an AutoLISP file or a plugin.` |
 
-Every line goes to the command history, none to the window. **Reload** loads the rows chosen again: an AutoLISP file is
+Every line goes to the command history, and a load that fails is also told in the window, by the
+[load-result line](#the-load-result-line). **Reload** loads the rows chosen again: an AutoLISP file is
 loaded as Load loads it, a plugin as PLUGINRELOAD does. **Unload** unloads the rows chosen, and so does the
 Delete key: a plugin as PLUGINUNLOAD does; an AutoLISP file leaves the list and the `c:` commands it defined are removed from
 the interpreter, so that typing one is an unknown command, though a name that is also an alias, such as `AA` for AREA, goes
@@ -252,6 +261,18 @@ onto the table are loaded in the order of the drop.
 A window that shows no such dialog (`MainViewModel.ShowAppLoad` null) says `Load/Unload Applications cannot be shown here.`
 for APPLOAD. The History list, Add to History, Files of type and the Startup Suite window of earlier versions are gone, and
 the keys `appLoadHistory`, `appLoadFileType` and `appLoadAddToHistory` of a settings file are ignored when it is read.
+
+#### The load-result line
+
+Above the hint at the foot of the table sits a red line, hidden until a load fails: a dark red fill, a red border and a round
+error icon. It names the file in bold, then says `failed to load: ` and the error as the command history wrote it, so a
+`bad.lsp` that stops at `(car 5)` reads **bad.lsp** `failed to load: ; error: bad argument type: consp 5`; for an AutoLISP file
+that defined `c:` commands before the error it adds `(ERRONE was defined before the error)`, or `(AA, BB were defined before
+the error)` for two. On the right, in grey, it says `Shown until the next load`. It is shown for a .lsp or a .dll that fails
+from Load…, from a drop, from Reload or from the On box, for a file type that is refused (`old.arx cannot be loaded: ...`), and
+for Load… with no drawing open (`Open a drawing to load tools.lsp.`). Where several files fail in one Load…, it shows the last
+one with `(and 1 more)`. A load with no failure hides it; a load that succeeds shows nothing, as no success banner is drawn.
+The history keeps every line as before. In code, `AppLoadViewModel.HasLoadError`, `LoadErrorName` and `LoadErrorText` carry it.
 
 #### Dropping a file on the window
 
@@ -525,8 +546,8 @@ it current), UCS's hidden `E`, which aligns the UCS to an object, -PURGE's promp
 REVCLOUD's Arc length with its minimum and maximum, and DIMLINEAR's `Non-associative dimension created.` A drawing whose
 DXF header leaves out the dimension variables, DIMSTYLE or CELTYPE, as AutoCAD's own blank drawing does, is read with the
 values AutoCAD reads for it (DIMASZ 0.18, DIMSTYLE Standard, CELTYPE Continuous), so that a routine sees the same settings
-in both programs. UNDO keeps the settings of AutoCAD's window (`Combine = Yes, Layer = Yes`), where the console reads
-`Combine = No, Layer = No`: UNDO's settings line is the one place a routine's transcript differs there.
+in both programs. UNDO shows `Combine = No, Layer = No` in both, as AutoCAD 2021 reads them on the machine measured (UNDOCTL 5, and 13 inside
+a group), where a profile without the settings starts with Yes and Yes.
 
 ### command-s
 
@@ -830,9 +851,26 @@ Continuous, a dimension style takes the drawing's imperial defaults for every va
 frozen and locked, and its `62` of -2 is colour 2 turned off. A BLOCK_RECORD is `nil`. A record made does not change
 `(entlast)`, and is one undo step with the form that made it, as an entity is.
 
+**Records of the tables** are changed by `entmod` as AutoCAD 2021 changes them (measured in its console). The list is the one `entget`
+gives, with both subclass markers; a short one is `nil`. The groups it gives take the record's values, a group given twice taking the last.
+A layer's `62` is its colour (negative for off, 0 and above 255 are `nil`), `70` freezes (bit 1) and locks (bit 4), the current layer too,
+`6` names a loaded linetype (`nil` and the line `Error: Undefined line type HIDDEN in LayerTableRecord A1` for one that is not), `290`
+is the plot flag and `370` the lineweight, a value that is none being left out with the rest taken; group `2` renames the layer with
+its objects, not layer 0, not into a name another has or one with a `<` in it, and `Defpoints` and the current layer are renamed. A text
+style takes `3`, `4`, `40`, `41`, `50` (in radians, as `entget` gives it) and `71`, renames unless it is Standard, and is `nil` for a `70`
+with the shape bit; a width of nought or less and a slant past 85 degrees, which AutoCAD takes, are `nil` here. A linetype takes its
+description, length, dashes and name (not Continuous), a dimension style its variables and name (not Standard; its `70` is left as it is),
+a UCS or a view its groups and name, an application nothing but the list back, and the active viewport `*Active` is `nil`. Each is one
+step of undo with the form, and the layer box and the Layer manager follow. A DICTIONARY and a BLOCK_RECORD are not changed (parked).
+
+**A VERTEX** of an old-style POLYLINE is changed by `entmod` and is at its new point at once, for `entget` and the curve functions alike;
+its bulge `42` and widths `40` and `41` too. The SEQEND is `nil`.
+
 `(entdel e)` gives the name and erases; a second `entdel` of the same entity restores it, as AutoCAD's does. The ATTRIB of a
 block reference is not erased that way: `(entdel att)` gives `nil` and leaves it, as many times as it is asked, which is what
-AutoCAD 2021 does. `(entnext)`
+AutoCAD 2021 does. The extension dictionary of an entity erased stays in the drawing and can be read (`(entget d)`), and a second `entdel`
+gives the entity that same dictionary and its data back (`(vlax-ldata-get e "K")` is its value again); the entity has a new handle, which
+its old name reaches. `(entdel d)` of the extension dictionary by itself erases it, and the entity keeps its pointer. `(entnext)`
 gives the first object of the drawing and `(entnext e)` the one after it, the sub-entities of a POLYLINE or an INSERT with
 attributes following their owner, and `nil` after the last. `(entlast)` is the last main object made, `(handent "1A")` the
 name of the object with that handle, or `nil`.
@@ -927,8 +965,10 @@ a group of 60 to 79 or 270 to 289 is a short whole number (`(71 . 100000)` is `-
 (`(3 . "k") (350 . ename)`) lists them by name and takes their objects for its own. A list that makes an entity AutoCAD makes from
 several calls (a POLYLINE, a block reference with attributes, a BLOCK) gives `nil` with `entmakex`.
 
-`entmod` of an XRECORD or a DICTIONARY is not done: it gives `nil`, where AutoCAD appends the data of the list to an XRECORD's and
-replaces a DICTIONARY's entries by the list's (measured, and parked).
+`entmod` of an XRECORD adds the groups after its `(100 . "AcDbXrecord")` to its data, as AutoCAD 2021 does, and never replaces or
+removes any: `(entmod (subst (cons 1 "b") (assoc 1 r) r))` of a record of `(1 . "a") (70 . 5)` leaves `(1 . "a") (70 . 5) (1 . "b") (70 . 5)`,
+a first `(280 . 0)` changes the flag in place, and a list of no `100` marker is `nil`. To replace the data a routine makes the record
+again. `entmod` of a DICTIONARY gives `nil`, where AutoCAD replaces its entries by the list's (measured, and parked).
 
 ### Data kept in the drawing
 
@@ -1384,7 +1424,7 @@ a drawing's own namespace needs, since the presenter has no other kind.
 loaded: `vl-doc-export` gives `T` and remembers the name, `vl-list-exported-functions` lists the names in capitals (`("FOO")`
 after `(vl-doc-export 'foo)`), `vl-doc-import` and `vl-unload-vlx` are `; error: LISP Application is not found foo`,
 and `vl-vlx-loaded-p`, `vl-list-loaded-vlx` and `vl-get-resource` give `nil`. `.fas` and `.vlx` files are still refused by
-`load`. `vl-exit-with-error` and `vl-exit-with-value`, which belong to those applications, are not defined. What belongs to
+`load`. `vl-exit-with-error` and `vl-exit-with-value` end the evaluation quietly, as [the errors](#errors) say. What belongs to
 AutoCAD alone is refused, not ignored: `vl-vbaload` and `vl-vbarun` write `; error: vl-vbarun: VBA is not supported by
 GeometryHelper.Cad`, and `vl-arx-import`, `vl-acad-defun` and `vl-acad-undefun` write `; error: vl-arx-import: ObjectARX is
 not supported by GeometryHelper.Cad`, each with its own name.
@@ -2869,6 +2909,17 @@ lower-case letters, one after the other, so `_` stands between `9` and `a` and `
 case come in the reverse of the order they were given (`("b" "a" "C" "c" "A")` gives `("A" "a" "b" "c" "C")`); a list with
 anything but strings in it gives `nil`. `(xstrcase "Hello")` is `"HELLO"`. `(ver)` is `"Visual LISP 2021 (en)"`.
 
+**Menus and help.** The presenter loads no menu groups, and these answer as AutoCAD 2021's console does. `(menucmd "M=$(getvar,clayer)")`
+gives the DIESEL result as a string (`"0"`; `"M=abc"` is `"abc"`), and any other string, `"P1=*"` or `"GACAD.ID_Line=~"`, gives `nil`;
+`(menugroup "ACAD")` and `(vmon)` give `nil`; a non-string is `bad argument type: stringp`. `(getcname "LINE")` is `"_LINE"` and
+`(getcname "_LINE")` is `"LINE"` (capitals, the dot dropped), `nil` for an alias (`"L"`), a name no command has and a routine's `c:` command.
+`(setfunhelp "c:abc" "x.chm" "topic")` and `(help "x.chm" "topic")` give their first argument, every argument having to be a string; `help` of
+a `.chm`, `.htm`, `.html` or `.pdf` file that is there opens it with the program Windows gives its type, and of anything else opens nothing.
+`(acdimenableupdate)` gives the flag it had, T or nil, and sets it to T for any argument but nil and to nil for nil; a dimension is
+drawn again at once whatever it says. `(fnsplitl "c:/a/b.lsp")` is `("C:\\a\\" "b" ".lsp")`: the folder as a full path with backslashes and
+the drive in capitals (`"a/b.lsp"` starts from the current folder), the name and the extension from its last dot; a name with no folder
+gives `""` for it, and a folder, `".lsp"`, an empty string and a drive alone give `nil`.
+
 `vl-infp` is `T` for an infinity; `vl-nanp` gives `nil` for every number, as AutoCAD 2021 does for each not-a-number a routine can
 make (`-nan(ind).0`, `nan.0`). Both give `bad argument type: numberp:` for what is no number.
 
@@ -2883,9 +2934,8 @@ writes for a name it does not know, `; error: no function definition: NAME`, so 
 above runs, and one that reaches for a later stage stops at its first such call. A routine that defines its commands loads
 whole, and their names are offered by AutoComplete, whatever their bodies need.
 
-The drawing, the library, the ActiveX functions and the dialogs are built, with these left out. Of the library, `menucmd`, `menugroup`, `help`,
-`setfunhelp`, `trace`, `untrace`, `vmon`, `tablet`, `vports`, `setview`, `report`, `fnsplitl`, `acdimenableupdate`, `getcname`
-and the `_vl-` internals, and `vl-exit-with-error` and `vl-exit-with-value`, which belong to VLX applications, are not defined. Of the ActiveX functions,
+The drawing, the library, the ActiveX functions and the dialogs are built, with these left out. Of the library, `trace`,
+`untrace`, `tablet`, `vports`, `setview`, `report` and the `_vl-` internals are not defined. Of the ActiveX functions,
 the `Add` methods and the editing methods of the spaces
 and a few more are parked, and a few measured differences remain; both lists are
 [at the end of that section](#what-is-parked-in-the-activex-stage). Of the dialogs, `slide_image` draws nothing, and the

@@ -30,6 +30,7 @@ namespace GeometryHelper.Cad
             AddSelectSimilarTo(registry);
             AddTextWindowTo(registry);
             registry.Add(new CadCommand("ERASE", Erase, true));
+            registry.Add(new CadCommand("SELECT", SelectObjectsOnly, true));
             registry.Add(new CadCommand("OOPS", Oops));
             AddWipeoutTo(registry);
             registry.Add(new CadCommand("ROTATE", Rotate, true));

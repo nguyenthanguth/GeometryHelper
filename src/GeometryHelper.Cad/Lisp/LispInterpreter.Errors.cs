@@ -14,10 +14,27 @@ namespace GeometryHelper.Cad.Lisp
         private bool _handlingError;
         private bool _handlerMayCommand;
 
+        // The function *error* holds in a fresh session, AutoCAD 2021's own: a SUBR that does nothing when a routine calls it, and
+        // that stands for the default of a top-level error, which writes "; error: message" (probe m/func, f3).
+        private LispBuiltin _defaultHandler;
+
+        /// <summary>Gets whether a routine has put a function of its own in <c>*error*</c>: false where it holds AutoCAD's own SUBR, or nil.</summary>
+        internal bool HasErrorHandler => _error.Value != null && !ReferenceEquals(_error.Value, _defaultHandler);
+
+        /// <summary>
+        /// The error of <c>vl-exit-with-error</c> and <c>vl-exit-with-value</c>, whatever their argument: the evaluation ends quietly,
+        /// as AutoCAD 2021 ends it (probe m/func, f3): nothing is written, <c>*error*</c> is not called, and under
+        /// <c>vl-catch-all-apply</c> the error object has no message.
+        /// </summary>
+        private static LispException QuietExit() => new LispException(string.Empty) { IsQuiet = true };
+
         private void RegisterErrors()
         {
             Define("EXIT", 0, 0, a => throw new LispException("quit / exit abort"));
             Define("QUIT", 0, 0, a => throw new LispException("quit / exit abort"));
+            Define("VL-EXIT-WITH-ERROR", 1, 1, a => throw QuietExit());
+            Define("VL-EXIT-WITH-VALUE", 1, 1, a => throw QuietExit());
+            _defaultHandler = Define("*ERROR*", 1, 1, a => null);
             Define("*PUSH-ERROR-USING-COMMAND*", 0, 0, a => PushErrorMode(true));
             Define("*PUSH-ERROR-USING-STACK*", 0, 0, a => PushErrorMode(false));
             Define("*POP-ERROR-MODE*", 0, 0, PopErrorMode);
@@ -110,7 +127,7 @@ namespace GeometryHelper.Cad.Lisp
             {
                 Restore(error.Frames);
                 _depth = depth;
-                return new LispCatchAllError(error.Message);
+                return new LispCatchAllError(error.IsQuiet ? null : error.Message);
             }
         }
     }
