@@ -168,9 +168,10 @@ namespace GeometryHelper.Cad.UnitTest
             );
             CadCommandSession session = Session(document);
 
-            // AutoCAD 2021 (spec D54): BLOCK (0 2 70 10 -2), -2 the first entity
+            // AutoCAD 2021 (spec D54): BLOCK (0 2 70 10 -2), -2 the first entity; (4 . "") the description follows the flags
+            // (console, l2p pa, D1108)
             Assert.Equal(
-                "((0 . \"BLOCK\") (2 . \"BOLT\") (70 . 0) (10 0.0 0.0 0.0) (-2 . <Entity name: *>))",
+                "((0 . \"BLOCK\") (2 . \"BOLT\") (70 . 0) (4 . \"\") (10 0.0 0.0 0.0) (-2 . <Entity name: *>))",
                 Value(session, "(tblsearch \"BLOCK\" \"BOLT\")")
             );
             Assert.Equal(

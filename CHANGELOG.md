@@ -6,6 +6,20 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** AutoLISP's `entmake` makes what AutoCAD 2021 makes by several calls and by records (each measured there): a POLYLINE
+with its VERTEX forms and its `SEQEND` (nothing is in the drawing until the end; a flag 8 makes a 3D polyline; a `SEQEND`
+with no vertex writes `Invalid POLYLINE object.`; another entity while one is pending writes `Invalid complex object.`), an
+INSERT with `(66 . 1)` and its ATTRIB forms, a `BLOCK` with its entities and `ENDBLK` (which gives the block's name, `"*U1"`
+for a `*U`, and writes `Redefining block "GHE1"` for a name the drawing has), an ATTDEF in a space, and the records of the
+tables LAYER, LTYPE, STYLE, APPID, DIMSTYLE, UCS, VIEW and VPORT (both subclass markers needed; `Error: Undefined line type
+NOSUCH in LayerTableRecord GHL4` for a layer whose linetype is not loaded). They were `nil` before. `(entmake)` with no
+argument is `nil`, as in AutoCAD, and not an error. The guide's AutoLISP page has the rules.
+
+**CHANGED.** `entmake` of an ELLIPSE whose `41` or `42` is outside 0 to 2 pi is `nil`, as AutoCAD 2021 gives it; it made the
+ellipse before. `tblsearch` of a BLOCK has its description `(4 . "")` after the flags, of a linetype no `74` group where it is
+0, of a text style the obliquing `50` in radians (`0.261799` for 15 degrees, it gave 15.0), of a UCS `(79 . 0) (146 . 0.0)` at
+the end and of a view `(72 . 0) (110 ...) (111 ...) (112 ...) (79 . 0) (146 . 0.0)`, all as AutoCAD 2021 lists them.
+
 **NEW.** Trusted folders and SECURELOAD, as AutoCAD 2021 has them, in front of AutoLISP's `load` (and APPLOAD, the startup
 files, the Startup Suite, `autoload`, `vl-load-all`) and of Python's PYRUN, PYLOAD and the palette's Run file and Load.
 [`CadLoadSecurity`](xref:GeometryHelper.Cad.CadLoadSecurity) decides a file: SECURELOAD 0 loads from anywhere, a file in a

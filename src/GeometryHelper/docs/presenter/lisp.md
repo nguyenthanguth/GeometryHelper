@@ -570,8 +570,44 @@ made, the entity goes into the current space, and `(entlast)` is it. A list with
 none where CELTYPE is ByLayer; a `(6 . "ByLayer")` or `(62 . 256)` the list gives is dropped, as AutoCAD drops it, and the
 entity lists neither. A list straight from `entget` is taken: the leading
 `-1`, and the `5` and `330` groups, are ignored, and a two-dimensional point is completed. The presenter makes LINE, POINT,
-CIRCLE, ARC, ELLIPSE, TEXT, MTEXT, LWPOLYLINE, SOLID, TRACE, 3DFACE, RAY, XLINE, SPLINE and INSERT without attributes. A
-POLYLINE with its VERTEX and SEQEND, an INSERT with ATTRIB, a BLOCK definition and the records of a table give `nil`.
+CIRCLE, ARC, ELLIPSE, TEXT, MTEXT, ATTDEF, LWPOLYLINE, SOLID, TRACE, 3DFACE, RAY, XLINE, SPLINE and INSERT in one call, and
+by several calls what AutoCAD 2021 makes by several (probe pa). An ELLIPSE whose `41` or `42` is outside 0 to 2 pi is `nil`,
+as AutoCAD gives it (`41 5.0`, `42 8.0` and `41 -1.0`, `42 1.0` are both `nil`).
+
+A POLYLINE is begun by `(entmake '((0 . "POLYLINE") (66 . 1) (10 0.0 0.0 0.0) (70 . 0)))`, which gives its list and makes
+nothing, then one `VERTEX` for each corner (`(42 . 0.5)` is the bulge, `40` and `41` the widths of that vertex), then
+`(entmake '((0 . "SEQEND")))`, which gives `((0 . "SEQEND"))` and makes the polyline: one entity in the current space,
+`(entlast)` naming it, `(entnext)` walking its vertices and its end. The group `66` is not needed. A `70` with flag 8 makes a
+3D polyline (its vertices say `(70 . 32)`, and are given that where the list gives none), flag 1 a closed one; flags 16 and 64
+(a mesh, a polyface mesh) are made as the DXF model takes them, which AutoCAD's probe did not measure. A SEQEND with no vertex
+writes `Invalid POLYLINE object.` on its own line and gives `nil`; one vertex is enough. A VERTEX or a SEQEND with nothing
+pending gives `nil` and writes nothing; a VERTEX with no point gives `nil` and drops the polyline; any other entity made
+while the polyline is pending writes `Invalid complex object.` (with no line break after it, so the console shows
+`Invalid complex object.nil`), is not made, and drops the polyline too. `(entmake)` with no argument gives `nil` and keeps what
+is pending. What is pending is kept for the drawing, not for a routine: it stays after the routine ends, until the next
+`entmake`.
+
+An INSERT with `(66 . 1)` is begun the same way and takes `ATTRIB` lists (a tag, a value, a point and a height are needed) up
+to the `SEQEND`, which makes the reference with its attributes; one with no ATTRIB is made too. An ATTRIB with no INSERT
+pending gives `nil`. Of an attribute's flags the presenter keeps the invisible one.
+
+A `BLOCK` (a name in `2`, a base point in `10`, the flags in `70`) gives its list at once and makes nothing; the entities
+made after it, ATTDEFs and polylines among them, go into the definition, not the space, and `(entlast)` does not change. Then
+`(entmake '((0 . "ENDBLK")))` makes the block as -BLOCK does and gives its name, `"GHE1"`; a block named `*U` with `(70 . 1)`
+is anonymous and gives `"*U1"`. A name the drawing has is made again, with `Redefining block "GHE1"` on a line of its own
+first, and the references show the new definition. An empty block is made. A BLOCK with no point is `nil` at once; one with no
+`70` is taken, but ENDBLK writes `Block flags missing` (no line break) and gives `nil` and makes nothing; an entity inside
+that cannot be made gives `nil` and drops the block, so ENDBLK is `nil` too. ENDBLK with no block pending is `nil`.
+
+The records of the tables are made by one call each: LAYER, LTYPE, STYLE, APPID, DIMSTYLE, UCS, VIEW and VPORT, each given the
+two markers `(100 . "AcDbSymbolTableRecord")` and the table's own (`AcDbLayerTableRecord`, `AcDbLinetypeTableRecord`,
+`AcDbTextStyleTableRecord`, `AcDbRegAppTableRecord`, `AcDbDimStyleTableRecord`, `AcDbUCSTableRecord`, `AcDbViewTableRecord`,
+`AcDbViewportTableRecord`), without which the answer is `nil`. A name the table has, or one that cannot be a name (`a*b`), is
+`nil` with nothing written. A layer that names a linetype the drawing has not writes `Error: Undefined line type NOSUCH in
+LayerTableRecord GHL4` (no line break) and gives `nil`. What the list leaves out is AutoCAD's: a layer is colour 7 and
+Continuous, a dimension style takes the drawing's imperial defaults for every variable not given. A layer's `70` of 5 is
+frozen and locked, and its `62` of -2 is colour 2 turned off. A BLOCK_RECORD is `nil`. A record made does not change
+`(entlast)`, and is one undo step with the form that made it, as an entity is.
 
 `(entdel e)` gives the name and erases; a second `entdel` of the same entity restores it, as AutoCAD's does. The ATTRIB of a
 block reference is not erased that way: `(entdel att)` gives `nil` and leaves it, as many times as it is asked, which is what
@@ -594,7 +630,10 @@ Command: (cdr (assoc 0 (entget e1)))
 `(tblsearch table name [setnext])` gives the record of a layer, linetype, text style, dimension style, block, UCS, view,
 viewport or application, the table and the name in any case: `(tblsearch "layer" "newlayer")` is `((0 . "LAYER") (2 .
 "NEWLAYER") (70 . 0) (62 . 7) (6 . "Continuous"))`. The `62` of a layer that is off is negative, and its `70` is 1 for
-frozen and 4 for locked. A record of BLOCK ends with `(-2 . ename)`, the first entity of the block. An unknown table is
+frozen and 4 for locked. A record of BLOCK has its description `(4 . "")` after the flags and ends with `(-2 . ename)`, the first
+entity of the block. A linetype's list has no `74` group where it is 0, a text style's `50` is the obliquing in radians
+(`0.261799` for 15 degrees), a UCS ends with `(79 . 0) (146 . 0.0)` and a view with `(72 . 0) (110 0.0 0.0 0.0) (111 1.0 0.0
+0.0) (112 0.0 1.0 0.0) (79 . 0) (146 . 0.0)`. An unknown table is
 `AutoCAD rejected function: invalid table function argument(s): "FOO" "x"`. `(tblnext table [rewind])` walks the records in
 the order of the table, from the first when `rewind` is `T`; for LTYPE it leaves out ByBlock and ByLayer, which `tblsearch`
 still finds. `(tblobjname table name)` is the record's entity name, and `entget` of it gives the whole record.
@@ -2261,8 +2300,7 @@ writes for a name it does not know, `; error: no function definition: NAME`, so 
 above runs, and one that reaches for a later stage stops at its first such call. A routine that defines its commands loads
 whole, and their names are offered by AutoComplete, whatever their bodies need.
 
-The drawing, the library, the ActiveX functions and the dialogs are built, with these left out. In `entmake`: the POLYLINE sequences, an
-INSERT with attributes, block definitions and the records of a table. Of the library, `acad_strlsort`, `getenv` and `setenv`
+The drawing, the library, the ActiveX functions and the dialogs are built, with these left out. Of the library, `acad_strlsort`, `getenv` and `setenv`
 (they come with the registry store, when a routine needs them), `findtrustedfile` (not brought by L6, which built the
 trusted folders it would search), `vl-load-reactors` (with the
 `vlr-` functions, which the ActiveX stage leaves out: there are no reactors), and `vl-exit-with-error` and

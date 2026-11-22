@@ -53,7 +53,7 @@ namespace GeometryHelper.Cad.Lisp
 
             lisp.Define("ENTGET", 1, 2, a => EntGet(lisp, session, state, a));
             lisp.Define("ENTMOD", 1, 1, a => lisp.OnOwner(() => EntMod(session, state, a[0])));
-            lisp.Define("ENTMAKE", 1, 1, a => lisp.OnOwner(() => EntMake(session, a[0])));
+            lisp.Define("ENTMAKE", 0, 1, a => lisp.OnOwner(() => a.Length == 0 ? null : EntMake(lisp, session, a[0])));
             lisp.Define("ENTDEL", 1, 1, a => EntDel(lisp, session, state, a[0]));
             lisp.Define("ENTNEXT", 0, 1, a => EntNext(lisp, session, state, a));
             lisp.Define("ENTLAST", 0, 0, a => lisp.OnOwner(() => EntLast(session)));
@@ -927,6 +927,7 @@ namespace GeometryHelper.Cad.Lisp
             "XLINE",
             "SPLINE",
             "INSERT",
+            "ATTDEF",
         };
 
         /// <summary>The groups an entity cannot be made without.</summary>
@@ -960,6 +961,9 @@ namespace GeometryHelper.Cad.Lisp
                     return new[] { 10 };
                 case "INSERT":
                     return new[] { 2, 10 };
+                case "ATTDEF":
+                case "ATTRIB":
+                    return new[] { 10, 40, 1, 2 };
                 default:
                     return new int[0];
             }
@@ -969,9 +973,11 @@ namespace GeometryHelper.Cad.Lisp
         /// Makes an entity of a list of groups in the current space, as <c>entmake</c> does: the entity is made as the record of
         /// a small DXF and brought into the drawing as a paste does, so that the drawing's layers, linetypes and styles are the
         /// ones it uses (a layer that is not there is made, colour 7); the groups -1, 5 and 330 are ignored. Gives the list, or
-        /// nil where the type cannot be made or a group it needs is missing.
+        /// nil where the type cannot be made or a group it needs is missing. A POLYLINE, a block reference with attributes and a
+        /// BLOCK are made from several calls, and the records of the tables from one (<see cref="TryMakeSpecial"/>); while a BLOCK
+        /// is pending the entities made go into its definition, not into the space.
         /// </summary>
-        private static object EntMake(CadCommandSession session, object list)
+        private static object EntMake(LispInterpreter lisp, CadCommandSession session, object list)
         {
             if (!LispEntityData.TryRead(list, out List<KeyValuePair<int, object>> given))
             {
@@ -988,6 +994,30 @@ namespace GeometryHelper.Cad.Lisp
 
             string type = typed.ToUpperInvariant();
 
+            if (TryMakeSpecial(lisp, session, type, given, list, out object special))
+            {
+                return special;
+            }
+
+            // An entity that cannot be made while a BLOCK is pending drops the block (AutoCAD 2021, l2p pa: ENDBLK then gives nil).
+            object made = MakeEntity(session, type, given, list);
+
+            if (made == null)
+            {
+                PendingOf(session.Document).Block = null;
+            }
+
+            return made;
+        }
+
+        /// <summary>One entity of a list, made in the current space or kept for the block that is pending; nil where it cannot be made.</summary>
+        private static object MakeEntity(
+            CadCommandSession session,
+            string type,
+            List<KeyValuePair<int, object>> given,
+            object list
+        )
+        {
             if (Array.IndexOf(Makeable, type) < 0)
             {
                 return null;
@@ -1014,6 +1044,13 @@ namespace GeometryHelper.Cad.Lisp
                 }
             }
 
+            // The parameters of an ellipse's arc are angles of one turn: AutoCAD makes none of a list whose 41 or 42 is outside 0 to
+            // 2 pi (l2p pc: (41 5.0, 42 8.0), (41 1.0, 42 20.0) and (41 -1.0, 42 1.0) are all nil).
+            if (type == "ELLIPSE" && !groups.TrueForAll(p => (p.Key != 41 && p.Key != 42) || InOneTurn(p.Value)))
+            {
+                return null;
+            }
+
             CadDocument document = session.Document;
             int layerAt = groups.FindIndex(p => p.Key == 8);
             string layer = layerAt >= 0 ? (string)groups[layerAt].Value : document.Database.Clayer;
@@ -1024,13 +1061,71 @@ namespace GeometryHelper.Cad.Lisp
             }
 
             groups.RemoveAll(p => p.Key == 8);
+            PendingBlock block = PendingOf(document).Block;
+
+            // An entity made while a BLOCK is pending is kept for its definition.
+            if (block != null)
+            {
+                Placement kept = Place(session, type, layer, groups);
+
+                if (kept == null)
+                {
+                    return null;
+                }
+
+                block.Entries.Add(kept);
+                return list;
+            }
+
             CadSpace space = document.WorkingSpace;
             session.OpenLispStep();
             session.HoldLispStep();
+            Placement place = Place(session, type, layer, groups);
 
+            // The layer of a block reference is made before its step is applied, as it always was.
+            if (place != null && type == "INSERT")
+            {
+                EnsureLayer(document, layer);
+            }
+
+            return place != null && Put(session, space, place) ? list : null;
+        }
+
+        /// <summary>Whether the parameter of an ellipse's arc is in one turn, 0 to 2 pi.</summary>
+        private static bool InOneTurn(object value)
+        {
+            double angle =
+                value is double real ? real
+                : value is int whole ? whole
+                : double.NaN;
+            return angle >= -1E-9 && angle <= 2.0 * Math.PI + 1E-9;
+        }
+
+        /// <summary>
+        /// How an entity that has been checked is put where it goes: into a block (and into a space, where there is one), inside the
+        /// edit of a step. Gives whether it was made.
+        /// </summary>
+        private delegate bool Placement(CadEditScope scope, DxfBlockTableRecord block, CadSpace space);
+
+        /// <summary>Puts a placement into a space as one step of the evaluation; false where it made nothing or the edit failed.</summary>
+        private static bool Put(CadCommandSession session, CadSpace space, Placement place)
+        {
+            bool made = false;
+            CadEditResult result = session.Apply("ENTMAKE", null, s => made = place(s, space.Block, space));
+            return result.Succeeded && made;
+        }
+
+        /// <summary>The placement of an entity of a type whose groups have been checked; null where its record cannot be made.</summary>
+        private static Placement Place(
+            CadCommandSession session,
+            string type,
+            string layer,
+            List<KeyValuePair<int, object>> groups
+        )
+        {
             if (type == "INSERT")
             {
-                return MakeInsert(session, space, layer, groups) ? list : null;
+                return PrepareInsert(session, layer, groups, null);
             }
 
             DxfDatabase fragment;
@@ -1045,6 +1140,12 @@ namespace GeometryHelper.Cad.Lisp
                 return null;
             }
 
+            return PlaceFragment(fragment);
+        }
+
+        /// <summary>The placement of the one entity a small DXF holds: brought in as a paste brings it.</summary>
+        private static Placement PlaceFragment(DxfDatabase fragment)
+        {
             var held = new List<DxfEntity>();
 
             foreach (DxfEntity made in fragment.ModelSpace)
@@ -1057,14 +1158,19 @@ namespace GeometryHelper.Cad.Lisp
                 return null;
             }
 
-            bool added = false;
-            CadEditResult result = session.Apply("ENTMAKE", null, s =>
+            return (s, block, space) =>
             {
-                foreach (DxfEntity copy in fragment.WblockCloneObjects(held, space.Block))
+                bool added = false;
+
+                foreach (DxfEntity copy in fragment.WblockCloneObjects(held, block))
                 {
                     if (!string.IsNullOrEmpty(copy.Handle) && !copy.IsErased)
                     {
-                        s.Added(space, copy);
+                        if (space != null)
+                        {
+                            s.Added(space, copy);
+                        }
+
                         added = true;
 
                         if (
@@ -1079,9 +1185,9 @@ namespace GeometryHelper.Cad.Lisp
                         }
                     }
                 }
-            });
 
-            return result.Succeeded && added ? list : null;
+                return added;
+            };
         }
 
         /// <summary>
@@ -1144,7 +1250,8 @@ namespace GeometryHelper.Cad.Lisp
             // The groups of the look (linetype, colour ...) go where AutoCAD writes them, after the layer and before the subclass.
             List<KeyValuePair<int, object>> look = groups.FindAll(p => LispEntityData.IsHeadCode(p.Key));
             var body = groups.FindAll(p => !LispEntityData.IsHeadCode(p.Key));
-            List<KeyValuePair<int, object>> placed = LispEntityData.Marked(type, body);
+            List<KeyValuePair<int, object>> placed =
+                type == "ATTDEF" ? AttributeMarked(type, body) : LispEntityData.Marked(type, body);
             var text = new StringBuilder();
 
             void Group(int code, string value) =>
@@ -1179,12 +1286,16 @@ namespace GeometryHelper.Cad.Lisp
             return text.ToString();
         }
 
-        /// <summary>A block reference made of a list: its block, point, scales and turn; no attributes.</summary>
-        private static bool MakeInsert(
+        /// <summary>
+        /// A block reference made of a list: its block, point, scales and turn, and the attributes of a complex one (the lists of its
+        /// ATTRIBs, put after it). Null where its block is not there or it has no point, and where the list says it has attributes
+        /// but none are given (<paramref name="attributes"/> null): a block reference with attributes is made by <see cref="BeginComplex"/>.
+        /// </summary>
+        private static Placement PrepareInsert(
             CadCommandSession session,
-            CadSpace space,
             string layer,
-            List<KeyValuePair<int, object>> groups
+            List<KeyValuePair<int, object>> groups,
+            List<List<KeyValuePair<int, object>>> attributes
         )
         {
             DxfDatabase database = session.Document.Database;
@@ -1192,14 +1303,17 @@ namespace GeometryHelper.Cad.Lisp
 
             if (blockName == null || !database.BlockTable.Has(blockName))
             {
-                return false;
+                return null;
             }
 
             double[] at = groups.Find(p => p.Key == 10).Value as double[];
 
-            if (at == null || groups.Exists(p => p.Key == 66 && p.Value is int attributes && attributes != 0))
+            if (
+                at == null
+                || (attributes == null && groups.Exists(p => p.Key == 66 && p.Value is int count && count != 0))
+            )
             {
-                return false;
+                return null;
             }
 
             double Scale(int code) => groups.Find(p => p.Key == code).Value is double d ? d : 1.0;
@@ -1221,9 +1335,9 @@ namespace GeometryHelper.Cad.Lisp
 
             int? colour =
                 groups.Find(p => p.Key == 62).Value is int index && index >= 0 && index <= 255 ? index : (int?)null;
-            EnsureLayer(session.Document, layer);
-            CadEditResult result = session.Apply("ENTMAKE", null, s =>
+            return (s, block, space) =>
             {
+                EnsureLayer(s.Document, layer);
                 var insert = new DxfBlockReference(
                     new GeoPoint3(at[0], at[1], at.Length > 2 ? at[2] : 0.0),
                     database.BlockTable[blockName] as DxfBlockTableRecord
@@ -1244,9 +1358,25 @@ namespace GeometryHelper.Cad.Lisp
                     insert.Color = DxfColor.FromColorIndex(DxfColorMethod.ByAci, (short)colour.Value);
                 }
 
-                s.Append(space, insert);
-            });
-            return result.Succeeded;
+                if (space != null)
+                {
+                    s.Append(space, insert);
+                }
+                else
+                {
+                    block.AppendEntity(insert);
+                }
+
+                if (attributes != null)
+                {
+                    foreach (List<KeyValuePair<int, object>> given in attributes)
+                    {
+                        insert.AttributeCollection.AppendAttribute(NewAttribute(s.Document, given));
+                    }
+                }
+
+                return true;
+            };
         }
 
         #endregion
