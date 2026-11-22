@@ -101,6 +101,7 @@ namespace GeometryHelper.Cad
         private string _fontMapFile = string.Empty;
         private List<string> _supportFolders = new List<string>(CadSupportFiles.DefaultFolders);
         private List<string> _lispStartupSuite = new List<string>();
+        private List<string> _pythonStartupSuite = new List<string>();
         private SortedDictionary<string, string> _knownApplications = new SortedDictionary<string, string>(
             StringComparer.OrdinalIgnoreCase
         );
@@ -723,6 +724,22 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>
+        /// Gets or sets the Python Startup Suite: the Python files loaded, in this order, once when the app starts, after the
+        /// <c>.py</c> files of the Pythons folder; full paths, empty by default. Kept apart from <see cref="LispStartupSuite"/>,
+        /// which AutoLISP loads. Blank entries are left out and a file given twice is kept once. Saved in the settings file.
+        /// </summary>
+        public IReadOnlyList<string> PythonStartupSuite
+        {
+            get => _pythonStartupSuite.AsReadOnly();
+            set =>
+                _pythonStartupSuite = (value ?? Array.Empty<string>())
+                    .Where(f => !string.IsNullOrWhiteSpace(f))
+                    .Select(f => f.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+        }
+
+        /// <summary>
         /// Gets the applications Load/Unload Applications (APPLOAD) lists though they are not loaded, as AutoCAD keeps the
         /// History list: the full path of each AutoLISP file or plugin that was loaded, with the commands it last defined
         /// (<c>AA, BB</c>, without <c>c:</c>; empty where it defined none), sorted by path, either case the same. A file the
@@ -1115,6 +1132,7 @@ namespace GeometryHelper.Cad
             copy._fontFolders = new List<string>(_fontFolders);
             copy._supportFolders = new List<string>(_supportFolders);
             copy._lispStartupSuite = new List<string>(_lispStartupSuite);
+            copy._pythonStartupSuite = new List<string>(_pythonStartupSuite);
             copy._knownApplications = Copy(_knownApplications);
             copy._alwaysLoaded = new List<string>(_alwaysLoaded);
             copy._pluginSnaps = new List<string>(_pluginSnaps);
@@ -1319,6 +1337,14 @@ namespace GeometryHelper.Cad
             w.OpenList("lispStartupSuite");
 
             foreach (string file in _lispStartupSuite)
+            {
+                w.Value(null, file);
+            }
+
+            w.CloseList();
+            w.OpenList("pythonStartupSuite");
+
+            foreach (string file in _pythonStartupSuite)
             {
                 w.Value(null, file);
             }
@@ -1577,6 +1603,9 @@ namespace GeometryHelper.Cad
                 );
                 Take("support", "lispStartupSuite", e =>
                     _s.LispStartupSuite = e.Elements().Select(f => f.Value).ToList()
+                );
+                Take("support", "pythonStartupSuite", e =>
+                    _s.PythonStartupSuite = e.Elements().Select(f => f.Value).ToList()
                 );
                 Take("support", "knownApplications", e => _s.SetKnownApplications(Pairs(e)));
                 Text("support", "appLoadFolder", v => _s.AppLoadFolder = v);

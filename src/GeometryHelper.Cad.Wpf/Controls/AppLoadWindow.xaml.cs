@@ -9,7 +9,7 @@ namespace GeometryHelper.Cad.Wpf
 {
     /// <summary>
     /// Load/Unload Applications, from APPLOAD and from the Plugin manager button, as the design draws it: 900 by 700, Load…,
-    /// Reload, Unload and Remove on top, the chips that filter by kind, and one table of the AutoLISP files and plugins with On, Name,
+    /// Reload, Unload and Remove on top, the chips that filter by kind, and one table of the AutoLISP files, Python files and plugins with On, Name,
     /// Kind, Commands, File and At start. Its logic is <see cref="AppLoadViewModel"/>, disposed when the dialog closes; the
     /// Open dialog Load… asks for is shown here. Delete unloads the rows chosen, and files dragged from Explorer onto the
     /// table are loaded.
@@ -77,6 +77,17 @@ namespace GeometryHelper.Cad.Wpf
             string filter,
             string folder
         ) => AskFiles(owner, "Load AutoLISP files", filter, folder);
+
+        /// <summary>PYLOAD: an Open dialog for Python files, several allowed, opened on the folder of the last load.</summary>
+        /// <param name="owner">The window the dialog belongs to.</param>
+        /// <param name="filter">The filter, in the form the Windows dialogs take.</param>
+        /// <param name="folder">The folder to start in; empty for the dialog's own.</param>
+        /// <returns>The paths chosen; null when the user cancelled.</returns>
+        public static System.Collections.Generic.IReadOnlyList<string> PickPython(
+            Window owner,
+            string filter,
+            string folder
+        ) => AskFiles(owner, "Load Python files", filter, folder);
 
         private static System.Collections.Generic.IReadOnlyList<string> AskFiles(
             Window owner,

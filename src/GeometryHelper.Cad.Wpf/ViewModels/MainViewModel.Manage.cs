@@ -160,8 +160,9 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>
         /// Loads one application as the Load button of Load/Unload Applications does, and says what came of it on the command
         /// line: an AutoLISP file into the document's interpreter (what it wrote, then <c>name.lsp successfully loaded.</c>, or
-        /// the <c>; error:</c> line), a .dll into the plugin manager; <c>.arx</c>, <c>.dbx</c>, <c>.dvb</c>, <c>.fas</c> and
-        /// <c>.vlx</c> files are refused, and any other type is said to be neither an AutoLISP file nor a plugin.
+        /// the <c>; error:</c> line), a .py file into Python (see <see cref="LoadPythonApplication"/>), a .dll into the plugin manager;
+        /// <c>.arx</c>, <c>.dbx</c>, <c>.dvb</c>, <c>.fas</c> and <c>.vlx</c> files are refused, and any other type is said to be
+        /// neither an AutoLISP file, a Python file nor a plugin.
         /// </summary>
         /// <param name="path">The full path.</param>
         /// <returns>The kind of outcome and the line the footer shows.</returns>
@@ -195,6 +196,11 @@ namespace GeometryHelper.Cad.Wpf
                 );
             }
 
+            if (extension == ".py")
+            {
+                return LoadPythonApplication(path, name);
+            }
+
             if (extension == ".dll")
             {
                 if (_plugins == null)
@@ -216,9 +222,51 @@ namespace GeometryHelper.Cad.Wpf
             string why =
                 Array.IndexOf(RefusedApplicationTypes, extension) >= 0
                     ? " cannot be loaded: .arx, .dbx, .dvb, .fas and .vlx files are not supported."
-                    : " is not an AutoLISP file or a plugin.";
+                    : " is not an AutoLISP file, a Python file or a plugin.";
             Say(name + why);
             return new AppLoadResult(AppLoadStatusKind.Refused, name + why, name, why);
+        }
+
+        /// <summary>
+        /// A <c>.py</c> file of <see cref="LoadApplication"/>: loaded into the drawing shown as PYLOAD does, which writes its own
+        /// line (<c>tools.py loaded: C1, DOT.</c>) to the command line; the footer says <c>tools.py successfully loaded.</c>, or
+        /// <c>tools.py failed to load:</c> and the last line the load wrote (the error, or why Python could not run it).
+        /// </summary>
+        private AppLoadResult LoadPythonApplication(string path, string name)
+        {
+            string reason;
+
+            if (PythonFiles == null)
+            {
+                reason = "Python is not in use: applications cannot be loaded.";
+                Say(reason);
+            }
+            else if (_current == null)
+            {
+                reason = "Open a drawing to load " + name + ".";
+                Say(reason);
+            }
+            else
+            {
+                int before = _current.Session.History.Count;
+                bool loaded = PythonFiles.Load(_current.Session, path);
+                SyncHistory();
+
+                if (loaded)
+                {
+                    return new AppLoadResult(AppLoadStatusKind.Loaded, name + " successfully loaded.");
+                }
+
+                const string prefix = "Python error: ";
+                reason = _current.Session.History.Skip(before).LastOrDefault() ?? string.Empty;
+
+                if (reason.StartsWith(prefix, StringComparison.Ordinal))
+                {
+                    reason = reason.Substring(prefix.Length);
+                }
+            }
+
+            return new AppLoadResult(AppLoadStatusKind.Failed, name + " failed to load: " + reason, name, reason);
         }
 
         /// <summary>Gets the AutoLISP files loaded into the document shown, as full paths in the order they loaded; empty with no document.</summary>
@@ -264,6 +312,20 @@ namespace GeometryHelper.Cad.Wpf
                 if (!lisps.Any(folder => AppLoadViewModel.IsUnder(full, folder)))
                 {
                     changed |= Keep(known, full, string.Join(", ", LispCommandsOf(full)));
+                }
+            }
+
+            IReadOnlyList<string> pythons = _current?.Session.Document.SupportRoots.ExistingOf(CadSupportKind.Pythons)
+                ?? Array.Empty<string>();
+
+            foreach (string file in LoadedPythonFiles)
+            {
+                string full = AppLoadViewModel.Normal(file);
+
+                if (!pythons.Any(folder => AppLoadViewModel.IsDirectlyIn(full, folder)))
+                {
+                    // The file is kept so that its row stays, unticked, after a restart; a Python row names its commands only while it is loaded.
+                    changed |= Keep(known, full, string.Empty);
                 }
             }
 

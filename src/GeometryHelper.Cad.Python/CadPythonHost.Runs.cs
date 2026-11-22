@@ -52,16 +52,21 @@ namespace GeometryHelper.Cad.Python
         }
 
         /// <summary>
-        /// Posts the load of a Python file that defines commands (<c>@cad_command</c>): PYLOAD. Its module-level code runs as one
-        /// undo step named PYLOAD, and each command it defines is added to the registries <see cref="AddCommandsTo"/> was given.
+        /// Loads a Python file that defines commands (<c>@cad_command</c>), as PYLOAD does, at once, in the session's drawing.
+        /// Its module-level code runs as one undo step named PYLOAD, and each command it defines is added to the registries
+        /// <see cref="AddCommandsTo"/> was given; loading a file again replaces its commands. A command that shows a window
+        /// (APPLOAD, PYLOAD) may be running on the session, with no prompt waiting and no undo step open; a command at a
+        /// prompt, or a Python run going on, refuses the load. The refusal, or the error of the file, is written to the
+        /// command line.
         /// </summary>
         /// <param name="session">The command session of the drawing to work in.</param>
         /// <param name="path">The file.</param>
+        /// <returns>True when the file loaded with no error; a file that fails keeps no command and is not in <see cref="LoadedFiles"/>.</returns>
         /// <exception cref="ArgumentNullException">Thrown when either is null.</exception>
-        public void LoadFile(CadCommandSession session, string path)
+        public bool LoadFile(CadCommandSession session, string path)
         {
             Check(session, path);
-            _owner.Post(() => LoadNow(session, path));
+            return LoadNow(session, path, true);
         }
 
         /// <summary>
@@ -212,14 +217,23 @@ namespace GeometryHelper.Cad.Python
         }
 
         /// <summary>Begins a posted run, after the checks every run starts with: none going on, Python started, the file allowed and read.</summary>
-        private bool Prepare(CadCommandSession session, string step, string path, out string source, out string full)
+        private bool Prepare(
+            CadCommandSession session,
+            string step,
+            string path,
+            out string source,
+            out string full,
+            bool inCommand = false
+        )
         {
             source = null;
             full = null;
 
+            // A command that only shows a window (no prompt, no undo step of its own) may be running when a load is asked for.
             string busy =
                 _current != null ? BusyText()
-                : session.IsRunning ? CommandRunning
+                : session.IsRunning && !(inCommand && session.Prompt == null && !session.Document.IsInGroup)
+                    ? CommandRunning
                 : null;
 
             if (busy != null)
@@ -367,6 +381,9 @@ namespace GeometryHelper.Cad.Python
         )
         {
             CadDocument document = session.Document;
+
+            // A load asked from a command that shows a window finds it running: it is left running, as the run found it.
+            bool commandAround = session.IsRunning;
             var run = new CadPythonRun(step, session, path);
             Result result = new Result { Status = "failed" };
             string hostError = null;
@@ -420,7 +437,7 @@ namespace GeometryHelper.Cad.Python
 
             try
             {
-                if (session.IsRunning)
+                if (session.IsRunning && !commandAround)
                 {
                     session.Escape();
                 }

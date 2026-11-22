@@ -53,9 +53,9 @@ namespace GeometryHelper.Cad.Wpf
     }
 
     /// <summary>
-    /// A row of Load/Unload Applications: an AutoLISP file or a plugin, with whether it is on, the commands it defines, the file,
+    /// A row of Load/Unload Applications: an AutoLISP file, a Python file or a plugin, with whether it is on, the commands it defines, the file,
     /// and whether it loads at every start. Ticking On loads it and unticking unloads it; ticking At start keeps it for every
-    /// start, except where the file lies in the program's Lisps or Plugins folder, which always load, and its box is ticked and
+    /// start, except where the file lies in the program's Lisps, Pythons (directly in it) or Plugins folder, which always load, and its box is ticked and
     /// disabled.
     /// </summary>
     public sealed class AppLoadRow : ObservableObject
@@ -85,11 +85,14 @@ namespace GeometryHelper.Cad.Wpf
             PluginName = pluginName;
         }
 
-        /// <summary>Gets the kind, <c>Lisp</c> (shown green) or <c>Plugin</c> (shown blue).</summary>
+        /// <summary>Gets the kind, <c>Lisp</c> (shown green), <c>Python</c> (shown amber) or <c>Plugin</c> (shown blue).</summary>
         public string Kind { get; }
 
         /// <summary>Gets whether it is a plugin.</summary>
         public bool IsPlugin => PluginName != null;
+
+        /// <summary>Gets whether it is a Python file.</summary>
+        public bool IsPython => Kind == "Python";
 
         /// <summary>Gets the file's name for an AutoLISP file, the plugin's name for a plugin.</summary>
         public string Name { get; }
@@ -147,11 +150,13 @@ namespace GeometryHelper.Cad.Wpf
     /// <para>
     /// Load/Unload Applications, shown by APPLOAD and by the Plugin manager button: the AutoLISP files loaded into the
     /// document shown, those of the Startup Suite, and the plugins known in this session, in one table (On, Name, Kind,
-    /// Commands, File, At start) sorted by name and then by file, with chips that filter it by kind. Load takes .lsp and .dll
+    /// Commands, File, At start) sorted by name and then by file, with chips that filter it by kind. Load takes .lsp, .py and .dll
     /// files (an AutoLISP file as <see cref="CadCommandSession.LoadLisp"/> does, a .dll through the plugin manager as NETLOAD
     /// does), Reload loads the rows chosen again and Unload unloads them: a plugin as the plugin manager does, an AutoLISP file
     /// by losing the <c>c:</c> commands it defined, which become unknown commands, its row staying in the table unticked;
-    /// AutoLISP can unload no more than that. What each action did is a line of the command history. The folder of the last Load is kept in Global
+    /// AutoLISP can unload no more than that. A Python file (a row of Kind <c>Python</c>) is loaded as PYLOAD does and belongs to the process, not to
+    /// the drawing shown; unloading it takes the commands it defined out of every drawing, its Startup Suite is <see cref="GlobalSettings.PythonStartupSuite"/>.
+    /// What each action did is a line of the command history. The folder of the last Load is kept in Global
     /// settings (<see cref="GlobalSettings.AppLoadFolder"/>), the Startup Suite in <see cref="GlobalSettings.LispStartupSuite"/>.
     /// </para>
     /// <para>
@@ -169,14 +174,18 @@ namespace GeometryHelper.Cad.Wpf
     /// </summary>
     public sealed class AppLoadViewModel : ObservableObject, IDisposable
     {
-        /// <summary>The filter of the file dialog Load… shows: applications (.lsp and .dll), AutoLISP, plugins, and all files.</summary>
+        /// <summary>The filter of the file dialog Load… shows: applications (.lsp, .py and .dll), AutoLISP, Python, plugins, and all files.</summary>
         public const string OpenFilter =
-            "Applications (*.lsp;*.dll)|*.lsp;*.dll|Lisp files (*.lsp)|*.lsp|Plugins (*.dll)|*.dll|All files (*.*)|*.*";
+            "Applications (*.lsp;*.py;*.dll)|*.lsp;*.py;*.dll|Lisp files (*.lsp)|*.lsp|Python files (*.py)|*.py|Plugins (*.dll)|*.dll|All files (*.*)|*.*";
 
         /// <summary>The filter of the file dialog LISPLOAD shows: AutoLISP files.</summary>
         public const string LispFilter = "Lisp files (*.lsp)|*.lsp";
 
+        /// <summary>The filter of the file dialog PYLOAD shows: Python files.</summary>
+        public const string PythonFilter = "Python files (*.py)|*.py";
+
         private const string LispKind = "Lisp";
+        private const string PythonKind = "Python";
         private const string PluginKind = "Plugin";
 
         private readonly MainViewModel _model;
@@ -219,7 +228,7 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets the rows shown, as the chip chosen filters them, sorted by name and then by file.</summary>
         public IReadOnlyList<AppLoadRow> Rows => _rows;
 
-        /// <summary>Gets or sets the chip chosen: <c>All</c>, <c>Lisp</c> or <c>Plugin</c>.</summary>
+        /// <summary>Gets or sets the chip chosen: <c>All</c>, <c>Lisp</c>, <c>Python</c> or <c>Plugin</c>.</summary>
         public string Filter
         {
             get => _filter;
@@ -236,7 +245,11 @@ namespace GeometryHelper.Cad.Wpf
         public string AllChipText => "All " + _all.Count.ToString(CultureInfo.InvariantCulture);
 
         /// <summary>Gets the chip of the AutoLISP files, with their number: <c>Lisp 3</c>.</summary>
-        public string LispChipText => "Lisp " + _all.Count(r => !r.IsPlugin).ToString(CultureInfo.InvariantCulture);
+        public string LispChipText =>
+            "Lisp " + _all.Count(r => !r.IsPlugin && !r.IsPython).ToString(CultureInfo.InvariantCulture);
+
+        /// <summary>Gets the chip of the Python files, with their number: <c>Python 2</c>.</summary>
+        public string PythonChipText => "Python " + _all.Count(r => r.IsPython).ToString(CultureInfo.InvariantCulture);
 
         /// <summary>Gets the chip of the plugins, with their number: <c>Plugins 1</c>.</summary>
         public string PluginChipText => "Plugins " + _all.Count(r => r.IsPlugin).ToString(CultureInfo.InvariantCulture);
@@ -285,7 +298,7 @@ namespace GeometryHelper.Cad.Wpf
                 ? "Files in the Lisps and Plugins folders load at every start, so they cannot be taken out of the list."
                 : "Unload the chosen files and take them out of the list";
 
-        /// <summary>Gets the command of a filter chip, given All, Lisp or Plugin.</summary>
+        /// <summary>Gets the command of a filter chip, given All, Lisp, Python or Plugin.</summary>
         public ICommand FilterCommand { get; }
 
         /// <summary>Takes the rows chosen in the table, which Reload and Unload act on.</summary>
@@ -353,7 +366,7 @@ namespace GeometryHelper.Cad.Wpf
                 }
                 else
                 {
-                    LoadLisp(row.File);
+                    LoadScript(row.File);
                 }
             }
 
@@ -410,7 +423,11 @@ namespace GeometryHelper.Cad.Wpf
 
             var files = new HashSet<string>(gone.Select(r => Normal(r.File)), StringComparer.OrdinalIgnoreCase);
             var lisps = new HashSet<string>(
-                gone.Where(r => !r.IsPlugin).Select(r => Normal(r.File)),
+                gone.Where(r => !r.IsPlugin && !r.IsPython).Select(r => Normal(r.File)),
+                StringComparer.OrdinalIgnoreCase
+            );
+            var pythons = new HashSet<string>(
+                gone.Where(r => r.IsPython).Select(r => Normal(r.File)),
                 StringComparer.OrdinalIgnoreCase
             );
             _model.ChangeSettings(
@@ -418,6 +435,7 @@ namespace GeometryHelper.Cad.Wpf
                 {
                     s.SetKnownApplications(s.KnownApplications.Where(p => !files.Contains(Normal(p.Key))).ToList());
                     s.LispStartupSuite = s.LispStartupSuite.Where(f => !lisps.Contains(Normal(f))).ToList();
+                    s.PythonStartupSuite = s.PythonStartupSuite.Where(f => !pythons.Contains(Normal(f))).ToList();
                 },
                 "applications were removed from the list"
             );
@@ -462,7 +480,7 @@ namespace GeometryHelper.Cad.Wpf
                 }
                 else
                 {
-                    LoadLisp(row.File);
+                    LoadScript(row.File);
                 }
 
                 EndLoad();
@@ -503,6 +521,17 @@ namespace GeometryHelper.Cad.Wpf
 
                 _model.Plugins.SetLoadAtStartup(managed.Name, value);
             }
+            else if (row.IsPython)
+            {
+                string file = row.File;
+                _model.ChangeSettings(
+                    s =>
+                        s.PythonStartupSuite = value
+                            ? s.PythonStartupSuite.Concat(new[] { file }).ToList()
+                            : s.PythonStartupSuite.Where(f => !SameFile(f, file)).ToList(),
+                    "the Python Startup Suite was changed"
+                );
+            }
             else
             {
                 string file = row.File;
@@ -539,9 +568,9 @@ namespace GeometryHelper.Cad.Wpf
 
                 last = full;
 
-                if (IsLisp(full))
+                if (IsLisp(full) || IsPython(full))
                 {
-                    LoadLisp(full);
+                    LoadScript(full);
                 }
                 else
                 {
@@ -554,7 +583,7 @@ namespace GeometryHelper.Cad.Wpf
             return last;
         }
 
-        private void LoadLisp(string path)
+        private void LoadScript(string path)
         {
             if (_model.HasDocument)
             {
@@ -570,6 +599,9 @@ namespace GeometryHelper.Cad.Wpf
 
         private static bool IsLisp(string path) =>
             string.Equals(Path.GetExtension(path), ".lsp", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsPython(string path) =>
+            string.Equals(Path.GetExtension(path), ".py", StringComparison.OrdinalIgnoreCase);
 
         /// <summary>A load begins: the failures of the one before are forgotten, and the line stays as it was until this one ends.</summary>
         private void BeginLoad() => _failures = new List<KeyValuePair<string, string>>();
@@ -648,7 +680,7 @@ namespace GeometryHelper.Cad.Wpf
             {
                 _model.UnloadPlugin(row.PluginName);
             }
-            else if (_model.UnloadLispFile(row.File))
+            else if (row.IsPython ? _model.UnloadPythonFile(row.File) : _model.UnloadLispFile(row.File))
             {
                 _model.Say(row.Name + " unloaded.");
             }
@@ -681,7 +713,7 @@ namespace GeometryHelper.Cad.Wpf
             foreach (
                 string file in loaded
                     .Concat(failed)
-                    .Concat(_off)
+                    .Concat(_off.Where(f => !IsPython(f)))
                     .Concat(suite)
                     .Concat(known.Keys.Where(IsLisp))
                     .Select(Normal)
@@ -704,6 +736,47 @@ namespace GeometryHelper.Cad.Wpf
                         file,
                         on.Contains(file),
                         fixedOn || inSuite.Contains(file),
+                        fixedOn,
+                        null
+                    )
+                );
+            }
+
+            // The Python files: those loaded in the process (not tied to the drawing shown), those unticked here, those of the
+            // Python Startup Suite and those known from before. A file directly in a Pythons folder always loads at start.
+            string[] pythonSuite = _model.Settings.PythonStartupSuite.ToArray();
+            IReadOnlyList<string> pythonsFolders = _model.Session?.Document.SupportRoots.ExistingOf(
+                CadSupportKind.Pythons
+            ) ?? Array.Empty<string>();
+            var pythonOn = new HashSet<string>(
+                _model.LoadedPythonFiles.Select(Normal),
+                StringComparer.OrdinalIgnoreCase
+            );
+            var inPythonSuite = new HashSet<string>(pythonSuite.Select(Normal), StringComparer.OrdinalIgnoreCase);
+
+            foreach (
+                string file in _model
+                    .LoadedPythonFiles.Concat(_off.Where(IsPython))
+                    .Concat(pythonSuite)
+                    .Concat(known.Keys.Where(IsPython))
+                    .Select(Normal)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+            )
+            {
+                bool fixedOn = pythonsFolders.Any(folder => IsDirectlyIn(file, folder));
+                string commands =
+                    pythonOn.Contains(file) ? string.Join(", ", _model.PythonCommandsOf(file))
+                    : remembered.TryGetValue(file, out string last) ? last
+                    : string.Empty;
+                rows.Add(
+                    new AppLoadRow(
+                        this,
+                        PythonKind,
+                        Path.GetFileName(file),
+                        commands,
+                        file,
+                        pythonOn.Contains(file),
+                        fixedOn || inPythonSuite.Contains(file),
                         fixedOn,
                         null
                     )
@@ -737,7 +810,7 @@ namespace GeometryHelper.Cad.Wpf
             }
 
             // The plugins known from an earlier run, which the manager does not hold yet: off, to be ticked to load them.
-            foreach (KeyValuePair<string, string> pair in known.Where(p => !IsLisp(p.Key)))
+            foreach (KeyValuePair<string, string> pair in known.Where(p => !IsLisp(p.Key) && !IsPython(p.Key)))
             {
                 string name = Path.GetFileNameWithoutExtension(pair.Key.TrimEnd('\\', '/'));
 
@@ -751,6 +824,7 @@ namespace GeometryHelper.Cad.Wpf
             _all = rows;
             Raise(nameof(AllChipText));
             Raise(nameof(LispChipText));
+            Raise(nameof(PythonChipText));
             Raise(nameof(PluginChipText));
             ApplyFilter();
         }
@@ -767,7 +841,7 @@ namespace GeometryHelper.Cad.Wpf
         private void ApplyFilter()
         {
             var keep = new HashSet<string>(_chosen.Select(KeyOf), StringComparer.OrdinalIgnoreCase);
-            _rows = _all.Where(r => _filter == "All" || (_filter == PluginKind) == r.IsPlugin).ToList();
+            _rows = _all.Where(r => _filter == "All" || _filter == r.Kind).ToList();
             Raise(nameof(Rows));
             ChooseRows(_rows.Where(r => keep.Contains(KeyOf(r))));
         }
@@ -818,6 +892,14 @@ namespace GeometryHelper.Cad.Wpf
             string root = Normal(folder)?.TrimEnd('\\', '/');
             return !string.IsNullOrEmpty(root)
                 && Normal(file).StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>Whether the file lies in the folder itself, not in a folder below it.</summary>
+        internal static bool IsDirectlyIn(string file, string folder)
+        {
+            string root = Normal(folder)?.TrimEnd('\\', '/');
+            string own = Path.GetDirectoryName(Normal(file))?.TrimEnd('\\', '/');
+            return !string.IsNullOrEmpty(root) && string.Equals(own, root, StringComparison.OrdinalIgnoreCase);
         }
 
         private void OnPluginsChanged(object sender, EventArgs e) => Refresh();
