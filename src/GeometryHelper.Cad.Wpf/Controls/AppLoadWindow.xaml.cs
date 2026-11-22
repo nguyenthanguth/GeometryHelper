@@ -24,8 +24,13 @@ namespace GeometryHelper.Cad.Wpf
             Model = model ?? throw new ArgumentNullException(nameof(model));
             InitializeComponent();
             DataContext = model;
+            model.PropertyChanged += OnModelChanged;
             model.AskFiles = folder => AskFiles(this, folder);
-            Closed += (s, e) => Model.Dispose();
+            Closed += (s, e) =>
+            {
+                Model.PropertyChanged -= OnModelChanged;
+                Model.Dispose();
+            };
         }
 
         /// <summary>Gets the view model.</summary>
@@ -87,8 +92,51 @@ namespace GeometryHelper.Cad.Wpf
 
         private void OnClose(object sender, RoutedEventArgs e) => DialogResult = true;
 
-        private void OnRowsChosen(object sender, SelectionChangedEventArgs e) =>
-            Model.ChooseRows(RowList.SelectedItems.Cast<AppLoadRow>());
+        private bool _showingChoice;
+
+        private void OnRowsChosen(object sender, SelectionChangedEventArgs e)
+        {
+            if (_showingChoice)
+            {
+                return;
+            }
+
+            _showingChoice = true;
+
+            try
+            {
+                Model.ChooseRows(RowList.SelectedItems.Cast<AppLoadRow>());
+            }
+            finally
+            {
+                _showingChoice = false;
+            }
+        }
+
+        /// <summary>The table is made anew when a box is ticked or a file loaded; the rows the model keeps chosen are selected again.</summary>
+        private void OnModelChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(AppLoadViewModel.Chosen) || _showingChoice)
+            {
+                return;
+            }
+
+            _showingChoice = true;
+
+            try
+            {
+                RowList.SelectedItems.Clear();
+
+                foreach (AppLoadRow row in Model.Chosen)
+                {
+                    RowList.SelectedItems.Add(row);
+                }
+            }
+            finally
+            {
+                _showingChoice = false;
+            }
+        }
 
         /// <summary>Delete unloads the rows chosen, as Unload does.</summary>
         private void OnRowKeyDown(object sender, KeyEventArgs e)

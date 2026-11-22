@@ -119,6 +119,12 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets whether the box of At start can be changed.</summary>
         public bool CanChangeAtStart => !IsAtStartFixed;
 
+        /// <summary>Gets the tooltip of the On box, which says what a click does to this row: unload it where it is on, load it where it is off.</summary>
+        public string OnToolTip =>
+            _isOn
+                ? "Loaded: untick to unload it"
+                : "Not loaded: tick to load it again, or press Unload to take it off the list";
+
         internal void ShowAtStart(bool value)
         {
             _atStart = value;
@@ -154,6 +160,9 @@ namespace GeometryHelper.Cad.Wpf
         private IReadOnlyList<AppLoadRow> _rows = Array.Empty<AppLoadRow>();
         private IReadOnlyList<AppLoadRow> _chosen = Array.Empty<AppLoadRow>();
         private string _filter = "All";
+
+        // The AutoLISP files unticked in this window, by full path: they stay in the table, off, until it closes or Unload takes them out.
+        private readonly HashSet<string> _off = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         internal AppLoadViewModel(MainViewModel model)
         {
@@ -283,13 +292,22 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>
         /// Unload: unloads the rows chosen that are loaded. A plugin is unloaded as PLUGINUNLOAD does. An AutoLISP file leaves
         /// the list, unless it is in the Startup Suite, when it stays unticked so that it can be taken out of the suite; the
-        /// <c>c:</c> commands it defined are removed from the interpreter, and the other functions it defined stay.
+        /// <c>c:</c> commands it defined are removed from the interpreter, and the other functions it defined stay. A file
+        /// unticked earlier, which stays in the list off, is taken out of it the same way.
         /// </summary>
         public void Unload()
         {
-            foreach (AppLoadRow row in _chosen.Where(r => r.IsOn))
+            foreach (AppLoadRow row in _chosen)
             {
-                UnloadRow(row);
+                if (row.IsOn)
+                {
+                    UnloadRow(row);
+                }
+
+                if (!row.IsPlugin)
+                {
+                    _off.Remove(Normal(row.File));
+                }
             }
 
             Refresh();
@@ -326,6 +344,12 @@ namespace GeometryHelper.Cad.Wpf
             else
             {
                 UnloadRow(row);
+
+                // The row stays, off, so that a second click on the same box ticks it again and no other row moves.
+                if (!row.IsPlugin)
+                {
+                    _off.Add(Normal(row.File));
+                }
             }
 
             Refresh();
@@ -425,11 +449,22 @@ namespace GeometryHelper.Cad.Wpf
             IReadOnlyList<string> lisps = _model.Session?.Document.SupportRoots.ExistingOf(CadSupportKind.Lisps)
                 ?? Array.Empty<string>();
 
-            // The files loaded, then those of the Startup Suite that are not loaded now, which stay to be ticked or unticked.
-            foreach (string file in loaded.Concat(suite).Distinct(StringComparer.OrdinalIgnoreCase))
+            // The files loaded, those that failed half way (their commands are bound), the files unticked here and those of the
+            // Startup Suite, which stay to be ticked or unticked. A path is one file however it was written.
+            IReadOnlyList<string> failed = _model.FailedLispFiles;
+            var on = new HashSet<string>(loaded.Concat(failed).Select(Normal), StringComparer.OrdinalIgnoreCase);
+            var inSuite = new HashSet<string>(suite.Select(Normal), StringComparer.OrdinalIgnoreCase);
+
+            foreach (
+                string file in loaded
+                    .Concat(failed)
+                    .Concat(_off)
+                    .Concat(suite)
+                    .Select(Normal)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+            )
             {
-                bool on = loaded.Any(f => SameFile(f, file));
-                bool fixedOn = lisps.Any(folder => SameFolder(Path.GetDirectoryName(file), folder));
+                bool fixedOn = lisps.Any(folder => IsUnder(file, folder));
                 IReadOnlyList<string> commands = _model.LispCommandsOf(file);
                 rows.Add(
                     new AppLoadRow(
@@ -438,8 +473,8 @@ namespace GeometryHelper.Cad.Wpf
                         Path.GetFileName(file),
                         string.Join(", ", commands),
                         file,
-                        on,
-                        fixedOn || suite.Any(f => SameFile(f, file)),
+                        on.Contains(file),
+                        fixedOn || inSuite.Contains(file),
                         fixedOn,
                         null
                     )
@@ -477,12 +512,16 @@ namespace GeometryHelper.Cad.Wpf
             ApplyFilter();
         }
 
+        /// <summary>The rows are made anew, so the rows chosen are found again by file or plugin name and stay chosen.</summary>
         private void ApplyFilter()
         {
+            var keep = new HashSet<string>(_chosen.Select(KeyOf), StringComparer.OrdinalIgnoreCase);
             _rows = _all.Where(r => _filter == "All" || (_filter == PluginKind) == r.IsPlugin).ToList();
             Raise(nameof(Rows));
-            ChooseRows(Array.Empty<AppLoadRow>());
+            ChooseRows(_rows.Where(r => keep.Contains(KeyOf(r))));
         }
+
+        private static string KeyOf(AppLoadRow row) => row.IsPlugin ? "P|" + row.PluginName : "L|" + Normal(row.File);
 
         private static int Compare(AppLoadRow a, AppLoadRow b)
         {
@@ -506,10 +545,29 @@ namespace GeometryHelper.Cad.Wpf
             return order != 0 ? order : string.CompareOrdinal(a.Kind, b.Kind);
         }
 
-        private static bool SameFile(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+        private static bool SameFile(string a, string b) =>
+            string.Equals(Normal(a), Normal(b), StringComparison.OrdinalIgnoreCase);
 
-        private static bool SameFolder(string a, string b) =>
-            string.Equals(a?.TrimEnd('\\', '/'), b?.TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase);
+        /// <summary>The full path, so that <c>C:/a/b.lsp</c> and <c>C:\a\x\..\b.lsp</c> are one file; a name that is no path is kept as it is.</summary>
+        private static string Normal(string path)
+        {
+            try
+            {
+                return Path.GetFullPath(path);
+            }
+            catch (Exception ex) when (ex is ArgumentException || ex is NotSupportedException || ex is IOException)
+            {
+                return path;
+            }
+        }
+
+        /// <summary>Whether the file lies in the folder or in any folder below it.</summary>
+        private static bool IsUnder(string file, string folder)
+        {
+            string root = Normal(folder)?.TrimEnd('\\', '/');
+            return !string.IsNullOrEmpty(root)
+                && Normal(file).StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+        }
 
         private void OnPluginsChanged(object sender, EventArgs e) => Refresh();
     }

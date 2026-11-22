@@ -166,6 +166,10 @@ namespace GeometryHelper.Cad
         internal IReadOnlyList<string> LispCommandsOf(string path) =>
             _lisp != null ? _lisp.CommandsOf(path) : Array.Empty<string>();
 
+        /// <summary>Gets the files whose load failed after they had defined a command (<see cref="LispInterpreter.FailedFiles"/>), as full paths in the order they failed; their commands stay bound, and <see cref="LispCommandsOf"/> lists them.</summary>
+        internal IReadOnlyList<string> FailedLispFiles =>
+            _lisp != null ? _lisp.FailedFiles : (IReadOnlyList<string>)Array.Empty<string>();
+
         /// <summary>Unloads an AutoLISP file as far as AutoLISP can (<see cref="LispInterpreter.UnloadFile"/>): it leaves <see cref="LoadedLispFiles"/> and its <c>c:</c> commands are unbound.</summary>
         /// <param name="path">The file's full path.</param>
         /// <returns>True when the file was loaded.</returns>

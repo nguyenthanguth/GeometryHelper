@@ -205,17 +205,22 @@ the settings keep (`appLoadFolder` under `support`). Each file is loaded in the 
 
 | File | What Load does |
 |---|---|
-| `tools.lsp` | loads it into the drawing shown, as `CadCommandSession.LoadLisp` does: what the file wrote, then `tools.lsp successfully loaded.`; a file with an error runs up to the error and writes the `; error:` line, and is not listed |
+| `tools.lsp` | loads it into the drawing shown, as `CadCommandSession.LoadLisp` does: what the file wrote, then `tools.lsp successfully loaded.`; a file with an error runs up to the error and writes the `; error:` line; it is listed, with the `c:` commands it defined before the error, where it defined any (they stay bound, and Unload takes them away), and has no row where it defined none |
 | `CircleTools.dll` | goes to the [plugin manager](plugins.md), as NETLOAD does, which asks once about a file outside its trusted folders |
 | `.arx`, `.dbx`, `.dvb`, `.fas`, `.vlx` | refused with `tools.fas cannot be loaded: .arx, .dbx, .dvb, .fas and .vlx files are not supported.` |
 | any other file | refused with `readme.txt is not an AutoLISP file or a plugin.` |
 
 Every line goes to the command history, none to the window. **Reload** loads the rows chosen again: an AutoLISP file is
-loaded as Load loads it, a plugin as PLUGINRELOAD does. **Unload** unloads the rows chosen, as does unticking On, and the
+loaded as Load loads it, a plugin as PLUGINRELOAD does. **Unload** unloads the rows chosen, and so does the
 Delete key: a plugin as PLUGINUNLOAD does; an AutoLISP file leaves the list and the `c:` commands it defined are removed from
 the interpreter, so that typing one is an unknown command, though a name that is also an alias, such as `AA` for AREA, goes
 back to the alias. The other functions it defined stay until the drawing is closed, as in AutoCAD, which cannot unload an
-AutoLISP file either.
+AutoLISP file either. Unticking the On box of an AutoLISP file unloads it the same way, but the row stays in the table, off,
+until the window closes, so that a second click on the same box (a double click is two) ticks it again and touches no other
+row; Unload or Delete on that row takes it off the list, unless the file is in the Startup Suite. Reload and a tick of a box
+keep the rows chosen. A file loaded again drops the `c:` commands it no longer defines: a `pair.lsp` that defined `c:KEEP1`
+and `c:GONE1`, edited to define `c:KEEP1` only and reloaded, leaves `GONE1` an unknown command, so that no command stays bound
+that no row lists.
 
 The chips, **All 4**, **Lisp 3** and **Plugins 1**, show the number of rows of each kind and filter the table. The table
 has the columns:
@@ -229,8 +234,9 @@ has the columns:
 | File | the full path, with an ellipsis where it is long, and the path as tooltip |
 | At start | whether it loads at every start |
 
-The rows are sorted by name and then by file, either case the same, and several can be chosen with Ctrl or Shift. The
-commands of an AutoLISP file are the `c:` functions it defined while it loaded: a file that defines `c:AA` and `c:BB` shows
+The rows are sorted by name and then by file, either case the same, and several can be chosen with Ctrl or Shift. A path
+written with forward slashes, as a hand-edited suite may have it, is the same file as the one with backslashes, and has one
+row. The commands of an AutoLISP file are the `c:` functions it defined while it loaded: a file that defines `c:AA` and `c:BB` shows
 `AA, BB`, one that defines none shows nothing (`CadCommandSession.LispCommandsOf`). The list is that of the drawing shown,
 as `LoadedLispFiles` is, whether the file came by Load, by `(load)` or as a startup file, and each drawing has its own. The
 files of the [Startup Suite](#the-startup-suite) that are not loaded now stay in the table with On unticked, so that they can
@@ -238,8 +244,9 @@ be loaded or taken out of the suite.
 
 **At start** is the Startup Suite: ticking it for an AutoLISP file puts the file at the end of the suite, saved at once, and
 unticking takes it out (`lispStartupSuite`, so a suite from an earlier version carries over); for a plugin it is the startup
-list of the plugin manager. A file in the `Lisps` folder, or a plugin in the `Plugins` folder, beside the app always loads,
-so its box is ticked and greyed. Files dragged from Explorer onto the table are loaded in the order of the drop.
+list of the plugin manager. A file in the `Lisps` folder, at any depth (`Lisps/Deep/deep.lsp` as much as `Lisps/tools.lsp`),
+or a plugin in the `Plugins` folder, beside the app always loads, so its box is ticked and greyed. Files dragged from Explorer
+onto the table are loaded in the order of the drop.
 
 A window that shows no such dialog (`MainViewModel.ShowAppLoad` null) says `Load/Unload Applications cannot be shown here.`
 for APPLOAD. The History list, Add to History, Files of type and the Startup Suite window of earlier versions are gone, and

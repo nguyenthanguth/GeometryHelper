@@ -6,6 +6,20 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Load/Unload Applications, after a real mouse, the Delete key and an Open dialog were driven against it. The table
+was rebuilt on every click, so a double click on the On box of the second of three files unticked it and then unloaded the
+third (the second click landed on the neighbour that had moved up); an unticked AutoLISP file now stays in the table, off,
+until the window closes, a second click ticks it again and no other row moves, and Unload or Delete still takes a file that
+is not in the Startup Suite off the list. The rows chosen were lost at every Refresh (a tick, Reload, a plugin's At start);
+they are now kept by file or plugin name, and the window selects them again. A file in a subfolder of `Lisps` (`Lisps/Deep/deep.lsp`)
+showed an At start box that could be ticked, though every file under `Lisps` loads at start; the box is ticked and greyed at
+any depth. A file that failed half way (`(defun c:ERRONE ...)`, then `(car 5)`) left `ERRONE` bound with no row to unload it:
+it now gets a row listing the commands it defined before the error, and Unload takes them away. A file edited to define
+`c:KEEP1` only and reloaded left `c:GONE1` bound; a reload now unbinds the commands the file no longer defines. A Startup
+Suite entry written with forward slashes (`C:/dir/suite.lsp`) was a second row from the loaded `C:\dir\suite.lsp`, one On with
+At start unticked and one off with it ticked; paths are compared as full paths, so it is one row. The tooltip of the On box
+of a row that is off no longer says it is loaded, and the header no longer sits 6 pixels off its cells when the scrollbar shows.
+
 **FIXED.** The first STYLE of a session took a few seconds, and the first click on the Font name box stalled again. The box
 made a row for each of the 1 325 fonts of the machine when it opened (2 100 to 2 500 ms, every time a Text Style dialog was
 opened); a drop-down of the app's own style now makes the rows it shows, 47 of them, and opens in 120 to 200 ms. The window
