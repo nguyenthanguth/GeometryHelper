@@ -62,6 +62,9 @@ namespace GeometryHelper.Cad
         {
             CadUcsManager systems = c.Document.Ucs;
             c.Write("Current ucs name:  " + UcsName(systems.Current));
+
+            // What the command changes, the systems and the names saved or deleted, is one undo step.
+            c.OpenUndoStep();
             string typed;
 
             // A word that is none of its options is refused and the origin asked again, as AutoCAD 2021 asks it.

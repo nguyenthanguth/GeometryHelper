@@ -537,6 +537,7 @@ namespace GeometryHelper.Cad
 
             if (_groupRecords != null && _groupRecords.Count > kept)
             {
+                MoveUcs(_groupRecords.GetRange(kept, _groupRecords.Count - kept), true);
                 _groupRecords.RemoveRange(kept, _groupRecords.Count - kept);
             }
 
@@ -708,6 +709,7 @@ namespace GeometryHelper.Cad
             }
 
             bool made = !_groupFailed && _groupRecords.Count > 0;
+            List<CadEditRecord> records = _groupRecords;
             string name = _groupName;
             _groupDepth = 0;
             _layerBefore = _layerSetDepth == 0 ? null : _layerBefore;
@@ -718,6 +720,7 @@ namespace GeometryHelper.Cad
             if (made)
             {
                 Reload(_states[_position].Bytes, null);
+                MoveUcs(records, true);
                 ReplaySettings();
                 Changed?.Invoke(
                     this,
@@ -856,9 +859,14 @@ namespace GeometryHelper.Cad
                 {
                     MoveSettings(step.Records, undo);
                 }
-                else if (undo)
+                else
                 {
-                    BackToPaper(step.Records);
+                    MoveUcs(step.Records, undo);
+
+                    if (undo)
+                    {
+                        BackToPaper(step.Records);
+                    }
                 }
             }
         }
@@ -1341,6 +1349,12 @@ namespace GeometryHelper.Cad
         private void TakeBack()
         {
             Reload(_states[_position].Bytes, null);
+
+            if (_groupDepth > 0)
+            {
+                MoveUcs(_groupRecords, true);
+            }
+
             ReplaySettings();
 
             if (_groupDepth > 0)

@@ -14,9 +14,12 @@ namespace GeometryHelper.Cad
     /// <para>
     /// They are read from the drawing when first asked for: the current systems from the header (<c>$UCSORG</c>,
     /// <c>$UCSXDIR</c>, <c>$UCSYDIR</c>, <c>$UCSNAME</c> and the <c>$PUCS</c> ones of paper space), the named ones from the UCS
-    /// table. As in AutoCAD, a change of system is not a step of the drawing's undo: U and REDO leave it as it is, and UCS
-    /// Previous goes back through the earlier ones. The drawing is given them when it is saved, the table and the header
-    /// written as AutoCAD writes them; one with nothing changed is saved with its own bytes.
+    /// table. As in AutoCAD 2021, a change of system is a step of the drawing's undo: every change (UCS in any of its forms,
+    /// a named system saved, deleted or renamed) is one step named UCS, or part of the step of the command or group it is made
+    /// in, and U takes it back with the earlier systems kept for UCS Previous, REDO puts it again. A 3point UCS, then World,
+    /// then U, REDO and U gives back the 3point one with the World one in the list, as AutoCAD does. The drawing is given
+    /// them when it is saved, the table and the header written as AutoCAD writes them; one with nothing changed is saved
+    /// with its own bytes.
     /// </para>
     /// <para>
     /// All the layouts share the one system of paper space the header keeps; AutoCAD keeps one in each layout as well.
@@ -34,11 +37,14 @@ namespace GeometryHelper.Cad
         private readonly List<CadUcs> _modelPrevious = new List<CadUcs>();
         private readonly List<CadUcs> _paperPrevious = new List<CadUcs>();
 
-        // Whether each was changed since the drawing was opened, which a save writes; and whether any was since the last save.
+        // Whether each was changed since the drawing was opened, which a save writes; kept set by an undo, which writes the
+        // system it goes back to again, as the drawing may have been saved with the one it left.
         private bool _modelChanged;
         private bool _paperChanged;
         private bool _tableChanged;
-        private bool _modified;
+
+        // The systems as the drawing was opened or last saved, which IsModified is set against.
+        private CadUcsState _saved;
 
         internal CadUcsManager(CadDocument document)
         {
@@ -62,6 +68,7 @@ namespace GeometryHelper.Cad
             Model = Read(database.Ucsorg, database.Ucsxdir, database.Ucsydir, Listed(database.Ucsname)) ?? CadUcs.World;
             Paper = Read(database.Pucsorg, database.Pucsxdir, database.Pucsydir, Listed(database.Pucsname))
                 ?? CadUcs.World;
+            _saved = Capture();
         }
 
         /// <summary>Raised when a current system, a named one or the icon changes.</summary>
@@ -103,8 +110,8 @@ namespace GeometryHelper.Cad
 
         private bool _iconAtOrigin = true;
 
-        /// <summary>Gets whether a system has changed since the drawing was opened or last saved.</summary>
-        public bool IsModified => _modified;
+        /// <summary>Gets whether the systems differ from those the drawing was opened or last saved with: a change taken back by U is none.</summary>
+        public bool IsModified => !Capture().SameAs(_saved);
 
         /// <summary>Gets the current system of a space: <see cref="Model"/> for model space, <see cref="Paper"/> for a layout.</summary>
         /// <param name="space">The space.</param>
@@ -160,16 +167,73 @@ namespace GeometryHelper.Cad
                 );
             }
 
-            bool model = _document.WorkingSpace.IsModel;
-            CadUcs now = model ? Model : Paper;
-            Remember(model, now);
-
-            if (now.IsSameAs(ucs, Tolerance.Default) && string.Equals(now.Name, ucs.Name, StringComparison.Ordinal))
+            Record(() =>
             {
-                return;
+                bool model = _document.WorkingSpace.IsModel;
+                CadUcs now = model ? Model : Paper;
+                Remember(model, now);
+
+                if (
+                    !(
+                        now.IsSameAs(ucs, Tolerance.Default)
+                        && string.Equals(now.Name, ucs.Name, StringComparison.Ordinal)
+                    )
+                )
+                {
+                    Put(model, ucs);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Makes a change of the systems one undo step, or part of the step of the group open (a command's, a routine's): the
+        /// systems as they are before and after are kept, and U and REDO put them back by those, the drawing left alone. The
+        /// step is recorded where the change leaves the systems as they were too, as UCS World in the World UCS adds a World
+        /// to the list for UCS Previous.
+        /// </summary>
+        /// <param name="change">Makes the change.</param>
+        /// <returns>False where the document refused it, after an edit of the group open failed.</returns>
+        private bool Record(Action change)
+        {
+            CadUcsState before = Capture();
+            CadUcsState after = null;
+            return _document
+                .RecordSetting(
+                    CadDocument.UcsProperty,
+                    CadDocument.UcsProperty,
+                    () => Capture().Describe(),
+                    () =>
+                    {
+                        change();
+                        after = Capture();
+                    },
+                    (document, forward) => document.Ucs.Apply(forward ? after : before),
+                    false,
+                    true
+                )
+                .Succeeded;
+        }
+
+        private CadUcsState Capture() =>
+            new CadUcsState(Model, Paper, _modelPrevious.ToArray(), _paperPrevious.ToArray(), _named);
+
+        /// <summary>Puts the systems back as a step undone or redone left them; the drawing is given them at the next save.</summary>
+        private void Apply(CadUcsState state)
+        {
+            Model = state.Model;
+            Paper = state.Paper;
+            _modelPrevious.Clear();
+            _modelPrevious.AddRange(state.ModelPrevious);
+            _paperPrevious.Clear();
+            _paperPrevious.AddRange(state.PaperPrevious);
+            _named.Clear();
+
+            foreach (CadUcs ucs in state.Named)
+            {
+                _named.Add(ucs.Name, ucs);
             }
 
-            Put(model, ucs);
+            Raise();
         }
 
         /// <summary>Keeps the current system of a space for <see cref="Previous"/>, the oldest dropped past ten.</summary>
@@ -196,17 +260,19 @@ namespace GeometryHelper.Cad
                 return false;
             }
 
-            // A system whose name was deleted or given to another since comes back with none.
-            CadUcs back = previous[previous.Count - 1];
-            previous.RemoveAt(previous.Count - 1);
-            CadUcs named = back.Name == null ? null : Find(back.Name);
-            Put(
-                model,
-                named != null && named.IsSameAs(back, Tolerance.Default) ? named
-                    : back.Name == null ? back
-                    : back.WithName(null)
-            );
-            return true;
+            return Record(() =>
+            {
+                // A system whose name was deleted or given to another since comes back with none.
+                CadUcs back = previous[previous.Count - 1];
+                previous.RemoveAt(previous.Count - 1);
+                CadUcs named = back.Name == null ? null : Find(back.Name);
+                Put(
+                    model,
+                    named != null && named.IsSameAs(back, Tolerance.Default) ? named
+                        : back.Name == null ? back
+                        : back.WithName(null)
+                );
+            });
         }
 
         /// <summary>Saves the current system of the space the canvas shows under a name, replacing a named system of that name, and names the current system so, as UCS Save; the system as it was, unnamed, is kept for <see cref="Previous"/> first, as AutoCAD does.</summary>
@@ -216,13 +282,15 @@ namespace GeometryHelper.Cad
         public void Save(string name)
         {
             string checkedName = CheckName(name);
-            CadUcs saved = Current.WithName(checkedName);
-            _named.Remove(checkedName);
-            _named.Add(checkedName, saved);
-            _tableChanged = true;
-            _modified = true;
-            Remember(_document.WorkingSpace.IsModel, Current);
-            Put(_document.WorkingSpace.IsModel, saved);
+            Record(() =>
+            {
+                CadUcs saved = Current.WithName(checkedName);
+                _named.Remove(checkedName);
+                _named.Add(checkedName, saved);
+                _tableChanged = true;
+                Remember(_document.WorkingSpace.IsModel, Current);
+                Put(_document.WorkingSpace.IsModel, saved);
+            });
         }
 
         /// <summary>Makes a named system current in the space the canvas shows, as UCS Restore.</summary>
@@ -253,12 +321,13 @@ namespace GeometryHelper.Cad
                 return false;
             }
 
-            _named.Remove(found.Name);
-            _tableChanged = true;
-            _modified = true;
-            NameCurrent(found.Name, null);
-            Raise();
-            return true;
+            return Record(() =>
+            {
+                _named.Remove(found.Name);
+                _tableChanged = true;
+                NameCurrent(found.Name, null);
+                Raise();
+            });
         }
 
         /// <summary>Renames a named system, as the UCS dialog does; a current system of that name takes the new one.</summary>
@@ -289,13 +358,14 @@ namespace GeometryHelper.Cad
                 );
             }
 
-            _named.Remove(found.Name);
-            _named.Add(checkedName, found.WithName(checkedName));
-            _tableChanged = true;
-            _modified = true;
-            NameCurrent(found.Name, checkedName);
-            Raise();
-            return true;
+            return Record(() =>
+            {
+                _named.Remove(found.Name);
+                _named.Add(checkedName, found.WithName(checkedName));
+                _tableChanged = true;
+                NameCurrent(found.Name, checkedName);
+                Raise();
+            });
         }
 
         /// <summary>Writes the systems into the drawing as AutoCAD writes them, where one has changed: the UCS table, then the header.</summary>
@@ -367,7 +437,7 @@ namespace GeometryHelper.Cad
         /// The drawing was saved with the systems written: nothing is changed since. What was changed before is written again at
         /// each save, as an undo reads back a drawing kept before it was.
         /// </summary>
-        internal void Saved() => _modified = false;
+        internal void Saved() => _saved = Capture();
 
         /// <summary>A system read from the drawing; null, with a warning, where its axes do not make one.</summary>
         private static CadUcs Read(GeoPoint3 origin, GeoVector3 xAxis, GeoVector3 yAxis, string name)
@@ -436,14 +506,12 @@ namespace GeometryHelper.Cad
             {
                 Model = Model.WithName(name);
                 _modelChanged = true;
-                _modified = true;
             }
 
             if (string.Equals(Paper.Name, old, StringComparison.OrdinalIgnoreCase))
             {
                 Paper = Paper.WithName(name);
                 _paperChanged = true;
-                _modified = true;
             }
         }
 
@@ -453,13 +521,11 @@ namespace GeometryHelper.Cad
             {
                 Model = ucs;
                 _modelChanged = true;
-                _modified = true;
             }
             else
             {
                 Paper = ucs;
                 _paperChanged = true;
-                _modified = true;
             }
 
             Raise();

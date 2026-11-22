@@ -244,7 +244,7 @@ namespace GeometryHelper.Cad.UnitTest
             CadDocument document = Blank();
             CadCommandSession session = Session(document);
             Run(session, "UCS", "Z", "30");
-            Assert.False(document.CanUndo);
+            Assert.True(document.CanUndo);
             Assert.True(document.IsModified);
 
             Run(session, "LINE", "0,0", "@100<0", Enter);
@@ -254,6 +254,190 @@ namespace GeometryHelper.Cad.UnitTest
             Assert.Empty(All<DxfLine>(document.ModelSpace));
             Assert.Equal(Math.PI / 6.0, document.Ucs.Current.Angle, 12);
             Assert.Equal(Math.PI / 6.0, session.Ucs.Angle, 12);
+        }
+
+        [Fact]
+        public void ARotatedUcs_UndoneByU_GivesTheWorldAndTheStackAsBefore()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Run(session, "UCS", "Z", "30");
+            Assert.Equal(Math.PI / 6.0, document.Ucs.Current.Angle, 12);
+
+            Run(session, "U");
+
+            Assert.True(document.Ucs.Current.IsWorld);
+            Assert.True(session.Ucs.IsWorld);
+            Assert.False(document.CanUndo);
+            Assert.False(document.IsModified);
+            Run(session, "UCS", "P");
+            Assert.Equal("No previous coordinate system saved.", session.History.Last());
+        }
+
+        [Fact]
+        public void AUcsUndoneByU_IsPutBackWithItsStackByRedo()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Run(session, "UCS", "Z", "30", "U");
+            Assert.True(document.Ucs.Current.IsWorld);
+
+            Run(session, "REDO");
+
+            Assert.Equal(Math.PI / 6.0, document.Ucs.Current.Angle, 12);
+            Assert.True(document.IsModified);
+            Run(session, "UCS", "P");
+            Assert.True(document.Ucs.Current.IsWorld);
+            Run(session, "UCS", "P");
+            Assert.Equal("No previous coordinate system saved.", session.History.Last());
+        }
+
+        [Fact]
+        public void ThreePointThenWorldThenUndoRedoUndo_ThenPrevious_GivesTheWorldAsAutoCad2021Does()
+        {
+            // AutoCAD 2021 (accoreconsole, ucsprev probe3): 3point, W, U, REDO, U, UCS P gives World, and a second P finds none.
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Run(session, "UCS", "3", "0,0", "10,5", "0,10");
+            double angle = Math.Atan2(5, 10);
+            Assert.Equal(angle, document.Ucs.Current.Angle, 9);
+            Run(session, "UCS", "W");
+            Assert.True(document.Ucs.Current.IsWorld);
+
+            Run(session, "U");
+            Assert.Equal(angle, document.Ucs.Current.Angle, 9);
+            Run(session, "REDO");
+            Assert.True(document.Ucs.Current.IsWorld);
+            Run(session, "U");
+            Assert.Equal(angle, document.Ucs.Current.Angle, 9);
+
+            Run(session, "UCS", "P");
+            Assert.True(document.Ucs.Current.IsWorld);
+            Run(session, "UCS", "P");
+            Assert.Equal("No previous coordinate system saved.", session.History.Last());
+            Assert.True(document.Ucs.Current.IsWorld);
+        }
+
+        [Fact]
+        public void AUcsChangedInARoutine_IsUndoneWithTheRoutine()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            session.Feed("(defun c:ghu () (command \"UCS\" \"Z\" \"30\") (princ))");
+            Run(session, "GHU");
+            Assert.Equal(Math.PI / 6.0, document.Ucs.Current.Angle, 12);
+
+            Run(session, "U");
+
+            Assert.True(document.Ucs.Current.IsWorld);
+            Assert.False(document.CanUndo);
+            Run(session, "REDO");
+            Assert.Equal(Math.PI / 6.0, document.Ucs.Current.Angle, 12);
+        }
+
+        [Fact]
+        public void AUcsChangedBesideAnEditInOneGroup_IsUndoneAndRedoneWithTheEdit()
+        {
+            CadDocument document = Blank();
+            document.BeginGroup("ROUTINE");
+            document.Ucs.SetCurrent(CadUcs.InPlane(P(10, 20), Math.PI / 6.0));
+            document.ApplyEdit("LINE", null, s =>
+                s.Append(document.ModelSpace, new DxfLine { EndPoint = new GeoPoint3(5, 5, 0) })
+            );
+            document.EndGroup();
+            Assert.Single(All<DxfLine>(document.ModelSpace));
+            Assert.Equal(Math.PI / 6.0, document.Ucs.Current.Angle, 12);
+
+            Assert.True(document.Undo());
+
+            Assert.Empty(All<DxfLine>(document.ModelSpace));
+            Assert.True(document.Ucs.Current.IsWorld);
+            Assert.False(document.Ucs.Previous());
+
+            Assert.True(document.Redo());
+
+            Assert.Single(All<DxfLine>(document.ModelSpace));
+            Assert.Equal(Math.PI / 6.0, document.Ucs.Current.Angle, 12);
+            Assert.True(document.Ucs.Previous());
+            Assert.True(document.Ucs.Current.IsWorld);
+        }
+
+        [Fact]
+        public void AnEditUndoneOrRedoneAroundUcsChanges_LeavesTheUcsToTheStepsOfTheUcs()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Run(session, "LINE", "0,0", "10,0", Enter, "UCS", "Z", "30", "LINE", "0,0", "10,0", Enter);
+
+            Run(session, "U");
+            Assert.Equal(Math.PI / 6.0, document.Ucs.Current.Angle, 12);
+            Assert.Single(All<DxfLine>(document.ModelSpace));
+
+            Run(session, "U");
+            Assert.True(document.Ucs.Current.IsWorld);
+            Assert.Single(All<DxfLine>(document.ModelSpace));
+
+            Run(session, "U");
+            Assert.Empty(All<DxfLine>(document.ModelSpace));
+            Assert.True(document.Ucs.Current.IsWorld);
+
+            Run(session, "REDO", "REDO");
+            Assert.Equal(Math.PI / 6.0, document.Ucs.Current.Angle, 12);
+            Assert.Single(All<DxfLine>(document.ModelSpace));
+
+            Run(session, "REDO");
+            Assert.Equal(2, All<DxfLine>(document.ModelSpace).Count);
+            Assert.Equal(Math.PI / 6.0, document.Ucs.Current.Angle, 12);
+        }
+
+        [Fact]
+        public void TheSaveOfANamedUcs_UndoneByU_RemovesTheName()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Run(session, "UCS", "Z", "30", "UCS", "NA", "S", "Slab");
+            Assert.Equal("Slab", document.Ucs.Current.Name);
+            Assert.Single(document.Ucs.Named);
+
+            Run(session, "U");
+
+            Assert.Empty(document.Ucs.Named);
+            Assert.Null(document.Ucs.Current.Name);
+            Assert.Equal(Math.PI / 6.0, document.Ucs.Current.Angle, 12);
+
+            Run(session, "REDO");
+
+            Assert.Equal("Slab", document.Ucs.Current.Name);
+            Assert.Single(document.Ucs.Named);
+        }
+
+        [Fact]
+        public void TheDeleteOfANamedUcs_UndoneByU_GivesTheNameBack()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Run(session, "UCS", "Z", "30", "UCS", "NA", "S", "Slab", "UCS", "NA", "D", "Slab");
+            Assert.Empty(document.Ucs.Named);
+            Assert.Null(document.Ucs.Current.Name);
+
+            Run(session, "U");
+
+            Assert.Equal("Slab", Assert.Single(document.Ucs.Named).Name);
+            Assert.Equal("Slab", document.Ucs.Current.Name);
+        }
+
+        [Fact]
+        public void ADrawingSavedAfterAUcsAndItsNameAreUndone_HasTheDrawingsOwnSystem()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Run(session, "UCS", "Z", "30", "UCS", "NA", "S", "Slab", "U", "U");
+
+            DxfDatabase saved = Saved(document);
+
+            Assert.Null(saved.Ucsname);
+            Near(new GeoPoint3(1, 0, 0), GeoPoint3.Origin + saved.Ucsxdir);
+            Assert.Empty(saved.UcsTable);
         }
 
         [Fact]

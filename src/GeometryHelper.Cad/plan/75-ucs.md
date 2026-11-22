@@ -51,8 +51,8 @@ above (no 3D view, no view rotation), so a UCS stays in the plan: its origin mov
 
 Rules kept: points typed are in the UCS, `*` gives world ones; the status bar, dynamic input and the tip of a point prompt
 show UCS numbers; the grid, snap, ortho and polar follow the UCS axes; the crosshair and the icon are drawn along them;
-entities are always written in world coordinates. UCS changes are not undo steps (U leaves them), and make the drawing
-modified. The current system of model space is `$UCS*`, of paper space `$PUCS*` (one for every layout). A system read
+entities are always written in world coordinates. Every UCS change is one undo step (U takes back the system and the
+Previous list together, REDO puts both again, as AutoCAD 2021), and makes the drawing modified until it is undone or saved. The current system of model space is `$UCS*`, of paper space `$PUCS*` (one for every layout). A system read
 from a file out of the plan is kept and saved untouched, listed by `?`, and not made current; the presenter works in the
 world meanwhile. The named systems are written on save, as AutoCAD writes them, through `DxfDatabase.UcsTable`.
 

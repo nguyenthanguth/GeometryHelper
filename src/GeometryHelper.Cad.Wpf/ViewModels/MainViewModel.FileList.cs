@@ -113,8 +113,10 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>
         /// Gets the items of the right-click menu of a row of the DRAWINGS list, as AutoCAD 2021's file tab menu has them: New...,
         /// Open..., Save, Save As..., Save All; Close, Close Selected Drawings (only where several rows are chosen), Close All,
-        /// Close All Other Drawings; Copy Full File Path, Open File Location. Save, Save As and Close act on the row clicked,
-        /// bringing its drawing forward, and are grey on a row whose file is not open, where Open... opens that file; on an open
+        /// Close All Other Drawings; Copy Full File Path, Open File Location. Save, Save As and Close act on the row clicked and
+        /// leave the drawing shown as it was: a row that is not the drawing shown is brought forward only while it is saved or
+        /// asked about, then the drawing shown is shown again, and Close of such a row never changes it. They are grey on a row
+        /// whose file is not open, where Open... opens that file; on an open
         /// row Open... shows the Open dialog. Copy Full File Path and Open File Location are grey for a drawing never saved.
         /// Close All Other Drawings is grey unless two drawings are open. Each close goes through <see cref="CloseDocument"/>'s
         /// question about changes not saved, one question for all of them where several have changes, and leaves a file on disk
@@ -141,7 +143,7 @@ namespace GeometryHelper.Cad.Wpf
             {
                 new CadMenuItemViewModel("New...", () => NewCommand.Execute(null)),
                 new CadMenuItemViewModel("Open...", () => OpenOrShowDialog(row, isOpen)),
-                new CadMenuItemViewModel("Save", () => SaveFile(file), isOpen),
+                new CadMenuItemViewModel("Save", () => SaveRow(file), isOpen),
                 new CadMenuItemViewModel("Save As...", () => SaveFileAs(file), isOpen),
                 new CadMenuItemViewModel("Save All", () => SaveAllDocuments(), open.Count > 0),
                 CadMenuItemViewModel.Separator(),
@@ -209,15 +211,29 @@ namespace GeometryHelper.Cad.Wpf
             }
         }
 
-        /// <summary>Save As... of a row: its drawing shown first, then SAVEAS as the quick access Save As runs it.</summary>
+        /// <summary>Save of a row: its drawing saved, shown first as Ctrl+S does, and the drawing shown before shown again.</summary>
+        private void SaveRow(KnownFile file)
+        {
+            KnownFile shown = _current;
+            SaveFile(file);
+            ShowAgain(shown, file);
+        }
+
+        /// <summary>
+        /// Save As... of a row: its drawing shown first, then SAVEAS as the quick access Save As runs it, and the drawing shown
+        /// before shown again.
+        /// </summary>
         private void SaveFileAs(KnownFile file)
         {
+            KnownFile shown = _current;
+
             if (file != _current)
             {
                 Show(file);
             }
 
             SaveAsCommand.Execute(null);
+            ShowAgain(shown, file);
         }
 
         /// <summary>Opens Explorer with a file selected; a program that will not start is said on the command line and logged.</summary>

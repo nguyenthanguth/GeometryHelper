@@ -258,6 +258,96 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
+        public void SaveOnARowThatIsNotShown_ShowsTheDrawingThatWasShownAgain()
+        {
+            MainViewModel model = ThreeFiles(out string a, out string b, out _);
+            Assert.True(model.Open(a));
+            AddLine(model);
+            Assert.True(model.Open(b));
+            AddLine(model);
+
+            Run(model, Row(model, "a.dxf"), "Save");
+
+            Assert.Equal("b.dxf", model.Document.Title);
+            Assert.False(Row(model, "a.dxf").HasUnsavedChanges);
+            Assert.True(Row(model, "b.dxf").HasUnsavedChanges);
+        }
+
+        [Fact]
+        public void SaveOnTheRowShown_StaysOnThatDrawing()
+        {
+            MainViewModel model = ThreeFiles(out string a, out string b, out _);
+            Assert.True(model.Open(a));
+            Assert.True(model.Open(b));
+            AddLine(model);
+
+            Run(model, Row(model, "b.dxf"), "Save");
+
+            Assert.Equal("b.dxf", model.Document.Title);
+            Assert.False(Row(model, "b.dxf").HasUnsavedChanges);
+        }
+
+        [Fact]
+        public void SaveAsOnARowThatIsNotShown_ShowsTheDrawingThatWasShownAgain_OnceTheWindowHasBeenAsked()
+        {
+            MainViewModel model = ThreeFiles(out string a, out string b, out _);
+            Assert.True(model.Open(a));
+            Assert.True(model.Open(b));
+            var shownWhenAsked = new List<string>();
+            model.SaveAsRequested += (s, e) => shownWhenAsked.Add(model.Document.Title);
+
+            Run(model, Row(model, "a.dxf"), "Save As...");
+
+            Assert.Equal(new[] { "a.dxf" }, shownWhenAsked);
+            Assert.Equal("b.dxf", model.Document.Title);
+        }
+
+        [Fact]
+        public void CloseOnAnotherRowAskingToSaveChanges_SavesThatDrawing_AndKeepsTheOneShown()
+        {
+            MainViewModel model = ThreeFiles(out string a, out string b, out string c);
+            Assert.True(model.Open(a));
+            AddLine(model);
+            Assert.True(model.Open(b));
+            Assert.True(model.Open(c));
+            model.AskSaveChanges = d => CadSaveChoice.Save;
+
+            Run(model, Row(model, "a.dxf"), "Close");
+
+            Assert.Equal(4, CadDocument.Open(a).EntityCount);
+            Assert.False(Row(model, "a.dxf").IsOpen);
+            Assert.Equal("c.dxf", model.Document.Title);
+        }
+
+        [Fact]
+        public void CloseOnAnotherRowWhoseSaveChangesIsCancelled_KeepsBothOpenAndTheOneShown()
+        {
+            MainViewModel model = ThreeFiles(out string a, out string b, out _);
+            Assert.True(model.Open(a));
+            AddLine(model);
+            Assert.True(model.Open(b));
+            model.AskSaveChanges = d => CadSaveChoice.Cancel;
+
+            Run(model, Row(model, "a.dxf"), "Close");
+
+            Assert.True(Row(model, "a.dxf").IsOpen);
+            Assert.Equal("b.dxf", model.Document.Title);
+        }
+
+        [Fact]
+        public void CloseOnTheRowShown_ShowsAnotherOpenDrawing_AsBefore()
+        {
+            MainViewModel model = ThreeFiles(out string a, out string b, out _);
+            Assert.True(model.Open(a));
+            Assert.True(model.Open(b));
+
+            Run(model, Row(model, "b.dxf"), "Close");
+
+            Assert.False(Row(model, "b.dxf").IsOpen);
+            Assert.Equal("a.dxf", model.Document.Title);
+        }
+
+        [Fact]
         public void SaveAll_SavesEveryDrawingWithChanges_AndCloseAllClosesThemAll()
         {
             MainViewModel model = ThreeFiles(out string a, out string b, out _);

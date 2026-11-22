@@ -71,20 +71,40 @@ namespace GeometryHelper.Cad.Wpf
                 return false;
             }
 
+            KnownFile shown = _current;
             EndCommands(file.Session);
 
             if (file.Document.IsModified)
             {
                 CadSaveChoice choice = AskSaveChanges?.Invoke(file.Document) ?? CadSaveChoice.Cancel;
 
-                if (choice == CadSaveChoice.Cancel || (choice == CadSaveChoice.Save && !SaveFile(file)))
+                if (choice == CadSaveChoice.Cancel)
                 {
+                    return false;
+                }
+
+                // Saving shows the drawing, as Ctrl+S does; the drawing shown before comes back, whether or not it was saved.
+                if (choice == CadSaveChoice.Save && !SaveFile(file))
+                {
+                    ShowAgain(shown, file);
                     return false;
                 }
             }
 
+            ShowAgain(shown, file);
             Release(file);
             return true;
+        }
+
+        /// <summary>Shows the drawing that was shown before an action of another row brought that row's forward, where it is still open; the row's own drawing stays shown when it was the one.</summary>
+        /// <param name="shown">The file shown before; may be null.</param>
+        /// <param name="row">The file the action was on.</param>
+        private void ShowAgain(KnownFile shown, KnownFile row)
+        {
+            if (shown != null && shown != row && shown != _current && shown.Document != null)
+            {
+                Show(shown);
+            }
         }
 
         /// <summary>

@@ -6,6 +6,18 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** A change of the user coordinate system is an undo step, as in AutoCAD 2021 (measured with accoreconsole): U and
+`UNDO 1` take back the last UCS command with the earlier systems kept for UCS Previous (ten of each space, as before), and
+REDO puts them again. A 3point UCS, then World, then U, REDO and U leaves the 3point one current, and UCS Previous gives
+World. UCS NAmed Save and Delete, and the rename of a UCS, undo too, the name leaving or coming back to the UCS table; a UCS
+change made inside a command or a routine's step goes with that step. `CadUcsManager.IsModified` says whether the systems
+differ from those the drawing was opened or saved with, so a UCS change taken back by U no longer leaves the drawing
+modified. The drawing used to keep its UCS outside undo.
+
+**CHANGED.** In the DRAWINGS list menu, Save and Save As… on a row that is not the drawing shown leave the shown drawing as
+it was (they used to switch to the row's drawing and stay there), and Close of such a row never changes the shown drawing,
+whether or not it asks to save changes first. Closing the drawing shown behaves as before.
+
 **CHANGED.** The Applications panel of the Manage tab, as the design draws it: Load Manager (large, APPLOAD, which still opens
 Load/Unload Applications), then Load Lisp (LISPLOAD), Load Plugin (NETLOAD) and Load Python (PYLOAD) as small buttons with text,
 then Run Script (large). The button that was called Load Application is Load Manager, with a new icon, and
