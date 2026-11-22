@@ -264,8 +264,11 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     .OfType<Button>()
                     .Where(b => b.Command == model.StartCommandCommand)
                     .ToList();
-                // POINT went to the Draw slide-out (dialogs7), where AutoCAD 2021 keeps Multiple Points.
-                string[] added = { "RECTANG", "ELLIPSE", "DIST", "AREA", "ID", "LIST" };
+                // POINT went to the Draw slide-out (dialogs7), where AutoCAD 2021 keeps Multiple Points. With Home laid out as AutoCAD's
+                // (wave 2 of the ribbon work) ELLIPSE runs with an option from its split, DIST and AREA are in the Measure split
+                // (MEASUREGEOM Distance and Area), ID is in Utilities' slide-out and LIST in Properties': the buttons of the body
+                // that start their command by name and show no dialog are Rectangle and Select All (Quick Select and Quick Calculator show windows).
+                string[] added = { "RECTANG", "SELECTALL" };
                 Assert.Equal(added, home.Select(b => b.CommandParameter as string).Where(added.Contains));
 
                 foreach (Button button in home.Where(b => added.Contains(b.CommandParameter as string)))

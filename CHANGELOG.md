@@ -6,6 +6,48 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** Home is laid out as AutoCAD 2021's, panel by panel, and the ribbon takes AutoCAD's sizes on every tab: a panel is 98
+pixels high (it was 108), its body 80 over a title of 18 and its controls from 4 below the top; a large button is 72 high with its
+icon drawn at 28 in a slot of 32 and its label in at most two lines; a small button is 22 high, three to a column 24 apart; an
+icon-only small button is a tile of 24 by 22, 35 wide with the arrow of its split; a panel's padding is 3 pixels (it was 6) and a
+collapsed panel 61 wide. Draw holds the Circle and Arc splits as large buttons (Center Radius, Center Diameter, 2-Point, 3-Point,
+Tan Tan Radius, Tan Tan Tan; the 11 arcs of AutoCAD's menu and Continue), each button running the item picked last under its
+label, and Rectangle with Polygon, Ellipse (Center, Axis End, Elliptical Arc) and Hatch with Gradient and Boundary as tile splits;
+2D Solid leaves it. Modify has AutoCAD's three columns and the tiles Erase, Explode and Offset, with no fourth row of Break, Join,
+Lengthen and Align and no menu on its title; its Fillet split gains Blend Curves and Draw Order moves to the slide-out, where it
+has nine items (the four DRAWORDER choices, TEXTTOFRONT for Text, Dimensions, Leaders and All Annotations, and HATCHTOBACK).
+Annotation has the Text split, Dimension (DIM), a Linear split of eight dimensions and a Leader split (Leader, Add Leader, Remove
+Leader, Align, Collect). Distance and Area, which were Utilities' buttons, are in its Measure split (MEASUREGEOM: Quick, Distance,
+Radius, Angle, Area), ID Point is in its slide-out and List in Properties'; Utilities keeps Quick Select and adds Select All and
+Quick Calculator. Properties has the boxes Object Color, Lineweight and Linetype each after its icon, 180 wide. Clipboard's Paste
+no longer follows: its top always pastes (PASTECLIP) whatever was picked from its arrow, as AutoCAD's split does, and its Copy
+button is named Copy Clip. A panel with a slide-out shows "Name ▾" and opens it from its title; the slide-outs are rows of tiles.
+Home is 1 695 pixels wide and full from a window 1 719 wide (2 225 before): it takes 3 steps at a ribbon 1 584 pixels wide, 4 at
+1 424, 10 at 1 264, 12 at 1 084 and all 13 at 884, where AutoCAD takes 2, 4, 10, 12 and 13. Home's steps are now Block, Properties,
+Modify, Annotation and Layers medium; View, Clipboard, Utilities and Groups collapsed; then Properties, Block, Layers and
+Annotation collapsed. The Layer State box of the slide-out shows the layer state icon before its name, and the open layer list
+draws the current layer's row selected. The other tabs take the same sizes: Insert is 1 134 pixels wide, full from a window 1 158
+(1 191 before), and View 766, full from 790 (794 before). A plugin's standard button with no text is a tile of 24 by 22, one with
+text the small button of the ribbon, and a large button the 72-high one.
+
+**NEW.** Home › Block, between Layers and Properties as in AutoCAD 2021: Insert large (INSERT, with the gallery of the drawing's
+blocks under its arrow as the Insert tab has it), Create (BLOCK), Edit (BEDIT) and the Edit Attributes split (Single, EATTEDIT;
+Multiple, -ATTEDIT); its slide-out Block ▾ holds Define Attributes (ATTDEF), Manage Attributes (BATTMAN), Synchronize Attributes
+(ATTSYNC), the Attribute Display split (ATTDISP: Normal, On, Off) and Set Base Point (BASE).
+
+**NEW.** The slide-outs of Home: Draw ▾ (Spline Fit, Spline CV, Construction Line, Ray, Multiple Points, Divide, Measure, Region,
+Wipeout, Donut, the Revision Cloud split), Modify ▾ (Set to ByLayer, Change Space, Lengthen, Edit Polyline, Edit Spline, Edit
+Hatch, Edit Array, Align, Break, Break at Point, Join, Reverse, Delete Duplicate Objects, Draw Order), Annotation ▾ (the text,
+dimension, multileader and table style, each a tile and a box 160 wide), Properties ▾ (Plot Style and Transparency, greyed, and
+List), Groups ▾ (Group Manager) and Utilities ▾ (ID Point, Point Style), and the launcher of Properties, `MainViewModel.PropertiesLauncherCommand`
+(PROPERTIES, or PROPERTIESCLOSE where the palette is shown). The table style box has `TableStyleItems`, `CurrentTableStyle` and `ManageTableStyles`
+on `MainViewModel`, as the other style boxes. 66 icons are new, in `Icons.xaml`.
+
+**NEW.** `MainViewModel.StartCommandWithOptionCommand` takes several options after the command, each given to the first prompt that
+offers it once the one before is answered: `ARC \ C A` starts ARC, leaves the start point to the user, then gives Center and Angle
+as AutoCAD's ribbon macro does, a backslash leaving a prompt to the user and a semicolon answering one with Enter. The Arc and
+Circle splits of Home use it.
+
 **CHANGED.** The Layers panel of Home is laid out as AutoCAD 2021's. Layer Properties stays the large button; the layer box is
 208 pixels wide (it was 168) over two rows of tiles 24 by 22 that show only their icon, the tooltip naming the command: Off,
 Isolate, Freeze, Lock and Make Current (LAYOFF, LAYISO, LAYFRZ, LAYLCK, LAYMCUR), then Turn All Layers On, Unisolate, Thaw All
@@ -13,8 +55,8 @@ Layers, Unlock and Match Layer (LAYON, LAYUNISO, LAYTHW, LAYULK, LAYMCH); Make C
 size and drop it in a medium panel. Previous (LAYERP) is no longer in the panel's body: it is the first tile of the slide-out
 that the title Layers ▾ opens, with Change to Current Layer (LAYCUR), Copy Objects to New Layer (COPYTOLAYER), Layer Walk
 (LAYWALK), VP Freeze in All Viewports except Current (LAYVPI), Merge (LAYMRG) and Delete (LAYDEL). AutoCAD's Locked Layer Fading
-row is left out: the presenter has no LAYLOCKFADECTL. The panel's width is the box's (289 pixels at full size, 354 before), so
-Layers going medium no longer narrows Home, and Home is full from a window 2 225 pixels wide, where it was 2 290. 14 icons for
+row is left out: the presenter has no LAYLOCKFADECTL. The panel's width is the box's (274 pixels at full size, 354 before), so
+Layers going medium no longer narrows Home. 14 icons for
 its tiles and six state glyphs are new, in `Icons.xaml`, and `IconView` has a `Fill` for the lit glyphs.
 
 **NEW.** The layer box of the ribbon draws each layer as three state glyphs before its colour and name: a lit or dark bulb (on or

@@ -23,6 +23,9 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>The last item of the multileader style box, which opens the Multileader Style Manager.</summary>
         public const string ManageMLeaderStyles = "Multileader style…";
 
+        /// <summary>The last item of the table style box, which opens the Table Style dialog.</summary>
+        public const string ManageTableStyles = "Table style…";
+
         /// <summary>
         /// Raised by STYLE (ST), DIMSTYLE (D, DST, DDIM), TABLESTYLE (TS) and MLEADERSTYLE (MLS), and by the boxes' last items:
         /// the window shows the dialog named, "STYLE", "DIMSTYLE", "TABLESTYLE" or "MLEADERSTYLE".
@@ -184,6 +187,47 @@ namespace GeometryHelper.Cad.Wpf
         public IReadOnlyList<StyleBoxItemViewModel> DimStyleItems =>
             Items(DimStyleNames, CurrentDimStyle, ManageDimensionStyles);
 
+        /// <summary>Gets the items of the table style box: the styles, the current one ticked, then "Table style…" under a line.</summary>
+        public IReadOnlyList<StyleBoxItemViewModel> TableStyleItems =>
+            _current == null
+                ? Array.Empty<StyleBoxItemViewModel>()
+                : Items(
+                    CadTableStyleEditor.Styles(_current.Document.Database).Concat(new[] { ManageTableStyles }).ToList(),
+                    CurrentTableStyle,
+                    ManageTableStyles
+                );
+
+        /// <summary>
+        /// Gets or sets the current table style (CTABLESTYLE), as the table style box shows and sets it (one undo step); set to
+        /// <see cref="ManageTableStyles"/>, the Table Style dialog is asked for and the box keeps the style it had.
+        /// </summary>
+        public string CurrentTableStyle
+        {
+            get => _current == null ? null : CadTableStyleEditor.Current(_current.Document.Database);
+            set
+            {
+                if (
+                    _current == null
+                    || value == null
+                    || (value != ManageTableStyles && string.Equals(value, CurrentTableStyle, StringComparison.Ordinal))
+                )
+                {
+                    return;
+                }
+
+                if (value == ManageTableStyles)
+                {
+                    RequestStyleDialog("TABLESTYLE");
+                }
+                else
+                {
+                    SayRefused(CadTableStyleEditor.SetCurrent(_current.Document, value));
+                }
+
+                RaiseStyles();
+            }
+        }
+
         /// <summary>Gets the items of the multileader style box: the styles, the current one ticked, then "Multileader style…" under a line.</summary>
         public IReadOnlyList<StyleBoxItemViewModel> MLeaderStyleItems =>
             _current == null
@@ -310,6 +354,8 @@ namespace GeometryHelper.Cad.Wpf
             Raise(nameof(MLeaderStyleItems));
             Raise(nameof(HasMLeaderStyles));
             Raise(nameof(CurrentMLeaderStyle));
+            Raise(nameof(TableStyleItems));
+            Raise(nameof(CurrentTableStyle));
         }
 
         /// <summary>The items of a style box from its names, the dialog's item last where the names end in it.</summary>

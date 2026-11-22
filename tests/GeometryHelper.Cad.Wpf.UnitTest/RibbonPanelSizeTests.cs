@@ -28,6 +28,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             "Modify",
             "Annotation",
             "Layers",
+            "Block",
             "Properties",
             "Groups",
             "Utilities",
@@ -35,6 +36,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             "View",
         };
 
+        // Block joined Home between Layers and Properties (wave 2 of the ribbon work), so the order lists it.
         [Fact]
         public void HomeShowsItsPanelsInAutoCadsOrder_AndAt2300PixelsNoneShrinks()
         {
@@ -48,40 +50,43 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             });
         }
 
+        // Rewritten for the steps of D1316 and the widths of D1317: Home is 1 695 wide, so at 1 600 three steps are taken (Block,
+        // Properties and Modify go medium) and the rest stays full; RibbonHomePanelsTests checks the table at AutoCAD's widths.
         [Fact]
-        public void At1600Pixels_ViewClipboardUtilitiesAndGroupsCollapse_AndPropertiesLayersAndDrawGoMedium()
+        public void At1600Pixels_BlockPropertiesAndModifyGoMedium_AndTheOtherPanelsStayFull()
         {
             OnWorkspace(1600, (model, workspace) =>
             {
                 List<RibbonPanel> panels = HomePanels(model, workspace);
                 var sizes = panels.ToDictionary(p => p.Title, p => p.Size);
 
-                Assert.Equal(7, HomeStrip(model, workspace).StepsTaken);
-                Assert.Equal(RibbonPanelSize.Medium, sizes["Draw"]);
-                Assert.Equal(RibbonPanelSize.Full, sizes["Modify"]);
-                Assert.Equal(RibbonPanelSize.Full, sizes["Annotation"]);
-                Assert.Equal(RibbonPanelSize.Medium, sizes["Layers"]);
+                Assert.Equal(3, HomeStrip(model, workspace).StepsTaken);
+                Assert.Equal(RibbonPanelSize.Medium, sizes["Block"]);
                 Assert.Equal(RibbonPanelSize.Medium, sizes["Properties"]);
-                Assert.Equal(RibbonPanelSize.Collapsed, sizes["Groups"]);
-                Assert.Equal(RibbonPanelSize.Collapsed, sizes["Utilities"]);
-                Assert.Equal(RibbonPanelSize.Collapsed, sizes["Clipboard"]);
-                Assert.Equal(RibbonPanelSize.Collapsed, sizes["View"]);
+                Assert.Equal(RibbonPanelSize.Medium, sizes["Modify"]);
+
+                foreach (
+                    string title in new[] { "Draw", "Annotation", "Layers", "Groups", "Utilities", "Clipboard", "View" }
+                )
+                {
+                    Assert.Equal(RibbonPanelSize.Full, sizes[title]);
+                }
+
                 Assert.True(HomeStrip(model, workspace).DesiredSize.Width <= 1600 - 24);
 
-                // Medium Draw keeps Rectangle, drawn by its icon alone and still named for the tooltip and screen readers.
-                Button rectangle = Descendants(panels[0])
-                    .OfType<Button>()
-                    .Single(b => "RECTANG".Equals(b.CommandParameter));
-                Assert.Equal("Rectangle", AutomationProperties.GetName(rectangle));
-                Assert.DoesNotContain(Descendants(rectangle).OfType<TextBlock>(), t => t.Text == "Rectangle");
-                Assert.Single(Descendants(rectangle).OfType<IconView>());
+                // Medium Modify keeps Move, drawn by its icon alone and still named for the tooltip and screen readers.
+                Button move = Descendants(panels[1]).OfType<Button>().Single(b => "MOVE".Equals(b.CommandParameter));
+                Assert.Equal("Move", AutomationProperties.GetName(move));
+                Assert.DoesNotContain(Descendants(move).OfType<TextBlock>(), t => t.Text == "Move");
+                Assert.Single(Descendants(move).OfType<IconView>());
             });
         }
 
         [Fact]
         public void ACollapsedPanelDropsItsFullButtons_UnderATitleBarWithAPin_AndTakesThemBackWhenShut()
         {
-            OnWorkspace(1600, (model, workspace) =>
+            // Clipboard collapses at 1 280 now (ten steps are taken), not at 1 600; its title bar reads "Clipboard ▴" (the design's).
+            OnWorkspace(1280, (model, workspace) =>
             {
                 RibbonPanel clipboard = HomePanels(model, workspace).Single(p => p.Title == "Clipboard");
                 var popup = (Popup)clipboard.Template.FindName("PART_Popup", clipboard);
@@ -97,7 +102,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     .Where(b => b.CommandParameter is string)
                     .ToList();
                 Assert.Equal(commands, dropped.Select(b => (string)b.CommandParameter));
-                Assert.Contains(Descendants(popup.Child).OfType<TextBlock>(), t => t.Text == "Clipboard");
+                Assert.Contains(Descendants(popup.Child).OfType<TextBlock>(), t => t.Text == "Clipboard ▴");
                 ToggleButton pin = Descendants(popup.Child)
                     .OfType<ToggleButton>()
                     .Single(t => Equals(t.ToolTip, "Pin the panel open"));
@@ -136,20 +141,34 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             Assert.Equal(-10.0, RibbonPanel.ShiftToFit(10.0, 2000.0, 1600.0), 9);
         }
 
+        // Draw Order moved to the slide-out of Modify (AutoCAD's), as a tile with its arrow, and gained the other items of AutoCAD's
+        // menu that the presenter has: the test opens the slide-out and finds the tile there.
         [Fact]
         public void SendToBackPickedFromDrawOrder_LeavesTheButtonRunningIt_AndBackIsGivenOnceTheObjectsArePicked()
         {
             OnWorkspace(1600, (model, workspace) =>
             {
                 RibbonPanel modify = HomePanels(model, workspace).Single(p => p.Title == "Modify");
-                Button order = Descendants(modify)
+                OpenSlideOut(modify);
+                Button order = Descendants(modify.SlideOut)
                     .OfType<Button>()
                     .Single(b => "DRAWORDER F".Equals(b.CommandParameter));
                 Button arrow = SplitArrowOf(order);
                 List<MenuItem> items = MenuOf(arrow);
 
                 Assert.Equal(
-                    new[] { "DRAWORDER F", "DRAWORDER B", "DRAWORDER A", "DRAWORDER U", "TEXTTOFRONT T" },
+                    new[]
+                    {
+                        "DRAWORDER F",
+                        "DRAWORDER B",
+                        "DRAWORDER A",
+                        "DRAWORDER U",
+                        "TEXTTOFRONT T",
+                        "TEXTTOFRONT D",
+                        "TEXTTOFRONT L",
+                        "TEXTTOFRONT A",
+                        "HATCHTOBACK",
+                    },
                     items.Select(i => (string)i.CommandParameter)
                 );
                 Assert.Same(model.StartCommandWithOptionCommand, order.Command);
@@ -186,8 +205,10 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             });
         }
 
+        // Rewritten for D1314: AutoCAD's Paste split does not follow (Behavior SplitNoFollow), so the top keeps pasting whatever
+        // was picked from the arrow; the old test pinned the top turning into Paste as Block.
         [Fact]
-        public void PasteAsBlockPickedFromPastesArrow_LeavesTheTopRunningIt_TheLabelStillPaste()
+        public void PasteAsBlockPickedFromPastesArrow_LeavesTheTopPasting_TheLabelStillPaste()
         {
             OnWorkspace(2300, (model, workspace) =>
             {
@@ -206,10 +227,10 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                 Pick(items[1]);
                 model.Escape();
 
-                Assert.Equal("Paste as Block", paste.Content);
-                Assert.Equal("PASTEBLOCK", paste.CommandParameter);
-                Assert.Equal("Paste ▾", arrow.Content);
-                Press(model, paste.IsEnabled, () => paste.Command.Execute(paste.CommandParameter), "PASTEBLOCK");
+                Assert.Equal("Paste", paste.Content);
+                Assert.Equal("PASTECLIP", paste.CommandParameter);
+                Assert.Equal("Paste", arrow.Content);
+                Press(model, paste.IsEnabled, () => paste.Command.Execute(paste.CommandParameter), "PASTECLIP");
             });
         }
 
@@ -350,8 +371,8 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                         .OfType<RibbonStrip>()
                         .Single(s => ReferenceEquals(s.DataContext, content));
                     RibbonPanel panel = strip.Children.OfType<RibbonPanel>().Single(p => p.Title == panelItems.Key);
-                    // At 1 600 Draw is medium (its labels gone, the split kept); the others are full.
-                    Assert.Equal(panelItems.Key == "Draw" ? RibbonPanelSize.Medium : RibbonPanelSize.Full, panel.Size);
+                    // At 1 600 every one of these panels is full (Draw never shrinks).
+                    Assert.Equal(RibbonPanelSize.Full, panel.Size);
                     Assert.Null(panelItems.Key == "Draw" ? null : panel.SlideOut);
 
                     foreach (string command in panelItems.Value)
@@ -378,11 +399,25 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                 Assert.Equal("BOUNDARY", hatch.CommandParameter);
                 Assert.Equal("Boundary", hatch.Content);
 
+                // Draw's slide-out is AutoCAD's two rows of tiles (2D Solid is not among them: AutoCAD's Draw has none).
                 var expected = new Dictionary<string, string[]>
                 {
-                    ["Draw"] = new[] { "SPLINE", "POINT", "DIVIDE", "MEASURE", "SOLID" },
+                    ["Draw"] = new[]
+                    {
+                        "SPLINE Method Fit",
+                        "SPLINE Method CV",
+                        "XLINE",
+                        "RAY",
+                        "POINT",
+                        "DIVIDE",
+                        "MEASURE",
+                        "REGION",
+                        "WIPEOUT",
+                        "DONUT",
+                        "REVCLOUD Rectangular",
+                    },
                 };
-                var pressed = new[] { "SPLINE", "POINT", "DIVIDE", "MEASURE", "SOLID" };
+                var pressed = new[] { "XLINE", "RAY", "POINT", "DIVIDE", "MEASURE", "REGION", "WIPEOUT", "DONUT" };
 
                 foreach (KeyValuePair<string, string[]> panelItems in expected)
                 {
@@ -645,6 +680,19 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             );
             click.Invoke(item, null);
             item.Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
+        }
+
+        /// <summary>The slide-out of a panel dropped from its title and laid out, so that its buttons are in the visual tree.</summary>
+        private static void OpenSlideOut(RibbonPanel panel)
+        {
+            Assert.NotNull(panel.SlideOut);
+            var popup = (Popup)panel.Template.FindName("PART_Popup", panel);
+            panel.IsDropDownOpen = true;
+            popup.Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
+            Assert.True(panel.IsDropDownOpen);
+            popup.Child.Measure(new Size(2000, 960));
+            popup.Child.Arrange(new Rect(0, 0, popup.Child.DesiredSize.Width, popup.Child.DesiredSize.Height));
+            ((FrameworkElement)popup.Child).UpdateLayout();
         }
 
         /// <summary>A button enabled, pressed, and the command it names started; then Esc.</summary>

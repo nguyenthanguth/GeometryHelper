@@ -178,9 +178,12 @@ namespace GeometryHelper.Cad.Wpf
         private bool _ribbonShown = true;
         private int _newDrawings;
         private DelegateCommand _startCommandWithOptionCommand;
+        private DelegateCommand _propertiesLauncherCommand;
 
-        // The option a split button's choice gives the first prompt that offers it, as F for DRAWORDER's Front; null for none.
-        private string _pendingOption;
+        // The options a split button's choice gives the prompts that offer them, in order, as F for DRAWORDER's Front; empty for none.
+        // A backslash among them leaves one prompt to the user (the start point of an arc), a semicolon answers one with Enter.
+        private readonly List<string> _pendingOptions = new List<string>();
+        private CadPrompt _pendingGate;
 
         // What a command of the window leaves to be done once it has ended: a document cannot be changed under a command running.
         private Action _afterCommand;
@@ -262,6 +265,19 @@ namespace GeometryHelper.Cad.Wpf
             ?? (
                 _startCommandWithOptionCommand = new DelegateCommand(
                     p => StartCommandWithOption(p as string),
+                    _ => HasDocument
+                )
+            );
+
+        /// <summary>
+        /// Gets the command of the launcher of Home › Properties, as AutoCAD's macro: PROPERTIES where the palette is hidden,
+        /// PROPERTIESCLOSE where it is shown.
+        /// </summary>
+        public ICommand PropertiesLauncherCommand =>
+            _propertiesLauncherCommand
+            ?? (
+                _propertiesLauncherCommand = new DelegateCommand(
+                    _ => StartCommand(IsPropertiesPanelShown ? "PROPERTIESCLOSE" : "PROPERTIES"),
                     _ => HasDocument
                 )
             );
@@ -372,7 +388,11 @@ namespace GeometryHelper.Cad.Wpf
             }
         }
 
-        /// <summary>Starts the command of a line as "DRAWORDER F", keeping its option for the first prompt that offers it.</summary>
+        /// <summary>
+        /// Starts the command of a line as "DRAWORDER F", keeping its option for the first prompt that offers it. A line as
+        /// "ARC \ C A" keeps several, each for the first prompt that offers it once the one before is answered: a backslash
+        /// leaves the prompt it stands at to the user and a semicolon answers a prompt with Enter, as AutoCAD's ribbon macros do.
+        /// </summary>
         internal void StartCommandWithOption(string line)
         {
             string[] words = (line ?? string.Empty).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
@@ -387,17 +407,19 @@ namespace GeometryHelper.Cad.Wpf
                 _current.Session.Escape();
             }
 
-            _pendingOption = words.Length > 1 ? words[1] : null;
+            _pendingOptions.Clear();
+            _pendingOptions.AddRange(words.Skip(1));
+            _pendingGate = null;
             StartCommand(words[0]);
         }
 
         /// <summary>
-        /// Gives the option kept by <see cref="StartCommandWithOption"/> to the prompt now asked where it offers it; forgets it
-        /// once the command has ended.
+        /// Gives the options kept by <see cref="StartCommandWithOption"/> to the prompts now asked where they offer them, one
+        /// after the other; forgets them once the command has ended.
         /// </summary>
         private void AnswerPendingOption()
         {
-            if (_pendingOption == null)
+            if (_pendingOptions.Count == 0)
             {
                 return;
             }
@@ -406,12 +428,34 @@ namespace GeometryHelper.Cad.Wpf
 
             if (session == null || !session.IsRunning || session.Prompt == null)
             {
-                _pendingOption = null;
+                _pendingOptions.Clear();
+                _pendingGate = null;
+                return;
             }
-            else if (session.Prompt.MatchKeyword(_pendingOption) != null)
+
+            string option = _pendingOptions[0];
+
+            if (option == "\\")
             {
-                string option = _pendingOption;
-                _pendingOption = null;
+                if (_pendingGate == null)
+                {
+                    _pendingGate = session.Prompt;
+                }
+                else if (!ReferenceEquals(_pendingGate, session.Prompt))
+                {
+                    _pendingGate = null;
+                    _pendingOptions.RemoveAt(0);
+                    AnswerPendingOption();
+                }
+            }
+            else if (option == ";")
+            {
+                _pendingOptions.RemoveAt(0);
+                session.Feed(string.Empty);
+            }
+            else if (session.Prompt.MatchKeyword(option) != null)
+            {
+                _pendingOptions.RemoveAt(0);
                 session.Feed(option);
             }
         }

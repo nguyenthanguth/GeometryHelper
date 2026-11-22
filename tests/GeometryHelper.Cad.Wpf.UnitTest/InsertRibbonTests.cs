@@ -409,14 +409,16 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     (2300, 0),
                     (1600, 0),
                     (1280, 0),
-                    (1191, 0),
-                    (1190, 1),
-                    (1035, 1),
-                    (1034, 2),
-                    (921, 2),
-                    (920, 3),
-                    (709, 3),
-                    (708, 4),
+                    // D1319: the metrics of the ribbon work (large buttons 72 high, panels with 3 pixels of padding, 98 high) changed
+                    // the widths at which Insert shrinks: 1 134 wide from a window 1 158, no longer 1 167 from 1 191.
+                    (1158, 0),
+                    (1157, 1),
+                    (1002, 1),
+                    (1001, 2),
+                    (888, 2),
+                    (887, 3),
+                    (676, 3),
+                    (675, 4),
                 }
             );
         }
@@ -457,15 +459,16 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                 {
                     (2300, 0),
                     (1280, 0),
-                    // Model Viewports (dialogs7) makes the tab 100 wider: all full down to 794, no longer 694.
-                    (794, 0),
-                    (793, 1),
-                    (698, 1),
-                    (697, 2),
-                    (576, 2),
-                    (575, 3),
-                    (510, 3),
-                    (509, 4),
+                    // Model Viewports (dialogs7) makes the tab 100 wider: all full down to 790, no longer 694. D1319: the metrics of the
+                    // ribbon work (3 pixels of padding to a panel, 72 high large buttons) moved the steps 4 pixels from the 794 before.
+                    (790, 0),
+                    (789, 1),
+                    (694, 1),
+                    (693, 2),
+                    (572, 2),
+                    (571, 3),
+                    (506, 3),
+                    (505, 4),
                     (474, 4),
                     (473, 5),
                 }

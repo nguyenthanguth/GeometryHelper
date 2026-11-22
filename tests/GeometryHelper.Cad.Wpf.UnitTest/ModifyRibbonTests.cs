@@ -15,9 +15,9 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 {
     /// <summary>
     /// Home › Modify laid out as AutoCAD 2021's panel, found in the window drawn offscreen: its buttons, Erase, Explode and Offset
-    /// by their icons alone, the row of Break, Join, Lengthen and Align under the columns, the menus of the arrows of Trim, Fillet
-    /// and Array and of the group's title, each item enabled and starting its command; and a split button that shows the command
-    /// last picked from its arrow.
+    /// by their icons alone, no fourth row under the columns and no menu on the title (its slide-out is the business of
+    /// RibbonHomePanelsTests), the menus of the arrows of Trim, Fillet and Array, each item enabled and starting its command; and
+    /// a split button that shows the command last picked from its arrow.
     /// </summary>
     public class ModifyRibbonTests
     {
@@ -43,10 +43,6 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                             "ERASE",
                             "EXPLODE",
                             "OFFSET",
-                            "BREAK",
-                            "JOIN",
-                            "LENGTHEN",
-                            "ALIGN",
                         },
                         buttons.Select(b => (string)b.CommandParameter)
                     );
@@ -61,7 +57,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                         );
                     }
 
-                    // The menus: the title's first, then the arrows of Trim, Fillet and Array.
+                    // The menus: the arrows of Trim, Fillet and Array (the title has none now).
                     var items = new List<string>();
 
                     foreach (Button opener in Descendants(group).OfType<Button>().Where(b => b.ContextMenu != null))
@@ -84,24 +80,14 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     Assert.Equal(
                         new[]
                         {
-                            "BREAKATPOINT",
-                            "BREAK",
-                            "JOIN",
-                            "LENGTHEN",
-                            "ALIGN",
-                            "BLEND",
                             "TRIM",
                             "EXTEND",
                             "FILLET",
                             "CHAMFER",
+                            "BLEND",
                             "ARRAYRECT",
                             "ARRAYPATH",
                             "ARRAYPOLAR",
-                            "DRAWORDER F",
-                            "DRAWORDER B",
-                            "DRAWORDER A",
-                            "DRAWORDER U",
-                            "TEXTTOFRONT T",
                         },
                         items
                     );
@@ -109,8 +95,9 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             );
         }
 
+        // The row of Break, Join, Lengthen and Align under a line is gone (AutoCAD's Modify has three rows; they are in its slide-out).
         [Fact]
-        public void EraseExplodeAndOffsetShowTheirIconsAlone_AndBreakJoinLengthenAndAlignARowOfSmallerIconsUnderALine()
+        public void EraseExplodeAndOffsetShowTheirIconsAlone_AndModifyHasNoFourthRowOfBreakJoinLengthenAndAlign()
         {
             OnModify(
                 (model, group) =>
@@ -124,37 +111,23 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                         Assert.Equal(name + " (" + name.ToUpperInvariant() + ")", button.ToolTip);
                         Assert.DoesNotContain(Descendants(button).OfType<TextBlock>(), t => t.Text == name);
                         Assert.Equal(16.0, Assert.Single(Descendants(button).OfType<IconView>()).Size);
+                        Assert.Equal(24.0, button.ActualWidth, 0.5);
+                        Assert.Equal(22.0, button.ActualHeight, 0.5);
                     }
 
                     Button move = buttons.Single(b => (string)b.Content == "Move");
                     Assert.Single(Descendants(move).OfType<TextBlock>(), t => t.Text == "Move");
 
-                    Border row = Descendants(group)
-                        .OfType<Border>()
-                        .Single(b =>
-                            Descendants(b).OfType<Button>().Any(x => "BREAK".Equals(x.CommandParameter))
-                            && !Descendants(b).OfType<Button>().Any(x => "MOVE".Equals(x.CommandParameter))
-                            && b.BorderThickness.Top == 1.0
-                        );
-                    List<Button> rowButtons = Descendants(row)
-                        .OfType<Button>()
-                        .Where(b => b.Command == model.StartCommandCommand)
-                        .ToList();
-                    Assert.Equal(
-                        new[] { "Break", "Join", "Lengthen", "Align" },
-                        rowButtons.Select(b => (string)b.Content)
+                    Assert.DoesNotContain(buttons, b =>
+                        new[] { "BREAK", "JOIN", "LENGTHEN", "ALIGN" }.Contains((string)b.CommandParameter)
                     );
 
-                    foreach (Button button in rowButtons)
-                    {
-                        Assert.Equal(14.0, Assert.Single(Descendants(button).OfType<IconView>()).Size);
-                        Assert.Single(Descendants(button).OfType<TextBlock>(), t => t.Text == (string)button.Content);
-                    }
-
-                    // The row lies under the columns: its top below the bottom of Stretch, the last of the first column.
+                    // Nothing lies under the third row: Stretch, the last of the first column, is the lowest button.
                     Button stretch = buttons.Single(b => "STRETCH".Equals(b.CommandParameter));
                     double stretchBottom = stretch.TranslatePoint(new Point(0, stretch.ActualHeight), group).Y;
-                    Assert.True(row.TranslatePoint(new Point(0, 0), group).Y >= stretchBottom);
+                    Assert.All(buttons, b =>
+                        Assert.True(b.TranslatePoint(new Point(0, b.ActualHeight), group).Y <= stretchBottom + 0.5)
+                    );
                 }
             );
         }
@@ -185,14 +158,15 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     Assert.Same(trimIcon, trim.Tag);
                     Press(model, trim.IsEnabled, () => trim.Command.Execute(trim.CommandParameter), "TRIM");
 
-                    // The array's button reads Polar Array once it is picked, and Array again for the rectangular one.
+                    // The array's button keeps its label Array (AutoCAD's static text) and runs the one picked last.
                     Button array = Buttons(model, group).Single(b => "ARRAYRECT".Equals(b.CommandParameter));
                     List<MenuItem> arrays = MenuOf((Button)((Panel)VisualTreeHelper.GetParent(array)).Children[1]);
                     Pick(model, arrays.Single(i => "ARRAYPOLAR".Equals(i.CommandParameter)), "ARRAYPOLAR");
-                    Assert.Equal("Polar Array", array.Content);
+                    Assert.Equal("Array", array.Content);
                     Assert.Equal("ARRAYPOLAR", array.CommandParameter);
                     Pick(model, arrays.Single(i => "ARRAYRECT".Equals(i.CommandParameter)), "ARRAYRECT");
                     Assert.Equal("Array", array.Content);
+                    Assert.Equal("ARRAYRECT", array.CommandParameter);
                 }
             );
         }
@@ -217,8 +191,9 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 
                         try
                         {
-                            workspace.Measure(new Size(1600, 960));
-                            workspace.Arrange(new Rect(0, 0, 1600, 960));
+                            // 2 300 wide, not 1 600: Home is 1 695 wide now and Modify goes medium (its labels gone) at 1 600.
+                            workspace.Measure(new Size(2300, 960));
+                            workspace.Arrange(new Rect(0, 0, 2300, 960));
                             workspace.UpdateLayout();
 
                             // The group is the innermost border that holds both the title Modify and the Move button.
