@@ -34,11 +34,13 @@ namespace GeometryHelper.Cad
                         // must not wait for the owner while the owner waits for the evaluation.
                         MayLoad = path => (bool)_lisp.OnOwner(() => LoadSecurity.MayLoad(path)),
                         LegacyCodeSearch = () => LoadSecurity.LegacyCodeSearch,
+                        IsTrusted = path => LoadSecurity.SecureLoad == 0 || LoadSecurity.IsTrusted(path),
                     };
                     LispDrawing.Register(_lisp, this);
                 }
 
                 _lisp.SupportFolders = LispSearchFolders();
+                _lisp.EnvironmentStore = _lispEnvironment;
                 return _lisp;
             }
         }
@@ -75,6 +77,21 @@ namespace GeometryHelper.Cad
             {
                 return false;
             }
+        }
+
+        private LispEnvironment _lispEnvironment = new LispEnvironment();
+
+        /// <summary>
+        /// Gets or sets where <c>setenv</c> and <c>setcfg</c> of this session's routines keep their values. A session of the
+        /// library has a store of its own in memory; the window gives all its sessions one shared store, which it loads from the
+        /// Global settings and saves back at each change, so that what a routine sets is there in the next drawing and the next
+        /// run, as AutoCAD keeps it in the registry.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when set to null.</exception>
+        internal LispEnvironment LispEnvironment
+        {
+            get => _lispEnvironment;
+            set => _lispEnvironment = value ?? throw new ArgumentNullException(nameof(value));
         }
 
         private CadLoadSecurity _loadSecurity = new CadLoadSecurity { SecureLoad = 0 };

@@ -18,25 +18,38 @@ namespace GeometryHelper.Cad.Lisp
 
         private void DefineVariants()
         {
-            Define("VLAX-MAKE-VARIANT", 0, 2, MakeVariant);
+            LispBuiltin makeVariant = Define("VLAX-MAKE-VARIANT", 0, 2, MakeVariant);
             LispBuiltin variantValue = Define("VLAX-VARIANT-VALUE", 1, 1, a => VariantValue(Variant(a[0])));
-            Define("VLAX-VARIANT-TYPE", 1, 1, a => Variant(a[0]).Type);
+            LispBuiltin variantType = Define("VLAX-VARIANT-TYPE", 1, 1, a => Variant(a[0]).Type);
             Define("VLAX-VARIANT-CHANGE-TYPE", 2, 2, VariantChangeType);
-            Define("VLAX-MAKE-SAFEARRAY", 2, -1, MakeSafeArray);
+            LispBuiltin makeSafeArray = Define("VLAX-MAKE-SAFEARRAY", 2, -1, MakeSafeArray);
             Define("VLAX-SAFEARRAY-FILL", 2, 2, SafeArrayFill);
             LispBuiltin safeArrayList = Define("VLAX-SAFEARRAY->LIST", 1, 1, a => SafeArrayToList(SafeArray(a[0])));
-            Define("VLAX-SAFEARRAY-GET-ELEMENT", 2, -1, SafeArrayGetElement);
-            Define("VLAX-SAFEARRAY-PUT-ELEMENT", 3, -1, SafeArrayPutElement);
-            Define("VLAX-SAFEARRAY-GET-DIM", 1, 1, a => SafeArray(a[0]).Rank);
-            Define("VLAX-SAFEARRAY-GET-L-BOUND", 2, 2, a => BoundOf(a, upper: false));
-            Define("VLAX-SAFEARRAY-GET-U-BOUND", 2, 2, a => BoundOf(a, upper: true));
-            Define("VLAX-SAFEARRAY-TYPE", 1, 1, a => SafeArray(a[0]).ElementType);
+            LispBuiltin getElement = Define("VLAX-SAFEARRAY-GET-ELEMENT", 2, -1, SafeArrayGetElement);
+            LispBuiltin putElement = Define("VLAX-SAFEARRAY-PUT-ELEMENT", 3, -1, SafeArrayPutElement);
+            LispBuiltin getDim = Define("VLAX-SAFEARRAY-GET-DIM", 1, 1, a => SafeArray(a[0]).Rank);
+            LispBuiltin getLowerBound = Define("VLAX-SAFEARRAY-GET-L-BOUND", 2, 2, a => BoundOf(a, upper: false));
+            LispBuiltin getUpperBound = Define("VLAX-SAFEARRAY-GET-U-BOUND", 2, 2, a => BoundOf(a, upper: true));
+            LispBuiltin safeArrayType = Define("VLAX-SAFEARRAY-TYPE", 1, 1, a => SafeArray(a[0]).ElementType);
             Define("VLAX-3D-POINT", 1, 3, Point3D);
             Define("VLAX-TMATRIX", 1, 1, TransformMatrix);
 
             // The old names are the same functions, as AutoCAD 2021 prints them (a2).
             Intern("VARIANT-VALUE").Value = variantValue;
             Intern("SAFEARRAY-VALUE").Value = safeArrayList;
+
+            // So are the older names of the rest, which AutoCAD 2021 also has after the load (probe g12): variant, variant-type,
+            // safearray and safearray-get-dim, -get-l-bound, -get-u-bound, -get-element, -put-element and -type. variant and
+            // safearray are the symbols the types print as, which stay lower case.
+            Intern("VARIANT").Value = makeVariant;
+            Intern("VARIANT-TYPE").Value = variantType;
+            Intern("SAFEARRAY").Value = makeSafeArray;
+            Intern("SAFEARRAY-GET-DIM").Value = getDim;
+            Intern("SAFEARRAY-GET-L-BOUND").Value = getLowerBound;
+            Intern("SAFEARRAY-GET-U-BOUND").Value = getUpperBound;
+            Intern("SAFEARRAY-GET-ELEMENT").Value = getElement;
+            Intern("SAFEARRAY-PUT-ELEMENT").Value = putElement;
+            Intern("SAFEARRAY-TYPE").Value = safeArrayType;
 
             // Ordinary symbols: a routine may set one (a4: (setq vlax-vbDouble 99) changes it).
             Intern("VLAX-VBEMPTY").Value = 0;

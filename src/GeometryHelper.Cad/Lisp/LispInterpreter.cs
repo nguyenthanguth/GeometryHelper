@@ -75,6 +75,9 @@ namespace GeometryHelper.Cad.Lisp
             RegisterNamespaces();
             RegisterRegistry();
             RegisterCom();
+            RegisterEnvironment();
+            RegisterAutoCadOnly();
+            RegisterAutoload();
             LispApplication.Register(this);
         }
 
@@ -826,6 +829,8 @@ namespace GeometryHelper.Cad.Lisp
             _output.Clear();
             _chunkStart = 0;
             _depth = 0;
+            _errorModes.Clear();
+            _handlingError = false;
             object value = null;
             bool failed = false;
             string error = null;
@@ -875,8 +880,14 @@ namespace GeometryHelper.Cad.Lisp
             }
 
             object handler = _error.Value;
+            bool mayCommand = _errorModes.Count > 0 && _errorModes[_errorModes.Count - 1];
 
-            if (handler == null)
+            if (handler == null && mayCommand)
+            {
+                // AutoCAD 2021 (probe g5d): with no *error* and *push-error-using-command* in force, the message is lost.
+                _output.Append(Print("INTERNAL error in FAIL\nmessage lost, reset to top", true));
+            }
+            else if (handler == null)
             {
                 _output.Append("; error: ").Append(exception.Message);
             }
@@ -899,6 +910,9 @@ namespace GeometryHelper.Cad.Lisp
                 }
                 else
                 {
+                    _handlingError = true;
+                    _handlerMayCommand = mayCommand;
+
                     try
                     {
                         Apply(function, new object[] { exception.Message });
@@ -915,6 +929,10 @@ namespace GeometryHelper.Cad.Lisp
                         }
 
                         Restore(inner.Frames);
+                    }
+                    finally
+                    {
+                        _handlingError = false;
                     }
                 }
             }

@@ -22,7 +22,12 @@ namespace GeometryHelper.Cad.Wpf
             InitializeComponent();
             DataContext = model;
             model.Lines.CollectionChanged += OnLinesChanged;
-            Closed += (s, e) => model.Lines.CollectionChanged -= OnLinesChanged;
+            model.CloseRequested += OnCloseRequested;
+            Closed += (s, e) =>
+            {
+                model.Lines.CollectionChanged -= OnLinesChanged;
+                model.CloseRequested -= OnCloseRequested;
+            };
             Loaded += (s, e) => ScrollToEnd();
         }
 
@@ -64,6 +69,8 @@ namespace GeometryHelper.Cad.Wpf
                 History.ScrollIntoView(History.Items[History.Items.Count - 1]);
             }
         }
+
+        private void OnCloseRequested(object sender, EventArgs e) => Close();
 
         private void OnLinesChanged(object sender, NotifyCollectionChangedEventArgs e)
         {

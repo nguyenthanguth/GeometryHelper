@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
@@ -23,6 +24,9 @@ namespace GeometryHelper.Cad.Lisp
             Define("VL-PRINC-TO-STRING", 1, 1, a => Print(a[0], false));
             Define("VL-PRIN1-TO-STRING", 1, 1, a => Print(a[0], true));
             Define("WCMATCH", 2, 2, a => Bool(WildcardMatch(Str(a[0]), Str(a[1]))));
+            Define("SNVALID", 1, 2, SnValid);
+            Define("ACAD_STRLSORT", 1, 1, StringListSort);
+            Define("XSTRCASE", 1, 1, a => Str(a[0]).ToUpperInvariant());
             RegisterVlLists();
             RegisterVlStrings();
         }
@@ -380,5 +384,102 @@ namespace GeometryHelper.Cad.Lisp
 
             return LispReader.ParseReal(text.Substring(start, i - start));
         }
+
+        #region Names and sorting
+
+        // The characters AutoCAD 2021 refuses in a name (probe g3b: every code from 1 to 255 in the middle of a name): the
+        // controls, the quote, * , / : ; < = > ? \ and the reverse quote, and the C1 block of the ANSI code page, which in the
+        // text of the interpreter is the letters and signs Windows-1252 puts at 128 to 159.
+        private const string NameRefused = "\"*,/:;<=>?\\`\u007f";
+        private const string Ansi128To159 =
+            "\u20ac\u201a\u0192\u201e\u2026\u2020\u2021\u02c6\u2030\u0160\u2039\u0152\u017d\u2018\u2019\u201c\u201d\u2022\u2013\u2014\u02dc\u2122\u0161\u203a\u0153\u017e\u0178";
+
+        /// <summary>
+        /// <c>(snvalid name [bar])</c>: T when the text is a name a symbol table takes: not empty, not starting or ending in a
+        /// space, and with none of the characters <c>" * , / : ; &lt; = &gt; ? \ `</c>, a control character or the characters at
+        /// 128 to 159 of the ANSI code page. A vertical bar is refused unless the second argument is a number other than 0, which
+        /// lets it stand inside the name but not at its start or end (<c>a|b</c> is a name of an xref's layer). nil as the second
+        /// argument is 0.
+        /// </summary>
+        private object SnValid(object[] a)
+        {
+            string name = Str(a[0]);
+            bool bar = a.Length > 1 && a[1] != null && Int(a[1]) != 0;
+
+            if (name.Length == 0 || name[0] == ' ' || name[name.Length - 1] == ' ')
+            {
+                return null;
+            }
+
+            for (int i = 0; i < name.Length; i++)
+            {
+                char c = name[i];
+
+                if (c == '|')
+                {
+                    if (!bar || i == 0 || i == name.Length - 1)
+                    {
+                        return null;
+                    }
+                }
+                else if (
+                    c < ' '
+                    || NameRefused.IndexOf(c) >= 0
+                    || (c >= '\u0080' && c <= '\u009f')
+                    || Ansi128To159.IndexOf(c) >= 0
+                )
+                {
+                    return null;
+                }
+            }
+
+            return _true;
+        }
+
+        /// <summary>
+        /// <c>(acad_strlsort list)</c>: the strings of the list sorted by the characters compared as lower case, one code after
+        /// the other (so <c>_</c> comes before <c>a</c> and <c>1</c> before <c>_</c>); strings that differ only in case stand in
+        /// the reverse of the order they were given in (AutoCAD 2021, probe g3b: <c>("b" "a" "C" "c" "A")</c> gives
+        /// <c>("A" "a" "b" "c" "C")</c>). A list holding anything but strings gives nil.
+        /// </summary>
+        private object StringListSort(object[] a)
+        {
+            if (a[0] != null && !(a[0] is LispCons))
+            {
+                throw TypeError("listp", a[0]);
+            }
+
+            List<object> items = ItemsOf(a[0]);
+            var entries = new List<KeyValuePair<string, int>>();
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                if (!(items[i] is string text))
+                {
+                    return null;
+                }
+
+                entries.Add(new KeyValuePair<string, int>(text, i));
+            }
+
+            entries.Sort(
+                (x, y) =>
+                {
+                    int order = string.CompareOrdinal(x.Key.ToLowerInvariant(), y.Key.ToLowerInvariant());
+                    return order != 0 ? order : y.Value.CompareTo(x.Value);
+                }
+            );
+
+            var sorted = new List<object>();
+
+            foreach (KeyValuePair<string, int> entry in entries)
+            {
+                sorted.Add(entry.Key);
+            }
+
+            return ListOf(sorted);
+        }
+
+        #endregion
     }
 }

@@ -26,7 +26,103 @@ namespace GeometryHelper.Cad.Lisp
                 return symbol;
             });
             Define("LOAD", 1, 2, a => LoadFile(Str(a[0]), a.Length > 1, a.Length > 1 ? a[1] : null));
+            RegisterVersionAndMemory();
         }
+
+        #region Version, memory and numbers
+
+        // What AutoCAD 2021 keeps that a routine can only ask about (probe g15): the size of the node segment alloc sets, which it
+        // gives back at the next call, and how often the collector ran, which gc adds one to and mem prints.
+        private int _allocSize = 256;
+        private int _collections = 3;
+
+        private void RegisterVersionAndMemory()
+        {
+            Define("VER", 0, 0, a => "Visual LISP 2021 (en)");
+            Define("GC", 0, 0, a =>
+            {
+                _collections++;
+                return null;
+            });
+            Define("MEM", 0, 0, Memory);
+            Define("ALLOC", 1, 1, a =>
+            {
+                int previous = _allocSize;
+                _allocSize = Int(a[0]);
+                return previous;
+            });
+            // expand gives back the number of segments it was asked for where AutoCAD gives the count of free ones, which only the
+            // run of the memory knows (867, 785, 703 for three calls of (expand 5)); 0 and negative numbers are given back as they are.
+            Define("EXPAND", 0, 1, a => a.Length == 0 ? 0 : Int(a[0]));
+            Define("PRAGMA", 0, -1, Pragma);
+            Define("VL-INFP", 1, 1, a => Bool(double.IsInfinity(Real(a[0]))));
+            Define("VL-NANP", 1, 1, a =>
+            {
+                Real(a[0]);
+
+                // AutoCAD 2021 answers nil for every NaN a routine can make: the indefinite -nan(ind).0 of (- x x) and the
+                // nan.0 and -nan.0 of (atof "nan") alike (probes g4b, g4c).
+                return null;
+            });
+        }
+
+        private static double Real(object value) =>
+            value is int i ? i
+            : value is double d ? d
+            : throw TypeError("numberp", value, colon: true);
+
+        /// <summary>
+        /// <c>(mem)</c>: writes the shape of AutoCAD's report, the collector's counts and the table of dynamic memory segments,
+        /// with the figures of a session just started, and gives nil.
+        /// </summary>
+        private object Memory(object[] a)
+        {
+            Write(
+                "\"; GC calls: \""
+                    + Inv(_collections)
+                    + "\"; GC run time: \"0\" ms\"\n"
+                    + "\"\\nDynamic memory segments statistic:\\n\"\"PgSz  Used  Free  FMCL  Segs  Type\\n\" 512     7   120   120     1  lisp stacks\n"
+                    + " 256   307   713   172     4  bytecode area\n"
+                    + "4096    69     6     6     5  CONS memory\n"
+                    + "  32  1472   510   510     1  ::new\n"
+                    + "4096    11     4     4     1  DM Str\n"
+                    + "4096   124    11    10     9  DMxx memory\n"
+                    + " 128     3   508   508     1  bstack body\n"
+                    + "\"Segment size: \"65536\", total used: \"22\", free: \"0\n"
+            );
+            return null;
+        }
+
+        /// <summary>
+        /// <c>(pragma '(...))</c>: a compiler directive, which does nothing here. AutoCAD 2021 refuses an argument that is not a
+        /// list (nil with <c>symbolp</c>, the others with <c>consp</c>) and a second argument with <c>syntax error</c>.
+        /// </summary>
+        private object Pragma(object[] a)
+        {
+            if (a.Length == 0)
+            {
+                throw TypeError("symbolp", null);
+            }
+
+            if (a.Length > 1)
+            {
+                throw new LispException("syntax error");
+            }
+
+            if (a[0] == null)
+            {
+                throw TypeError("symbolp", null);
+            }
+
+            if (!(a[0] is LispCons))
+            {
+                throw TypeError("consp", a[0]);
+            }
+
+            return null;
+        }
+
+        #endregion
 
         #region Arguments
 

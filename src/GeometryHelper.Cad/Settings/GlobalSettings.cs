@@ -148,6 +148,9 @@ namespace GeometryHelper.Cad
         private List<string> _appLoadHistory = new List<string>();
         private List<string> _pluginSnaps = new List<string>();
         private string _appLoadFolder = string.Empty;
+        private SortedDictionary<string, string> _lispEnvironment = new SortedDictionary<string, string>(
+            StringComparer.OrdinalIgnoreCase
+        );
         private string _pythonPath = string.Empty;
         private string _plotStyleFolder = string.Empty;
         private int _secureLoad = 1;
@@ -812,6 +815,30 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>
+        /// Gets what AutoLISP's <c>setenv</c> and <c>setcfg</c> keep, which AutoCAD keeps in the registry: each name to its text,
+        /// the entries of <c>setcfg</c> under <c>cfg:</c> and their path. None by default. Saved in the settings file.
+        /// </summary>
+        public IReadOnlyDictionary<string, string> LispEnvironment => _lispEnvironment;
+
+        /// <summary>Sets what AutoLISP's <c>setenv</c> and <c>setcfg</c> keep: a blank name is left out, a name given twice the last kept; an empty text is kept, as <c>setcfg</c> keeps one.</summary>
+        /// <param name="entries">The names and their texts.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the entries are null.</exception>
+        public void SetLispEnvironment(IEnumerable<KeyValuePair<string, string>> entries)
+        {
+            var table = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (KeyValuePair<string, string> pair in entries ?? throw new ArgumentNullException(nameof(entries)))
+            {
+                if (!string.IsNullOrWhiteSpace(pair.Key) && pair.Value != null)
+                {
+                    table[pair.Key] = pair.Value;
+                }
+            }
+
+            _lispEnvironment = table;
+        }
+
+        /// <summary>
         /// Gets or sets the folder Load/Unload Applications (APPLOAD) shows first: the one it loaded from last. Empty by
         /// default, which shows the first support folder, or Documents where there is none. Saved in the settings file.
         /// </summary>
@@ -1112,6 +1139,7 @@ namespace GeometryHelper.Cad
             copy._alwaysLoaded = new List<string>(_alwaysLoaded);
             copy._pluginSnaps = new List<string>(_pluginSnaps);
             copy._fontSubstitutions = Copy(_fontSubstitutions);
+            copy._lispEnvironment = Copy(_lispEnvironment);
             copy._aliases = Copy(_aliases);
             copy._keys = Copy(_keys);
             CopyRecordsInto(copy);
@@ -1339,6 +1367,14 @@ namespace GeometryHelper.Cad
 
             w.CloseList();
             w.Value("appLoadFolder", _appLoadFolder);
+            w.Open("lispEnvironment");
+
+            foreach (KeyValuePair<string, string> pair in _lispEnvironment)
+            {
+                w.Value(pair.Key, pair.Value);
+            }
+
+            w.Close();
             w.Value("pythonPath", _pythonPath);
             w.Value("appLoadAddToHistory", AppLoadAddToHistory);
             w.Value("plotStyleFolder", _plotStyleFolder);
@@ -1591,6 +1627,7 @@ namespace GeometryHelper.Cad
                 );
                 Take("support", "appLoadHistory", e => _s.AppLoadHistory = e.Elements().Select(f => f.Value).ToList());
                 Text("support", "appLoadFolder", v => _s.AppLoadFolder = v);
+                Take("support", "lispEnvironment", e => _s.SetLispEnvironment(Pairs(e)));
                 Text("support", "pythonPath", v => _s.PythonPath = v);
                 Flag("support", "appLoadAddToHistory", v => _s.AppLoadAddToHistory = v);
                 Text("support", "plotStyleFolder", v => _s.PlotStyleFolder = v);

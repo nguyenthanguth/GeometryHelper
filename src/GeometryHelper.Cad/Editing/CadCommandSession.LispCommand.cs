@@ -42,6 +42,7 @@ namespace GeometryHelper.Cad
 
         // The PAUSE the routine waits at: the command whose prompt the user answers, and what to call when the routine is done.
         private bool _lispPause;
+        private bool _pauseUntilEnd;
         private CadCommand _pauseCommand;
         private Action<LispResult> _pauseFinished;
 
@@ -55,6 +56,13 @@ namespace GeometryHelper.Cad
         /// not there.
         /// </summary>
         internal bool RunsForLisp => _lispStarted != null && ReferenceEquals(Current, _lispStarted);
+
+        /// <summary>
+        /// Whether the prompts of a routine's <c>command</c> are muted: NOMUTT is 1 and CMDECHO is on. AutoCAD 2021 (probes g10 and
+        /// g10b) then writes one line for the call, the name of the command and each argument typed with a space after it, no
+        /// prompts, and the value of the routine's form follows on the same line (<c>_.CIRCLE 0,0 5 nil</c>).
+        /// </summary>
+        private bool PromptsMuted => CommandEchoOn && Remembered.TryGetValue("nomutt", out double mute) && mute == 1.0;
 
         /// <summary>Whether a command of a routine runs, as <c>command</c> feeds it: one with a prompt up that is not the wait of a get function.</summary>
         private bool HasLispCommand => Current != null && Prompt != null && !ReferenceEquals(Current, _lispCommand);
@@ -86,11 +94,28 @@ namespace GeometryHelper.Cad
                 return LispFeed.Bad;
             }
 
-            WriteLispBefore();
+            // Muted, the text the routine left on its last line is where the line of the call goes on from.
+            bool muted = PromptsMuted;
+            string tail = null;
+
+            if (muted)
+            {
+                tail = TakeLispTail();
+            }
+            else
+            {
+                WriteLispBefore();
+            }
+
             RetireLispCarrier();
             int mark = _history.Count;
             bool keepLast = false;
             LispFeed fed;
+
+            if (muted)
+            {
+                _lispPrefix = tail;
+            }
 
             if (HasLispCommand)
             {
@@ -102,13 +127,19 @@ namespace GeometryHelper.Cad
                 fed = FeedAtCommandPrompt(argument, out keepLast);
             }
 
-            if (!CommandEchoOn)
+            if (!CommandEchoOn || muted)
             {
                 // The words of a refusal and of an unknown name are the one line kept.
                 if (_history.Count > mark)
                 {
                     string last = _history[_history.Count - 1];
                     _history.RemoveRange(mark, _history.Count - mark);
+
+                    // A refused argument ends the line of the call, and its words come under it.
+                    if (muted && fed == LispFeed.Refused)
+                    {
+                        _history.Add(tail + MutedEcho(argument, false));
+                    }
 
                     if (keepLast)
                     {
@@ -117,13 +148,61 @@ namespace GeometryHelper.Cad
                 }
             }
 
-            if (fed == LispFeed.Refused)
+            if (muted)
+            {
+                _lispPrefix = fed == LispFeed.Refused || keepLast ? null : tail + MutedEcho(argument, true);
+            }
+            else if (fed == LispFeed.Refused)
             {
                 _lispPrefix = null;
             }
 
             Changed();
             return fed;
+        }
+
+        /// <summary>
+        /// What the muted call of <c>command</c> writes for an argument: a string or a number as it is, then a space; nothing for
+        /// an empty string, a point or nil; two spaces for an entity name or a selection set (AutoCAD 2021, probe g10b).
+        /// </summary>
+        private static string MutedEcho(object argument, bool space)
+        {
+            switch (argument)
+            {
+                case string text:
+                    return text.Length == 0 ? string.Empty : text + (space ? " " : string.Empty);
+                case int _:
+                case double _:
+                    return LispNumber(argument) + (space ? " " : string.Empty);
+                case LispEntityName _:
+                case LispSelectionSet _:
+                    return "  ";
+                default:
+                    return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Writes the lines the routine finished and gives the text it left on its last line, with what the session held for
+        /// that line; the muted call of <c>command</c> goes on from it.
+        /// </summary>
+        private string TakeLispTail()
+        {
+            string text = (_lispPrefix ?? string.Empty) + Lisp.TakeOutput();
+            _lispPrefix = null;
+            int cut = text.LastIndexOf('\n');
+
+            if (cut < 0)
+            {
+                return text;
+            }
+
+            foreach (string line in text.Substring(0, cut).Split('\n'))
+            {
+                Write(line);
+            }
+
+            return text.Substring(cut + 1);
         }
 
         /// <summary>Writes what the routine wrote before this call of <c>command</c>, so that it comes before the lines the call makes; the text left on the last line stays where the routine wrote nothing.</summary>
@@ -254,6 +333,28 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>
+        /// The command a name a routine gave stands for, as <see cref="StartByLisp"/> finds it: the <c>_</c> and <c>.</c> in front
+        /// of a name, which AutoCAD takes off to find the command (<c>_.LINE</c> is LINE), and an apostrophe, then the commands,
+        /// their aliases and the system variables, which a name alone sets.
+        /// </summary>
+        /// <param name="given">The name as the routine gave it, trimmed.</param>
+        /// <returns>The command; null where there is none.</returns>
+        private CadCommand LispCommandNamed(string given)
+        {
+            string name = WithoutPrefixes(given);
+            name = WithoutApostrophe(name) ?? name;
+            name = WithoutPrefixes(name);
+            CadCommand command = Registry.FindByName(name) ?? Registry.Find(name);
+
+            if (command == null && Registry.FindVariable(name) is CadSystemVariable variable)
+            {
+                command = new CadCommand(variable.Name, c => CadCommands.TypedVariable(c, variable));
+            }
+
+            return command;
+        }
+
+        /// <summary>
         /// Starts the command a routine's <c>command</c> names, as typed at the Command prompt but that a <c>c:</c> command is
         /// not found and that a command with a command-line twin runs the twin (LAYER runs -LAYER's prompts). The name is
         /// written as given, after the Command prompt the routine's last command left. It is not the command Enter runs again.
@@ -268,15 +369,7 @@ namespace GeometryHelper.Cad
             _lispPrefix = null;
             given = given.Trim();
 
-            // The _ and . in front of a name, which AutoCAD takes off to find the command: _.LINE is LINE.
-            string name = WithoutPrefixes(given);
-            name = WithoutApostrophe(name) ?? name;
-            CadCommand command = Registry.FindByName(name) ?? Registry.Find(name);
-
-            if (command == null && Registry.FindVariable(name) is CadSystemVariable variable)
-            {
-                command = new CadCommand(variable.Name, c => CadCommands.TypedVariable(c, variable));
-            }
+            CadCommand command = LispCommandNamed(given);
 
             if (command == null)
             {
@@ -338,6 +431,76 @@ namespace GeometryHelper.Cad
             return live;
         }
 
+        /// <summary>
+        /// <c>command-s</c>: the first argument names the command, each of the others goes to its prompts one after the other as
+        /// <c>command</c> feeds them, but a prompt that refuses one writes its words and takes the next argument at the same
+        /// prompt, and what is left when the command ends is dropped (AutoCAD 2021, probes g6 to g6d). Called on the owner thread.
+        /// </summary>
+        /// <param name="arguments">The arguments, at least one, none of them nil.</param>
+        /// <returns>True where the command is left at a prompt and the routine waits until it ends.</returns>
+        /// <exception cref="LispException">Thrown with <c>Unknown (command-s) failure.</c> where the first argument is no command name.</exception>
+        internal bool FeedLispStack(object[] arguments)
+        {
+            if (
+                !(arguments[0] is string first)
+                || first.Trim().Length == 0
+                || (!HasLispCommand && LispCommandNamed(first.Trim()) == null)
+            )
+            {
+                throw new LispException("Unknown (command-s) failure.");
+            }
+
+            for (int i = 0; i < arguments.Length; i++)
+            {
+                if (i > 0 && !HasLispCommand)
+                {
+                    break;
+                }
+
+                // PAUSE has nothing to wait at in the middle of the call; the routine waits at its end.
+                if (!(arguments[i] is string text && text == "\\"))
+                {
+                    FeedLispArgument(arguments[i]);
+                }
+            }
+
+            // The prompt the command waits at is shown whatever CMDECHO says (AutoCAD 2021, probe g6).
+            if (HasLispCommand && !CommandEchoOn)
+            {
+                Write(Prompt.Text);
+            }
+
+            return HasLispCommand;
+        }
+
+        /// <summary>
+        /// The end of a call of <c>command-s</c>: the value the routine's form gives follows the last line of the command on that
+        /// line (<c>Specify radius of circle or [Diameter]: 5 nil</c>), where <c>command</c> starts a Command prompt for it; after
+        /// Esc it is a line of its own.
+        /// </summary>
+        internal void EndLispStack()
+        {
+            if (HasLispCommand || PromptsMuted || !CommandEchoOn)
+            {
+                return;
+            }
+
+            if (
+                LastOutcome == CadCommandOutcome.Cancelled
+                || _history.Count == 0
+                || _history[_history.Count - 1].Length == 0
+            )
+            {
+                _lispPrefix = null;
+                return;
+            }
+
+            string last = _history[_history.Count - 1];
+            _history.RemoveAt(_history.Count - 1);
+            _lispPrefix = last + " ";
+            Changed();
+        }
+
         /// <summary><c>(command)</c> with no argument: cancels the command running, with no <c>*Cancel*</c> line.</summary>
         internal void CancelLispCommand()
         {
@@ -365,6 +528,18 @@ namespace GeometryHelper.Cad
         internal bool CanLispPause()
         {
             RetireLispCarrier();
+
+            // A muted call has written no line yet: the pause shows its prompt under what the call wrote so far.
+            if (PromptsMuted)
+            {
+                string tail = TakeLispTail();
+
+                if (tail.Length > 0)
+                {
+                    Write(tail);
+                }
+            }
+
             return HasLispCommand;
         }
 
@@ -374,7 +549,7 @@ namespace GeometryHelper.Cad
         /// </summary>
         internal void EndLispCommand()
         {
-            if (HasLispCommand && CommandEchoOn)
+            if (HasLispCommand && CommandEchoOn && !PromptsMuted)
             {
                 _lispPrefix = Prompt.Text + " ";
             }
@@ -428,6 +603,7 @@ namespace GeometryHelper.Cad
             }
 
             _lispPause = true;
+            _pauseUntilEnd = Lisp.Waiting.UntilEnd;
             _pauseCommand = Current;
             _pauseFinished = finished;
 
@@ -443,10 +619,15 @@ namespace GeometryHelper.Cad
         private void ResumePause(CadCommandOutcome outcome)
         {
             Action<LispResult> finished = _pauseFinished;
+            bool untilEnd = _pauseUntilEnd;
             _lispPause = false;
+            _pauseUntilEnd = false;
             _pauseCommand = null;
             _pauseFinished = null;
-            LispResult result = outcome == CadCommandOutcome.Cancelled ? Lisp.CancelWait() : Lisp.Resume(null);
+
+            // command-s that waited for the end of the command is over with it, Esc or not, and gives nil.
+            LispResult result =
+                outcome == CadCommandOutcome.Cancelled && !untilEnd ? Lisp.CancelWait() : Lisp.Resume(null);
             LispContinue(result, finished);
         }
     }
