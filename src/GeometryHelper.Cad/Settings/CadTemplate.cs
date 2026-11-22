@@ -237,6 +237,36 @@ namespace GeometryHelper.Cad
             record.IsPlottable = plot;
         }
 
+        // The linetype a layer of the sample names, loaded from the built-in set where the drawing lacks it; null for
+        // Continuous, or for a name the built-in set does not have.
+        private static string LinetypeOf(DxfDatabase database, string name)
+        {
+            if (database.LinetypeTable.Has(name))
+            {
+                return string.Equals(name, "Continuous", StringComparison.OrdinalIgnoreCase)
+                    ? null
+                    : database.LinetypeTable[name].Name;
+            }
+
+            CadLinetypeDefinition own = CadLinetypeFile.BuiltIn.FirstOrDefault(l =>
+                string.Equals(l.Name, name, StringComparison.OrdinalIgnoreCase)
+            );
+
+            if (own == null || own.Fault != null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return CadLinetypes.Add(database, own).Name;
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+        }
+
         private static void AddSampleDimensionStyles(DxfDatabase database)
         {
             DxfDimStyleTable styles = database.DimStyleTable;
