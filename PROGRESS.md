@@ -228,9 +228,16 @@ inside the app; made to be used a lot, by people and by AI (plan and spec in .cl
       record); an unloaded Python row shows no commands (Lisp rows keep theirs); no Global settings row for the Pythons
       folder or the Python Startup Suite; a .py asking a prompt at module level while APPLOAD runs; Remove's tooltip
       naming only Lisps and Plugins
-- [ ] PW2. One API: `@command("NAME")`, `cmd(...)` and the get_* prompts; a Drawing API (entities, add, modify, erase,
+- [x] PW2. One API: `@command("NAME")`, `cmd(...)` and the get_* prompts; a Drawing API (entities, add, modify, erase,
       layers, tables, save, close) the same in the app, from outside (`connect()`, any open drawing) and headless
-      (`open_file()`); parity with the C# plugin API (ribbon tabs, panels and buttons, side panel, settings, events)
+      (`open_file()`); parity with the C# plugin API (ribbon tabs, panels and buttons, side panel, settings, events).
+      Done 2026-11-23: `@command(alias=, uses_selection=)`, `cmd` with PAUSE, `@on_unload`, get_entity/get_selection
+      giving Entity objects; `add_ribbon_tab`, panels, buttons, split buttons, DRAWINGS button and menu, canvas menu
+      and Properties from a .py, one host per file; Drawing, Entity, Layer, App, connect, open_file, new_file with
+      commit() as one undo step; 25 shared scenarios held equal headless, outside and in the app
+- [ ] PW2 parked: no Python custom snaps, side panel or CadSetting (D1660, reasons in the spec); a dimension added from
+      Python in the app keeps an old picture (CadCommands.Redraw is internal); a save inside a run makes two undo steps;
+      style and block reads copy the whole drawing; the remote and library examples still on the .NET API
 - [ ] PW3. Finish: the PYTHON console and PYTHONCLOSE removed (PYRUN kept); a docstring with an example and a stub for
       every public name, checked by a test; one example per task; acceptance: the C1 layer command written in Python
       run in the app and from outside, and a LISP routine and its Python port giving the same drawing
