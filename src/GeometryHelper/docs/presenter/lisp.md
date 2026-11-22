@@ -84,7 +84,7 @@ session.Feed("(command \"CIRCLE\" '(0 0) 5)");              // Command: (command
 | Tables | `tblsearch`, `tblnext`, `tblobjname` |
 | Extended data and dictionaries | `regapp`, `xdroom`, `xdsize`, `namedobjdict`, `dictsearch`, `dictnext`, `dictadd`, `dictremove`, `dictrename` |
 | Variables | `getvar`, `setvar` |
-| The session | `trans`, `osnap`, `alert`, `grtext`, `grdraw`, `grvecs`, `grclear`, `redraw`, `textbox`, `textscr`, `textpage`, `graphscr` |
+| The session | `trans`, `osnap`, `alert`, `grtext`, `grdraw`, `grvecs`, `grclear`, `grread`, `redraw`, `textbox`, `textscr`, `textpage`, `graphscr` |
 | ActiveX data | after `vl-load-com`: `vlax-ldata-put`, `vlax-ldata-get`, `vlax-ldata-delete`, `vlax-ldata-list`, `vlax-ldata-test` |
 | ActiveX curves | after `vl-load-com`: the eighteen `vlax-curve-` functions, `getStartParam` to `isPlanar` |
 | ActiveX objects | after `vl-load-com`: `vlax-get-acad-object`, `vlax-ename->vla-object`, `vlax-vla-object->ename`, `vlax-get-property`, `vlax-put-property`, `vlax-invoke-method`, `vlax-get`, `vlax-put`, `vlax-invoke`, `vlax-for` (before it too), `vlax-map-collection`, `vlax-property-available-p`, `vlax-method-applicable-p`, `vlax-object-released-p`, `vlax-release-object`, `vlax-erased-p`, `vlax-read-enabled-p`, `vlax-write-enabled-p`, `vlax-typeinfo-available-p`; refused with a message: `vlax-create-object`, `vlax-get-object`, `vlax-get-or-create-object`, `vlax-import-type-library`, `vlax-dump-object` |
@@ -1047,6 +1047,30 @@ A point left with no end is `; error: grvecs missing endpoint`, a list that is n
 three rows, or `nil`, `bad argument type: matrix: nil`, and a colour that is no whole number `bad argument type: fixnump: 1.5`
 (AutoCAD 2021, probe g1; its console draws nothing and says `nil`, so the drawing of the canvas is the presenter's own, tested
 against its colours).
+
+### grread
+
+`(grread [track [allkeys [curtype]]])` waits for one key, one click or one move of the cursor and gives it as a list, which is how
+the loops that draw with `grdraw` and `grvecs` follow the mouse. The wait shows no words and writes no line: the command line
+shows nothing typed while it lasts, and each answer runs the routine's loop once.
+
+| The list | What gave it |
+|---|---|
+| `(2 code)` | a key: the character's code for a printable one (`(2 65)` for A), 13 for Enter, 32 for Space, 8 for Backspace, 9 for Tab |
+| `(3 (x y z))` | a click of the left button: the point as it lies under the cursor, in the current UCS, with no object snap, no grid snap and no ortho or polar; z is 0 |
+| `(5 (x y z))` | a move of the cursor, only with `track` not nil or the bit 1 of `allkeys`; the point as for a click |
+| `(11 0)` | a click of the right button: no shortcut menu opens and no Enter is made of it |
+
+A move that comes before the routine has asked again takes the place of the one before it, so a loop slower than the mouse never
+falls behind it: a loop that calls `grvecs` at each move took 19 ms for 1 000 moves headless. Keys and clicks are not dropped; they
+wait their turn in the order they came. The middle button and the wheel pan and zoom as ever and give the routine nothing, and so
+do Ctrl and Alt with a key and the function keys, which keep their meaning in the window. Esc ends the wait with
+`Function cancelled`, which `vl-catch-all-apply` and `*error*` see as they see it at any get function. `allkeys` and `curtype`
+must be whole numbers (`; error: bad argument type: fixnump: "a"`); their other bits are not used.
+
+A host that has no window answers through the session: `Feed` with a text gives the keys of its characters, one for each call of
+`grread`, then 13 (`abc` is `(2 97)`, `(2 98)`, `(2 99)`, `(2 13)`), and a point is a click. What is left over when the routine
+stops reading is dropped.
 
 ## Strings, lists and files
 
@@ -2652,7 +2676,9 @@ from `Feed` where the routine waits and goes on with the next `Feed`. Only one t
 presenter never change the drawing together. What follows is for the window and for a host that drives a session itself.
 
 - The prompt a routine asks is a prompt of the session's own, so object snaps, OSMODE, FROM and M2P, transparent ZOOM and PAN, and
-  the rubber band work at it, and Esc ends the question with `Function cancelled`.
+  the rubber band work at it, and Esc ends the question with `Function cancelled`. `grread` is the exception: its prompt has no
+  words, no rubber band, no dynamic input and no snap, and every key, click and move of the window is its answer
+  ([grread](#grread)).
 - A line typed that starts with `(` or `!` is plain input while the routine waits, with `Can't reenter LISP.` at a get
   function and with no message at a command's prompt reached by a PAUSE.
 - Closing a drawing, reloading it, or closing all of them ends the routine that waits in it first: Esc is pressed until the
@@ -2759,7 +2785,7 @@ above runs, and one that reaches for a later stage stops at its first such call.
 whole, and their names are offered by AutoComplete, whatever their bodies need.
 
 The drawing, the library, the ActiveX functions and the dialogs are built, with these left out. Of the library, `vl-load-reactors` (with the
-`vlr-` functions, which the ActiveX stage leaves out: there are no reactors), `grread`, `menucmd`, `menugroup`, `help`,
+`vlr-` functions, which the ActiveX stage leaves out: there are no reactors), `menucmd`, `menugroup`, `help`,
 `setfunhelp`, `trace`, `untrace`, `vmon`, `tablet`, `vports`, `setview`, `report`, `fnsplitl`, `acdimenableupdate`, `getcname`
 and the `_vl-` internals, and `vl-exit-with-error` and `vl-exit-with-value`, which belong to VLX applications, are not defined. Of the ActiveX functions,
 the `Add` methods and the editing methods of the spaces

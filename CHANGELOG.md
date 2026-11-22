@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** AutoLISP's `grread`, in GeometryHelper.Cad and its window. `(grread [track [allkeys [curtype]]])` waits for one key,
+click or move of the cursor and gives `(2 code)` for a key (13 Enter, 32 Space, 8 Backspace, 9 Tab, the character's code for
+the rest), `(3 (x y z))` for a left click and `(5 (x y z))` for a move, in the UCS and with no snap, and `(11 0)` for the right
+button, which opens no menu; moves come only with `track` or the bit 1 of `allkeys`, and one that comes before the routine asks
+again takes the place of the one before it, so a loop that draws with `grvecs` at each move kept up with 1 000 moves in 19 ms.
+Esc gives `Function cancelled`. The prompt shows no words and the command line shows nothing typed while it waits. The bit 2 of
+`allkeys` (function and cursor keys) and `curtype` are not used yet.
+
 **FIXED.** Load/Unload Applications, after a real mouse, the Delete key and an Open dialog were driven against it. The table
 was rebuilt on every click, so a double click on the On box of the second of three files unticked it and then unloaded the
 third (the second click landed on the neighbour that had moved up); an unticked AutoLISP file now stays in the table, off,

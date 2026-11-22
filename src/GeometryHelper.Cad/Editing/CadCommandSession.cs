@@ -574,6 +574,12 @@ namespace GeometryHelper.Cad
                 return false;
             }
 
+            // grread: the click is the answer, as the cursor was, with no snap.
+            if (IsGrRead)
+            {
+                return FeedGrRead(new GrEvent(GrClick, 0, point));
+            }
+
             // The prompt of a point modifier, asked inside an option's, takes its point as any modifier's does.
             if (_option != null && _modifiers.Count == 0)
             {
@@ -704,6 +710,12 @@ namespace GeometryHelper.Cad
         /// <returns>Whether it was taken.</returns>
         public bool Feed(string text)
         {
+            // grread takes the text as the keys of a line typed, whatever it looks like.
+            if (IsGrRead)
+            {
+                return FeedGrReadText(text ?? string.Empty);
+            }
+
             if (string.IsNullOrWhiteSpace(text))
             {
                 Enter();
@@ -1109,6 +1121,13 @@ namespace GeometryHelper.Cad
                 return;
             }
 
+            // grread: Enter is the key 13.
+            if (IsGrRead)
+            {
+                FeedKey(13);
+                return;
+            }
+
             if (_option != null && _modifiers.Count == 0)
             {
                 OptionEnter();
@@ -1153,6 +1172,7 @@ namespace GeometryHelper.Cad
                 return;
             }
 
+            ForgetGrRead();
             Write(Prompt != null ? Prompt.Echo("*Cancel*") : "*Cancel*");
             Finish(CadCommandOutcome.Cancelled);
         }
