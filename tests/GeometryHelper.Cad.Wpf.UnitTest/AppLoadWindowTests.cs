@@ -62,13 +62,13 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         /// <summary>A manager over the loader of the runtime, with the sample plugin copied to a folder it trusts.</summary>
-        private CadPluginManager Manager(out string sample)
+        private CadPluginManager Manager(out string sample, string copies = "copies")
         {
             var manager = new CadPluginManager(
                 new CadPluginAssemblyLoader(),
                 Path.Combine(_folder.FullPath, "plugins"),
                 Path.Combine(_folder.FullPath, "plugins.json"),
-                Path.Combine(_folder.FullPath, "copies")
+                Path.Combine(_folder.FullPath, copies)
             );
             _disposables.Add(manager);
             string dev = Path.Combine(_folder.FullPath, "dev");
@@ -157,7 +157,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             AppLoadRow row = Assert.Single(dialog.Rows);
             Assert.Equal("pair.lsp", row.Name);
             Assert.False(row.IsOn);
-            Assert.Equal(string.Empty, row.Commands);
+            Assert.Equal("ZA, ZB", row.Commands);
             Assert.Empty(model.Session.LispCommandNames);
             Assert.Equal("pair.lsp unloaded.", model.History.Last());
             model.Execute("ZA");
@@ -167,7 +167,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void AfterUnload_TickingTheRowAgainLoadsTheFile_AndAnUnloadedRowIsGoneOnceTheWindowIsClosed()
+        public void AfterUnload_TickingTheRowAgainLoadsTheFile_AndAnUnloadedRowStaysInANewWindow()
         {
             MainViewModel model = Opened();
             string path = Lisp("again.lsp", "(defun c:RA () 1)");
@@ -190,11 +190,11 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             Assert.Equal("RA", row.Commands);
             Assert.Equal(new[] { "RA" }, model.Session.LispCommandNames);
 
-            // Unloaded once more and the window closed: a new window has no row for a file that is neither loaded nor in the suite.
+            // Unloaded once more and the window closed: a new window still has the row, unticked.
             dialog.ChooseRows(dialog.Rows);
             dialog.UnloadCommand.Execute(null);
             Assert.Single(dialog.Rows);
-            Assert.Empty(Created(model).Rows);
+            Assert.False(Assert.Single(Created(model).Rows).IsOn);
         }
 
         [Fact]
@@ -221,7 +221,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             // It stays in the list, off, because the suite still holds it.
             row = Row(dialog, "suite.lsp");
             Assert.False(row.IsOn);
-            Assert.Equal(string.Empty, row.Commands);
+            Assert.Equal("SU", row.Commands);
             Assert.Empty(model.Session.LispCommandNames);
 
             row.IsOn = true;
@@ -246,6 +246,286 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 
             Assert.Equal("ONE, TWO", Assert.Single(dialog.Rows).Commands);
             Assert.Equal("edit.lsp successfully loaded.", model.History.Last());
+        }
+
+        // ---- Known files: an unloaded file stays, Remove takes it out
+
+        /// <summary>A second run of the app: a new window over the settings the first one saved, with a drawing open.</summary>
+        private MainViewModel Restarted()
+        {
+            string room = _folder.Write("room-" + Guid.NewGuid().ToString("N") + ".dxf", TestFiles.Room(out _, out _));
+            var model = new MainViewModel { SettingsPath = SettingsFile };
+            GlobalSettings saved = GlobalSettings.Load(SettingsFile);
+            saved.SecureLoad = 0;
+            model.ApplySettings(saved);
+            Assert.True(model.Open(room));
+            return model;
+        }
+
+        [Fact]
+        public void AnUnloadedLispFile_IsStillInANewWindow_UntickedWithItsCommands()
+        {
+            MainViewModel model = Opened();
+            string path = Lisp("keep.lsp", "(defun c:KA () 1)\n(defun c:KB () 2)");
+            AppLoadViewModel dialog = Shown(model);
+            dialog.Load(new[] { path });
+            dialog.ChooseRows(dialog.Rows);
+            dialog.UnloadCommand.Execute(null);
+            dialog.Dispose();
+
+            AppLoadRow row = Assert.Single(Created(model).Rows);
+
+            Assert.Equal("keep.lsp", row.Name);
+            Assert.Equal(path, row.File);
+            Assert.False(row.IsOn);
+            Assert.Equal("KA, KB", row.Commands);
+            Assert.Empty(model.Session.LispCommandNames);
+
+            row.IsOn = true;
+
+            row = Assert.Single(Created(model).Rows);
+            Assert.True(row.IsOn);
+            Assert.Equal("KA, KB", row.Commands);
+            Assert.Equal(new[] { "KA", "KB" }, model.Session.LispCommandNames);
+        }
+
+        [Fact]
+        public void AnUnloadedLispFile_IsStillInTheTableAfterARestartOfTheApp()
+        {
+            MainViewModel model = Opened();
+            string path = Lisp("again.lsp", "(defun c:AG () 1)");
+            AppLoadViewModel dialog = Shown(model);
+            dialog.Load(new[] { path });
+            Row(dialog, "again.lsp").IsOn = false;
+
+            Assert.Equal(new[] { path }, GlobalSettings.Load(SettingsFile).KnownApplications.Keys);
+            MainViewModel second = Restarted();
+            AppLoadRow row = Assert.Single(Created(second).Rows);
+
+            Assert.Equal(path, row.File);
+            Assert.False(row.IsOn);
+            Assert.Equal("AG", row.Commands);
+            Assert.False(row.AtStart);
+            Assert.True(row.CanChangeAtStart);
+        }
+
+        [Fact]
+        public void AFileLoadedWithTheLoadFunction_IsKnownWithItsCommands()
+        {
+            MainViewModel model = Opened();
+            string path = Lisp("typed.lsp", "(defun c:TY () 1)");
+
+            model.Execute("(load \"" + path.Replace("\\", "/") + "\")");
+
+            KeyValuePair<string, string> known = Assert.Single(model.Settings.KnownApplications);
+            Assert.Equal(path, known.Key);
+            Assert.Equal("TY", known.Value);
+        }
+
+        [Fact]
+        public void APluginLoadedByNetload_IsKnown_AndAnUnloadedOneIsStillInTheTableAfterARestart()
+        {
+            CadPluginManager manager = Manager(out string sample);
+            var model = new MainViewModel { SettingsPath = SettingsFile };
+            model.UsePlugins(manager, loadAtStart: false);
+            CadPluginResult loaded = model.LoadPlugin(sample);
+            Assert.True(loaded.Succeeded, loaded.ToString());
+            Assert.Equal(sample, Assert.Single(model.Settings.KnownApplications).Key);
+            AppLoadViewModel dialog = Created(model);
+            string commands = Row(dialog, SampleName).Commands;
+            Assert.NotEqual(string.Empty, commands);
+            Row(dialog, SampleName).IsOn = false;
+
+            // A new run: its manager knows no plugin, the settings know the file.
+            CadPluginManager again = Manager(out _, "copies-again");
+            var second = new MainViewModel { SettingsPath = SettingsFile };
+            second.ApplySettings(GlobalSettings.Load(SettingsFile));
+            second.UsePlugins(again, loadAtStart: false);
+            AppLoadRow row = Assert.Single(Created(second).Rows);
+
+            Assert.True(row.IsPlugin);
+            Assert.Equal("Plugin", row.Kind);
+            Assert.Equal(sample, row.File);
+            Assert.False(row.IsOn);
+            Assert.Equal(commands, row.Commands);
+
+            AppLoadViewModel ticking = Created(second);
+            row = Assert.Single(ticking.Rows);
+            row.IsOn = true;
+
+            row = Assert.Single(ticking.Rows);
+            Assert.True(row.IsOn, ticking.LoadError);
+            Assert.Equal(SampleName, row.Name);
+            Assert.True(again.Plugins.Single().IsLoaded);
+        }
+
+        [Fact]
+        public void RemoveOnAnUnloadedLispFile_TakesItOutOfTheTable_TheKnownListAndTheStartupSuite()
+        {
+            MainViewModel model = Opened();
+            string path = Lisp("gone.lsp", "(defun c:GN () 1)");
+            string other = Lisp("stay.lsp", "(defun c:STAY () 1)");
+            AppLoadViewModel dialog = Shown(model);
+            dialog.Load(new[] { path, other });
+            Row(dialog, "gone.lsp").AtStart = true;
+            Row(dialog, "gone.lsp").IsOn = false;
+            dialog.ChooseRows(new[] { Row(dialog, "gone.lsp") });
+            Assert.True(dialog.RemoveCommand.CanExecute(null));
+
+            dialog.RemoveCommand.Execute(null);
+
+            Assert.Equal("stay.lsp", Assert.Single(dialog.Rows).Name);
+            Assert.Empty(dialog.Chosen);
+            Assert.Equal(new[] { other }, model.Settings.KnownApplications.Keys);
+            Assert.Empty(model.Settings.LispStartupSuite);
+            Assert.Equal(new[] { other }, GlobalSettings.Load(SettingsFile).KnownApplications.Keys);
+            Assert.Empty(GlobalSettings.Load(SettingsFile).LispStartupSuite);
+            Assert.Equal("stay.lsp", Assert.Single(Created(model).Rows).Name);
+        }
+
+        [Fact]
+        public void RemoveOnALoadedLispFile_UnloadsItFirst()
+        {
+            MainViewModel model = Opened();
+            AppLoadViewModel dialog = Shown(model);
+            dialog.Load(new[] { Lisp("live.lsp", "(defun c:LV () 1)") });
+            dialog.ChooseRows(dialog.Rows);
+
+            dialog.RemoveCommand.Execute(null);
+
+            Assert.Empty(dialog.Rows);
+            Assert.Empty(model.Session.LispCommandNames);
+            Assert.Empty(model.Settings.KnownApplications);
+            Assert.Equal("live.lsp unloaded.", model.History.Last());
+            model.Execute("LV");
+            Assert.Contains("Unknown command", model.History.Last());
+        }
+
+        [Fact]
+        public void Unload_KeepsTheRowInTheKnownList()
+        {
+            MainViewModel model = Opened();
+            AppLoadViewModel dialog = Shown(model);
+            dialog.Load(new[] { Lisp("kept.lsp", "(defun c:KP () 1)") });
+            dialog.ChooseRows(dialog.Rows);
+
+            dialog.UnloadCommand.Execute(null);
+
+            Assert.Single(dialog.Rows);
+            Assert.Single(model.Settings.KnownApplications);
+        }
+
+        [Fact]
+        public void Remove_IsDisabledForARowOfTheLispsFolder_AndSaysWhy()
+        {
+            MainViewModel model = Opened();
+            string program = Path.Combine(_folder.FullPath, "program");
+            string lisps = Directory.CreateDirectory(Path.Combine(program, "Lisps")).FullName;
+            model.Document.SupportRoots = new CadSupportFolders(program);
+            string inside = Path.Combine(lisps, "GH-Info.lsp");
+            File.WriteAllText(inside, "(defun c:GHI () 1)");
+            string outside = Lisp("mine.lsp", "(defun c:MINE () 1)");
+            AppLoadViewModel dialog = Shown(model);
+            dialog.Load(new[] { inside, outside });
+            Assert.False(dialog.RemoveCommand.CanExecute(null));
+            string idle = dialog.RemoveToolTip;
+            Assert.Equal("Unload the chosen files and take them out of the list", idle);
+            Assert.DoesNotContain(model.Settings.KnownApplications.Keys, k => k == inside);
+
+            dialog.ChooseRows(new[] { Row(dialog, "GH-Info.lsp") });
+
+            Assert.False(dialog.RemoveCommand.CanExecute(null));
+            Assert.Contains("Lisps", dialog.RemoveToolTip);
+            Assert.Contains("every start", dialog.RemoveToolTip);
+
+            dialog.ChooseRows(dialog.Rows);
+
+            Assert.True(dialog.RemoveCommand.CanExecute(null));
+            Assert.Equal(idle, dialog.RemoveToolTip);
+
+            // Both chosen: the file of the Lisps folder is left, loaded, and the other goes.
+            dialog.RemoveCommand.Execute(null);
+
+            AppLoadRow left = Assert.Single(dialog.Rows);
+            Assert.Equal("GH-Info.lsp", left.Name);
+            Assert.True(left.IsOn);
+        }
+
+        [Fact]
+        public void Remove_WithNothingChosen_CannotBePressed()
+        {
+            Assert.False(Shown(Opened()).RemoveCommand.CanExecute(null));
+        }
+
+        [Fact]
+        public void RemoveOnAPluginRow_UnloadsItAndForgetsIt_ItsAtStartEntryToo()
+        {
+            CadPluginManager manager = Manager(out string sample);
+            var model = new MainViewModel { SettingsPath = SettingsFile };
+            model.UsePlugins(manager, loadAtStart: false);
+            AppLoadViewModel dialog = Created(model);
+            dialog.Load(new[] { sample });
+            Row(dialog, SampleName).AtStart = true;
+            Assert.Equal(new[] { sample }, manager.StartupList);
+            dialog.ChooseRows(dialog.Rows);
+            Assert.True(dialog.RemoveCommand.CanExecute(null));
+
+            dialog.RemoveCommand.Execute(null);
+
+            Assert.Empty(dialog.Rows);
+            Assert.Empty(manager.Plugins);
+            Assert.Empty(manager.StartupList);
+            Assert.Empty(model.Settings.KnownApplications);
+            Assert.Empty(Created(model).Rows);
+        }
+
+        [Fact]
+        public void RemoveOnAnUnloadedPluginRowOfAnotherRun_ForgetsItsFile()
+        {
+            CadPluginManager manager = Manager(out string sample);
+            var model = new MainViewModel { SettingsPath = SettingsFile };
+            model.UsePlugins(manager, loadAtStart: false);
+            model.LoadPlugin(sample);
+            model.UnloadPlugin(SampleName);
+
+            CadPluginManager again = Manager(out _, "copies-again");
+            var second = new MainViewModel { SettingsPath = SettingsFile };
+            second.ApplySettings(GlobalSettings.Load(SettingsFile));
+            second.UsePlugins(again, loadAtStart: false);
+            AppLoadViewModel dialog = Created(second);
+            dialog.ChooseRows(dialog.Rows);
+
+            dialog.RemoveCommand.Execute(null);
+
+            Assert.Empty(dialog.Rows);
+            Assert.Empty(second.Settings.KnownApplications);
+            Assert.Empty(GlobalSettings.Load(SettingsFile).KnownApplications);
+        }
+
+        [Fact]
+        public void AKnownFileThatIsMissing_ShowsWithItsPath_AndTickingItGivesTheLoadFailureLine()
+        {
+            MainViewModel model = Opened();
+            string missing = Path.Combine(_folder.FullPath, "lisp", "vanished.lsp");
+            GlobalSettings changed = model.Settings.Clone();
+            changed.SetKnownApplications(new[] { new KeyValuePair<string, string>(missing, "VA, VB") });
+            model.ApplySettings(changed);
+            AppLoadViewModel dialog = Created(model);
+
+            AppLoadRow row = Assert.Single(dialog.Rows);
+
+            Assert.Equal("vanished.lsp", row.Name);
+            Assert.Equal(missing, row.File);
+            Assert.False(row.IsOn);
+            Assert.Equal("VA, VB", row.Commands);
+
+            row.IsOn = true;
+
+            Assert.True(dialog.HasLoadError);
+            Assert.Equal("vanished.lsp", dialog.LoadErrorName);
+            row = Assert.Single(dialog.Rows);
+            Assert.False(row.IsOn);
+            Assert.Equal("VA, VB", row.Commands);
         }
 
         // ---- At start
@@ -692,6 +972,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             Assert.Contains("Load… (.lsp, .dll)", texts);
             Assert.Contains("Reload", texts);
             Assert.Contains("Unload", texts);
+            Assert.Contains("Remove", texts);
             Assert.Contains("All 2", texts);
             Assert.Contains("Lisp 1", texts);
             Assert.Contains("Plugins 1", texts);

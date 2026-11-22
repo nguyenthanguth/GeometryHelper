@@ -182,8 +182,9 @@ are the ones AutoCAD users know:
 The window's PLUGINLOAD shows a file dialog; the manager's own, which `Attach(registry)` adds to a command line, asks for a
 path on the line. `SetLoadAtStartup(name, true)` puts a plugin on the startup list, which a plugin of the `Plugins` folder
 needs not, as it loads at every start anyway; `LoadAtStart()` loads each .dll and each folder of the plugin folder, in the
-order [above](#where-a-plugin-lives), then the startup list. A plugin is taken out of the app by deleting its file or folder
-from `Plugins`: there is no install or uninstall command.
+order [above](#where-a-plugin-lives), then the startup list. `Remove(name)` forgets a plugin that is not of the `Plugins` folder:
+it is unloaded, taken out of `Plugins` and off the startup list, and Remove of Load/Unload Applications calls it. A plugin of the
+`Plugins` folder is taken out of the app by deleting its file or folder: there is no install or uninstall command.
 
 **Trusted folders.** Loading a plugin runs its code with the user's rights, so, as AutoCAD's TRUSTEDPATHS does, a file
 outside `TrustedFolders` is loaded only when `ConfirmUntrusted` says yes, and never where it is not set. The plugin folder (`Plugins` beside the app)
@@ -240,7 +241,7 @@ remove the sample, delete the folder `Plugins\DrawingInfo`; to start a plugin of
 The window has no ribbon tab of its own for plugins and no button per command: a plugin's commands are typed at the command
 line, or started by name. A plugin is loaded from the Applications panel of the Manage tab: Load Plugin runs NETLOAD, the
 Open dialog for a `.dll`, and Load Manager opens [Load/Unload Applications](lisp.md#appload) (APPLOAD: a table of the
-plugins and the AutoLISP files, with On, Commands, File and At start, Load…, Reload and Unload), with a dialog before a load
+plugins and the AutoLISP files, with On, Commands, File and At start, Load…, Reload, Unload and Remove), with a dialog before a load
 outside the trusted folders. The plugin's load
 lines go to the command history, and a plugin that fails to load is also told by the red [load-result line](lisp.md#the-load-result-line) of that window. A plugin's `CadSetting` attributes remain in the plugin API, but the window has no page
 that shows them now.

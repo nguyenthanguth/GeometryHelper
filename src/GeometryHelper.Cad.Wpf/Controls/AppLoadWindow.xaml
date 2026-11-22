@@ -113,6 +113,15 @@
                         Content="Unload"
                         Command="{Binding UnloadCommand}"
                     />
+                    <Button
+                        x:Name="RemoveButton"
+                        Style="{StaticResource Secondary}"
+                        Content="Remove"
+                        Foreground="{StaticResource GhError}"
+                        Command="{Binding RemoveCommand}"
+                        ToolTip="{Binding RemoveToolTip}"
+                        ToolTipService.ShowOnDisabled="True"
+                    />
                 </StackPanel>
             </Border>
 

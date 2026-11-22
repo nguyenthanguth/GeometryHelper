@@ -65,6 +65,7 @@ namespace GeometryHelper.Cad.Wpf
             _plugins = plugins;
             plugins.PluginsChanged += (s, e) =>
             {
+                RememberApplications();
                 RebuildPluginUi();
             };
 

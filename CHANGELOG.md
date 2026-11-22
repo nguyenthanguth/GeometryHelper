@@ -30,8 +30,19 @@ description on the Shortcuts page and a hook, `MainViewModel.AskLispFiles`, for 
 
 **CHANGED.** Unload, the Delete key and unticking On in Load/Unload Applications all leave the row of an AutoLISP file in the
 table, unticked, as they do for a plugin, so that ticking it loads the file again; Unload and Delete used to take the row away
-unless the file was in the Startup Suite. A row leaves the table only when the window closes, and only for a file that is
-neither loaded nor in the Startup Suite then. The `c:` commands the file defined are still removed at once.
+unless the file was in the Startup Suite. The `c:` commands the file defined are still removed at once. The row now stays when
+the window is closed and opened again, and after the app is restarted (see the next entry).
+
+**NEW.** Load/Unload Applications keeps the files it has seen, as AutoCAD keeps its History list. Every AutoLISP file or plugin
+loaded, by Load…, a drop, LISPLOAD, NETLOAD or `(load)`, is kept in the new setting `GlobalSettings.KnownApplications`
+(`SetKnownApplications`; `knownApplications` under `support`: the full path of each file to the commands it last defined, such
+as `AA, BB`), and the table lists every known file: one not loaded shows On unticked and the commands it last defined, ticking
+it loads it, and one that has gone from the disk still shows, with its path, and gives the usual load-failure line when ticked.
+Files of the Lisps and Plugins folders are not kept, since they show as before. A new button, **Remove**, after Unload (red
+text; tooltip "Unload the chosen files and take them out of the list"), unloads the rows chosen and takes them out of the
+table, the known list and the Startup Suite; for a plugin it calls the new `CadPluginManager.Remove(name)`, which unloads it,
+forgets it and takes it off the startup list. Remove is greyed, with a tooltip that says why, when only rows of the Lisps or
+Plugins folders are chosen, which load at every start. `AppLoadViewModel` gains `RemoveCommand`, `RemoveToolTip` and `Remove()`.
 
 **BREAKING.** The built-in Plugins ribbon tab no longer has its "Command plugins" panel (a button for each command of each
 plugin loaded) or its "Manage" panel (Load .dll, Reload, Unload, Plugin manager); plugin commands run from the command line, and

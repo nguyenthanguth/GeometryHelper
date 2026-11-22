@@ -389,6 +389,38 @@ namespace GeometryHelper.Cad.Plugins
             return true;
         }
 
+        /// <summary>
+        /// Forgets a plugin: it is unloaded where it is loaded, taken out of <see cref="Plugins"/> and off the startup list, and
+        /// the list is written. Loading its file again makes it known anew. A plugin of the plugin folder cannot be forgotten,
+        /// because it is loaded at every start.
+        /// </summary>
+        /// <param name="name">The plugin's name, either case.</param>
+        /// <returns>False where no plugin of the name is known, or it lies in the plugin folder.</returns>
+        public bool Remove(string name)
+        {
+            CadLoadedPlugin plugin = Find(name);
+
+            if (plugin == null || plugin.IsInstalled)
+            {
+                return false;
+            }
+
+            if (plugin.IsLoaded)
+            {
+                UnloadQuietly(plugin);
+            }
+
+            _plugins.Remove(plugin);
+
+            if (_startup.RemoveAll(p => string.Equals(p, plugin.Path, StringComparison.OrdinalIgnoreCase)) > 0)
+            {
+                WriteSettings();
+            }
+
+            Changed();
+            return true;
+        }
+
         /// <summary>Adds a trusted folder, whose plugins load without asking, and writes the list.</summary>
         /// <param name="folder">The folder.</param>
         /// <returns>False where it is trusted already.</returns>

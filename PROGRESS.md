@@ -93,10 +93,10 @@ compared by their values and by eye.
 - [ ] L2 parked (most done 2026-11-22: entmake of complex objects and table records, entget slots, `ssget ":L"`,
       -HATCH edges, ELLIPSE Parameter, DIMBLK, -STYLE Annotative, the block, layer and AUDIT prompts, nentsel 4 by 3;
       12 of 17 L2 routines now identical; round 2 the same day: BLOCK group 1, an empty block's ENDBLK, the look of
-      ATTRIB/SEQEND, MTEXT 42/43, hatch loop order, LAYER 290/347/348): what is left is an entmade MTEXT's group 50
-      with no 11 read as degrees, -HATCH's second Select objects adding to the first, the SELECT command, the MATERIAL
-      object of a layer's 347, U's message, entget of MTEXT about 0.05 ms slower (no measure cache); our linetype
-      dashes stay ISO mm against acad.lin's inches (decided)
+      ATTRIB/SEQEND, MTEXT 42/43, hatch loop order, LAYER 290/347/348; SELECT and the linetype lengths done in L8):
+      what is left is an entmade MTEXT's group 50 with no 11 read as degrees, -HATCH's second Select objects adding
+      to the first, the MATERIAL object of a layer's 347, U's message, entget of MTEXT about 0.05 ms slower (no
+      measure cache)
 - [x] L3. vl- functions and files: `vl-string-*`, `vl-sort`, `vl-remove`, `vl-position`, `vl-file-*`, `open`, `close`,
       `read-line`, `write-line`, `findfile`, `getfiled`
 - [x] L4. vla- and vlax- objects: the members the maintainer's routines use (about 40), on the presenter's own object
@@ -125,19 +125,19 @@ compared by their values and by eye.
       xdata, dictionaries, `vlax-ldata-*`, `entmakex`, `ssnamex`, `grdraw`/`grvecs`), 161 of AutoCAD's 489 non-vla
       built-ins missing before, 72 after. The 19 L2 routines and L3's five against the stored AutoCAD side at e7c354e1:
       13 of 19 and 4 of 5 identical (hh newly), the rest unchanged known differences
-- [ ] L7 parked: GRREAD; the 54 `vlr-` reactors; the rare functions (menucmd, help, trace, vmon, tablet, vports, setview,
-      `vl-exit-with-*`, `vlax-queueexpr` and the like); ldata kept as XRECORDs, which AutoCAD does not read back as ldata
-      (nor the presenter AutoCAD's VLO-VL); entmod of XRECORD, DICTIONARY and table records; ssnamex's fence crossing
-      points and the method of a pick-first set; GRCLEAR checked in the GUI; entdel keeping an extension dictionary;
-      APPLOAD's Create New Folder, View menu, visited chains in Look in and a wildcard with a folder part; dcd's MTEXT
-      42/43 still 0.0
+- [x] L7 parked, closed by L8 (2026-11-23): GRREAD, the `vlr-` functions (46, not 54), menucmd, help, vmon, the
+      vl-exit functions and vlax-queueexpr, entmod of XRECORD and table records, GRCLEAR measured in the GUI, entdel
+      keeping an extension dictionary and dcd's MTEXT 42/43 (a harness font setting) are done; APPLOAD's own folder
+      browser was replaced by the Load/Unload Applications window, so its items are void. What remains moved to L8
+      parked.
 - [x] L8. Round L8 (spec .claude/scratch/l8/spec.md, 2026-11-22): GRREAD with AutoCAD's window codes (measured by
       SendInput), the 46 `vlr-` functions with command, lisp, sysvar, dwg and object events, menucmd, menugroup, vmon,
       help, setfunhelp, getcname, fnsplitl, acdimenableupdate, `*error*`, the vl-exit functions, entmod of table records,
       XRECORD and VERTEX, SELECT, 3DPOLY, UNDO No/No, REVCLOUD lengths kept, AutoCAD linetype lengths, the command
       parity fixes, an open line continued as AutoCAD's and a waiting prompt written again. Acceptance: L2 19/19
       transcripts (ll with its linetype-description and regen allowances), L3 5/5, L8 feeds rx, gk, fx the same.
-- [ ] L8 parked: ldata as VLO-VL; entmod of DICTIONARY and BLOCK_RECORD; ssnamex fence points; mouse and docmanager
+- [ ] L8 parked: ldata as VLO-VL; entmod of DICTIONARY and BLOCK_RECORD; ssnamex fence points and the method of a
+      pick-first set; mouse and docmanager
       reactors and persistent reactors; MLEADER's Options and landing-first orders; 3DPOLY's typed Z; FILLETRAD of a
       header with none (10, AutoCAD 0: accepted); trace, tablet, vports, setview and the `_vl-` internals
 

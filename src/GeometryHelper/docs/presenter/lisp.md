@@ -233,8 +233,17 @@ the interpreter, so that typing one is an unknown command, though a name that is
 back to the alias. The other functions it defined stay until the drawing is closed, as in AutoCAD, which cannot unload an
 AutoLISP file either. The row of an AutoLISP file stays in the table, unticked, as the row of a plugin does, whether it was
 unloaded by Unload, by Delete or by unticking its On box: a second click on the same box (a double click is two) ticks it
-again and loads the file, and no other row moves. A row leaves the table only when the window closes, and only for a file
-that is neither loaded nor in the Startup Suite then; the next time the window opens it is not listed. Reload and a tick of a box
+again and loads the file, and no other row moves. It stays in a new window too, and after the app is restarted, as AutoCAD
+keeps its History list: every file loaded, by Load…, a drop, LISPLOAD, NETLOAD or `(load)`, is kept in the settings with the
+commands it last defined (`knownApplications` under `support`, a path to its commands), and a file not loaded shows those
+commands, so that a `pair.lsp` that defined `c:KEEP1` and `c:KEEP2` and was unloaded still lists `KEEP1, KEEP2`. A known file
+that has gone from the disk still shows, with its path, and ticking it gives the load-failure line of any file that cannot be
+loaded. Files of the `Lisps` and `Plugins` folders are not kept in the list, since they show as they do now. **Remove**, the
+button after Unload, with red text, unloads the rows chosen where they are loaded and takes them out of the table, out of the
+known list and, for an AutoLISP file, out of the Startup Suite; for a plugin the plugin manager forgets it, its At start entry
+too, so that it is gone until its file is loaded again. A file of the `Lisps` or `Plugins` folder cannot leave the table, as
+it loads at every start: Remove is greyed when only such rows are chosen, and its tooltip says so; with both kinds chosen it
+acts on the others. Unload and Delete never take a row out. Reload and a tick of a box
 keep the rows chosen. A file loaded again drops the `c:` commands it no longer defines: a `pair.lsp` that defined `c:KEEP1`
 and `c:GONE1`, edited to define `c:KEEP1` only and reloaded, leaves `GONE1` an unknown command, so that no command stays bound
 that no row lists.

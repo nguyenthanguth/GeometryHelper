@@ -1948,6 +1948,7 @@ namespace GeometryHelper.Cad.Wpf
 
             _current.Synced = lines.Count;
             Raise(nameof(RecentHistory));
+            RememberApplications();
         }
 
         private void OnPromptChanged(object sender, EventArgs e)

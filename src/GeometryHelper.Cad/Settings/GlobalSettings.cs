@@ -101,6 +101,9 @@ namespace GeometryHelper.Cad
         private string _fontMapFile = string.Empty;
         private List<string> _supportFolders = new List<string>(CadSupportFiles.DefaultFolders);
         private List<string> _lispStartupSuite = new List<string>();
+        private SortedDictionary<string, string> _knownApplications = new SortedDictionary<string, string>(
+            StringComparer.OrdinalIgnoreCase
+        );
         private List<string> _pluginSnaps = new List<string>();
         private string _appLoadFolder = string.Empty;
         private double _revcloudMinimumArcLength;
@@ -720,6 +723,32 @@ namespace GeometryHelper.Cad
         }
 
         /// <summary>
+        /// Gets the applications Load/Unload Applications (APPLOAD) lists though they are not loaded, as AutoCAD keeps the
+        /// History list: the full path of each AutoLISP file or plugin that was loaded, with the commands it last defined
+        /// (<c>AA, BB</c>, without <c>c:</c>; empty where it defined none), sorted by path, either case the same. A file the
+        /// user takes out of the list with Remove leaves it. Empty by default. Saved in the settings file.
+        /// </summary>
+        public IReadOnlyDictionary<string, string> KnownApplications => _knownApplications;
+
+        /// <summary>Sets the known applications: a blank path is left out, a path given twice (either case) the last kept; an empty text of commands is kept.</summary>
+        /// <param name="entries">The full paths and the commands each last defined.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the entries are null.</exception>
+        public void SetKnownApplications(IEnumerable<KeyValuePair<string, string>> entries)
+        {
+            var table = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (KeyValuePair<string, string> pair in entries ?? throw new ArgumentNullException(nameof(entries)))
+            {
+                if (!string.IsNullOrWhiteSpace(pair.Key))
+                {
+                    table[pair.Key.Trim()] = pair.Value ?? string.Empty;
+                }
+            }
+
+            _knownApplications = table;
+        }
+
+        /// <summary>
         /// Gets what AutoLISP's <c>setenv</c> and <c>setcfg</c> keep, which AutoCAD keeps in the registry: each name to its text,
         /// the entries of <c>setcfg</c> under <c>cfg:</c> and their path. None by default. Saved in the settings file.
         /// </summary>
@@ -1086,6 +1115,7 @@ namespace GeometryHelper.Cad
             copy._fontFolders = new List<string>(_fontFolders);
             copy._supportFolders = new List<string>(_supportFolders);
             copy._lispStartupSuite = new List<string>(_lispStartupSuite);
+            copy._knownApplications = Copy(_knownApplications);
             copy._alwaysLoaded = new List<string>(_alwaysLoaded);
             copy._pluginSnaps = new List<string>(_pluginSnaps);
             copy._fontSubstitutions = Copy(_fontSubstitutions);
@@ -1294,6 +1324,14 @@ namespace GeometryHelper.Cad
             }
 
             w.CloseList();
+            w.Open("knownApplications");
+
+            foreach (KeyValuePair<string, string> pair in _knownApplications)
+            {
+                w.Value(pair.Key, pair.Value);
+            }
+
+            w.Close();
             w.Value("appLoadFolder", _appLoadFolder);
             w.Value("revcloudMinArcLength", _revcloudMinimumArcLength);
             w.Value("revcloudMaxArcLength", _revcloudMaximumArcLength);
@@ -1540,6 +1578,7 @@ namespace GeometryHelper.Cad
                 Take("support", "lispStartupSuite", e =>
                     _s.LispStartupSuite = e.Elements().Select(f => f.Value).ToList()
                 );
+                Take("support", "knownApplications", e => _s.SetKnownApplications(Pairs(e)));
                 Text("support", "appLoadFolder", v => _s.AppLoadFolder = v);
                 Text("support", "appLoadFolder", v => _s.AppLoadFolder = v);
                 Number("support", "revcloudMinArcLength", v => _s.RevcloudMinimumArcLength = v);
