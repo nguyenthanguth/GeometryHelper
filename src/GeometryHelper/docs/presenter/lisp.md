@@ -653,10 +653,18 @@ ends. The first argument gives it a mode:
 | `"W"`, `"C"` | the window or crossing of two points: `(ssget "W" '(-1 -1) '(11 1))` |
 | `"WP"`, `"CP"`, `"F"` | a polygon, a crossing polygon or a fence through a list of points |
 | `"L"`, `"P"` | the last object, the previous selection |
-| `"I"` | the objects selected before the command (PICKFIRST) |
+| `"I"` | the objects selected before the command (PICKFIRST), which stay selected |
 | `":S"` | one pick or one window ends the selection |
 | `":L"` | leaves out the objects on a locked layer, and says how many |
 | a point alone | picks at it: `(ssget '(0 0))` |
+
+With objects selected before the routine (grips on, no command running) and PICKFIRST not 0, `(ssget)` with no mode, with `":S"`,
+`":L"` or a filter does not ask: it takes the selected objects that pass the filter, as AutoCAD 2021 does. It writes `1 found`
+(no line for `":S"`; with `":L"` also `1 was on a locked layer.` for each object it leaves out), the set becomes the Previous
+selection, and the objects are no longer selected, so a second `(ssget)` asks. Where none passes the filter it writes `0 found`
+and asks `Select objects:` as before, the selection gone either way. With PICKFIRST 0, or with nothing selected, it asks. A mode
+of `"X"`, `"W"` and the rest never takes them. So a routine `(defun c:C1 () (ssget) (command "change" "p" "" "p" "la" "ColLayout"
+""))` changes the layer of a line gripped before it is typed, with no question, and asks for objects when nothing is gripped.
 
 `":L"` and `":S"` combine as `":S:L"` and `":L:S"`. With `":L"` the objects on a locked layer are found, counted and left out of
 the set, as AutoCAD 2021 does: in a drawing of three objects, one on a locked layer, `ALL` at `Select objects:` says `3 found`
@@ -1216,6 +1224,12 @@ nil)` gives `(nil)`, and `(sssetfirst 5)` is `bad argument type: lselsetp 5`. `(
 that are selected now, a new set each time over the same objects, or `(nil nil)` where none is. A selection made by `sssetfirst` keeps the order of the set it was given, as AutoCAD 2021 does (a set of the entity at 150 and then the one at 0 gives them as 150, 0), and the order of the drawing once the selection is changed otherwise. A command started after
 `sssetfirst` takes the set as if it had been selected before the command, while PICKFIRST is not 0: with a line from 0,0
 to 10,0 selected, `(sssetfirst nil (ssadd e))` and then `(command "ERASE")` writes `1 found` and erases it.
+
+A command a routine starts takes the set only where nothing else of the call answers it: `(command "ERASE")` alone writes `1 found`
+as the call returns and erases it, but `(command "_.ERASE" "p" "")`, `vl-cmdf` and `command-s` with answers, or a `PAUSE` after the
+name, ask `Select objects:` and give the answer to it, so the `p` is the Previous selection (AutoCAD
+2021: `Select objects: p 3 found` with one object selected and three in the Previous selection). `(ssget)` takes the set first,
+so `(ssget) (command "_.ERASE" "p" "")` erases what was selected and nothing else.
 
 `(nentselp [msg] [pt])` is `nentsel` that can take its point from the routine. With a point, `(nentselp '(5 0))` picks
 there with no question and gives `(<Entity name: ...> (5.0 0.0 0.0))` for that line, and `(nentselp '(50 50))` gives `nil`

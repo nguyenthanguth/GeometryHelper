@@ -97,6 +97,12 @@ namespace GeometryHelper.Cad.Lisp
 
             if (request.Interactive)
             {
+                // The objects selected before the routine ran are the answer, as AutoCAD 2021 takes them: nothing is asked.
+                if (TakeImplied(lisp, session, request) is LispSelectionSet implied)
+                {
+                    return implied;
+                }
+
                 LispAsk ask = lisp.NewAsk(LispAskKind.Selection, null);
                 ask.Single = request.Single;
 
@@ -121,6 +127,81 @@ namespace GeometryHelper.Cad.Lisp
             }
 
             return lisp.OnOwner(() => Taken(session, Find(session, request)));
+        }
+
+        /// <summary>
+        /// The pick-first selection as an <c>ssget</c> that asks takes it (AutoCAD 2021, console, probes of the pickfirstc1 task), while
+        /// PICKFIRST is not 0: the objects that pass the filter are the set, "N found" is written (not for <c>":S"</c>) with "N was on
+        /// a locked layer." for those <c>":L"</c> leaves out, the set becomes the Previous selection, and the selection of the document
+        /// is cleared, filter or no. Where no object is left the user is asked, after the "0 found".
+        /// </summary>
+        /// <returns>The set; null where nothing is selected, PICKFIRST is 0, or no object is left, and the user is to be asked.</returns>
+        private static object TakeImplied(LispInterpreter lisp, CadCommandSession session, Request request)
+        {
+            var taken = new List<string>();
+            int locked = 0;
+
+            bool any = (bool)
+                lisp.OnOwner(() =>
+                {
+                    if (session.Document.PickFirst == 0)
+                    {
+                        return false;
+                    }
+
+                    List<string> selected = PickFirstHandles(session);
+
+                    if (selected.Count == 0)
+                    {
+                        return false;
+                    }
+
+                    foreach (string handle in selected)
+                    {
+                        if (request.Filter != null && !Accepted(session, request.Filter, handle))
+                        {
+                            continue;
+                        }
+
+                        if (request.Locked && OnLockedLayer(session, handle))
+                        {
+                            locked++;
+                        }
+                        else
+                        {
+                            taken.Add(handle);
+                        }
+                    }
+
+                    session.Document.Selection.Clear();
+                    session.RememberSelection(taken);
+
+                    var said = new List<string>();
+
+                    if (!request.Single)
+                    {
+                        said.Add((taken.Count + locked).ToString(CultureInfo.InvariantCulture) + " found");
+                    }
+
+                    if (locked > 0)
+                    {
+                        said.Add(
+                            locked.ToString(CultureInfo.InvariantCulture)
+                                + (locked == 1 ? " was" : " were")
+                                + " on a locked layer."
+                        );
+                    }
+
+                    session.WriteLispLines(said);
+                    return true;
+                });
+
+            if (!any)
+            {
+                return null;
+            }
+
+            return taken.Count == 0 ? null : new LispSelectionSet(taken);
         }
 
         /// <summary>Reads the arguments of <c>ssget</c>: <c>[mode] [points] [filter]</c>; false for arguments that ask for nothing.</summary>

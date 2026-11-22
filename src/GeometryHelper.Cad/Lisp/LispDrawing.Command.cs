@@ -49,8 +49,11 @@ namespace GeometryHelper.Cad.Lisp
 
             bool refused = false;
 
-            foreach (object argument in a)
+            for (int i = 0; i < a.Length; i++)
             {
+                object argument = a[i];
+                bool follows = i < a.Length - 1;
+
                 if (argument is string text && text == Pause)
                 {
                     // Nothing is waited at where no command runs.
@@ -63,7 +66,7 @@ namespace GeometryHelper.Cad.Lisp
                 }
 
                 object arg = argument;
-                var fed = (LispFeed)lisp.OnOwner(() => session.FeedLispArgument(arg));
+                var fed = (LispFeed)lisp.OnOwner(() => session.FeedLispArgument(arg, follows));
 
                 if (fed == LispFeed.Bad)
                 {

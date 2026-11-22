@@ -25,6 +25,10 @@ namespace GeometryHelper.Cad
     /// </summary>
     public sealed partial class CadCommandSession
     {
+        // The argument being fed is not the last of its call: a command it starts is answered by the arguments that follow, so it
+        // takes no objects selected before it (AutoCAD 2021: its "Select objects:" is answered by the next argument).
+        private bool _lispAnswersFollow;
+
         // An argument of command is being fed: it is text to the prompt, not AutoLISP.
         private bool _lispFeeding;
 
@@ -76,8 +80,9 @@ namespace GeometryHelper.Cad
         /// <c>Unknown command</c> and the arguments go on. With CMDECHO 0 nothing is written but the words of a refusal.
         /// </summary>
         /// <param name="argument">The argument, as the interpreter holds it.</param>
+        /// <param name="answersFollow">Whether arguments of the same call follow this one.</param>
         /// <returns>What came of it.</returns>
-        internal LispFeed FeedLispArgument(object argument)
+        internal LispFeed FeedLispArgument(object argument, bool answersFollow = false)
         {
             if (
                 !(
@@ -93,6 +98,8 @@ namespace GeometryHelper.Cad
             {
                 return LispFeed.Bad;
             }
+
+            _lispAnswersFollow = answersFollow;
 
             // Muted, the text the routine left on its last line is where the line of the call goes on from.
             bool muted = PromptsMuted;
@@ -214,6 +221,26 @@ namespace GeometryHelper.Cad
             {
                 WriteLisp(written);
             }
+        }
+
+        /// <summary>
+        /// Writes lines of AutoCAD's own wording, as the "1 found" of an <c>ssget</c> that takes the objects selected before it, on
+        /// lines of their own after what the routine wrote so far, so that no blank line stands between them and the lines of a
+        /// <c>command</c> that follows; the text a Command prompt waits to open stays for the routine's next text. Owner thread only.
+        /// </summary>
+        /// <param name="lines">The lines.</param>
+        internal void WriteLispLines(IEnumerable<string> lines)
+        {
+            WriteLispBefore();
+            string open = _lispPrefix;
+            _lispPrefix = null;
+
+            foreach (string line in lines)
+            {
+                Write(line);
+            }
+
+            _lispPrefix = open;
         }
 
         /// <summary>
@@ -412,7 +439,7 @@ namespace GeometryHelper.Cad
             // A command of its own is a step of its own: the changes the routine made outside a command are closed first.
             CloseLispStep();
             _lispStarted = command;
-            Run(command, PreSelectedFor(command));
+            Run(command, _lispAnswersFollow ? Array.Empty<string>() : PreSelectedFor(command));
         }
 
         /// <summary>The handles of a selection set whose objects are still in the drawing.</summary>
@@ -460,7 +487,7 @@ namespace GeometryHelper.Cad
                 // PAUSE has nothing to wait at in the middle of the call; the routine waits at its end.
                 if (!(arguments[i] is string text && text == "\\"))
                 {
-                    FeedLispArgument(arguments[i]);
+                    FeedLispArgument(arguments[i], i < arguments.Length - 1);
                 }
             }
 

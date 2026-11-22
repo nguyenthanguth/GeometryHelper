@@ -53,6 +53,19 @@ loaded at every start (each `.dll` and subfolder of it), not a folder of install
 the .dll files and the `plugin.json`) into a folder of `Plugins` beside the app, or copy the .dll there. This is a major
 change, to go with the major version bump of the release.
 
+**FIXED.** A routine run on objects selected first asked to select them again, and then its `command` went out of step. With a
+line gripped (picked, or in a window, with no command running) and PICKFIRST not 0, `(ssget)` asked `Select objects:`, and the
+CHANGE a routine like `(defun c:C1 () (ssget) (command "change" "p" "" "p" "la" "ColLayout" ""))` started took the gripped
+line itself, so the `p` after it ended up at the next prompt and ran PAN, the `la` at `Specify base point or displacement:`
+ended in `Invalid point.` and `Function cancelled`. AutoCAD 2021 does neither (probed in accoreconsole): `(ssget)` with no mode,
+with `":S"`, `":L"` or a filter takes the gripped objects that pass the filter without asking, writes `1 found` (not for `":S"`;
+`1 was on a locked layer.` for what `":L"` leaves out), makes them the Previous selection and clears the grips, and where none
+passes it writes `0 found` and asks as before; and a command a routine starts with `command`, `vl-cmdf` or `command-s` that is
+given its answers in the same call (`(command "_.ERASE" "p" "")`, `(command "_.MOVE" "p" "" "0,0" "0,1")`, or a `PAUSE`) asks
+`Select objects:` and takes the answer, where only a command started alone, `(command "_.MOVE")`, takes the gripped objects as
+the call returns. With the fix C1 on one gripped line changes its layer with no question, in the window as at the console
+(`(ssget "_I")` is as it was: it gives the grips and leaves them).
+
 **FIXED.** GeometryHelper CAD died with a stack overflow on the first MLEADER of a drawing that had no multileader style, once its
 words were committed with Enter and the Annotate tab was showing. MLEADER makes the style Standard there, so the list of the
 Multileader Style box is replaced; the box clears its selection and pushes null into the current multileader style, and that

@@ -67,54 +67,62 @@ namespace GeometryHelper.Cad.Lisp
         private static object SsGetFirst(LispInterpreter lisp, CadCommandSession session) =>
             lisp.OnOwner(() =>
             {
-                var numbered = new List<KeyValuePair<ulong, string>>();
+                List<string> handles = PickFirstHandles(session);
 
-                foreach (string handle in session.Document.Selection.Handles)
-                {
-                    if (session.Document.FindEntity(handle) == null)
-                    {
-                        continue;
-                    }
-
-                    ulong.TryParse(handle, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong value);
-                    numbered.Add(new KeyValuePair<ulong, string>(value, handle));
-                }
-
-                numbered.Sort(
-                    (x, y) =>
-                    {
-                        int order = x.Key.CompareTo(y.Key);
-                        return order != 0 ? order : string.CompareOrdinal(x.Value, y.Value);
-                    }
-                );
-
-                if (numbered.Count == 0)
-                {
-                    return LispInterpreter.ListOf(new object[] { null, null });
-                }
-
-                var handles = new List<string>(numbered.Count);
-
-                foreach (KeyValuePair<ulong, string> pair in numbered)
-                {
-                    handles.Add(pair.Value);
-                }
-
-                // The set sssetfirst gave, while the selection is still those objects: in the order it had (AutoCAD 2021, feed fdval-full).
-                IReadOnlyList<string> given = session.PickFirstOrder;
-
-                if (given.Count == handles.Count)
-                {
-                    var known = new HashSet<string>(handles, StringComparer.OrdinalIgnoreCase);
-
-                    if (given.All(known.Remove))
-                    {
-                        handles = new List<string>(given);
-                    }
-                }
-
-                return LispInterpreter.ListOf(new object[] { null, new LispSelectionSet(handles) });
+                return handles.Count == 0
+                    ? LispInterpreter.ListOf(new object[] { null, null })
+                    : LispInterpreter.ListOf(new object[] { null, new LispSelectionSet(handles) });
             });
+
+        /// <summary>
+        /// The live objects selected now, in the order <c>sssetfirst</c> gave them while the selection is still those objects, else
+        /// in the order of their handle numbers; owner thread only.
+        /// </summary>
+        internal static List<string> PickFirstHandles(CadCommandSession session)
+        {
+            var numbered = new List<KeyValuePair<ulong, string>>();
+
+            foreach (string handle in session.Document.Selection.Handles)
+            {
+                if (session.Document.FindEntity(handle) == null)
+                {
+                    continue;
+                }
+
+                ulong.TryParse(handle, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong value);
+                numbered.Add(new KeyValuePair<ulong, string>(value, handle));
+            }
+
+            numbered.Sort(
+                (x, y) =>
+                {
+                    int order = x.Key.CompareTo(y.Key);
+                    return order != 0 ? order : string.CompareOrdinal(x.Value, y.Value);
+                }
+            );
+
+            var handles = new List<string>(numbered.Count);
+
+            foreach (KeyValuePair<ulong, string> pair in numbered)
+            {
+                handles.Add(pair.Value);
+            }
+
+            // The set sssetfirst gave, while the selection is still those objects: in the order it had (AutoCAD 2021, feed fdval-full).
+            IReadOnlyList<string> given = session.PickFirstOrder;
+
+            if (given.Count == handles.Count)
+            {
+                var known = new HashSet<string>(handles, StringComparer.OrdinalIgnoreCase);
+
+                if (given.All(known.Remove))
+                {
+                    handles = new List<string>(given);
+                }
+            }
+
+            return handles;
+        }
 
         /// <summary>
         /// <c>(nentselp [msg] [pt])</c>, the two in either order: with a point, the object picked at it, as <c>nentsel</c> gives
