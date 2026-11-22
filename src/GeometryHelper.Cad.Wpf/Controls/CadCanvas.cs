@@ -1833,7 +1833,7 @@ namespace GeometryHelper.Cad.Wpf
                     _swallowUp = true;
                     SelectBox(corner, from, end, (Keyboard.Modifiers & ModifierKeys.Shift) != 0);
                 }
-                else if (CadPicking.WantsPoint(Session))
+                else if (CadPicking.WantsPoint(Session) || ReadsInput)
                 {
                     _pointDown = p;
                 }
@@ -1936,6 +1936,12 @@ namespace GeometryHelper.Cad.Wpf
 
             if (e.ChangedButton == MouseButton.Left && TableMouseUp(at))
             {
+                e.Handled = true;
+            }
+            else if (e.ChangedButton == MouseButton.Right && ReadsInput)
+            {
+                // grread is told of the right button: no menu opens and no Enter is made of it.
+                Session.FeedRightClick(DrawingAt(at));
                 e.Handled = true;
             }
             else if (e.ChangedButton == MouseButton.Right && !IsRunning && ConstraintBarMenu(at))
@@ -2178,6 +2184,9 @@ namespace GeometryHelper.Cad.Wpf
         internal Func<ModifierKeys> KeysHeld { get; set; }
 
         private bool IsRunning => Session != null && Session.IsRunning;
+
+        /// <summary>Whether a routine waits in <c>grread</c>, which reads the cursor and the buttons as they come (<see cref="CadPrompt.ReadsInput"/>).</summary>
+        private bool ReadsInput => Session?.Prompt?.ReadsInput ?? false;
 
         private Point PositionOf(MouseEventArgs e) => Pointer != null ? Pointer(e) : e.GetPosition(this);
 
@@ -3889,6 +3898,12 @@ namespace GeometryHelper.Cad.Wpf
                 session.Feed(cursor);
             }
 
+            // grread with track reads each move as it is: the point under the cursor, no snap; a pan gives nothing.
+            if (session != null && session.Prompt != null && session.Prompt.ReadsMoves && !_panFrom.HasValue)
+            {
+                session.FeedMove(cursor);
+            }
+
             if (_panFrom.HasValue)
             {
                 Point from = _panFrom.Value;
@@ -4124,6 +4139,15 @@ namespace GeometryHelper.Cad.Wpf
             double aperture =
                 (CadPicking.WantsPoint(Session) ? AperturePixels : PickboxPixels) * scale / view.PixelsPerUnit;
             var at = new GeoPoint2(x, y);
+
+            // grread is given the point as it lies: no snap, no object picked, no field of dynamic input.
+            if (ReadsInput)
+            {
+                Session.Feed(at);
+                _snapped = null;
+                InvalidateVisual();
+                return;
+            }
 
             // A click inside a cell of a table, away from its lines, selects the cell, as AutoCAD's.
             if ((Session == null || !Session.IsRunning) && !_cycler.IsArmed && CellClicked != null)

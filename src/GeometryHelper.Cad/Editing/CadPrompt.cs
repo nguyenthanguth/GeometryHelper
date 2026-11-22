@@ -584,6 +584,29 @@ namespace GeometryHelper.Cad
                 InPlace = edit ?? throw new ArgumentNullException(nameof(edit)),
             };
 
+        /// <summary>
+        /// Whether the prompt is <c>grread</c>'s: it shows no words, the window answers it with every key and click as it comes
+        /// (<see cref="CadCommandSession.FeedKey"/>, <see cref="CadCommandSession.FeedRightClick"/>), and it has no rubber band,
+        /// no dynamic input and no snap. False for every other prompt.
+        /// </summary>
+        internal bool ReadsInput { get; private set; }
+
+        /// <summary>
+        /// Whether the prompt of <c>grread</c> is answered with each move of the cursor too (<see cref="CadCommandSession.FeedMove"/>),
+        /// as <c>(grread T)</c> asks. False for every other prompt.
+        /// </summary>
+        internal bool ReadsMoves { get; private set; }
+
+        /// <summary>Asks for one key, click or move of the cursor, as <c>grread</c> does (<see cref="ReadsInput"/>).</summary>
+        /// <param name="moves">Whether the moves of the cursor are answered too.</param>
+        /// <returns>The prompt.</returns>
+        internal static CadPrompt ForGrRead(bool moves) =>
+            new CadPrompt(CadPromptKind.String, string.Empty, null, null, null)
+            {
+                ReadsInput = true,
+                ReadsMoves = moves,
+            }.AsRaw(endsAtSpace: true);
+
         /// <summary>Asks for a whole number.</summary>
         /// <param name="message">The message.</param>
         /// <param name="keywords">The keywords offered; null for none.</param>

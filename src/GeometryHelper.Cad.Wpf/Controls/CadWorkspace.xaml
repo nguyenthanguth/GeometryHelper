@@ -351,7 +351,7 @@
             <Style x:Key="CollapsedPanelButton" TargetType="ToggleButton" BasedOn="{StaticResource GhStatusToggle}">
                 <Setter Property="Foreground" Value="{StaticResource GhText}" />
                 <Setter Property="Padding" Value="0,3" />
-                <Setter Property="Width" Value="58" />
+                <Setter Property="Width" Value="60" />
                 <Setter Property="VerticalAlignment" Value="Stretch" />
                 <Setter Property="Focusable" Value="False" />
                 <Setter Property="ContentTemplate">
@@ -364,12 +364,13 @@
                                     HorizontalAlignment="Center"
                                     Data="{Binding Tag, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
                                 />
-                                <!-- A title of two words wider than the button, as Block Definition, on two lines. -->
+                                <!-- A title of two words wider than the button, as Block Definition, on two lines. The label is 10 and the button 60 wide, so that a word as long as Dimensions is never broken in two. -->
                                 <TextBlock
                                     Text="{Binding}"
                                     Margin="0,2,0,0"
                                     HorizontalAlignment="Center"
-                                    MaxWidth="58"
+                                    MaxWidth="60"
+                                    FontSize="10"
                                     TextWrapping="Wrap"
                                     TextAlignment="Center"
                                 />
@@ -492,7 +493,7 @@
                                     x:Name="CollapsedHost"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
-                                    Padding="1,0"
+                                    Padding="0"
                                     Visibility="Collapsed"
                                 >
                                     <ToggleButton

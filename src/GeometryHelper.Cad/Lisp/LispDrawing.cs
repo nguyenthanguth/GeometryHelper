@@ -29,6 +29,7 @@ namespace GeometryHelper.Cad.Lisp
             RegisterDictionaries(lisp, session);
             RegisterGraphics(lisp, session);
             RegisterReactors(lisp, session);
+            RegisterGrRead(lisp, session);
         }
 
         static partial void RegisterInput(LispInterpreter lisp, CadCommandSession session);
@@ -62,5 +63,6 @@ namespace GeometryHelper.Cad.Lisp
         static partial void RegisterGraphics(LispInterpreter lisp, CadCommandSession session);
 
         static partial void RegisterReactors(LispInterpreter lisp, CadCommandSession session);
+        static partial void RegisterGrRead(LispInterpreter lisp, CadCommandSession session);
     }
 }

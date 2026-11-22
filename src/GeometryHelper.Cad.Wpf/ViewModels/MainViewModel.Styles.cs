@@ -187,15 +187,28 @@ namespace GeometryHelper.Cad.Wpf
         public IReadOnlyList<StyleBoxItemViewModel> DimStyleItems =>
             Items(DimStyleNames, CurrentDimStyle, ManageDimensionStyles);
 
-        /// <summary>Gets the items of the table style box: the styles, the current one ticked, then "Table style…" under a line.</summary>
-        public IReadOnlyList<StyleBoxItemViewModel> TableStyleItems =>
-            _current == null
-                ? Array.Empty<StyleBoxItemViewModel>()
-                : Items(
-                    CadTableStyleEditor.Styles(_current.Document.Database).Concat(new[] { ManageTableStyles }).ToList(),
+        /// <summary>
+        /// Gets the items of the table style box: the styles, the current one ticked, then "Table style…" under a line. A drawing
+        /// with no table style lists Standard, ticked, as AutoCAD's blank drawing does; the first table or the Table Style dialog
+        /// makes it.
+        /// </summary>
+        public IReadOnlyList<StyleBoxItemViewModel> TableStyleItems
+        {
+            get
+            {
+                if (_current == null)
+                {
+                    return Array.Empty<StyleBoxItemViewModel>();
+                }
+
+                IReadOnlyList<string> styles = CadTableStyleEditor.Styles(_current.Document.Database);
+                return Items(
+                    (styles.Count > 0 ? styles : new[] { "Standard" }).Concat(new[] { ManageTableStyles }).ToList(),
                     CurrentTableStyle,
                     ManageTableStyles
                 );
+            }
+        }
 
         /// <summary>
         /// Gets or sets the current table style (CTABLESTYLE), as the table style box shows and sets it (one undo step); set to

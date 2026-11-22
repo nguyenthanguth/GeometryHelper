@@ -24,6 +24,23 @@ handed to `*error*`) and the command goes on; `command` in a callback is `; erro
 reactor made persistent with `vlr-pers` is marked for the session only; the other reaction names are accepted and never fire.
 See [Reactors](src/GeometryHelper/docs/presenter/lisp.md#reactors).
 
+**NEW.** AutoLISP's `grread`, in GeometryHelper.Cad and its window. `(grread [track [allkeys [curtype]]])` waits for one key,
+click or move of the cursor and gives `(2 code)` for a key (13 Enter, 32 Space, 8 Backspace, 9 Tab, the character's code for
+the rest), `(3 (x y z))` for a left click and `(5 (x y z))` for a move, in the UCS and with no snap, and `(11 0)` for the right
+button, which opens no menu; moves come only with `track` or the bit 1 of `allkeys`, and one that comes before the routine asks
+again takes the place of the one before it, so a loop that draws with `grvecs` at each move kept up with 1 000 moves in 19 ms.
+Esc gives `Function cancelled`. The prompt shows no words and the command line shows nothing typed while it waits. The bit 2 of
+`allkeys` (function and cursor keys) and `curtype` are not used yet.
+
+**FIXED.** Ribbon follow-ups. A collapsed panel whose title has a long word broke it in two: Dimensions read "Dimension" over
+"s" at windows of 884 to 908 pixels, the word being a little wider than the 58 pixels the label was given. The label of a
+collapsed panel is now 10 instead of 11 and the button 60 wide with the panel's side padding gone, so the panel is still 61
+wide and no title of any tab is broken inside a word; two words still break between them ("Annotation" over "Scaling"). The
+Table Style box of Annotate showed nothing in a drawing with no table style; it lists Standard, ticked, as AutoCAD does and as
+the Multileader Style box already does. The Named Views box kept its pick after a pan or a zoom, so that picking the same view
+again did nothing; once the window shows another part of the drawing than the view picked showed (by the wheel, the middle
+button, ZOOM or PAN), the box goes back to Unsaved View and the view can be picked again.
+
 **FIXED.** Load/Unload Applications, after a real mouse, the Delete key and an Open dialog were driven against it. The table
 was rebuilt on every click, so a double click on the On box of the second of three files unticked it and then unloaded the
 third (the second click landed on the neighbour that had moved up); an unticked AutoLISP file now stays in the table, off,

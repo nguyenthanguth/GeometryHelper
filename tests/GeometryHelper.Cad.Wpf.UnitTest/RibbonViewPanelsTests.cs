@@ -202,27 +202,27 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     Assert.All(controls.Skip(1), c => Assert.True(HasText(c), NameOf(c) + " shows no text."));
 
                     // The Views window is answered Cancel, each press counted. View Manager shows the manager. New View shows the same
-                    // window, opened on its New View dialog, which a test with no window cannot see: it is read here as VIEW started
-                    // and the window asked for once.
-                    int managers = 0;
+                    // window, opened on its New View dialog: the request the window is handed says so (IsNewViewOpen), and does not
+                    // for View Manager.
+                    var openedOnNewView = new List<bool>();
                     model.ShowViewManager = dialog =>
                     {
-                        managers++;
+                        openedOnNewView.Add(dialog.Request.IsNewViewOpen);
                         return false;
                     };
 
                     Click((ButtonBase)controls[2]);
 
                     Assert.Contains("Command: VIEW", model.History);
-                    Assert.Equal(1, managers);
+                    Assert.Equal(new[] { false }, openedOnNewView);
                     model.Escape();
 
-                    managers = 0;
+                    openedOnNewView.Clear();
                     int before = model.History.Count;
                     Click((ButtonBase)controls[1]);
 
                     Assert.Contains("Command: VIEW", model.History.Skip(before));
-                    Assert.Equal(1, managers);
+                    Assert.Equal(new[] { true }, openedOnNewView);
                     model.Escape();
                 },
                 SaveTwoViews

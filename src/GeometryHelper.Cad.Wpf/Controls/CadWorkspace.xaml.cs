@@ -360,7 +360,12 @@ namespace GeometryHelper.Cad.Wpf
                 (Keyboard.FocusedElement is TextBoxBase box && box != CommandBox)
                 || Keyboard.FocusedElement is CadMTextEditBox;
 
-            if (!inEditor && CanvasView.TableDragKey(key))
+            if (!inEditor && GrReadKey(key, modifiers))
+            {
+                // grread reads the key itself: the command line shows nothing typed.
+                e.Handled = true;
+            }
+            else if (!inEditor && CanvasView.TableDragKey(key))
             {
                 // A drag of a table's line takes the width typed into its field, Enter and Esc.
                 e.Handled = true;
@@ -510,10 +515,55 @@ namespace GeometryHelper.Cad.Wpf
             }
         }
 
+        /// <summary>Gets whether a routine waits in <c>grread</c>, which takes every key itself (<see cref="CadPrompt.ReadsInput"/>).</summary>
+        private bool ReadsKeys => _model?.Session?.Prompt?.ReadsInput ?? false;
+
+        /// <summary>
+        /// Gives <c>grread</c> the keys that make no text: Enter 13, Space 32, Backspace 8 and Tab 9; the keys that make text come
+        /// through <see cref="OnPreviewTextInput"/>. Esc, the keys with Ctrl or Alt and the function keys keep their meaning in the
+        /// window.
+        /// </summary>
+        /// <returns>Whether <c>grread</c> took the key.</returns>
+        private bool GrReadKey(Key key, ModifierKeys modifiers)
+        {
+            if (!ReadsKeys || (modifiers & (ModifierKeys.Control | ModifierKeys.Alt)) != 0)
+            {
+                return false;
+            }
+
+            int code =
+                key == Key.Enter ? 13
+                : key == Key.Space ? 32
+                : key == Key.Back ? 8
+                : key == Key.Tab ? 9
+                : 0;
+            return code != 0 && _model.Session.FeedKey(code);
+        }
+
         /// <inheritdoc/>
         protected override void OnPreviewTextInput(TextCompositionEventArgs e)
         {
             base.OnPreviewTextInput(e);
+
+            // grread reads what is typed, one character at a time, and the command line shows none of it.
+            if (
+                ReadsKeys
+                && !string.IsNullOrEmpty(e.Text)
+                && !(Keyboard.FocusedElement is TextBoxBase typing && typing != CommandBox)
+                && !(Keyboard.FocusedElement is CadMTextEditBox)
+            )
+            {
+                foreach (char c in e.Text)
+                {
+                    if (!char.IsControl(c))
+                    {
+                        _model.Session.FeedKey(c);
+                    }
+                }
+
+                e.Handled = true;
+                return;
+            }
 
             // As in AutoCAD, typing with the focus on the canvas types into the command line; hidden (Ctrl+9), the text is kept
             // there all the same, and dynamic input shows it beside the cursor.
