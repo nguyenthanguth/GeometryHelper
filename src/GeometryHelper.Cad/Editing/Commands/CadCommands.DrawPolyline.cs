@@ -85,6 +85,7 @@ namespace GeometryHelper.Cad
                                     "Width",
                                 }
                         )
+                        .BreakingBeforeKeywords()
                         .Previewing(
                             CadPreview.MakingOne(c, input =>
                                 PlineSegment(c, last, input.Point, SweepLeaving(along, input.Point - last), drawn)

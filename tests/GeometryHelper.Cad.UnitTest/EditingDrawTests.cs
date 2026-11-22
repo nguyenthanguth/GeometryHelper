@@ -229,7 +229,7 @@ namespace GeometryHelper.Cad.UnitTest
 
             Run(session, "DLI", P(0, 0), P(300, 100));
             Assert.Equal(
-                "Specify dimension line location or [Mtext/Text/Angle/Horizontal/Vertical/Rotated]:",
+                "Specify dimension line location or\n[Mtext/Text/Angle/Horizontal/Vertical/Rotated]:",
                 session.PromptText
             );
             Run(session, P(150, -30));

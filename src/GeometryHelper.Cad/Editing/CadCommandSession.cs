@@ -1451,6 +1451,12 @@ namespace GeometryHelper.Cad
 
             Write(found);
 
+            // The objects on a locked layer are said here, right after "found", as AutoCAD 2021 says them.
+            if (!remove)
+            {
+                Prompt?.AfterFound?.Invoke(handles);
+            }
+
             if (_single && !remove && handles.Count > 0 && Prompt != null && Prompt.Kind == CadPromptKind.Selection)
             {
                 EndSelection();

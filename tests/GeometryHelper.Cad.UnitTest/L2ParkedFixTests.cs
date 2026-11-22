@@ -281,7 +281,7 @@ namespace GeometryHelper.Cad.UnitTest
             Assert.Equal("Enter name list of layer(s) to turn on:", session.PromptText);
 
             Run(session, Enter, "OFF");
-            Assert.Equal("Enter name list of layer(s) to turn off:", session.PromptText);
+            Assert.Equal("Enter name list of layer(s) to turn off or <select objects>:", session.PromptText);
         }
 
         #endregion

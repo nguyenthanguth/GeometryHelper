@@ -1016,6 +1016,9 @@ namespace GeometryHelper.Cad
 
                 string current = null;
 
+                // Freeze, OFF, LOck and Unlock take the layers of objects selected where Enter is given instead of names, as AutoCAD 2021 offers.
+                bool selectable = option == "OFF" || option == "Freeze" || option == "LOck" || option == "Unlock";
+
                 switch (option)
                 {
                     case "New":
@@ -1059,11 +1062,28 @@ namespace GeometryHelper.Cad
                         break;
                 }
 
-                yield return CadPrompt.ForString(ask, current);
+                yield return CadPrompt.ForString(selectable ? ask + " or <select objects>" : ask, current);
                 string names =
                     c.Input.Kind == CadInputKind.Text ? c.Input.Text
                     : c.Input.IsNone ? EscapedLayerName(current)
                     : null;
+
+                if (selectable && c.Input.IsNone)
+                {
+                    yield return CadPrompt.ForSelection();
+
+                    if (c.Input.Kind == CadInputKind.Selection && c.Input.Handles.Count > 0)
+                    {
+                        // The layers of the objects, each once, as names with their back quotes: a name is not a pattern here.
+                        names = string.Join(
+                            ",",
+                            c.Input.Handles.Select(h => c.Document.FindEntity(h)?.Layer)
+                                .Where(l => l != null)
+                                .Distinct(StringComparer.OrdinalIgnoreCase)
+                                .Select(EscapedLayerName)
+                        );
+                    }
+                }
 
                 if (names == null)
                 {

@@ -286,7 +286,7 @@ namespace GeometryHelper.Cad.UnitTest
             CadCommandSession session = Metric(s => { });
             Run(session, "DLI", P(0, 0), P(100, 0));
             Assert.Equal(
-                "Specify dimension line location or [Mtext/Text/Angle/Horizontal/Vertical/Rotated]:",
+                "Specify dimension line location or\n[Mtext/Text/Angle/Horizontal/Vertical/Rotated]:",
                 session.PromptText
             );
             Run(session, "R");
