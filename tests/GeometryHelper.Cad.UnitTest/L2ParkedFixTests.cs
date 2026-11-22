@@ -402,7 +402,7 @@ namespace GeometryHelper.Cad.UnitTest
             );
 
             Run(session, "romans.shx");
-            Assert.Equal("Specify height of text <0.0000>:", session.PromptText);
+            Assert.Equal("Specify height of text or [Annotative] <0.0000>:", session.PromptText);
 
             Run(session, "2.5");
             Assert.Equal("Specify width factor <1.0000>:", session.PromptText);

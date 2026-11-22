@@ -338,6 +338,8 @@ namespace GeometryHelper.Cad
         /// ELLIPSE, whole or an Arc of it, by the ends of one axis or by its centre and one end, then the other axis's half or a
         /// rotation; the major axis runs from the centre to the first end of an axis given, and an arc's start and end angles are
         /// counter-clockwise from it, as AutoCAD's (a longer other axis turns the major axis a quarter turn, and the angles with it).
+        /// Parameter asks the start and the end as the eccentric angle (0 to 90 on an ellipse 10 by 6 ends at its minor axis), and the
+        /// end is kept past the start, past 2 pi where it falls there: angles 300 and 100 are the parameters 5.04586 and 7.95939.
         /// </summary>
         private static IEnumerable<CadPrompt> Ellipse(CadCommandContext c)
         {
@@ -406,6 +408,8 @@ namespace GeometryHelper.Cad
             GeoVector2 MajorOf(double length) =>
                 length > first.Length ? new GeoVector2(-first.Y, first.X) / first.Length * length : first;
 
+            double RatioOf(double length) => Math.Min(length, first.Length) / Math.Max(length, first.Length);
+
             DxfEllipse Make(double length, double from, double to, bool part)
             {
                 if (!(length > c.Session.Tolerance.EqualPoint))
@@ -413,21 +417,44 @@ namespace GeometryHelper.Cad
                     return null;
                 }
 
-                // The longer half is the major axis; the shorter lies square to it. The ellipse measures its angles from it.
+                // The longer half is the major axis; the shorter lies square to it. The ellipse measures its parameters from it.
                 GeoVector2 major = MajorOf(length);
-                double ratio = Math.Min(length, first.Length) / Math.Max(length, first.Length);
 
-                return Current(
+                DxfEllipse made = Current(
                     c,
                     new DxfEllipse(
                         P3(middle),
                         new GeoVector3(0.0, 0.0, 1.0),
                         new GeoVector3(major.X, major.Y, 0.0),
-                        ratio,
-                        from,
-                        to
+                        RatioOf(length),
+                        0.0,
+                        2.0 * Math.PI
                     )
                 );
+
+                // The parameters are written as given, the end past 2 pi where it falls there, as AutoCAD keeps them.
+                if (part)
+                {
+                    made.StartParam = from;
+                    made.EndParam = to;
+                }
+
+                return made;
+            }
+
+            // The parameter of the point at an angle from the major axis, from nought up to 2 pi, and the angle of the point at a
+            // parameter.
+            double ParameterAt(double length, double angle) =>
+                Turned(Math.Atan2(Math.Sin(angle), RatioOf(length) * Math.Cos(angle)));
+
+            double AngleAt(double length, double parameter) =>
+                Turned(Math.Atan2(RatioOf(length) * Math.Sin(parameter), Math.Cos(parameter)));
+
+            // The end of an arc is always past its start, by the difference taken in one turn; an end on the start is a whole turn.
+            double Past(double from, double to)
+            {
+                double span = Turned(to - from);
+                return from + (span < 1E-12 || span > 2.0 * Math.PI - 1E-9 ? 2.0 * Math.PI : span);
             }
 
             yield return CadPrompt
@@ -487,27 +514,70 @@ namespace GeometryHelper.Cad
             {
                 // An angle typed is from the major axis, which is the first axis end where the other axis is the shorter, clockwise
                 // with ANGDIR 1; one picked is the way to the point, made from the major axis too (the session gives a pick at these
-                // prompts less ANGBASE, which is put back here).
+                // prompts less ANGBASE, which is put back here). A parameter is typed in degrees as the eccentric angle of the
+                // ellipse, which Parameter at either prompt asks for until Angle goes back; a point picked is taken as the angle to it
+                // in both. The start and end are kept as parameters, the end past the start.
                 GeoVector2 major = MajorOf(other);
                 double fromUcs = c.Session.Ucs.AngleToUcs(Math.Atan2(major.Y, major.X)) - c.Database.Angbase;
-                yield return CadPrompt
-                    .ForAngle("Specify start angle", center)
-                    .Turning()
-                    .Previewing(CadPreview.MakingOne(c, input => Make(other, 0.0, 2.0 * Math.PI, false), true));
+                bool byParameter = false;
+
+                while (true)
+                {
+                    yield return (
+                        byParameter
+                            ? CadPrompt.ForAngle("Specify start parameter", center, new[] { "Angle" })
+                            : CadPrompt.ForAngle("Specify start angle", center, new[] { "Parameter" })
+                    )
+                        .Turning()
+                        .Previewing(CadPreview.MakingOne(c, input => Make(other, 0.0, 2.0 * Math.PI, false), true));
+
+                    if (c.Input.Is(byParameter ? "Angle" : "Parameter"))
+                    {
+                        byParameter = !byParameter;
+                        continue;
+                    }
+
+                    break;
+                }
 
                 if (c.Input.Kind != CadInputKind.Number)
                 {
                     yield break;
                 }
 
-                start = Typed(c.Input) ? c.Input.Number : c.Input.Number - fromUcs;
+                start =
+                    byParameter && Typed(c.Input)
+                        ? Turned(c.Input.Number)
+                        : ParameterAt(other, Typed(c.Input) ? c.Input.Number : c.Input.Number - fromUcs);
                 double begin = start;
-                yield return CadPrompt
-                    .ForAngle("Specify end angle", center, new[] { "Included angle" })
-                    .Turning()
-                    .Previewing(
-                        CadPreview.MakingOne(c, input => Make(other, begin, input.Number - fromUcs, true), true)
-                    );
+
+                while (true)
+                {
+                    yield return (
+                        byParameter
+                            ? CadPrompt.ForAngle("Specify end parameter", center, new[] { "Angle", "Included angle" })
+                            : CadPrompt.ForAngle("Specify end angle", center, new[] { "Parameter", "Included angle" })
+                    )
+                        .Turning()
+                        .Previewing(
+                            CadPreview.MakingOne(
+                                c,
+                                input =>
+                                    Make(other, begin, Past(begin, ParameterAt(other, input.Number - fromUcs)), true),
+                                true
+                            )
+                        );
+
+                    if (c.Input.Is(byParameter ? "Angle" : "Parameter"))
+                    {
+                        byParameter = !byParameter;
+                        continue;
+                    }
+
+                    break;
+                }
+
+                double reached;
 
                 if (c.Input.Is("Included angle"))
                 {
@@ -515,26 +585,36 @@ namespace GeometryHelper.Cad
                         .ForAngle("Specify included angle for arc", center, null, "180")
                         .Turning()
                         .Previewing(
-                            CadPreview.MakingOne(c, input => Make(other, begin, input.Number - fromUcs, true), true)
+                            CadPreview.MakingOne(
+                                c,
+                                input =>
+                                    Make(other, begin, Past(begin, ParameterAt(other, input.Number - fromUcs)), true),
+                                true
+                            )
                         );
-                    end =
-                        c.Input.IsNone ? start + Math.PI
+
+                    // An included angle typed is added to the start where the start is measured: as an angle, or as a parameter.
+                    reached =
+                        c.Input.IsNone ? begin + Math.PI
                         : c.Input.Kind != CadInputKind.Number ? double.NaN
-                        : Typed(c.Input) ? start + c.Input.Number
-                        : c.Input.Number - fromUcs;
+                        : !Typed(c.Input) ? ParameterAt(other, c.Input.Number - fromUcs)
+                        : byParameter ? begin + c.Input.Number
+                        : ParameterAt(other, AngleAt(other, begin) + c.Input.Number);
                 }
                 else
                 {
-                    end =
-                        c.Input.Kind == CadInputKind.Number
-                            ? (Typed(c.Input) ? c.Input.Number : c.Input.Number - fromUcs)
-                            : double.NaN;
+                    reached =
+                        c.Input.Kind != CadInputKind.Number ? double.NaN
+                        : byParameter && Typed(c.Input) ? Turned(c.Input.Number)
+                        : ParameterAt(other, Typed(c.Input) ? c.Input.Number : c.Input.Number - fromUcs);
                 }
 
-                if (double.IsNaN(end))
+                if (double.IsNaN(reached))
                 {
                     yield break;
                 }
+
+                end = Past(begin, reached);
             }
 
             c.Apply(null, s => s.Append(c.Space, Make(other, start, end, arc)));

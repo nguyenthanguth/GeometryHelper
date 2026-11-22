@@ -883,7 +883,17 @@ namespace GeometryHelper.Cad.Lisp
             }
 
             DxfItem block = FindItem(document, handle.Trim());
-            return block == null ? string.Empty : NameOfRecord(block);
+
+            if (block == null)
+            {
+                return string.Empty;
+            }
+
+            // The name AutoCAD lists for an arrowhead of its own is its block's without the underscore: None, Dot, ArchTick.
+            string name = NameOfRecord(block);
+            return document.Database.BlockTable.Has(name)
+                ? CadArrowheads.ListedName(document.Database.BlockTable[name])
+                : name;
         }
 
         private static object DimstyleValue(DxfDimStyleTableRecord record, DxfDimVariable variable)

@@ -207,7 +207,17 @@ namespace GeometryHelper.Cad.Lisp
                     bool three = i + 2 < groups.Count && groups[i + 2].TypeCode == code + 20;
                     double x = Real(text);
                     double y = Real(groups[i + 1].Value);
-                    pairs.Add(Pair(code, three ? new[] { x, y, Real(groups[i + 2].Value) } : new[] { x, y }));
+
+                    // The points of a HATCH's edges and seeds are three-dimensional in AutoCAD's list, the file holds two coordinates.
+                    bool padded = !three && type == "HATCH" && (code == 10 || code == 11);
+                    pairs.Add(
+                        Pair(
+                            code,
+                            three ? new[] { x, y, Real(groups[i + 2].Value) }
+                                : padded ? new[] { x, y, 0.0 }
+                                : new[] { x, y }
+                        )
+                    );
                     i += three ? 2 : 1;
                     continue;
                 }
@@ -1516,6 +1526,7 @@ namespace GeometryHelper.Cad.Lisp
         {
             bool degrees = HasAngles(type);
             var groups = new List<KeyValuePair<int, string>>();
+            bool elevated = false;
 
             foreach (KeyValuePair<int, object> pair in pairs)
             {
@@ -1524,7 +1535,14 @@ namespace GeometryHelper.Cad.Lisp
                 switch (pair.Value)
                 {
                     case double[] point:
-                        for (int i = 0; i < point.Length; i++)
+                        // A HATCH's points but its first, the elevation, go back to the two coordinates its file holds.
+                        int length =
+                            type == "HATCH" && (code == 11 || (code == 10 && elevated))
+                                ? Math.Min(2, point.Length)
+                                : point.Length;
+                        elevated |= code == 10;
+
+                        for (int i = 0; i < length; i++)
                         {
                             groups.Add(new KeyValuePair<int, string>(code + 10 * i, Number(point[i])));
                         }

@@ -44,6 +44,38 @@ transformed axes as rows and the origin as the fourth row, measured in AutoCAD's
 `((1.0 0.0 0.0) (0.0 1.0 0.0) (0.0 0.0 1.0) (100.0 0.0 0.0))`). `nentselp` keeps the 4 by 4 form; the 3 by 3 part of each is the
 transpose of the other's. A routine written for the 4 by 4 form reads the rows of `nentsel`'s differently now.
 
+**FIXED.** -HATCH of closed objects selected stores them as AutoCAD 2021 does, which AutoLISP's `entget` of the hatch shows:
+a rectangle `0,0 10,10` is four line edges from its first vertex in the way the polyline runs (a clockwise one stays
+clockwise), a bulged side an arc edge, a circle one arc edge from 0 round, where the presenter stored one polyline loop (92
+3). The outer loop is flagged 1, a loop inside it 16, and one inside that 0, for a hatch made round a point too. Every loop
+of a point or selection is stored whatever the island style, the style (group 75) deciding which areas are filled, where
+the presenter dropped the deeper ones for Outer and Ignore. The seed points (98) are the point picked once for each loop, or
+one point at the origin for objects selected. The points of a hatch's edges and seeds are three-dimensional in `entget`, as
+AutoCAD gives them. After SOLID the pattern prompt offers `<Solid>`.
+
+**NEW.** HPISLANDDETECTION, the island style of the next hatch, 0 Normal, 1 Outer and 2 Ignore, 1 at the start as AutoCAD's;
+it is group 75 of the hatch and the default of -HATCH's Advanced Style, `Enter hatching style [Ignore/Outer/Normal]
+<Outer>:` (the presenter's was Normal, and wrote 75 0).
+
+**NEW.** ELLIPSE's arc asks `Specify start angle or [Parameter]:` and `Specify end angle or [Parameter/Included angle]:`; P
+asks `Specify start parameter or [Angle]:` and `Specify end parameter or [Angle/Included angle]:` (typed in degrees, as the
+eccentric angle), A goes back. The end is always past the start by the difference in one turn, an end on the start a whole
+turn, and group 42 is kept past 2 pi where it falls there: angles 300 and 100 give 5.04586 and 7.95939 (the presenter
+folded it to 1.6762).
+
+**FIXED.** `(setvar "DIMBLK" "")` is refused (`; error: AutoCAD variable setting rejected: "DIMBLK" ""`; a period is the
+default), and `(setvar "DIMBLK" "nosuch")` first writes `Block "nosuch" not defined`, as AutoCAD 2021 does (the same for
+DIMBLK1, DIMBLK2 and DIMLDRBLK). `(tblsearch "DIMSTYLE" ...)` lists an arrowhead of AutoCAD's own without its underscore in
+groups 5, 6 and 7, `None` and not `_None`, as the variable reads.
+
+**FIXED.** -STYLE as AutoCAD 2021 asks it: `Specify height of text or [Annotative] <0.0000>:`, where Annotative asks
+`Create annotative text style [Yes/No] <Yes>:` and, for Yes, `Match text orientation to layout? [Yes/No] <No>:` and then the
+height again, and the style gets the extended data AcadAnnotative; a new style starts from the defaults (txt, 0 high, 1
+wide) and not from the current style; a font typed with no extension that is one of AutoCAD's SHX names is that SHX file
+(`romans` is `romans.shx`, `txt` is `txt.shx`; the presenter took the TrueType files `romans__.ttf` and `txt____.ttf` of the
+Windows fonts folder), asks `Vertical?`, and an existing style offers its file, `<txt.shx>`. A name that is no SHX name of
+AutoCAD's and no TrueType family stays an SHX file of that name, drawn in the presenter's own font.
+
 **NEW.** Trusted folders and SECURELOAD, as AutoCAD 2021 has them, in front of AutoLISP's `load` (and APPLOAD, the startup
 files, the Startup Suite, `autoload`, `vl-load-all`) and of Python's PYRUN, PYLOAD and the palette's Run file and Load.
 [`CadLoadSecurity`](xref:GeometryHelper.Cad.CadLoadSecurity) decides a file: SECURELOAD 0 loads from anywhere, a file in a

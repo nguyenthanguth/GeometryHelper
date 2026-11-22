@@ -698,7 +698,7 @@ Variables added for routines:
 | `LISPINIT` | read-only, 1 |
 | `BLIPMODE`, `MENUECHO` | kept and without effect |
 | `NOMUTT` | 0 or 1, kept for the session, 0 at first; AutoCAD's 1 mutes the prompts of a routine's `command`, which the presenter does not, so a routine that sets it and puts it back (`(setvar 'nomutt 1)` of TE) runs as before |
-| every dimension variable | `DIMASZ`, `DIMTXSTY`, `DIMSAH`, `DIMBLK1` and the rest, as system variables of the drawing's header, typed alone or set with SETVAR with AutoCAD's prompts (`Enter new value for DIMSAH <OFF>:` takes ON or OFF) |
+| every dimension variable | `DIMASZ`, `DIMTXSTY`, `DIMSAH`, `DIMBLK1` and the rest, as system variables of the drawing's header, typed alone or set with SETVAR with AutoCAD's prompts (`Enter new value for DIMSAH <OFF>:` takes ON or OFF); the name of an arrowhead (`DIMBLK`, `DIMBLK1`, `DIMBLK2`, `DIMLDRBLK`) is read without its underscore, `"_None"` as `"None"` and `"_DOT"` as `"Dot"`, a period is the default, `""` is refused and an unknown block writes `Block "nosuch" not defined` before the refusal |
 
 ## Geometry, units and the session
 

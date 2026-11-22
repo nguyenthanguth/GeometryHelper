@@ -364,6 +364,13 @@ namespace GeometryHelper.Cad.UnitTest
                 CadSystemVariable variable = session.Registry.FindVariable(name);
                 object value = variable.ValueForLisp(session);
 
+                // AutoCAD 2021 (l2p pb): (setvar "DIMBLK" "") is refused, an arrowhead has a name or a period; the others take their own.
+                if (name.Contains("BLK") && value is string text && text.Length == 0)
+                {
+                    Assert.False(variable.SetFromLisp(session, value), name);
+                    continue;
+                }
+
                 Assert.True(variable.SetFromLisp(session, value), name + " refused its own value " + value);
                 session.CloseGroup();
             }

@@ -150,6 +150,7 @@ namespace GeometryHelper.Cad
                                     d => CadArrowheads.Ensure(d, arrow)
                                 );
                         },
+                        true,
                         true
                     );
                 case DxfDimKind.Linetype:

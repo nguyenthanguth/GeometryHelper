@@ -499,13 +499,14 @@ namespace GeometryHelper.Cad.UnitTest
         [Fact]
         public void HatchByAPointInASquareWithAnIsland_FillsAsTheIslandStyleSays_AndFollowsItsLines()
         {
-            // A square 100 by 100, an island 60 by 60 in it, and an island 20 by 20 in that.
+            // A square 100 by 100, an island 60 by 60 in it, and an island 20 by 20 in that. AutoCAD 2021 (l2p c1c) stores all three
+            // loops at every island style (91 3 at HPISLANDDETECTION 0, 1 and 2); the style decides the area filled.
             foreach (
                 (DxfHatchStyle style, double area, int loops) in new[]
                 {
                     (DxfHatchStyle.Normal, 6800.0, 3),
-                    (DxfHatchStyle.Outer, 6400.0, 2),
-                    (DxfHatchStyle.Ignore, 10000.0, 1),
+                    (DxfHatchStyle.Outer, 6400.0, 3),
+                    (DxfHatchStyle.Ignore, 10000.0, 3),
                 }
             )
             {

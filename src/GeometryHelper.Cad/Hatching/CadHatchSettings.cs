@@ -49,7 +49,7 @@ namespace GeometryHelper.Cad
     /// the pattern, its angle and scale or spacing, the origin, the island style, whether it follows its objects, and the one
     /// colour or two of a gradient; and the layer, colour, background colour and transparency a new hatch takes in place of the
     /// current ones, and the widest gap a boundary is taken as closed over. AutoCAD's own start: ANSI31 at angle nought and
-    /// scale 1, associative, the Normal island style, a gradient GR_LINEAR from blue to a pale yellow, no gap tolerance, the
+    /// scale 1, associative, the Outer island style (HPISLANDDETECTION 1), a gradient GR_LINEAR from blue to a pale yellow, no gap tolerance, the
     /// current layer and colour.
     /// </summary>
     public sealed class CadHatchSettings
@@ -116,8 +116,8 @@ namespace GeometryHelper.Cad
         /// <summary>Gets or sets whether the hatch follows the objects its loops were made of (HPASSOC); true as AutoCAD starts.</summary>
         public bool Associative { get; set; } = true;
 
-        /// <summary>Gets or sets which areas of islands within islands are filled.</summary>
-        public DxfHatchStyle IslandStyle { get; set; } = DxfHatchStyle.Normal;
+        /// <summary>Gets or sets which areas of islands within islands are filled: Outer as AutoCAD starts (HPISLANDDETECTION 1).</summary>
+        public DxfHatchStyle IslandStyle { get; set; } = DxfHatchStyle.Outer;
 
         /// <summary>Gets or sets the gradient, by the name AutoCAD's dialog gives it: GR_LINEAR.</summary>
         public string GradientName { get; set; } = "GR_LINEAR";

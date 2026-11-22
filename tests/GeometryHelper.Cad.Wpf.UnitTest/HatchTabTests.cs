@@ -226,7 +226,8 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             MainViewModel model = Plate(false, out _);
             model.Execute("HATCH");
             HatchTabViewModel tab = model.HatchTab;
-            Assert.Equal("Normal Island Detection", tab.IslandDetection);
+            // AutoCAD 2021 (l2p c1a): HPISLANDDETECTION is 1, Outer, on a blank drawing.
+            Assert.Equal("Outer Island Detection", tab.IslandDetection);
             Assert.Equal("Send behind boundary", tab.DrawOrder);
 
             tab.IslandDetection = "No Island Detection";
@@ -241,10 +242,10 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             Assert.Equal(1.0, model.Session.Remembered["hatch.order"]);
             Assert.Equal(1.0, model.Session.Remembered["hatch.origin.store"]);
 
-            tab.IslandDetection = "Outer Island Detection";
+            tab.IslandDetection = "Normal Island Detection";
             Assert.Equal(1.0, model.Session.Remembered["hatch.islands"]);
-            Assert.Equal(DxfHatchStyle.Outer, model.Document.HatchSettings.IslandStyle);
-            Assert.Equal("Outer Island Detection", tab.IslandDetection);
+            Assert.Equal(DxfHatchStyle.Normal, model.Document.HatchSettings.IslandStyle);
+            Assert.Equal("Normal Island Detection", tab.IslandDetection);
         }
 
         [Fact]
