@@ -1035,11 +1035,11 @@ text, `nil` with no arguments, and has no effect. `(redraw [ename [mode]])` give
 type: lentityp nil`.
 
 `(grdraw from to color [highlight])` draws one vector on the canvas, `(grvecs list [matrix])` a list of them, and `(grclear)`
-takes them off; all three give `nil`. The points are in the current UCS, in millimetres, two or three coordinates. A colour is a
+is defined too; all three give `nil`. The points are in the current UCS, in millimetres, two or three coordinates. A colour is a
 whole number: 1 to 255 are AutoCAD's colours, 7 is white on a dark background and black on a light one, and 0 or less, AutoCAD's
 XOR colour, is drawn as 7 is. A `highlight` that is not 0 draws the vector dashed. The vectors are one pixel wide, over the
-drawing and under the grips and the cursor, and stay until REDRAW, REDRAWALL, REGEN, `(redraw)` with no argument or `(grclear)`
-takes them off; a zoom or a pan does not. A
+drawing and under the grips and the cursor, and stay until REDRAW, REDRAWALL, REGEN or `(redraw)` with no argument
+takes them off; a zoom or a pan does not, and neither does `(grclear)`, which clears nothing in AutoCAD 2021 either (it calls the function obsolete, and the pixels of a `grdraw` were the same before and after it). A
 session with no window keeps them and draws nothing. The list of `grvecs` is made of vectors, each two points, with a whole
 number before one giving its colour and the colour of those after it, white where none is given:
 `(grvecs '(1 (0 0) (10 10) 3 (5 5) (6 6)))`. The matrix is four rows of four numbers, each point moved by it (the last number of a
@@ -1057,21 +1057,24 @@ shows nothing typed while it lasts, and each answer runs the routine's loop once
 
 | The list | What gave it |
 |---|---|
-| `(2 code)` | a key: the character's code for a printable one (`(2 65)` for A), 13 for Enter, 32 for Space, 8 for Backspace, 9 for Tab |
-| `(3 (x y z))` | a click of the left button: the point as it lies under the cursor, in the current UCS, with no object snap, no grid snap and no ortho or polar; z is 0 |
+| `(2 code)` | a key: the character's code for a printable one (`(2 65)` for A), 13 for Enter, 32 for Space, 8 for Backspace, 9 for Tab, 6 for F3 (AutoCAD's Ctrl-F), with `allkeys` 0 or 2 alike |
+| `(3 (x y z))` | a click of the left button: the point under the cursor, in the current UCS, on the grid where SNAPMODE is on (`SNAPUNIT 10` gives `(40.0 30.0 0.0)` for a click at 41.7, 25.8), never on an object snap and never held by ortho; z is 0 |
 | `(5 (x y z))` | a move of the cursor, only with `track` not nil or the bit 1 of `allkeys`; the point as for a click |
-| `(11 0)` | a click of the right button: no shortcut menu opens and no Enter is made of it |
+| `(25 x)` | a click of the right button with the default shortcut menu on (the bit 1 of SHORTCUTMENU, which 11 has): `x` is the cursor's column in device pixels; no menu opens and no Enter is made of it |
+| `(11 0)`, then `(12 (x y z))` | a click of the right button with SHORTCUTMENU 0: two answers for the one click, the second at the next call, with the point as for a left click |
 
 A move that comes before the routine has asked again takes the place of the one before it, so a loop slower than the mouse never
 falls behind it: a loop that calls `grvecs` at each move took 19 ms for 1 000 moves headless. Keys and clicks are not dropped; they
 wait their turn in the order they came. The middle button and the wheel pan and zoom as ever and give the routine nothing, and so
-do Ctrl and Alt with a key and the function keys, which keep their meaning in the window. Esc ends the wait with
+do Ctrl and Alt with a key, the arrow keys, Home, Delete and the function keys but F3, which keep their meaning in the window (the bit 2 of `allkeys` changes nothing, as in AutoCAD 2021's window). Esc ends the wait with
 `Function cancelled`, which `vl-catch-all-apply` and `*error*` see as they see it at any get function. `allkeys` and `curtype`
 must be whole numbers (`; error: bad argument type: fixnump: "a"`); their other bits are not used.
 
 A host that has no window answers through the session: `Feed` with a text gives the keys of its characters, one for each call of
 `grread`, then 13 (`abc` is `(2 97)`, `(2 98)`, `(2 99)`, `(2 13)`), and a point is a click. What is left over when the routine
 stops reading is dropped.
+
+Known differences from AutoCAD 2021's window, measured and left alone: its first `grread` of a loop gives an undocumented `(26 10)` before anything else; it gives no move until the drawing has been clicked once; and it gives a `(5 (x y z))` after each key and each click, which the presenter does not. A routine that skips what it does not know, as the usual loops do, runs the same on both.
 
 ## Strings, lists and files
 

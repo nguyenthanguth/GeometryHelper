@@ -32,6 +32,8 @@ again takes the place of the one before it, so a loop that draws with `grvecs` a
 Esc gives `Function cancelled`. The prompt shows no words and the command line shows nothing typed while it waits. The bit 2 of
 `allkeys` (function and cursor keys) and `curtype` are not used yet.
 
+**CHANGED.** `grread` and `grclear` follow what AutoCAD 2021's window gave when it was driven with a real mouse and keyboard. A click and a move are put on the grid where SNAPMODE is on (`SNAPUNIT 10` turns a click at 41.7, 25.8 into `(3 (40.0 30.0 0.0))`) and stay in the current UCS, with no object snap and no ortho. The right button gives `(25 x)`, `x` being the cursor's column in pixels, while SHORTCUTMENU has its bit 1 (11 has), and `(11 0)` then `(12 (x y z))` at the next call with SHORTCUTMENU 0; no menu opens either way. F3 gives `(2 6)`. `(grclear)` clears nothing, as AutoCAD's window did: the temporary vectors stay until REDRAW, REGEN or `(redraw)`. The guide lists the three differences left: its first `(26 10)`, no move before the first click, and a `(5 pt)` after each key.
+
 **FIXED.** Ribbon follow-ups. A collapsed panel whose title has a long word broke it in two: Dimensions read "Dimension" over
 "s" at windows of 884 to 908 pixels, the word being a little wider than the 58 pixels the label was given. The label of a
 collapsed panel is now 10 instead of 11 and the button 60 wide with the panel's side padding gone, so the panel is still 61

@@ -519,8 +519,9 @@ namespace GeometryHelper.Cad.Wpf
         private bool ReadsKeys => _model?.Session?.Prompt?.ReadsInput ?? false;
 
         /// <summary>
-        /// Gives <c>grread</c> the keys that make no text: Enter 13, Space 32, Backspace 8 and Tab 9; the keys that make text come
-        /// through <see cref="OnPreviewTextInput"/>. Esc, the keys with Ctrl or Alt and the function keys keep their meaning in the
+        /// Gives <c>grread</c> the keys that make no text: Enter 13, Space 32, Backspace 8, Tab 9 and F3 6 (AutoCAD 2021 gives its
+        /// Ctrl-F code; the arrow keys, Home and Delete give nothing); the keys that make text come
+        /// through <see cref="OnPreviewTextInput"/>. Esc, the keys with Ctrl or Alt and the other function keys keep their meaning in the
         /// window.
         /// </summary>
         /// <returns>Whether <c>grread</c> took the key.</returns>
@@ -536,6 +537,7 @@ namespace GeometryHelper.Cad.Wpf
                 : key == Key.Space ? 32
                 : key == Key.Back ? 8
                 : key == Key.Tab ? 9
+                : key == Key.F3 ? 6
                 : 0;
             return code != 0 && _model.Session.FeedKey(code);
         }
