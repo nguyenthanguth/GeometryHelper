@@ -20,6 +20,30 @@ ellipse before. `tblsearch` of a BLOCK has its description `(4 . "")` after the 
 0, of a text style the obliquing `50` in radians (`0.261799` for 15 degrees, it gave 15.0), of a UCS `(79 . 0) (146 . 0.0)` at
 the end and of a view `(72 . 0) (110 ...) (111 ...) (112 ...) (79 . 0) (146 . 0.0)`, all as AutoCAD 2021 lists them.
 
+**NEW.** AutoLISP's `entget` gives an ATTRIB, an ATTDEF, a SEQEND, an MTEXT, a POLYLINE with its VERTEXes and the BLOCK that
+opens a block definition the groups AutoCAD 2021's lists have, in its order and with its defaults (measured in its console):
+an attribute's `(100 . "AcDbAttribute")` with the version `280`, the tag, flags, `73`, `74` and the lock of its position `280`
+last; a SEQEND ending with `(-2 . the entity it ends)`; an MTEXT's `41`, `46`, `72`, `11`, `42`, `43`, `50`, `73` and `44`; a
+polyline's `AcDb2dPolyline` or `AcDb3dPolyline` with `66`, `40`, `41`, `71` to `75`, and a vertex's `AcDbVertex` with `42`, `91`,
+`70` and `50`. `(tblobjname "BLOCK" name)` is the name of the BLOCK entity, whose `entget` has `(100 . "AcDbBlockBegin")`, the
+flags, the base point, the first entity (`-2`), the name and the path; `vlax-ename->vla-object` of it is still the block. The
+entities of a block definition no longer list `(410 . "Model")`, which AutoCAD 2021 leaves out of them.
+
+**NEW.** `(ssget ":L")` leaves out the objects on a locked layer and says so, as AutoCAD 2021 does: `3 found`, then `1 was on a
+locked layer.`, the locked ones counted among those found and kept out of the set, `nil` when none is left; `":S:L"` writes no
+`found` line and a pick or `ALL` ends it; `(ssget "X:L")` is `; error: bad ssget mode string` and `(ssget ":L" "x")` `; error:
+bad point argument`. `":S"` alone now writes no `found` line and no closing `Select objects:` either, as AutoCAD 2021's.
+
+**FIXED.** `entget` of a HATCH gave the pattern angle `52`, the angle of each pattern line `53` and the angles `50` and `51` of
+an arc edge of its boundary in degrees; they are radians, as AutoCAD 2021 gives them (`53` is 0.785398 for ANSI31), and `entmod`
+turns them back into the degrees of the file.
+
+**FIXED.** `nentsel` gave the matrix for an object inside a block reference in the 4 by 4 form row by row with the translation in
+the fourth column, which AutoCAD 2021 gives `nentselp`; `nentsel` gives the 4 by 3 form of its documentation, the three
+transformed axes as rows and the origin as the fourth row, measured in AutoCAD's window (a line in a reference at (100, 0) is
+`((1.0 0.0 0.0) (0.0 1.0 0.0) (0.0 0.0 1.0) (100.0 0.0 0.0))`). `nentselp` keeps the 4 by 4 form; the 3 by 3 part of each is the
+transpose of the other's. A routine written for the 4 by 4 form reads the rows of `nentsel`'s differently now.
+
 **NEW.** Trusted folders and SECURELOAD, as AutoCAD 2021 has them, in front of AutoLISP's `load` (and APPLOAD, the startup
 files, the Startup Suite, `autoload`, `vl-load-all`) and of Python's PYRUN, PYLOAD and the palette's Run file and Load.
 [`CadLoadSecurity`](xref:GeometryHelper.Cad.CadLoadSecurity) decides a file: SECURELOAD 0 loads from anywhere, a file in a

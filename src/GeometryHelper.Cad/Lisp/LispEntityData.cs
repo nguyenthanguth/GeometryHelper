@@ -148,13 +148,16 @@ namespace GeometryHelper.Cad.Lisp
 
         /// <summary>
         /// Whether the angles of a type, its groups 50 to 58, are written in degrees by the file and given in radians by
-        /// <c>entget</c>: ARC, TEXT, ATTRIB, ATTDEF, INSERT and DIMENSION. An MTEXT's rotation is in radians in the file too.
+        /// <c>entget</c>: ARC, TEXT, ATTRIB, ATTDEF, INSERT, DIMENSION and HATCH (its pattern angle 52, the angle of each pattern
+        /// line 53 and the angles 50 and 51 of the arcs of its boundary; AutoCAD 2021, console, l2p pc). An MTEXT's rotation is in
+        /// radians in the file too.
         /// </summary>
         internal static bool HasAngles(string type)
         {
             switch (type)
             {
                 case "ARC":
+                case "HATCH":
                 case "TEXT":
                 case "ATTRIB":
                 case "ATTDEF":
@@ -302,15 +305,19 @@ namespace GeometryHelper.Cad.Lisp
         /// <summary>One place of AutoCAD's list: a group with the value it has where the record gives none (null for none), or a subclass marker.</summary>
         private sealed class Slot
         {
-            internal Slot(int code, object value)
+            internal Slot(int code, object value, bool many = false)
             {
                 Code = code;
                 Value = value;
+                Many = many;
             }
 
             internal int Code { get; }
 
             internal object Value { get; }
+
+            /// <summary>Whether the slot takes every group of its code the record has, one after another (the chunks of an MTEXT's text).</summary>
+            internal bool Many { get; }
         }
 
         private static Slot Mark(string name) => new Slot(100, name);
@@ -318,6 +325,8 @@ namespace GeometryHelper.Cad.Lisp
         private static Slot Optional(int code) => new Slot(code, null);
 
         private static Slot Has(int code, object value) => new Slot(code, value);
+
+        private static Slot Each(int code) => new Slot(code, null, true);
 
         // The order of the groups of each type in AutoCAD 2021's lists and what a group is where the record gives none.
         // LINE, CIRCLE, TEXT, LWPOLYLINE and DIMENSION are as measured (q5, q8); ARC, POINT and INSERT follow AutoCAD's
@@ -434,6 +443,190 @@ namespace GeometryHelper.Cad.Lisp
             Mark("AcDbRotatedDimension"),
         };
 
+        // The slots <c>entget</c> gives these types, as AutoCAD 2021 listed them (console, l2p pa and pd). Only the listing uses them:
+        // entmake and entmod keep the slots of SlotsOf as they were. An ATTRIB's and an ATTDEF's two groups 280 (the version after
+        // the marker, the lock of the position last) are put in place by Attribute, not by a slot.
+        private static readonly Slot[] AttributeTextSlots =
+        {
+            Mark("AcDbText"),
+            Optional(39),
+            Optional(10),
+            Optional(40),
+            Optional(1),
+            Has(50, 0.0),
+            Has(41, 1.0),
+            Has(51, 0.0),
+            Has(7, "Standard"),
+            Has(71, 0),
+            Has(72, 0),
+            Has(11, Zero),
+            Has(210, Up),
+        };
+
+        private static readonly Slot[] AttribTailSlots =
+        {
+            Mark("AcDbAttribute"),
+            Optional(2),
+            Optional(70),
+            Has(73, 0),
+            Has(74, 0),
+        };
+
+        private static readonly Slot[] AttdefTailSlots =
+        {
+            Mark("AcDbAttributeDefinition"),
+            Optional(3),
+            Optional(2),
+            Optional(70),
+            Has(73, 0),
+            Has(74, 0),
+        };
+
+        private static readonly Slot[] MTextSlots =
+        {
+            Mark("AcDbMText"),
+            Optional(10),
+            Optional(40),
+            Has(41, 0.0),
+            Has(46, 0.0),
+            Optional(71),
+            Has(72, 5),
+            Each(3),
+            Optional(1),
+            Has(7, "Standard"),
+            Has(210, Up),
+            Has(11, new[] { 1.0, 0.0, 0.0 }),
+            Optional(42),
+            Optional(43),
+            Has(50, 0.0),
+            Has(73, 1),
+            Has(44, 1.0),
+        };
+
+        private static Slot[] PolylineSlots(string marker) =>
+            new[]
+            {
+                Mark(marker),
+                Has(66, 1),
+                Has(10, Zero),
+                Optional(39),
+                Has(70, 0),
+                Has(40, 0.0),
+                Has(41, 0.0),
+                Has(210, Up),
+                Has(71, 0),
+                Has(72, 0),
+                Has(73, 0),
+                Has(74, 0),
+                Has(75, 0),
+            };
+
+        private static readonly Slot[] Vertex2dSlots =
+        {
+            Mark("AcDbVertex"),
+            Mark("AcDb2dVertex"),
+            Optional(10),
+            Has(40, 0.0),
+            Has(41, 0.0),
+            Has(42, 0.0),
+            Has(91, 0),
+            Has(70, 0),
+            Has(50, 0.0),
+        };
+
+        private static readonly Slot[] Vertex3dSlots =
+        {
+            Mark("AcDbVertex"),
+            Mark("AcDb3dPolylineVertex"),
+            Optional(10),
+            Has(40, 0.0),
+            Has(41, 0.0),
+            Has(42, 0.0),
+            Has(70, 32),
+            Has(50, 0.0),
+            Has(71, 0),
+            Has(72, 0),
+            Has(73, 0),
+            Has(74, 0),
+        };
+
+        /// <summary>The flags (group 70) a record gives, 0 where it gives none.</summary>
+        private static int FlagsOf(IReadOnlyList<KeyValuePair<int, object>> body)
+        {
+            foreach (KeyValuePair<int, object> pair in body)
+            {
+                if (pair.Key == 70 && pair.Value is int flags)
+                {
+                    return flags;
+                }
+            }
+
+            return 0;
+        }
+
+        /// <summary>
+        /// The slots of a type for the listing of <c>entget</c>: an MTEXT, an ATTRIB, an ATTDEF, a POLYLINE and a VERTEX, which the
+        /// other uses of <see cref="SlotsOf"/> leave as they were; the types of <see cref="SlotsOf"/> are the same.
+        /// </summary>
+        private static List<Slot> ListingSlotsOf(string type, IReadOnlyList<KeyValuePair<int, object>> body)
+        {
+            var slots = new List<Slot>();
+
+            switch (type)
+            {
+                case "ATTRIB":
+                    slots.AddRange(AttributeTextSlots);
+                    slots.AddRange(AttribTailSlots);
+                    return slots;
+                case "ATTDEF":
+                    slots.AddRange(AttributeTextSlots);
+                    slots.AddRange(AttdefTailSlots);
+                    return slots;
+                case "MTEXT":
+                    slots.AddRange(MTextSlots);
+                    return slots;
+                case "POLYLINE":
+                    int flags = FlagsOf(body);
+                    slots.AddRange(
+                        PolylineSlots(
+                            (flags & 8) != 0 ? "AcDb3dPolyline"
+                            : (flags & 16) != 0 ? "AcDbPolygonMesh"
+                            : (flags & 64) != 0 ? "AcDbPolyFaceMesh"
+                            : "AcDb2dPolyline"
+                        )
+                    );
+                    return slots;
+                case "VERTEX":
+                    int kind = FlagsOf(body);
+                    if ((kind & 192) == 128)
+                    {
+                        slots.Add(Mark("AcDbFaceRecord"));
+                    }
+                    else if ((kind & 32) != 0)
+                    {
+                        slots.AddRange(Vertex3dSlots);
+                    }
+                    else if ((kind & 128) != 0)
+                    {
+                        slots.Add(Mark("AcDbVertex"));
+                        slots.Add(Mark("AcDbPolyFaceMeshVertex"));
+                    }
+                    else if ((kind & 64) != 0)
+                    {
+                        slots.Add(Mark("AcDbVertex"));
+                        slots.Add(Mark("AcDbPolygonMeshVertex"));
+                    }
+                    else
+                    {
+                        slots.AddRange(Vertex2dSlots);
+                    }
+
+                    return slots;
+                default:
+                    return SlotsOf(type, body);
+            }
+        }
+
         /// <summary>
         /// The groups of a record in AutoCAD's order: <c>(330 . owner)</c> and <c>(5 . handle)</c> first, then those the record has
         /// before its first subclass marker with <c>67</c> and <c>410</c> and the layer where it gives none, then the groups of
@@ -509,7 +702,12 @@ namespace GeometryHelper.Cad.Lisp
                 put = head.FindIndex(p => p.Key == 67) + 1;
             }
 
-            if (!head.Exists(p => p.Key == 410))
+            if (layout == null)
+            {
+                // An entity of a block definition has no 410 (AutoCAD 2021, console, l2p pa).
+                put = head.FindIndex(p => p.Key == 67) + 1;
+            }
+            else if (!head.Exists(p => p.Key == 410))
             {
                 head.Insert(put++, Pair(410, layout));
             }
@@ -532,7 +730,7 @@ namespace GeometryHelper.Cad.Lisp
                 body.Add(pairs[i]);
             }
 
-            result.AddRange(type == "LWPOLYLINE" ? Polyline(body) : Merge(type, body));
+            result.AddRange(type == "LWPOLYLINE" ? Polyline(body) : Merge(type, body, true, true));
             return result;
         }
 
@@ -691,17 +889,45 @@ namespace GeometryHelper.Cad.Lisp
         private static List<KeyValuePair<int, object>> Merge(
             string type,
             List<KeyValuePair<int, object>> body,
-            bool defaults = true
+            bool defaults = true,
+            bool listing = false
         )
         {
-            List<Slot> slots = SlotsOf(type, body);
+            List<Slot> slots = listing ? ListingSlotsOf(type, body) : SlotsOf(type, body);
 
             if (slots.Count == 0)
             {
                 return body;
             }
 
+            bool attribute = listing && (type == "ATTRIB" || type == "ATTDEF");
+            object version = 0;
+            object locked = 0;
             var rest = new List<KeyValuePair<int, object>>(body);
+
+            if (attribute)
+            {
+                // The 280 before the tag is the version of the attribute, the one after it the lock of its position.
+                int tag = rest.FindIndex(p => p.Key == 2);
+
+                for (int i = rest.Count - 1; i >= 0; i--)
+                {
+                    if (rest[i].Key == 280)
+                    {
+                        if (tag >= 0 && i > tag)
+                        {
+                            locked = rest[i].Value;
+                        }
+                        else
+                        {
+                            version = rest[i].Value;
+                        }
+
+                        rest.RemoveAt(i);
+                    }
+                }
+            }
+
             var merged = new List<KeyValuePair<int, object>>(body.Count + 8);
 
             foreach (Slot slot in slots)
@@ -712,11 +938,26 @@ namespace GeometryHelper.Cad.Lisp
                 {
                     merged.Add(rest[at]);
                     rest.RemoveAt(at);
+
+                    while (slot.Many && (at = Find(rest, slot)) >= 0)
+                    {
+                        merged.Add(rest[at]);
+                        rest.RemoveAt(at);
+                    }
                 }
                 else if (slot.Value != null && (defaults || slot.Code == 100))
                 {
                     merged.Add(Pair(slot.Code, slot.Value));
                 }
+            }
+
+            if (attribute)
+            {
+                int marker = merged.FindIndex(p =>
+                    p.Key == 100 && Same(p.Value, (string)slots[AttributeTextSlots.Length].Value)
+                );
+                merged.Insert(marker + 1, Pair(280, version));
+                merged.Insert(merged.FindIndex(marker, p => p.Key == 74) + 1, Pair(280, locked));
             }
 
             merged.AddRange(rest);

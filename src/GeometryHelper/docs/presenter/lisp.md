@@ -32,7 +32,7 @@ programs, and for the five that call the library, forms making the same calls on
 repeats through `vl-sort`, a temporary dialog file written, read back and deleted, entity names filtered by type) were
 typed into both. For three of the five the command line and the drawing came out the same; the other two differ only in
 matters of the drawing stage (-LAYER's Lock of a backquoted name, `(setvar 'errno 0)`, the wording of -ATTDEF, -BLOCK and
--INSERT, and the groups of ATTRIB and MTEXT that `entget` lacks). A sixth feed, of the pick-first functions, differs in one
+-INSERT; the groups of ATTRIB and MTEXT that `entget` lacked now come, [as described below](#entities-and-tables)). A sixth feed, of the pick-first functions, differs in one
 row, [described below](#pick-first-and-nentselp).
 
 The ActiveX stage was measured in five probe files typed into AutoCAD 2021's console and in two runs of the full AutoCAD
@@ -485,12 +485,14 @@ AutoLISP while a routine waits, APPLOAD or a startup file, are refused with the 
 point in the UCS: `0,0` on the end of a LINE gives `(<Entity name: ...> (0.0 0.0 0.0))`. `L` takes the last object. A pick
 that finds nothing gives `nil` at once and does not ask again; Enter gives `nil`; a keyword of `initget` gives its string;
 other text is `*Invalid selection*` and `Expects a point or Last`, and the prompt again. `nentsel` does the same for an object
-of a space, and for one inside a block reference gives `(ename pt matrix (insert-ename))`, with the insert's name last. The matrix is the form
-AutoCAD 2021 gave in its window, 4 by 4 and row by row with the translation in the fourth column, not the 4 by 3 form of
-its documentation: a line in a block reference at (100, 0), picked at (125, 5), is `(<Entity name: ...> (125.0 5.0 0.0)
-((1.0 0.0 0.0 100.0) (0.0 1.0 0.0 0.0) (0.0 0.0 1.0 0.0) (0.0 0.0 0.0 1.0)) (<Entity name: ...>))`, and the owners come
-innermost first for nested references. A routine written for the 4 by 3 form finds the origin in the last item of the first
-three rows and a row `(0 0 0 1)` under them. A pick on the
+of a space, and for one inside a block reference gives `(ename pt matrix (insert-ename))`, with the insert's name last. The matrix is
+the 4 by 3 form of AutoCAD's documentation, as AutoCAD 2021 gave it in its window: the three transformed axes of the block as rows,
+then the origin as the fourth row. A line in a block reference at (100, 0), picked at (125, 5), is `(<Entity name: ...>
+(125.0 5.0 0.0) ((1.0 0.0 0.0) (0.0 1.0 0.0) (0.0 0.0 1.0) (100.0 0.0 0.0)) (<Entity name: ...>))`; in a reference scaled 2
+and turned 90 degrees, inside a block put at (300, 50), it is `((0.0 2.0 0.0) (-2.0 0.0 0.0) (0.0 0.0 2.0) (300.0 50.0 0.0))`,
+and the owners come innermost first for nested references. `nentselp` gives the 4 by 4 form, row by row with the translation in
+the fourth column, whose 3 by 3 part is the transpose of `nentsel`'s: `((0.0 -2.0 0.0 300.0) (2.0 0.0 0.0 50.0) (0.0 0.0 2.0 0.0)
+(0.0 0.0 0.0 1.0))` for the same pick. A pick on the
 text of a visible attribute gives the ATTRIB itself and the point only, `(<Entity name: ...> (103.0 2.5 0.0))`, with no matrix and
 no list of references after them, as AutoCAD 2021 does; `entsel` still gives the block reference for the same pick, and an
 invisible attribute cannot be picked. `(entmod ...)` of that name changes the attribute.
@@ -509,7 +511,18 @@ ends. The first argument gives it a mode:
 | `"L"`, `"P"` | the last object, the previous selection |
 | `"I"` | the objects selected before the command (PICKFIRST) |
 | `":S"` | one pick or one window ends the selection |
+| `":L"` | leaves out the objects on a locked layer, and says how many |
 | a point alone | picks at it: `(ssget '(0 0))` |
+
+`":L"` and `":S"` combine as `":S:L"` and `":L:S"`. With `":L"` the objects on a locked layer are found, counted and left out of
+the set, as AutoCAD 2021 does: in a drawing of three objects, one on a locked layer, `ALL` at `Select objects:` says `3 found`
+and `1 was on a locked layer.` (`2 were on a locked layer.` for more) and the set holds the other two; a filter is applied first,
+so `(ssget ":L" '((0 . "LINE")))` says `2 found` for the two lines of the three; a pick of the locked object says `1 found`
+and `1 was on a locked layer.` and keeps nothing; and a pick after it says `1 found, 1 total`, the locked pick counting as
+the first. `Previous` is left the same way. When nothing is left the answer is `nil`. With `":S"` no `found` line is written
+and the pick or `ALL` ends the selection at once: only the locked message comes, and a pick of a locked object alone gives `nil`.
+`(ssget "X:L")` is `; error: bad ssget mode string`, as the mode is for the prompt, and `(ssget ":L" "x")` is `; error: bad point
+argument`. A selection with no `:L` keeps the locked objects, as before.
 
 A filter list keeps only the objects that match, and with an interactive `ssget` counts only those: `(ssget '((0 . "CIRCLE")))`
 at `Select objects: ALL` says `1 found` in a drawing that has one circle among five objects. The groups of a filter are:
@@ -544,7 +557,24 @@ set, `(ssadd e)` a new set with `e`, `(ssadd e ss)` adds to `ss` in place and gi
 presenter holds them. The pointer groups (330, 340-369, 390-399, 480-481) are entity names, the points (10-18, 110-112, 210,
 1010-1013) lists of their coordinates, two for each vertex `10` of an LWPOLYLINE, the integers and reals follow the group's
 type, and the `102` groups are kept. Extended data is `(-3 ("APP" ...))` for the applications named in `apps`, and
-`'("*")` gives every one. An erased or unknown entity gives `nil`. A group the presenter does not hold is not invented.
+`'("*")` gives every one. An erased or unknown entity gives `nil`. A group the presenter does not hold is not invented, except
+the defaults AutoCAD 2021's list has for these types (measured in its console): an **ATTRIB** and an **ATTDEF** list the text's
+groups (`50 0.0`, `41 1.0`, `51 0.0`, `7 "Standard"`, `71 0`, `72 0`, `11`, `210`), then `(100 . "AcDbAttribute")` or
+`(100 . "AcDbAttributeDefinition")` with the version `(280 . 0)`, the prompt `3` of an ATTDEF, the tag `2`, the flags `70`, `73 0`,
+`74 0` and the lock of the position `280` last; a **SEQEND** is `(100 . "AcDbEntity") (67 . 0) (410 . "Model") (8 . "0")` and
+`(-2 . the entity it ends)`; an **MTEXT** has `41 0.0`, `46 0.0`, `72 5`, the text direction `11 (1.0 0.0 0.0)`, its extents
+`42` and `43` (measured in the font the drawing's search path finds; AutoCAD's are 24.1667 and 3.33333 for `mtext body` at 2.5
+in txt), `50 0.0`, `73 1` and `44 1.0`, its chunks of text `3` before the `1`; a **POLYLINE** is `(100 . "AcDb2dPolyline")` or
+`"AcDb3dPolyline"` (flag 8), `66 1`, `10`, `70`, `40 0.0`, `41 0.0`, `210`, `71`, `72`, `73`, `74` and `75` as 0, and each
+**VERTEX** `AcDbVertex` and `AcDb2dVertex` with `10`, `40`, `41`, `42 0.0`, `91 0`, `70` and `50 0.0`, or
+`AcDb3dPolylineVertex` with `70 32` and `71` to `74`; the owner `330` of a vertex and of a SEQEND is its polyline. The
+entities of a block definition have no `410`. The angles of a HATCH are radians, as an ARC's are: `53`, the angle of a pattern
+line, is `0.785398` for ANSI31, `52` the pattern angle, and `50` and `51` the angles of an arc edge of its boundary. The
+`(tblobjname "BLOCK" name)` of a block is the name of the BLOCK that opens its definition, not of its record, and its `entget` is
+`((-1 . ename) (0 . "BLOCK") (330 . owner) (5 . handle) (100 . "AcDbEntity") (67 . 0) (8 . "0") (100 . "AcDbBlockBegin")
+(70 . flags) (10 base point) (-2 . first entity) (2 . name) (1 . path))`; the path is empty for a block made in the presenter
+(AutoCAD 2021 gave a block made by `entmake` its own name, and a block of `-BLOCK` was not measured), and a block with no entity has no
+`-2`. `vlax-ename->vla-object` of that name is still the block.
 
 `(entmod list)` gives the list, or `nil` for a list with no `-1`, an unknown or erased entity, a change of group `0`, or a
 value of the wrong kind. A group code the list gives twice has the last value, as in AutoCAD: `(entmod (append (entget e) '((62 . 5) (62 . 6))))`
@@ -1035,7 +1065,7 @@ to 10,0 selected, `(sssetfirst nil (ssadd e))` and then `(command "ERASE")` writ
 `(nentselp [msg] [pt])` is `nentsel` that can take its point from the routine. With a point, `(nentselp '(5 0))` picks
 there with no question and gives `(<Entity name: ...> (5.0 0.0 0.0))` for that line, and `(nentselp '(50 50))` gives `nil`
 where nothing is; the message and the point may come in either order. With no point it asks as `nentsel` does, `Select
-object: ` or the message, and Enter gives `nil`; for an object inside a block reference it gives `nentsel`'s longer form. A DIMENSION
+object: ` or the message, and Enter gives `nil`; for an object inside a block reference it gives the 4 by 4 matrix, where `nentsel` gives the 4 by 3 one. A DIMENSION
 gives it too, the primitive of the dimension's block under the point and the dimension as the container, with the identity for a
 matrix, as AutoCAD 2021 does: a DIMLINEAR from (100, 80) to (130, 80) with its line through (115, 95) gives `(4 "LINE" ("DIMENSION"))`
 by `(nentselp '(115 95 0))`, at (115 96 0) and on an extension line at (100 87 0). The text of the dimension is picked only where

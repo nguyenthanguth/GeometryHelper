@@ -27,6 +27,18 @@ namespace GeometryHelper.Cad.Lisp
                 return null;
             }
 
+            // The BLOCK that opens a block definition, which tblobjname names, stands for the block.
+            if (item.Type == "BLOCK")
+            {
+                foreach (DxfTypedValue group in item.Groups)
+                {
+                    if (group.TypeCode == 2 && Document.Database.BlockTable.Has(group.Value.Trim()))
+                    {
+                        return WrapRecord(Document.Database.BlockTable[group.Value.Trim()]);
+                    }
+                }
+            }
+
             switch (item.Type)
             {
                 case "BLOCK_RECORD":
