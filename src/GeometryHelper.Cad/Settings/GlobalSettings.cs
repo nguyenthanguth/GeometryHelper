@@ -954,11 +954,16 @@ namespace GeometryHelper.Cad
         // ---- Template settings
 
         /// <summary>
-        /// Gets the folder the templates are kept in where <see cref="TemplateFolder"/> names none: a Template folder beside the
-        /// settings file (%AppData%\GeometryHelper\Drawing\Template), as AutoCAD keeps its templates in a Template folder of its
-        /// own.
+        /// Gets the folder the templates are kept in where <see cref="TemplateFolder"/> names none: the DrawingTemplates folder
+        /// beside GeometryHelper.Cad.dll (<see cref="CadSupportKind.DrawingTemplates"/>), where a user puts the drawings saved
+        /// as .dwt. The Template folder beside the settings file (%AppData%\GeometryHelper\Drawing\Template), where templates
+        /// were kept before, is taken in its place only while it holds a template and DrawingTemplates holds none.
         /// </summary>
-        public static string DefaultTemplateFolder => Path.Combine(Path.GetDirectoryName(DefaultPath), "Template");
+        public static string DefaultTemplateFolder =>
+            ResolveDefaultTemplateFolder(
+                CadSupportFolders.Default,
+                Path.Combine(Path.GetDirectoryName(DefaultPath), "Template")
+            );
 
         /// <summary>
         /// Gets or sets the folder NEW's Select Template dialog starts in and a template named with no folder is looked for in,
@@ -979,6 +984,28 @@ namespace GeometryHelper.Cad
         {
             get => _qnewTemplate;
             set => _qnewTemplate = (value ?? string.Empty).Trim();
+        }
+
+        /// <summary>
+        /// Works out the folder <see cref="DefaultTemplateFolder"/> names: the DrawingTemplates folder beside the program,
+        /// except where the Template folder beside the settings file holds a template and DrawingTemplates holds none (a user
+        /// who kept templates there before DrawingTemplates came keeps finding them), or where the program has no folder.
+        /// </summary>
+        /// <param name="roots">The default support folders.</param>
+        /// <param name="userFolder">The Template folder beside the settings file.</param>
+        /// <returns>The folder.</returns>
+        internal static string ResolveDefaultTemplateFolder(CadSupportFolders roots, string userFolder)
+        {
+            string program = roots.FolderOf(CadSupportKind.DrawingTemplates);
+
+            if (program == null)
+            {
+                return userFolder;
+            }
+
+            return CadTemplate.FindIn(program).Count == 0 && CadTemplate.FindIn(userFolder).Count > 0
+                ? userFolder
+                : program;
         }
 
         /// <summary>Gets the folder the templates are looked for in: <see cref="TemplateFolder"/>, or <see cref="DefaultTemplateFolder"/> where it names none.</summary>

@@ -23,7 +23,8 @@ namespace GeometryHelper.Cad.Wpf
     /// <remarks>
     /// Keys as AutoCAD's: Esc closes the AutoComplete list, then cancels the command, then clears the selection; Ctrl+O opens a
     /// DXF, Ctrl+W switches selection cycling, Ctrl+N runs the new document an extension offers
-    /// (<see cref="MainViewModel.NewDocumentOffer"/>) or, with none, makes a new drawing (NEW), Ctrl+S saves, Ctrl+Shift+S
+    /// (<see cref="MainViewModel.NewDocumentOffer"/>) or, with none, makes a new drawing (NEW), Ctrl+Shift+N starts one from a template of the
+    /// DrawingTemplates folder, Ctrl+S saves, Ctrl+Shift+S
     /// saves as, Ctrl+Z undoes and Ctrl+Y redoes, Delete erases the selection; F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR,
     /// F11 OTRACK, F12 DYN (the prompt and what is typed shown beside the cursor, Tab moving between its fields at a point prompt), and
     /// Ctrl+9 shows or hides the command line. In the DRAWINGS list a click selects a row, a double click or Enter opens it,
@@ -438,6 +439,12 @@ namespace GeometryHelper.Cad.Wpf
             {
                 // The new document an extension offers, else NEW, as in AutoCAD.
                 _model.NewByShortcut();
+                e.Handled = true;
+            }
+            else if (modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && key == Key.N)
+            {
+                // NEW with Select Template opened in the DrawingTemplates folder, on the start screen and with a drawing open.
+                _model.NewFromTemplateCommand.Execute(null);
                 e.Handled = true;
             }
             else if (modifiers == ModifierKeys.Control && key == Key.S)

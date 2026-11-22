@@ -7052,6 +7052,13 @@
                                             </Style>
                                         </Button.Style>
                                     </Button>
+                                    <Button
+                                        Style="{StaticResource SecondaryButton}"
+                                        Content="New from template  ·  Ctrl+Shift+N"
+                                        IsEnabled="True"
+                                        Command="{Binding NewFromTemplateCommand}"
+                                        ToolTip="A new drawing from a template in the DrawingTemplates folder (NEW)"
+                                    />
                                 </StackPanel>
                                 <Border
                                     Margin="0,20,0,0"

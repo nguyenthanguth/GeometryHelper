@@ -536,7 +536,7 @@ namespace GeometryHelper.Cad.Wpf
 
     /// <summary>
     /// A default support folder beside GeometryHelper.Cad.dll, as the Folder preference page shows it, read-only: its kind
-    /// (Fonts, Hatch patterns, Linetypes, Lisps), its full path, whether it is there, and Open folder.
+    /// (Fonts, Hatch patterns, Linetypes, Lisps, Drawing templates), its full path, whether it is there, and Open folder.
     /// </summary>
     public sealed class DefaultFolderRow : ObservableObject
     {
@@ -548,7 +548,7 @@ namespace GeometryHelper.Cad.Wpf
             OpenCommand = open;
         }
 
-        /// <summary>Gets the kind of file the folder holds: Fonts, Hatch patterns, Linetypes or Lisps.</summary>
+        /// <summary>Gets the kind of file the folder holds: Fonts, Hatch patterns, Linetypes, Lisps or Drawing templates.</summary>
         public string Kind { get; }
 
         /// <summary>Gets the full path of the folder.</summary>
@@ -1264,7 +1264,7 @@ namespace GeometryHelper.Cad.Wpf
         public ObservableCollection<DefaultFolderRow> DefaultFontFolders { get; } =
             new ObservableCollection<DefaultFolderRow>();
 
-        /// <summary>Gets the Hatches, Linetypes and Lisps folders beside the dll, read-only rows that are not saved into the settings.</summary>
+        /// <summary>Gets the Hatches, Linetypes, Lisps and DrawingTemplates folders beside the dll, read-only rows that are not saved into the settings.</summary>
         public ObservableCollection<DefaultFolderRow> DefaultSupportFolders { get; } =
             new ObservableCollection<DefaultFolderRow>();
 
@@ -1316,6 +1316,13 @@ namespace GeometryHelper.Cad.Wpf
             );
             DefaultSupportFolders.Add(
                 new DefaultFolderRow("Lisps", _roots.FolderOf(CadSupportKind.Lisps), OpenDefaultFolderCommand)
+            );
+            DefaultSupportFolders.Add(
+                new DefaultFolderRow(
+                    "Drawing templates",
+                    _roots.FolderOf(CadSupportKind.DrawingTemplates),
+                    OpenDefaultFolderCommand
+                )
             );
         }
 

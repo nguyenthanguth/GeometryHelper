@@ -170,6 +170,7 @@ namespace GeometryHelper.Cad.Wpf
         private CadBuiltInTab _annotateTab;
         private CadBuiltInTab _viewTab;
         private DelegateCommand _newCommand;
+        private DelegateCommand _newFromTemplateCommand;
         private DelegateCommand _saveAsCommand;
         private DelegateCommand _newLayoutCommand;
         private bool _fileListShown = true;
@@ -231,6 +232,16 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>Gets the command that makes a new empty drawing (NEW, the quick access New and the start screen's Blank drawing).</summary>
         public ICommand NewCommand => _newCommand ?? (_newCommand = new DelegateCommand(_ => NewDrawing()));
+
+        /// <summary>
+        /// Gets the command that starts a new drawing from a template (the start screen's New from template and Ctrl+Shift+N):
+        /// NEW with Select Template opened in the template folder, the DrawingTemplates folder beside the program where Global
+        /// settings name none, shown even where it holds one template or none. Ctrl+N and <see cref="NewCommand"/> stay a
+        /// blank drawing.
+        /// </summary>
+        public ICommand NewFromTemplateCommand =>
+            _newFromTemplateCommand
+            ?? (_newFromTemplateCommand = new DelegateCommand(_ => NewDrawingChoosingTemplate()));
 
         /// <summary>Gets the command that runs SAVEAS (the quick access Save As).</summary>
         public ICommand SaveAsCommand =>

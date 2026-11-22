@@ -167,7 +167,7 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
                     <TextBlock
-                        Text="No template in this folder. Browse for one, or open with no template."
+                        Text="No template in this folder. Save a drawing as a .dwt (SAVEAS, Files of type: Drawing Template) and put it here, browse for another, or open with no template."
                         Foreground="{StaticResource GhTextMuted}"
                         TextWrapping="Wrap"
                         HorizontalAlignment="Center"
