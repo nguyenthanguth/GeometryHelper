@@ -26,9 +26,9 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
     public class InsertRibbonTests
     {
         private const string InsertSteps =
-            "Reference:Medium; Block Definition:Medium; Reference:Collapsed; Block Definition:Collapsed";
+            "Linking & Extraction:Medium; Data:Medium; Reference:Medium; Import:Collapsed; Data:Collapsed; Linking & Extraction:Collapsed";
         private const string AnnotateSteps =
-            "Leaders:Medium; Text:Medium; Dimensions:Medium; Leaders:Collapsed; Text:Collapsed";
+            "Annotation Scaling:Medium; Tables:Collapsed; Markup:Collapsed; Annotation Scaling:Collapsed; Leaders:Collapsed; Dimensions:Collapsed";
         private const string ViewSteps =
             "Drafting:Medium; Navigate:Medium; Views:Collapsed; Drafting:Collapsed; Navigate:Collapsed; Named Views:Medium; "
             + "Model Viewports:Medium; Interface:Collapsed";
@@ -73,7 +73,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 
                 RibbonStrip strip = StripOf(workspace, model.InsertTab.TabContent);
                 Assert.Equal(
-                    new[] { "Block", "Block Definition", "Reference", "Linking & Extraction" },
+                    new[] { "Block", "Block Definition", "Reference", "Import", "Data", "Linking & Extraction" },
                     strip.Children.OfType<RibbonPanel>().Select(p => p.Title)
                 );
 
@@ -81,6 +81,8 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     .OfType<Button>()
                     .Where(b => b.CommandParameter is string)
                     .ToList();
+                // The six panels of AutoCAD 2021's Insert; the frames and the snap run the setting they show, "IMAGEFRAME 1"
+                // and "PDFOSNAP 1" in the room, through StartCommandWithOption.
                 string[] commands =
                 {
                     "INSERT",
@@ -89,21 +91,44 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     "ATTDEF",
                     "BATTMAN",
                     "BEDIT",
-                    "BASE",
                     "XATTACH",
                     "IMAGECLIP",
-                    "EXTERNALREFERENCES",
                     "PDFADJUST",
                     "PDFLAYERS",
-                    "TRANSPARENCY",
-                    "PDFOSNAP",
-                    "DATAEXTRACTION",
+                    "IMAGEFRAME 1",
+                    "PDFOSNAP 1",
+                    "IMPORT",
+                    "TXT2MTXT",
+                    "FIELD",
+                    "UPDATEFIELD",
+                    "INSERTOBJ",
+                    "HYPERLINK",
                     "DATALINK",
-                    "DATALINKUPDATE",
+                    "DATALINKUPDATE U",
+                    "DATALINKUPDATE W",
+                    "DATAEXTRACTION",
                 };
                 Assert.Equal(commands, buttons.Select(b => (string)b.CommandParameter));
 
-                foreach (Button button in buttons)
+                // Those whose dialogs this test stubs are pressed; the dialogs of Import and Data (IMPORT, FIELD, INSERTOBJ,
+                // HYPERLINK) are not stubbed here, and RibbonInsertPanelsTests, which lets every dialog go, presses them.
+                var pressed = new[]
+                {
+                    "INSERT",
+                    "EATTEDIT",
+                    "BLOCK",
+                    "ATTDEF",
+                    "BATTMAN",
+                    "BEDIT",
+                    "XATTACH",
+                    "IMAGECLIP",
+                    "PDFADJUST",
+                    "PDFLAYERS",
+                    "DATALINK",
+                    "DATAEXTRACTION",
+                };
+
+                foreach (Button button in buttons.Where(b => pressed.Contains((string)b.CommandParameter)))
                 {
                     Press(
                         model,
@@ -113,7 +138,14 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     );
                 }
 
-                // INSERT opened the palette on Current drawing, BLOCK, ATTDEF, BEDIT and XATTACH their dialogs, ER the palette; BATTMAN found no block with attributes in the room and opened nothing.
+                // The launcher of Reference opens External References, which is no button of the panel.
+                RibbonPanel reference = strip.Children.OfType<RibbonPanel>().Single(p => p.Title == "Reference");
+                reference.Launcher.Execute(null);
+                model.Escape();
+
+                // INSERT opened the palette on Current drawing, BLOCK, ATTDEF, BEDIT and XATTACH their dialogs, DATALINK the Data
+                // Link Manager, DATAEXTRACTION its wizard and the launcher the palette; BATTMAN found no block with attributes in the
+                // room and opened nothing.
                 Assert.Equal(
                     new[]
                     {
@@ -122,15 +154,15 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                         "attdef",
                         "bedit",
                         "attach",
-                        "xref",
-                        "extract",
                         "datalinks",
+                        "extract",
+                        "xref",
                     },
                     shown
                 );
 
                 // The buttons of PDF underlays: Adjust, Underlay Layers and Snap to Underlays run PDFADJUST, PDFLAYERS and PDFOSNAP.
-                foreach (string name in new[] { "Adjust", "Underlay Layers", "Snap to Underlays" })
+                foreach (string name in new[] { "Adjust", "Underlay Layers", "Snap to Underlays ON" })
                 {
                     Button underlay = Descendants(strip).OfType<Button>().Single(b => Equals(b.Content, name));
                     Assert.True(underlay.IsEnabled);
@@ -140,7 +172,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void TheSplitsOfInsert_ShowAndRunTheChoicePickedLast_TheGreyedChoicesOff()
+        public void TheSplitsOfInsert_ShowAndRunTheChoicePickedLast_NoChoiceIsDrawnGreyed()
         {
             OnWorkspace(1600, true, (model, workspace, shown) =>
             {
@@ -150,42 +182,30 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
 
                 Button single = Descendants(strip).OfType<Button>().Single(b => "EATTEDIT".Equals(b.CommandParameter));
                 List<MenuItem> attributes = MenuOf(SplitArrowOf(single));
-                Assert.Equal(
-                    new[] { "EATTEDIT", "ATTEDIT", null },
-                    attributes.Select(i => i.CommandParameter as string)
-                );
-                Assert.False(attributes[2].IsEnabled);
+                // AutoCAD's two items, Single and Multiple (-ATTEDIT); the label of the button stays Edit Attribute.
+                Assert.Equal(new[] { "EATTEDIT", "-ATTEDIT" }, attributes.Select(i => i.CommandParameter as string));
+                Assert.All(attributes, i => Assert.True(i.IsEnabled));
                 Pick(attributes[1]);
                 model.Escape();
-                Assert.Equal("Edit Attributes…", single.Content);
-                Press(model, single.IsEnabled, () => single.Command.Execute(single.CommandParameter), "ATTEDIT");
+                Assert.Equal("-ATTEDIT", single.CommandParameter);
+                Press(model, single.IsEnabled, () => single.Command.Execute(single.CommandParameter), "-ATTEDIT");
 
                 Button create = Descendants(strip).OfType<Button>().Single(b => "BLOCK".Equals(b.CommandParameter));
                 List<MenuItem> blocks = MenuOf(SplitArrowOf(create));
                 Assert.Equal(new[] { "BLOCK", "WBLOCK" }, blocks.Select(i => (string)i.CommandParameter));
                 Pick(blocks[1]);
                 model.Escape();
-                Assert.Equal("Write Block", create.Content);
-                Assert.Equal("Write Block", AutomationProperties.GetName(create));
+                Assert.Equal("WBLOCK", create.CommandParameter);
                 Press(model, create.IsEnabled, () => create.Command.Execute(create.CommandParameter), "WBLOCK");
 
                 Button attach = Descendants(strip).OfType<Button>().Single(b => "XATTACH".Equals(b.CommandParameter));
                 List<MenuItem> attaches = MenuOf(SplitArrowOf(attach));
+                // DXF, Image and PDF; the formats the presenter lacks are no longer drawn greyed.
                 Assert.Equal(
                     new[] { "XATTACH", "IMAGEATTACH", "PDFATTACH" },
                     attaches.Where(i => i.IsEnabled).Select(i => (string)i.CommandParameter)
                 );
-                Assert.Equal(
-                    new[]
-                    {
-                        "Attach DWG…",
-                        "Attach DWF…",
-                        "Attach DGN…",
-                        "Attach Point Cloud…",
-                        "Attach Coordination Model…",
-                    },
-                    attaches.Where(i => !i.IsEnabled).Select(i => (string)i.Header)
-                );
+                Assert.All(attaches, i => Assert.True(i.IsEnabled));
                 Pick(attaches[1]);
                 model.Escape();
                 Assert.Equal("IMAGEATTACH", attach.CommandParameter);
@@ -194,24 +214,38 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void TheFrameBoxTicksTheDrawingsImageFrame_AndAChoiceSetsIt_AsImageFrameTyped()
+        public void TheFramesSplitShowsTheDrawingsImageFrame_AndAChoiceSetsIt_AsImageFrameTyped()
         {
             OnWorkspace(1600, true, (model, workspace, shown) =>
             {
                 model.SelectedTab = model.InsertTab;
                 Layout(workspace, 1600);
-                ComboBox box = Descendants(StripOf(workspace, model.InsertTab.TabContent)).OfType<ComboBox>().Single();
-                Assert.True(box.IsEnabled);
+                RibbonStrip strip = StripOf(workspace, model.InsertTab.TabContent);
+                Button frames = Descendants(strip)
+                    .OfType<Button>()
+                    .Single(b =>
+                        ((b.CommandParameter as string) ?? string.Empty).StartsWith(
+                            "IMAGEFRAME",
+                            StringComparison.Ordinal
+                        )
+                    );
+                Assert.True(frames.IsEnabled);
+                MenuItem Choice(string header) => MenuOf(SplitArrowOf(frames)).Single(i => (string)i.Header == header);
 
                 // No image yet: 1 shown; a choice gives the drawing its variables of images, as AutoCAD 2021 makes them, and
-                // undone takes them out again.
-                Assert.Equal("Display and Plot Frames", box.SelectedValue);
-                box.SelectedValue = "Hide Frames";
+                // undone takes them out again. The button reads the setting and runs it as it is.
+                Assert.Equal("Display and Plot Frames", frames.Content);
+                Assert.Equal("IMAGEFRAME 1", frames.CommandParameter);
+                Pick(Choice("Hide Frames"));
+                Layout(workspace, 1600);
                 Assert.Equal(DxfFrameSetting.ImageFrameOff, ImageVariables(model).ImageFrame);
                 Assert.Equal("Hide Frames", model.CurrentImageFrame);
+                Assert.Equal("Hide Frames", frames.Content);
+                Assert.Equal("IMAGEFRAME 0", frames.CommandParameter);
                 Assert.True(model.Undo());
                 Assert.False(model.Document.Database.NamedObjectsDictionary.Contains("ACAD_IMAGE_VARS"));
                 Assert.Equal("Display and Plot Frames", model.CurrentImageFrame);
+                Assert.Equal("Display and Plot Frames", frames.Content);
 
                 // An image attached: Hide Frames sets 0, ticked; Display but Not Plot Frames 2.
                 string png = Path.Combine(Path.GetDirectoryName(model.Document.FileName), "logo.png");
@@ -219,24 +253,37 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                 model.RunWithAnswers("-IMAGE", "A", png, "10,20", string.Empty, string.Empty);
                 Assert.False(model.IsCommandRunning);
 
-                box.SelectedValue = "Hide Frames";
+                Pick(Choice("Hide Frames"));
                 Assert.Contains("Enter new value for IMAGEFRAME <1>: 0", model.History);
                 Assert.Equal(0, (int)ImageVariables(model).ImageFrame);
-                Assert.Equal(
-                    new[] { true, false, false },
-                    ((IEnumerable<StyleBoxItemViewModel>)box.ItemsSource).Select(i => i.IsCurrent)
-                );
+                Assert.Equal(new[] { true, false, false }, model.ImageFrameItems.Select(i => i.IsCurrent));
                 Assert.Equal(
                     new[] { "IMAGEFRAME 0", "IMAGEFRAME 1", "IMAGEFRAME 2" },
                     model.ImageFrameItems.Select(i => i.Hint)
                 );
 
-                box.SelectedValue = "Display but Not Plot Frames";
+                Pick(Choice("Display but Not Plot Frames"));
                 Assert.Equal(DxfFrameSetting.ImageFrameOnNoPlot, ImageVariables(model).ImageFrame);
 
-                // Undone, the box reads the drawing again.
+                // Undone, the button reads the drawing again.
                 Assert.True(model.Undo());
-                Assert.Equal("Hide Frames", box.SelectedValue);
+                Layout(workspace, 1600);
+                Assert.Equal("Hide Frames", frames.Content);
+
+                // The snap reads PDFOSNAP the same way: ON in the room, as AutoCAD starts it, OFF once chosen.
+                Button snap = Descendants(strip)
+                    .OfType<Button>()
+                    .Single(b =>
+                        ((b.CommandParameter as string) ?? string.Empty).StartsWith(
+                            "PDFOSNAP",
+                            StringComparison.Ordinal
+                        )
+                    );
+                Assert.Equal("Snap to Underlays ON", snap.Content);
+                Pick(MenuOf(SplitArrowOf(snap)).Single(i => (string)i.Header == "Snap to Underlays OFF"));
+                Layout(workspace, 1600);
+                Assert.False(model.Document.PdfOsnap);
+                Assert.Equal("Snap to Underlays OFF", snap.Content);
             });
         }
 
@@ -392,9 +439,8 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     .Where(b => !(b.TemplatedParent is RibbonPanel))
                     .ToList();
 
-                Assert.Equal(21, buttons.Count);
+                Assert.Equal(28, buttons.Count);
                 Assert.All(buttons, b => Assert.False(b.IsEnabled, b.Content + " is enabled."));
-                Assert.False(Descendants(strip).OfType<ComboBox>().Single().IsEnabled);
             });
         }
 
@@ -404,22 +450,27 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             Steps(
                 model => model.InsertTab,
                 InsertSteps,
-                new[] { "Block", "Block Definition", "Reference", "Linking & Extraction" },
+                new[] { "Block", "Block Definition", "Reference", "Import", "Data", "Linking & Extraction" },
                 new[]
                 {
                     (2300, 0),
                     (1600, 0),
                     (1280, 0),
-                    // D1319: the metrics of the ribbon work (large buttons 72 high, panels with 3 pixels of padding, 98 high) changed
-                    // the widths at which Insert shrinks: 1 134 wide from a window 1 158, no longer 1 167 from 1 191.
-                    (1158, 0),
-                    (1157, 1),
-                    (1002, 1),
-                    (1001, 2),
-                    (888, 2),
-                    (887, 3),
-                    (676, 3),
-                    (675, 4),
+                    // Insert as AutoCAD 2021's six panels, each as wide as its content: 1 046 wide from a window 1 070, then the
+                    // steps of D1332 at 986, 910, 780, 739 and 730.
+                    (1070, 0),
+                    (1069, 1),
+                    (986, 1),
+                    (985, 2),
+                    (910, 2),
+                    (909, 3),
+                    (780, 3),
+                    (779, 4),
+                    (739, 4),
+                    (738, 5),
+                    (730, 5),
+                    (729, 6),
+                    (600, 6),
                 }
             );
         }
@@ -430,21 +481,25 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             Steps(
                 model => model.AnnotateTab,
                 AnnotateSteps,
-                new[] { "Text", "Dimensions", "Leaders" },
+                new[] { "Text", "Dimensions", "Centerlines", "Leaders", "Tables", "Markup", "Annotation Scaling" },
                 new[]
                 {
                     (2300, 0),
-                    (1280, 0),
-                    (1016, 0),
-                    (1015, 1),
-                    (938, 1),
-                    (937, 2),
-                    (858, 2),
-                    (857, 3),
-                    (642, 3),
-                    (641, 4),
-                    (544, 4),
-                    (543, 5),
+                    // Annotate as AutoCAD 2021's seven panels, each as wide as its content: 1 550 wide from a window 1 574, then the
+                    // steps of D1332 at 1 479, 1 294, 1 247, 1 206 and 995.
+                    (1574, 0),
+                    (1573, 1),
+                    (1479, 1),
+                    (1478, 2),
+                    (1294, 2),
+                    (1293, 3),
+                    (1247, 3),
+                    (1246, 4),
+                    (1206, 4),
+                    (1205, 5),
+                    (995, 5),
+                    (994, 6),
+                    (700, 6),
                 }
             );
         }
@@ -492,24 +547,26 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void MediumAnnotateDropsTheStyleCaptions_AndNarrowsTheBoxesTo84()
+        public void MediumAnnotateDropsTheLabelsOfAnnotationScaling_AndLeavesTheBoxesAt180()
         {
             OnWorkspace(1600, true, (model, workspace, shown) =>
             {
                 model.SelectedTab = model.AnnotateTab;
                 Layout(workspace, 1600);
                 RibbonStrip strip = StripOf(workspace, model.AnnotateTab.TabContent);
-                Assert.All(Descendants(strip).OfType<ComboBox>(), c => Assert.Equal(118.0, c.ActualWidth, 6));
+                Assert.Equal(0, strip.StepsTaken);
+                Assert.All(Descendants(strip).OfType<ComboBox>(), c => Assert.Equal(180.0, c.ActualWidth, 6));
+                Button scales = Descendants(strip)
+                    .OfType<Button>()
+                    .Single(b => "SCALELISTEDIT".Equals(b.CommandParameter));
+                Assert.Contains(Descendants(scales).OfType<TextBlock>(), t => t.Text == "Scale List");
 
-                Layout(workspace, 857);
-                Assert.Equal(3, strip.StepsTaken);
-                Assert.All(Descendants(strip).OfType<ComboBox>(), c => Assert.Equal(84.0, c.ActualWidth, 6));
-                Assert.DoesNotContain(Descendants(strip).OfType<TextBlock>(), t =>
-                    (t.Text == "Style" || t.Text == "Height") && t.IsVisible
-                );
-                Button quick = Descendants(strip).OfType<Button>().Single(b => "QDIM".Equals(b.CommandParameter));
-                Assert.Equal("Quick", AutomationProperties.GetName(quick));
-                Assert.DoesNotContain(Descendants(quick).OfType<TextBlock>(), t => t.Text == "Quick");
+                // The first step takes Annotation Scaling to medium: its small buttons keep their names and lose their labels.
+                Layout(workspace, 1500);
+                Assert.Equal(1, strip.StepsTaken);
+                Assert.All(Descendants(strip).OfType<ComboBox>(), c => Assert.Equal(180.0, c.ActualWidth, 6));
+                Assert.Equal("Scale List", AutomationProperties.GetName(scales));
+                Assert.DoesNotContain(Descendants(scales).OfType<TextBlock>(), t => t.Text == "Scale List");
             });
         }
 

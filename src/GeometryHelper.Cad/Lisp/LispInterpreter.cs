@@ -53,6 +53,7 @@ namespace GeometryHelper.Cad.Lisp
         private readonly Dictionary<string, List<string>> _fileCommands = new Dictionary<string, List<string>>(
             StringComparer.OrdinalIgnoreCase
         );
+        private readonly List<string> _failedFiles = new List<string>();
         private List<string> _defining;
         private int _depth;
 
@@ -124,8 +125,10 @@ namespace GeometryHelper.Cad.Lisp
 
         /// <summary>
         /// Gets the commands a file defined with <c>defun c:name</c> while it loaded, without <c>C:</c>, in the order they were
-        /// defined, each once: those bound for the first time and those bound again. A file that defined none, or that was not
-        /// loaded to its end, has an empty list. A command defined by a file this one loaded counts for that file, not for this one.
+        /// defined, each once: those bound for the first time and those bound again. A file that defined none, or that was never
+        /// loaded, has an empty list; one that failed half way lists the commands it defined before the error
+        /// (<see cref="FailedFiles"/>). A file loaded again drops the commands it no longer defines: they are unbound, unless
+        /// another file defines them. A command defined by a file this one loaded counts for that file, not for this one.
         /// </summary>
         /// <param name="path">The file's full path, in either case.</param>
         /// <returns>The names.</returns>
@@ -140,7 +143,7 @@ namespace GeometryHelper.Cad.Lisp
         /// does every other function the file defined, as in AutoCAD, which cannot unload a file.
         /// </summary>
         /// <param name="path">The file's full path, in either case.</param>
-        /// <returns>True when the file was loaded.</returns>
+        /// <returns>True when the file was loaded, or had failed half way after defining a command.</returns>
         internal bool UnloadFile(string path)
         {
             int index =
@@ -148,34 +151,58 @@ namespace GeometryHelper.Cad.Lisp
                     ? -1
                     : _loadedFiles.FindIndex(f => string.Equals(f, path, StringComparison.OrdinalIgnoreCase));
 
-            if (index < 0)
+            string file = null;
+
+            if (index >= 0)
+            {
+                file = _loadedFiles[index];
+                _loadedFiles.RemoveAt(index);
+            }
+            else if (path != null)
+            {
+                file = _failedFiles.Find(f => string.Equals(f, path, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (file == null)
             {
                 return false;
             }
 
-            string file = _loadedFiles[index];
-            _loadedFiles.RemoveAt(index);
+            _failedFiles.Remove(file);
 
             if (_fileCommands.TryGetValue(file, out List<string> names))
             {
                 _fileCommands.Remove(file);
-
-                foreach (string name in names)
-                {
-                    if (_fileCommands.Values.Any(other => other.Contains(name)))
-                    {
-                        continue;
-                    }
-
-                    if (_symbols.TryGetValue("C:" + name, out LispSymbol symbol))
-                    {
-                        symbol.Value = null;
-                        _defined.Remove(symbol);
-                    }
-                }
+                UnbindCommands(names);
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Gets the files whose load failed after they had defined a command with <c>defun c:name</c>, as full paths in the order
+        /// they failed: they are not in <see cref="LoadedFiles"/>, yet the commands they defined before the error stay bound, and
+        /// <see cref="CommandsOf"/> lists them, so that a window can show the file and <see cref="UnloadFile"/> can take them away.
+        /// A file that loads to its end later, or is unloaded, leaves the list.
+        /// </summary>
+        internal IReadOnlyList<string> FailedFiles => _failedFiles.AsReadOnly();
+
+        /// <summary>Unbinds the <c>c:</c> commands named, except those another file's list still holds.</summary>
+        private void UnbindCommands(IEnumerable<string> names)
+        {
+            foreach (string name in names)
+            {
+                if (_fileCommands.Values.Any(other => other.Contains(name)))
+                {
+                    continue;
+                }
+
+                if (_symbols.TryGetValue("C:" + name, out LispSymbol symbol))
+                {
+                    symbol.Value = null;
+                    _defined.Remove(symbol);
+                }
+            }
         }
 
         /// <summary>
@@ -1065,9 +1092,12 @@ namespace GeometryHelper.Cad.Lisp
             var reader = new LispReader(text, Intern, _quote);
             object last = null;
 
-            // The c: commands this file defines are recorded as it loads, so that Unload can take them away again.
+            // The c: commands this file defines are recorded as it loads, so that Unload can take them away again. A file that
+            // fails half way keeps the ones it defined before the error, as they stay bound: it is then in FailedFiles.
             var defined = new List<string>();
             List<string> outer = _defining;
+            string full = Path.GetFullPath(path);
+            bool completed = false;
             _defining = defined;
 
             try
@@ -1076,14 +1106,37 @@ namespace GeometryHelper.Cad.Lisp
                 {
                     last = Eval(form);
                 }
+
+                completed = true;
             }
             finally
             {
                 _defining = outer;
-            }
+                bool wasLoaded = _loadedFiles.Exists(f => string.Equals(f, full, StringComparison.OrdinalIgnoreCase));
+                _fileCommands.TryGetValue(full, out List<string> before);
 
-            string full = Path.GetFullPath(path);
-            _fileCommands[full] = defined;
+                if (completed || wasLoaded || defined.Count > 0)
+                {
+                    _fileCommands[full] = defined;
+                }
+                else
+                {
+                    _fileCommands.Remove(full);
+                }
+
+                // What the file defined last time and does not define now is no command of it any more.
+                if (before != null)
+                {
+                    UnbindCommands(before.Where(name => !defined.Contains(name)).ToList());
+                }
+
+                _failedFiles.RemoveAll(f => string.Equals(f, full, StringComparison.OrdinalIgnoreCase));
+
+                if (!completed && !wasLoaded && defined.Count > 0)
+                {
+                    _failedFiles.Add(full);
+                }
+            }
 
             if (!_loadedFiles.Exists(f => string.Equals(f, full, StringComparison.OrdinalIgnoreCase)))
             {

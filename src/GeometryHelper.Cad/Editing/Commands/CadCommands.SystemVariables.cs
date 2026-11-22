@@ -46,6 +46,16 @@ namespace GeometryHelper.Cad
                 )
             );
             registry.AddVariable(
+                CadSystemVariable
+                    .Text(
+                        "CETRANSPARENCY",
+                        true,
+                        s => CadProperties.TransparencyText(s.Document.Database.Cetransparency),
+                        CurrentTransparencyTyped
+                    )
+                    .Asking(CurrentTransparency)
+            );
+            registry.AddVariable(
                 CadSystemVariable.Number(
                     "CELTSCALE",
                     true,
@@ -841,6 +851,67 @@ namespace GeometryHelper.Cad
             }
 
             SetCurrentLinetype(c, name);
+            return null;
+        }
+
+        /// <summary>
+        /// CETRANSPARENCY typed: asked "Enter new value for CETRANSPARENCY &lt;"ByLayer"&gt;:", ByLayer, ByBlock or a whole number 0
+        /// to 90 taken, anything else refused in words and asked again.
+        /// </summary>
+        private static IEnumerable<CadPrompt> CurrentTransparency(CadCommandContext c)
+        {
+            while (true)
+            {
+                yield return CadPrompt.ForString(
+                    "Enter new value for CETRANSPARENCY",
+                    "\"" + CadProperties.TransparencyText(c.Database.Cetransparency) + "\""
+                );
+
+                if (c.Input.Kind != CadInputKind.Text)
+                {
+                    yield break;
+                }
+
+                string error = CurrentTransparencyTyped(c, c.Input.Text.Trim().Trim('"'));
+
+                if (error == null)
+                {
+                    yield break;
+                }
+
+                c.Write(error);
+            }
+        }
+
+        /// <summary>CETRANSPARENCY set by SETVAR or typed: ByLayer, ByBlock or the per cent 0 to 90, one undo step.</summary>
+        private static string CurrentTransparencyTyped(CadCommandContext c, string typed)
+        {
+            string error = CadPropertyEditor.ParseTransparency(typed, out DxfTransparency transparency);
+
+            if (error != null)
+            {
+                return error;
+            }
+
+            string old = CadProperties.TransparencyText(c.Database.Cetransparency);
+
+            if (c.Database.Cetransparency != transparency)
+            {
+                c.Apply(
+                    new[]
+                    {
+                        new CadEditRecord(
+                            CadEditRecordKind.SettingChanged,
+                            null,
+                            "CETRANSPARENCY",
+                            old,
+                            CadProperties.TransparencyText(transparency)
+                        ),
+                    },
+                    s => s.Database.Cetransparency = transparency
+                );
+            }
+
             return null;
         }
 

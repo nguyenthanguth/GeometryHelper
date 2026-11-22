@@ -185,6 +185,10 @@ namespace GeometryHelper.Cad.Wpf
         internal IReadOnlyList<string> LoadedLispFiles =>
             _current?.Session.LoadedLispFiles ?? (IReadOnlyList<string>)Array.Empty<string>();
 
+        /// <summary>Gets the AutoLISP files of the document shown whose load failed after they defined a command, as full paths; their commands stay bound and a row lists them; empty with no document.</summary>
+        internal IReadOnlyList<string> FailedLispFiles =>
+            _current?.Session.FailedLispFiles ?? (IReadOnlyList<string>)Array.Empty<string>();
+
         /// <summary>Gets the commands a loaded AutoLISP file defined in the document shown, without <c>c:</c>, in the order it defined them; empty with no document.</summary>
         internal IReadOnlyList<string> LispCommandsOf(string path) =>
             _current?.Session.LispCommandsOf(path) ?? (IReadOnlyList<string>)Array.Empty<string>();

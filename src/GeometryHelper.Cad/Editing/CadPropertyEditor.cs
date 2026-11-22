@@ -24,7 +24,8 @@ namespace GeometryHelper.Cad
     /// of the drawing as a user arrow; and the rows AutoCAD 2021 sets of a polyline, an ellipse, a hatch, a dimension (as
     /// overrides of its variables, the dimension drawn again), an MTEXT, a block reference and its attributes, a viewport and a
     /// multileader. Current vertex of a polyline is no edit: it sets <see cref="CadSelection.CurrentVertex"/>. With
-    /// no entity selected, the first five set the drawing's current settings, which new entities take.
+    /// no entity selected, the first five set the drawing's current settings, which new entities take, and so does
+    /// Transparency (ByLayer, ByBlock or the per cent 0 to 90, as CETRANSPARENCY takes it).
     /// </remarks>
     public static partial class CadPropertyEditor
     {
@@ -670,6 +671,10 @@ namespace GeometryHelper.Cad
                     error = ParseLineWeight(text, out DxfLineWeight weight);
                     write = d => d.Celweight = weight;
                     break;
+                case "Transparency":
+                    error = ParseTransparency(text, out DxfTransparency transparency);
+                    write = d => d.Cetransparency = transparency;
+                    break;
                 default:
                     return CadEditResult.Refuse("The property " + label + " of the drawing cannot be set here.");
             }
@@ -903,6 +908,38 @@ namespace GeometryHelper.Cad
             return color.ColorIndex >= 1 && color.ColorIndex <= 7
                 ? ColorNames[color.ColorIndex]
                 : color.ColorIndex.ToString(CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// A transparency as the palette writes it: ByLayer, ByBlock, or the per cent a whole number from 0, solid, to 90, which
+        /// is the alpha 255 for 0 and 178 for 30 (255 times the part left, kept whole), as AutoCAD keeps it.
+        /// </summary>
+        internal static string ParseTransparency(string text, out DxfTransparency transparency)
+        {
+            transparency = DxfTransparency.ByLayer;
+
+            if (string.Equals(text, "ByLayer", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            if (string.Equals(text, "ByBlock", StringComparison.OrdinalIgnoreCase))
+            {
+                transparency = DxfTransparency.ByBlock;
+                return null;
+            }
+
+            if (
+                int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int percent)
+                && percent >= 0
+                && percent <= 90
+            )
+            {
+                transparency = new DxfTransparency((byte)Math.Floor(255.0 * (100 - percent) / 100.0));
+                return null;
+            }
+
+            return "Requires ByLayer, ByBlock or an integer between 0 and 90.";
         }
 
         /// <summary>A lineweight as the palette writes it: ByLayer, ByBlock, Default, or one of AutoCAD's widths as 0.25 mm.</summary>

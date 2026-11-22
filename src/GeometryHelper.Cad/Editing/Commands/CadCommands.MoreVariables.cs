@@ -12,7 +12,8 @@ namespace GeometryHelper.Cad
     /// ANGDIR and INSUNITS, are the header's own and what UNITS sets; PLINEWID is the width PLINE starts at and PLINEGEN is
     /// given to the polylines PLINE, RECTANG and POLYGON make; FILLMODE 0 draws solids, wide polylines and solid or gradient
     /// hatches by their outlines; HPNAME, HPSCALE, HPANG, HPLAYER, HPASSOC, HPDOUBLE, HPGAPTOL, HPISLANDDETECTION and HPORIGINMODE are the
-    /// settings of the next hatch (<see cref="CadDocument.HatchSettings"/>); DIMLAYER is the layer new dimensions go on;
+    /// settings of the next hatch (<see cref="CadDocument.HatchSettings"/>); DIMLAYER is the layer new dimensions go on and
+    /// TEXTLAYER the layer new text (TEXT and MTEXT) goes on;
     /// CIRCLERAD, POLYSIDES and TRIMEXTENDMODE are what CIRCLE, POLYGON, TRIM and EXTEND start with. Those the presenter has no
     /// behaviour for, CMDECHO, EXPERT, HIGHLIGHT, PICKAUTO, PICKDRAG, OSNAPZ, ARRAYASSOCIATIVITY, ELEVATION, THICKNESS, MEASUREMENT,
     /// UNITMODE, LIMCHECK, SPLFRAME, SPLINETYPE, SPLINESEGS, QTEXTMODE, ATTMODE and USERI1 to USERI5 and USERR1 to USERR5, keep
@@ -287,6 +288,20 @@ namespace GeometryHelper.Cad
                     (c, typed) =>
                     {
                         c.Session.DimLayer = typed.Length == 0 ? null : typed;
+                        return null;
+                    }
+                )
+            );
+
+            // The layer new text goes on, as DIMLAYER is for dimensions; "." for the current layer. TEXT and MTEXT take it.
+            registry.AddVariable(
+                CadSystemVariable.Optional(
+                    "TEXTLAYER",
+                    "use current",
+                    s => s.TextLayer ?? "use current",
+                    (c, typed) =>
+                    {
+                        c.Session.TextLayer = typed.Length == 0 ? null : typed;
                         return null;
                     }
                 )

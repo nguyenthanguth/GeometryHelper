@@ -282,28 +282,53 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                 List<ButtonBase> annotate = ButtonsOf(workspace, model.AnnotateTab.TabContent)
                     .Where(b => b.CommandParameter is string)
                     .ToList();
+                // The seven panels of AutoCAD 2021's Annotate, in the order they are drawn; a command with an option is given it
+                // through StartCommandWithOption ("-DIMSTYLE A", "MLEADEREDIT R", "DATALINKUPDATE U").
                 Assert.Equal(
                     new[]
                     {
                         "MTEXT",
-                        "TEXT",
                         "SPELL",
                         "TEXTALIGN",
+                        "JUSTIFYTEXT",
+                        "DIM",
+                        "DIMBREAK",
+                        "DIMSPACE",
+                        "DIMJOGLINE",
+                        "DIMINSPECT",
+                        "-DIMSTYLE A",
+                        "DIMREASSOCIATE",
                         "DIMLINEAR",
                         "QDIM",
                         "DIMCONTINUE",
-                        "DIMSPACE",
-                        "DIMBREAK",
+                        "CENTERMARK",
+                        "CENTERLINE",
                         "MLEADER",
                         "MLEADERALIGN",
+                        "MLEADEREDIT",
                         "MLEADERCOLLECT",
+                        "MLEADEREDIT R",
+                        "TABLE",
+                        "DATALINKUPDATE U",
+                        "DATAEXTRACTION",
+                        "DATALINKUPDATE W",
+                        "DATALINK",
+                        "WIPEOUT",
+                        "REVCLOUD Rectangular",
+                        "AIOBJECTSCALEADD",
+                        "SCALELISTEDIT",
+                        "OBJECTSCALE",
                     },
                     annotate.Select(b => b.CommandParameter as string)
                 );
 
+                // Annotate's new buttons ask for dialogs of their own (Table, Scale List, Data Link, Data Extraction, Inspect,
+                // Tolerance): every hook of the window is let go, as the tests of the tab do, so that pressing shows none.
+                RibbonTabHarness.LetGoOfTheWindow(model);
+
                 foreach (ButtonBase button in annotate)
                 {
-                    Press(model, button, (string)button.CommandParameter);
+                    Press(model, button, ((string)button.CommandParameter).Split(' ')[0]);
                 }
 
                 // View: Navigate runs its line, Views switches the space, Interface and Drafting toggle the state they show.

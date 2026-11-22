@@ -15,7 +15,10 @@ cent of AutoCAD's dialog, written 33 554 559 (0x0200007F); a file older than R20
 `Hyperlinks` are those of its extended data of PE_URL, written as AutoCAD writes them:
 `line.Hyperlinks.Add(new DxfHyperLink { Name = "https://example.com/B-12.pdf", Description = "Plate B-12" })`.
 `SetPropertiesFrom` takes the look of another entity, checked whole before anything is written, and `SetDatabaseDefaults`
-that of a drawing's current variables. `line.HandOverTo(circle, true, true)` puts an entity made in code in the line's place,
+that of a drawing's current variables: the layer, colour and linetype, in a drawing of R2000 or later the linetype scale
+and lineweight, and in one of R2004 or later the transparency, so that with `database.Cetransparency` set to the alpha
+178 (30 per cent) a line given the defaults is 30 per cent transparent, as AutoCAD's `setDatabaseDefaults` makes it; an
+R2000 drawing has no transparency to give and leaves the entity as it was. `line.HandOverTo(circle, true, true)` puts an entity made in code in the line's place,
 as AutoCAD's `HandOverTo` hands the id over: the circle is written where the line stood in its block, under its handle, owner
 and reactors, so that a group that held the line holds the circle, with the line's extended data and extension dictionary
 where the flags keep them, else its own and none; the line's extended data kept where it has none leaves the circle its own,

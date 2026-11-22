@@ -250,19 +250,27 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     .OfType<Button>()
                     .Single(b => "DIMLINEAR".Equals(b.CommandParameter));
                 Button linearArrow = SplitArrowOf(linear);
-                Assert.Equal("Linear ▾", Label(linearArrow));
                 List<MenuItem> types = MenuOf(linearArrow);
                 Assert.Equal(
-                    new[] { "DIMLINEAR", "DIMALIGNED", "DIMANGULAR", "DIMRADIUS", "DIMDIAMETER" },
+                    new[]
+                    {
+                        "DIMLINEAR",
+                        "DIMALIGNED",
+                        "DIMANGULAR",
+                        "DIMARC",
+                        "DIMRADIUS",
+                        "DIMDIAMETER",
+                        "DIMORDINATE",
+                        "DIMJOGGED",
+                    },
                     types.Select(i => (string)i.CommandParameter)
                 );
 
-                Pick(types[3]);
+                Pick(types[4]);
                 model.Escape();
                 Layout(workspace, 1600);
 
                 Assert.Equal("Radius", linear.Content);
-                Assert.Equal("Radius ▾", Label(linearArrow));
                 Press(model, linear.IsEnabled, () => linear.Command.Execute(linear.CommandParameter), "DIMRADIUS");
 
                 Button continueButton = Descendants(dimensions)
@@ -317,10 +325,19 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     .Where(b => b.CommandParameter is string)
                     .ToList();
                 Assert.Equal(
-                    new[] { "DIMEDIT O", "DIMEDIT R", "DIMOVERRIDE" },
+                    new[]
+                    {
+                        "TOLERANCE",
+                        "DIMEDIT O",
+                        "DIMEDIT R",
+                        "DIMTEDIT \\ L",
+                        "DIMTEDIT \\ C",
+                        "DIMTEDIT \\ R",
+                        "DIMOVERRIDE",
+                    },
                     all.Select(b => (string)b.CommandParameter)
                 );
-                List<Button> items = all.Take(2).ToList();
+                List<Button> items = all.Skip(1).Take(2).ToList();
 
                 foreach (Button item in items)
                 {
@@ -373,7 +390,8 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     RibbonPanel panel = strip.Children.OfType<RibbonPanel>().Single(p => p.Title == panelItems.Key);
                     // At 1 600 every one of these panels is full (Draw never shrinks).
                     Assert.Equal(RibbonPanelSize.Full, panel.Size);
-                    Assert.Null(panelItems.Key == "Draw" ? null : panel.SlideOut);
+                    // Draw and Text carry a title that opens a slide-out (Text ▾ since Annotate was laid out as AutoCAD 2021's); Leaders and Model Viewports do not.
+                    Assert.Null(panelItems.Key == "Draw" || panelItems.Key == "Text" ? null : panel.SlideOut);
 
                     foreach (string command in panelItems.Value)
                     {

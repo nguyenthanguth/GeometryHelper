@@ -72,6 +72,24 @@ namespace GeometryHelper.Cad
 
         private static readonly string[] MTextJustifications = { "TL", "TC", "TR", "ML", "MC", "MR", "BL", "BC", "BR" };
 
+        /// <summary>
+        /// Gives new text the look of the drawing, as <see cref="Current"/> does, and the layer TEXTLAYER names where the drawing
+        /// has that layer: a text made with TEXTLAYER at COLUMNS is on COLUMNS whatever layer is current.
+        /// </summary>
+        private static T CurrentText<T>(CadCommandContext c, T text)
+            where T : DxfEntity
+        {
+            Current(c, text);
+            string layer = c.Session.TextLayer;
+
+            if (!string.IsNullOrEmpty(layer) && c.Database.LayerTable.Has(layer))
+            {
+                text.Layer = c.Database.LayerTable[layer].Name;
+            }
+
+            return text;
+        }
+
         private static IEnumerable<CadPrompt> Text(CadCommandContext c)
         {
             int justify = 0;
@@ -324,7 +342,7 @@ namespace GeometryHelper.Cad
                         );
                     }
 
-                    return Current(c, text);
+                    return CurrentText(c, text);
                 }
             }
 
@@ -907,7 +925,7 @@ namespace GeometryHelper.Cad
                 }
 
                 ApplyBox(text, edit);
-                s.Append(c.Space, Current(c, text));
+                s.Append(c.Space, CurrentText(c, text));
 
                 // The words the editor gave hold fields where it inserted one: evaluated and written with their FIELD objects.
                 if (words.Contains("%<\\"))

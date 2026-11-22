@@ -3834,14 +3834,14 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 
 | Kept in | Variables | A change |
 |---|---|---|
-| the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, CMLEADERSTYLE, CTABLESTYLE, MLEADERSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, WIPEOUTFRAME, XCLIPFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
+| the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CETRANSPARENCY, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, CMLEADERSTYLE, CTABLESTYLE, MLEADERSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, WIPEOUTFRAME, XCLIPFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
 | the document or the session | NOMUTT (0 or 1; AutoCAD's 1 mutes the prompts of a routine's `command`, which the presenter does not: the value is kept, and TE's `(setvar 'nomutt 1)` runs), PICKSTYLE, SELECTIONCYCLING, SELECTSIMILARMODE, COPYMODE, SHOWPAGESETUPFORNEWLAYOUTS, PICKFIRST, PICKADD, ATTREQ, ATTDIA, BINDTYPE, FILEDIA, CMDDIA, PDFSHX, PEDITACCEPT, PLINETYPE, DIMCONTINUEMODE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST, OLEFRAME, OLEHIDE, OLEQUALITY | at once, no undo step |
 | the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, POLARDIST, SNAPTYPE, GRIDSTYLE, SNAPGRIDLEGACY, AUTOSNAP, DYNMODE, PICKBOX, GRIPSIZE, GRIPMULTIFUNCTIONAL, APERTURE, ZOOMWHEEL, TABLEINDICATOR, GRIPDYNCOLOR | at once, no undo step; kept in the settings file |
 | the window's toggles and snap of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, SNAPUNIT, GRIDUNIT, GRIDDISPLAY, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR | written into the drawing, as AutoCAD saves them there, and one undo step that keeps no copy of the drawing (see below) |
 | the window's lineweight toggle | LWDISPLAY | at once, no undo step; written into the drawing |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE, TDCREATE, TDUCREATE, TDUPDATE, TDUUPDATE, TDINDWG, TDUSRTIMER | |
 | the header of the drawing, too | LUNITS, LUPREC, AUNITS, AUPREC, ANGBASE, ANGDIR, INSUNITS, MEASUREMENT, UNITMODE, PLINEWID, PLINEGEN, FILLMODE, ELEVATION, THICKNESS, LIMCHECK, SPLFRAME, QTEXTMODE, ATTMODE, SPLINETYPE, SPLINESEGS, USERI1 to USERI5, USERR1 to USERR5, SKETCHINC | one undo step |
-| the document or the session, too | HPNAME, HPSCALE, HPANG, HPLAYER, HPASSOC, HPDOUBLE, HPGAPTOL, HPISLANDDETECTION, HPORIGINMODE, HPDLGMODE, HPBOUNDRETAIN (the hatch settings), DIMLAYER, CIRCLERAD, POLYSIDES, TRIMEXTENDMODE, CMDECHO, EXPERT, HIGHLIGHT, PICKAUTO, PICKDRAG, OSNAPZ, ARRAYASSOCIATIVITY, LASTPOINT, SKPOLY, SKTOLERANCE, USRTIMER | at once, no undo step |
+| the document or the session, too | HPNAME, HPSCALE, HPANG, HPLAYER, HPASSOC, HPDOUBLE, HPGAPTOL, HPISLANDDETECTION, HPORIGINMODE, HPDLGMODE, HPBOUNDRETAIN (the hatch settings), DIMLAYER, TEXTLAYER, CIRCLERAD, POLYSIDES, TRIMEXTENDMODE, CMDECHO, EXPERT, HIGHLIGHT, PICKAUTO, PICKDRAG, OSNAPZ, ARRAYASSOCIATIVITY, LASTPOINT, SKPOLY, SKTOLERANCE, USRTIMER | at once, no undo step |
 | the window's Global settings, too | SAVETIME, ZOOMFACTOR | at once, no undo step; kept in the settings file |
 | read only, too | DISTANCE, AREA, PERIMETER | |
 
@@ -3855,7 +3855,7 @@ outline, every space drawn again; 1 fills them. HPNAME takes SOLID, a gradient (
 of the presenter's set, `xyz` being `Cannot set HPNAME to that value.`; HPSCALE above nought, HPANG, HPLAYER (`.` for the
 current layer, any name taken, and a layer the drawing has not leaves the hatch on the current one), HPASSOC, HPDOUBLE,
 HPGAPTOL 0 to 5000, HPISLANDDETECTION 0 to 2 (the island style, 1 Outer at the start) and HPORIGINMODE 0 to 5 are the settings the next HATCH makes its hatch with, which the hatch dialog and
--HATCH hold too. DIMLAYER is the layer new dimensions go on (`.` for the current layer), the same DIM's LAyer sets.
+-HATCH hold too. DIMLAYER is the layer new dimensions go on (`.` for the current layer), the same DIM's LAyer sets. TEXTLAYER is the layer new text goes on (`.` for the current layer): TEXT and MTEXT put the text on it where the drawing has that layer, whatever layer is current, and the Text Layer box of Annotate sets it. CETRANSPARENCY, the transparency of new objects, takes ByLayer, ByBlock or a whole number from 0, solid, to 90 per cent, one undo step, and says `Requires ByLayer, ByBlock or an integer between 0 and 90.` and asks again for anything else; in a drawing of R2004 or later each new object carries it.
 CIRCLERAD is the radius CIRCLE offers (`Specify radius of circle or [Diameter] <12.5000>:`), POLYSIDES the number of sides
 POLYGON offers, 3 to 1024, and TRIMEXTENDMODE 1 Quick or 0 Standard the mode TRIM and EXTEND start in. SAVETIME is the
 autosave interval in minutes, 0 to 600, Global settings keeping 240 at most, and ZOOMFACTOR, 3 to 100, the step of a notch of

@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO.Packaging;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows;
 using System.Windows.Automation;
@@ -10,6 +12,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Threading;
+using GeometryHelper.Dxf;
 using Xunit;
 
 namespace GeometryHelper.Cad.Wpf.UnitTest
@@ -1428,6 +1431,191 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                 }
             });
         }
+
+        #endregion
+
+        #region Wave 3: Lineweight, Transparency and the Text icon
+
+        // D1329: the list the LWEIGHT dialog gives, in millimetres, after ByLayer, ByBlock and Default (27 items in all).
+        private static readonly double[] LineweightValues =
+        {
+            0.00,
+            0.05,
+            0.09,
+            0.13,
+            0.15,
+            0.18,
+            0.20,
+            0.25,
+            0.30,
+            0.35,
+            0.40,
+            0.50,
+            0.53,
+            0.60,
+            0.70,
+            0.80,
+            0.90,
+            1.00,
+            1.06,
+            1.20,
+            1.40,
+            1.58,
+            2.00,
+            2.11,
+        };
+
+        [Fact]
+        public void TheLineweightComboListsByLayerByBlockDefaultAndTheWeights_AndPickingOneSetsCelweightInOneUndoStep()
+        {
+            OnHome(Full, (model, workspace, strip) =>
+            {
+                RibbonPanel properties = Panel(strip, "Properties");
+                ComboBox weights = Assert.Single(Descendants(properties.Body).OfType<ComboBox>(), c =>
+                    Words(c).Contains("ineweight")
+                );
+                DxfDatabase db = model.Document.Database;
+
+                // ByLayer, ByBlock, Default, then 0.00 to 2.11 as numbers of millimetres (the label may add " mm").
+                List<string> items = weights.Items.Cast<object>().Select(ItemText).ToList();
+                Assert.Equal(3 + LineweightValues.Length, items.Count);
+                Assert.Equal(new[] { "ByLayer", "ByBlock", "Default" }, items.Take(3));
+                Assert.Equal(LineweightValues, items.Skip(3).Select(LeadingNumber));
+                Assert.True(weights.IsEnabled);
+                Assert.Equal("ByLayer", ItemText(weights.SelectedItem));
+                Assert.Equal(DxfLineWeight.ByLayer, model.Document.Database.Celweight);
+
+                // A pick sets CELWEIGHT; one undo step takes it back, and a second finds nothing to undo.
+                weights.SelectedItem = weights.Items.Cast<object>().Single(i => ItemText(i).StartsWith("0.25"));
+                Pump(weights);
+
+                Assert.Equal(DxfLineWeight.LineWeight025, model.Document.Database.Celweight);
+                Assert.True(model.Undo());
+                Assert.Equal(DxfLineWeight.ByLayer, model.Document.Database.Celweight);
+                Assert.False(model.Undo());
+
+                weights.SelectedItem = weights.Items.Cast<object>().Single(i => ItemText(i) == "ByBlock");
+                Pump(weights);
+                Assert.Equal(DxfLineWeight.ByBlock, model.Document.Database.Celweight);
+                weights.SelectedItem = weights.Items.Cast<object>().Single(i => ItemText(i) == "Default");
+                Pump(weights);
+                Assert.Equal(DxfLineWeight.ByLineWeightDefault, model.Document.Database.Celweight);
+
+                // It shows what CELWEIGHT typed at the command line made it.
+                model.Execute("CELWEIGHT");
+                model.Execute("50");
+                Pump(weights);
+                Assert.Equal(DxfLineWeight.LineWeight050, model.Document.Database.Celweight);
+                Assert.Equal(0.5, LeadingNumber(ItemText(weights.SelectedItem)), 6);
+            });
+        }
+
+        // D1330: CETRANSPARENCY in the room's drawing (R2013, which has transparency); a percent is (255 - alpha) / 255 of the alpha.
+        [Fact]
+        public void TheTransparencyComboOfPropertiesSetsCetransparency_AndALineDrawnAfterTakesIt()
+        {
+            OnHome(Full, (model, workspace, strip) =>
+            {
+                RibbonPanel properties = Panel(strip, "Properties");
+                OpenSlideOut(properties);
+                ComboBox transparency = Assert.Single(Descendants(properties.SlideOut).OfType<ComboBox>(), c =>
+                    Words(c).Contains("ransparency")
+                );
+                DxfDatabase db = model.Document.Database;
+
+                // ByLayer, ByBlock, then 0, 10 ... 90 (the label may add a %).
+                List<string> items = transparency.Items.Cast<object>().Select(ItemText).ToList();
+                Assert.Equal(new[] { "ByLayer", "ByBlock" }, items.Take(2));
+                Assert.Equal(
+                    new[] { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90 },
+                    items.Skip(2).Select(i => (int)LeadingNumber(i))
+                );
+                Assert.True(transparency.IsEnabled);
+                Assert.Equal("ByLayer", ItemText(transparency.SelectedItem));
+
+                // 30 per cent: the next line carries it.
+                transparency.SelectedItem = transparency
+                    .Items.Cast<object>()
+                    .Single(i => ItemText(i).TrimEnd('%', ' ') == "30");
+                Pump(transparency);
+
+                Assert.True(db.Cetransparency.IsByAlpha);
+                Assert.Equal(30, Percent(db.Cetransparency));
+                DxfLine line = DrawLine(model);
+                Assert.True(line.Transparency.IsByAlpha);
+                Assert.Equal(30, Percent(line.Transparency));
+
+                transparency.SelectedItem = transparency.Items.Cast<object>().Single(i => ItemText(i) == "ByBlock");
+                Pump(transparency);
+                Assert.True(db.Cetransparency.IsByBlock);
+                Assert.True(DrawLine(model).Transparency.IsByBlock);
+
+                transparency.SelectedItem = transparency.Items.Cast<object>().Single(i => ItemText(i) == "ByLayer");
+                Pump(transparency);
+                Assert.True(db.Cetransparency.IsByLayer);
+                Assert.True(DrawLine(model).Transparency.IsByLayer);
+
+                // It shows what CETRANSPARENCY typed at the command line made it.
+                model.Execute("CETRANSPARENCY");
+                model.Execute("60");
+                Pump(transparency);
+                Assert.Equal(60, (int)LeadingNumber(ItemText(transparency.SelectedItem)));
+            });
+        }
+
+        [Fact]
+        public void TheLargeTextButtonOfAnnotationDrawsTheTextIcon()
+        {
+            OnHome(Full, (model, workspace, strip) =>
+            {
+                var text = (ButtonBase)BodyControls(Panel(strip, "Annotation"))[0];
+                IconView icon = Descendants(text).OfType<IconView>().First();
+                var letter = (System.Windows.Media.Geometry)workspace.FindResource("GhIconText");
+                var page = (System.Windows.Media.Geometry)workspace.FindResource("GhIconMText");
+
+                // GhIconText is the T of the design; GhIconMText is the page the button drew until now.
+                Assert.NotEqual(letter.Bounds, page.Bounds);
+                Assert.Equal(letter.Bounds, icon.Data.Bounds);
+            });
+        }
+
+        private static DxfLine DrawLine(MainViewModel model)
+        {
+            model.Execute("LINE 0,0 100,0");
+            model.Enter();
+            Assert.False(model.IsCommandRunning);
+            return model.Document.Database.ModelSpace.OfType<DxfLine>().Last();
+        }
+
+        private static int Percent(DxfTransparency transparency) =>
+            (int)Math.Round((255 - transparency.Alpha) * 100.0 / 255.0);
+
+        /// <summary>What a combo's item says: the content of a ComboBoxItem or the text of a string, else its Name, Label or Text, else its ToString().</summary>
+        private static string ItemText(object item)
+        {
+            if (item is ContentControl content && content.Content is string shown)
+            {
+                return shown.Trim();
+            }
+
+            if (item is string text)
+            {
+                return text.Trim();
+            }
+
+            foreach (string property in new[] { "Name", "Label", "Text", "Header" })
+            {
+                if (item.GetType().GetProperty(property)?.GetValue(item) is string value && value.Trim().Length > 0)
+                {
+                    return value.Trim();
+                }
+            }
+
+            return item.ToString().Trim();
+        }
+
+        private static double LeadingNumber(string text) =>
+            double.Parse(Regex.Match(text, @"^\s*\d+(\.\d+)?").Value, CultureInfo.InvariantCulture);
 
         #endregion
 
