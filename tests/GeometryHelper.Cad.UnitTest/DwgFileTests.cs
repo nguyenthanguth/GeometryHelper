@@ -203,6 +203,22 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
+        public void ADwgTypedAtInsertInQuotes_IsBroughtInAsABlockOfItsName_AsADropOfTheFileTypesIt()
+        {
+            string grid = GridDwg("column");
+            CadDocument document = Host();
+            CadCommandSession session = Session(document);
+
+            Run(session, "-INSERT", "\"" + grid + "\"", new GeoPoint2(500, 500), Enter, Enter, Enter);
+
+            Assert.False(session.IsRunning);
+            Assert.Single(document.Database.BlockTable["column"].OfType<DxfLine>());
+            DxfBlockReference insert = Assert.Single(All<DxfBlockReference>(document.ModelSpace));
+            Assert.Equal("column", insert.Name);
+            Near(new GeoPoint3(500, 500, 0), insert.Position);
+        }
+
+        [Fact]
         public void TheTypedWblock_WritesADwgOfAutoCad2018_WhereTheFileIsNamedDotDwg()
         {
             CadDocument document = Host();

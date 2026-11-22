@@ -6,6 +6,13 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** A `.dwg` or `.dxf` dropped on the drawing area is now inserted as a block, as AutoCAD 2021 does (measured: it runs
+`_-INSERT Enter block name or [?]: "<path>"`, writes the Units line and waits for the insertion point, then the scale and the
+rotation), where every drop of a drawing used to open it. Dropped on the DRAWINGS list or the title bar it still opens, and
+several dropped there all open. With several dropped on the drawing area the first is inserted and the rest are passed over; with
+no drawing open the drawing opens, as AutoCAD opens it then; and while a command or a routine waits the drop is ignored, as it
+always was for the other files. The other file kinds go as before on either target.
+
 **NEW.** A sample drawing template, `GeometryHelper-mm.dwt`, ships in the `DrawingTemplates` folder, so that New from template ·
 Ctrl+Shift+N has something to offer on a fresh install. It is metric and in millimetres (MEASUREMENT 1, INSUNITS 4, distances to
 two decimal places, limits of 42 000 by 29 700, LTSCALE 1) and holds the layers Axis (red, CENTER, 0.18), Outline (0.50), Thin,

@@ -245,8 +245,8 @@ using (CadProgressMeter meter = context.Progress.Start("Checking blocks"))   // 
 The presenter opens a DWG of AutoCAD 2000 to 2018 as it opens a DXF, read by the library's own
 [DWG reader](../dxf/dwg.md), and saves one as a DWG of AutoCAD 2018, the version AutoCAD 2021 saves in.
 
-- Ctrl+O shows Select File, its types Drawing (*.dwg) first, then DXF (*.dxf), as AutoCAD 2021's; a DWG or DXF dropped on
-  the window opens (a `.lsp`, `.fas` or `.vlx` loads as a typed `(LOAD "...")`, a `.scr` runs
+- Ctrl+O shows Select File, its types Drawing (*.dwg) first, then DXF (*.dxf), as AutoCAD 2021's; a DWG or DXF dropped on the DRAWINGS list opens (dropped on the drawing area it is inserted as a block, as AutoCAD 2021 inserts it: `-INSERT` of the file, then the insertion point; with no drawing open it opens);
+  and other files go as on the window (a `.lsp`, `.fas` or `.vlx` loads as a typed `(LOAD "...")`, a `.scr` runs
   as SCRIPT, a `.arx`, `.dbx` or `.dvb` is refused, and any other file gets the Drag and Drop box, as
   [AutoLISP](lisp.md#dropping-a-file-on-the-window) says); the file list lists the DWG and DXF files of the folder. A file is read as a DWG where its first bytes
   say so ("AC1032" of AutoCAD 2018), whatever its name; a DWG of a version not read, R14 among them, is said on the command

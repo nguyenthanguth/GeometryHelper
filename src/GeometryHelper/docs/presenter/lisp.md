@@ -280,10 +280,17 @@ shows in Loaded Applications as every loaded file does. A `.scr` runs `_SCRIPT` 
 in quotes, `Enter script file name <...>: "D:\x\draw.scr"`, with no question, as SCRIPT typed. A `.arx`, `.dbx` or `.dvb`
 writes APPLOAD's refusal line, `tools.arx cannot be loaded: .arx, .dbx, .dvb, .fas and .vlx files are not supported.`; any
 other file (`.dcl`, `.dll`, `.txt`) gets a box titled Drag and Drop that reads `No association..D:\x\notes.txt`, with OK, and
-nothing on the command line, a `.dll` or a `.ghplugin` among them (a plugin goes in the Plugins folder). A drawing still opens. While a command or a routine waits
-for an answer, the files that load, run or show the box are ignored with no word, as AutoCAD ignores them: nothing is
-loaded, the command is not cancelled and nothing is queued; with no drawing open they are passed over too. The `.py` files
-of the Python console's transcript are still its own.
+nothing on the command line, a `.dll` or a `.ghplugin` among them (a plugin goes in the Plugins folder). A `.dwg` or `.dxf`
+goes by where it lands, as in AutoCAD. Dropped on the drawing area (the canvas, or anywhere in the window but the DRAWINGS
+list and the title bar) it is inserted as a block: the history reads `Command: _-INSERT Enter block name or [?]:
+"D:\x\plan.dwg"` and `Units: Millimeters   Conversion:    1.0000`, then the prompt asks for the insertion point, and the
+scale and the rotation after it, as a typed `-INSERT` of a file does; Esc cancels. AutoCAD inserts one drawing at a time, so
+of several dropped together the first is inserted and the rest are passed over without a word. With no drawing open there is
+nothing to insert into, and the drawing opens, as AutoCAD opens it then. Dropped on the DRAWINGS list or the title bar a
+drawing opens, and several dropped together all open. While a command or a routine waits for an answer, the files that
+load, run or show the box, and a drawing dropped on the drawing area, are ignored with no word, as AutoCAD ignores them:
+nothing is loaded or inserted, the command is not cancelled and nothing is queued; with no drawing open the files that load,
+run or show the box are passed over too. The `.py` files of the Python console's transcript are still its own.
 
 ### When a drawing opens
 
