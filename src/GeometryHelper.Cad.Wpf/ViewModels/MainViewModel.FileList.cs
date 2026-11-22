@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace GeometryHelper.Cad.Wpf
 {
     /// <summary>
     /// The rows of the DRAWINGS list picked and acted on: a click selects a row and shows nothing, Ctrl+click adds or removes
-    /// one, Shift+click takes the rows from the last clicked; a double click or Enter opens one; the right-click menu opens,
-    /// closes the row, the rows selected, every other drawing or all of them, each through the window's close path.
+    /// one, Shift+click takes the rows from the last clicked; a double click or Enter opens one; the right-click menu is AutoCAD's file tab menu: it makes, opens, saves,
+    /// and closes drawings (each close through the window's close path), and copies a path or shows the file in Explorer.
     /// </summary>
     public sealed partial class MainViewModel
     {
@@ -104,10 +105,20 @@ namespace GeometryHelper.Cad.Wpf
         }
 
         /// <summary>
-        /// Gets the items of the right-click menu of a row of the DRAWINGS list, in AutoCAD's words: Open (on while the drawing
-        /// is not the one shown), Close (on while it is open), Close Selected Drawings, Close All Other Drawings and Close All
-        /// Drawings (each on while it would close one). Each close goes through <see cref="CloseDocument"/>'s question about
-        /// changes not saved, one question for all of them where several have changes, and leaves a file on disk in the list.
+        /// Gets or sets how the window starts a program, for Open File Location: Explorer with the file selected. The window
+        /// leaves the one that starts the process; a test sets its own, so that no Explorer opens.
+        /// </summary>
+        public Action<ProcessStartInfo> StartProcess { get; set; } = info => Process.Start(info);
+
+        /// <summary>
+        /// Gets the items of the right-click menu of a row of the DRAWINGS list, as AutoCAD 2021's file tab menu has them: New...,
+        /// Open..., Save, Save As..., Save All; Close, Close Selected Drawings (only where several rows are chosen), Close All,
+        /// Close All Other Drawings; Copy Full File Path, Open File Location. Save, Save As and Close act on the row clicked,
+        /// bringing its drawing forward, and are grey on a row whose file is not open, where Open... opens that file; on an open
+        /// row Open... shows the Open dialog. Copy Full File Path and Open File Location are grey for a drawing never saved.
+        /// Close All Other Drawings is grey unless two drawings are open. Each close goes through <see cref="CloseDocument"/>'s
+        /// question about changes not saved, one question for all of them where several have changes, and leaves a file on disk
+        /// in the list.
         /// </summary>
         /// <param name="row">The row under the cursor.</param>
         /// <returns>The items; none for a header.</returns>
@@ -119,25 +130,111 @@ namespace GeometryHelper.Cad.Wpf
             }
 
             KnownFile file = Known(row.Path);
+            bool isOpen = file?.Document != null;
             List<KnownFile> open = _files.Values.Where(f => f.Document != null).ToList();
-            List<KnownFile> selected = SelectedFileRows
-                .Select(r => Known(r.Path))
-                .Where(f => f?.Document != null)
-                .ToList();
+            List<KnownFile> chosen = SelectedFileRows.Select(r => Known(r.Path)).ToList();
+            List<KnownFile> selected = chosen.Where(f => f?.Document != null).ToList();
             List<KnownFile> others = open.Where(f => f != file).ToList();
+            string path = isOpen ? (file.Document.HasFile ? file.Document.FileName : null) : row.Path;
+            bool hasPath = path != null && System.IO.Path.IsPathRooted(path);
             var menu = new List<CadMenuItemViewModel>
             {
-                new CadMenuItemViewModel("Open", () => Activate(row), !row.IsCurrent),
-                new CadMenuItemViewModel("Close", () => CloseFiles(new[] { file }), file?.Document != null),
+                new CadMenuItemViewModel("New...", () => NewCommand.Execute(null)),
+                new CadMenuItemViewModel("Open...", () => OpenOrShowDialog(row, isOpen)),
+                new CadMenuItemViewModel("Save", () => SaveFile(file), isOpen),
+                new CadMenuItemViewModel("Save As...", () => SaveFileAs(file), isOpen),
+                new CadMenuItemViewModel("Save All", () => SaveAllDocuments(), open.Count > 0),
                 CadMenuItemViewModel.Separator(),
-                new CadMenuItemViewModel("Close Selected Drawings", () => CloseFiles(selected), selected.Count > 0),
-                new CadMenuItemViewModel("Close All Other Drawings", () => CloseFiles(others), others.Count > 0),
-                new CadMenuItemViewModel("Close All Drawings", () => CloseFiles(open), open.Count > 0),
+                new CadMenuItemViewModel("Close", () => CloseFiles(new[] { file }), isOpen),
             };
+
+            if (SelectedFileRows.Count > 1)
+            {
+                menu.Add(
+                    new CadMenuItemViewModel("Close Selected Drawings", () => CloseFiles(selected), selected.Count > 0)
+                );
+            }
+
+            menu.Add(new CadMenuItemViewModel("Close All", () => CloseAllDocuments(), open.Count > 0));
+            menu.Add(
+                new CadMenuItemViewModel(
+                    "Close All Other Drawings",
+                    () => CloseFiles(others),
+                    open.Count > 1 && others.Count > 0
+                )
+            );
+            menu.Add(CadMenuItemViewModel.Separator());
+            menu.Add(
+                new CadMenuItemViewModel(
+                    "Copy Full File Path",
+                    () => WriteClipboardText(path),
+                    hasPath && WriteClipboardText != null
+                )
+            );
+            menu.Add(new CadMenuItemViewModel("Open File Location", () => ShowInExplorer(path), hasPath));
 
             // What the plugins add comes after the presenter's items, behind a separator.
             menu.AddRange(PluginRowItems(row));
             return menu;
+        }
+
+        /// <summary>
+        /// Gets the items of the right-click menu of the empty part of the DRAWINGS list, as the file tab menu of AutoCAD
+        /// gives where no tab is under the cursor: New..., Open..., Save All and Close All, the last two grey with no drawing
+        /// open.
+        /// </summary>
+        /// <returns>The four items.</returns>
+        public IReadOnlyList<CadMenuItemViewModel> FileListMenu()
+        {
+            bool any = _files.Values.Any(f => f.Document != null);
+            return new[]
+            {
+                new CadMenuItemViewModel("New...", () => NewCommand.Execute(null)),
+                new CadMenuItemViewModel("Open...", () => OpenCommand.Execute(null)),
+                new CadMenuItemViewModel("Save All", () => SaveAllDocuments(), any),
+                new CadMenuItemViewModel("Close All", () => CloseAllDocuments(), any),
+            };
+        }
+
+        /// <summary>Open... of a row: the Open dialog where the drawing is open, the file of the row opened where it is not.</summary>
+        private void OpenOrShowDialog(FileRowViewModel row, bool isOpen)
+        {
+            if (isOpen)
+            {
+                OpenCommand.Execute(null);
+            }
+            else
+            {
+                Activate(row);
+            }
+        }
+
+        /// <summary>Save As... of a row: its drawing shown first, then SAVEAS as the quick access Save As runs it.</summary>
+        private void SaveFileAs(KnownFile file)
+        {
+            if (file != _current)
+            {
+                Show(file);
+            }
+
+            SaveAsCommand.Execute(null);
+        }
+
+        /// <summary>Opens Explorer with a file selected; a program that will not start is said on the command line and logged.</summary>
+        private void ShowInExplorer(string path)
+        {
+            try
+            {
+                StartProcess?.Invoke(
+                    new ProcessStartInfo("explorer.exe", "/select,\"" + path + "\"") { UseShellExecute = true }
+                );
+            }
+            catch (Exception exception)
+                when (exception is System.ComponentModel.Win32Exception || exception is InvalidOperationException)
+            {
+                GeometryHelperLog.Warn("MainViewModel: Explorer could not be started for " + path + ".", exception);
+                Say("Explorer could not be started.");
+            }
         }
 
         /// <summary>The selection of the list kept across a rebuild of its rows: the paths still shown, selected again.</summary>

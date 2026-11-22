@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The right-click menu of a row of the presenter's DRAWINGS list is AutoCAD 2021's file tab menu: New..., Open...,
+Save, Save As..., Save All; Close, Close Selected Drawings (only with several rows chosen), Close All, Close All Other
+Drawings; Copy Full File Path, Open File Location. It had Open, Close, Close Selected Drawings, Close All Other Drawings and
+Close All Drawings. Save, Save As and Close act on the row clicked and are grey where its file is not open, where Open...
+opens that file; Copy Full File Path puts the full path on the clipboard and Open File Location opens Explorer with the file
+selected, both grey for a drawing never saved; Close All Other Drawings is grey unless two drawings are open. A right click
+on the empty part of the list offers New..., Open..., Save All and Close All. `MainViewModel` has a new `FileListMenu` for it
+and a `StartProcess` hook, set by a test so that no Explorer opens.
+
 **NEW.** `3DPOLY` in the presenter, as AutoCAD 2021's console asks it: `Specify start point of polyline:`, then `Specify
 endpoint of line or [Undo]:` for the first two endpoints and `[Close/Undo]` from the third, Enter ending it. It makes one 3D
 polyline (a POLYLINE of flag 8, its vertices of flag 32); the presenter's points are those of a plane, so a Z typed is read and

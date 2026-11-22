@@ -8892,8 +8892,10 @@ widths are those of the content: no panel has a floor of its own.
                                 VerticalScrollBarVisibility="Auto"
                                 HorizontalScrollBarVisibility="Disabled"
                                 Focusable="False"
+                                Background="Transparent"
+                                MouseRightButtonUp="OnFileListRightUp"
                             >
-                                <!-- A click selects a row (Ctrl and Shift add), a double click or Enter opens it, a right click shows its menu (C5). -->
+                                <!-- A click selects a row (Ctrl and Shift add), a double click or Enter opens it, a right click shows its menu (C5); a right click on the empty part of the list shows New, Open, Save All and Close All. -->
                                 <ItemsControl
                                     x:Name="FileList"
                                     ItemsSource="{Binding FileRows}"
