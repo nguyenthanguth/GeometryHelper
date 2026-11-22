@@ -687,11 +687,38 @@ namespace GeometryHelper.Cad.Lisp
                 }
             }
 
-            result.Add(Pair(330, ownerName ?? new LispEntityName(owner ?? "0")));
+            KeyValuePair<int, object> ownerPair = Pair(330, ownerName ?? new LispEntityName(owner ?? "0"));
+            int lists = 0;
 
-            if (handle != null)
+            while (lists < head.Count && head[lists].Key == 102 && IsOpening(head[lists]))
+            {
+                while (lists < head.Count && !(head[lists].Key == 102 && !IsOpening(head[lists])))
+                {
+                    lists++;
+                }
+
+                lists++;
+            }
+
+            lists = Math.Min(lists, head.Count);
+
+            // An entity with an extension dictionary lists its handle, the groups of its lists, then the owner (AutoCAD 2021,
+            // console, C4b probe l2); one without lists the owner and the handle.
+            if (handle != null && head.GetRange(0, lists).Exists(p => p.Key == 360))
             {
                 result.Add(Pair(5, handle));
+                result.AddRange(head.GetRange(0, lists));
+                head.RemoveRange(0, lists);
+                result.Add(ownerPair);
+            }
+            else
+            {
+                result.Add(ownerPair);
+
+                if (handle != null)
+                {
+                    result.Add(Pair(5, handle));
+                }
             }
 
             int marker = head.FindIndex(p => p.Key == 100 && Same(p.Value, "AcDbEntity"));

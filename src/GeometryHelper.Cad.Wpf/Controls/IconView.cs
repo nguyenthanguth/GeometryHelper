@@ -40,6 +40,14 @@ namespace GeometryHelper.Cad.Wpf
             )
         );
 
+        /// <summary>Identifies the <see cref="Fill"/> property.</summary>
+        public static readonly DependencyProperty FillProperty = DependencyProperty.Register(
+            nameof(Fill),
+            typeof(Brush),
+            typeof(IconView),
+            new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender)
+        );
+
         /// <summary>Identifies the <see cref="StrokeThickness"/> property.</summary>
         public static readonly DependencyProperty StrokeThicknessProperty = DependencyProperty.Register(
             nameof(StrokeThickness),
@@ -67,6 +75,13 @@ namespace GeometryHelper.Cad.Wpf
         {
             get => (Brush)GetValue(StrokeProperty);
             set => SetValue(StrokeProperty, value);
+        }
+
+        /// <summary>Gets or sets the brush the closed parts of the path are filled with, as the lit bulb of the layer box; null, the default, fills nothing.</summary>
+        public Brush Fill
+        {
+            get => (Brush)GetValue(FillProperty);
+            set => SetValue(FillProperty, value);
         }
 
         /// <summary>Gets or sets the thickness of the lines in units of the 24 by 24 grid; 1.8 by default.</summary>
@@ -97,7 +112,7 @@ namespace GeometryHelper.Cad.Wpf
                 LineJoin = PenLineJoin.Round,
             };
             drawingContext.PushTransform(new ScaleTransform(scale, scale));
-            drawingContext.DrawGeometry(null, pen, data);
+            drawingContext.DrawGeometry(Fill, pen, data);
             drawingContext.Pop();
         }
     }

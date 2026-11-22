@@ -331,6 +331,7 @@ namespace GeometryHelper.Cad
 
             // The fields are evaluated again where FIELDEVAL has the regen bit.
             c.Document.UpdateFields(CadFieldContexts.Regen);
+            c.Session.ClearTemporaryGraphics();
             c.Document.Regen();
             yield break;
         }

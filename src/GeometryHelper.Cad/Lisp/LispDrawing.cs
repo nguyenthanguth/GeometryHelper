@@ -25,6 +25,9 @@ namespace GeometryHelper.Cad.Lisp
             RegisterCurves(lisp, session);
             RegisterActiveX(lisp, session);
             RegisterDialogs(lisp, session);
+            RegisterXdata(lisp, session);
+            RegisterDictionaries(lisp, session);
+            RegisterGraphics(lisp, session);
         }
 
         static partial void RegisterInput(LispInterpreter lisp, CadCommandSession session);
@@ -50,5 +53,11 @@ namespace GeometryHelper.Cad.Lisp
         static partial void RegisterActiveX(LispInterpreter lisp, CadCommandSession session);
 
         static partial void RegisterDialogs(LispInterpreter lisp, CadCommandSession session);
+
+        static partial void RegisterXdata(LispInterpreter lisp, CadCommandSession session);
+
+        static partial void RegisterDictionaries(LispInterpreter lisp, CadCommandSession session);
+
+        static partial void RegisterGraphics(LispInterpreter lisp, CadCommandSession session);
     }
 }

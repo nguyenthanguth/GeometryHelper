@@ -25,6 +25,29 @@ when it loads. `GHINFO` writes the drawing's name and folder, INSUNITS and LUNIT
 of model space counted by type, the number of layers and blocks, and the extents. It is standard AutoLISP, and AutoCAD 2021 writes
 the same lines apart from the name and folder.
 
+**CHANGED.** The Layers panel of Home is laid out as AutoCAD 2021's. Layer Properties stays the large button; the layer box is
+208 pixels wide (it was 168) over two rows of tiles 24 by 22 that show only their icon, the tooltip naming the command: Off,
+Isolate, Freeze, Lock and Make Current (LAYOFF, LAYISO, LAYFRZ, LAYLCK, LAYMCUR), then Turn All Layers On, Unisolate, Thaw All
+Layers, Unlock and Match Layer (LAYON, LAYUNISO, LAYTHW, LAYULK, LAYMCH); Make Current and Match Layer keep their text at full
+size and drop it in a medium panel. Previous (LAYERP) is no longer in the panel's body: it is the first tile of the slide-out
+that the title Layers ▾ opens, with Change to Current Layer (LAYCUR), Copy Objects to New Layer (COPYTOLAYER), Layer Walk
+(LAYWALK), VP Freeze in All Viewports except Current (LAYVPI), Merge (LAYMRG) and Delete (LAYDEL). AutoCAD's Locked Layer Fading
+row is left out: the presenter has no LAYLOCKFADECTL. The panel's width is the box's (289 pixels at full size, 354 before), so
+Layers going medium no longer narrows Home, and Home is full from a window 2 225 pixels wide, where it was 2 290. 14 icons for
+its tiles and six state glyphs are new, in `Icons.xaml`, and `IconView` has a `Fill` for the lit glyphs.
+
+**NEW.** The layer box of the ribbon draws each layer as three state glyphs before its colour and name: a lit or dark bulb (on or
+off), a sun or a snowflake (thawed or frozen), an open or a closed padlock (unlocked or locked), as AutoCAD 2021's does, and the
+closed box shows the current layer so. In the open list a click on a glyph toggles that state of that layer at once, leaves the
+list open and the current layer as it is, and is one undo step that UNDO and LAYERP take back, made through `CadLayerEditor` as the
+Layer manager's cells are. Freezing the current layer is refused on the command line in the Layer manager's words and changes
+nothing; turning it off is allowed, as in AutoCAD.
+
+**NEW.** The Layer State box in the slide-out of Layers: it lists the drawing's layer states by name (Unsaved Layer State where no
+state matches the layers), picking one restores it as one undo step, as LAYERSTATE's Restore, and New Layer State... and Manage
+Layer States... at the end of the list open LAYERSTATE. `MainViewModel` has `ToggleLayerOnCommand`, `ToggleLayerFreezeCommand`,
+`ToggleLayerLockCommand`, `LayerStateItems` and `SelectedLayerState` for them.
+
 **NEW.** A sample drawing template, `GeometryHelper-mm.dwt`, ships in the `DrawingTemplates` folder, so that New from template ·
 Ctrl+Shift+N has something to offer on a fresh install. It is metric and in millimetres (MEASUREMENT 1, INSUNITS 4, distances to
 two decimal places, limits of 42 000 by 29 700, LTSCALE 1) and holds the layers Axis (red, CENTER, 0.18), Outline (0.50), Thin,
@@ -40,6 +63,31 @@ opens the file with AUDIT finding no errors.
 code, had the default 45 degrees, so AutoCAD 2021 read it as 58 degrees and listed it as an override of the current style; and
 read from a DWG, a non-default angle came back as radians in a group that holds degrees. DWG files written and read now keep it in
 radians as AutoCAD does, as the other angles are. A DWG written before this keeps the wrong angle in its styles and is not repaired.
+
+**NEW.** AutoLISP can keep data in the drawing: `regapp`, `xdroom` and `xdsize` for extended data, `namedobjdict`, `dictsearch`,
+`dictnext`, `dictadd`, `dictremove` and `dictrename` for dictionaries, `entmakex` (and `entmake`) for XRECORDs and DICTIONARYs,
+`vlax-ldata-put`, `-get`, `-delete`, `-list` and `-test`, and `ssnamex` for how a set was selected, each measured in AutoCAD 2021's
+console (about 1 000 forms in 11 feeds). `(regapp "GHAPP")` is `"GHAPP"` once and `nil` after, and `entmod` or `entmake` with a
+group `-3` of an application not registered now writes `Invalid application name in 1001 group` and gives `nil`, as AutoCAD does
+(it was accepted before): the data written goes first among an entity's, an application named with no data loses its own, and
+`(xdsize '(("GHAPP" (1000 . "abc"))))` is 12 and `(xdroom e)` 16 371 after it. A dictionary lists its entries by name
+(`"10"` before `"9"`) and `dictadd` takes an XRECORD `entmakex` made (`(entget x)` lists `(330 . <Entity name: 0>)` until it is
+added) or a DICTIONARY; `(vlax-ldata-put "GHD1" "k1" '(1 2.5 "x"))` makes the dictionary GHD1 in the root dictionary, and
+`(vlax-ldata-put e "k" 5)` the extension dictionary of the entity `e`, which `entget` then lists as AutoCAD does, `(5 . "..")
+(102 . "{ACAD_XDICTIONARY") (360 . ..) (102 . "}") (330 . ..)`. A datum is an XRECORD with AutoCAD's groups (the text of the value
+in group 300, reals as groups 40, entity names as 340), so it survives a save as DXF or DWG and an open; AutoCAD's own object for
+it, `VLO-VL_U`, is of a class the DWG writer does not write. `entget` of a DICTIONARY lists `(280 . 0)` where the file has none,
+`entdel` of an object a dictionary holds erases it with its entry, and `entget` with a second argument that is no list of names is
+`; error: not a string in the list: 5`. Parked, with their rows measured: `entmod` of an XRECORD (AutoCAD appends the data given)
+and of a DICTIONARY (it replaces the entries), the points a fence crosses an entity at in `ssnamex`, the `-3` of `entmod` for a
+record of a table, and `entmakex` of a polyline or a block.
+
+**NEW.** `grdraw`, `grvecs` and `grclear` draw vectors on the canvas for a moment: `(grdraw '(0 0) '(100 100) 1)` is a red line
+of 141 mm, `(grvecs '(3 (0 0) (10 0) 5 (0 5) (10 5)) '((2 0 0 5) (0 2 0 5) (0 0 2 0) (0 0 0 1)))` two lines moved by a matrix, a
+highlighted one dashed, the colour 7 and the XOR colour (0 or less) white on a dark background and black on a light one. They
+are in the current UCS, one pixel wide, over the drawing and under the grips, and REDRAW, REGEN, `(redraw)` and `(grclear)` take
+them off. All three give `nil` and the errors of AutoCAD 2021 (`; error: grvecs missing endpoint`, `bad argument type: matrix: nil`),
+and a session with no window keeps them and draws nothing.
 
 **NEW.** The `Fonts` folder beside `GeometryHelper.Cad.dll` holds `ghsimplex.shx`, the built-in font GeometryHelper Simplex written
 out as a compiled SHX unifont file (4 840 bytes), as `Hatches` holds `GeometryHelper.pat` and `Linetypes` `GeometryHelper.lin`.

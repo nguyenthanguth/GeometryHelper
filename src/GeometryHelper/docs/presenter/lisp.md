@@ -79,17 +79,19 @@ session.Feed("(command \"CIRCLE\" '(0 0) 5)");              // Command: (command
 | AutoCAD alone | `arxload`, `arxunload`, the twenty `vlisp-` functions, `vlax-add-cmd`, `vlax-remove-cmd`, `vlax-reg-app`, the three product keys, `vl-init`, `vlarts-init`, `vl-bt`, `vl-bt-on`, `vl-bt-off`, `c:vlide` and `c:vldebug`, which are defined and refused |
 | Commands | `command`, `vl-cmdf`, `command-s`, and the symbol `PAUSE` |
 | Asking | `getpoint`, `getcorner`, `getdist`, `getangle`, `getorient`, `getint`, `getreal`, `getstring`, `getkword`, `initget`, `entsel`, `nentsel`, `nentselp`, `getfiled` |
-| Selection sets | `ssget`, `sslength`, `ssname`, `ssadd`, `ssdel`, `ssmemb`, `sssetfirst`, `ssgetfirst` |
-| Entities | `entget`, `entmod`, `entmake`, `entdel`, `entupd`, `entnext`, `entlast`, `handent` |
+| Selection sets | `ssget`, `sslength`, `ssname`, `ssadd`, `ssdel`, `ssmemb`, `ssnamex`, `sssetfirst`, `ssgetfirst` |
+| Entities | `entget`, `entmod`, `entmake`, `entmakex`, `entdel`, `entupd`, `entnext`, `entlast`, `handent` |
 | Tables | `tblsearch`, `tblnext`, `tblobjname` |
+| Extended data and dictionaries | `regapp`, `xdroom`, `xdsize`, `namedobjdict`, `dictsearch`, `dictnext`, `dictadd`, `dictremove`, `dictrename` |
 | Variables | `getvar`, `setvar` |
-| The session | `trans`, `osnap`, `alert`, `grtext`, `redraw`, `textbox`, `textscr`, `textpage`, `graphscr` |
+| The session | `trans`, `osnap`, `alert`, `grtext`, `grdraw`, `grvecs`, `grclear`, `redraw`, `textbox`, `textscr`, `textpage`, `graphscr` |
+| ActiveX data | after `vl-load-com`: `vlax-ldata-put`, `vlax-ldata-get`, `vlax-ldata-delete`, `vlax-ldata-list`, `vlax-ldata-test` |
 | ActiveX curves | after `vl-load-com`: the eighteen `vlax-curve-` functions, `getStartParam` to `isPlanar` |
 | ActiveX objects | after `vl-load-com`: `vlax-get-acad-object`, `vlax-ename->vla-object`, `vlax-vla-object->ename`, `vlax-get-property`, `vlax-put-property`, `vlax-invoke-method`, `vlax-get`, `vlax-put`, `vlax-invoke`, `vlax-for` (before it too), `vlax-map-collection`, `vlax-property-available-p`, `vlax-method-applicable-p`, `vlax-object-released-p`, `vlax-release-object`, `vlax-erased-p`, `vlax-read-enabled-p`, `vlax-write-enabled-p`, `vlax-typeinfo-available-p`; refused with a message: `vlax-create-object`, `vlax-get-object`, `vlax-get-or-create-object`, `vlax-import-type-library`, `vlax-dump-object` |
 | ActiveX members | after `vl-load-com`: 143 `vla-get-`, `vla-put-` and method functions of the objects of the drawing |
 | Dialogs | `load_dialog`, `unload_dialog`, `new_dialog`, `start_dialog`, `done_dialog`, `term_dialog`, `action_tile`, `get_tile`, `set_tile`, `mode_tile`, `get_attr`, `client_data_tile`, `start_list`, `add_list`, `end_list`, `start_image`, `fill_image`, `vector_image`, `slide_image`, `end_image`, `dimx_tile`, `dimy_tile`, and the variables `$key`, `$value`, `$reason`, `$data`, `$x` and `$y` inside an action |
 
-The functions of the last eleven rows read or change the drawing, so they exist in the interpreter of a drawing and not in a bare
+The functions of the last thirteen rows read or change the drawing, so they exist in the interpreter of a drawing and not in a bare
 [`LispInterpreter`](xref:GeometryHelper.Cad.Lisp.LispInterpreter): `(getvar "OSMODE")` there is `; error: no function
 definition: GETVAR`. The pure ones, `angle`, `distance`, `polar`, `inters` and `cvunit`, need no drawing and are in both, and
 so are the Visual LISP rows of lists, strings, files and the registry, blackboard and drawings, and the ActiveX variants and
@@ -726,6 +728,17 @@ set, `(ssadd e)` a new set with `e`, `(ssadd e ss)` adds to `ss` in place and gi
 `(ssmemb e ss)` gives the name or `nil`. `(sslength nil)` is `bad argument type: lselsetp nil`. A set prints as
 `<Selection set: 1d>`, a hexadecimal number that counts up for each set made.
 
+`(ssnamex ss [index])` says how each entity of a set was selected: a list with one item for each, `(method name 0)`, or for the
+one of the index (a real is cut to a whole number, `nil` or a negative index gives all of them, an index past the last `nil`);
+`nil` for a set with no entity. The method is 0 for a set made by a program, `"X"`, Last or Previous, 1 for a pick, 2 for a
+window and 3 for a crossing (a polygon the same), and 4 for a fence. A pick adds the point, `(1 name 0 (0 (5.0 0.0 0.0)))`;
+a window or crossing adds `-1` to each item and the corners as a last item of the list, from the top left round,
+`(-1 (0 (-1.0 6.0 0.0)) (0 (11.0 6.0 0.0)) (0 (11.0 -1.0 0.0)) (0 (-1.0 -1.0 0.0)))`, the points of a polygon from the last back to
+the first. An entity added to a set takes the method of the set. Where the presenter differs from AutoCAD 2021's console
+(probes e1 and e2): its corners are those typed, where the console's are a hundredth wider by its own view; and the items of a
+fence have no points, where AutoCAD gives the points the fence crosses the entity at. `(ssnamex nil)` is `bad argument type:
+lselsetp nil`.
+
 ## Entities and tables
 
 `(entget ename [apps])` gives the entity as an association list: `(-1 . ename)` first, then its groups in the order the
@@ -853,6 +866,109 @@ entity of the block, or the ENDBLK of a block with none. A linetype's list has n
 the order of the table, from the first when `rewind` is `T`; for LTYPE it leaves out ByBlock and ByLayer, which `tblsearch`
 still finds. `(tblobjname table name)` is the record's entity name, and `entget` of it gives the whole record.
 
+### Extended data
+
+`(regapp "APP")` registers an application name in the table of applications and gives the name; it gives `nil` where the table has
+the name already (letters of either case the same, and `"ACAD"` is there), where the name is empty, and where it has one of the characters
+`< > / \ " : ; ? * | ,` and `=` or a backtick in it. `(regapp "has space")` is registered. `(xdroom e)` is how many of the 16 383 bytes of
+extended data an object can still take, for an entity, a record of a table and an object of the OBJECTS section alike, and
+`nil` for a name that names nothing. `(xdsize list)` counts the bytes a list would take, the list as the value of a group `-3` is:
+
+```text
+Command: (regapp "GHAPP")
+"GHAPP"
+Command: (xdsize '(("GHAPP" (1000 . "abc"))))
+12
+Command: (entmod (append (entget e) '((-3 ("GHAPP" (1000 . "abc"))))))
+Command: (xdroom e)
+16371
+```
+
+AutoCAD counts 3 bytes for an application that has data, then for each group its code and value: a text 3 and two for each
+letter (`"café"` is 11, letters beyond ASCII and all), a brace `{` or `}` 2, a layer's name 3, binary data 2 and a byte for each
+two digits, a handle 9, a point, position, displacement or direction 25, a real, distance or scale 9, an integer 3 and a long
+5; an application with no data takes none, and an application there twice is counted once. `xdsize` gives `nil` for an
+application that is not registered or a layer that is not in the drawing, and `; error: bad xdata list: ...` with the list for
+a list that is none of extended data (a group of another code, a value of the wrong kind, a point of four numbers) and
+`; error: invalid character in 1004 group` for binary data of other digits than hexadecimal.
+
+`entmod` and `entmake` take a group `-3` as AutoCAD does. An application that is not registered writes `Invalid application
+name in 1001 group` (no line break) and gives `nil`; an `entmake` of it makes nothing. A group that is not extended data of its
+kind (a text of 1000 given a number, an integer of 1070 given a real) is `; error: bad DXF group: (-3 ...)` with the whole group;
+a code of no meaning, 1099, writes `Unrecognized field type` and gives `nil`, and a brace opened and not shut, or shut and not
+opened, writes `Improper nesting in application data.` and gives `nil`. A group `-3` changes the applications it names and no
+others: the data written is put first among an entity's (`entget` with `'("*")` lists the application written last first), an
+application given with no data after its name loses what it had, and a point given with two numbers, or whole numbers, is kept
+with three reals. With two groups `-3` in one list the applications of the last are written and those of every one lose their
+data. `entget`'s second argument is a list of names: `(entget e '(5))` is `; error: not a string in the list: 5` and
+`(entget e "APP")` `; error: bad list (or tail): "APP"`.
+
+### Dictionaries and XRECORDs
+
+`(namedobjdict)` is the name of the drawing's root dictionary, which names every other. `(entget d)` of a dictionary lists
+`(280 . 0) (281 . 1)` and then each entry as `(3 . "name") (350 . ename)`, by `360` where the dictionary owns its entries hard
+(`(280 . 1)`, as an extension dictionary does); the root's owner is the name `0`. The entries stand ordered by their names in
+lower case (`"10"` before `"9"`, `"_x"` before `"Alpha"`), and a name is found in letters of either case.
+
+| Form | What it does |
+|---|---|
+| `(dictsearch dict name [setnext])` | the list `entget` gives for the object of the entry; `nil` for none, or for a name that is no dictionary. With `setnext` the walk goes on after this entry |
+| `(dictnext dict [rewind])` | the same for the next entry, each dictionary keeping its own place; `nil` past the last; a second argument that is not `nil` starts again |
+| `(dictadd dict name object)` | adds an entry, gives the name of the object; `nil` for a name the dictionary has, a name it refuses, an entity, or the dictionary itself |
+| `(dictremove dict name)` | takes the entry out and gives the name of the object, which is not erased and keeps its owner |
+| `(dictrename dict old new)` | gives the new name; `nil` for no entry of the old name, the same name, a name another entry has or one a dictionary refuses |
+
+A name a dictionary takes is not empty, has no space at either end, none of the characters `< > / \ " : ; ? | ,` and `=` or a backtick, and a `*` only as
+its first letter. An object added that has no owner takes the dictionary as its owner and its reactor; one with an owner keeps it.
+`(entdel x)` of an object a dictionary holds erases it and its entry; of one no dictionary holds it gives the name and leaves it,
+and of the root dictionary `nil`.
+
+`(entmakex list)` makes what `entmake` makes and gives the name of it: an entity (the last of the space), the record of a table, an
+XRECORD or a DICTIONARY, which `entmake` makes too and gives the list of. An object made has no owner: `(entget x)` lists
+`(330 . <Entity name: 0>)`, and it is in the drawing, found by `handent`, until a dictionary takes it.
+The list of an XRECORD or a DICTIONARY needs its subclass marker, `(100 . "AcDbXrecord")` or `(100 . "AcDbDictionary")`, or the
+answer is `nil`; an XRECORD lists `(280 . 1)` ahead of its data, or takes a first `280` of the list for it, and its data is
+the groups of the codes 1 to 369 and the like with the value of their kind: a point has three coordinates, a real is a real, and
+a group of 60 to 79 or 270 to 289 is a short whole number (`(71 . 100000)` is `-31072`). A group of another kind is
+`; error: bad DXF group: (70 . "x")` with the group; a second marker, a `0` or a `999` makes `nil`. A DICTIONARY made with entries
+(`(3 . "k") (350 . ename)`) lists them by name and takes their objects for its own. A list that makes an entity AutoCAD makes from
+several calls (a POLYLINE, a block reference with attributes, a BLOCK) gives `nil` with `entmakex`.
+
+`entmod` of an XRECORD or a DICTIONARY is not done: it gives `nil`, where AutoCAD appends the data of the list to an XRECORD's and
+replaces a DICTIONARY's entries by the list's (measured, and parked).
+
+### Data kept in the drawing
+
+`(vlax-ldata-put owner key data [private])` keeps data under a key and gives the data, `(vlax-ldata-get owner key [default])`
+reads it (the default, `nil` if not given, where there is none), `(vlax-ldata-delete owner key)` gives `T` for a datum erased, and
+`(vlax-ldata-list owner)` the data as `("key" . data)` pairs, the last entry of the dictionary first, a datum that is a list as
+`("key" 1 2)`. `(vlax-ldata-test data)` is `T` for data that can be kept: whole numbers, reals, strings, symbols, entity names,
+nil and lists of them, and `nil` for a selection set, a function, a variant or a safe array. The owner is a string, the name of a
+dictionary in the root dictionary, which the first put makes, or an entity name or a VLA-OBJECT, whose extension dictionary the first
+put makes (an entity, a record of a table, a dictionary, the root dictionary itself: its data is not among its entries). A key is
+a string or a symbol, letters of either case the same; one an entry cannot be named by (empty, `bad<key`) gives the data back and keeps none.
+
+```text
+Command: (vlax-ldata-put "GHD1" "k1" '(1 2.5 "x"))
+(1 2.5 "x")
+Command: (vlax-ldata-get "GHD1" "k1")
+(1 2.5 "x")
+Command: (vlax-ldata-put e "ek1" 77)
+77
+Command: (vlax-ldata-list e)
+(("ek1" . 77))
+```
+
+The data survives SAVE and OPEN as DXF or DWG: a datum is an XRECORD in the dictionary under its key, with the groups AutoCAD's
+object holds: `(90 . -64512)`, `(91 . n)` the length of the text, `(92 . 0)` or `(92 . 1)` where the text names a real or an
+entity, a group `40` for each real and `340` for each entity name, and in group `300` the text of the datum as `prin1`
+prints it, `(&VLO-R . 0)` standing for the first real and `(&VLO-E . 0)` for the first entity name. AutoCAD's object is of a class
+of its own, `VLO-VL_U`, which the DWG writer does not write; the XRECORD is what the presenter writes in its place, so that a
+drawing saved here keeps its data here, and one saved by AutoCAD with the data in it shows the data to AutoCAD only. A selection
+set is held for the session and not kept in the drawing. A function is `; error: Visual LISP: Illegal import/export object`, a
+dictionary name that cannot be made `; error: can't create dictionary: "bad<name"`, and `get`, `delete`, `list` and `test` take
+one argument more than their documentation names, as AutoCAD's do.
+
 ## System variables
 
 `(getvar name)` takes a string or a symbol, in any case, and gives the value: an integer, a real (angles in radians), a
@@ -924,6 +1040,21 @@ from the line, or a mode that is no mode, gives `nil`.
 window, and a session with no window writes the lines of the text on the command line. `(grtext [box text [hl]])` gives the
 text, `nil` with no arguments, and has no effect. `(redraw [ename [mode]])` gives `nil`; `(redraw nil 3)` is `bad argument
 type: lentityp nil`.
+
+`(grdraw from to color [highlight])` draws one vector on the canvas, `(grvecs list [matrix])` a list of them, and `(grclear)`
+takes them off; all three give `nil`. The points are in the current UCS, in millimetres, two or three coordinates. A colour is a
+whole number: 1 to 255 are AutoCAD's colours, 7 is white on a dark background and black on a light one, and 0 or less, AutoCAD's
+XOR colour, is drawn as 7 is. A `highlight` that is not 0 draws the vector dashed. The vectors are one pixel wide, over the
+drawing and under the grips and the cursor, and stay until REDRAW, REDRAWALL, REGEN, `(redraw)` with no argument or `(grclear)`
+takes them off; a zoom or a pan does not. A
+session with no window keeps them and draws nothing. The list of `grvecs` is made of vectors, each two points, with a whole
+number before one giving its colour and the colour of those after it, white where none is given:
+`(grvecs '(1 (0 0) (10 10) 3 (5 5) (6 6)))`. The matrix is four rows of four numbers, each point moved by it (the last number of a
+row is the shift) before it is taken as a point of the UCS: `'((2 0 0 5) (0 2 0 5) (0 0 2 0) (0 0 0 1))` takes `(0 0)` to `(5 5)`.
+A point left with no end is `; error: grvecs missing endpoint`, a list that is none `bad argument type: consp nil`, a matrix of
+three rows, or `nil`, `bad argument type: matrix: nil`, and a colour that is no whole number `bad argument type: fixnump: 1.5`
+(AutoCAD 2021, probe g1; its console draws nothing and says `nil`, so the drawing of the canvas is the presenter's own, tested
+against its colours).
 
 ## Strings, lists and files
 
@@ -2171,8 +2302,8 @@ presenter does the same for a value it has none for. A value that is no object i
 
 ### What is parked in the ActiveX stage
 
-These are not defined, and a call is `; error: no function definition: NAME`: `vlax-ldata-get`,
-`-put`, `-list`, `-delete` and `-test` and every `vlr-` function, with `vl-load-reactors`; there are no reactors.
+These are not defined, and a call is `; error: no function definition: NAME`: every `vlr-` function, with `vl-load-reactors`;
+there are no reactors. The `vlax-ldata-` functions are [built](#data-kept-in-the-drawing).
 `vlax-add-cmd`, `vlax-remove-cmd` and the product keys are [defined and refused](#functions-of-autocad-alone). The `Layouts` and `Documents`
 collections, the `Add...` methods of a space and `InsertBlock`, `Layers.Add` and `Blocks.Add`, writes to a table record,
 `Copy`, `Move`, `Rotate`, `Mirror`, `ScaleEntity`, `Explode`, `IntersectWith`, `Offset`, `GetXData` and `SetXData`,
@@ -2639,7 +2770,7 @@ The drawing, the library, the ActiveX functions and the dialogs are built, with 
 `vlr-` functions, which the ActiveX stage leaves out: there are no reactors), `grread`, `menucmd`, `menugroup`, `help`,
 `setfunhelp`, `trace`, `untrace`, `vmon`, `tablet`, `vports`, `setview`, `report`, `fnsplitl`, `acdimenableupdate`, `getcname`
 and the `_vl-` internals, and `vl-exit-with-error` and `vl-exit-with-value`, which belong to VLX applications, are not defined. Of the ActiveX functions,
-`vlax-ldata-get` and its family, the `Add` methods and the editing methods of the spaces
+the `Add` methods and the editing methods of the spaces
 and a few more are parked, and a few measured differences remain; both lists are
 [at the end of that section](#what-is-parked-in-the-activex-stage). Of the dialogs, `slide_image` draws nothing, and the
 colour tiles of `acad.dcl`, `audit_level` and the `acad.dce` file are left out, as
