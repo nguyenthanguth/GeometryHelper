@@ -45,7 +45,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             Assert.Equal(Path.Combine(program, "Fonts"), fonts.Folder);
             Assert.Equal("(default)", fonts.Mark);
             Assert.Equal(
-                new[] { "Hatch patterns", "Linetypes", "Lisps", "Drawing templates" },
+                new[] { "Hatch patterns", "Linetypes", "AutoLisps", "Drawing templates" },
                 dialog.DefaultSupportFolders.Select(r => r.Kind)
             );
             Assert.Equal("(default) not found", dialog.DefaultSupportFolders[0].Mark);
@@ -56,23 +56,23 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void TheLispsFolder_IsAReadOnlyRowAfterLinetypes_WithOpenFolder_AndIsNotSaved()
+        public void TheAutoLispsFolder_IsAReadOnlyRowAfterLinetypes_WithOpenFolder_AndIsNotSaved()
         {
             string program = Path.Combine(_folder.FullPath, "dll");
             GlobalSettingsViewModel missing = Dialog(program, out _);
-            DefaultFolderRow absent = Assert.Single(missing.DefaultSupportFolders, r => r.Kind == "Lisps");
+            DefaultFolderRow absent = Assert.Single(missing.DefaultSupportFolders, r => r.Kind == "AutoLisps");
             Assert.Equal("(default) not found", absent.Mark);
-            Directory.CreateDirectory(Path.Combine(program, "Lisps"));
+            Directory.CreateDirectory(Path.Combine(program, "AutoLisps"));
 
             GlobalSettingsViewModel dialog = Dialog(program, out List<string> opened);
 
-            Assert.Equal("Lisps", dialog.DefaultSupportFolders[2].Kind);
+            Assert.Equal("AutoLisps", dialog.DefaultSupportFolders[2].Kind);
             DefaultFolderRow lisps = dialog.DefaultSupportFolders[2];
-            Assert.Equal(Path.Combine(program, "Lisps"), lisps.Folder);
+            Assert.Equal(Path.Combine(program, "AutoLisps"), lisps.Folder);
             Assert.Equal("(default)", lisps.Mark);
             Assert.True(dialog.OpenDefaultFolderCommand.CanExecute(lisps));
             dialog.OpenDefaultFolderCommand.Execute(lisps);
-            Assert.Equal(new[] { Path.Combine(program, "Lisps") }, opened);
+            Assert.Equal(new[] { Path.Combine(program, "AutoLisps") }, opened);
             Assert.Empty(dialog.SupportFolders);
         }
 
