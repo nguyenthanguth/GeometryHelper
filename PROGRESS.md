@@ -90,12 +90,11 @@ compared by their values and by eye.
       its modes and filters, `ssname`, `sslength`, `ssadd`; `entsel`, `nentsel`, `entget`, `entmod`, `entmake`,
       `entdel`, `entnext`, `tblsearch`; `getpoint`, `getcorner`, `getdist`, `getangle`, `getreal`, `getint`,
       `getstring`, `getkword`, `initget`; `getvar`, `setvar`, `trans`, `polar`, `inters`, `osnap`; `princ` and `prompt`
-- [ ] L2 parked: entmake of POLYLINE with VERTEX/SEQEND, INSERT with attributes, block definitions and table records,
-      and the ATTRIB/SEQEND/MTEXT/BLOCK groups entget leaves out; `ssget "_:L"` skipping locked layers; -HATCH
-      boundaries as line edges, island style 75, seed 98; DIMBLK `None` against `_None`; prompt wording of
-      -ATTDEF/-BLOCK/-INSERT, `New color [...] :`, AUDIT's last line, -LAYER `<select objects>` and Set/Rename's
-      `Invalid layer name.`; -STYLE Annotative; ELLIPSE Parameter and group 42 past 2 pi; nentsel's block matrix
-      measured; our linetype dashes against acad.lin
+- [ ] L2 parked (most done 2026-11-22: entmake of complex objects and table records, entget slots, `ssget ":L"`,
+      -HATCH edges, ELLIPSE Parameter, DIMBLK, -STYLE Annotative, the block, layer and AUDIT prompts, nentsel 4 by 3;
+      12 of 17 L2 routines now identical): what is left is the BLOCK entity's `(1 . name)` and an empty block's `-2`,
+      `(6 . "Continuous")` on entmade ATTRIB/SEQEND and -INSERT's SEQEND, an entmade MTEXT's 42/43, the order of a
+      hatch's loops, LAYER's 290/347/348; our linetype dashes stay ISO mm against acad.lin's inches (decided)
 - [x] L3. vl- functions and files: `vl-string-*`, `vl-sort`, `vl-remove`, `vl-position`, `vl-file-*`, `open`, `close`,
       `read-line`, `write-line`, `findfile`, `getfiled`
 - [x] L4. vla- and vlax- objects: the members the maintainer's routines use (about 40), on the presenter's own object
