@@ -21,6 +21,9 @@ This folder lies under the program folder, so it is a trusted folder: its plugin
 question. A plugin anywhere else is loaded with PLUGINLOAD (NETLOAD) for one session, or put on
 the "Load at every start" list of the Plugin manager.
 
+The folder DrawingInfo is a sample that comes with the app: its command GHDWGINFO writes the
+name, objects, layers, blocks and extents of the drawing. Delete the folder if you do not want it.
+
 A plugin is loaded from a copy, so the file here is never locked: change it, then PLUGINRELOAD.
 Loading a plugin runs its code with your rights: put here only what you trust.
 

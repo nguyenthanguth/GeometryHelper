@@ -1,4 +1,4 @@
-GeometryHelper CAD - AutoLisps folder
+GeometryHelper CAD - Lisps folder
 =====================================
 
 Put AutoLISP files (.lsp) in this folder, and the dialog files (.dcl) they use. Every .lsp
@@ -32,4 +32,8 @@ This folder lies under the program folder, which SECURELOAD always trusts: its f
 with no question at SECURELOAD 1 and 2.
 
 No file of Autodesk's (acad.lsp, acaddoc.lsp, the files of AutoCAD's Support folder) is
-shipped here, and no sample routine, since whatever is here runs for every drawing.
+shipped here. One sample routine is: GH-DrawingInfo.lsp defines the command GHINFO and writes
+nothing when it loads. GHINFO reads the drawing and writes its name, units, current layer and
+text style, the objects of model space by type, the number of layers and blocks, and the
+extents; it changes nothing, and the same file runs in AutoCAD 2021. Delete it if you do not
+want the command: whatever is here runs for every drawing.

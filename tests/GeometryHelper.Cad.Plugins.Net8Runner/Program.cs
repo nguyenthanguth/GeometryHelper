@@ -60,6 +60,12 @@ namespace GeometryHelper.Cad.Plugins.Net8Runner
                     Collected(installed)
                 );
 
+                WeakReference[] info = LoadDrawingInfoFromThePluginsFolder(root);
+                Check(
+                    "the load context of the sample that ships in Plugins\\DrawingInfo is collected after unloading",
+                    Collected(info)
+                );
+
                 string uiBuilt = Path.Combine(AppContext.BaseDirectory, "SampleUiPlugin", SampleUi + ".dll");
                 Check(
                     "the plugin that adds to the window, its tab, Properties, menus and snap shown, is collected after unloading",
@@ -210,6 +216,58 @@ namespace GeometryHelper.Cad.Plugins.Net8Runner
                 contexts.AddRange(Contexts());
                 Expect("it runs", Run(registry), string.Format(CultureInfo.InvariantCulture, FirstDone, 3));
                 CadPluginResult unloaded = manager.Unload("Number circles");
+                Check("it unloads: " + unloaded.Message, unloaded.Succeeded);
+            }
+
+            return Distinct(contexts);
+        }
+
+        /// <summary>
+        /// Loads the sample that ships in Plugins\DrawingInfo from a Plugins folder at start, runs GHDWGINFO on a drawing of
+        /// three circles, and unloads it; gives its load contexts.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static WeakReference[] LoadDrawingInfoFromThePluginsFolder(string root)
+        {
+            string plugins = Path.Combine(root, "installed-info");
+            string folder = Path.Combine(plugins, "DrawingInfo");
+            Directory.CreateDirectory(folder);
+
+            foreach (string file in Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "DrawingInfo")))
+            {
+                File.Copy(file, Path.Combine(folder, Path.GetFileName(file)));
+            }
+
+            var contexts = new List<WeakReference>();
+            var registry = CadCommandRegistry.CreateDefault();
+
+            using (
+                var manager = new CadPluginManager(
+                    new CadPluginAssemblyLoader(),
+                    plugins,
+                    Path.Combine(root, "installed-info.json"),
+                    Path.Combine(root, "copies-info")
+                )
+            )
+            {
+                manager.Attach(registry);
+                IReadOnlyList<CadPluginResult> started = manager.LoadAtStart();
+                Check(
+                    "the Drawing info plugin loads at start with no question: " + string.Join(" ", started),
+                    started.Count == 1
+                        && started[0].Succeeded
+                        && started[0].Plugin.Name == "Drawing info"
+                        && started[0].Plugin.IsTrusted
+                );
+                contexts.AddRange(Contexts());
+
+                var session = new CadCommandSession(Circles(), registry);
+                session.Feed("GHDWGINFO");
+                Check(
+                    "GHDWGINFO writes the objects by type: " + string.Join(" | ", session.History),
+                    session.History.Contains("Model space: 3 objects") && session.History.Contains("  Circle   3")
+                );
+                CadPluginResult unloaded = manager.Unload("Drawing info");
                 Check("it unloads: " + unloaded.Message, unloaded.Succeeded);
             }
 

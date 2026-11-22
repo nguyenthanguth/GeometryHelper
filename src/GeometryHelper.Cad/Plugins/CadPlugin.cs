@@ -83,16 +83,10 @@ namespace GeometryHelper.Cad.Plugins
         /// <exception cref="CadPluginException">Thrown when the plugin needs a newer API, states an API version that is not
         /// one, or has no command.</exception>
         public static CadPlugin FromAssemblies(string name, IEnumerable<Assembly> assemblies, string version = null) =>
-            MakeFrom(name, assemblies, version, true, null);
+            MakeFrom(name, assemblies, version, null);
 
-        /// <summary>A plugin from its assemblies; one with no command refused only where commands are needed, as they are not for one that holds drawing plugins.</summary>
-        internal static CadPlugin MakeFrom(
-            string name,
-            IEnumerable<Assembly> assemblies,
-            string version,
-            bool needsCommand,
-            string folder
-        )
+        /// <summary>A plugin from its assemblies, the folder its files are read from given.</summary>
+        internal static CadPlugin MakeFrom(string name, IEnumerable<Assembly> assemblies, string version, string folder)
         {
             if (assemblies == null)
             {
@@ -167,7 +161,7 @@ namespace GeometryHelper.Cad.Plugins
             );
             plugin.Read(sorted);
 
-            if (plugin.Commands.Count == 0 && plugin._applications.Count == 0 && needsCommand)
+            if (plugin.Commands.Count == 0 && plugin._applications.Count == 0)
             {
                 string why = plugin.Problems.Count > 0 ? " " + string.Join(" ", plugin.Problems) : string.Empty;
                 throw new CadPluginException(

@@ -7,7 +7,7 @@ any time as NETLOAD does. It knows nothing of models or Tekla.
 Part B, the model drawing like Tekla's, moved to the private repository TeklaHelper.DrawingManager on 2026-11-18. It
 uses this presenter and this presenter never refers to it; what it needs from here is a few generic seams: the owner
 contract (`ICadEntityOwner`, `CadOwnerRegistry`, `CadOwnerTag`), `CadWorkspaceExtension` with its `CadNewDocumentOffer`,
-`CadAppHost`, and `CadPluginManager.DrawingPluginFinder`.
+and `CadAppHost`.
 
 **Status: built, not yet packed.** `GeometryHelper.Cad` (the core, no window), `GeometryHelper.Cad.Wpf` (the controls),
 `GeometryHelper.Cad.App` (its own window, GeometryHelper CAD) and `GeometryHelper.Cad.Remote` (another program drives the

@@ -19,7 +19,7 @@ namespace GeometryHelper.Cad
         /// <summary>
         /// Gets the AutoLISP interpreter of this document, made on first use: what a routine defines is seen by this document
         /// alone. <c>load</c> searches <see cref="CadDocument.SupportFolders"/>, read each time the interpreter is asked for,
-        /// then the program's <c>AutoLisps</c> folder (<see cref="CadSupportKind.AutoLisps"/>), and <c>rtos</c> and <c>angtos</c> take the document's LUNITS, LUPREC, AUNITS, AUPREC and DIMZIN.
+        /// then the program's <c>Lisps</c> folder (<see cref="CadSupportKind.Lisps"/>), and <c>rtos</c> and <c>angtos</c> take the document's LUNITS, LUPREC, AUNITS, AUPREC and DIMZIN.
         /// </summary>
         public LispInterpreter Lisp
         {
@@ -47,13 +47,13 @@ namespace GeometryHelper.Cad
 
         /// <summary>
         /// The folders <c>load</c>, <c>findfile</c> and <c>load_dialog</c> search: the document's support folders, then the
-        /// AutoLisps folder of the program where it exists and the user has not listed it already. It is added here and not to
+        /// Lisps folder of the program where it exists and the user has not listed it already. It is added here and not to
         /// <see cref="CadDocument.SupportFolders"/>, so that the linetype and hatch pattern lookups do not see it.
         /// </summary>
         private IReadOnlyList<string> LispSearchFolders()
         {
             IReadOnlyList<string> own = Document.SupportFolders;
-            IReadOnlyList<string> lisps = Document.SupportRoots.ExistingOf(CadSupportKind.AutoLisps);
+            IReadOnlyList<string> lisps = Document.SupportRoots.ExistingOf(CadSupportKind.Lisps);
 
             if (lisps.Count == 0 || own.Any(folder => SameFolder(folder, lisps[0])))
             {

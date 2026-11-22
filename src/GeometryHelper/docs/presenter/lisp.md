@@ -168,7 +168,7 @@ object snaps, transparent ZOOM and PAN, and the refusal messages work at it as a
 
 `(load "name")` reads the file and evaluates its forms one at a time, and gives back the value of the last. A full path is
 that file; any other name is looked for in the support folders, in order, those of Global settings' Folder preference
-(the support file search path) and then [the AutoLisps folder](#the-autolisps-folder) of the program, and `.lsp` is added where the
+(the support file search path) and then [the Lisps folder](#the-lisps-folder) of the program, and `.lsp` is added where the
 name has no extension. A name with a relative folder in it (`Sub/x`, `./x.lsp`, `..\x`) is looked for the same way, in the
 same folders in the same order, so a subfolder of a support folder is reached by naming it; `./` does not mean the folder of
 the program or of the process, but each of the folders searched. The folder of the drawing is not searched, and neither is the
@@ -177,7 +177,7 @@ search them either. A file that is not found is `; error: LOAD failed: "name"`, 
 there is one; an error inside the file ends the load and leaves what ran before it.
 
 ```lisp
-(load "tools")                     ; the first tools.lsp of the support folders, then of AutoLisps
+(load "tools")                     ; the first tools.lsp of the support folders, then of Lisps
 (load "Sub/tools")                 ; the first Sub/tools.lsp of the same folders
 (load "./tools.lsp")               ; the same as (load "tools")
 (load "tools" "not found")         ; "not found", where there is none
@@ -289,10 +289,10 @@ of the Python console's transcript are still its own.
 
 Each drawing that opens runs, in this order:
 
-1. `acad.lsp`, the first one found along the search path (the support folders, then the AutoLisps folder), once for the run of
+1. `acad.lsp`, the first one found along the search path (the support folders, then the Lisps folder), once for the run of
    the program, and not again for the drawings opened after the first;
 2. `acaddoc.lsp`, the first one found along the search path, for every drawing;
-3. each `.lsp` file directly in [the AutoLisps folder](#the-autolisps-folder), in the order of their names;
+3. each `.lsp` file directly in [the Lisps folder](#the-lisps-folder), in the order of their names;
 4. each file of the Startup Suite, in order;
 5. the function `S::STARTUP`, where one of these files defined it. It may be made with `defun` or with `defun-q`, which
    AutoCAD's documents recommend so that several routines can add to it; its value is not written.
@@ -302,11 +302,11 @@ not found is no line for `acad.lsp` and `acaddoc.lsp`, which most machines do no
 for a file of the Startup Suite. [`LispStartup`](xref:GeometryHelper.Cad.Lisp.LispStartup) does this for one run of the
 program; the window gives it each drawing it opens, and each time it fills the Startup Suite from the settings. AutoCAD
 has no step 3: it loads the files that come with a program, a menu's `.mnl`, between `acaddoc.lsp` and the Startup Suite,
-and the AutoLisps folder takes that place.
+and the Lisps folder takes that place.
 
-### The AutoLisps folder
+### The Lisps folder
 
-`AutoLisps` is the fourth default folder beside `GeometryHelper.Cad.dll`, with `Fonts`, `Hatches` and `Linetypes` (in the app,
+`Lisps` is the fourth default folder beside `GeometryHelper.Cad.dll`, with `Fonts`, `Hatches` and `Linetypes` (in the app,
 beside the exe). Put AutoLISP files in it, and the `.dcl` files they use: every `.lsp` file directly in it is loaded into
 each drawing when the drawing opens, so a folder of 12 routines is there for every drawing with no APPLOAD and no Startup
 Suite entry.
@@ -314,21 +314,44 @@ Suite entry.
 - **Order.** The files load in the order of their names, ignoring case, so `10-layers.lsp` comes before `20-dims.lsp` and
   `a-b.lsp` before `a.lsp`; name them with a number to say which first. An error in a file is written and the next one
   loads. The extension must be exactly `.lsp`: `x.lspx` and `notes.txt` are left alone, and so are the files in a subfolder
-  (`AutoLisps\Sub\x.lsp` is loaded by `(load "Sub/x")` from a routine). A compiled `.fas` or `.vlx` writes the same refusal a
+  (`Lisps\Sub\x.lsp` is loaded by `(load "Sub/x")` from a routine). A compiled `.fas` or `.vlx` writes the same refusal a
   `load` of it does, once for each drawing, and the rest load. `acad.lsp` and `acaddoc.lsp` put here are found as those two
   files (steps 1 and 2) and load once, not again in step 3; a file of the same name in a support folder wins.
 - **Search path.** The folder is on the search path after the support folders of Folder preference, where it exists, so
   `load`, `findfile` and `load_dialog` find a file in it by its bare name, and a routine can `(load "helpers")` the file
   beside it. It is not on the path of linetypes and hatch patterns. A folder you list yourself in Folder preference, the
-  AutoLisps folder included, is searched once, where you put it.
+  Lisps folder included, is searched once, where you put it.
 - **Trusted.** The folder lies under the program folder, which [SECURELOAD](#trusted-folders-and-secureload) always
-  trusts, so its files load with no question at SECURELOAD 1 and 2. A test or a host that places `AutoLisps` elsewhere gets the
+  trusts, so its files load with no question at SECURELOAD 1 and 2. A test or a host that places `Lisps` elsewhere gets the
   gate's answer for that folder.
 - **Every drawing.** What is here runs for every drawing you open; ship nothing here that you would not want everywhere.
-  The presenter ships no sample routine in it, only a `README.txt`. The Python wheel has no `AutoLisps` folder and runs no
+  The presenter ships one sample routine in it, `GH-DrawingInfo.lsp`, [below](#the-sample-routine), and a `README.txt`. The Python wheel has no `Lisps` folder and runs no
   startup.
 
 Global settings, Folder preference shows the folder read-only under the other default folders, with Open folder.
+
+#### The sample routine
+
+`GH-DrawingInfo.lsp` ships in the folder. Loading it defines the command `GHINFO` and writes nothing. `GHINFO` only reads: it
+writes the drawing's name and folder (`DWGNAME`, `DWGPREFIX`), `INSUNITS` and `LUNITS`, the current layer and text style, the
+objects of model space counted by type (a selection of the whole database filtered by group 410), the number of layers and of
+blocks (`tblnext`), and the extents (`EXTMIN`, `EXTMAX`). A drawing of two circles and a line in model space, with the layer
+Steel current and the block BOLT, gives
+
+```
+Command: GHINFO
+Drawing: Plan.dwg in C:\Projects\
+Units: INSUNITS 4, LUNITS 2
+Current layer: Steel, text style: Standard
+Model space: 3 objects
+  CIRCLE   2
+  LINE     1
+Layers: 2, blocks: 1
+Extents: (-10.00,-10.00) to (120.00,80.00)
+```
+
+It uses standard AutoLISP only, and AutoCAD 2021 writes the same lines, apart from the name and folder, for the same drawing.
+Delete the file to remove the command, or copy it as a start for a routine of your own.
 
 ### The Startup Suite
 
@@ -1078,7 +1101,7 @@ that opens a file should close it.
 `(findfile name)` gives the full path of a file or folder, with backslashes, or `nil`. A full path is checked where it
 points. Any other name, a bare one or one with a relative folder like `files/notes.txt` or `./notes.txt`, is looked for in
 the current folder, then in the folder of the drawing (none for a drawing that was never saved), then in the support folders
-in order, those of Global settings' Folder preference, then in [the AutoLisps folder](#the-autolisps-folder). The first place that
+in order, those of Global settings' Folder preference, then in [the Lisps folder](#the-lisps-folder). The first place that
 has it wins: a file `Sub/x.txt` is found in a support folder's `Sub`, as AutoCAD 2021 finds `en-us/3d.lsp` of its
 support folder. A name of a file of code (`.lsp`, `.dcl`, `.fas` and seven more) skips the first two places while
 LEGACYCODESEARCH is 0, its initial value, as in AutoCAD 2021 ([Trusted folders and
@@ -2236,9 +2259,9 @@ gives it.
 
 `(load_dialog file)` gives a whole number, 1 for the first file of a drawing and one more for each file loaded after it (a
 file loaded twice gets two numbers, as in AutoCAD), and `-1` for a file that is not there. A full path is that file; any
-other name, with a relative folder or without, is looked for in the support folders and the AutoLisps folder, and first in the
+other name, with a relative folder or without, is looked for in the support folders and the Lisps folder, and first in the
 current folder and beside the drawing where LEGACYCODESEARCH is 1 ([Trusted folders and
-SECURELOAD](#trusted-folders-and-secureload)), so a `.dcl` beside a routine in `AutoLisps` is found; `.dcl` is added
+SECURELOAD](#trusted-folders-and-secureload)), so a `.dcl` beside a routine in `Lisps` is found; `.dcl` is added
 where the name has no extension. `(unload_dialog id)` forgets the file and gives `nil`; dialogs already made from it keep
 their own copy.
 

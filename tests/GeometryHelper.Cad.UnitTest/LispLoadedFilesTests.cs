@@ -137,6 +137,7 @@ namespace GeometryHelper.Cad.UnitTest
             var startup = new LispStartup();
             startup.StartupSuite.Add(suite);
             CadCommandSession session = Session(Blank());
+            session.Document.SupportRoots = new CadSupportFolders(null);
             session.Document.SupportFolders = new[] { _folder };
 
             startup.OnDocumentOpened(session);

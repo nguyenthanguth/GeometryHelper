@@ -6,6 +6,25 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**BREAKING.** Plugins of the kind "drawing" are gone. `CadPluginManager.DrawingPluginFinder`, `CadPluginManifest.DrawingKind`,
+`CadLoadedPlugin.DrawingPlugins` and `PluginManagerViewModel.DrawingChipText` are removed, with no forwarder: the plugin manager
+loads command plugins only, as the presenter always did where no finder was set. A plugin.json with `"kind": "drawing"` is refused
+as any kind but "command" is, `The plugin Bolt dimensions is of the kind "drawing", and this presenter loads command plugins
+only.`; the Plugin manager has no "Drawing plugins" chip, and a .dll without a manifest and without a command is refused with the
+reason it always had, `has no command`. A host that made drawing plugins on the finder, such as TeklaHelper.DrawingManager,
+loads them itself.
+
+**NEW.** A sample plugin ships in the app's `Plugins` folder, `Plugins\DrawingInfo`: the command `GHDWGINFO` writes the drawing's
+name, the objects of model space counted by type, the layers, the blocks and the extents, and changes nothing. It is the project
+`GeometryHelper.Cad.Plugins.DrawingInfo` (netstandard2.0, one class, a `plugin.json`), which `GeometryHelper.Cad.App` builds first
+and copies, its .dll and its plugin.json only, into `Plugins\DrawingInfo`; the app loads it at start with no question, and it has
+a button on the Plugins tab like every command. Delete the folder to remove it.
+
+**NEW.** A sample routine ships in the `Lisps` folder, `GH-DrawingInfo.lsp`: it defines the command `GHINFO` and writes nothing
+when it loads. `GHINFO` writes the drawing's name and folder, INSUNITS and LUNITS, the current layer and text style, the objects
+of model space counted by type, the number of layers and blocks, and the extents. It is standard AutoLISP, and AutoCAD 2021 writes
+the same lines apart from the name and folder.
+
 **NEW.** A sample drawing template, `GeometryHelper-mm.dwt`, ships in the `DrawingTemplates` folder, so that New from template ·
 Ctrl+Shift+N has something to offer on a fresh install. It is metric and in millimetres (MEASUREMENT 1, INSUNITS 4, distances to
 two decimal places, limits of 42 000 by 29 700, LTSCALE 1) and holds the layers Axis (red, CENTER, 0.18), Outline (0.50), Thin,
@@ -31,7 +50,7 @@ changes nothing here, and a test keeps the file equal to the bytes the font buil
 
 **NEW.** New from template: a button right of New on the start screen, `New from template · Ctrl+Shift+N`, and the key
 Ctrl+Shift+N (on the start screen and with a drawing open) run NEW with Select Template opened in a `DrawingTemplates`
-folder beside GeometryHelper.Cad.dll, as Fonts, Hatches, Linetypes and AutoLisps are. A drawing saved as `.dwt` (SAVEAS, Files
+folder beside GeometryHelper.Cad.dll, as Fonts, Hatches, Linetypes and Lisps are. A drawing saved as `.dwt` (SAVEAS, Files
 of type: Drawing Template) and put there is listed, and starts an untitled Drawing1.dwg with its layers, styles, blocks,
 layouts and units; the dialog is shown with one template as with many, and with none it says how to make one. Ctrl+N and
 QNEW stay a blank drawing. `DrawingTemplates` is now where the template folder points while Global settings name none (Select
@@ -41,7 +60,7 @@ Open folder. The `Template` folder beside the settings file, the default until n
 `CadSupportKind.DrawingTemplates` is new, and `GlobalSettings.DefaultTemplateFolder` now gives the folder this works out.
 
 **NEW.** The app has a `Plugins` folder beside `GeometryHelper.Cad.App.exe`, as it has `Fonts`, `Hatches`, `Linetypes` and
-`AutoLisps` (`CadSupportKind.Plugins`; the build copies it with a `README.txt`). Put a plugin there and it loads when the app
+`Plugins` (`CadSupportKind.Plugins`; the build copies it with a `README.txt`). Put a plugin there and it loads when the app
 starts: every `.dll` directly in it, by the order of the names (either case the same), then every subfolder as one plugin,
 the same way, so a plugin of several .dll files lives in a folder of its own, named by the folder's `plugin.json` where it
 has one and by the folder where it has not. They load through the plugin manager as before (shadow copy, a load context of
@@ -185,15 +204,15 @@ only when disabled. Every button filled with the accent shares one style, `GhAcc
 the same flat grey as the Close, where it was the dark input colour with a border. The transparent and outlined buttons keep
 their grey hover.
 
-**NEW.** An `AutoLisps` folder beside `GeometryHelper.Cad.dll` (beside the exe in the app), the fourth default folder with `Fonts`,
-`Hatches` and `Linetypes` (`CadSupportKind.AutoLisps`, copied by the build with a `README.txt`). Every `.lsp` file directly in it
+**NEW.** A `Lisps` folder beside `GeometryHelper.Cad.dll` (beside the exe in the app), the fourth default folder with `Fonts`,
+`Hatches` and `Linetypes` (`CadSupportKind.Lisps`, copied by the build with a `README.txt`). Every `.lsp` file directly in it
 loads into each drawing when it opens, in the order of the file names ignoring case, after `acad.lsp` and `acaddoc.lsp` and
 before the Startup Suite and `S::STARTUP`: a folder holding `10-layers.lsp` and `20-dims.lsp` gives both commands in every
 drawing with no APPLOAD. An error in a file is written and the next loads; `x.lspx`, other extensions and files in a
 subfolder are left alone; a compiled `.fas` or `.vlx` writes the usual refusal. The folder is on the AutoLISP search path
 after the support folders of Folder preference, so `load`, `findfile` and `load_dialog` find a file in it by its bare name; it
-is under the program folder, which SECURELOAD always trusts, and Folder preference lists it read-only with Open folder. No
-sample routine is shipped, since what is there runs for every drawing, and the Python wheel has no such folder.
+is under the program folder, which SECURELOAD always trusts, and Folder preference lists it read-only with Open folder. Only one sample routine
+is shipped (`GH-DrawingInfo.lsp`, above), since what is there runs for every drawing, and the Python wheel has no such folder.
 
 **FIXED.** A name with a relative folder, `(load "Sub/x")`, `(load "./x.lsp")`, `(findfile "Sub/x.txt")`, was taken from the
 folder of the process (`load`) or the current folder alone (`findfile`), so a subfolder of a support folder could not be

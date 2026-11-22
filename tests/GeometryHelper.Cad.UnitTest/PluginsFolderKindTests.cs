@@ -8,7 +8,7 @@ namespace GeometryHelper.Cad.UnitTest
 {
     /// <summary>
     /// The Plugins folder beside the program (<see cref="CadSupportKind.Plugins"/>): shipped with a README.txt as Fonts,
-    /// Hatches, Linetypes and AutoLisps are, and on none of the search paths of fonts, hatch patterns, linetypes or AutoLISP.
+    /// Hatches, Linetypes and Lisps are, and on none of the search paths of fonts, hatch patterns, linetypes or AutoLISP.
     /// </summary>
     public sealed class PluginsFolderKindTests : IDisposable
     {
@@ -49,7 +49,7 @@ namespace GeometryHelper.Cad.UnitTest
         public void ThePluginsFolder_IsOnNoSupportSearchPath()
         {
             Directory.CreateDirectory(Path.Combine(_root, "Plugins"));
-            Directory.CreateDirectory(Path.Combine(_root, "AutoLisps"));
+            Directory.CreateDirectory(Path.Combine(_root, "Lisps"));
             CadDocument document = CadDocument.From(new DxfDatabase("AC1027"), Path.Combine(_root, "a.dxf"));
             document.SupportRoots = new CadSupportFolders(_root);
             string plugins = Path.Combine(_root, "Plugins");
@@ -69,7 +69,7 @@ namespace GeometryHelper.Cad.UnitTest
 
             var session = new CadCommandSession(document, CadCommandRegistry.CreateDefault());
 
-            Assert.Equal(new[] { Path.Combine(_root, "AutoLisps") }, session.Lisp.SupportFolders);
+            Assert.Equal(new[] { Path.Combine(_root, "Lisps") }, session.Lisp.SupportFolders);
         }
     }
 }

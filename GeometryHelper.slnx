@@ -9,6 +9,7 @@
         <Project Path="src/GeometryHelper.Cad.Python/GeometryHelper.Cad.Python.csproj" />
         <Project Path="src/GeometryHelper.Cad.Wpf/GeometryHelper.Cad.Wpf.csproj" />
         <Project Path="src/GeometryHelper.Cad.App/GeometryHelper.Cad.App.csproj" />
+        <Project Path="src/GeometryHelper.Cad.Plugins.DrawingInfo/GeometryHelper.Cad.Plugins.DrawingInfo.csproj" />
     </Folder>
     <Folder Name="/tests/">
         <Project Path="tests/GeometryHelper.UnitTest/GeometryHelper.UnitTest.csproj" />
