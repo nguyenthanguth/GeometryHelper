@@ -6,6 +6,43 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**BREAKING.** Python in GeometryHelper CAD is a way to write commands, not a console, and its names follow the C# plugin API
+and AutoLISP. The PYTHON palette, the commands PYTHON and PYTHONCLOSE and `PythonConsolePalette`, `PythonConsoleViewModel` and
+`MainViewModel.PythonConsole` are removed, and so is the screenshot option `--python`; PYRUN stays. In `geometryhelper.cad`,
+`cad_command` is now `@command(name, alias=, description=, uses_selection=)`, the feeder `command(...)` is `cmd(...)` (with
+`PAUSE` to hand one prompt to the user), `get_entity()` returns an `Entity` or `None` and `get_selection()` a list of `Entity`
+(they gave handles), and `document()` and `selection()` are `active_drawing().net` and `active_drawing().selection()`. There are
+no forwarders: the packages are unreleased, so nobody outside the repository is told by a deprecation. The remote
+`ICadRemoteHost` has a new member `Close`, and `CadSupportKind` has `Pythons`, for the same reason.
+The palette's four source files, its three test files and 89 test methods are removed, the tests of what stays (no `PYTHON`
+command after `UsePython`, PYRUN with no Python, a Python setting applied before the engine starts) kept on the command line.
+After the change the suites read Cad 13 884, Cad.Wpf 2 466, Cad.Plugins 95, Cad.Python 239 (on .NET 8 and .NET Framework 4.8),
+Cad.Remote 101 and the Python suite 696 on each runtime, and the guide builds with 0 warnings.
+
+**NEW.** The `Drawing` API of Python, the same in the app (`active_drawing()`, `documents()`), from outside (`connect()`, any
+drawing of the app's list, a non-active one too) and with no app (`open_file()`, `new_file()`): `entities`, `add_line`,
+`add_circle`, `add_arc`, `add_polyline`, `add_text`, `add_mtext`, `add`, `modify`, `erase`, `layers`, the styles and blocks,
+`pick_point`, `pick_object`, `pick_objects`, `save`, `save_as`, `close`, and `commit()` to apply what was queued as one undo
+step. A `.py` adds to the window as a C# plugin does: `add_ribbon_tab`, `ribbon_button`, `split_button`, `add_drawings_menu`,
+`add_canvas_menu`, `add_properties` and the rest of the table in [Python commands and tools](src/GeometryHelper/docs/presenter/python.md),
+each with its `Example:` in its docstring (the new test `test_g1_every_public_name_is_documented.py` fails on a public name with
+no docstring, no `Example:` or an unannotated parameter, and runs pyright strict over the package). The same test run found
+`_IN_APP` in `cad/_ui.py` read by pyright strict as a constant redefined, which is renamed `_in_app`. A new public
+`CadDimensionPicture.Redraw(DxfDimension)` draws a dimension's picture as DIM does: a dimension added or changed from Python
+now comes with the lines, arrows and words of its measurement (a rotated dimension of 100 has the words `100`, and `150` once
+moved), where it kept an empty or an old picture. Acceptance, each test run on .NET 8 and .NET Framework 4.8: `C1`, loaded from
+a Pythons folder, moves a selection to the layer of a picked object and one U takes it back, and the same function body through
+`connect()` does it in a drawing that is not the active one; and `DIMLAY`, written in AutoLISP and in Python, run on two copies
+of a drawing of three dimensions, gives drawings equal object by object after both are saved and read again (layer DIM, text
+height 2.5, measurement and picture).
+
+**NEW.** Python files load like AutoLISP's: a `Pythons` folder beside `GeometryHelper.Cad.dll` (its `.py` files load once at
+start, by name; its subfolders are packages), a Python Startup Suite in Load/Unload Applications, `.py` rows there with their
+commands and a Python chip, PYLOAD as the `.py` picker, and a `.py` dropped on the window. An empty Pythons folder starts no
+engine (1 ms in the W1 run), one `.py` costs about 0.45 s at start. From outside, `CadRemoteDocument.Close(bool discard = false)`
+refuses a drawing with changes not saved and `Close(discard: true)` closes it without saving, and `TextStyles`,
+`DimensionStyles` and `Blocks` read the styles and blocks as copies sorted by name.
+
 **FIXED.** Add folder… on the Security page of Global settings shows the Windows folder picker. It was a Save dialog
 that wrote a name into the folder to learn it, so a folder the user cannot write in, such as one of Program Files, could not be
 chosen: Windows offered to save in the user's profile folder instead (found by hand with the app, not by any test). The .NET

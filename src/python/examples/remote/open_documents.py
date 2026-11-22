@@ -7,19 +7,18 @@ space, and the count of each class of object.
 
 from collections import Counter
 
-import geometryhelper  # noqa: F401  (starts .NET and loads the assemblies)
-from GeometryHelper.Cad.Remote import CadApplication, CadObjectFilter
+from geometryhelper.cad import App
+from GeometryHelper.Cad.Remote import CadApplication
 
 
 def main(app: CadApplication) -> None:
-    model_space = CadObjectFilter()
-    model_space.Layout = "Model"
-    for drawing in app.Documents:
-        objects = drawing.GetObjects(model_space)
-        classes = Counter(type(entity).__name__ for entity in objects)
-        mark = " *" if drawing.IsActive else ""
+    cad = App(app)  # the Drawing API over the connection, as connect() gives it
+    for drawing in cad.documents:
+        objects = drawing.entities(layout="Model")
+        classes = Counter(type(entity.net).__name__ for entity in objects)
+        mark = " *" if drawing.is_active else ""
         per_class = ", ".join(f"{name}:{classes[name]}" for name in sorted(classes))
-        print(f"{drawing.Name}{mark}\t{objects.Count}\t{per_class}")
+        print(f"{drawing.name}{mark}\t{len(objects)}\t{per_class}")
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ using Xunit;
 
 namespace GeometryHelper.Cad.Wpf.UnitTest
 {
-    /// <summary>What the tests of the PYTHON palette's window parts share: a thread with a dispatcher, as the window's, and a way to let it work.</summary>
+    /// <summary>What the tests of Python in the window share: a thread with a dispatcher, as the window's, and a way to let it work.</summary>
     internal static class PythonWindowKit
     {
         /// <summary>The longest any wait of these tests lasts, in seconds: far above the under one second the slowest of them takes, so only a hang reaches it.</summary>

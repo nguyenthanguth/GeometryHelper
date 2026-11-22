@@ -194,6 +194,10 @@ class App:
 
         with connect() as app:
             print([drawing.name for drawing in app.documents])   # ['plan.dxf', 'Drawing2.dxf']
+
+    Example:
+        with connect() as app:
+            [d.name for d in app.documents]   # ['Drawing1.dxf', 'Drawing2.dxf'] in the order the app lists them
     """
 
     def __init__(self, cad_application: Any) -> None:
@@ -224,26 +228,46 @@ class App:
 
     @property
     def documents(self) -> Documents:
-        """The drawings the app has open, in its order."""
+        """The drawings the app has open, in its order.
+
+        Example:
+            app.documents["Drawing2.dxf"].is_active   # True when that drawing is the one shown
+        """
         return Documents(self._listed)
 
     @property
     def active_drawing(self) -> Drawing | None:
-        """The drawing shown, or None where the app has none open."""
+        """The drawing shown, or None where the app has none open.
+
+        Example:
+            drawing = app.active_drawing          # the drawing shown; None where the app has none open
+        """
         document = self._app.ActiveDocument
         return None if document is None else self._drawing(document)
 
     def open(self, path: str) -> Drawing:
-        """Open a drawing file in the app, which shows it: ``app.open("plan.dxf")``."""
+        """Open a drawing file in the app, which shows it: ``app.open("plan.dxf")``.
+
+        Example:
+            drawing = app.open("plan.dxf")        # shown in the app; drawing.name == "plan.dxf"
+        """
         return self._drawing(self._app.Open(path))
 
     def new(self, template: str | None = None) -> Drawing:
-        """Make a new drawing in the app, from a template file where one is given, and show it."""
+        """Make a new drawing in the app, from a template file where one is given, and show it.
+
+        Example:
+            drawing = app.new()                   # a blank drawing; its name is 'Drawing1.dxf' in a fresh app
+        """
         return self._drawing(self._app.New(template))
 
     def run_command(self, drawing: Drawing, text: str) -> Any:
         """Type ``text`` at the command line of a drawing, as a user types it (``"\\n"`` is Enter), and return the
-        ``CadRemoteCommandResult``: ``app.run_command(drawing, "ZOOM E\\n")``."""
+        ``CadRemoteCommandResult``: ``app.run_command(drawing, "ZOOM E\\n")``.
+
+        Example:
+            app.run_command(drawing, "ZOOM E\\n")  # typed on that drawing's command line; "\\n" is Enter
+        """
         return drawing.net.SendCommand(text)
 
 
@@ -253,6 +277,12 @@ def connect(pid: int | None = None, drawing: str | None = None) -> App:
 
         with connect() as app:
             app.new().add_line((0, 0), (100, 0))
+
+    Example:
+        with connect() as app:                # the only GeometryHelper CAD running
+            drawing = app.new()
+            drawing.add_line((0, 0), (100, 0))
+            drawing.commit()                  # ['101']
     """
     CadApplication = _remote.CadApplication
     if pid is not None and drawing is not None:

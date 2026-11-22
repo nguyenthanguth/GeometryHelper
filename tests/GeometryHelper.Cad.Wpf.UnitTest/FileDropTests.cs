@@ -551,28 +551,6 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
             });
         }
 
-        [Fact]
-        public void ADropOnThePythonConsolesTranscript_IsLeftToTheTranscript_AsBefore()
-        {
-            string tools = Code(_folder, "tools.lsp", "(princ \"not here\")\n");
-
-            OnWindowThread(() =>
-            {
-                MainViewModel model = Opened(s => s.SecureLoad = 0);
-                var workspace = new CadWorkspace { DataContext = model };
-                workspace.Measure(new Size(1600, 960));
-                workspace.Arrange(new Rect(0, 0, 1600, 960));
-                workspace.UpdateLayout();
-
-                var data = new DataObject();
-                data.SetData(DataFormats.FileDrop, new[] { tools });
-                DragEventArgs drop = Drag(data, DragDrop.PreviewDropEvent);
-                workspace.PythonPalette.TranscriptBox.RaiseEvent(drop);
-
-                Assert.Empty(model.LoadedLispFiles);
-            });
-        }
-
         /// <summary>A drag event as the system raises it: the constructor of <see cref="DragEventArgs"/> is internal.</summary>
         private static DragEventArgs Drag(IDataObject data, RoutedEvent kind)
         {

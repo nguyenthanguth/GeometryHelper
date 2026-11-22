@@ -7,7 +7,7 @@ each layer.
 
 from collections import Counter
 
-from geometryhelper.cad import active_drawing, cmd, command, get_distance, get_point, write
+from geometryhelper.cad import active_drawing, command, get_distance, get_point, write
 from GeometryHelper.Geometry import GeoPoint2
 
 
@@ -23,16 +23,18 @@ def rectangle_by_centre() -> None:
     if width <= 0 or height <= 0:
         write("The width and the height must be more than 0.")
         return
-    corner = (centre.X - width / 2, centre.Y - height / 2)
-    opposite = (centre.X + width / 2, centre.Y + height / 2)
-    cmd("RECTANG", corner, opposite)
+    left, right = centre.X - width / 2, centre.X + width / 2
+    bottom, top = centre.Y - height / 2, centre.Y + height / 2
+    active_drawing().add_polyline([(left, bottom), (right, bottom), (right, top), (left, top)], closed=True)
 
 
 @command("LAYERCOUNT")
 def layer_count() -> None:
-    database = active_drawing().net.Database
+    drawing = active_drawing()
     # Counted under the layer table's spelling: an object on "walls" is on the layer the table calls "Walls".
-    spelling = {layer.Name.casefold(): layer.Name for layer in database.LayerTable}
-    counts = Counter(spelling.get(entity.Layer.casefold(), entity.Layer) for entity in database.ModelSpace)
+    counts = Counter(
+        drawing.layers[entity.layer].name if entity.layer in drawing.layers else entity.layer
+        for entity in drawing.entities(layout="Model")
+    )
     for name in sorted(counts, key=lambda name: (name.casefold(), name)):
         write(f"{name}: {counts[name]}")

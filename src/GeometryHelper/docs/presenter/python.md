@@ -1,25 +1,56 @@
-# Python in the app
+# Python commands and tools
 
-GeometryHelper CAD runs Python. A PYTHON palette takes a line of Python at a time, as `python` does at its prompt, PYRUN
-runs a `.py` file, and PYLOAD loads a file whose decorated functions become commands of the command line. A script works on
-the drawing it was started in through the .NET object model, the same one the C# pages describe, and through a small module,
-`geometryhelper.cad`, that gives it the command line, the prompts a command has and one undo step for everything it does.
+GeometryHelper CAD runs Python as it runs AutoLISP. A `.py` file loads from a Pythons folder when the app starts, from APPLOAD,
+from PYLOAD, from the Python Startup Suite and by dropping it on the window; PYRUN runs a file once, as `(load "x")` loads a
+routine. A function marked `@command("C1")` becomes a command of the command line, talks to the user through the `get_*`
+prompts and edits the drawing as one undo step. A file adds to the window as a [command plugin](plugins.md) does: ribbon
+tabs, panels and buttons, menu items, Properties rows. A program outside the app drives the running app and any drawing in
+its list of open drawings with the same names ([Driving the app from another program](remote.md)). The old PYTHON palette is
+gone: Python is a way to write commands, not a console.
 
 The Python is yours: the app does not bring one. It needs a CPython 3.11 to 3.15, 64-bit, on the machine, and finds it as
-[the next section](#finding-python) says. With none the app works as it did, and says where Python is asked for what to
-install. This page is about Python inside the app; a script that runs outside it, on the library alone or against a running
-app, is on [Python](../python.md) and [Driving the app from another program](remote.md).
+[Finding Python](#finding-python) says. With none the app works as it did, and says what to install where Python is asked for.
+This page is about Python inside the app; a script that runs outside it, on the library alone or against a running app, is on
+[Python](../python.md) and [Driving the app from another program](remote.md).
 
 ```python
-from geometryhelper.cad import command, get_point
+from geometryhelper.cad import active_drawing, command, get_distance, get_point
 
-centre = get_point("Specify centre")      # picked with the object snaps, or typed
-command("CIRCLE", centre, 25)             # as if CIRCLE, the centre and 25 were typed
+@command("RING", alias="RG", description="Draws a circle of the radius asked")
+def ring() -> None:
+    centre = get_point("Specify centre")          # picked with the object snaps, or typed
+    radius = get_distance("Specify radius", base=centre)
+    drawing = active_drawing()
+    drawing.add_circle(centre, radius)
+    drawing.commit()
 ```
 
-Units are the drawing's, millimetres in a drawing made in them; the module converts nothing. No tolerance is chosen for you:
-a script passes a [`Tolerance`](xref:GeometryHelper.Tolerance) where the C# would. The presenter is 2D, so a point asked is a
-[`GeoPoint2`](xref:GeometryHelper.Geometry.GeoPoint2).
+Units are the drawing's, millimetres in a drawing made in them; nothing is converted. No tolerance is chosen for you: a script
+passes a [`Tolerance`](xref:GeometryHelper.Tolerance) where the C# would. The presenter is 2D, so a point asked is a
+[`GeoPoint2`](xref:GeometryHelper.Geometry.GeoPoint2). Every public name of `geometryhelper.cad` has a docstring with an
+`Example:` block and is typed inline (the package carries `py.typed`, so an editor and pyright read the types from the code).
+
+## Where files load from
+
+| How | What happens |
+|---|---|
+| The **Pythons** folder, beside `GeometryHelper.Cad.dll` as Lisps is | the `.py` files directly in it load at start, by name ignoring case then ordinal; the folders under it are packages they import and do not run as startup files. A `.py` in Lisps is not loaded, nor a `.lsp` in Pythons |
+| The **Python Startup Suite** of Load/Unload Applications (APPLOAD), saved in the settings as `support.pythonStartupSuite` | its files load after the Pythons folder, in the order of the list |
+| **APPLOAD**, Load… | a `.py` row of kind Python, with the commands it defined; Reload loads it again, Unload takes its commands out of every drawing |
+| **PYLOAD** | the multi-select picker for `.py` files, loading them as APPLOAD does so that they show in its list |
+| **Drag and drop** of a `.py` onto the window | loads it as APPLOAD's Load does; passed over while a command or a routine waits, and with no drawing open |
+| **PYRUN** | runs a file once, as `python file.py` does; its commands are not kept |
+
+The start loads once per process, at the first drawing opened or made and after that drawing's AutoLISP start, because Python
+commands belong to the whole process. The engine starts at the start of the app only where there is a `.py` to load; with none
+it starts at the first run, as before, and an app with an empty Pythons folder starts as it always did. A file that fails writes
+one line and the next file loads; with no Python found the start writes, once, `Python files were not loaded: <the reason>` and
+the app carries on. The Pythons folder lies under the program folder, which [the security gate](#trusted-folders) trusts with all
+its subfolders, so its files load with no question; a Startup Suite file elsewhere goes through the gate as PYLOAD does.
+
+Load/Unload Applications lists a Python file with a Python chip beside Lisp and Plugins, an amber kind colour, and its commands.
+A file that loads says `tools.py loaded: C1, DOT.` on the command line and `tools.py successfully loaded.` in the footer; one
+that does not says `tools.py failed to load: <the error>` and defines no command.
 
 ## Finding Python
 
@@ -45,7 +76,7 @@ the environment holds, `import geometryhelper` gives the app's own copy of the p
 
 Before Python starts the app checks `python3XY.dll` in the base folder (XY from 11 to 15, never the stable-ABI
 `python3.dll`, which does not work) and that the DLL is a 64-bit one. What is wrong is written where Python was asked for,
-on the command line and in the palette, in one of these sentences:
+on the command line, in one of these sentences:
 
 | When | The sentence |
 |---|---|
@@ -59,55 +90,9 @@ on the command line and in the palette, in one of these sentences:
 | `python3.dll` named | `<path> is not a python3XY.dll: GeometryHelper CAD needs the versioned DLL, never python3.dll.` |
 | the start failed | `Python could not start: <first line of the error>. Fix Global settings > Python and restart GeometryHelper CAD.` |
 
-`<path>` is the `python.exe` the finder tried, or the DLL where `PYTHONNET_PYDLL` named one with no `python.exe` beside it. PYRUN and PYLOAD write the
-sentence and end; the palette shows it in its banner with a button to Global settings; every other command works.
-
-Python starts at the first run or palette entry of the session, not when the app starts: through a virtual environment's
-`python.exe` the engine took 80 ms to start (a probe, warm). Once it has started, a changed setting takes effect at the next
-start of the app, and Global settings says so. The engine is started once per process, and a failed start is why the last
-sentence says to restart.
-
-## The PYTHON palette
-
-PYTHON shows the palette, docked under the canvas as wide as the canvas, and PYTHONCLOSE or the × in its header hides it.
-It has, from the top:
-
-- a header with the name of the drawing the console belongs to;
-- a toolbar: Run file (PYRUN), Load (PYLOAD), Stop, then Clear and Reset console;
-- the transcript, in a monospace font and three colours: what you typed after `>>>` or `...`, what the scripts printed, and
-  errors with their tracebacks, with the last 5 000 lines kept. A fourth, muted colour is the app's own lines: the start of a
-  run that is not an entry (`PYRUN circles.py`), the result of PYLOAD, and refusals;
-- the input box, where Enter runs a complete entry, Shift+Enter adds a line, and Up and Down walk the entries typed, 200
-  kept for the session;
-- a status line, `Python 3.14.4 (venv314)` and a dot, green when Python is ready, amber while a script runs or waits at a
-  prompt, red with `No Python found` when none was found, or `Python is not available` when the one found cannot be used.
-
-The input is disabled while a run goes on, with the reason in it, and so are Run file, Load and Reset console. A script that
-asks a question asks it on the command line, so there is one place to answer; Stop, or Esc, ends the question.
-
-Each drawing has a console of its own: its own transcript and its own names, made at its first entry, with nothing imported.
-The palette follows the drawing shown, so switching drawings shows that drawing's transcript and names. Reset console drops
-the names of the drawing shown and writes `Console reset.` in the app's muted colour.
-
-```text
->>> x = 2 + 3
->>> x
-5
->>> def area(r):
-...     return 3.14159 * r * r
-...
->>> area(10)
-314.159
-```
-
-An entry that is not yet complete, such as `def area(r):`, keeps its text and opens a `...` line, as `python -i` does; a
-syntax error is written and the entry is dropped; the value of an expression is written with `repr`. An entry that draws is
-one undo step named `Python` ([below](#one-undo-step)). An entry typed while a command runs in that drawing is refused:
-`A command is running: finish it or press Esc first.` One typed while a script runs is refused with the first sentence of
-[Errors and refusals](#errors-and-refusals).
-
-With no usable Python the palette shows a banner at the top of the transcript with the sentence above and a button that opens
-Global settings at Python, and says that everything else works as before. Clear still works.
+`<path>` is the `python.exe` the finder tried, or the DLL where `PYTHONNET_PYDLL` named one with no `python.exe` beside it.
+PYRUN and PYLOAD write the sentence and end; every other command works. Once the engine has started, a changed setting takes
+effect at the next start of the app, and Global settings says so.
 
 ## PYRUN
 
@@ -118,56 +103,60 @@ is not a full path is taken from the folder of the drawing where the drawing has
 The file runs as `python file.py` runs it: fresh globals each time with `__name__` equal to `"__main__"` and `__file__` the
 full path, `sys.argv` equal to `[path]`, and the file's folder first on `sys.path` for the run only, so a file beside it can
 be imported. PYRUN ends the command first, and the script starts when the command line is at the Command prompt again, so
-`session().IsRunning` is false in it.
+`session().IsRunning` is false in it. The run is one undo step named `PYRUN`.
 
-## PYLOAD and `@cad_command`
+## `@command`
 
-PYLOAD loads a file that defines commands. The file is imported as a fresh module named `geometryhelper_user_<stem>`, with
-its folder on `sys.path` for the import, and each function decorated with `cad_command` becomes a command:
+A file loaded as above is imported as a fresh module named `geometryhelper_user_<stem>`, with its folder on `sys.path` for the
+import, and each function decorated with `command` becomes a command of every open drawing and of those opened after:
 
 ```python
-from geometryhelper.cad import cad_command, command, get_distance, get_point, write
-
-@cad_command("HELLO", alias="HI")
-def hello():
-    write("Hello from Python")
-
-@cad_command("DOT")
-def dot():
-    centre = get_point("Specify centre")
-    radius = get_distance("Specify radius", base=centre)
-    if centre is not None and radius is not None:
-        command("CIRCLE", centre, radius)
+@command(name, *, alias=None, description=None, uses_selection=False)
 ```
 
-PYLOAD of this file, `tools.py`, writes `tools.py loaded: DOT, HELLO.` (the names sorted). HELLO, HI and DOT are then commands
-of every open drawing and of those opened after, Enter repeats them, and AutoComplete offers them as it offers a plugin's
-commands. A command runs its function with no arguments, as a run of its own whose undo step carries the command's name; what
-the function returns is ignored. `alias` is taken when no command or alias has it. `description` is accepted and kept for
-later: nothing shows it yet.
+The command is typed by its name or alias, Enter repeats it, AutoComplete offers it as it offers a plugin's commands, and
+the function runs with no arguments as a run of its own whose undo step carries the command's name; what it returns is
+ignored. `alias` is taken when no command or alias has it. `uses_selection=True` makes `get_selection()` return the objects
+selected before the command started, without asking, as MOVE does, and ask only when none were. `description` is kept for later:
+nothing shows it yet. The module-level code of the file runs at the load, as the twin of a plugin's `Initialize`, in a run
+named PYLOAD (one undo step if it draws); a function marked `@on_unload` is the twin of `Terminate` and runs when the file is
+unloaded, loaded again or the app closes (an error in it is one line and the unload goes on).
 
-Loading the same file again replaces its commands, the old ones taken out first. A name that is a command already, and not
-this file's, is refused and the rest of the file's commands are kept: `PYLOAD: LINE is a command already; tools.py did not
-define it.` A file that fails part way keeps no command of its own; the error is written as [below](#errors-and-refusals). The
-module-level code of the file runs at the load, as a run named PYLOAD, so a file that draws at its top level makes one undo
-step. The commands last for the session; there is no startup list yet.
+Loading a file again replaces its commands, the old ones taken out first. A name that is a command already, and not this file's,
+is refused and the rest of the file's commands are kept: `PYLOAD: LINE is a command already; tools.py did not define it.` A file
+that fails part way keeps no command of its own.
 
-`cad_command` is the Python twin of the `[CadCommand]` attribute of a [command plugin](plugins.md). It is not called
-`command`, which is the function that feeds the command line.
+`command` is the Python twin of the `[CadCommand]` attribute of a [command plugin](plugins.md).
 
-## The module `geometryhelper.cad`
+### A command with a selection
 
-Import it in a script, in the palette, or in a loaded file. Outside the app the import is an `ImportError`:
-`geometryhelper.cad works inside GeometryHelper CAD only: in the PYTHON palette, PYRUN or PYLOAD.` A function that needs a
-running script, called when none runs, is a `RuntimeError`.
+`selection_lengths.py` asks `Select objects:` as a command does, adds up the length and the closed area, and writes the total.
+On a line from 0,0 to 300,400, a circle of radius 120, a closed polyline rectangle 100 by 50 and a text, all selected, it writes
+`4 objects: length 1553.982, closed area 50238.934, 1 skipped` (the test `TheFourObjectsOfDrawingH_GiveALengthAnAreaAndOneSkipped`
+of `ExampleTests` runs this file).
+
+[!code-python[](../../../python/examples/in_app/selection_lengths.py)]
+
+### A command that draws
+
+`drawing_tools.py` defines RECTC (alias RC), a rectangle about a centre, and LAYERCOUNT. RECTC with the centre 500,300, a width
+of 200 and a height of 100 draws one closed polyline of 20 000 square units, one undo step named RECTC; the width and the height
+default to 1 000 and 500 on Enter.
+
+[!code-python[](../../../python/examples/in_app/drawing_tools.py)]
+
+### An edit that numbers
+
+`number_points.py` is run with PYRUN: it asks for the first number and then for points until Enter, and adds a text of height
+2.5 with the next number at each point. With a first number of 5 and the points 100,200, 300,200 and 500,200 it adds the texts
+5, 6 and 7 and writes `3 points numbered, 5 to 7.`; one U takes all three away.
+
+[!code-python[](../../../python/examples/in_app/number_points.py)]
+
+## The prompts
 
 | Function | What it does |
 |---|---|
-| `document()` | the drawing the run started in, a [`CadDocument`](xref:GeometryHelper.Cad.CadDocument); not the one shown later |
-| `session()` | that drawing's [`CadCommandSession`](xref:GeometryHelper.Cad.CadCommandSession) |
-| `selection()` | the handles of the objects selected now |
-| `write(text)` | writes one line or more on the command line and in the palette |
-| `command(*answers)` | runs a command to its end, as [below](#command) |
 | `get_point(message, base, keywords, default)` | a [`GeoPoint2`](xref:GeometryHelper.Geometry.GeoPoint2), picked with the object snaps or typed |
 | `get_distance(message, base, keywords, default)` | a distance, typed or as two points |
 | `get_angle(message, base, keywords, default)` | an angle in radians, typed in degrees or as a direction |
@@ -175,70 +164,24 @@ running script, called when none runs, is a `RuntimeError`.
 | `get_real(message, keywords, default)` | a number |
 | `get_string(message, default, spaces)` | a text; with `spaces` false it ends at the first space |
 | `get_keyword(message, keywords, default)` | one of the keywords |
-| `get_entity(message, keywords)` | the handle of one object |
-| `get_selection()` | the handles of the objects selected at "Select objects:", until Enter |
+| `get_entity(message, keywords)` | one object, as an `Entity` of the run's drawing, or `None` on Enter |
+| `get_selection()` | the objects selected at "Select objects:", until Enter, as a list of `Entity` |
+| `write(text)` | writes one line or more on the command line |
+| `session()` | the raw .NET [`CadCommandSession`](xref:GeometryHelper.Cad.CadCommandSession) of the run's drawing |
 | `Cancelled` | the exception of Esc at a prompt |
-| `cad_command(name, alias, description)` | the decorator of [PYLOAD](#pyload-and-cad_command) |
 
 A prompt behaves as a command's own prompt does: the object snaps, typed coordinates, the rubber band from `base`, and Esc.
 The message is written with a colon after it, `Specify centre:`, and a default is shown in angle brackets. The answer is a
-point, a number or a handle as it was given, or a keyword as the prompt writes it (a `str`). Enter with no default gives
-`None`, as `getpoint` of AutoLISP gives `nil`, and Enter with a default gives the default. `get_distance` takes a distance
-typed or picked as two points, `get_angle` a direction as well as degrees, and the default of an angle is in degrees, as the
-prompt shows it, while the answer is in radians. `get_integer` and `get_real` ask for text and read it in the invariant culture,
-so `2.5` is 2.5 whatever the Windows settings are, and ask again after text that is none, writing `Requires an integer value.`
-or `Requires numeric value.`, the words of AutoLISP's `getint` and `getreal`.
+point, a number or an `Entity` as it was given, or a keyword as the prompt writes it (a `str`). Enter with no default gives
+`None`, as `getpoint` of AutoLISP gives `nil`, and Enter with a default gives the default. The default of an angle is in
+degrees, as the prompt shows it, while the answer is in radians. `get_integer` and `get_real` read text in the invariant
+culture, so `2.5` is 2.5 whatever the Windows settings are, and ask again after text that is none, writing `Requires an
+integer value.` or `Requires numeric value.`, the words of AutoLISP's `getint` and `getreal`.
 
-### A script that asks and draws
+## `cmd` and `PAUSE`
 
-The file `rings.py` asks for a point and a distance, draws ten circles with `command`, and a line through the object model.
-Each of the ten circles is a command typed for the user; the line is an edit made as C# would make it.
-
-```python
-from System import Action
-from GeometryHelper.Cad import CadEditScope
-from GeometryHelper.Dxf import DxfLine
-from GeometryHelper.Geometry import GeoPoint3
-from geometryhelper.cad import command, document, get_distance, get_point, write
-
-centre = get_point("Specify centre")
-step = get_distance("Specify ring step", base=centre)
-if centre is None or step is None:
-    write("Nothing drawn.")
-else:
-    for i in range(1, 11):
-        command("CIRCLE", centre, step * i)
-    doc = document()
-    axis = DxfLine()
-    axis.StartPoint = GeoPoint3(centre.X - 10 * step, centre.Y, 0)
-    axis.EndPoint = GeoPoint3(centre.X + 10 * step, centre.Y, 0)
-    doc.ApplyEdit("Axis", None, Action[CadEditScope](lambda scope: scope.Append[DxfLine](doc.ModelSpace, axis)))
-    write(f"{doc.EntityCount} objects drawn, the axis {axis.StartPoint.DistanceTo(axis.EndPoint)} long")
-```
-
-Run with PYRUN in an empty drawing, with the point `100,50` picked and `5` typed, it draws circles of radius 5, 10 up to 50
-about (100, 50) and a line 100 long through the centre, and the command line ends:
-
-```text
-Specify centre:
-Specify ring step: 5
-Command: CIRCLE
-Specify center point for circle or [3P/2P/Ttr (tan tan radius)]:
-Specify radius of circle or [Diameter]: 5.0
-Command: CIRCLE
-Specify center point for circle or [3P/2P/Ttr (tan tan radius)]:
-Specify radius of circle or [Diameter] <5.0000>: 10.0
-...
-11 objects drawn, the axis 100.0 long
-```
-
-One U then takes all 11 objects away, the circles and the line, and Redo puts them back ([the undo step](#one-undo-step)).
-The `pythonnet` details of the line, the delegate and the generic argument, are those of [Python](../python.md#what-pythonnet-does-with-net).
-
-### `command`
-
-`command(*answers)` runs a presenter command to its end, inside the run's undo step, at the Command prompt. The first answer
-is the name of the command (`"CIRCLE"`, `"_LINE"`, an alias), and each answer after it is fed in order:
+`cmd(*answers)` runs a presenter command to its end, inside the run's undo step, at the Command prompt. The first answer is the
+name of the command (`"CIRCLE"`, `"_LINE"`, an alias), and each answer after it is fed in order:
 
 | Answer | Fed as |
 |---|---|
@@ -247,27 +190,127 @@ is the name of the command (`"CIRCLE"`, `"_LINE"`, an alias), and each answer af
 | an `int` or a `float` | typed, in the invariant culture |
 | a `GeoPoint2` or `(x, y)` | a point picked |
 | a `GeoPoint3` or `(x, y, z)` | typed as `x,y` |
-| a `list` of handles | the answer to "Select objects:", then Enter |
+| a `list` of handles or of entities | the answer to "Select objects:", then Enter |
+| `PAUSE` | hands that one prompt to the user (the string `"\"`, as AutoLISP's `pause`); Esc there raises `Cancelled` |
 
-`command("_LINE", (0, 100), (100, 100), "")` draws a line of 100 and ends. After the last answer the command must have ended;
-one that still asks is cancelled and raises `RuntimeError`: `CIRCLE still asked 'Specify radius of circle or [Diameter]:'
-after the last answer.` A name that is not a command, an answer the prompt refuses and an answer given after the command
-ended raise `ValueError` (`CIRCLE did not take 'abc' at 'Specify radius of circle or [Diameter]:'.`), the command cancelled
-first. The command's prompts and answers are written on the command line as if typed, and Enter afterwards still repeats the
-command the user ran, not the one the script fed. A command that opens a window of its own, a file dialog, shows it, modal,
-as typed by hand; use the `-` form of such a command (`-LAYER`) in a script.
+`cmd("_LINE", (0, 100), (100, 100), "")` draws a line of 100 and ends; `cmd("CIRCLE", PAUSE, 50)` lets the user pick the centre
+and gives the radius 50. After the last answer the command must have ended; one that still asks is cancelled and raises
+`RuntimeError`: `CIRCLE still asked 'Specify radius of circle or [Diameter]:' after the last answer.` A name that is not a
+command, an answer the prompt refuses and an answer given after the command ended raise `ValueError`, the command cancelled
+first. The command's prompts and answers are written on the command line as if typed. A command that opens a window of its own
+shows it, modal, as typed by hand; use the `-` form of such a command (`-LAYER`) in a script.
+
+## The drawing
+
+`active_drawing()` is the drawing the run started in (not the one shown later) and gives a `Drawing`; `documents()` lists the
+drawings of the window in its order, `open_drawing(path)` opens one as OPEN does and `new_drawing()` makes one. The same
+`Drawing` works on a running app from outside (`connect()`) and on a file with no app (`open_file`, `new_file`), so a script
+written for one runs on the others with only that line changed ([Python](../python.md#the-drawing-api)).
+
+A drawing is read as copies and changed by queueing (on a drawing made by `new_file()` the commit gives `['101', '102']`):
+
+```python
+drawing = active_drawing()
+drawing.layers.add("Steel", color=1)
+drawing.add_line((0, 0), (100, 0), layer="Steel")
+drawing.add_circle((50, 50), 25)
+handles = drawing.commit()          # the handles of the circle and the line, in the order added
+```
+
+| Member | What it does |
+|---|---|
+| `name`, `path`, `is_active`, `is_modified` | what the tab shows; `path` is `None` for a drawing never saved |
+| `entities(type, layer, layout)`, `entity(handle)`, `selection()`, `select(items)` | read objects as `Entity` copies; `type` is the DXF name, `"LINE"`, ignoring case |
+| `add(dxf_entity, layout)` | queue a copy of any `GeometryHelper.Dxf` entity |
+| `add_line`, `add_circle`, `add_arc`, `add_polyline`, `add_text`, `add_mtext` | queue the common objects; angles are **radians**; `**props` takes `layer`, `color`, `linetype` |
+| `modify(entity)`, `erase(entity_or_handle)` | queue a change made to `entity.net`, or an erase |
+| `commit()` | apply everything queued as one undo step; the handles of the objects added |
+| `layers`, `current_layer`, `text_styles`, `dimension_styles`, `blocks`, `layouts`, `current_layout` | the tables; styles and blocks are read-only copies |
+| `pick_point`, `pick_object`, `pick_objects` | ask the user (the `get_*` prompts in the app; the Remote picks from outside; `RuntimeError` on a file) |
+| `save()`, `save_as(path, version)`, `close(discard)` | as from outside; a modified drawing is refused by `close` unless `discard` is true |
+| `net` | the `CadDocument` (the `CadRemoteDocument` outside the app) |
+
+A point is a `GeoPoint2`, a `GeoPoint3` or a tuple of two or three numbers. An `Entity` has `handle`, `dxf_type` and a `net`, a
+**copy** of the `DxfEntity` that is never the live object, so nothing bypasses undo; `layer`, `color` (256 ByLayer, 0 ByBlock)
+and `linetype` are set on the `Entity` and committed with the drawing; after changing `net`, call `drawing.modify(entity)`. A
+`Layer` has `name` (read only) and settable `color`, `linetype`, `description`, `is_on`, `is_frozen`, `is_locked` and
+`is_plottable`. A dimension added or modified from Python is drawn by the app, so its picture holds the lines, arrows and words
+of its measurement ([`CadDimensionPicture.Redraw`](xref:GeometryHelper.Cad.CadDimensionPicture)): a rotated dimension from
+0,0 to 100,0 comes with the words `100`, and one moved to 150 with `150`.
+
+An object added from the app has the handle `~1`, `~2`... until `commit()` returns the real ones. In the app a command or run
+commits what is still queued when it ends, inside its own step; `save()` commits first in every backend; anything left queued
+when a script ends outside the app is lost, without a warning. A commit to a drawing other than the run's makes one step in
+that drawing, named after the run.
+
+### A drawing made and saved in code
+
+`make_drawing.py OUT` makes a blank drawing with `new_file()`, adds a layer `Outline`, makes it current, adds a rectangle 4 000
+by 3 000 and a circle of radius 500 on it, and saves the drawing as `OUT`, DXF or DWG by its extension. It prints `objects 2`,
+`layers 0, Outline` and `saved plan.dwg`, and the file holds a polyline of area 12 000 000 and the circle on `Outline`.
+
+[!code-python[](../../../python/examples/library/make_drawing.py)]
 
 ## One undo step
 
-A run is one undo step, whatever it draws, through the object model, through `command` or both. The step is named `PYRUN`
-for a file, the command's name for a command PYLOAD defined, `PYLOAD` for the module-level code of a load, and `Python` for a
-palette entry. A run that ends well ends every group it left open. A run that fails or is cancelled takes every open group
-back, so the drawing is as it was before the run, and nothing is left open that would make the next `SaveAs` throw.
+A run is one undo step, whatever it draws, through the Drawing API, through `cmd`, through the object model or all three. The
+step is named `PYRUN` for a file, the command's name for a command, and `PYLOAD` for the module-level code of a load. A run
+that ends well ends every group it left open. A run that fails or is cancelled takes every open group back, and drops what is
+still queued, so the drawing is as it was before the run and nothing is left open that would make the next `SaveAs` throw.
 
-The file `boom.py` draws a circle by `command("CIRCLE", (0, 0), 25)` and then divides by zero: the run fails, and the drawing
-has 0 objects, not 1, and no undo step. A run that only asks and writes makes no step and does not mark the drawing
-modified. An `undo_group` of the script, from `geometryhelper`, nests in the run's step. Autosave skips a drawing while a run
-waits at a prompt with its step open.
+A file that draws a circle with `cmd("CIRCLE", (0, 0), 25)` and then divides by zero fails the run: the drawing has 0 objects,
+not 1, and no undo step. A run that only asks and writes makes no step and does not mark the drawing modified. An
+`undo_group` of the script, from `geometryhelper`, nests in the run's step. Autosave skips a drawing while a run waits at a
+prompt with its step open.
+
+## Adding to the window
+
+A loaded file adds to the window as a plugin's `Initialize` does, through functions that take the same objects:
+
+```python
+from geometryhelper.cad import add_ribbon_tab, ribbon_button, ribbon_panel, ribbon_tab
+
+circle = ribbon_button("Circle", command="CIRCLE")
+hello = ribbon_button("Hello", run=lambda context: context.write("Hello"))
+add_ribbon_tab(ribbon_tab("tools", "Tools", [ribbon_panel("Draw", [circle, hello])]))
+```
+
+This adds a tab `Tools` with one panel `Draw` holding the buttons Circle, which starts CIRCLE, and Hello, which writes a line
+(the test `AfterTheLoad_TheFilesHostHoldsItsTab_ItsPanel_AndItsTwoButtons` of `PluginParityTests` reads these from the host the file filled). A
+callback is given a `Context` with `drawing` (a `Drawing`, or `None`), `selected` (a list of `Entity`), `is_command_running`,
+`write(text)` and `run_command(text)`.
+
+Every public member of `GeometryHelper.Cad.Plugins` has a Python name, or is left out with a reason:
+
+| C# | Python |
+|---|---|
+| `[CadCommand(Name, Alias, Description, UsesSelection)]` | `@command(name, alias=, description=, uses_selection=)` |
+| `ICadPluginApplication.Initialize(host)` | the file's module-level code at load |
+| `ICadPluginApplication.Terminate()` | `@on_unload` |
+| `AddRibbonTab`, `CadRibbonTab` | `add_ribbon_tab(ribbon_tab(id, title, panels, show_when=None))` |
+| `AddRibbonPanel`, `CadRibbonPanel` | `add_ribbon_panel(ribbon_panel(title, items))`, on the Plugins tab |
+| `CadRibbonButton`, `CadRibbonItem` | `ribbon_button(text, command=None, run=None, can_run=None, icon=None, size="standard", show_text=True, tooltip=None, description=None)` |
+| `CadRibbonSplitButton` | `split_button(text, buttons, remembers_last=True)` |
+| `CadPluginIcon.FromPathData / FromImage / FromFile` | `icon_from_path_data(data)`, `icon_from_image(data)`, `icon_from_file(path)` (`FromResource` is left out: a `.py` has no assembly) |
+| `AddDrawingsButton`, `CadPluginButton` | `add_drawings_button(icon, tooltip, run, can_run=None)` |
+| `AddDrawingsMenu`, `CadDrawingsRequest` | `add_drawings_menu(provider)`; the request has `path`, `drawing`, `selected_paths` |
+| `AddCanvasMenu`, `CadPluginMenuItem`, `Separator()` | `add_canvas_menu(provider)`, `menu_item(...)`, `separator()` |
+| `AddProperties`, `CadPropertyProvider` | `add_properties(provider)`: the .NET `CadPropertyRequest` in, the .NET `CadSelectionInfo` out |
+| `ShowsCommandButtons` | `show_command_buttons(False)` |
+| `CadPluginContext` | the `Context` above |
+| `AddObjectSnap`, `CadCustomSnap` | **left out**: the finder runs at every cursor move for every object in the aperture, and a Python call there (GIL, run guard) would lag the cursor |
+| `[CadSetting]`, `CadPluginSetting` | **left out**: no window shows plugin settings today; a module variable does the same |
+| `CadPluginHost` read-backs (`RibbonTabs`, `DrawingsMenus`...) | **left out**: they are for the window, and Python has no use for them |
+| `CadPlugin`, `CadPluginManager`, `CadPluginLoader`, `CadPluginManifest` and the like | **left out**: management of `.dll` plugins; Python files are managed by APPLOAD |
+| the side panel (`CadWorkspaceExtension.SidePanelContent`) | **left out**: it takes WPF content and Python builds none; a tool that needs its own window is an outside app (`connect()`) |
+| document events (`CadDocument.Changed` and the others) | through `drawing.net` with pythonnet's `+=`; no wrapper |
+| `CadCommandContext.Remembered`, `Progress`, `ClearsSelection` | **left out**: module variables remember; `session().Progress` is there raw |
+
+Additions are taken only while the file loads: a call later raises `RuntimeError`. Each loaded file has its own plugin host,
+named after the file and closed when the load ends; reloading replaces it and unloading drops it, and the window reads these
+hosts after the plugins', in load order. Every callback runs on the window thread, under the run guard: an error is one line on
+the command line, `Python error: ...` with the file name, never a box or a crash, and a `can_run`, `show_when` or provider that
+raises counts as false or as no items.
 
 ## Esc
 
@@ -276,12 +319,12 @@ Esc ends a script in either of two places.
 At a prompt Esc is the command line's own: the question ends, the prompt function raises `geometryhelper.cad.Cancelled`, and
 every prompt the same run asks after it raises at once without asking, so a script that catches the first cannot go on
 asking. `Cancelled` is a `KeyboardInterrupt`, so `except Exception` does not swallow it, and Esc at a prompt and Esc during
-work end a run alike: the groups are cancelled, the command line writes `*Cancel*` and the palette `KeyboardInterrupt`. A
-script that catches `BaseException` or a bare `except` swallows each Esc once.
+work end a run alike: the groups are cancelled, and the command line writes `*Cancel*`. A script that catches `BaseException`
+or a bare `except` swallows each Esc once.
 
 While Python computes the window takes no clicks and no typing, so the app watches for Esc itself, and the script gets
-`KeyboardInterrupt`. At a prompt the Stop of the palette presses Esc for you. On the test machine a loop of Python, `while True: pass`, ended 19 to 20 ms
-after the stop on .NET 8 and 25 to 28 ms on .NET Framework 4.8; numpy matrix products of 2 500 by 2 500 ended 62 ms after.
+`KeyboardInterrupt`. On the test machine a loop of Python, `while True: pass`, ended 19 to 20 ms after the stop on .NET 8 and
+25 to 28 ms on .NET Framework 4.8; numpy matrix products of 2 500 by 2 500 ended 62 ms after.
 
 It cannot stop what is not running Python. The interrupt lands when the call that holds the thread returns: a script in
 `time.sleep(5)` ended 4 725 ms after the stop, when the sleep returned, and one inside a .NET call that blocked for two
@@ -292,12 +335,9 @@ Esc can interrupt.
 
 An error ends the run and never closes the app. The command line gets one line,
 `Python error: <Type>: <message> (<file name>, line <n>)`, where the file and line are those of the innermost frame in a file
-the script runs (a palette entry has no file part), and the palette gets the whole traceback as error lines, without the
-app's own frames. `boom.py`, with `print(ratio(1, 0))` on line 7 and the division on line 4 of `ratio`, writes
-`Python error: ZeroDivisionError: division by zero (boom.py, line 4)`; the palette shows the call on line 7 as well. In
-the palette, `1/0` writes `Python error: ZeroDivisionError: division by zero` and the traceback of one frame, `<console>`.
-A syntax error gives its file, line and caret the same way. `sys.exit()` and `sys.exit(0)` end the run well; `sys.exit(3)`
-is a failed run.
+the script runs. A script with `print(ratio(1, 0))` on line 7 and the division on line 4 of `ratio` writes
+`Python error: ZeroDivisionError: division by zero (boom.py, line 4)`. A syntax error gives its file, line and caret the same
+way. `sys.exit()` and `sys.exit(0)` end the run well; `sys.exit(3)` is a failed run.
 
 These are written, and the run does not start:
 
@@ -313,8 +353,8 @@ These are written, and the run does not start:
 A fault in the app's own code during a run is not a crash either: it is written as `Python host error: <message>`, logged,
 and the run's groups are cancelled.
 
-The ways a script can end badly were each run, by PYRUN and as a palette entry, and each leaves the app running, no undo
-group open, the drawing as it was where the run failed, and the next run working:
+The ways a script can end badly were each run, and each leaves the app running, no undo group open, the drawing as it was where
+the run failed, and the next run working:
 
 | The script | What it leaves |
 |---|---|
@@ -323,7 +363,7 @@ group open, the drawing as it was where the run failed, and the next run working
 | `exit()`, `quit()`, `sys.exit(0)` | a run ended well, with no line |
 | `raise KeyboardInterrupt` | a cancelled run, `*Cancel*`, as Esc gives |
 | a function that calls itself for ever | a failed run, `RecursionError: maximum recursion depth exceeded` |
-| an error in a PYLOAD command, or in the file PYLOAD loads | a failed run; the command runs again next time |
+| an error in a command, or in the file PYLOAD loads | a failed run; the command runs again next time |
 | a .NET exception from the object model (`ApplyEdit(None, None, None)`) | a failed run and one line naming the .NET type and message, `Python error: System.ArgumentNullException: Value cannot be null. ...`, the .NET stack left out |
 | `sys.stdout = None`, or `sys.stdout` left on a file it closed or kept open | that run alone: the app puts its own `sys.stdout`, `sys.stderr` and `sys.stdin` back before every run, so the next run writes to the command line again |
 | a handler attached to a .NET event (`CadDocument.Changed`) that raises when the event fires after the run ended | the error goes to the code that fired the event, as any handler's would; where nothing there catches it and it reaches the window, the command line of the drawing shown gets `Python error: <Type>: <message>`, the log a Warn, and no box comes up ([the crash log](app.md#crashes-and-the-crash-log)) |
@@ -336,25 +376,25 @@ recurses through callbacks keeps well under that or lowers the limit with `sys.s
 
 ## Trusted folders
 
-PYRUN, PYLOAD and the palette's Run file and Load go through the gate AutoLISP's `load` goes through, with the same
-trusted folders and the same answers: SECURELOAD, TRUSTEDPATHS and the files answered Always Load, set with SETVAR or on
+PYRUN, PYLOAD, APPLOAD and the Startup Suite go through the gate AutoLISP's `load` goes through, with the same trusted folders
+and the same answers: SECURELOAD, TRUSTEDPATHS and the files answered Always Load, set with SETVAR or on
 [the Security page](app.md#the-security-page) of Global settings, as
 [Trusted folders and SECURELOAD](lisp.md#trusted-folders-and-secureload) describes. At SECURELOAD 1, the app's default, a
 `.py` outside the trusted folders brings AutoCAD's warning, **Security - Unsigned Executable File**: Load Once runs it and
 does not ask about that file again until the app restarts, Always Load also keeps the answer for that file and its
-content, and Do Not Load writes `File load canceled: <full path>` on the command line and in the palette and ends the run
-as `Refused`. At SECURELOAD 2 such a file is refused with no question. The folder of the app is always trusted.
+content, and Do Not Load writes `File load canceled: <full path>` on the command line and ends the run as `Refused`. At
+SECURELOAD 2 such a file is refused with no question. The folder of the app, with the Pythons folder in it, is always trusted.
 
 The gate is in front of the files the app is asked to run. The modules a script imports are Python's own business, found on
-`sys.path`, and are not checked, nor is code typed in the palette. A script outside the app, on the `geometryhelper`
-package alone, meets no gate: a session made by the library starts at SECURELOAD 0.
+`sys.path`, and are not checked. A script outside the app, on the `geometryhelper` package alone, meets no gate: a session made
+by the library starts at SECURELOAD 0.
 
 ## `print`, `input` and the threads
 
-What a script prints goes to the command line and the palette in whole lines: Python's `print` of two lines makes 11 separate
-writes to `sys.stdout`, so the app gathers them. A partial line is written before every prompt, so that
-`input("Name? ")` reads well, and at the end of the run. `input(prompt)` asks the text at the command line, and Esc raises
-`Cancelled`. Nothing is read from a console.
+What a script prints goes to the command line in whole lines: Python's `print` of two lines makes 11 separate writes to
+`sys.stdout`, so the app gathers them. A partial line is written before every prompt, so that `input("Name? ")` reads well,
+and at the end of the run. `input(prompt)` asks the text at the command line, and Esc raises `Cancelled`. Nothing is read from
+a console.
 
 A script runs on the thread that owns the drawings, as a command's body does, so the object model is used with nothing
 marshalled between threads: a .NET call from Python took 3.1 to 3.5 microseconds on .NET 8 and 2.1 to 2.2 on .NET Framework 4.8
@@ -369,9 +409,13 @@ the same app through CadApplication: use geometryhelper.cad, which reaches the d
 
 ## What is not there yet
 
-- `PAUSE` in `command`: handing one prompt of a fed command to the user, as AutoLISP's `PAUSE` does.
-- A startup list for PYLOAD, as APPLOAD's Startup Suite keeps for AutoLISP; commands live for the session.
-- A script editor in the palette, completion (Ctrl+Space) and a debugger.
+- `save()` inside a run makes two undo steps: the run's group ends at the save and opens again, so what was done before it is
+  one step and what follows another.
+- `Entity.dxf_type` is read from the text of the object (`str(net)`): a public DXF name on `DxfEntity` would touch the core
+  library.
+- Custom object snaps and plugin settings (the two **left out** rows of the table above).
+- A script editor, completion (Ctrl+Space) and a debugger; a console for typing Python an entry at a time, which the PYTHON
+  palette was and no longer is.
 - A Python of the app's own: the app does not bundle one.
 - The window repainting while a script computes.
 - Systems other than Windows: the app is Windows only.
@@ -379,7 +423,8 @@ the same app through CadApplication: use geometryhelper.cad, which reaches the d
 ## See also
 
 - [Python](../python.md): the library and the presenter from outside the app, the stubs, numpy in blocks and undo groups.
-- [Python examples](../python-examples.md): three scripts for PYRUN and PYLOAD, with what each prints, and ten more for outside the app.
-- [AutoLISP](lisp.md): the other language of the command line; `command`, the prompts and Esc as it does them.
+- [Python examples](../python-examples.md): three scripts for the app, with what each prints, and ten more for outside it.
+- [AutoLISP](lisp.md): the other language of the command line; its prompts and Esc as Python does them.
 - [Command plugins](plugins.md): a command written in a .NET assembly.
-- [Settings, autosave and the window](app.md#the-python-palette): the palette and the Python setting.
+- [Driving the app from another program](remote.md): the same `Drawing` from outside the app.
+- [Settings, autosave and the window](app.md#python-in-the-window): the Python setting.

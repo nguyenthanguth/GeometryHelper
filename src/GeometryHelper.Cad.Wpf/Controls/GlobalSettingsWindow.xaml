@@ -812,7 +812,7 @@
                                 Text="{Binding LinetypeOrderText}"
                             />
 
-                            <!-- Python: the CPython the PYTHON palette, PYRUN and PYLOAD use, shown where the app uses Python. -->
+                            <!-- Python: the CPython that PYRUN, PYLOAD and the Pythons folder use, shown where the app uses Python. -->
                             <StackPanel Visibility="{Binding IsPythonUsed, Converter={StaticResource Shown}}">
                                 <StackPanel Orientation="Horizontal" Margin="0,16,0,2">
                                     <local:IconView
@@ -843,7 +843,7 @@
                                     Margin="18,0,0,4"
                                     Foreground="{StaticResource GhTextMuted}"
                                     TextWrapping="Wrap"
-                                    Text="The CPython 3.11 to 3.15 (64-bit) the PYTHON palette, PYRUN and PYLOAD use. Empty: found automatically (PYTHONNET_PYDLL, then the Python launcher’s registry, newest first). A venv’s python.exe brings its packages."
+                                    Text="The CPython 3.11 to 3.15 (64-bit) that PYRUN, PYLOAD and the Pythons folder use. Empty: found automatically (PYTHONNET_PYDLL, then the Python launcher’s registry, newest first). A venv’s python.exe brings its packages."
                                 />
                                 <Grid Margin="18,3,0,3">
                                     <Grid.ColumnDefinitions>

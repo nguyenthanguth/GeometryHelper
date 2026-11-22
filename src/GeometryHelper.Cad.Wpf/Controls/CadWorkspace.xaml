@@ -9361,7 +9361,7 @@ widths are those of the content: no panel has a floor of its own.
                 </Grid>
 
                 <Grid>
-                    <!-- Centre: the canvas, then the PYTHON palette (hidden unless shown), then the command line under it only. -->
+                    <!-- Centre: the canvas, then the command line under it only (row 1 is left empty). -->
                     <Grid x:Name="DrawingArea" Grid.Column="0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*" />
@@ -9968,12 +9968,6 @@ widths are those of the content: no panel has a floor of its own.
                                 </Border>
                             </StackPanel>
                         </Grid>
-                        <local:PythonConsolePalette
-                            x:Name="PythonPalette"
-                            Grid.Row="1"
-                            DataContext="{Binding PythonConsole}"
-                            Visibility="{Binding IsShown, Converter={StaticResource Shown}, FallbackValue=Collapsed}"
-                        />
                         <Border
                             Grid.Row="2"
                             Background="{StaticResource GhInput}"

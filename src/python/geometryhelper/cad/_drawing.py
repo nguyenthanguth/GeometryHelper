@@ -131,6 +131,11 @@ class Entity:
         line = drawing.entities(type="LINE")[0]
         line.layer = "Steel"      # a line from (0, 0) to (100, 0) now on Steel
         drawing.commit()
+
+    Example:
+        line = drawing.entities(type="LINE")[0]
+        line.layer = "Steel"                          # a line from (0, 0) to (100, 0) now on Steel
+        drawing.commit()
     """
 
     def __init__(self, drawing: Drawing, handle: str, net: Any, source: Any = None) -> None:
@@ -142,17 +147,30 @@ class Entity:
 
     @property
     def handle(self) -> str:
-        """The handle of the object in the drawing (``2F``); ``~n`` for one added and not yet committed."""
+        """The handle of the object in the drawing (``2F``); ``~n`` for one added and not yet committed.
+
+        Example:
+            drawing.entities()[0].handle                  # '101'; an object just added has '~1' until commit()
+        """
         return self._handle
 
     @property
     def dxf_type(self) -> str:
-        """The DXF name of the object: ``"LINE"``, ``"CIRCLE"``, ``"LWPOLYLINE"``, ``"TEXT"``."""
+        """The DXF name of the object: ``"LINE"``, ``"CIRCLE"``, ``"LWPOLYLINE"``, ``"TEXT"``.
+
+        Example:
+            [e.dxf_type for e in drawing.entities()]      # ['LINE', 'CIRCLE', 'ARC', 'LWPOLYLINE', 'TEXT', 'MTEXT']
+        """
         return self._type
 
     @property
     def net(self) -> Any:
-        """The ``DxfEntity`` copy; after changing it call ``drawing.modify(entity)``."""
+        """The ``DxfEntity`` copy; after changing it call ``drawing.modify(entity)``.
+
+        Example:
+            polyline = drawing.entities("LWPOLYLINE")[0]
+            polyline.net.Area                             # 2500.0 for the triangle (0, 0), (100, 0), (100, 50)
+        """
         return self._net
 
     def _set(self, member: str, value: Any) -> None:
@@ -165,7 +183,11 @@ class Entity:
 
     @property
     def layer(self) -> str:
-        """The name of the layer the object is on."""
+        """The name of the layer the object is on.
+
+        Example:
+            line.layer = "Steel"                          # then drawing.commit(); line.layer == "Steel"
+        """
         return str(self._net.Layer)
 
     @layer.setter
@@ -174,7 +196,11 @@ class Entity:
 
     @property
     def color(self) -> int:
-        """The colour index: 1 to 255, 256 for ByLayer, 0 for ByBlock."""
+        """The colour index: 1 to 255, 256 for ByLayer, 0 for ByBlock.
+
+        Example:
+            line.color = 3                                # green; 256 is ByLayer, 0 ByBlock; then drawing.commit()
+        """
         return int(self._net.ColorIndex)
 
     @color.setter
@@ -183,7 +209,11 @@ class Entity:
 
     @property
     def linetype(self) -> str:
-        """The name of the linetype: ``"ByLayer"``, ``"ByBlock"`` or one of the drawing's."""
+        """The name of the linetype: ``"ByLayer"``, ``"ByBlock"`` or one of the drawing's.
+
+        Example:
+            line.linetype                                 # "ByLayer" for an object that has none of its own
+        """
         return str(self._net.Linetype)
 
     @linetype.setter
@@ -201,6 +231,11 @@ class Layer:
         steel = drawing.layers["Steel"]
         steel.is_locked = True      # Steel is locked once commit() runs
         drawing.commit()
+
+    Example:
+        steel = drawing.layers["Steel"]
+        steel.is_locked = True                        # Steel is locked once commit() runs
+        drawing.commit()
     """
 
     def __init__(self, drawing: Drawing, look: Look, pending: bool = False) -> None:
@@ -216,12 +251,20 @@ class Layer:
 
     @property
     def name(self) -> str:
-        """The name of the layer."""
+        """The name of the layer.
+
+        Example:
+            drawing.layers["steel"].name                  # "Steel": the spelling of the layer table
+        """
         return self._look.name
 
     @property
     def color(self) -> int:
-        """The colour index of the layer, 1 to 255 (a layer of a true colour reads the index nearest it)."""
+        """The colour index of the layer, 1 to 255 (a layer of a true colour reads the index nearest it).
+
+        Example:
+            drawing.layers["Steel"].color                 # 1 for a layer made with color=1
+        """
         return self._look.color
 
     @color.setter
@@ -234,7 +277,11 @@ class Layer:
 
     @property
     def linetype(self) -> str:
-        """The name of the layer's linetype."""
+        """The name of the layer's linetype.
+
+        Example:
+            drawing.layers["Steel"].linetype              # "Continuous" for a layer made with the default
+        """
         return self._look.linetype
 
     @linetype.setter
@@ -244,7 +291,11 @@ class Layer:
 
     @property
     def description(self) -> str:
-        """The description of the layer."""
+        """The description of the layer.
+
+        Example:
+            drawing.layers["Steel"].description           # '' until it is set: layer.description = "Structural steel"
+        """
         return self._look.description
 
     @description.setter
@@ -254,7 +305,11 @@ class Layer:
 
     @property
     def is_on(self) -> bool:
-        """Whether the layer is on."""
+        """Whether the layer is on.
+
+        Example:
+            drawing.layers["Steel"].is_on                 # True; layer.is_on = False turns it off at commit()
+        """
         return self._look.is_on
 
     @is_on.setter
@@ -264,7 +319,11 @@ class Layer:
 
     @property
     def is_frozen(self) -> bool:
-        """Whether the layer is frozen."""
+        """Whether the layer is frozen.
+
+        Example:
+            drawing.layers["Steel"].is_frozen             # False; layer.is_frozen = True freezes it at commit()
+        """
         return self._look.is_frozen
 
     @is_frozen.setter
@@ -274,7 +333,11 @@ class Layer:
 
     @property
     def is_locked(self) -> bool:
-        """Whether the layer is locked."""
+        """Whether the layer is locked.
+
+        Example:
+            drawing.layers["Steel"].is_locked             # False; layer.is_locked = True locks it at commit()
+        """
         return self._look.is_locked
 
     @is_locked.setter
@@ -284,7 +347,11 @@ class Layer:
 
     @property
     def is_plottable(self) -> bool:
-        """Whether the layer is plotted."""
+        """Whether the layer is plotted.
+
+        Example:
+            drawing.layers["Steel"].is_plottable          # True; layer.is_plottable = False keeps it off the plot
+        """
         return self._look.is_plottable
 
     @is_plottable.setter
@@ -306,6 +373,11 @@ class Layers:
         drawing.layers.add("Steel", color=1)
         drawing.commit()
         "steel" in drawing.layers    # True
+
+    Example:
+        len(drawing.layers)                           # 1 in a new drawing: layer 0
+        "Steel" in drawing.layers                     # False until Steel is added and committed
+        [layer.name for layer in drawing.layers]      # ['0'] in a new drawing, then ['0', 'Steel']
     """
 
     def __init__(self, drawing: Drawing) -> None:
@@ -339,7 +411,12 @@ class Layers:
         raise KeyError(f"The drawing {self._drawing.name} has no layer {name!r}.")
 
     def add(self, name: str, color: int = 7, linetype: str = "Continuous", description: str = "") -> Layer:
-        """Queue a new layer; it exists after ``commit()``, and a layer of that name already there refuses the commit."""
+        """Queue a new layer; it exists after ``commit()``, and a layer of that name already there refuses the commit.
+
+        Example:
+            steel = drawing.layers.add("Steel", color=1)  # queued: len(drawing.layers) is still 1
+            drawing.commit()                              # now 2; a second add of 'steel' makes the commit refuse and raise
+        """
         if not isinstance(name, str) or not name.strip():  # pyright: ignore[reportUnnecessaryIsInstance]
             raise ValueError(f"A layer needs a name, not {name!r}.")
         layer = Layer(self._drawing, Look(name.strip(), linetype=linetype, description=description), pending=True)
@@ -358,6 +435,12 @@ class Drawing:
         drawing.add_line((0, 0), (100, 0))
         drawing.add_circle((50, 50), 25)
         handles = drawing.commit()       # two handles, one undo step
+
+    Example:
+        drawing = new_file()
+        drawing.add_line((0, 0), (100, 0))
+        drawing.add_circle((50, 50), 25)
+        drawing.commit()                              # ['101', '102']: two handles, one undo step
     """
 
     def __init__(self, backend: Backend, on_queue: Callable[[Drawing], None] | None = None) -> None:
@@ -404,34 +487,63 @@ class Drawing:
 
     @property
     def name(self) -> str:
-        """The name of the drawing, as its tab shows it: ``plan.dxf``."""
+        """The name of the drawing, as its tab shows it: ``plan.dxf``.
+
+        Example:
+            open_file(r"C:\\plans\\plan.dxf").name          # 'plan.dxf'; new_file().name is 'Drawing'
+        """
         return self._backend.name
 
     @property
     def path(self) -> str | None:
-        """The full path of the file, or None for a drawing never saved."""
+        """The full path of the file, or None for a drawing never saved.
+
+        Example:
+            new_file().path                               # None: never saved
+            open_file(r"C:\\plans\\plan.dxf").path          # 'C:\\\\plans\\\\plan.dxf'
+        """
         return self._backend.path
 
     @property
     def is_active(self) -> bool:
-        """Whether this is the drawing shown (always true for a drawing of a file)."""
+        """Whether this is the drawing shown (always true for a drawing of a file).
+
+        Example:
+            new_file().is_active                          # True: a drawing of a file is always the one shown
+        """
         return self._backend.is_active
 
     @property
     def is_modified(self) -> bool:
-        """Whether the drawing differs from the file it was opened from or last saved as."""
+        """Whether the drawing differs from the file it was opened from or last saved as.
+
+        Example:
+            drawing = new_file()
+            drawing.add_line((0, 0), (100, 0))
+            drawing.commit()
+            drawing.is_modified                           # True; False again after drawing.save_as(path)
+        """
         return self._backend.is_modified
 
     @property
     def net(self) -> Any:
-        """The ``CadDocument`` of the drawing, or the ``CadRemoteDocument`` outside the app."""
+        """The ``CadDocument`` of the drawing, or the ``CadRemoteDocument`` outside the app.
+
+        Example:
+            new_file().net.EntityCount                    # 0: the CadDocument; a CadRemoteDocument from connect()
+        """
         return self._backend.net
 
     # ---- reading --------------------------------------------------------------------------------------------------
 
     def entities(self, type: str | None = None, layer: str | None = None, layout: str | None = None) -> list[Entity]:
         """The objects of the drawing, as copies in the order the drawing lists them, of one DXF ``type`` (``"line"``, ignoring
-        case), one ``layer`` and one ``layout`` where given: ``drawing.entities(type="CIRCLE", layer="Steel")``."""
+        case), one ``layer`` and one ``layout`` where given: ``drawing.entities(type="CIRCLE", layer="Steel")``.
+
+        Example:
+            drawing.entities()                            # six objects: LINE, CIRCLE, ARC, LWPOLYLINE, TEXT, MTEXT
+            drawing.entities(type="line", layer="steel")  # the one LINE on layer Steel: layer names ignore case
+        """
         found = self._backend.read(None if type is None else type.upper(), layer, layout)
         entities = [Entity(self, handle, net, source) for handle, net, source in found]
         if type is None:
@@ -439,18 +551,33 @@ class Drawing:
         return [entity for entity in entities if entity.dxf_type.upper() == type.upper()]
 
     def entity(self, handle: str) -> Entity:
-        """The object of a handle; ``KeyError`` when the drawing has none: ``drawing.entity("2F")``."""
+        """The object of a handle; ``KeyError`` when the drawing has none: ``drawing.entity("2F")``.
+
+        Example:
+            drawing.entity("101").dxf_type                # "LINE"
+            drawing.entity("FFFF")                        # KeyError: The drawing Drawing has no object 'FFFF'.
+        """
         found = None if handle.startswith("~") else self._backend.read_one(handle)
         if found is None:
             raise KeyError(f"The drawing {self.name} has no object {handle!r}.")
         return Entity(self, handle, found[0], found[1])
 
     def selection(self) -> list[Entity]:
-        """The objects selected now, in the order they were made."""
+        """The objects selected now, in the order they were made.
+
+        Example:
+            drawing.select(["101"])
+            [e.handle for e in drawing.selection()]       # ['101']
+        """
         return [Entity(self, handle, net, source) for handle, net, source in self._backend.selected()]
 
     def select(self, items: Sequence[Entity | str]) -> None:
-        """Select these objects (entities or handles) and nothing else: ``drawing.select([line, "2F"])``."""
+        """Select these objects (entities or handles) and nothing else: ``drawing.select([line, "2F"])``.
+
+        Example:
+            drawing.select([drawing.entities()[0]])       # the first object, as a user would select it
+            len(drawing.selection())                      # 1
+        """
         handles: list[str] = []
         for item in items:
             handle = item.handle if isinstance(item, Entity) else str(item)
@@ -475,18 +602,32 @@ class Drawing:
 
     def add(self, dxf_entity: Any, layout: str | None = None) -> Entity:
         """Queue a copy of any ``GeometryHelper.Dxf`` entity, in model space or in ``layout``; the ``Entity`` returned has
-        the handle ``~1``, ``~2``... until ``commit()``. The entity given is not kept: a later change to it adds nothing."""
+        the handle ``~1``, ``~2``... until ``commit()``. The entity given is not kept: a later change to it adds nothing.
+
+        Example:
+            from GeometryHelper.Dxf import DxfCircle
+            added = drawing.add(DxfCircle(GeoPoint3(0, 0, 0), GeoVector3(0, 0, 1), 5))
+            added.handle                                  # '~1' until drawing.commit() returns ['101']
+        """
         self._tickets += 1
         entity = Entity(self, f"~{self._tickets}", dxf_entity.Clone())
         self._queue(Op("insert", entity=entity, copy=dxf_entity.Clone(), layout=layout))
         return entity
 
     def add_line(self, start: Any, end: Any, **props: Any) -> Entity:
-        """Queue a line: ``drawing.add_line((0, 0), (100.5, 0), layer="Steel")``. ``props``: ``layer``, ``color``, ``linetype``."""
+        """Queue a line: ``drawing.add_line((0, 0), (100.5, 0), layer="Steel")``. ``props``: ``layer``, ``color``, ``linetype``.
+
+        Example:
+            drawing.add_line((0, 0), (100, 0), layer="Steel")   # a line of length 100 on layer Steel (made first if need be)
+        """
         return self.add(self._made(_dxf.DxfLine(point3(start), point3(end)), props))
 
     def add_circle(self, center: Any, radius: float, **props: Any) -> Entity:
-        """Queue a circle: ``drawing.add_circle((50, 50), 25)`` is a circle of radius 25 about (50, 50)."""
+        """Queue a circle: ``drawing.add_circle((50, 50), 25)`` is a circle of radius 25 about (50, 50).
+
+        Example:
+            drawing.add_circle((50, 50), 25)              # a circle of radius 25 about (50, 50): net.Radius == 25.0
+        """
         circle = _dxf.DxfCircle()
         circle.Center = point3(center)
         circle.Radius = float(radius)
@@ -494,13 +635,21 @@ class Drawing:
 
     def add_arc(self, center: Any, radius: float, start_angle: float, end_angle: float, **props: Any) -> Entity:
         """Queue an arc, counter-clockwise from ``start_angle`` to ``end_angle`` in **radians**:
-        ``drawing.add_arc((0, 0), 10, 0.0, math.pi / 2)`` is the quarter of a circle of radius 10 in the first quadrant."""
+        ``drawing.add_arc((0, 0), 10, 0.0, math.pi / 2)`` is the quarter of a circle of radius 10 in the first quadrant.
+
+        Example:
+            drawing.add_arc((0, 0), 10, 0.0, math.pi / 2)   # a quarter of a circle of radius 10, 15.708 long
+        """
         arc = _dxf.DxfArc(point3(center), float(radius), float(start_angle), float(end_angle))
         return self.add(self._made(arc, props))
 
     def add_polyline(self, points: Sequence[Any], closed: bool = False, **props: Any) -> Entity:
         """Queue a polyline through the points (x and y; the z of the first is its elevation), closed where asked:
-        ``drawing.add_polyline([(0, 0), (100, 0), (100, 50)], closed=True)`` is a triangle of 2500 square units."""
+        ``drawing.add_polyline([(0, 0), (100, 0), (100, 50)], closed=True)`` is a triangle of 2500 square units.
+
+        Example:
+            drawing.add_polyline([(0, 0), (100, 0), (100, 50)], closed=True)   # net.Area == 2500.0
+        """
         corners = [point3(point) for point in points]
         if not corners:
             raise ValueError("A polyline needs at least one point.")
@@ -513,7 +662,11 @@ class Drawing:
 
     def add_text(self, text: str, insert: Any, height: float, rotation: float = 0.0, **props: Any) -> Entity:
         """Queue a single-line text at ``insert``, ``height`` high, turned ``rotation`` radians:
-        ``drawing.add_text("Plate", (0, 100), 5.0)``."""
+        ``drawing.add_text("Plate", (0, 100), 5.0)``.
+
+        Example:
+            drawing.add_text("Plate", (0, 100), 5.0)      # a TEXT 5 high at (0, 100)
+        """
         made = _dxf.DxfDBText()
         made.TextString = str(text)
         made.Position = point3(insert)
@@ -523,7 +676,11 @@ class Drawing:
 
     def add_mtext(self, text: str, insert: Any, height: float, width: float = 0.0, **props: Any) -> Entity:
         """Queue a multi-line text at ``insert``, ``height`` high, wrapped at ``width`` (0 for no wrapping):
-        ``drawing.add_mtext("Plate PL10", (10, 20), 5.0)``."""
+        ``drawing.add_mtext("Plate PL10", (10, 20), 5.0)``.
+
+        Example:
+            drawing.add_mtext("Plate PL10", (10, 20), 5.0, width=60)   # an MTEXT 5 high, wrapped at 60
+        """
         made = _dxf.DxfMText()
         made.Contents = str(text)
         made.Location = point3(insert)
@@ -541,12 +698,24 @@ class Drawing:
             raise ValueError(f"The {entity.dxf_type} {entity.handle} is not in the drawing yet: call commit() first.")
 
     def modify(self, entity: Entity) -> None:
-        """Queue the changes made to ``entity.net``; not needed for ``layer``, ``color`` and ``linetype``, which commit alone."""
+        """Queue the changes made to ``entity.net``; not needed for ``layer``, ``color`` and ``linetype``, which commit alone.
+
+        Example:
+            circle = drawing.entities("CIRCLE")[0]        # radius 25
+            circle.net.Radius = 30.0
+            drawing.modify(circle)
+            drawing.commit()                              # the circle in the drawing has radius 30.0
+        """
         self._own(entity, "modify")
         self._queue(Op("modify", entity=entity))
 
     def erase(self, entity_or_handle: Entity | str) -> None:
-        """Queue the erasing of an object, given as an ``Entity`` or its handle: ``drawing.erase("2F")``."""
+        """Queue the erasing of an object, given as an ``Entity`` or its handle: ``drawing.erase("2F")``.
+
+        Example:
+            drawing.erase(drawing.entities("TEXT")[0])
+            drawing.commit()                              # [] (nothing added); one object fewer
+        """
         if isinstance(entity_or_handle, Entity):
             self._own(entity_or_handle, "erase")
             handle = entity_or_handle.handle
@@ -559,7 +728,13 @@ class Drawing:
     def commit(self) -> list[str]:
         """Apply everything queued as one undo step, and return the handles of the objects added, in the order they were
         added; ``[]`` when nothing was queued. The layers are made first, so an object can be put on a layer made in the same
-        commit. A commit the drawing refuses changes nothing and raises."""
+        commit. A commit the drawing refuses changes nothing and raises.
+
+        Example:
+            drawing.add_line((0, 0), (100, 0))
+            drawing.add_circle((50, 50), 25)
+            drawing.commit()                              # ['101', '102']; a second commit with nothing queued gives []
+        """
         ops = list(self._ops)
         for entity in self._changed_entities:
             ops.append(Op("modify", entity=entity))
@@ -593,12 +768,22 @@ class Drawing:
 
     @property
     def layers(self) -> Layers:
-        """The layers: ``drawing.layers["Steel"]``, ``drawing.layers.add("Steel", color=1)``."""
+        """The layers: ``drawing.layers["Steel"]``, ``drawing.layers.add("Steel", color=1)``.
+
+        Example:
+            drawing.layers.add("Steel", color=1)          # queued; Steel exists after drawing.commit()
+            drawing.layers["steel"].name                  # "Steel": names ignore case; len(drawing.layers) is 2 with layer 0
+        """
         return self._layers
 
     @property
     def current_layer(self) -> str:
-        """The name of the layer new objects go on; setting it takes effect at once, not at ``commit()``."""
+        """The name of the layer new objects go on; setting it takes effect at once, not at ``commit()``.
+
+        Example:
+            drawing.current_layer                         # '0' in a new drawing
+            drawing.current_layer = "Steel"               # takes effect at once; the next object made by a command is on Steel
+        """
         return self._backend.current_layer
 
     @current_layer.setter
@@ -608,28 +793,49 @@ class Drawing:
     @property
     def text_styles(self) -> list[Any]:
         """Copies of the drawing's ``DxfTextStyleTableRecord``, sorted by name ignoring case, then ordinal; changing one
-        changes nothing in the drawing."""
+        changes nothing in the drawing.
+
+        Example:
+            [s.Name for s in drawing.text_styles]         # ['Standard'] in a new drawing
+        """
         return self._backend.text_styles
 
     @property
     def dimension_styles(self) -> list[Any]:
-        """Copies of the drawing's ``DxfDimStyleTableRecord``, sorted as ``text_styles`` are."""
+        """Copies of the drawing's ``DxfDimStyleTableRecord``, sorted as ``text_styles`` are.
+
+        Example:
+            [s.Name for s in drawing.dimension_styles]    # ['ISO-25', 'Standard'] in a new drawing
+        """
         return self._backend.dimension_styles
 
     @property
     def blocks(self) -> list[Any]:
         """Copies of the drawing's ``DxfBlockTableRecord`` with their objects, sorted as ``text_styles`` are; the blocks of
-        the layouts (``*Model_Space``) and the anonymous ones (``*D1``) are left out."""
+        the layouts (``*Model_Space``) and the anonymous ones (``*D1``) are left out.
+
+        Example:
+            [b.Name for b in drawing.blocks]              # [] in a new drawing: no block of its own yet
+        """
         return self._backend.blocks
 
     @property
     def layouts(self) -> list[str]:
-        """The names of the layouts, ``["Model", "Layout1"]``."""
+        """The names of the layouts, ``["Model", "Layout1"]``.
+
+        Example:
+            drawing.layouts                               # ['Model', 'Layout1'] in a new drawing
+        """
         return self._backend.layouts
 
     @property
     def current_layout(self) -> str:
-        """The name of the layout shown; setting it shows that layout at once."""
+        """The name of the layout shown; setting it shows that layout at once.
+
+        Example:
+            drawing.current_layout                        # 'Model'
+            drawing.current_layout = "Layout1"            # Layout1 is shown
+        """
         return self._backend.current_layout
 
     @current_layout.setter
@@ -640,35 +846,64 @@ class Drawing:
 
     def pick_point(self, message: str, base: Any = None) -> Any:
         """Ask the user for a point, a ``GeoPoint3``: the prompt of the command line in the app, a wait on the app from
-        outside; ``RuntimeError`` on a drawing of a file. ``base`` draws a rubber band from that point."""
+        outside; ``RuntimeError`` on a drawing of a file. ``base`` draws a rubber band from that point.
+
+        Example:
+            centre = drawing.pick_point("Pick the centre")                  # in the app, the user picks (120, 80): GeoPoint3, Z 0
+            drawing.pick_point("Pick the end", base=centre)                 # a rubber band from centre
+        """
         return self._backend.pick_point(message, None if base is None else point3(base))
 
     def pick_object(self, message: str) -> Entity | None:
-        """Ask the user for one object and return it, or None where the user gave none; ``RuntimeError`` on a file."""
+        """Ask the user for one object and return it, or None where the user gave none; ``RuntimeError`` on a file.
+
+        Example:
+            line = drawing.pick_object("Pick a line")     # an Entity; None where the user gave none
+        """
         found = self._backend.pick_object(message)
         return None if found is None else Entity(self, found[0], found[1], found[2])
 
     def pick_objects(self, message: str) -> list[Entity]:
-        """Ask the user for a selection and return its objects; ``RuntimeError`` on a drawing of a file."""
+        """Ask the user for a selection and return its objects; ``RuntimeError`` on a drawing of a file.
+
+        Example:
+            entities = drawing.pick_objects("Select objects")   # the objects selected, as a list of Entity
+        """
         return [Entity(self, handle, net, source) for handle, net, source in self._backend.pick_objects(message)]
 
     # ---- the file -------------------------------------------------------------------------------------------------
 
     def save(self) -> None:
         """Commit what is queued, then save to the file the drawing came from or was last saved as. In the app a save ends the
-        undo step of the run and opens it again: what was done before it is one step, what follows another."""
+        undo step of the run and opens it again: what was done before it is one step, what follows another.
+
+        Example:
+            drawing = open_file("plan.dxf")
+            drawing.add_line((0, 0), (100, 0))
+            drawing.save()                                # commits first, then writes plan.dxf; is_modified is False
+        """
         self.commit()
         self._backend.save()
 
     def save_as(self, path: str, version: str | None = None) -> None:
         """Commit what is queued, then save as ``path``: a DWG where it ends in .dwg, else a DXF, of ``version`` (``"AC1027"``)
-        where given, else the drawing's own."""
+        where given, else the drawing's own.
+
+        Example:
+            drawing.save_as("plan.dxf")                   # a DXF of the drawing's own version (AC1027 in a new drawing)
+            drawing.save_as("plan.dwg", version="AC1027") # a DWG; drawing.path and drawing.name now name plan.dwg
+        """
         self.commit()
         self._backend.save_as(os.path.abspath(path), version)
 
     def close(self, discard: bool = False) -> None:
         """Close the drawing; one with changes not saved is refused unless ``discard`` is true. What is queued is dropped.
-        A drawing of a file is only let go."""
+        A drawing of a file is only let go.
+
+        Example:
+            drawing.close()                               # refused (CadRemoteException) from outside while it has unsaved changes
+            drawing.close(discard=True)                   # closed without saving; a drawing of a file is only let go
+        """
         self._discard()
         self._backend.close(discard)
 
@@ -683,6 +918,11 @@ class Documents:
         for drawing in documents():
             print(drawing.name, drawing.is_active)
         plan = documents()["plan.dxf"]
+
+    Example:
+        for drawing in documents():
+            print(drawing.name, drawing.is_active)    # plan.dxf False, then Drawing2.dxf True
+        plan = documents()["plan.dxf"]                # KeyError naming "plan.dxf" where none is open
     """
 
     def __init__(self, lister: Callable[[], list[Drawing]]) -> None:

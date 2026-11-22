@@ -2555,7 +2555,6 @@ namespace GeometryHelper.Cad.Wpf
             }
 
             _current = file;
-            FollowPython(file);
             LoadDrafting();
             SpaceTabs.Clear();
 

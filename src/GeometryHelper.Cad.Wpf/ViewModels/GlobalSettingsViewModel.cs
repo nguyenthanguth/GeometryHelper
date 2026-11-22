@@ -1273,11 +1273,11 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets or sets how the window asks for a python.exe: its path, or null where none was chosen.</summary>
         public Func<string> BrowsePythonFile { get; set; }
 
-        /// <summary>Gets whether the Python section of Folder preference is shown: where the app uses Python (the Python palette is there).</summary>
-        public bool IsPythonUsed => _model.PythonConsole != null;
+        /// <summary>Gets whether the Python section of Folder preference is shown: where the app uses Python (PYRUN and PYLOAD are there).</summary>
+        public bool IsPythonUsed => _model.UsesPython;
 
         /// <summary>
-        /// Gets or sets the python.exe, or the folder holding it, that the PYTHON palette, PYRUN and PYLOAD use: empty for the
+        /// Gets or sets the python.exe, or the folder holding it, that PYRUN, PYLOAD and the Pythons folder use: empty for the
         /// Python found on the machine. Setting it finds the Python again, so that <see cref="PythonFound"/>,
         /// <see cref="PythonSource"/> and <see cref="PythonPassedOver"/> follow; it is applied with the other settings.
         /// </summary>
@@ -1293,7 +1293,7 @@ namespace GeometryHelper.Cad.Wpf
             }
         }
 
-        /// <summary>Gets the Python the path above gives, as the environment says it: its version and program, or why none is usable, exactly as the palette's banner words it.</summary>
+        /// <summary>Gets the Python the path above gives, as the environment says it: its version and program, or why none is usable, exactly as the command line words it.</summary>
         public string PythonFound =>
             PythonEnvironment.IsUsable ? PythonEnvironment.ToString() : PythonEnvironment.Problem;
 

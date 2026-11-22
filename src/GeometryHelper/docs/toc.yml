@@ -92,7 +92,7 @@
       href: presenter/plugins.md
     - name: AutoLISP
       href: presenter/lisp.md
-    - name: Python in the app
+    - name: Python commands and tools
       href: presenter/python.md
     - name: Settings, autosave and the window
       href: presenter/app.md

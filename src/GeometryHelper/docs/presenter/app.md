@@ -39,7 +39,7 @@ width factor of drawing text. A file that holds them keeps them, and OK writes t
 | Canvas and cursor | the wheel zoom and its direction, the object snaps, the aperture, the polar increment, what F3 does | 1.5 a notch (1.01 to 4, ZOOMWHEEL turns it round; a file saved with 1.2 keeps 1.2), every snap but Nearest, 10 pixels (2 to 50), 90 degrees (above 0 to 360, POLARANG), F3 toggles them |
 | Units and rounding | decimals of coordinates and angles; the separators | 2 and 1 decimals; thousands parted by a space, decimals by a point |
 | Text and fonts | the UI font, chosen from the font families installed on Windows (each shown in its own face) or typed; what Esc in the MTEXT editor with changes does (Hidden messages); the replacement font of a font not found (FONTALT), whether the Missing Fonts dialog is shown on opening a drawing, the font mapping file (FONTMAP) and the fonts drawn in others | UI font Inter, Esc asks, `ghsimplex`, the dialog on, no mapping file, no substitutions |
-| Folder preference | the font search folders and the support file search folders (linetypes, hatch patterns and AutoLISP files), each in order, with the default Fonts, Hatches, Linetypes, Lisps and DrawingTemplates folders next to the dll shown read-only under them (a Plugins folder is beside them too, but it holds no search path: see [Command plugins](plugins.md#where-a-plugin-lives)); the Python the PYTHON palette, PYRUN and PYLOAD run scripts with (a `python.exe` or its folder, with the Python found beside it; see [Python in the app](python.md#finding-python)) | none; Python found automatically |
+| Folder preference | the font search folders and the support file search folders (linetypes, hatch patterns and AutoLISP files), each in order, with the default Fonts, Hatches, Linetypes, Lisps and DrawingTemplates folders next to the dll shown read-only under them (a Plugins folder is beside them too, but it holds no search path: see [Command plugins](plugins.md#where-a-plugin-lives)); the Python that PYRUN, PYLOAD and the Pythons folder run scripts with (a `python.exe` or its folder, with the Python found beside it; see [Python commands and tools](python.md#finding-python)) | none; Python found automatically |
 | Security | where AutoLISP and Python code may be loaded from: SECURELOAD, the trusted folders (TRUSTEDPATHS), LEGACYCODESEARCH and the files answered Always Load (see [The Security page](#the-security-page)) | SECURELOAD 1, no trusted folder but the app's own, LEGACYCODESEARCH 0, none |
 | Shortcuts | the aliases and the keys | AutoCAD's (see [Editing](editing.md#aliases-and-keys)) |
 | Save and export | the save folder, autosave (how often, and its format, DXF or DWG); Template settings: the template folder and the default template for QNEW (see [Drawing templates](#drawing-templates)); Other programs: whether other programs may connect and drive the app (see [Driving the app from another program](remote.md#the-setting)) | empty, which is the user's Documents, 10 minutes, DXF; template folder empty, which is the `DrawingTemplates` folder next to the dll, no default template for QNEW, which is the built-in metric one; other programs allowed to connect |
@@ -779,17 +779,15 @@ shown) are shown through functions the workspace sets, as the other dialogs are;
 `--dialog constraints[:0|1|2]` and `--dialog parameters`, and the tab with `--tab Parametric`. The commands behind it are in
 [Parametric constraints](editing.md#parametric-constraints).
 
-### The PYTHON palette
+### Python in the window
 
-PYTHON shows a palette under the canvas, as wide as the canvas and with the command line below it, and PYTHONCLOSE or the ×
-in its header hides it. It is a Python console for the drawing shown: a transcript above, an input box below, a toolbar
-(Run file for PYRUN, Load for PYLOAD, Stop, Clear, Reset console) and a status line with the Python it uses. Enter runs a
-complete entry and Shift+Enter adds a line; each drawing keeps its own transcript and names, and the palette switches
-with the drawing shown. Its top edge is dragged to change its height, as the command line's is, from 3 lines to half the
-drawing area, and the height is kept for the session only. A host that embeds the presenter in a program of its own gets
-neither the palette nor Python unless it sets `CadAppHost.EnablePython`, which GeometryHelper CAD itself does. Where no Python can be found the palette says what to install or set, with a
-button to Global settings, and nothing else changes. [Python in the app](python.md) has the rest: finding Python, the
-module a script imports, the undo step, Esc and the errors.
+Python is a way to write commands: `.py` files load from the Pythons folder at start, from APPLOAD, PYLOAD, the Python Startup
+Suite and by dropping them on the window, and PYRUN runs one once. There is no console: the PYTHON palette and its commands
+PYTHON and PYTHONCLOSE were removed, and a script that asks the user asks on the command line, as a command does. A host that
+embeds the presenter in a program of its own gets no Python unless it sets `CadAppHost.EnablePython`, which GeometryHelper CAD
+itself does. Where no Python can be found the command line says what to install or set, and nothing else changes. The Python
+used is set in Global settings, Folder preference, **Python**. [Python commands and tools](python.md) has the rest: finding
+Python, `@command`, the prompts, the `Drawing` API, the undo step, Esc and the errors.
 
 ### The start screen
 

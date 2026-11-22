@@ -279,6 +279,9 @@ class _LocalBackend:
             if not copy.Handle or copy.IsErased:
                 inserted.append(None)
                 continue
+            # A dimension made in code comes with a picture that is empty: the app draws it, as DIM would.
+            if isinstance(copy, _dxf.DxfDimension) and not any(not e.IsErased for e in copy.DimBlock):
+                _cad.CadDimensionPicture.Redraw(copy)
             scope.Added(space, copy)
             inserted.append(str(copy.Handle))
         for layer in missing:
@@ -286,7 +289,7 @@ class _LocalBackend:
 
     def _replace(self, old: Any, handle: str, entity: Entity) -> None:
         """Writes a changed copy over the object of the drawing, which keeps its handle (AutoCAD's ``HandOverTo``). A
-        dimension keeps the picture it had: the app's own redrawing of it is not a public member."""
+        dimension keeps the block it had and is drawn again in it (``CadDimensionPicture.Redraw``)."""
         space = self.document.FindSpace(handle)
         made = entity._source.WblockCloneObjects(  # pyright: ignore[reportPrivateUsage]
             _net.Array[_dxf.DxfEntity]([entity.net]), space.Block
@@ -300,6 +303,9 @@ class _LocalBackend:
         old.HandOverTo(fresh, True, True)
         if spare is not None and spare.IsAnonymous:
             spare.Erase()
+        drawn = self.document.FindEntity(handle)
+        if isinstance(drawn, _dxf.DxfDimension):
+            _cad.CadDimensionPicture.Redraw(drawn)
 
     # ---- layers -----------------------------------------------------------------------------------------------------
 
@@ -528,12 +534,22 @@ def discard_pending() -> None:
 
 
 def active_drawing() -> Drawing:
-    """The drawing the run started in (not the one shown later): ``active_drawing().add_line((0, 0), (10, 0))``."""
+    """The drawing the run started in (not the one shown later): ``active_drawing().add_line((0, 0), (10, 0))``.
+
+    Example:
+        drawing = active_drawing()            # the drawing the run started in
+        drawing.add_line((0, 0), (10, 0))
+        drawing.commit()                      # ['2B'] in a drawing whose last handle was 2A: one undo step
+    """
     return drawing_of(_run("active_drawing").Document)
 
 
 def documents() -> Documents:
-    """The drawings of the app, in the order it lists them; only the drawing of the run where the app has no list."""
+    """The drawings of the app, in the order it lists them; only the drawing of the run where the app has no list.
+
+    Example:
+        [d.name for d in documents()]         # ['plan.dxf', 'Drawing2.dxf'] in the order the app lists them
+    """
     script = _run("documents")
 
     def listed() -> list[Drawing]:
@@ -546,7 +562,11 @@ def documents() -> Documents:
 
 
 def open_drawing(path: str) -> Drawing:
-    """Open a drawing file in the app, as OPEN does, and return it (the open one where it already is)."""
+    """Open a drawing file in the app, as OPEN does, and return it (the open one where it already is).
+
+    Example:
+        drawing = open_drawing(r"C:\\plans\\plan.dxf")   # shown in the app; open_drawing again gives the same one
+    """
     host = _app_host("open_drawing")
     if host is None:
         raise RuntimeError("open_drawing needs the list of drawings of the app's window, and there is none.")
@@ -554,7 +574,11 @@ def open_drawing(path: str) -> Drawing:
 
 
 def new_drawing(template: str | None = None) -> Drawing:
-    """Make a new drawing in the app, from a template file where one is given, and return it."""
+    """Make a new drawing in the app, from a template file where one is given, and return it.
+
+    Example:
+        drawing = new_drawing()               # a blank drawing, shown; drawing.name == "Drawing1.dxf" in a fresh app
+    """
     host = _app_host("new_drawing")
     if host is None:
         raise RuntimeError("new_drawing needs the list of drawings of the app's window, and there is none.")
@@ -562,10 +586,22 @@ def new_drawing(template: str | None = None) -> Drawing:
 
 
 def open_file(path: str) -> Drawing:
-    """Open a DXF or DWG file with no app: ``open_file("plan.dxf")``. Changes reach the file after ``save()``."""
+    """Open a DXF or DWG file with no app: ``open_file("plan.dxf")``. Changes reach the file after ``save()``.
+
+    Example:
+        drawing = open_file("plan.dxf")       # drawing.name == "plan.dxf", drawing.is_modified == False
+        len(drawing.entities())               # 5 for the drawing built under Drawing.save_as
+    """
     return Drawing(_LocalBackend(_cad.CadDocument.Open(os.path.abspath(path)), False))
 
 
 def new_file() -> Drawing:
-    """Make a blank drawing (AutoCAD 2013, layer 0 only) with no app and no file: ``new_file().save_as("new.dxf")``."""
+    """Make a blank drawing (AutoCAD 2013, layer 0 only) with no app and no file: ``new_file().save_as("new.dxf")``.
+
+    Example:
+        drawing = new_file()                  # drawing.name == 'Drawing', drawing.layers has the layer 0 only
+        drawing.add_line((0, 0), (100, 0))
+        drawing.commit()                      # ['101']
+        drawing.save_as("new.dxf")
+    """
     return Drawing(_LocalBackend(_cad.CadDocument.From(_dxf.DxfDatabase("AC1027")), False))

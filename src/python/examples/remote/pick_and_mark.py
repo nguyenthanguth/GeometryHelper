@@ -9,28 +9,28 @@ import sys
 
 from System import TimeSpan
 
-import geometryhelper  # noqa: F401  (starts .NET and loads the assemblies)
+from geometryhelper.cad import App
 from GeometryHelper.Cad.Remote import CadApplication, CadRemoteException
-from GeometryHelper.Dxf import DxfCircle
-from GeometryHelper.Geometry import GeoVector3
 
 PICK_TIMEOUT = TimeSpan.FromSeconds(60)  # a pick with no time limit would wait for ever, and Ctrl+C cannot end it
 
 
 def main(app: CadApplication) -> int:
-    drawing = app.ActiveDocument
+    cad = App(app)  # the Drawing API over the connection, as connect() gives it
+    drawing = cad.active_drawing
     if drawing is None:  # the app has no drawing open
-        drawing = app.New()
+        drawing = cad.new()
     try:
-        centre = drawing.PickPoint("Pick the centre", timeout=PICK_TIMEOUT)
+        # drawing.net is the CadRemoteDocument: its PickPoint takes the time limit that drawing.pick_point does not.
+        centre = drawing.net.PickPoint("Pick the centre", timeout=PICK_TIMEOUT)
     except CadRemoteException as error:
         if not error.IsCancelled:
             raise
         print("Cancelled.")
         return 1
-    drawing.Insert(DxfCircle(centre, GeoVector3(0, 0, 1), 50))
-    drawing.CommitChanges()
-    drawing.SendCommand("ZOOM E\n")  # "\n" is Enter
+    drawing.add_circle(centre, 50)
+    drawing.commit()
+    cad.run_command(drawing, "ZOOM E\n")  # "\n" is Enter
     print(f"circle at {centre.X:.3f},{centre.Y:.3f}")
     return 0
 

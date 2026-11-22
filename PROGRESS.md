@@ -235,12 +235,21 @@ inside the app; made to be used a lot, by people and by AI (plan and spec in .cl
       giving Entity objects; `add_ribbon_tab`, panels, buttons, split buttons, DRAWINGS button and menu, canvas menu
       and Properties from a .py, one host per file; Drawing, Entity, Layer, App, connect, open_file, new_file with
       commit() as one undo step; 25 shared scenarios held equal headless, outside and in the app
-- [ ] PW2 parked: no Python custom snaps, side panel or CadSetting (D1660, reasons in the spec); a dimension added from
-      Python in the app keeps an old picture (CadCommands.Redraw is internal); a save inside a run makes two undo steps;
-      style and block reads copy the whole drawing; the remote and library examples still on the .NET API
-- [ ] PW3. Finish: the PYTHON console and PYTHONCLOSE removed (PYRUN kept); a docstring with an example and a stub for
-      every public name, checked by a test; one example per task; acceptance: the C1 layer command written in Python
-      run in the app and from outside, and a LISP routine and its Python port giving the same drawing
+- [ ] PW2 parked: no Python side panel (it takes WPF content); style and block reads copy the whole drawing
+- [x] PW3. Finish: the PYTHON console and PYTHONCLOSE removed (PYRUN kept); a docstring with an example for every public
+      name of `geometryhelper.cad` (typed inline, so no .pyi), checked by a test; the guide, the changelog and the
+      examples on the new API; acceptance: the C1 layer command written in Python run in the app and from outside, and
+      a LISP routine and its Python port giving the same drawing. Done 2026-11-23: a dimension added or changed from
+      Python is drawn by `CadDimensionPicture.Redraw`; the palette's 4 source files, 3 test files and 89 test methods are gone
+      (the host's console entry stays, since the engine-error tests use it); DIMLAY in LISP and in Python give equal
+      drawings, picture included (red without the redraw)
+- [ ] PW3 parked: `save()` inside a run makes two undo steps (the run's group ends and opens again); `Entity.dxf_type`
+      is read from `str(net)` (a public DXF name on `DxfEntity` would touch the core and its 10-minute suite); custom
+      snaps and plugin settings (D1660); `CadPythonHost.Enter`, `ResetConsole` and `CadPythonEntry` no longer have a
+      window and are used by tests only; the remote examples take the raw `CadApplication` and wrap it in `App(...)`
+      because `test_e0` pins that signature and `with CadApplication()`; `batch_folder.py` and `convert.py` stay on
+      `DxfDatabase` (they need the version and the writer's warnings); no ribbon-button example file (`test_e0` lists
+      the examples); the empty row 1 of the canvas grid stays
 
 ## Release
 

@@ -399,13 +399,41 @@ receives the document itself (`with undo_group(document, "name") as target:`).
 Groups nest, and the whole stack is one undo step. A cancel takes back every open group, so after an inner block that
 raised, the outer block finds none left and neither ends nor cancels one: the first exception is the one that arrives.
 
+## The Drawing API
+
+A drawing of a file is read and changed through a `Drawing`, the same one a command written in Python uses inside the app and
+`connect()` gives from outside ([Python commands and tools](presenter/python.md#the-drawing)). `open_file(path)` reads a DXF or
+a DWG and `new_file()` makes a blank drawing of AutoCAD 2013 with layer 0 only, with no app and no window:
+
+```python
+from geometryhelper.cad import new_file, open_file
+
+drawing = new_file()                                   # drawing.name is 'Drawing'
+drawing.layers.add("Steel", color=1)
+drawing.add_line((0, 0), (100, 0), layer="Steel")
+drawing.add_circle((50, 50), 25)
+drawing.add_polyline([(0, 0), (100, 0), (100, 50)], closed=True)
+drawing.commit()                                       # ['101', '102', '103']: three objects, one undo step
+drawing.save_as("plan.dxf")                            # a DXF of the drawing's own version (AC1027)
+
+again = open_file("plan.dxf")
+len(again.entities())                                  # 3
+again.entities("LWPOLYLINE")[0].net.Area               # 2500.0, the triangle
+```
+
+An `Entity` is a copy with a `handle`, a `dxf_type` (`"LINE"`, `"CIRCLE"`, `"LWPOLYLINE"`) and the `DxfEntity` as `net`; after
+changing `net`, `drawing.modify(entity)` and `drawing.commit()` write it back. The numbers above came from a run of the built
+wheel on .NET 8 (`new_file`, the three adds, `commit`, `save_as`, `open_file`). `pick_point` and the other picks need somebody
+to ask, so on a drawing of a file they raise `RuntimeError`. `make_drawing.py` and `list_layers.py` of
+[Python examples](python-examples.md) are written this way.
+
 ## Inside GeometryHelper CAD
 
-The same library runs inside the app. GeometryHelper CAD has a PYTHON palette for typing Python, PYRUN for running a file and
-PYLOAD for loading a file whose decorated functions become commands, and a script there asks the user for points,
+The same library runs inside the app. GeometryHelper CAD loads `.py` files from a Pythons folder at start, from APPLOAD and
+PYLOAD, and runs one with PYRUN; a function marked `@command("C1")` becomes a command that asks the user for points,
 distances and objects through `geometryhelper.cad`, with one undo step for the whole run. It starts a CPython 3.11 to 3.15 of
 your own, which Global settings can name; the wheel is not used there, as the app brings its own copy of the package.
-[Python in the app](presenter/python.md) is the guide.
+[Python commands and tools](presenter/python.md) is the guide.
 
 ## Stubs and an editor
 
@@ -479,8 +507,9 @@ tuple from [mcneel/pythonstubs](https://github.com/mcneel/pythonstubs), and the 
 ## Driving a running app
 
 A script outside the app can connect to a running GeometryHelper CAD and draw, select, run commands and ask the user to
-pick, with `CadApplication` of `GeometryHelper.Cad.Remote`, which `import geometryhelper` has already loaded;
-`with CadApplication() as app:` closes the connection at the end of the block, also when it raises. A script that runs
+pick, with `connect()` of `geometryhelper.cad` (`with connect() as app:`, the same `Drawing` as above), or with `CadApplication`
+of `GeometryHelper.Cad.Remote`, which `import geometryhelper` has already loaded; either closes the connection at the end of
+the block, also when it raises. A script that runs
 inside the app is refused a connection to that app (it uses `geometryhelper.cad`).
 [From Python](presenter/remote.md#from-python) has a full script, the points where Python differs from C#, and the timings.
 

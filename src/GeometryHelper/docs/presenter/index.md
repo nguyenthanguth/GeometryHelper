@@ -58,7 +58,7 @@ What each line does is on the page that follows.
 | [Owners](owners.md) | the entities a model drawing wrote, and how the presenter asks their owner before it changes one |
 | [Command plugins](plugins.md) | a command written in a .dll, loaded and unloaded while the app runs |
 | [AutoLISP](lisp.md) | the interpreter of each drawing, typing AutoLISP at the command line, `(load)`, APPLOAD, `acad.lsp`, `acaddoc.lsp` and the Startup Suite, and the stages still to come |
-| [Python in the app](python.md) | the PYTHON palette, PYRUN and PYLOAD, finding Python, the `geometryhelper.cad` module that asks the user and runs commands, one undo step for a run, Esc and errors |
+| [Python commands and tools](python.md) | the Pythons folder, APPLOAD, PYLOAD and PYRUN, `@command`, the prompts and `cmd`, the `Drawing` API, one undo step for a run, window additions, finding Python, Esc and errors |
 | [Settings, autosave and the window](app.md) | global settings as JSON, autosave copies, closing a drawing, the keys, the mouse and the app's command line |
 | [Driving the app from another program](remote.md) | a console program or a Tekla plugin reads and edits the open drawings, types commands, asks the user to pick and lists the layers and layouts, through a named pipe |
 

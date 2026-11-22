@@ -278,10 +278,34 @@ public static class BeamsToCad
 
 ## From Python
 
-A Python script drives the app with the same client, [`CadApplication`](xref:GeometryHelper.Cad.Remote.CadApplication), run by
-pythonnet from the `geometryhelper` wheel ([Installing](../python.md#installing)). The names are the .NET ones and the calls
-are those of the sections above; no Python class wraps the client, so nothing here is learnt twice. It needs Windows, the
-Windows user who runs the app (the pipe admits nobody else), and [the setting](#the-setting) on.
+A Python script drives the app with `connect()` of `geometryhelper.cad`, which wraps the same client,
+[`CadApplication`](xref:GeometryHelper.Cad.Remote.CadApplication), in the `Drawing` that a command written in Python inside the
+app uses ([Python commands and tools](python.md#the-drawing)): a script written for one runs in the other with only `connect()`
+or `active_drawing()` changed. It needs the `geometryhelper` wheel ([Installing](../python.md#installing)), Windows, the Windows
+user who runs the app (the pipe admits nobody else), and [the setting](#the-setting) on.
+
+```python
+from geometryhelper.cad import connect
+
+with connect() as app:                                  # the only GeometryHelper CAD running; the block's end disconnects
+    drawing = app.new()                                 # a new drawing, shown
+    drawing.layers.add("Steel", color=1)
+    drawing.add_line((0, 0), (100, 0), layer="Steel")
+    drawing.commit()                                    # one undo step
+    plan = app.documents["Drawing1.dxf"]                # a drawing of the list of open drawings, active or not
+    app.run_command(plan, "U
+")                        # typed on that drawing's command line: "
+" is Enter
+```
+
+`connect(pid=None, drawing=None)` takes the only app, the one with process id `pid`, or the one that has the file `drawing` open.
+`app.documents` lists the drawings in the app's order and takes a name or a path; `app.open(path)` and `app.new()` show a drawing;
+`drawing.pick_point`, `pick_object` and `pick_objects` ask the user, as the `PickPoint`, `PickObject` and `PickObjects` below do.
+`drawing.close()` refuses a drawing with changes not saved (`CadRemoteException`), and `close(discard=True)` closes it without
+saving; the app never shows a dialog for a remote close. Anything still queued when the block ends is dropped.
+
+Below that, the client is run by pythonnet with its .NET names, the calls of the sections above, and `drawing.net` is the
+`CadRemoteDocument` of a `Drawing`. Everything in the rest of this section works the same through `with CadApplication() as app:`.
 
 ```python
 import geometryhelper
@@ -377,11 +401,11 @@ What it costs, on this machine with the app in another process, and a drawing of
 Most of the 10 000-line read is the app's, which writes the drawing as DXF text: a client that took only that text, with no
 Python or .NET types made from it, waited 260 to 281 ms for it.
 
-**A script that runs inside the app does not connect to that app.** The Python of PYRUN, PYLOAD and the PYTHON palette
+**A script that runs inside the app does not connect to that app.** The Python of PYRUN, PYLOAD and the commands of loaded `.py` files
 runs on the app's own UI thread, and a request from it to the same app would wait for that thread, which is the script
 itself, for good. The app refuses such a connection before anything is sent, with a `CadRemoteException`:
 `A script inside GeometryHelper CAD cannot drive the same app through CadApplication: use geometryhelper.cad, which
-reaches the drawing directly.` Inside the app, use `geometryhelper.cad` ([Python in the app](python.md));
+reaches the drawing directly.` Inside the app, use `geometryhelper.cad` ([Python commands and tools](python.md));
 `CadApplication` is for a script that runs outside it.
 
 Three scripts that drive the app, one that draws a grid and reads it back, one that waits for a pick and one that lists the

@@ -10,14 +10,14 @@ is what the files do.
 | Folder | Where it runs | How a file is run |
 |---|---|---|
 | `library` | outside the app, on the libraries alone | `python list_layers.py plan.dxf`, in the virtual environment the wheel is installed in ([Installing](python.md#installing)) |
-| `in_app` | inside GeometryHelper CAD | PYRUN runs a file and PYLOAD loads one ([Python in the app](presenter/python.md)) |
+| `in_app` | inside GeometryHelper CAD | PYRUN runs a file and PYLOAD loads one ([Python commands and tools](presenter/python.md)) |
 | `remote` | outside the app, driving one that is running | `python draw_and_read.py` while the app runs with "Allow other programs to connect" on ([the setting](presenter/remote.md#the-setting)) |
 
 | File | What it does |
 |---|---|
 | [`list_layers.py`](#list-the-layers-of-a-drawing) | the objects and the closed area on each layer of a DXF or DWG |
 | [`coordinates_numpy.py`](#the-vertices-of-the-polylines-in-numpy) | every polyline's vertices as a numpy array, and the extents of all of them |
-| [`make_drawing.py`](#make-a-drawing-in-code) | a layer, a rectangle and a circle typed on a command line, saved as DXF or DWG |
+| [`make_drawing.py`](#make-a-drawing-in-code) | a layer, a rectangle and a circle added to a new drawing, saved as DXF or DWG |
 | [`regions.py`](#union-difference-and-offset-of-regions) | union, difference, intersection and offset of two squares |
 | [`solids.py`](#a-box-with-a-hole-measured) | a box with a hole cut through it: volume, surface area and centroid |
 | [`batch_folder.py`](#a-csv-report-of-a-folder) | one CSV row for each DXF and DWG file of a folder |
@@ -42,7 +42,7 @@ holds nothing. The same drawing saved as DXF and as DWG gives the same lines on 
 
 ### List the layers of a drawing
 
-`list_layers.py DRAWING` reads a DXF or DWG file and prints one line for each layer of its layer table, sorted by name, with
+`list_layers.py DRAWING` reads a DXF or DWG file with `open_file` and prints one line for each layer of its layer table, sorted by name, with
 the number of objects of model space on it and the area enclosed by the closed polylines and circles on it.
 
 ```text
@@ -64,7 +64,7 @@ of 314.159.
 
 ### The vertices of the polylines in numpy
 
-`coordinates_numpy.py DRAWING` reads every polyline of model space, in the order of their handles, and copies its vertices
+`coordinates_numpy.py DRAWING` reads the file with `open_file`, takes every polyline of model space in the order of its handles, and copies its vertices
 into a numpy array of shape (n, 2) through [`geometryhelper.arrays`](python.md#numpy-in-blocks), which takes a whole .NET
 array in one copy where a loop over the points would call into .NET three times a point. It needs numpy
 (`pip install geometryhelper[numpy]`).
@@ -84,9 +84,9 @@ and would give five.
 
 ### Make a drawing in code
 
-`make_drawing.py OUT` makes an empty drawing and a [`CadCommandSession`](xref:GeometryHelper.Cad.CadCommandSession) for it,
-types a layer `Outline` (made current), a rectangle from 0,0 to 4000,3000 and a circle of radius 500 at 2000,1500 on its
-command line, all inside one `undo_group`, and saves the drawing as `OUT`, DXF or DWG by its extension.
+`make_drawing.py OUT` makes a blank drawing with `new_file()`, adds a layer `Outline` and makes it current, adds a rectangle
+from 0,0 to 4000,3000 and a circle of radius 500 at 2000,1500 on it, applies them with one `commit()`, and saves the drawing
+as `OUT`, DXF or DWG by its extension.
 
 ```text
 objects 2
@@ -189,13 +189,13 @@ holds: MTEXT 1.` The DWG writer says nothing of what it leaves out: it logs it.
 ## Inside the app
 
 These files are run in GeometryHelper CAD with PYRUN and PYLOAD, and have no `main`: PYRUN runs the file, and PYLOAD runs it
-once to find the functions marked `@cad_command`. They use [`geometryhelper.cad`](presenter/python.md) for the prompts, and
-each run is one undo step, so one `U` takes back all it drew.
+once to find the functions marked `@command`. They use [`geometryhelper.cad`](presenter/python.md) for the prompts and the
+`Drawing` API, and each run is one undo step, so one `U` takes back all it drew.
 
 ### Number the points you pick
 
-`number_points.py`, run with PYRUN, asks `First number <1>:` and then `Specify point:` until Enter, and writes a text of
-height 2.5 at each point, the numbers counting up. After a first number of 1 and three points it writes
+`number_points.py`, run with PYRUN, asks `First number <1>:` and then `Specify point:` until Enter, and adds a text of
+height 2.5 at each point with `add_text`, the numbers counting up; the texts are applied when the run ends. After a first number of 1 and three points it writes
 
 ```text
 3 points numbered, 1 to 3.
@@ -217,9 +217,9 @@ drawing_tools.py loaded: LAYERCOUNT, RECTC.
 ```
 
 RECTC with the centre 0,0, a width of 200 and a height of 100 draws a rectangle from -100,-50 to 100,50; with Enter at both
-questions it is 1 000 by 500 about the centre. RECTC writes nothing itself, except for a width or a height of 0 or less,
-which it refuses with `The width and the height must be more than 0.` and draws nothing (fed to RECTANG, a rectangle of no
-width would leave the command asking for its corner). On a drawing with one rectangle on layer `0`, LAYERCOUNT writes
+questions it is 1 000 by 500 about the centre. RECTC adds the rectangle with `add_polyline(..., closed=True)` and writes nothing itself, except for a width or a height of 0 or
+less, which it refuses with `The width and the height must be more than 0.` and draws nothing (a rectangle of no width is a
+polyline with nothing inside it). On a drawing with one rectangle on layer `0`, LAYERCOUNT writes
 `0: 1`; an object on `walls` counts with the layer the table calls `Walls`.
 
 [!code-python[](../../python/examples/in_app/drawing_tools.py)]
@@ -243,16 +243,15 @@ rectangle's 5 000. With nothing selected it writes `Nothing selected.`
 
 These files connect to GeometryHelper CAD from another process with [`CadApplication`](xref:GeometryHelper.Cad.Remote.CadApplication),
 so the app has to be running with "Allow other programs to connect" on ([the setting](presenter/remote.md#the-setting)). Each
-has a `main` that works on the connection it is given, and a `__main__` block that makes one with
-`with CadApplication() as connection:`, which closes it at the end. [From Python](presenter/remote.md#from-python) tells how
+has a `main` that works on the connection it is given, wrapped in the `Drawing` API with `App(connection)` (what `connect()` gives),
+and a `__main__` block that makes the connection with `with CadApplication() as app:`, which closes it at the end. [From Python](presenter/remote.md#from-python) tells how
 the .NET calls look in Python. The numbers below come from the test server of the repository, an app with no window.
 
 ### Draw a grid and read it back
 
-`draw_and_read.py [OUT]` starts a new drawing, makes a layer `Grid` and inserts 11 vertical and 11 horizontal lines over a
-square of 1 000 at a spacing of 100, commits them as one undo step, reads them back with a
-[`CadObjectFilter`](xref:GeometryHelper.Cad.Remote.CadObjectFilter) (the kind `DxfLine`, the layer `Grid`) and, when `OUT` is
-given, saves the drawing.
+`draw_and_read.py [OUT]` starts a new drawing, adds a layer `Grid` and 11 vertical and 11 horizontal lines over a
+square of 1 000 at a spacing of 100, commits them as one undo step, reads them back with `drawing.entities("LINE", layer="Grid")`
+and, when `OUT` is given, saves the drawing.
 
 ```text
 22 lines on Grid, total length 22000.000
@@ -264,7 +263,7 @@ saved grid.dxf
 ### Pick a point and mark it
 
 `pick_and_mark.py` asks the user for a point (`Pick the centre`) and waits up to 60 seconds, then draws a circle of radius 50
-there and zooms to the extents. A point of 120,80, clicked or typed on the app's command line, prints
+there and zooms to the extents. The pick is made on `drawing.net`, the `CadRemoteDocument`, because `PickPoint` there takes the time limit that `drawing.pick_point` does not. A point of 120,80, clicked or typed on the app's command line, prints
 
 ```text
 circle at 120.000,80.000

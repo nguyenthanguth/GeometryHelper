@@ -12,13 +12,8 @@ from numpy.typing import NDArray
 
 import geometryhelper  # noqa: F401  (starts .NET and loads the assemblies)
 from geometryhelper.arrays import to_numpy
-from GeometryHelper.Dwg import DwgReader
-from GeometryHelper.Dxf import DxfDatabase, DxfPolyline
-
-
-def open_drawing(path: Path) -> DxfDatabase:
-    """Reads a DXF or a DWG file, by its extension."""
-    return DwgReader.Open(str(path)) if path.suffix.lower() == ".dwg" else DxfDatabase.Open(str(path))
+from geometryhelper.cad import open_file
+from GeometryHelper.Dxf import DxfPolyline
 
 
 def vertices(polyline: DxfPolyline) -> NDArray[np.float64]:
@@ -35,14 +30,14 @@ def main(argv: list[str]) -> int:
     if len(argv) != 1 or Path(argv[0]).suffix.lower() not in (".dxf", ".dwg"):
         print("usage: python coordinates_numpy.py DRAWING   (a .dxf or .dwg file)", file=sys.stderr)
         return 2
-    database = open_drawing(Path(argv[0]))
-    polylines = [entity for entity in database.ModelSpace if isinstance(entity, DxfPolyline)]
-    polylines.sort(key=lambda polyline: int(polyline.Handle, 16))
+    drawing = open_file(argv[0])
+    polylines = [entity for entity in drawing.entities(layout="Model") if isinstance(entity.net, DxfPolyline)]
+    polylines.sort(key=lambda entity: int(entity.handle, 16))
     arrays: list[NDArray[np.float64]] = []
-    for polyline in polylines:
-        points = vertices(polyline)
+    for entity in polylines:
+        points = vertices(entity.net)
         arrays.append(points)
-        print(f"{polyline.Handle}\t{len(points)}\t{polyline.Length:.3f}")
+        print(f"{entity.handle}\t{len(points)}\t{entity.net.Length:.3f}")
     if arrays:
         every = np.vstack(arrays)
         low, high = every.min(axis=0), every.max(axis=0)

@@ -73,7 +73,14 @@ the centre and gives the radius 50. It is one backslash, as AutoLISP's ``pause``
 
 
 class Cancelled(KeyboardInterrupt):
-    """Esc at a prompt, or a prompt asked after it: the run is cancelled and the drawing is as before it."""
+    """Esc at a prompt, or a prompt asked after it: the run is cancelled and the drawing is as before it.
+
+    Example:
+        try:
+            get_point("Specify centre")      # the user presses Esc
+        except Cancelled:                    # not an Exception: a bare 'except Exception' does not catch it
+            write("cancelled")               # the run ends cancelled and the drawing is as before it
+    """
 
 
 def _script(name: str) -> Any:
@@ -87,12 +94,20 @@ def _script(name: str) -> Any:
 
 
 def session() -> CadCommandSession:
-    """Return the .NET command session of the drawing the run started in: the raw escape hatch under the Drawing API."""
+    """Return the .NET command session of the drawing the run started in: the raw escape hatch under the Drawing API.
+
+    Example:
+        session().Document.EntityCount       # 0 in a blank drawing: the CadCommandSession's CadDocument, raw
+    """
     return _script("session").Session
 
 
 def write(text: str) -> None:
-    """Write one line or more on the command line: ``write("12 circles drawn")``."""
+    """Write one line or more on the command line: ``write("12 circles drawn")``.
+
+    Example:
+        write("12 circles drawn")            # one line on the command line, as AutoLISP's princ does
+    """
     _script("write").Write(text)
 
 
@@ -140,6 +155,10 @@ def get_point(
 
         centre = get_point("Specify centre")
         corner = get_point("Specify other corner", base=centre, keywords=["Undo"])
+
+    Example:
+        centre = get_point("Specify centre")                  # the user picks (10, 20): GeoPoint2, centre.X == 10.0
+        corner = get_point("Other corner", base=centre, keywords=["Close", "Undo"])   # the user types c: 'Close'
     """
     answer = _ask("get_point", _cad.CadPrompt.ForPoint(message, base, _strings(keywords), default))
     kind = _kind(answer)
@@ -173,6 +192,9 @@ def get_distance(
     """Ask for a distance, typed or as two points; return a keyword as the prompt writes it, the default on Enter, else None.
 
         radius = get_distance("Specify radius", base=centre)   # the user types 50 or picks a point 50 mm away
+
+    Example:
+        radius = get_distance("Specify radius", base=centre)  # the user types 5: 5.0; a second point 5 away gives 5.0 too
     """
     return _number_or(
         _ask("get_distance", _cad.CadPrompt.ForDistance(message, base, _strings(keywords), default)), default, float
@@ -188,6 +210,9 @@ def get_angle(
     """Ask for an angle, typed in degrees or as a direction; return radians, a keyword, the default (degrees, as the prompt shows it) on Enter, else None.
 
         turn = get_angle("Specify rotation")   # the user types 90 and gets 1.5707963267948966
+
+    Example:
+        turn = get_angle("Specify rotation")                  # the user types 90: 1.5707963267948966 (radians)
     """
     return _number_or(
         _ask("get_angle", _cad.CadPrompt.ForAngle(message, base, _strings(keywords), default)),
@@ -233,6 +258,9 @@ def get_integer(
     """Ask for a whole number, asking again after text that is none; return a keyword, the default on Enter, else None.
 
         count = get_integer("How many", default=3)
+
+    Example:
+        count = get_integer("How many", default=3)            # the user types 7: 7; Enter gives the default, 3
     """
     result: int | str | None = _typed(
         "get_integer", message, keywords, default, _INTEGER, int, "Requires an integer value"
@@ -246,6 +274,9 @@ def get_real(
     """Ask for a number, asking again after text that is none; return a keyword, the default on Enter, else None.
 
         factor = get_real("Scale factor", ["Auto"], 1.0)
+
+    Example:
+        factor = get_real("Scale factor", ["Auto"], 1.0)      # the user types 12.5: 12.5; "Auto" gives 'Auto'; Enter gives 1.0
     """
     result: float | str | None = _typed("get_real", message, keywords, default, _REAL, float, "Requires numeric value")
     return result
@@ -255,6 +286,10 @@ def get_string(message: str = "Enter text", default: str | None = None, spaces: 
     """Ask for a text; with ``spaces`` false it ends at the first space. Return the default on Enter, else None.
 
         name = get_string("Name of the sheet", "A1", spaces=False)
+
+    Example:
+        name = get_string("Name")                      # the user types two words: 'two words'; Enter gives None
+        name = get_string("Name", "Anon")              # Enter gives 'Anon'
     """
     answer = _ask("get_string", _cad.CadPrompt.ForString(message, default))
     if _kind(answer) != "Text":
@@ -267,6 +302,10 @@ def get_keyword(message: str, keywords: Sequence[str], default: str | None = Non
     """Ask for one of the keywords; return it as the prompt writes it, or None on Enter with no default.
 
         mode = get_keyword("Mode", ["Yes", "No"], "No")
+
+    Example:
+        mode = get_keyword("Mode", ["Yes", "No"], "No")       # the user types n: 'No'; Enter gives the default, 'No'
+        mode = get_keyword("Mode", ["Yes", "No"])             # Enter gives None
     """
     answer = _ask("get_keyword", _cad.CadPrompt.ForKeyword(message, _strings(keywords), default))
     return str(answer.Text) if _kind(answer) == "Keyword" else None
@@ -285,6 +324,11 @@ def get_entity(message: str = "Select object", keywords: Sequence[str] | None = 
         line = get_entity("Select a line")
         if line is not None:
             print(line.handle, line.dxf_type)   # 2B LINE
+
+    Example:
+        line = get_entity("Select a line")                    # the user picks it: an Entity, line.dxf_type == "LINE"
+        if line is not None:                                   # Enter gives None
+            line.layer = "Steel"
     """
     answer = _ask("get_entity", _cad.CadPrompt.ForEntity(message, _strings(keywords)))
     kind = _kind(answer)
@@ -301,6 +345,10 @@ def get_selection() -> list[Entity]:
 
         entities = get_selection()
         print(len(entities), "selected")   # 3 selected
+
+    Example:
+        entities = get_selection()                             # the user selects three objects and presses Enter
+        write(f"{len(entities)} selected")                     # 3 selected
     """
     handles = _call(_script("get_selection").AskSelection)
     return [_entity(str(handle)) for handle in handles]
@@ -349,6 +397,10 @@ def cmd(*answers: object) -> None:
 
         cmd("CIRCLE", (10, 20), 50)        # a circle of radius 50 at 10,20
         cmd("CIRCLE", PAUSE, 50)           # the user picks the centre
+
+    Example:
+        cmd("CIRCLE", (10, 20), 50)           # a circle of radius 50 about (10, 20), inside the run's undo step
+        cmd("CIRCLE", PAUSE, 50)              # the user picks the centre; the radius is 50
     """
     fed = _net.Array[_net.Object]([_answer(answer) for answer in answers])
     _call(_script("cmd").Command, fed)
@@ -370,6 +422,12 @@ def command(
         @command("RING", alias="RG", description="Draws a circle", uses_selection=False)
         def ring() -> None:
             ...
+
+    Example:
+        @command("RECTC", alias="RC", description="A rectangle about a centre")
+        def rectangle_by_centre() -> None:
+            centre = get_point("Specify centre")      # RECTC, then centre (500, 300), width 200, height 100
+            ...                                       # draws one closed polyline of 20 000 square units, one undo step
     """
     if not name or any(character.isspace() for character in name):
         raise ValueError(f"A command name is one word, not {name!r}.")
@@ -389,6 +447,11 @@ def on_unload(function: F) -> F:
         @on_unload
         def bye() -> None:
             print("tools.py is gone")
+
+    Example:
+        @on_unload
+        def bye() -> None:
+            write("tools.py is gone")       # written when the file is unloaded, loaded again, or the app closes
     """
     if _ui.current is not None:
         _ui.current.unloaders.append(function)
