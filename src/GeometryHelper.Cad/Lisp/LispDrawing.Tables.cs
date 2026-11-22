@@ -294,6 +294,329 @@ namespace GeometryHelper.Cad.Lisp
             return at < 0 ? null : new LispEntityName(records[at].Handle);
         }
 
+        #region Making a record
+
+        // The subclass marker each table's record has after AcDbSymbolTableRecord.
+        private static readonly string[][] RecordMarkers =
+        {
+            new[] { "LAYER", "AcDbLayerTableRecord" },
+            new[] { "LTYPE", "AcDbLinetypeTableRecord" },
+            new[] { "STYLE", "AcDbTextStyleTableRecord" },
+            new[] { "APPID", "AcDbRegAppTableRecord" },
+            new[] { "DIMSTYLE", "AcDbDimStyleTableRecord" },
+            new[] { "UCS", "AcDbUCSTableRecord" },
+            new[] { "VIEW", "AcDbViewTableRecord" },
+            new[] { "VPORT", "AcDbViewportTableRecord" },
+        };
+
+        /// <summary>Whether a type is a record of a table, which <c>entmake</c> makes by its own rules: all of AutoCAD's but BLOCK_RECORD, which it refuses.</summary>
+        private static bool IsRecordType(string type) =>
+            type == "BLOCK_RECORD" || Array.Exists(RecordMarkers, m => m[0] == type);
+
+        /// <summary>
+        /// Makes a record of a table from a list, as <c>entmake</c> does (AutoCAD 2021, l2p pa and p2): the list has both subclass
+        /// markers, AcDbSymbolTableRecord and the table's own, and a name no record of the table has and a record can have; else
+        /// nil, silently. A layer that names a linetype that is not loaded writes <c>Error: Undefined line type NOSUCH in
+        /// LayerTableRecord GHL4</c> with no line break and gives nil. What the list gives not is what a record made by the
+        /// commands has (a layer is colour 7, Continuous). The change is one step with the form, and <c>entlast</c> is as it was.
+        /// </summary>
+        private static object MakeRecord(
+            LispInterpreter lisp,
+            CadCommandSession session,
+            string type,
+            List<KeyValuePair<int, object>> given,
+            object list
+        )
+        {
+            string[] kind = Array.Find(RecordMarkers, m => m[0] == type);
+            string name = given.Find(p => p.Key == 2).Value as string;
+
+            if (
+                kind == null
+                || !HasMarker(given, "AcDbSymbolTableRecord")
+                || !HasMarker(given, kind[1])
+                || name == null
+            )
+            {
+                return null;
+            }
+
+            try
+            {
+                DxfSymbolTable.CheckName(name, nameof(name));
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+
+            CadDocument document = session.Document;
+
+            if (IndexOfRecord(RecordsOf(document, type), name) >= 0)
+            {
+                return null;
+            }
+
+            DxfDatabase database = document.Database;
+            int flags = given.Find(p => p.Key == 70).Value is int own ? own : 0;
+            var rest = given.FindAll(p =>
+                p.Key != -1
+                && p.Key != 0
+                && p.Key != 2
+                && p.Key != 5
+                && p.Key != 70
+                && p.Key != 100
+                && p.Key != 102
+                && p.Key != 105
+                && p.Key != 330
+            );
+            Action<CadEditScope> make;
+
+            try
+            {
+                switch (type)
+                {
+                    case "LAYER":
+                        string linetype = rest.Find(p => p.Key == 6).Value as string ?? "Continuous";
+
+                        if (!database.LinetypeTable.Has(linetype))
+                        {
+                            lisp.Write("Error: Undefined line type " + linetype + " in LayerTableRecord " + name);
+                            return null;
+                        }
+
+                        DxfLayerTableRecord layer = NewLayer(name, linetype, flags, rest);
+                        make = s => s.Database.LayerTable.Add(layer);
+                        break;
+                    case "STYLE":
+                        DxfTextStyleTableRecord style = NewTextStyle(name, flags, rest);
+                        make = s => s.Database.TextStyleTable.Add(style);
+                        break;
+                    case "LTYPE":
+                        make = Linetype(name, flags, rest);
+                        break;
+                    default:
+                        make = Raw(type, kind[1], name, flags, rest);
+                        break;
+                }
+            }
+            catch (Exception exception) when (exception is ArgumentException || exception is InvalidOperationException)
+            {
+                GeometryHelperLog.Debug(
+                    "LispDrawing: entmake of a " + type + " record was refused: " + exception.Message
+                );
+                return null;
+            }
+
+            session.OpenLispStep();
+            session.HoldLispStep();
+            var planned = new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New " + type, null, name) };
+            CadEditResult result = session.Apply("ENTMAKE", planned, make);
+            return result.Succeeded ? list : null;
+        }
+
+        private static bool HasMarker(List<KeyValuePair<int, object>> given, string marker) =>
+            given.Exists(p =>
+                p.Key == 100
+                && p.Value is string text
+                && string.Equals(text, marker, StringComparison.OrdinalIgnoreCase)
+            );
+
+        private static double RealOf(List<KeyValuePair<int, object>> groups, int code, double otherwise)
+        {
+            object found = groups.Find(p => p.Key == code).Value;
+            return found is double real ? real
+                : found is int whole ? whole
+                : otherwise;
+        }
+
+        /// <summary>A layer of a list: its colour (a negative one is turned off), flags 1 (frozen) and 4 (locked), lineweight and whether it is plotted; the colour 7 and plotted where the list gives none.</summary>
+        private static DxfLayerTableRecord NewLayer(
+            string name,
+            string linetype,
+            int flags,
+            List<KeyValuePair<int, object>> rest
+        )
+        {
+            int colour = rest.Find(p => p.Key == 62).Value is int given ? given : 7;
+            var layer = new DxfLayerTableRecord
+            {
+                Name = name,
+                ColorIndex = Math.Abs(colour),
+                LinetypeName = linetype,
+                IsOff = colour < 0,
+                IsFrozen = (flags & 1) != 0,
+                IsLocked = (flags & 4) != 0,
+            };
+
+            if (rest.Find(p => p.Key == 370).Value is int weight)
+            {
+                if (!Enum.IsDefined(typeof(DxfLineWeight), weight))
+                {
+                    throw new ArgumentException(
+                        "A lineweight of " + weight.ToString(CultureInfo.InvariantCulture) + " is not one."
+                    );
+                }
+
+                layer.LineWeight = (DxfLineWeight)weight;
+            }
+
+            if (rest.Find(p => p.Key == 290).Value is int plotted)
+            {
+                layer.IsPlottable = plotted != 0;
+            }
+
+            return layer;
+        }
+
+        /// <summary>A text style of a list: its font file (txt where none), big font, fixed height, width, slant (in radians, as the list of AutoCAD gives it) and the vertical flag.</summary>
+        private static DxfTextStyleTableRecord NewTextStyle(
+            string name,
+            int flags,
+            List<KeyValuePair<int, object>> rest
+        )
+        {
+            var style = new DxfTextStyleTableRecord
+            {
+                Name = name,
+                FileName = rest.Find(p => p.Key == 3).Value as string ?? "txt",
+                BigFontFileName = rest.Find(p => p.Key == 4).Value as string ?? string.Empty,
+                TextSize = RealOf(rest, 40, 0.0),
+                XScale = RealOf(rest, 41, 1.0),
+                ObliquingAngle = RealOf(rest, 50, 0.0),
+                IsVertical = (flags & 4) != 0,
+            };
+
+            if (rest.Find(p => p.Key == 71).Value is int generation)
+            {
+                style.FlagBits = (byte)generation;
+            }
+
+            return style;
+        }
+
+        /// <summary>
+        /// A linetype of a list: its description, the length of its pattern and the groups of its dashes, a 74 (0) given after each
+        /// dash that gives none, as AutoCAD writes them.
+        /// </summary>
+        private static Action<CadEditScope> Linetype(string name, int flags, List<KeyValuePair<int, object>> rest)
+        {
+            string description = rest.Find(p => p.Key == 3).Value as string ?? string.Empty;
+            List<KeyValuePair<int, object>> pattern = rest.FindAll(p =>
+                p.Key != 3 && p.Key != 72 && p.Key != 73 && p.Key != 40
+            );
+            var withKinds = new List<KeyValuePair<int, object>>(pattern.Count + 4);
+
+            for (int i = 0; i < pattern.Count; i++)
+            {
+                withKinds.Add(pattern[i]);
+
+                if (pattern[i].Key == 49 && !(i + 1 < pattern.Count && pattern[i + 1].Key == 74))
+                {
+                    withKinds.Add(LispEntityData.Pair(74, 0));
+                }
+            }
+
+            int count = rest.Find(p => p.Key == 73).Value is int dashes
+                ? dashes
+                : withKinds.FindAll(p => p.Key == 49).Count;
+            double length = 0.0;
+
+            foreach (KeyValuePair<int, object> dash in withKinds)
+            {
+                if (dash.Key == 49)
+                {
+                    length += Math.Abs(
+                        dash.Value is double real ? real
+                        : dash.Value is int whole ? whole
+                        : 0.0
+                    );
+                }
+            }
+
+            length = RealOf(rest, 40, length);
+            List<KeyValuePair<int, string>> groups = LispEntityData.ToGroups("LTYPE", withKinds);
+            return s =>
+            {
+                if (s.Database.File.AddLinetype(name, flags, description, length, count, groups) == null)
+                {
+                    throw new InvalidOperationException("The drawing has no table of linetypes.");
+                }
+            };
+        }
+
+        /// <summary>
+        /// A record that is written as its groups are given, after its name and flags: an application, a dimension style (whose
+        /// groups 270 and 287 are the file's 277 and 289, and whose block names 5, 6 and 7 are left to the commands of the arrowheads),
+        /// a UCS, a view or a viewport. A UCS has (79 . 0) (146 . 0) and a view (281 . 0) (72 . 0) as the commands make them.
+        /// </summary>
+        private static Action<CadEditScope> Raw(
+            string table,
+            string marker,
+            string name,
+            int flags,
+            List<KeyValuePair<int, object>> rest
+        )
+        {
+            var groups = new List<KeyValuePair<int, object>>();
+
+            foreach (KeyValuePair<int, object> pair in rest)
+            {
+                if (table == "DIMSTYLE" && (pair.Key == 5 || pair.Key == 6 || pair.Key == 7))
+                {
+                    continue;
+                }
+
+                int code =
+                    table == "DIMSTYLE"
+                        ? (
+                            pair.Key == 270 ? 277
+                            : pair.Key == 287 ? 289
+                            : pair.Key
+                        )
+                        : pair.Key;
+                groups.Add(LispEntityData.Pair(code, pair.Value));
+            }
+
+            if (table == "UCS")
+            {
+                AddMissing(groups, 79, 0);
+                AddMissing(groups, 146, 0.0);
+            }
+            else if (table == "VIEW")
+            {
+                AddMissing(groups, 281, 0);
+                AddMissing(groups, 72, 0);
+            }
+
+            List<KeyValuePair<int, string>> text = LispEntityData.ToGroups(table, groups);
+            return s =>
+            {
+                DxfItem item = s.Database.File.AddTableRecord(table, marker, b =>
+                {
+                    b.Group(2, name);
+                    b.Group(70, flags);
+
+                    foreach (KeyValuePair<int, string> group in text)
+                    {
+                        b.Group(group.Key, group.Value);
+                    }
+                });
+
+                if (item == null)
+                {
+                    throw new InvalidOperationException("The drawing has no " + table + " table.");
+                }
+
+                if (table == "DIMSTYLE")
+                {
+                    DxfDimStyleTable.ListHandle(s.Database.File, item.Handle, true);
+                }
+            };
+        }
+
+        #endregion
+
         #region The lists
 
         /// <summary>The short list of a record: its type, name and flags first, then what the table's record holds.</summary>
@@ -313,11 +636,51 @@ namespace GeometryHelper.Cad.Lisp
                     pairs.AddRange(Kept(item, c => c == 2 || c == 70 || c == 62 || c == 6));
                     break;
                 case "UCS":
-                    pairs.AddRange(Kept(item, c => c == 2 || c == 70 || c == 10 || c == 11 || c == 12));
+                    // AutoCAD 2021 (l2p pa): (79 . 0) (146 . 0.0) follow the axes, the record has them or not.
+                    pairs.AddRange(
+                        Kept(item, c => c == 2 || c == 70 || c == 10 || c == 11 || c == 12 || c == 79 || c == 146)
+                    );
+                    AddMissing(pairs, 79, 0);
+                    AddMissing(pairs, 146, 0.0);
                     break;
                 case "VIEW":
+                    // AutoCAD 2021 (l2p pa): the groups below 100 but 73, with (72 . 0) after (71 . 0), then the view's own UCS (110, 111,
+                    // 112) and (79 . 0) (146 . 0.0), which the record has or not.
+                    pairs.AddRange(Kept(item, c => c < 100 && c != 73 && c != 79));
+                    int after = pairs.FindLastIndex(p => p.Key == 71);
+
+                    if (!pairs.Exists(p => p.Key == 72))
+                    {
+                        pairs.Insert(after < 0 ? pairs.Count : after + 1, LispEntityData.Pair(72, 0));
+                    }
+
+                    pairs.AddRange(Kept(item, c => c == 110 || c == 111 || c == 112 || c == 79 || c == 146));
+                    AddMissing(pairs, 110, new[] { 0.0, 0.0, 0.0 });
+                    AddMissing(pairs, 111, new[] { 1.0, 0.0, 0.0 });
+                    AddMissing(pairs, 112, new[] { 0.0, 1.0, 0.0 });
+                    AddMissing(pairs, 79, 0);
+                    AddMissing(pairs, 146, 0.0);
+                    break;
                 case "VPORT":
                     pairs.AddRange(Kept(item, c => c < 100));
+                    break;
+                case "LTYPE":
+                    // AutoCAD 2021 (l2p pa): no group 74 where it is 0, as every dash of a plain linetype has it.
+                    pairs.AddRange(
+                        Kept(item, c => true).FindAll(p => !(p.Key == 74 && p.Value is int kind && kind == 0))
+                    );
+                    break;
+                case "STYLE":
+                    // AutoCAD 2021 (l2p p3): the obliquing is in radians (0.261799 for 15 degrees), the file has it in degrees.
+                    foreach (KeyValuePair<int, object> pair in Kept(item, c => true))
+                    {
+                        pairs.Add(
+                            pair.Key == 50 && pair.Value is double degrees
+                                ? LispEntityData.Pair(50, degrees * Math.PI / 180.0)
+                                : pair
+                        );
+                    }
+
                     break;
                 default:
                     pairs.AddRange(Kept(item, c => true));
@@ -332,6 +695,15 @@ namespace GeometryHelper.Cad.Lisp
             }
 
             return LispInterpreter.ListOf(items);
+        }
+
+        /// <summary>Puts a group last where the list has none of its code.</summary>
+        private static void AddMissing(List<KeyValuePair<int, object>> pairs, int code, object value)
+        {
+            if (!pairs.Exists(p => p.Key == code))
+            {
+                pairs.Add(LispEntityData.Pair(code, value));
+            }
         }
 
         /// <summary>The groups of a record as the file holds them, without its handle, owner, subclass markers and reactors, those a test lets through.</summary>
@@ -362,7 +734,7 @@ namespace GeometryHelper.Cad.Lisp
             return kept;
         }
 
-        /// <summary>A block's name, flags (1 anonymous, 2 attributes, 4 external reference), base point and the name of its first entity.</summary>
+        /// <summary>A block's name, flags (1 anonymous, 2 attributes, 4 external reference), description, base point and the name of its first entity.</summary>
         private static List<KeyValuePair<int, object>> BlockGroups(CadDocument document, DxfItem item)
         {
             string name = NameOfRecord(item);
@@ -388,10 +760,12 @@ namespace GeometryHelper.Cad.Lisp
                 }
             }
 
+            // AutoCAD 2021 (l2p pa, D1108): the description (4) follows the flags, empty where the block has none.
             var groups = new List<KeyValuePair<int, object>>
             {
                 LispEntityData.Pair(2, name),
                 LispEntityData.Pair(70, flags),
+                LispEntityData.Pair(4, block?.Comments ?? string.Empty),
                 LispEntityData.Pair(10, origin),
             };
 

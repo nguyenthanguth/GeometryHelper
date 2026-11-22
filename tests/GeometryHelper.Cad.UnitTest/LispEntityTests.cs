@@ -401,7 +401,6 @@ namespace GeometryHelper.Cad.UnitTest
         [InlineData("(entmake nil)")]
         [InlineData("(entmake '((0 . \"CIRCLE\") (10 0.0 0.0 0.0)))")] // ours: no radius
         [InlineData("(entmake '((0 . \"LINE\") (6 . \"NoSuchType\") (10 0.0 0.0 0.0) (11 1.0 1.0 0.0)))")] // ours: a linetype the drawing lacks
-        [InlineData("(entmake '((0 . \"POLYLINE\") (70 . 0)))")] // AutoCAD 2021 supports it; L2 does not (D52)
         public void EntmakeOfWhatCannotBeMade_IsNil_AndMakesNothing(string form)
         {
             CadDocument document = Blank();
