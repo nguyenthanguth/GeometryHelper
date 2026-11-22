@@ -759,8 +759,8 @@ From code, [`CadToolPalettes`](xref:GeometryHelper.Cad.CadToolPalettes) (`Create
 
 ### The Parametric tab
 
-The Parametric tab, between Annotate and View, has three panels, laid out as AutoCAD 2021's (see [Parametric, View, Manage and
-Output](#parametric-view-manage-and-output)). **Geometric** has Auto Constrain (AUTOCONSTRAIN), the twelve constraints as tiles in
+The Parametric tab, between Annotate and View, has three panels, laid out as AutoCAD 2021's (see [The ribbon
+](#the-ribbon)). **Geometric** has Auto Constrain (AUTOCONSTRAIN), the twelve constraints as tiles in
 three rows of four (Coincident, Collinear, Concentric, Fix; Parallel, Perpendicular, Horizontal, Vertical; Tangent, Smooth,
 Symmetric, Equal), then Show/Hide (CONSTRAINTBAR), Show All and Hide All of the constraint bars, and a launcher that opens
 Constraint Settings on its Geometric tab. **Dimensional** has the Linear split (Linear, Horizontal and Vertical: DCLINEAR,
