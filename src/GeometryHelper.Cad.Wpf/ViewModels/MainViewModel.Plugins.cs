@@ -16,9 +16,6 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Raised by PLUGINLOAD (NETLOAD) and the Load .dll buttons: the window shows its Open dialog for a .dll, then calls <see cref="LoadPlugin"/>.</summary>
         public event EventHandler PluginLoadRequested;
 
-        /// <summary>Raised by the Install buttons: the window shows its Open dialog for a .ghplugin, then calls <see cref="InstallPlugin"/>.</summary>
-        public event EventHandler PluginInstallRequested;
-
         /// <summary>Raised by the Plugin manager button: the window shows the Plugin manager over <see cref="CreatePluginManager"/>.</summary>
         public event EventHandler PluginManagerRequested;
 
@@ -93,17 +90,11 @@ namespace GeometryHelper.Cad.Wpf
             return results;
         }
 
-        /// <summary>Loads a command plugin from a .dll, a .ghplugin or a plugin's folder, as PLUGINLOAD does, and says what came of it.</summary>
+        /// <summary>Loads a command plugin from a .dll or a plugin's folder, as PLUGINLOAD does, and says what came of it.</summary>
         /// <param name="path">The path.</param>
         /// <returns>What came of it; null without a manager.</returns>
         public CadPluginResult LoadPlugin(string path) =>
             Report(_plugins == null || string.IsNullOrWhiteSpace(path) ? null : _plugins.Load(path));
-
-        /// <summary>Installs a .ghplugin package into the plugin folder and loads it, and says what came of it.</summary>
-        /// <param name="path">The path of the package.</param>
-        /// <returns>What came of it; null without a manager.</returns>
-        public CadPluginResult InstallPlugin(string path) =>
-            Report(_plugins == null || string.IsNullOrWhiteSpace(path) ? null : _plugins.Install(path));
 
         /// <summary>Loads a plugin again from its file, as PLUGINRELOAD does, and says what came of it.</summary>
         /// <param name="name">The plugin's name.</param>
@@ -122,9 +113,6 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>Asks the window for the file dialog of PLUGINLOAD.</summary>
         internal void RequestPluginLoad() => PluginLoadRequested?.Invoke(this, EventArgs.Empty);
-
-        /// <summary>Asks the window for the file dialog of a .ghplugin to install.</summary>
-        internal void RequestPluginInstall() => PluginInstallRequested?.Invoke(this, EventArgs.Empty);
 
         /// <summary>Asks the window for the Plugin manager.</summary>
         internal void RequestPluginManager() => PluginManagerRequested?.Invoke(this, EventArgs.Empty);

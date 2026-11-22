@@ -325,7 +325,7 @@ namespace GeometryHelper.Cad.Plugins.UnitTest
                 CadCommandSession session = PluginFiles.Session(PluginFiles.Circles(), registry);
 
                 session.Feed("NETLOAD");
-                Assert.Equal("Enter the path of a plugin (.dll or .ghplugin):", session.PromptText);
+                Assert.Equal("Enter the path of a plugin (.dll or its folder):", session.PromptText);
                 session.Feed("\"" + path + "\"");
                 Assert.NotNull(registry.Find("NUMCIRCLES"));
 
@@ -382,64 +382,13 @@ namespace GeometryHelper.Cad.Plugins.UnitTest
         }
 
         [Fact]
-        public void APackageIsInstalledIntoThePluginFolderAndLoadedAtEveryStartUntilUninstalled()
+        public void APluginFolderThatNeedsANewerApiIsRefusedBeforeAnyOfItsCodeIsCopiedOrLoaded()
         {
-            string package = _files.Package(PluginFiles.Manifest());
-            string folder = Path.Combine(_files.PluginFolder, "number-circles");
+            string folder = _files.SampleFolder(PluginFiles.Manifest(api: "2.0"));
 
             using (CadPluginManager manager = _files.Manager(true))
             {
-                CadPluginResult installed = manager.Install(package);
-
-                Assert.True(installed.Succeeded, installed.ToString());
-                Assert.Equal("Loaded Number circles 1.2.0: FAILNOW, NUMCIRCLES.", installed.Message);
-                Assert.True(installed.Plugin.IsInstalled);
-                Assert.True(installed.Plugin.IsTrusted);
-                Assert.Equal(folder, installed.Plugin.Path);
-                Assert.Equal(Path.Combine(folder, "icon.png"), installed.Plugin.IconPath);
-                Assert.True(File.Exists(Path.Combine(folder, PluginFiles.SampleName + ".dll")));
-                Assert.Equal(
-                    new[] { CadPluginAction.Install, CadPluginAction.Load },
-                    manager.Log.Select(l => l.Action)
-                );
-            }
-
-            using (CadPluginManager manager = _files.Manager())
-            {
-                CadPluginResult started = Assert.Single(manager.LoadAtStart());
-                Assert.True(started.Succeeded, started.ToString());
-                Assert.Equal("Number circles", started.Plugin.Name);
-
-                CadPluginResult removed = manager.Uninstall("number circles");
-
-                Assert.True(removed.Succeeded, removed.ToString());
-                Assert.False(Directory.Exists(folder));
-                Assert.Empty(manager.Plugins);
-            }
-        }
-
-        [Fact]
-        public void APackageOutsideTheTrustedFoldersIsInstalledOnlyWhenConfirmed()
-        {
-            string package = _files.Package(PluginFiles.Manifest());
-
-            using (CadPluginManager manager = _files.Manager())
-            {
-                CadPluginResult refused = manager.Install(package);
-
-                Assert.False(refused.Succeeded);
-                Assert.False(Directory.Exists(_files.PluginFolder));
-            }
-        }
-
-        [Fact]
-        public void APackageThatNeedsANewerApiIsRefusedBeforeAnyOfItsCodeIsCopiedOrLoaded()
-        {
-            string package = _files.Package(PluginFiles.Manifest(api: "2.0"));
-
-            using (CadPluginManager manager = _files.Manager(true))
-            {
-                CadPluginResult refused = manager.Load(package);
+                CadPluginResult refused = manager.Load(folder);
 
                 Assert.False(refused.Succeeded);
                 Assert.Equal(
@@ -453,16 +402,16 @@ namespace GeometryHelper.Cad.Plugins.UnitTest
         }
 
         [Fact]
-        public void APackageLoadedForTheSessionRunsFromItsCopiesUnderTheNameOfItsManifest()
+        public void APluginFolderLoadedForTheSessionRunsFromItsCopiesUnderTheNameOfItsManifest()
         {
-            string package = _files.Package(PluginFiles.Manifest());
+            string folder = _files.SampleFolder(PluginFiles.Manifest());
             var registry = CadCommandRegistry.CreateDefault();
 
             using (CadPluginManager manager = _files.Manager(true))
             {
                 manager.Attach(registry);
 
-                CadPluginResult loaded = manager.Load(package);
+                CadPluginResult loaded = manager.Load(folder);
 
                 Assert.True(loaded.Succeeded, loaded.ToString());
                 Assert.Equal("Number circles", loaded.Plugin.Name);
@@ -529,37 +478,9 @@ namespace GeometryHelper.Cad.Plugins.UnitTest
 
                 Assert.False(refused.Succeeded);
                 Assert.Equal(
-                    "There is no plugin " + path + ": a plugin is a .dll, a .ghplugin, or the folder of one installed.",
+                    "There is no plugin " + path + ": a plugin is a .dll, or the folder of one.",
                     refused.Message
                 );
-            }
-        }
-
-        [Theory]
-        [InlineData("...", false)]
-        [InlineData(". .", false)]
-        [InlineData("..", false)]
-        [InlineData("a/..", false)]
-        [InlineData("circles.", false)]
-        [InlineData("other-circles", true)]
-        public void AnIdThatNamesThePluginFolderItselfIsRefusedAndNoInstalledPluginIsDeleted(string id, bool accepted)
-        {
-            string kept = Path.Combine(_files.PluginFolder, "installed-before", "kept.txt");
-            Directory.CreateDirectory(Path.GetDirectoryName(kept));
-            File.WriteAllText(kept, "an installed plugin");
-            string package = _files.Package(PluginFiles.Manifest(id, "Other circles"), "other.ghplugin");
-
-            using (CadPluginManager manager = _files.Manager(true))
-            {
-                CadPluginResult result = manager.Install(package);
-
-                Assert.Equal(accepted, result.Succeeded);
-                Assert.True(File.Exists(kept));
-
-                if (!accepted)
-                {
-                    Assert.Equal("The plugin's id \"" + id + "\" cannot name a folder.", result.Message);
-                }
             }
         }
 

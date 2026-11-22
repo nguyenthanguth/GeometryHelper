@@ -85,7 +85,7 @@
                 </DockPanel>
             </Border>
 
-            <!-- The actions: load, install, then those of the plugin selected. -->
+            <!-- The actions: load, then those of the plugin selected. -->
             <Border
                 DockPanel.Dock="Top"
                 BorderBrush="{StaticResource GhBorder}"
@@ -98,21 +98,9 @@
                         Content="Load .dll… (NETLOAD)"
                         Command="{Binding LoadCommand}"
                     />
-                    <Button
-                        Style="{StaticResource Secondary}"
-                        Content="Install .ghplugin…"
-                        Command="{Binding InstallCommand}"
-                    />
                     <Rectangle Width="1" Fill="{StaticResource GhBorder}" Margin="4,0,10,0" />
                     <Button Style="{StaticResource Secondary}" Content="Reload" Command="{Binding ReloadCommand}" />
                     <Button Style="{StaticResource Secondary}" Content="Unload" Command="{Binding UnloadCommand}" />
-                    <Button
-                        Style="{StaticResource Secondary}"
-                        Content="Remove"
-                        Command="{Binding RemoveCommand}"
-                        Foreground="{StaticResource GhError}"
-                        ToolTip="Uninstall: the plugin's folder is taken out of the plugin folder"
-                    />
                 </StackPanel>
             </Border>
 
@@ -197,7 +185,7 @@
                             <TextBlock
                                 Margin="12"
                                 Foreground="{StaticResource GhTextMuted}"
-                                Text="No plugin is known in this session. Load a .dll, or install a .ghplugin."
+                                Text="No plugin is known in this session. Load a .dll, or put it in the Plugins folder."
                             >
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">

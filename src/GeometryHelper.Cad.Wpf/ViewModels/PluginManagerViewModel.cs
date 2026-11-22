@@ -62,7 +62,7 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets whether it is trusted.</summary>
         public bool IsTrusted => Plugin.IsTrusted;
 
-        /// <summary>Gets "Yes" where it is loaded at every start: installed, or on the startup list.</summary>
+        /// <summary>Gets "Yes" where it is loaded at every start: it lies in the Plugins folder, or is on the startup list.</summary>
         public string AtStart => Plugin.IsInstalled || Plugin.LoadAtStartup ? "Yes" : "No";
 
         /// <summary>Gets whether it is loaded.</summary>
@@ -97,7 +97,7 @@ namespace GeometryHelper.Cad.Wpf
 
     /// <summary>
     /// The Plugin manager, as the design draws it: the plugins known in this session with a filter by kind; Load .dll,
-    /// Install .ghplugin, Reload, Unload and Remove; the one selected with its commands, author and API, its settings and
+    /// Reload and Unload; the one selected with its commands, author and API, its settings and
     /// whether it loads at start; the trusted folders; and the load log. It follows the manager while open and lets go of it
     /// when disposed. A drawing plugin is refused with the manager's reason, said in <see cref="Message"/>.
     /// </summary>
@@ -120,15 +120,10 @@ namespace GeometryHelper.Cad.Wpf
             _manager = manager ?? throw new ArgumentNullException(nameof(manager));
             _say = say;
             LoadCommand = new DelegateCommand(_ => LoadRequested?.Invoke(this, EventArgs.Empty));
-            InstallCommand = new DelegateCommand(_ => InstallRequested?.Invoke(this, EventArgs.Empty));
             ReloadCommand = new DelegateCommand(_ => Show(_manager.Reload(_selected.Name)), _ => _selected != null);
             UnloadCommand = new DelegateCommand(
                 _ => Show(_manager.Unload(_selected.Name)),
                 _ => _selected != null && _selected.IsLoaded
-            );
-            RemoveCommand = new DelegateCommand(
-                _ => Show(_manager.Uninstall(_selected.Name)),
-                _ => _selected != null && _selected.Plugin.IsInstalled
             );
             ToggleLoadedCommand = new DelegateCommand(p => ToggleLoaded(p as PluginRowViewModel));
             FilterCommand = new DelegateCommand(p => Filter = p as string ?? "All");
@@ -151,9 +146,6 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>Raised by Load .dll: the window shows its Open dialog, then calls <see cref="Load"/>.</summary>
         public event EventHandler LoadRequested;
-
-        /// <summary>Raised by Install .ghplugin: the window shows its Open dialog, then calls <see cref="Install"/>.</summary>
-        public event EventHandler InstallRequested;
 
         /// <summary>Raised by Add folder: the window asks for a folder, then calls <see cref="AddFolder"/>.</summary>
         public event EventHandler AddFolderRequested;
@@ -271,7 +263,7 @@ namespace GeometryHelper.Cad.Wpf
         public string SelectedProblems =>
             _selected?.Plugin.Plugin == null ? string.Empty : string.Join(" ", _selected.Plugin.Plugin.Problems);
 
-        /// <summary>Gets or sets whether the selected plugin loads at every start (the startup list); installed plugins always do.</summary>
+        /// <summary>Gets or sets whether the selected plugin loads at every start (the startup list); those of the Plugins folder always do.</summary>
         public bool SelectedLoadAtStart
         {
             get => _selected != null && (_selected.Plugin.LoadAtStartup || _selected.Plugin.IsInstalled);
@@ -309,17 +301,11 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Gets the command of Load .dll….</summary>
         public ICommand LoadCommand { get; }
 
-        /// <summary>Gets the command of Install .ghplugin….</summary>
-        public ICommand InstallCommand { get; }
-
         /// <summary>Gets the command of Reload.</summary>
         public ICommand ReloadCommand { get; }
 
         /// <summary>Gets the command of Unload.</summary>
         public ICommand UnloadCommand { get; }
-
-        /// <summary>Gets the command of Remove: an installed plugin uninstalled.</summary>
-        public ICommand RemoveCommand { get; }
 
         /// <summary>Gets the command of a row's On box, given the row: loads or unloads it.</summary>
         public ICommand ToggleLoadedCommand { get; }
@@ -341,12 +327,6 @@ namespace GeometryHelper.Cad.Wpf
         /// <returns>What came of it.</returns>
         public CadPluginResult Load(string path) =>
             Show(_manager.Load(path ?? throw new ArgumentNullException(nameof(path))));
-
-        /// <summary>Installs a package, as Install .ghplugin does after its dialog.</summary>
-        /// <param name="path">The path of the package.</param>
-        /// <returns>What came of it.</returns>
-        public CadPluginResult Install(string path) =>
-            Show(_manager.Install(path ?? throw new ArgumentNullException(nameof(path))));
 
         /// <summary>Trusts a folder.</summary>
         /// <param name="folder">The folder.</param>
@@ -434,7 +414,7 @@ namespace GeometryHelper.Cad.Wpf
             Raise(nameof(SelectedLoadAtStart));
             Raise(nameof(HasSettings));
 
-            foreach (ICommand command in new[] { ReloadCommand, UnloadCommand, RemoveCommand, SettingsCommand })
+            foreach (ICommand command in new[] { ReloadCommand, UnloadCommand, SettingsCommand })
             {
                 ((DelegateCommand)command).RaiseCanExecuteChanged();
             }

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -55,9 +54,9 @@ namespace GeometryHelper.Cad.Plugins.Net8Runner
                 WeakReference[] contexts = ReloadAndUnload(root, Path.Combine(beside, Sample + ".dll"), second);
                 Check("every load context of the sample is collected after unloading", Collected(contexts));
 
-                WeakReference[] installed = InstallAndUninstall(root, Path.Combine(beside, Sample + ".dll"));
+                WeakReference[] installed = LoadFromThePluginsFolder(root, Path.Combine(beside, Sample + ".dll"));
                 Check(
-                    "the load context of the package installed is collected after uninstalling",
+                    "the load context of the plugin loaded from the Plugins folder is collected after unloading",
                     Collected(installed)
                 );
 
@@ -175,26 +174,20 @@ namespace GeometryHelper.Cad.Plugins.Net8Runner
             return Distinct(contexts);
         }
 
-        /// <summary>Installs a package of the sample, loads it again in a second manager as at a start, runs it and uninstalls it.</summary>
+        /// <summary>Puts the sample in a folder of the Plugins folder with a plugin.json, loads it at start, runs it and unloads it.</summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static WeakReference[] InstallAndUninstall(string root, string built)
+        private static WeakReference[] LoadFromThePluginsFolder(string root, string built)
         {
-            string package = Path.Combine(root, "sample.ghplugin");
-
-            using (ZipArchive zip = ZipFile.Open(package, ZipArchiveMode.Create))
-            {
-                using (var writer = new StreamWriter(zip.CreateEntry("plugin.json").Open(), new UTF8Encoding(false)))
-                {
-                    writer.Write(
-                        "{ \"id\": \"number-circles\", \"name\": \"Number circles\", \"version\": \"1.2.0\", \"kind\": \"command\", \"minimumApiVersion\": \"1.0\", \"commands\": [ \"NUMCIRCLES\" ] }"
-                    );
-                }
-
-                zip.CreateEntryFromFile(built, Sample + ".dll");
-            }
-
-            var contexts = new List<WeakReference>();
             string plugins = Path.Combine(root, "installed");
+            string folder = Path.Combine(plugins, "number-circles");
+            Directory.CreateDirectory(folder);
+            File.WriteAllText(
+                Path.Combine(folder, "plugin.json"),
+                "{ \"id\": \"number-circles\", \"name\": \"Number circles\", \"version\": \"1.2.0\", \"kind\": \"command\", \"minimumApiVersion\": \"1.0\", \"commands\": [ \"NUMCIRCLES\" ] }"
+            );
+            File.Copy(built, Path.Combine(folder, Sample + ".dll"));
+            var contexts = new List<WeakReference>();
+            var registry = CadCommandRegistry.CreateDefault();
 
             using (
                 var manager = new CadPluginManager(
@@ -205,36 +198,19 @@ namespace GeometryHelper.Cad.Plugins.Net8Runner
                 )
             )
             {
-                manager.ConfirmUntrusted = p => true;
-                CadPluginResult installed = manager.Install(package);
-                Check(
-                    "the package installs and loads: " + installed,
-                    installed.Succeeded && installed.Plugin.Name == "Number circles"
-                );
-                contexts.AddRange(Contexts());
-            }
-
-            var registry = CadCommandRegistry.CreateDefault();
-
-            using (
-                var manager = new CadPluginManager(
-                    new CadPluginAssemblyLoader(),
-                    plugins,
-                    Path.Combine(root, "installed.json"),
-                    Path.Combine(root, "copies3")
-                )
-            )
-            {
                 manager.Attach(registry);
                 IReadOnlyList<CadPluginResult> started = manager.LoadAtStart();
-                Check("the installed plugin loads at the next start", started.Count == 1 && started[0].Succeeded);
+                Check(
+                    "the plugin folder loads at start with no question: " + string.Join(" ", started),
+                    started.Count == 1
+                        && started[0].Succeeded
+                        && started[0].Plugin.Name == "Number circles"
+                        && started[0].Plugin.IsTrusted
+                );
                 contexts.AddRange(Contexts());
                 Expect("it runs", Run(registry), string.Format(CultureInfo.InvariantCulture, FirstDone, 3));
-                CadPluginResult removed = manager.Uninstall("Number circles");
-                Check(
-                    "it uninstalls, its folder deleted: " + removed,
-                    removed.Succeeded && !Directory.Exists(Path.Combine(plugins, "number-circles"))
-                );
+                CadPluginResult unloaded = manager.Unload("Number circles");
+                Check("it unloads: " + unloaded.Message, unloaded.Succeeded);
             }
 
             return Distinct(contexts);

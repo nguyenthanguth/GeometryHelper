@@ -6,14 +6,43 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The app has a `Plugins` folder beside `GeometryHelper.Cad.App.exe`, as it has `Fonts`, `Hatches`, `Linetypes` and
+`Lisps` (`CadSupportKind.Plugins`; the build copies it with a `README.txt`). Put a plugin there and it loads when the app
+starts: every `.dll` directly in it, by the order of the names (either case the same), then every subfolder as one plugin,
+the same way, so a plugin of several .dll files lives in a folder of its own, named by the folder's `plugin.json` where it
+has one and by the folder where it has not. They load through the plugin manager as before (shadow copy, a load context of
+its own on .NET 8, the Plugins tab, the load log, the window extensions), and with no question: the folder is under the
+program folder, so it is trusted, and the Plugin manager lists it first among the trusted folders. A `.dll` that is no
+plugin, or cannot be loaded, is one line of the log and stops no other; a plugin loaded already is not loaded twice. A
+`plugin.json` beside a `.dll` directly in `Plugins` is not read (one file cannot name every .dll there), though it is for a
+`.dll` loaded from elsewhere. `PLUGINLOAD` (`NETLOAD`), `PLUGINRELOAD`, `PLUGINUNLOAD`, the startup list ("Load at every
+start") and the trusted folders stay for plugins kept elsewhere.
+
+**BREAKING.** Plugins are no longer packaged and installed: the `.ghplugin` file is gone, and a plugin is put in the `Plugins`
+folder beside the app. Removed: `CadPluginManager.Install(string)` and `Uninstall(string)`; the class `CadPluginPackage` (its
+`Extension` and `Unpack`); `CadPluginAction.Install` and `CadPluginAction.Uninstall`;
+`MainViewModel.InstallPlugin(string)` and the event `PluginInstallRequested`; `PluginManagerViewModel.Install(string)`,
+`InstallCommand`, `InstallRequested` and `RemoveCommand`; `PluginManagerWindow.PickPackage`. The Plugin manager lost its
+Install .ghplugin and Remove buttons, and a `.ghplugin` dropped on the window gets the Drag and Drop box like any file it has
+no association for. Changed: `CadPluginManifest.Read(path)` reads a `plugin.json` file only (a path ending in `.ghplugin` is
+read as JSON, so it throws `FormatException`); `CadPluginManager.Load` and `PLUGINLOAD` refuse a `.ghplugin` with `There is
+no plugin ...: a plugin is a .dll, or the folder of one.`; the prompt of `PLUGINLOAD` on the command line asks for `a plugin
+(.dll or its folder)`; a folder given to `Load` that has no `plugin.json` is now a plugin named after the folder, made of the
+.dll files in it, where it was refused. The `pluginFolder` argument of `CadPluginManager`'s constructor now names the folder
+loaded at every start (each `.dll` and subfolder of it), not a folder of installed packages, and `CadAppHost` gives it the
+`Plugins` folder beside the app; the per-user folder `%AppData%\GeometryHelper\Dxf\Plugins` is no longer loaded or trusted
+(`plugins.json` with the startup list and the trusted folders stays there). To move: unpack each `.ghplugin` (it is a zip of
+the .dll files and the `plugin.json`) into a folder of `Plugins` beside the app, or copy the .dll there. This is a major
+change, to go with the major version bump of the release.
+
 **NEW.** Files dropped on the window are taken as AutoCAD 2021 takes them (each measured in the full program), anywhere on
 it: the command line's box, the ribbon and the palettes no longer swallow them. A `.lsp`, `.fas` or `.vlx` runs the line
 typed at the command line, `Command: (LOAD "D:/x/u1.lsp")` and then what the file writes, with the SECURELOAD question of a
 typed `load` (Do Not Load gives `; error: File load canceled: D:/x/u1.lsp`; a `.fas` is asked about, then refused as
 compiled AutoLISP); a `.scr` runs `_SCRIPT` with its path in quotes; a `.arx`, `.dbx` or `.dvb` writes APPLOAD's refusal
 line; any other file (`.dcl`, `.dll`, `.txt`) gets a box titled Drag and Drop reading `No association..D:\x\notes.txt`,
-and nothing on the command line. While a command or a routine waits these files are ignored. Drawings still open, and
-`.ghplugin` packages still install. Several files are taken in the order of the drop.
+and nothing on the command line. While a command or a routine waits these files are ignored. Drawings still open.
+Several files are taken in the order of the drop.
 
 **FIXED.** AutoLISP's `entget` listed the groups of a block made by `entmake` and of the objects round it a way AutoCAD 2021 does not
 (each measured in its console): the BLOCK of such a block has its name as group `1` (`"*U"` for an anonymous one, whatever `1`

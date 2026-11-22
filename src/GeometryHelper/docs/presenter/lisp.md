@@ -241,7 +241,7 @@ shows in Loaded Applications as every loaded file does. A `.scr` runs `_SCRIPT` 
 in quotes, `Enter script file name <...>: "D:\x\draw.scr"`, with no question, as SCRIPT typed. A `.arx`, `.dbx` or `.dvb`
 writes APPLOAD's refusal line, `tools.arx cannot be loaded: .arx, .dbx, .dvb, .fas and .vlx files are not supported.`; any
 other file (`.dcl`, `.dll`, `.txt`) gets a box titled Drag and Drop that reads `No association..D:\x\notes.txt`, with OK, and
-nothing on the command line. A drawing still opens and a `.ghplugin` still installs. While a command or a routine waits
+nothing on the command line, a `.dll` or a `.ghplugin` among them (a plugin goes in the Plugins folder). A drawing still opens. While a command or a routine waits
 for an answer, the files that load, run or show the box are ignored with no word, as AutoCAD ignores them: nothing is
 loaded, the command is not cancelled and nothing is queued; with no drawing open they are passed over too. The `.py` files
 of the Python console's transcript are still its own.
