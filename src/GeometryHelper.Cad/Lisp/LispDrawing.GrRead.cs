@@ -17,9 +17,10 @@ namespace GeometryHelper.Cad.Lisp
         /// <summary>
         /// <c>(grread [track [allkeys [curtype]]])</c>: <c>(2 code)</c> for a key (13 Enter, 32 Space, 8 Backspace, 9 Tab, the
         /// character's code for a printable one), <c>(3 (x y z))</c> for a click, <c>(5 (x y z))</c> for a move, and
-        /// <c>(11 0)</c> for a right click. Moves are given only where <c>track</c> is not nil or <c>allkeys</c> has the bit 1.
+        /// <c>(25 x)</c> for a right click with the shortcut menu on, <c>(11 0)</c> then <c>(12 (x y z))</c> with SHORTCUTMENU 0. Moves are
+        /// given only where <c>track</c> is not nil or <c>allkeys</c> has the bit 1.
         /// <c>allkeys</c> and <c>curtype</c> must be whole numbers; their other bits are not used: the function keys keep their
-        /// meaning in the window and the crosshair stays. Esc gives <c>Function cancelled</c>.
+        /// meaning in the window, except F3, which gives 6, and the crosshair stays. Esc gives <c>Function cancelled</c>.
         /// </summary>
         private static object GrRead(LispInterpreter lisp, object[] a)
         {

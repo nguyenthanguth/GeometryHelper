@@ -10,7 +10,7 @@ namespace GeometryHelper.Cad.Wpf
     /// <summary>
     /// The canvas's part of the temporary graphics of AutoLISP's <c>grdraw</c> and <c>grvecs</c>: the vectors the session keeps
     /// (<see cref="CadCommandSession.TemporaryVectors"/>) drawn over the picture of the drawing, a pixel wide, in the colour of
-    /// their index, until REDRAW, REGEN, <c>(redraw)</c> or <c>grclear</c> takes them off. The XOR colour (0 or less, as
+    /// their index, until REDRAW, REGEN or <c>(redraw)</c> takes them off. The XOR colour (0 or less, as
     /// <c>(grdraw p q -1)</c>) is the one of the cursor, light on a dark background and dark on a light one, as is the colour 7,
     /// which AutoCAD shows white or black by the background; a vector drawn highlighted is dashed.
     /// </summary>

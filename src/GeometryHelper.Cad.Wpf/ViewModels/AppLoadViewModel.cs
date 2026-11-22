@@ -30,15 +30,26 @@ namespace GeometryHelper.Cad.Wpf
     /// <summary>What came of loading one application: how to show it, and the line to show.</summary>
     internal sealed class AppLoadResult
     {
-        internal AppLoadResult(AppLoadStatusKind kind, string message)
+        internal AppLoadResult(AppLoadStatusKind kind, string message, string name = null, string detail = null)
         {
             Kind = kind;
             Message = message;
+            Name = name;
+            Detail = detail;
         }
 
         internal AppLoadStatusKind Kind { get; }
 
         internal string Message { get; }
+
+        /// <summary>Gets the file's name, which the load-result line of the window shows in bold; null where the load was of no file.</summary>
+        internal string Name { get; }
+
+        /// <summary>
+        /// Gets what the load-result line says after the name: the error the history wrote for a failed load, or the sentence
+        /// after the name of a refusal.
+        /// </summary>
+        internal string Detail { get; }
     }
 
     /// <summary>
@@ -144,7 +155,9 @@ namespace GeometryHelper.Cad.Wpf
     /// by leaving the list and losing the <c>c:</c> commands it defined, which become unknown commands; AutoLISP can unload no
     /// more than that. What each action did is a line of the command history. The folder of the last Load is kept in Global
     /// settings (<see cref="GlobalSettings.AppLoadFolder"/>), the Startup Suite in <see cref="GlobalSettings.LispStartupSuite"/>.
-    /// It follows the plugin manager while open and lets go of it when disposed.
+    /// A load that fails (a .lsp or a .dll, from Load…, a drop, Reload or the On box), a file type refused, or Load… with no
+    /// drawing open is also told by a red line above the hint, until the next load that has no failure
+    /// (<see cref="HasLoadError"/>). It follows the plugin manager while open and lets go of it when disposed.
     /// </summary>
     public sealed class AppLoadViewModel : ObservableObject, IDisposable
     {
@@ -160,6 +173,11 @@ namespace GeometryHelper.Cad.Wpf
         private IReadOnlyList<AppLoadRow> _rows = Array.Empty<AppLoadRow>();
         private IReadOnlyList<AppLoadRow> _chosen = Array.Empty<AppLoadRow>();
         private string _filter = "All";
+        private string _loadErrorName;
+        private string _loadErrorText;
+
+        // The failures of the load going on, in order: the file's name and what to say after it. The line is made from them when it ends.
+        private List<KeyValuePair<string, string>> _failures;
 
         // The AutoLISP files unticked in this window, by full path: they stay in the table, off, until it closes or Unload takes them out.
         private readonly HashSet<string> _off = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -213,6 +231,26 @@ namespace GeometryHelper.Cad.Wpf
 
         /// <summary>Gets the rows chosen, in the order of the table.</summary>
         public IReadOnlyList<AppLoadRow> Chosen => _chosen;
+
+        /// <summary>
+        /// Gets whether the load-result line is shown: the last load, a batch of files or one, had a failure. It starts hidden,
+        /// is not shown for a load that succeeded, and goes when the next load has no failure.
+        /// </summary>
+        public bool HasLoadError => _loadErrorName != null;
+
+        /// <summary>Gets the file the load-result line names, shown in bold: the last file that failed; empty where the line has no file to name.</summary>
+        public string LoadErrorName => _loadErrorName ?? string.Empty;
+
+        /// <summary>
+        /// Gets what the line says after the name: <c> failed to load: ; error: bad argument type: consp 5</c>, the error text
+        /// as the command history wrote it, then for an AutoLISP file that defined commands first <c> (ERRONE was defined
+        /// before the error)</c>; the sentence of a refusal, or <c>Open a drawing to load NAME.</c>; and <c> (and 2 more)</c>
+        /// where three files failed in the load. Empty while the line is hidden.
+        /// </summary>
+        public string LoadErrorText => _loadErrorText ?? string.Empty;
+
+        /// <summary>Gets the whole line, the name and then its text; empty while the line is hidden.</summary>
+        public string LoadError => LoadErrorName + LoadErrorText;
 
         /// <summary>Gets the command of Load….</summary>
         public ICommand LoadCommand { get; }
@@ -274,11 +312,13 @@ namespace GeometryHelper.Cad.Wpf
         /// <summary>Reload: loads the rows chosen again, an AutoLISP file as Load does and a plugin as PLUGINRELOAD does.</summary>
         public void Reload()
         {
+            BeginLoad();
+
             foreach (AppLoadRow row in _chosen)
             {
                 if (row.IsPlugin)
                 {
-                    _model.ReloadPlugin(row.PluginName);
+                    NotePlugin(row.File, _model.ReloadPlugin(row.PluginName));
                 }
                 else
                 {
@@ -286,6 +326,7 @@ namespace GeometryHelper.Cad.Wpf
                 }
             }
 
+            EndLoad();
             Refresh();
         }
 
@@ -332,14 +373,18 @@ namespace GeometryHelper.Cad.Wpf
 
             if (on)
             {
+                BeginLoad();
+
                 if (row.IsPlugin)
                 {
-                    _model.LoadPlugin(row.File);
+                    NotePlugin(row.File, _model.LoadPlugin(row.File));
                 }
                 else
                 {
                     LoadLisp(row.File);
                 }
+
+                EndLoad();
             }
             else
             {
@@ -385,6 +430,7 @@ namespace GeometryHelper.Cad.Wpf
         private string LoadMany(IEnumerable<string> paths)
         {
             string last = null;
+            BeginLoad();
 
             foreach (string path in paths)
             {
@@ -402,16 +448,17 @@ namespace GeometryHelper.Cad.Wpf
 
                 last = full;
 
-                if (string.Equals(Path.GetExtension(full), ".lsp", StringComparison.OrdinalIgnoreCase))
+                if (IsLisp(full))
                 {
                     LoadLisp(full);
                 }
                 else
                 {
-                    _model.LoadApplication(full);
+                    Note(full, _model.LoadApplication(full));
                 }
             }
 
+            EndLoad();
             Refresh();
             return last;
         }
@@ -420,12 +467,88 @@ namespace GeometryHelper.Cad.Wpf
         {
             if (_model.HasDocument)
             {
-                _model.LoadApplication(path);
+                Note(path, _model.LoadApplication(path));
             }
             else
             {
-                _model.Say("Open a drawing to load " + Path.GetFileName(path) + ".");
+                string text = "Open a drawing to load " + Path.GetFileName(path) + ".";
+                _model.Say(text);
+                _failures.Add(new KeyValuePair<string, string>(string.Empty, text));
             }
+        }
+
+        private static bool IsLisp(string path) =>
+            string.Equals(Path.GetExtension(path), ".lsp", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>A load begins: the failures of the one before are forgotten, and the line stays as it was until this one ends.</summary>
+        private void BeginLoad() => _failures = new List<KeyValuePair<string, string>>();
+
+        /// <summary>Keeps what a failed or refused load said, as the line will show it; a load that succeeded keeps nothing.</summary>
+        private void Note(string path, AppLoadResult result)
+        {
+            if (result.Kind == AppLoadStatusKind.Refused)
+            {
+                _failures.Add(new KeyValuePair<string, string>(result.Name, result.Detail));
+            }
+            else if (result.Kind == AppLoadStatusKind.Failed)
+            {
+                string text = " failed to load: " + result.Detail;
+
+                if (IsLisp(path))
+                {
+                    IReadOnlyList<string> defined = _model.LispCommandsOf(path);
+
+                    if (defined.Count > 0)
+                    {
+                        text +=
+                            " ("
+                            + string.Join(", ", defined)
+                            + (defined.Count == 1 ? " was" : " were")
+                            + " defined before the error)";
+                    }
+                }
+
+                _failures.Add(new KeyValuePair<string, string>(result.Name, text));
+            }
+        }
+
+        /// <summary>Keeps the failure of a plugin loaded or reloaded from a row; the result is null with no plugin manager, which the history says.</summary>
+        private void NotePlugin(string path, CadPluginResult result)
+        {
+            if (result != null && !result.Succeeded)
+            {
+                _failures.Add(new KeyValuePair<string, string>(Path.GetFileName(path), " failed to load: " + result));
+            }
+        }
+
+        /// <summary>A load ends: the line shows the last failure of it, with the number of the others, or hides where there was none.</summary>
+        private void EndLoad()
+        {
+            List<KeyValuePair<string, string>> failures = _failures;
+            _failures = null;
+
+            if (failures.Count == 0)
+            {
+                _loadErrorName = null;
+                _loadErrorText = null;
+            }
+            else
+            {
+                KeyValuePair<string, string> last = failures[failures.Count - 1];
+                _loadErrorName = last.Key;
+                _loadErrorText =
+                    last.Value
+                    + (
+                        failures.Count > 1
+                            ? " (and " + (failures.Count - 1).ToString(CultureInfo.InvariantCulture) + " more)"
+                            : string.Empty
+                    );
+            }
+
+            Raise(nameof(HasLoadError));
+            Raise(nameof(LoadErrorName));
+            Raise(nameof(LoadErrorText));
+            Raise(nameof(LoadError));
         }
 
         private void UnloadRow(AppLoadRow row)

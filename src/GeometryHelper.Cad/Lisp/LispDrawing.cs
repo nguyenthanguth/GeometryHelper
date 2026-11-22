@@ -63,6 +63,7 @@ namespace GeometryHelper.Cad.Lisp
         static partial void RegisterGraphics(LispInterpreter lisp, CadCommandSession session);
 
         static partial void RegisterReactors(LispInterpreter lisp, CadCommandSession session);
+
         static partial void RegisterGrRead(LispInterpreter lisp, CadCommandSession session);
     }
 }

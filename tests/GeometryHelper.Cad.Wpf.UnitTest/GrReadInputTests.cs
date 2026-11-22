@@ -295,7 +295,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
         }
 
         [Fact]
-        public void ARightClickAtAGrReadPrompt_IsGivenAsEleven_AndOpensNoMenuAndIsNoEnter()
+        public void ARightClickAtAGrReadPrompt_WithTheMenuOn_IsGivenAsTwentyFiveAndTheColumn_AndOpensNoMenuAndIsNoEnter()
         {
             OnSta(() =>
             {
@@ -305,16 +305,94 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                     int asked = 0;
                     canvas.ShortcutMenuRequested += (s, e) => asked++;
 
-                    // SHORTCUTMENU 4: the menu at every right click while a command runs.
-                    canvas.ShortcutMenu = 4;
+                    // SHORTCUTMENU 11, as AutoCAD 2021 starts: it shows its menu; here none opens and the routine is told.
+                    canvas.ShortcutMenu = 11;
                     model.Execute("(setq g (grread))");
 
                     CanvasMouseTests.Click(canvas, new Point(300, 200), MouseButton.Right);
 
                     Assert.Equal(0, asked);
                     Assert.False(model.IsCommandRunning);
-                    Assert.Equal("(11 0)", Value(model, "!g"));
+                    Assert.Equal("(25 " + Math.Round(300 * canvas.PixelScale) + ")", Value(model, "!g"));
                 });
+            });
+        }
+
+        [Fact]
+        public void ARightClickAtAGrReadPrompt_WithShortcutMenu0_IsGivenAsElevenThenTwelveWithThePoint()
+        {
+            OnSta(() =>
+            {
+                MainViewModel model = Open();
+                OnCanvas(model, canvas =>
+                {
+                    canvas.ShortcutMenu = 0;
+                    model.Execute("(setq g (list (grread) (grread)))");
+                    Point at = CanvasMouseTests.At(canvas, 3.0, 4.0);
+                    canvas.View.ScreenToDrawing(at.X, at.Y, out double x, out double y);
+
+                    CanvasMouseTests.Click(canvas, at, MouseButton.Right);
+
+                    Assert.False(model.IsCommandRunning);
+                    double[] given = Numbers(Value(model, "!g"));
+                    Assert.Equal(new[] { 11.0, 0.0, 12.0 }, given.Take(3));
+                    Assert.Equal(x, given[3], 3);
+                    Assert.Equal(y, given[4], 3);
+                });
+            });
+        }
+
+        [Fact]
+        public void TheGridSnap_AppliesToAClickAndAMove_AndTheObjectSnapDoesNot()
+        {
+            OnSta(() =>
+            {
+                MainViewModel model = Open();
+                OnCanvas(model, canvas =>
+                {
+                    // AutoCAD 2021 (window): SNAPMODE 1 with SNAPUNIT 10 puts a click on the grid; OSMODE does not touch it.
+                    model.Snap.GridSnap = true;
+                    model.Snap.GridX = 10.0;
+                    model.Snap.GridY = 10.0;
+                    model.Execute("(setq g (grread T))");
+
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, CanvasMouseTests.At(canvas, 43.0, 27.0));
+
+                    double[] moved = Numbers(Value(model, "!g"));
+                    Assert.Equal(new[] { 5.0, 40.0, 30.0 }, moved.Take(3).Select(v => Math.Round(v, 3)));
+
+                    model.Execute("(setq g (grread))");
+                    CanvasMouseTests.Click(canvas, CanvasMouseTests.At(canvas, 58.0, 62.0));
+
+                    double[] clicked = Numbers(Value(model, "!g"));
+                    Assert.Equal(new[] { 3.0, 60.0, 60.0 }, clicked.Take(3).Select(v => Math.Round(v, 3)));
+                });
+            });
+        }
+
+        [Fact]
+        public void F3AtAGrReadPrompt_IsGivenAsSix_AndTheArrowKeysHomeAndDeleteAreNot()
+        {
+            OnSta(() =>
+            {
+                MainViewModel model = Open();
+                var workspace = new CadWorkspace { DataContext = model };
+                using (HwndSource source = Host(workspace))
+                {
+                    model.Execute("(setq g (grread nil 2))");
+
+                    foreach (Key key in new[] { Key.Left, Key.Up, Key.Right, Key.Down, Key.Home, Key.Delete })
+                    {
+                        Press(workspace, source, key);
+                        Assert.True(model.IsCommandRunning);
+                    }
+
+                    KeyEventArgs pressed = Press(workspace, source, Key.F3);
+
+                    Assert.True(pressed.Handled);
+                    Assert.False(model.IsCommandRunning);
+                    Assert.Equal("(2 6)", Value(model, "!g"));
+                }
             });
         }
 

@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** A load-result line in Load/Unload Applications. A load that fails (a .lsp or a .dll, from Load…, a drop, Reload or the
+On box), a file type that is refused, and Load… with no drawing open used to write only to the command history behind the modal
+window, so the user saw nothing. The window now has a red line above the hint, as the design draws it: the file in bold, then
+`failed to load: ` and the error as the history wrote it (`; error: bad argument type: consp 5`), with `(ERRONE was defined before
+the error)` for an AutoLISP file that defined commands first, and `Shown until the next load` on the right. Several failures in one
+Load… show the last with `(and 1 more)`; a load with no failure hides the line, and a load that succeeds shows nothing. See
+[Load/Unload Applications](src/GeometryHelper/docs/presenter/lisp.md#the-load-result-line).
+
 **NEW.** The menu and help functions a routine calls, as AutoCAD 2021's console answers them: `menucmd` (a `"M=$(getvar,clayer)"` string
 gives its DIESEL result, any other menu string `nil`), `menugroup`, `vmon`, `getcname` (`"LINE"` is `"_LINE"` and back), `fnsplitl`
 (`"c:/a/b.lsp"` is `("C:\a\\" "b" ".lsp")`), `setfunhelp`, `help` (a `.chm`, `.htm`, `.html` or `.pdf` file that is there opens with the
@@ -62,6 +70,8 @@ button, which opens no menu; moves come only with `track` or the bit 1 of `allke
 again takes the place of the one before it, so a loop that draws with `grvecs` at each move kept up with 1 000 moves in 19 ms.
 Esc gives `Function cancelled`. The prompt shows no words and the command line shows nothing typed while it waits. The bit 2 of
 `allkeys` (function and cursor keys) and `curtype` are not used yet.
+
+**CHANGED.** `grread` and `grclear` follow what AutoCAD 2021's window gave when it was driven with a real mouse and keyboard. A click and a move are put on the grid where SNAPMODE is on (`SNAPUNIT 10` turns a click at 41.7, 25.8 into `(3 (40.0 30.0 0.0))`) and stay in the current UCS, with no object snap and no ortho. The right button gives `(25 x)`, `x` being the cursor's column in pixels, while SHORTCUTMENU has its bit 1 (11 has), and `(11 0)` then `(12 (x y z))` at the next call with SHORTCUTMENU 0; no menu opens either way. F3 gives `(2 6)`. `(grclear)` clears nothing, as AutoCAD's window did: the temporary vectors stay until REDRAW, REGEN or `(redraw)`. The guide lists the three differences left: its first `(26 10)`, no move before the first click, and a `(5 pt)` after each key.
 
 **FIXED.** Ribbon follow-ups. A collapsed panel whose title has a long word broke it in two: Dimensions read "Dimension" over
 "s" at windows of 884 to 908 pixels, the word being a little wider than the 58 pixels the label was given. The label of a

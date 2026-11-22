@@ -131,13 +131,13 @@ namespace GeometryHelper.Cad.UnitTest
 
             Assert.False(session.FeedKey('A'));
             Assert.False(session.FeedMove(P(1, 1)));
-            Assert.False(session.FeedRightClick(P(1, 1)));
+            Assert.False(session.FeedRightClick(P(1, 1), 0, 11));
 
             session.Feed("(getpoint \"P: \")");
 
             Assert.False(session.FeedKey('A'));
             Assert.False(session.FeedMove(P(1, 1)));
-            Assert.False(session.FeedRightClick(P(1, 1)));
+            Assert.False(session.FeedRightClick(P(1, 1), 0, 11));
             Assert.Equal("P: ", session.PromptText);
         }
 
@@ -209,13 +209,32 @@ namespace GeometryHelper.Cad.UnitTest
         }
 
         [Fact]
-        public void TheRightButton_GivesEleven_AndNothingElse()
+        public void TheRightButtonWithTheMenuOn_GivesTwentyFiveAndTheColumn()
         {
+            // AutoCAD 2021 (window, SHORTCUTMENU 11): (25 650) for a click at column 650.
             CadCommandSession session = Waiting("(setq g (grread))");
 
-            Assert.True(session.FeedRightClick(P(5, 5)));
+            Assert.True(session.FeedRightClick(P(5, 5), 650, 11));
 
-            Assert.Equal("(11 0)", Value(session, "!g"));
+            Assert.Equal("(25 650)", Value(session, "!g"));
+        }
+
+        [Fact]
+        public void TheRightButtonWithShortcutMenu0_GivesElevenThenTheNextCallTwelveWithThePointInTheUcs()
+        {
+            // AutoCAD 2021 (window, SHORTCUTMENU 0): (11 0) then (12 (x y z)) for the one click.
+            CadCommandSession session = Run(Session(Blank()), "UCS", "100,50", Enter);
+            session.Feed("(list (grread) (grread))");
+
+            Assert.True(session.FeedRightClick(P(110, 70), 650, 0));
+
+            Assert.Equal("((11 0) (12 (10.0 20.0 0.0)))", session.History[session.History.Count - 1]);
+        }
+
+        [Fact]
+        public void TheRightButtonWithNoRoutineReading_IsNotTaken()
+        {
+            Assert.False(Fresh().FeedRightClick(P(5, 5), 650, 11));
         }
 
         [Fact]

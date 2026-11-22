@@ -7,8 +7,8 @@ namespace GeometryHelper.Cad.Lisp
     /// <summary>
     /// <c>grdraw</c>, <c>grvecs</c> and <c>grclear</c>: vectors drawn on the screen for a moment, not part of the drawing. The
     /// points are in the current UCS, in drawing units (millimetres); the session keeps the vectors
-    /// (<see cref="CadCommandSession.TemporaryVectors"/>) and the window draws them over the canvas until REDRAW, REGEN,
-    /// <c>(redraw)</c> or <c>grclear</c> takes them off. A session with no window keeps them and draws nothing. All three give
+    /// (<see cref="CadCommandSession.TemporaryVectors"/>) and the window draws them over the canvas until REDRAW, REGEN or
+    /// <c>(redraw)</c> takes them off; <c>grclear</c> leaves them, as AutoCAD 2021 does. A session with no window keeps them and draws nothing. All three give
     /// nil, as in AutoCAD 2021's console (probe g1).
     /// </summary>
     internal static partial class LispDrawing
@@ -17,15 +17,10 @@ namespace GeometryHelper.Cad.Lisp
         {
             lisp.Define("GRDRAW", 3, 4, a => GrDraw(lisp, session, a));
             lisp.Define("GRVECS", 1, 2, a => GrVecs(lisp, session, a));
-            lisp.Define("GRCLEAR", 0, 0, a =>
-            {
-                lisp.OnOwner(() =>
-                {
-                    session.ClearTemporaryGraphics();
-                    return null;
-                });
-                return null;
-            });
+
+            // AutoCAD 2021 calls grclear obsolete and its window clears nothing (same pixel counts of a grdraw before and after it):
+            // the vectors stay until REDRAW, REGEN or (redraw).
+            lisp.Define("GRCLEAR", 0, 0, a => null);
         }
 
         /// <summary>

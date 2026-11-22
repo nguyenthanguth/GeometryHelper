@@ -1941,7 +1941,7 @@ namespace GeometryHelper.Cad.Wpf
             else if (e.ChangedButton == MouseButton.Right && ReadsInput)
             {
                 // grread is told of the right button: no menu opens and no Enter is made of it.
-                Session.FeedRightClick(DrawingAt(at));
+                Session.FeedRightClick(GrReadPoint(DrawingAt(at)), (int)Math.Round(at.X * PixelScale), ShortcutMenu);
                 e.Handled = true;
             }
             else if (e.ChangedButton == MouseButton.Right && !IsRunning && ConstraintBarMenu(at))
@@ -2184,6 +2184,15 @@ namespace GeometryHelper.Cad.Wpf
         internal Func<ModifierKeys> KeysHeld { get; set; }
 
         private bool IsRunning => Session != null && Session.IsRunning;
+
+        /// <summary>
+        /// The point <c>grread</c> is given for a cursor: on the grid snap where SNAPMODE is on (AutoCAD 2021, window), with no
+        /// object snap, ortho or polar, since none is looked for with no aperture and no base point.
+        /// </summary>
+        private GeoPoint2 GrReadPoint(GeoPoint2 cursor) =>
+            Snap == null || Document == null || WorkSpace == null
+                ? cursor
+                : Snap.Snap(Document.GetPickIndex(WorkSpace), cursor, 0.0).Point;
 
         /// <summary>Whether a routine waits in <c>grread</c>, which reads the cursor and the buttons as they come (<see cref="CadPrompt.ReadsInput"/>).</summary>
         private bool ReadsInput => Session?.Prompt?.ReadsInput ?? false;
@@ -3898,10 +3907,10 @@ namespace GeometryHelper.Cad.Wpf
                 session.Feed(cursor);
             }
 
-            // grread with track reads each move as it is: the point under the cursor, no snap; a pan gives nothing.
+            // grread with track reads each move as it is: the point under the cursor on the grid snap, with no object snap; a pan gives nothing.
             if (session != null && session.Prompt != null && session.Prompt.ReadsMoves && !_panFrom.HasValue)
             {
-                session.FeedMove(cursor);
+                session.FeedMove(GrReadPoint(cursor));
             }
 
             if (_panFrom.HasValue)
@@ -4140,10 +4149,10 @@ namespace GeometryHelper.Cad.Wpf
                 (CadPicking.WantsPoint(Session) ? AperturePixels : PickboxPixels) * scale / view.PixelsPerUnit;
             var at = new GeoPoint2(x, y);
 
-            // grread is given the point as it lies: no snap, no object picked, no field of dynamic input.
+            // grread is given the point on the grid snap and in the UCS: no object snap, no ortho, no object picked, no field of dynamic input.
             if (ReadsInput)
             {
-                Session.Feed(at);
+                Session.Feed(GrReadPoint(at));
                 _snapped = null;
                 InvalidateVisual();
                 return;

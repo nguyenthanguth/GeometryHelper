@@ -60,7 +60,7 @@ namespace GeometryHelper.Cad
             }
         }
 
-        /// <summary>Takes every temporary vector off the screen, as REDRAW, REGEN and <c>grclear</c> do.</summary>
+        /// <summary>Takes every temporary vector off the screen, as REDRAW, REGEN and <c>(redraw)</c> do.</summary>
         internal void ClearTemporaryGraphics()
         {
             if (_temporaryVectors.Count == 0)
