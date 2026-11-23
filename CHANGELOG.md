@@ -6,6 +6,8 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+## 13.12.1 (2026-11-23)
+
 **BREAKING.** The CAD app and everything built for it left this repository for one of its own, as **OpenCAD2D**
 ([nguyenthanguth/opencad2d](https://github.com/nguyenthanguth/opencad2d)), with their history:
 `GeometryHelper.Cad`, `.Cad.Wpf`, `.Cad.Python`, `.Cad.Remote` and `.Cad.App` (now `OpenCAD2D`, `OpenCAD2D.Wpf`,
