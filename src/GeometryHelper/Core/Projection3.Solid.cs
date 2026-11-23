@@ -484,7 +484,14 @@ namespace GeometryHelper.Core
 
             foreach (GeoTriangle3 face in faces)
             {
-                if (TryReachPlane(new[] { face.A, face.B, face.C }, true, plane, out GeoPoint3 at))
+                GeoPoint3[] corners = { face.A, face.B, face.C };
+
+                if (TryNotANumberAway(corners, plane, out GeoLine3 notANumber))
+                {
+                    return notANumber;
+                }
+
+                if (TryReachPlane(corners, true, plane, out GeoPoint3 at))
                 {
                     return new GeoLine3(at, at);
                 }

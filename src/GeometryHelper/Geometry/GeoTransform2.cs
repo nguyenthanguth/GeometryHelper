@@ -195,12 +195,15 @@ namespace GeometryHelper.Geometry
         /// over its squared length.
         /// </para>
         /// </remarks>
+        /// <exception cref="ArgumentException">Thrown when the segment has an end that is not a finite point.</exception>
         public static GeoTransform2 Mirror(GeoLine2 line)
         {
             GeoVector2 along = line.StartPoint.GetVectorTo(line.EndPoint);
 
             if (!along.TryGetNormal(out GeoVector2 unit, default(Tolerance)))
             {
+                Guard.Argument(line.IsValid, nameof(line), "The line has a coordinate that is not a finite number.");
+
                 throw new InvalidOperationException("A segment with no length carries no line to mirror across.");
             }
 
@@ -229,6 +232,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="origin">Where the origin lands.</param>
         /// <param name="xAxis">Which way the X axis points; its length does not matter.</param>
+        /// <exception cref="ArgumentException">Thrown when the axis has a coordinate that is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the axis has no length.</exception>
         /// <remarks>
         /// This is what to use to place a drawing: build its geometry about the origin, then move the whole
@@ -239,6 +243,8 @@ namespace GeometryHelper.Geometry
         {
             if (!xAxis.TryGetNormal(out GeoVector2 unit))
             {
+                Guard.Argument(xAxis.IsValid, nameof(xAxis), "The axis has a coordinate that is not a finite number.");
+
                 throw new InvalidOperationException("A frame needs an X axis with a length.");
             }
 

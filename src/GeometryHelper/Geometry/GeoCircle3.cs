@@ -95,6 +95,7 @@ namespace GeometryHelper.Geometry
         /// Applies a transformation to this circle.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the transformation has an entry that is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the transformation would stretch or skew the circle into an ellipse.</exception>
         /// <remarks>See <see cref="GeoTransform3.Transform(GeoCircle3)"/>.</remarks>
         public GeoCircle3 TransformBy(GeoTransform3 transform)
@@ -103,6 +104,8 @@ namespace GeometryHelper.Geometry
             {
                 throw new ArgumentNullException(nameof(transform));
             }
+
+            Guard.Argument(transform.IsFinite, nameof(transform), Guard.NotFiniteTransform);
 
             return transform.Transform(this);
         }

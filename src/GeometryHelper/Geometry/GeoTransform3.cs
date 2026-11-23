@@ -922,6 +922,9 @@ namespace GeometryHelper.Geometry
             // Written as what a normal needs, so that one of NaNs or of infinities is refused too.
             if (!(length > 1E-12 * scale) || double.IsInfinity(length))
             {
+                // An entry of the matrix or a coordinate of the plane that is not a finite number is what leaves no normal.
+                Guard.FiniteShape(IsFinite && plane.Origin.IsValid && plane.Normal.IsValid);
+
                 throw new InvalidOperationException("This transformation leaves the plane no normal to carry.");
             }
 

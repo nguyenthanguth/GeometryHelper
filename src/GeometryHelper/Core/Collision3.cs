@@ -107,7 +107,7 @@ namespace GeometryHelper.Core
                 double reach1 = e1[i];
                 double reach2 = e2[0] * absR[i, 0] + e2[1] * absR[i, 1] + e2[2] * absR[i, 2];
 
-                if (Math.Abs(t[i]) > reach1 + reach2 + slack)
+                if (!(Math.Abs(t[i]) <= reach1 + reach2 + slack))
                 {
                     return false;
                 }
@@ -120,7 +120,7 @@ namespace GeometryHelper.Core
                 double reach2 = e2[j];
                 double separation = Math.Abs(t[0] * r[0, j] + t[1] * r[1, j] + t[2] * r[2, j]);
 
-                if (separation > reach1 + reach2 + slack)
+                if (!(separation <= reach1 + reach2 + slack))
                 {
                     return false;
                 }
@@ -148,7 +148,7 @@ namespace GeometryHelper.Core
                     double separation = Math.Abs(t[i2] * r[i1, j] - t[i1] * r[i2, j]);
                     double length = Math.Sqrt(r[i1, j] * r[i1, j] + r[i2, j] * r[i2, j]);
 
-                    if (separation > reach1 + reach2 + slack * length)
+                    if (!(separation <= reach1 + reach2 + slack * length))
                     {
                         return false;
                     }

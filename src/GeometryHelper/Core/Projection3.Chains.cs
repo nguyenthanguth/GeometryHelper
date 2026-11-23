@@ -463,6 +463,11 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polyline));
             }
 
+            if (TryNotANumberAway(polyline.Vertices, plane, out GeoLine3 notANumber))
+            {
+                return notANumber;
+            }
+
             if (TryReachPlane(polyline.Vertices, false, plane, out GeoPoint3 at))
             {
                 return new GeoLine3(at, at);

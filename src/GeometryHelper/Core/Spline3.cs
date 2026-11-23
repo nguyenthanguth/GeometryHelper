@@ -14,6 +14,9 @@ namespace GeometryHelper.Core
         /// <summary>The pieces of the shape the distance and the shortest segment are measured to.</summary>
         internal readonly List<Partner> Parts = new List<Partner>();
 
+        /// <summary>Says the shape has a coordinate that is not a finite number, so that it has no pieces for that reason.</summary>
+        internal bool NotFinite;
+
         /// <summary>The pieces the crossings are those of, where they are not all the pieces: the rim of a disc, the disc being read filled for the distance only; null otherwise.</summary>
         internal List<Partner> Rims;
 
@@ -430,6 +433,8 @@ namespace GeometryHelper.Core
             // An arc about a centre of NaN is nowhere, as a segment of NaN is: a shape of no pieces.
             if (!arc.Center.IsValid)
             {
+                shape.NotFinite = true;
+
                 return shape;
             }
 
@@ -482,7 +487,7 @@ namespace GeometryHelper.Core
             // A circle about a centre of NaN is nowhere, as a segment of NaN is: a shape of no pieces.
             if (!circle.Center.IsValid)
             {
-                return new SplineShape3();
+                return new SplineShape3 { NotFinite = true };
             }
 
             GeoPoint3 center = circle.Center;
@@ -512,7 +517,7 @@ namespace GeometryHelper.Core
             // An ellipse about a centre of NaN is nowhere, as a segment of NaN is: a shape of no pieces.
             if (!ellipse.Center.IsValid)
             {
-                return new SplineShape3();
+                return new SplineShape3 { NotFinite = true };
             }
 
             GeoPoint3 center = ellipse.Center;
@@ -1062,6 +1067,9 @@ namespace GeometryHelper.Core
         {
             if (!spline.Curve.TryGetNearest(shape.Parts, out Contact nearest))
             {
+                // A shape with a coordinate that is not a finite number has nothing to measure to for that reason.
+                Guard.FiniteShape(!shape.NotFinite && Partner.AreFinite(shape.Parts));
+
                 throw new InvalidOperationException("The shape has nothing to measure to.");
             }
 

@@ -210,6 +210,12 @@ namespace GeometryHelper.Core
             if (poly == null)
                 throw new ArgumentNullException(nameof(poly));
 
+            // A point that is not a finite one has no nearest point, rather than the first corner the search starts from.
+            if (!point.IsValid)
+            {
+                return new GeoPoint2(double.NaN, double.NaN);
+            }
+
             double minDistanceSq = double.MaxValue;
             GeoPoint2 closestPoint = poly[0];
             Tolerance sides = Exactly;
@@ -306,6 +312,12 @@ namespace GeometryHelper.Core
         {
             if (polyline == null)
                 throw new ArgumentNullException(nameof(polyline));
+
+            // A point that is not a finite one has no nearest point, rather than the first corner the search starts from.
+            if (!point.IsValid)
+            {
+                return new GeoPoint2(double.NaN, double.NaN);
+            }
 
             double minDistanceSq = double.MaxValue;
             GeoPoint2 closestPoint = polyline[0];
@@ -628,7 +640,7 @@ namespace GeometryHelper.Core
             double len2 = d2.Length;
 
             // A degenerate segment has no direction, so no crossing parameter can be derived.
-            if (len1 <= tolerance.EqualPoint || len2 <= tolerance.EqualPoint)
+            if (!(len1 > tolerance.EqualPoint) || !(len2 > tolerance.EqualPoint))
             {
                 return false;
             }
@@ -638,7 +650,7 @@ namespace GeometryHelper.Core
             // Guards the division only, and sits at machine precision rather than at a geometric
             // threshold: below it the two directions agree to about 1E-12 rad, where the endpoint
             // candidates already answer to full accuracy anyway.
-            if (Math.Abs(denom) <= 1E-12 * len1 * len2)
+            if (!(Math.Abs(denom) > 1E-12 * len1 * len2))
             {
                 return false;
             }
@@ -652,7 +664,7 @@ namespace GeometryHelper.Core
             double tTolerance = pastEnds ? tolerance.EqualPoint / len1 : 0.0;
             double uTolerance = pastEnds ? tolerance.EqualPoint / len2 : 0.0;
 
-            if (t < -tTolerance || t > 1.0 + tTolerance || u < -uTolerance || u > 1.0 + uTolerance)
+            if (!(t >= -tTolerance && t <= 1.0 + tTolerance && u >= -uTolerance && u <= 1.0 + uTolerance))
             {
                 return false;
             }

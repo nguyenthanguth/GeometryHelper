@@ -43,6 +43,12 @@ namespace GeometryHelper.Core
         /// </returns>
         public static bool CollidesWith(GeoEllipse3 ellipse, GeoPlane3 plane, Tolerance tolerance)
         {
+            // An ellipse or a plane through a point that is not a finite one touches nothing.
+            if (!ellipse.Center.IsValid || !plane.Origin.IsValid)
+            {
+                return false;
+            }
+
             return IsCoplanar(ellipse, plane, tolerance) || PointsOnPlane(ellipse, plane, tolerance).Count > 0;
         }
 

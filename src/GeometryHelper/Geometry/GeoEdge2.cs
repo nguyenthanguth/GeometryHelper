@@ -299,7 +299,7 @@ namespace GeometryHelper.Geometry
 
             GeoArc2 arc = ToArc();
 
-            if (arc.Center.GetDistanceSquaredTo(point) >= arc.Radius * arc.Radius)
+            if (!(arc.Center.GetDistanceSquaredTo(point) < arc.Radius * arc.Radius))
             {
                 return false;
             }

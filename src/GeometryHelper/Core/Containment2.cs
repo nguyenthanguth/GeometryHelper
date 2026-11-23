@@ -270,7 +270,24 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return inside;
+            return inside && IsFinite(poly);
+        }
+
+        /// <summary>
+        /// Whether every vertex of a polygon is a finite point: a polygon with one that is not has no inside, the sides
+        /// left to the crossings of the ray being no outline.
+        /// </summary>
+        private static bool IsFinite(GeoPolygon2 poly)
+        {
+            for (int i = 0; i < poly.VertexCount; i++)
+            {
+                if (!poly[i].IsValid)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         // A polyline has no interior, so there is no Contains overload taking one as the container:
@@ -426,7 +443,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return inside ? PointLocation.Inside : PointLocation.OutSide;
+            return inside && IsFinite(poly) ? PointLocation.Inside : PointLocation.OutSide;
         }
 
         /// <summary>

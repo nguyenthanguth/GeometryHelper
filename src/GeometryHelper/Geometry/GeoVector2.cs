@@ -67,12 +67,15 @@ namespace GeometryHelper.Geometry
         public double LengthSquared => X * X + Y * Y;
 
         /// <summary>
-        /// Gets the normalized unit vector. Throws InvalidOperationException if the vector length is zero.
+        /// Gets the normalized unit vector. Throws InvalidOperationException if the vector length is zero, or if a coordinate is not a finite number.
         /// </summary>
         public GeoVector2 Normalize()
         {
             if (!TryGetNormal(out GeoVector2 normal))
             {
+                // A coordinate that is not a finite number leaves no direction for that reason, not for a length of nought.
+                Guard.FiniteShape(IsValid);
+
                 throw new InvalidOperationException("Cannot normalize a zero-length vector.");
             }
             return normal;

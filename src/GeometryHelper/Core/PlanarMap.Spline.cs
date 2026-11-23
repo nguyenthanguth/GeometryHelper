@@ -24,11 +24,14 @@ namespace GeometryHelper.Core
         /// <param name="spline">The spline in space.</param>
         /// <returns>The spline in the plane of the frame, with the same degree, weights and knots; each control point is laid out with its distance from the plane dropped.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the spline is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the frame has a coordinate that is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the spline stands square to the plane, so that every control point lands on one point.</exception>
         public static GeoSpline2 ProjectToSpline2(GeoCoordinateSystem3 frame, GeoSpline3 spline)
         {
             if (spline == null)
                 throw new ArgumentNullException(nameof(spline));
+
+            Guard.Argument(IsFinite(frame), nameof(frame), NotFiniteFrame);
 
             var flat = new double[spline.ControlPointCount * 2];
 

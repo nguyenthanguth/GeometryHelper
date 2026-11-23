@@ -47,7 +47,9 @@ namespace GeometryHelper.Core
         /// Walks a shape's pieces once and keeps the one the measure rates lowest.
         /// </summary>
         /// <remarks>
-        /// Ties go to the earlier piece, because the comparison is a strict one.
+        /// Ties go to the earlier piece, because the comparison is a strict one. A piece that cannot be measured, as it has
+        /// a coordinate that is not a finite number, is passed over, and where none can be, as for the polygon whose four
+        /// corners are all NaN, nothing is handed back: the answer is an <see cref="InvalidOperationException"/>.
         /// </remarks>
         internal static T Among<T>(IEnumerable<T> edges, Func<T, double> measure)
         {
@@ -59,7 +61,7 @@ namespace GeometryHelper.Core
             {
                 double reach = measure(edge);
 
-                if (!found || reach < best)
+                if (!found || reach < best || double.IsNaN(best))
                 {
                     best = reach;
                     nearest = edge;
@@ -72,6 +74,10 @@ namespace GeometryHelper.Core
                 throw new InvalidOperationException("The shape has no edges to choose between.");
             }
 
+            // An edge no measure could place is no nearer than the first, and a shape or a probe with a coordinate that is not
+            // a finite number places none: there is nothing to hand back.
+            Guard.FiniteShape(Guard.IsFinite(best));
+
             return nearest;
         }
 
@@ -83,10 +89,12 @@ namespace GeometryHelper.Core
         /// <param name="poly">The polygon.</param>
         /// <param name="point">The point to measure against.</param>
         /// <returns>The edge of <paramref name="poly"/> lying nearest <paramref name="point"/>.</returns>
+        /// <exception cref="ArgumentException">Thrown when the point has a coordinate that is not a finite number.</exception>
         public static GeoLine2 GetClosestEdge(GeoPolygon2 poly, GeoPoint2 point)
         {
             if (poly == null)
                 throw new ArgumentNullException(nameof(poly));
+            Guard.Argument(point.IsValid, nameof(point), Guard.NotFinitePoint);
 
             return Among(poly.GetEdges(), edge => Distance2.DistanceTo(edge, point, Exactly));
         }
@@ -129,10 +137,12 @@ namespace GeometryHelper.Core
         /// <param name="polyline">The polyline.</param>
         /// <param name="point">The point to measure against.</param>
         /// <returns>The edge of <paramref name="polyline"/> lying nearest <paramref name="point"/>.</returns>
+        /// <exception cref="ArgumentException">Thrown when the point has a coordinate that is not a finite number.</exception>
         public static GeoLine2 GetClosestEdge(GeoPolyline2 polyline, GeoPoint2 point)
         {
             if (polyline == null)
                 throw new ArgumentNullException(nameof(polyline));
+            Guard.Argument(point.IsValid, nameof(point), Guard.NotFinitePoint);
 
             return Among(polyline.GetEdges(), edge => Distance2.DistanceTo(edge, point, Exactly));
         }
@@ -175,8 +185,11 @@ namespace GeometryHelper.Core
         /// <param name="rect">The rectangle.</param>
         /// <param name="point">The point to measure against.</param>
         /// <returns>The edge of <paramref name="rect"/> lying nearest <paramref name="point"/>.</returns>
+        /// <exception cref="ArgumentException">Thrown when the point has a coordinate that is not a finite number.</exception>
         public static GeoLine2 GetClosestEdge(GeoRectangle2 rect, GeoPoint2 point)
         {
+            Guard.Argument(point.IsValid, nameof(point), Guard.NotFinitePoint);
+
             return Among(rect.GetEdges(), edge => Distance2.DistanceTo(edge, point, Exactly));
         }
 
@@ -212,10 +225,12 @@ namespace GeometryHelper.Core
         /// <param name="loop">The loop.</param>
         /// <param name="point">The point to measure against.</param>
         /// <returns>The edge of <paramref name="loop"/> lying nearest <paramref name="point"/>.</returns>
+        /// <exception cref="ArgumentException">Thrown when the point has a coordinate that is not a finite number.</exception>
         public static GeoEdge2 GetClosestEdge(GeoPolygonArc2 loop, GeoPoint2 point)
         {
             if (loop == null)
                 throw new ArgumentNullException(nameof(loop));
+            Guard.Argument(point.IsValid, nameof(point), Guard.NotFinitePoint);
 
             return Among(loop.GetEdges(), edge => edge.DistanceTo(point, ArcChain2.ForSide(edge, Tolerance.Global)));
         }
@@ -227,10 +242,12 @@ namespace GeometryHelper.Core
         /// <param name="point">The point to measure against.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>The edge of <paramref name="loop"/> lying nearest <paramref name="point"/>.</returns>
+        /// <exception cref="ArgumentException">Thrown when the point has a coordinate that is not a finite number.</exception>
         public static GeoEdge2 GetClosestEdge(GeoPolygonArc2 loop, GeoPoint2 point, Tolerance tolerance)
         {
             if (loop == null)
                 throw new ArgumentNullException(nameof(loop));
+            Guard.Argument(point.IsValid, nameof(point), Guard.NotFinitePoint);
 
             return Among(loop.GetEdges(), edge => edge.DistanceTo(point, ArcChain2.ForSide(edge, tolerance)));
         }
@@ -332,10 +349,12 @@ namespace GeometryHelper.Core
         /// <param name="chain">The chain.</param>
         /// <param name="point">The point to measure against.</param>
         /// <returns>The edge of <paramref name="chain"/> lying nearest <paramref name="point"/>.</returns>
+        /// <exception cref="ArgumentException">Thrown when the point has a coordinate that is not a finite number.</exception>
         public static GeoEdge2 GetClosestEdge(GeoPolylineArc2 chain, GeoPoint2 point)
         {
             if (chain == null)
                 throw new ArgumentNullException(nameof(chain));
+            Guard.Argument(point.IsValid, nameof(point), Guard.NotFinitePoint);
 
             return Among(chain.GetEdges(), edge => edge.DistanceTo(point, ArcChain2.ForSide(edge, Tolerance.Global)));
         }
@@ -347,10 +366,12 @@ namespace GeometryHelper.Core
         /// <param name="point">The point to measure against.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>The edge of <paramref name="chain"/> lying nearest <paramref name="point"/>.</returns>
+        /// <exception cref="ArgumentException">Thrown when the point has a coordinate that is not a finite number.</exception>
         public static GeoEdge2 GetClosestEdge(GeoPolylineArc2 chain, GeoPoint2 point, Tolerance tolerance)
         {
             if (chain == null)
                 throw new ArgumentNullException(nameof(chain));
+            Guard.Argument(point.IsValid, nameof(point), Guard.NotFinitePoint);
 
             return Among(chain.GetEdges(), edge => edge.DistanceTo(point, ArcChain2.ForSide(edge, tolerance)));
         }

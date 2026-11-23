@@ -5306,6 +5306,47 @@ nothing, not the whole shape: the square 100 across with one corner moved to (Na
 (50, 50) to (150, 50) at (100, 50). The fuzz finds none of the 33 left; its 9 950 finite calls give the same bits as
 before, under .NET Framework 4.8 and .NET 10.
 
+**FIXED.** A shape of NaN, or a point of NaN, no longer meets, holds or is nought from anything. A fuzz that made all of one
+shape NaN (every vertex, every centre) found 993 members that reported a meeting with it: 326 of `CollidesWith`, 386 of
+`DistanceTo` (314 gave nought, where the squares and the segments of NaN were read as crossing, and 72 gave
+1.8E+308, the largest number, where no side of the shape was a number to measure to), 118 of `GetClosestEdge`, 59 of
+`GetClosestPointOnBoundary`, 4 of `GetClosestPointOnSurface`, 52 of `GetShortestLineTo`, 24 of `GetIntersections`, 12 of `TryIntersectWith`, and 6 each of
+`Contains` and `Locate`; the same fuzz left 47 of them. Two segments crossed where the test that they did not (a length no
+more than the tolerance, a parameter off the segment) was written so that a NaN passed it; it is written as what a crossing
+needs now, and so are the tests of the separating axes of two oriented boxes, of the piece an arc cuts off its chord and of the
+largest gap a face keeps. A distance to a shape of NaN is NaN, "not a number away", as the 3D
+chain distances already carried it, where a polygon of NaN against an arc was 1.8E+308 and a face of NaN was nought from a
+segment; `DistanceTo` of two planes, of two ellipses and of two boxes, and the shortest line of a ball or a plane of NaN, say
+so too, the last of them a line of NaN where it was one of no length at the shape. A triangle of NaN meets no arc, circle or
+edge in space. `GetClosestEdge` of a polygon, a chain, a rectangle or a loop of arcs names `point` for a point of NaN, and
+throws "The shape has a coordinate that is not a finite number." where no edge can be told nearest. A point of NaN gets a
+point of NaN from `GetClosestPointOnBoundary` of a polygon or a chain in the plane and of an ellipse, where it got a corner of
+the shape or a point of the rim.
+
+**FIXED.** A region with a vertex of NaN holds nothing, and the booleans leave it out. The square 100 across with its corner at
+the origin moved to (NaN, 0) held the point (-10, 50), far outside it, because the ray counted the crossings of the sides it
+had left; it holds no point now, and locates (100, 50), on its finite side, as `OnSide`, as before. `Union`, `Subtract`,
+`Intersect` and `Xor` of polygons, faces and loops of arcs treat such a region as one that covers nothing: the square 50 to
+150 united with it, or with nothing taken from it, is the square (10 000), its intersection with it is nothing, where
+Clipper2 had laid the vertex on the corner of its own frame and given faces with a corner that was nowhere in either shape.
+The finite parts of a shape still meet what they meet, as the guide says: of the poisoned calls the fuzz made with one vertex
+of NaN, every point they reported was one of the finite shape's, bar 12 of one plane against one chain a bit off the same
+vertex at the rounding.
+
+**CHANGED.** What a shape of NaN says of itself, it says in one message. 132 members threw an `InvalidOperationException`
+with a message of their own for a shape or an argument that was not finite ("The shape has no boundary to measure to." and
+"The shape has nothing to measure to." of a spline's `GetShortestLineTo`, "A triangle whose corners lie on one line has no
+normal." for `Normal` and `GetPlane`, "A box with a zero size on some axis has no faces to build." for `GetFaces` and
+`ToSolid`, "Cannot normalize a zero-length vector." for `GeoVector2.Normalize` and `GeoVector3.Normalize`, a chain with a
+vertex at infinity in `OffsetInPlane`, and the plane of `GeoTransform3.Transform`); each says "The shape has a coordinate that
+is not a finite number." now, where the cause is that, and the old message where it is not (a box of no size, a vector of no
+length, a spline that has no boundary because the shape has none). An argument that is not finite is named: `TransformBy` of
+a plane or a circle names `transform`, `GeoTransform2.Mirror` names `line`, `GeoTransform2.FromFrame` names `xAxis`,
+`GeoVector3.RotateBy` names `axis` and `ProjectToSpline2` names `frame`, each an `ArgumentException`, as the faces and edges in
+space already named it. After the change none of the 271 members that throw for a poisoned call says anything else.
+`GeoLine3.GetPlaneWith` names `inPlaneDirection` for a direction along the segment, or of no length, where the plane's own
+refusal named a `normal` nobody had given; the message still says there is no normal of non-zero length.
+
 **NEW.** The presenter's implied window asks on the command line as AutoCAD 2021's does: a click on nothing at the
 Command prompt shows "Specify opposite corner or [Fence/WPolygon/CPolygon]:", and DYN shows it with two fields, the X and
 the Y of the cursor itself, where it showed nothing. The next click, or a corner typed (110,60), ends the box; F, WP or

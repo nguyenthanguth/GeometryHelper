@@ -135,7 +135,7 @@ namespace GeometryHelper.Core
                 if (d < minDistance)
                     minDistance = d;
             }
-            return minDistance;
+            return Nearest(minDistance);
         }
 
         /// <summary>
@@ -193,7 +193,7 @@ namespace GeometryHelper.Core
                 if (d < minDistance)
                     minDistance = d;
             }
-            return minDistance;
+            return Nearest(minDistance);
         }
 
         /// <summary>
@@ -244,7 +244,7 @@ namespace GeometryHelper.Core
                 if (d < minDistance)
                     minDistance = d;
             }
-            return minDistance;
+            return Nearest(minDistance);
         }
     }
 }

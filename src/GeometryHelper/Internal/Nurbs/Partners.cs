@@ -425,6 +425,23 @@ namespace GeometryHelper.Internal.Nurbs
         internal abstract double Scale { get; }
 
         /// <summary>
+        /// Says whether the numbers of every partner in a run are finite ones: a partner of a shape with a coordinate that is
+        /// not a finite number has a size that is not one either.
+        /// </summary>
+        internal static bool AreFinite(IList<Partner> partners)
+        {
+            for (int i = 0; i < partners.Count; i++)
+            {
+                if (!(Math.Abs(partners[i].Scale) <= double.MaxValue))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Gets how large the partner is, from side to side.
         /// </summary>
         internal abstract double Extent { get; }

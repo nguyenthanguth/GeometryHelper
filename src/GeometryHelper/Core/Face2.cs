@@ -1009,7 +1009,7 @@ namespace GeometryHelper.Core
                 gap = Math.Min(gap, Least(hole, fromRimEdge, enough));
             }
 
-            return gap > 0.0 ? gap : 0.0;
+            return !(gap <= 0.0) ? gap : 0.0;
         }
 
         /// <summary>

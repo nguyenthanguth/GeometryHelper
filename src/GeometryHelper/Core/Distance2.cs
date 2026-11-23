@@ -16,6 +16,13 @@ namespace GeometryHelper.Core
         /// </summary>
         private static Tolerance Exactly => default(Tolerance);
 
+        /// <summary>
+        /// The least distance a walk over the sides of a shape found, or NaN where it found none: the walk starts from the
+        /// largest number and a side with a coordinate that is not a finite number is never nearer than that, so a shape of
+        /// NaN is not a number away, where it was <see cref="double.MaxValue"/>.
+        /// </summary>
+        internal static double Nearest(double minDistance) => minDistance == double.MaxValue ? double.NaN : minDistance;
+
         #region Point - Point
 
         /// <summary>
@@ -345,7 +352,7 @@ namespace GeometryHelper.Core
                     minDistance = d;
             }
 
-            return minDistance;
+            return Nearest(minDistance);
         }
 
         /// <summary>
@@ -380,7 +387,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return minDistance;
+            return Nearest(minDistance);
         }
 
         /// <summary>
@@ -415,7 +422,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return minDistance;
+            return Nearest(minDistance);
         }
 
         #endregion
@@ -472,7 +479,7 @@ namespace GeometryHelper.Core
                 if (d < minDistance)
                     minDistance = d;
             }
-            return minDistance;
+            return Nearest(minDistance);
         }
 
         /// <summary>
@@ -501,7 +508,7 @@ namespace GeometryHelper.Core
                         minDistance = d;
                 }
             }
-            return minDistance;
+            return Nearest(minDistance);
         }
 
         #endregion
@@ -550,7 +557,7 @@ namespace GeometryHelper.Core
                     minDistance = d;
             }
 
-            return minDistance;
+            return Nearest(minDistance);
         }
 
         /// <summary>
@@ -596,7 +603,7 @@ namespace GeometryHelper.Core
                         minDistance = d;
                 }
             }
-            return minDistance;
+            return Nearest(minDistance);
         }
 
         /// <summary>
@@ -624,7 +631,7 @@ namespace GeometryHelper.Core
                         minDistance = d;
                 }
             }
-            return minDistance;
+            return Nearest(minDistance);
         }
 
         /// <summary>
@@ -647,7 +654,7 @@ namespace GeometryHelper.Core
                 if (d < minDistance)
                     minDistance = d;
             }
-            return minDistance;
+            return Nearest(minDistance);
         }
 
         /// <summary>
@@ -675,7 +682,7 @@ namespace GeometryHelper.Core
                         minDistance = d;
                 }
             }
-            return minDistance;
+            return Nearest(minDistance);
         }
 
         #endregion

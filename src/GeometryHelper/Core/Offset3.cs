@@ -533,6 +533,10 @@ namespace GeometryHelper.Core
             }
 
             GeoVector3 normal = GetChainNormal(polyline, planeNormal, tolerance);
+
+            // A chain with a vertex at infinity has no frame in its plane to be laid out in: say so, not that a vector has no length.
+            Guard.FiniteShape(Guard.AreValid(polyline.Vertices));
+
             PlaneFrame frame = PlaneFrame.Of(polyline.Vertices, normal);
             List<GeoPoint2> local = frame.ToLocal(polyline.Vertices);
             double snap = PlanarRegion3.GetSnap(tolerance, PlanarRegion3.Extent(new[] { local }) + Math.Abs(distance));

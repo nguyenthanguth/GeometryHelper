@@ -210,7 +210,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return best;
+            return Distance2.Nearest(best);
         }
 
         /// <summary>
@@ -796,7 +796,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return best;
+            return Distance2.Nearest(best);
         }
 
         /// <summary>
@@ -821,7 +821,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return best;
+            return Distance2.Nearest(best);
         }
 
         /// <summary>
@@ -846,7 +846,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return best;
+            return Distance2.Nearest(best);
         }
 
         /// <summary>
@@ -1217,7 +1217,40 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return inside;
+            return inside && Finite(loop);
+        }
+
+        /// <summary>
+        /// Whether every edge of a run is a finite one: a loop with an edge that is not has no inside, the edges left to the
+        /// crossings of the ray being no outline.
+        /// </summary>
+        private static bool Finite(List<GeoEdge2> edges)
+        {
+            for (int i = 0; i < edges.Count; i++)
+            {
+                if (!edges[i].IsValid)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Whether every vertex and every bulge of a loop is a finite number, which is what makes its edges finite ones.
+        /// </summary>
+        private static bool Finite(GeoPolygonArc2 loop)
+        {
+            for (int i = 0; i < loop.VertexCount; i++)
+            {
+                if (!loop[i].IsValid || !Guard.IsFinite(loop.GetBulgeAt(i)))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -1248,7 +1281,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return inside;
+            return inside && Finite(run);
         }
 
         /// <summary>
