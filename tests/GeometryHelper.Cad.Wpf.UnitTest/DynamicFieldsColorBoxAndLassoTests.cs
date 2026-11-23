@@ -335,6 +335,7 @@ namespace GeometryHelper.Cad.Wpf.UnitTest
                 };
 
                 model.CurrentColor = MainViewModel.MoreColorsOption;
+                ColorBoxMoreColorsReopenTests.Drain();
 
                 Assert.True(offered);
                 Assert.Equal(30, model.Document.Database.Cecolor.ColorIndex);

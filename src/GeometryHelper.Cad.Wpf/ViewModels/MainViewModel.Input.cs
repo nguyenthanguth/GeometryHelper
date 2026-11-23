@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Input;
+using System.Windows.Threading;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -108,6 +109,9 @@ namespace GeometryHelper.Cad.Wpf
         private string _lockedSecond;
         private bool _secondActive;
         private DelegateCommand _selectCurrentColor;
+
+        // More colors... picked in the colour box: the Select Color dialog queued or shown.
+        private bool _currentColorPicking;
 
         /// <summary>
         /// Gets the toggle DYN of the status bar, AutoCAD's Dynamic Input, switched by F12 or typed DYN: while on, the prompt of
@@ -339,7 +343,30 @@ namespace GeometryHelper.Cad.Wpf
 
                 if (value == MoreColorsOption)
                 {
-                    PickCurrentColor();
+                    // The dialog waits for the box to finish its pick and show the colour again: shown from inside the pick, the
+                    // list read again after it had the box pick More colors... once more, and the dialog shown again without end.
+                    // One dialog at a time: the box can pick it again before the dialog is shown.
+                    if (!_currentColorPicking)
+                    {
+                        _currentColorPicking = true;
+                        (System.Windows.Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher).BeginInvoke(
+                            new Action(() =>
+                            {
+                                try
+                                {
+                                    RaiseCurrentColor();
+                                    PickCurrentColor();
+                                    RaiseCurrentColor();
+                                }
+                                finally
+                                {
+                                    _currentColorPicking = false;
+                                }
+                            })
+                        );
+                    }
+
+                    return;
                 }
                 else
                 {

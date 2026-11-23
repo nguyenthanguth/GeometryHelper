@@ -48,6 +48,10 @@ current layer, the objects of model space counted by type, the number of layers 
 nothing; the file itself writes nothing when it loads (the start writes its one line, `GH-DrawingInfo.py loaded: GHPYINFO.`). It is the Python twin of `GHINFO` and `GHDWGINFO`, 20 lines of code with the new API
 (`@command`, `active_drawing()`, `write`). It starts the engine when the app starts, about 0.45 s; delete the file to avoid that.
 
+**FIXED.** More colors... of the colour box on the ribbon's Properties panel shows the Select Color dialog once, after the
+box has closed. The dialog was shown from inside the box's pick, and the list read again after it had the box pick More
+colors... once more, so OK or Cancel showed the dialog again without end and it could not be closed.
+
 **FIXED.** Add folder… on the Security page of Global settings shows the Windows folder picker. It was a Save dialog
 that wrote a name into the folder to learn it, so a folder the user cannot write in, such as one of Program Files, could not be
 chosen: Windows offered to save in the user's profile folder instead (found by hand with the app, not by any test). The .NET
