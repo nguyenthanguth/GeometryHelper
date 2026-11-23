@@ -77,32 +77,6 @@
       href: dxf/dwg.md
     - name: "Editing a DXF drawing, step by step"
       href: dxf-editing-example.md
-- name: The 2D presenter
-  href: presenter/index.md
-  items:
-    - name: Opening, drawing and picking
-      href: presenter/display.md
-    - name: Editing as AutoCAD does
-      href: presenter/editing.md
-    - name: Plotting to PDF
-      href: presenter/plot.md
-    - name: Owners
-      href: presenter/owners.md
-    - name: Command plugins
-      href: presenter/plugins.md
-    - name: AutoLISP
-      href: presenter/lisp.md
-    - name: Python commands and tools
-      href: presenter/python.md
-    - name: Settings, autosave and the window
-      href: presenter/app.md
-    - name: Driving the app from another program
-      href: presenter/remote.md
-- name: Python
-  href: python.md
-  items:
-    - name: Python examples
-      href: python-examples.md
 - name: Meshing
   href: meshing.md
   items:

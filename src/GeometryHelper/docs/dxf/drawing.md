@@ -421,7 +421,7 @@ marked by `SetDependent(dependent, resolved)` before it is added, so that its ta
 DxfLayerTableRecord { Name = "x|WALL", ColorIndex = 3 }` marked `SetDependent(true, true)` is written `2 x|WALL, 70 48`,
 and marked `SetDependent(true, false)` once the reference is unloaded, 16. AutoCAD's DXFOUT writes no text style,
 dimension style or block of a reference, only its layers and linetypes. The library reads no drawing referenced; the presenter does, and shows it
-([Editing in the presenter](../presenter/editing.md)). AutoCAD 2021 reads only a DWG as an external reference: a path to a
+([Editing in the presenter](https://github.com/nguyenthanguth/opencad2d/blob/main/docs/presenter/editing.md)). AutoCAD 2021 reads only a DWG as an external reference: a path to a
 DXF it keeps, saying "Unable to load".
 
 `db.BindXref(block, referenced, false)` binds an external reference, given the drawing it references, as AutoCAD's

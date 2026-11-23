@@ -4,13 +4,11 @@
       "src": [
         {
           "files": [
-            "src/GeometryHelper/GeometryHelper.csproj",
-            "src/GeometryHelper.Cad.Remote/GeometryHelper.Cad.Remote.csproj"
+            "src/GeometryHelper/GeometryHelper.csproj"
           ]
         },
         {
           "files": [
-            "src/GeometryHelper.Cad/GeometryHelper.Cad.csproj",
             "src/GeometryHelper.CadConvert/GeometryHelper.CadConvert.csproj",
             "src/GeometryHelper.IfcConvert/GeometryHelper.IfcConvert.csproj",
             "src/GeometryHelper.TeklaConvert/GeometryHelper.TeklaConvert.csproj"
@@ -35,14 +33,6 @@
           "index.md"
         ],
         "dest": "api"
-      },
-      {
-        "src": "docfx/python-api",
-        "files": [
-          "**.md",
-          "toc.yml"
-        ],
-        "dest": "python-api"
       },
       {
         "src": "docfx",

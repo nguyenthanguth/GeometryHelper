@@ -103,12 +103,10 @@ $RECYCLE.BIN/
 # ---------------------------------------------------------------------------
 # Tài liệu do DocFX sinh ra
 # Nguồn là docfx.json, docfx/index.md, docfx/toc.yml và Libraries/GeometryHelper/docs/*.md.
-# Ba thư mục dưới đây được sinh lại từ nguồn mỗi lần build, như bin/ và obj/.
-# docfx/python-api/ do tools/python/make-api-pages.py viết từ các stub Python và từ docfx/api/.
+# Hai thư mục dưới đây được sinh lại từ nguồn mỗi lần build, như bin/ và obj/.
 # ---------------------------------------------------------------------------
 _site/
 docfx/api/
-docfx/python-api/
 
 # ---------------------------------------------------------------------------
 # Báo cáo của bộ benchmark (benchmarks/), viết lại mỗi lần chạy
@@ -116,14 +114,4 @@ docfx/python-api/
 artifacts/
 # Added by code-review-graph
 .code-review-graph/
-
-# ---------------------------------------------------------------------------
-# Python package (src/python): made by tools/python/*.sh, not written by hand
-# ---------------------------------------------------------------------------
-src/python/geometryhelper/lib/
-src/python/GeometryHelper-stubs/
-src/python/LICENSE
-src/python/dist/
 __pycache__/
-.pytest_cache/
-*.egg-info/

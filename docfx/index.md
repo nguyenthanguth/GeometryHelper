@@ -16,7 +16,7 @@ dotnet add package GeometryHelper
 | [How do I](../src/GeometryHelper/docs/howto.md) | a task, the call that does it, and the page that tells the rest |
 | [Shared types](../src/GeometryHelper/docs/common.md) | `Tolerance`, `Angle`, the enumerations, `OffsetOptions`, `GeometryHelperLog` |
 | [DXF](../src/GeometryHelper/docs/dxf/index.md) | reading, writing and editing DXF files with AutoCAD's classes and members, [AutoCAD's patterns side by side](../src/GeometryHelper/docs/dxf/autocad.md); [a drawing edited step by step](../src/GeometryHelper/docs/dxf-editing-example.md) and [the points to check in AutoCAD](../src/GeometryHelper/docs/dxf-autocad-checks.md) |
-| [The 2D presenter](../src/GeometryHelper/docs/presenter/index.md) | a DXF opened, drawn, picked and edited as AutoCAD does it: the command line and its aliases, snaps, grips, Properties, layers, undo, owners of what a program wrote, command plugins and global settings |
+| [OpenCAD2D](https://github.com/nguyenthanguth/opencad2d) | the CAD app built on this library, in a repository of its own: DXF and DWG opened, drawn and edited as AutoCAD does it, with AutoLISP, Python and plugins |
 | [Geometry in the plane](../src/GeometryHelper/docs/plane.md) | points to polygons and faces; arcs, offsetting, combining regions |
 | [Meshing the plane](../src/GeometryHelper/docs/mesh.md) | triangles, grids of panels or tiles with joints and alignment, strips and convex pieces, edge to edge |
 | [Geometry in space](../src/GeometryHelper/docs/solid.md) | points to solids; splitting, boolean bodies, meshes, local frames |
@@ -27,7 +27,6 @@ dotnet add package GeometryHelper
 | [Tekla Structures](../src/GeometryHelper.TeklaConvert/README.md) | both ways with Tekla, and IFC reference models |
 | [IFC](../src/GeometryHelper.IfcConvert/README.md) | IFC models into solids, through xBIM |
 | [API Reference](xref:GeometryHelper.Geometry) | every type and member of all four, from the XML documentation |
-| [Python API](python-api/index.md) | every type of the Python package as a script sees it, with links to the .NET reference |
 
 ## A first look
 

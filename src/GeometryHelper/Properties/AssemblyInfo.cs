@@ -26,9 +26,7 @@ using System.Runtime.InteropServices;
 // including Merge2.JoinBackup, the plain reading of joining that the fast one is held against.
 [assembly: InternalsVisibleTo("GeometryHelper.ArrangeAlgorithms.CadTest")]
 
-// The presenter lays the words of an MTEXT out with the fonts the library measures them by (DxfTrueTypeFont, the rule a
-// line breaks by), so that what it draws and what the library measures are one reading of AutoCAD.
-[assembly: InternalsVisibleTo("GeometryHelper.Cad")]
-
-// OpenCAD2D, the same engine in its own repository (D:\GitHub\opencad2d), built against Lib\GeometryHelper.dll.
+// OpenCAD2D (https://github.com/nguyenthanguth/opencad2d), the CAD app built against this library as a binary, lays the
+// words of an MTEXT out with the fonts the library measures them by (DxfTrueTypeFont, the rule a line breaks by), so
+// that what it draws and what the library measures are one reading of AutoCAD.
 [assembly: InternalsVisibleTo("OpenCAD2D")]

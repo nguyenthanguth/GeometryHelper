@@ -1,7 +1,0 @@
-{
-  "typeCheckingMode": "standard",
-  "reportMissingModuleSource": "none",
-  "reportIncompatibleMethodOverride": "none",
-  "reportIncompatibleVariableOverride": "none",
-  "reportOverlappingOverload": "none"
-}

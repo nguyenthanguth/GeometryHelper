@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**BREAKING.** The CAD app and everything built for it left this repository for one of its own, as **OpenCAD2D**
+([nguyenthanguth/opencad2d](https://github.com/nguyenthanguth/opencad2d)), with their history:
+`GeometryHelper.Cad`, `.Cad.Wpf`, `.Cad.Python`, `.Cad.Remote` and `.Cad.App` (now `OpenCAD2D`, `OpenCAD2D.Wpf`,
+`OpenCAD2D.Python`, `OpenCAD2D.Remote`, `OpenCAD2D.App`), their tests, the sample plugin, the guides of the 2D presenter,
+and the Python package with its stubs, examples, tests and tools (now `opencad2d`). None of them was ever published.
+OpenCAD2D uses this library as a binary, `GeometryHelper.dll`, and reads its internals for the MTEXT layout:
+`InternalsVisibleTo("GeometryHelper.Cad")` is now `InternalsVisibleTo("OpenCAD2D")`. The entries below that name
+`GeometryHelper.Cad` or `geometryhelper.cad` were written before the move; OpenCAD2D's changelog goes on from them.
+
 **BREAKING.** Python in GeometryHelper CAD is a way to write commands, not a console, and its names follow the C# plugin API
 and AutoLISP. The PYTHON palette, the commands PYTHON and PYTHONCLOSE and `PythonConsolePalette`, `PythonConsoleViewModel` and
 `MainViewModel.PythonConsole` are removed, and so is the screenshot option `--python`; PYRUN stays. In `geometryhelper.cad`,

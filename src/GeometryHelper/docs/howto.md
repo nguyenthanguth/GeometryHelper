@@ -72,25 +72,10 @@ where it compares coordinates; the pages say which.
 | take the picture out of an OLE object | `frame.GetPictureData(out format)` | [Images, wipeouts and OLE objects](dxf/images.md#ole-objects) |
 | embed a .bmp or a .png in the drawing | `new DxfOle2Frame(bytes)` | [Images, wipeouts and OLE objects](dxf/images.md#ole-objects) |
 
-## In the 2D presenter
+## In the CAD app
 
-| To | Call | Page |
-|---|---|---|
-| open a drawing to show and edit | `CadDocument.Open(path)`; one in memory `CadDocument.From(database, name)` | [Opening, drawing and picking](presenter/display.md#the-document) |
-| ask what lies under a point or in a box | `document.GetPickIndex(space).Pick(x, y, tolerance)`, `Window(box)`, `Crossing(box)` | [Opening, drawing and picking](presenter/display.md#picking) |
-| show a box, or zoom about a pixel | `view.ZoomTo(box)`, `view.ZoomAt(px, py, 1.2)`, `view.Pan(dx, dy)` | [Opening, drawing and picking](presenter/display.md#the-view) |
-| select entities | `document.Selection.Set(handles)`, `Add`, `Toggle`, `Clear` | [Opening, drawing and picking](presenter/display.md#selecting) |
-| run a command as the user types it | `new CadCommandSession(document)`, `session.Feed("L")` | [Editing as AutoCAD does](presenter/editing.md#the-command-line) |
-| change the drawing as one undo step | `document.ApplyEdit(name, planned, scope => ...)` | [Editing as AutoCAD does](presenter/editing.md#one-edit-one-undo-step) |
-| undo and redo | `document.Undo()`, `document.Redo()` | [Editing as AutoCAD does](presenter/editing.md#undo-and-redo) |
-| snap a click to a point of the drawing | `new ObjectSnap(tolerance).Snap(index, cursor, aperture)` | [Editing as AutoCAD does](presenter/editing.md#object-snaps) |
-| list or drag the grips of an entity | `CadGrips.Of(entity)`, `document.GripDrag(handle, index, point)` | [Editing as AutoCAD does](presenter/editing.md#grips) |
-| set a property as Properties does | `CadPropertyEditor.Set(document, handles, "Radius", "12.5")` | [Editing as AutoCAD does](presenter/editing.md#properties) |
-| switch, freeze or lock a layer | `CadLayerEditor.SetOn`, `SetFrozen`, `SetLocked` | [Editing as AutoCAD does](presenter/editing.md#layers) |
-| keep the entities a program wrote out of the user's hands | `new CadOwnerTag(owner, id).WriteTo(entity)`, `document.Owners.Register(owner)` | [Owners](presenter/owners.md) |
-| add a command written in a .dll | `[CadCommand("NAME")]` on an iterator of `CadPrompt` | [Command plugins](presenter/plugins.md) |
-| load, unload and reload a plugin | `CadPluginManager.Load(path)`, `Unload(name)`, `Reload(name)` | [Command plugins](presenter/plugins.md#loading-and-unloading) |
-| keep settings between runs | `GlobalSettings.Load(path)`, `settings.Save(path)` | [Settings, autosave and the window](presenter/app.md#global-settings) |
+The 2D presenter, its command line, plugins, AutoLISP and Python are OpenCAD2D now, in a repository of its own:
+[nguyenthanguth/opencad2d](https://github.com/nguyenthanguth/opencad2d) and its [guides](https://github.com/nguyenthanguth/opencad2d/blob/main/docs/presenter/index.md).
 
 ## Meshing, label placement and packing
 
