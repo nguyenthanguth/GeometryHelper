@@ -43,6 +43,11 @@ engine (1 ms in the W1 run), one `.py` costs about 0.45 s at start. From outside
 refuses a drawing with changes not saved and `Close(discard: true)` closes it without saving, and `TextStyles`,
 `DimensionStyles` and `Blocks` read the styles and blocks as copies sorted by name.
 
+**NEW.** A sample command ships in the `Pythons` folder, `GH-DrawingInfo.py`: `GHPYINFO` writes the drawing's name and folder, the
+current layer, the objects of model space counted by type, the number of layers and blocks, and the extents, and changes
+nothing; loading the file writes nothing. It is the Python twin of `GHINFO` and `GHDWGINFO`, 20 lines of code with the new API
+(`@command`, `active_drawing()`, `write`). It starts the engine when the app starts, about 0.45 s; delete the file to avoid that.
+
 **FIXED.** Add folder… on the Security page of Global settings shows the Windows folder picker. It was a Save dialog
 that wrote a name into the folder to learn it, so a folder the user cannot write in, such as one of Program Files, could not be
 chosen: Windows offered to save in the user's profile folder instead (found by hand with the app, not by any test). The .NET

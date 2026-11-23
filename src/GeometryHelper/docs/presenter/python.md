@@ -48,6 +48,12 @@ one line and the next file loads; with no Python found the start writes, once, `
 the app carries on. The Pythons folder lies under the program folder, which [the security gate](#trusted-folders) trusts with all
 its subfolders, so its files load with no question; a Startup Suite file elsewhere goes through the gate as PYLOAD does.
 
+One sample ships in the Pythons folder, `GH-DrawingInfo.py`: loading it defines `GHPYINFO` and writes nothing, and `GHPYINFO` writes the
+drawing's name and folder, the current layer, the objects of model space counted by type, the number of layers and blocks, and the
+extents, and changes nothing. It is a newcomer's first example, 20 lines of code in `@command`, `active_drawing()` and `write`. Because it is
+a `.py` in the folder, the engine starts with the app (about 0.45 s), and with no Python found the start writes the one line above;
+delete the file to start as an app with an empty folder does.
+
 Load/Unload Applications lists a Python file with a Python chip beside Lisp and Plugins, an amber kind colour, and its commands.
 A file that loads says `tools.py loaded: C1, DOT.` on the command line and `tools.py successfully loaded.` in the footer; one
 that does not says `tools.py failed to load: <the error>` and defines no command.

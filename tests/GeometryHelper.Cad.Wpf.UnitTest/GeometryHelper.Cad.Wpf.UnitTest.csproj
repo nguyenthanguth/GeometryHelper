@@ -58,10 +58,11 @@
     </ItemGroup>
 
     <!--
-    The Lisps folder of the program ships the sample routine GH-DrawingInfo.lsp, which loads into every drawing that opens.
-    These tests list the files a drawing loaded and expect only their own, so the sample is taken out of their copy of the folder.
+    The Lisps folder of the program ships the sample routine GH-DrawingInfo.lsp, which loads into every drawing that opens, and
+    the Pythons folder ships GH-DrawingInfo.py, which starts the Python engine at the start of the app. These tests list the
+    files a drawing loaded and expect only their own, so the samples are taken out of their copy of the folders.
   -->
     <Target Name="LeaveOutTheSampleRoutine" AfterTargets="CopyFilesToOutputDirectory">
-        <Delete Files="$(OutDir)Lisps\GH-DrawingInfo.lsp" />
+        <Delete Files="$(OutDir)Lisps\GH-DrawingInfo.lsp;$(OutDir)Pythons\GH-DrawingInfo.py" />
     </Target>
 </Project>
