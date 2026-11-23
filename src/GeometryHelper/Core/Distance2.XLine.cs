@@ -67,7 +67,7 @@ namespace GeometryHelper.Core
                 if (d < minDistance)
                     minDistance = d;
             }
-            return minDistance;
+            return Nearest(minDistance);
         }
 
         internal static double DistanceTo(GeoPolygonArc2 loop, GeoXLine2 xline, Tolerance tolerance)
@@ -98,7 +98,7 @@ namespace GeometryHelper.Core
                 if (d < minDistance)
                     minDistance = d;
             }
-            return minDistance;
+            return Nearest(minDistance);
         }
 
         internal static double DistanceTo(GeoPolylineArc2 chain, GeoXLine2 xline, Tolerance tolerance)
@@ -126,7 +126,7 @@ namespace GeometryHelper.Core
                 if (d < minDistance)
                     minDistance = d;
             }
-            return minDistance;
+            return Nearest(minDistance);
         }
     }
 }

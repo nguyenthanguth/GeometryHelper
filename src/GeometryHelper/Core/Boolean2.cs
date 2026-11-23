@@ -394,6 +394,11 @@ namespace GeometryHelper.Core
             Tolerance tolerance
         )
         {
+            // A region with a vertex that is not a finite point covers nothing: Clipper2 would lay the vertex on its grid as
+            // the origin of the frame, and the booleans would work with a corner that is nowhere in the shape.
+            subjects = Finite(subjects);
+            clips = clips == null ? null : Finite(clips);
+
             Operand anchor =
                 subjects.Count > 0 ? subjects[0]
                 : clips != null && clips.Count > 0 ? clips[0]
@@ -471,6 +476,15 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polygon));
             }
 
+            // A polygon with a vertex that is not a finite point covers nothing, as it does in the other booleans.
+            foreach (GeoPoint2 vertex in polygon.Vertices)
+            {
+                if (!vertex.IsValid)
+                {
+                    return Array.Empty<GeoFace2>();
+                }
+            }
+
             GeoPoint2 origin = polygon[0];
             int precision = ClipperRegion.GetPrecision(ClipperRegion.Extent(polygon.Vertices, origin));
             List<LoopGroup> groups = ClipperRegion.Resolve(
@@ -481,6 +495,44 @@ namespace GeometryHelper.Core
             );
 
             return ClipperRegion.ToFaces(groups, origin, false);
+        }
+
+        /// <summary>
+        /// The operands whose vertices are all finite points, the list itself where they are.
+        /// </summary>
+        private static IReadOnlyList<Operand> Finite(IReadOnlyList<Operand> operands)
+        {
+            List<Operand> kept = null;
+
+            for (int i = 0; i < operands.Count; i++)
+            {
+                bool finite = true;
+
+                foreach (GeoPoint2 vertex in operands[i].Vertices)
+                {
+                    if (!vertex.IsValid)
+                    {
+                        finite = false;
+                        break;
+                    }
+                }
+
+                if (!finite && kept == null)
+                {
+                    kept = new List<Operand>(operands.Count);
+
+                    for (int j = 0; j < i; j++)
+                    {
+                        kept.Add(operands[j]);
+                    }
+                }
+                else if (finite && kept != null)
+                {
+                    kept.Add(operands[i]);
+                }
+            }
+
+            return kept ?? operands;
         }
 
         private static IEnumerable<Operand> Concat(IReadOnlyList<Operand> first, IReadOnlyList<Operand> second)

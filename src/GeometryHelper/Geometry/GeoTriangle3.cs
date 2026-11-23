@@ -149,6 +149,9 @@ namespace GeometryHelper.Geometry
                     || double.IsInfinity(squared)
                 )
                 {
+                    // A corner that is not a finite point leaves no normal for that reason, not for lying on one line.
+                    Guard.FiniteShape(IsValid);
+
                     throw new InvalidOperationException("A triangle whose corners lie on one line has no normal.");
                 }
 

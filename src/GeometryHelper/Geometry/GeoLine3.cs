@@ -116,7 +116,9 @@ namespace GeometryHelper.Geometry
         /// <returns>The plane through the start point spanned by this segment and the supplied direction.</returns>
         /// <exception cref="ArgumentException">
         /// Thrown when the segment has no length or the two directions are parallel, since neither case pins down a
-        /// plane, or when the direction is not finite.
+        /// plane, or when the direction is not finite. A direction along the segment, or of no length, is named
+        /// <c>inPlaneDirection</c>: the segment from the origin to (100, 0, 0) with the direction (1, 0, 0) gives that, where the
+        /// plane's own refusal named a <c>normal</c> the caller never gave.
         /// </exception>
         /// <exception cref="InvalidOperationException">Thrown when the segment has an end that is not a finite point.</exception>
         public GeoPlane3 GetPlaneWith(GeoVector3 inPlaneDirection)
@@ -128,7 +130,19 @@ namespace GeometryHelper.Geometry
             );
             Guard.FiniteShape(IsValid);
 
-            return new GeoPlane3(StartPoint, Direction.CrossProduct(inPlaneDirection));
+            GeoVector3 normal = Direction.CrossProduct(inPlaneDirection);
+
+            // A direction along the segment, or of no length, spans no plane with it: say so of the direction, which the caller
+            // gave, rather than of a normal they did not. A segment of no length is left to the plane's own refusal.
+            if (!normal.TryGetNormal(out _) && Direction.TryGetNormal(out _))
+            {
+                throw new ArgumentException(
+                    "The direction runs along the segment, or has no length, so the two span no plane: there is no normal of non-zero length.",
+                    nameof(inPlaneDirection)
+                );
+            }
+
+            return new GeoPlane3(StartPoint, normal);
         }
 
         #region Parametrization

@@ -197,10 +197,17 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// Two planes that are not parallel meet somewhere, so their distance is zero. Parallel planes
-        /// keep a constant gap, measured along the shared normal.
+        /// keep a constant gap, measured along the shared normal. A plane with a coordinate that is not a finite number is
+        /// not a number away from any plane, and is no longer nought from the ones it is not parallel to.
         /// </remarks>
         public static double DistanceTo(GeoPlane3 plane1, GeoPlane3 plane2, Tolerance tolerance)
         {
+            // A plane with a coordinate that is not a finite number is nowhere, and is no distance from anything.
+            if (!(plane1.Origin.IsValid && plane1.Normal.IsValid && plane2.Origin.IsValid && plane2.Normal.IsValid))
+            {
+                return double.NaN;
+            }
+
             if (!Parallel3.IsParallel(plane1, plane2, tolerance))
             {
                 return 0.0;

@@ -309,6 +309,13 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static double DistanceTo(GeoEllipse2 ellipse, GeoEllipse2 other, Tolerance tolerance)
         {
+            // An ellipse about a centre that is not a finite point is not a number away, as every shape of NaN is; the test of
+            // the rims in Reaches would read its NaN as no more than nought, and the search for the gap as infinitely far.
+            if (!ellipse.Center.IsValid || !other.Center.IsValid)
+            {
+                return double.NaN;
+            }
+
             return Reaches(ellipse, other) ? 0.0 : RimToRim(ellipse, other, out _);
         }
 
@@ -588,7 +595,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return best;
+            return Distance2.Nearest(best);
         }
 
         /// <summary>
@@ -613,7 +620,7 @@ namespace GeometryHelper.Core
                 }
             }
 
-            return best;
+            return Distance2.Nearest(best);
         }
 
         /// <summary>

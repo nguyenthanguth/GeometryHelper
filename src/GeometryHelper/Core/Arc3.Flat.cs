@@ -195,8 +195,9 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoTriangle3 triangle, Tolerance tolerance)
         {
-            // An arc about a centre that is not a finite point meets nothing, rather than at points of NaN.
-            if (!arc.Center.IsValid)
+            // An arc about a centre that is not a finite point, or a triangle with a corner that is not one, meets nothing,
+            // rather than at points of NaN.
+            if (!arc.Center.IsValid || !triangle.IsValid)
             {
                 return new GeoPoint3[0];
             }

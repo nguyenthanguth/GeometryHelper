@@ -180,7 +180,29 @@ about a centre of NaN, of a chain or of a triangle in space with a corner of NaN
 `OffsetInPlane` of a curved chain, `ClipTo` of a line without ends, and `GetShortestLineTo` a loop of arcs from an arc, a
 circle or a chain. A writer handed such a ball still names it, `sphere`. `ClipTo` names `rect` for a rectangle of NaN, the
 loop of arcs lifted out of a frame names `frame` or `loop`, and a curved chain names `vertices` for an arc with an end of
-NaN; a straight edge may still have one, as a segment may.
+NaN; a straight edge may still have one, as a segment may. The same message is given by `GetShortestLineTo` of a spline to a
+shape of NaN, `OffsetInPlane` of a chain with a vertex at infinity, the `Normal` and `GetPlane` of a triangle with a corner of
+NaN, `GetFaces` and `ToSolid` of a box about a centre of NaN, `Normalize` of a vector of NaN and `Transform` of a plane by a
+transformation of NaN, where each said a vector, a segment, a plane or a spline had no length, normal, boundary or piece of its
+own; an argument that is not finite is named instead, `transform` for `TransformBy` of a plane or a circle, `line` for
+`GeoTransform2.Mirror`, `xAxis` for `FromFrame`, `axis` for `RotateBy` and `frame` for `ProjectToSpline2`. A direction along
+the segment, or of no length, is named by `GetPlaneWith` as `inPlaneDirection`, not as a `normal` nobody gave.
+
+Where a shape has a part that is finite and a part that is not, the finite part is what is asked: the square 100 across with
+its corner at the origin moved to (NaN, 0) still crosses a segment through its two finite sides. A region is not a part, though,
+and the sides left to a ray of crossings are no outline, so a polygon, a face or a loop of arcs with a vertex that is not a finite
+point holds nothing and locates every point outside it (the point (-10, 50), far outside that square, was found inside it),
+except one on a finite side, which is on it: (100, 50) is `OnSide`. The booleans leave such a region out, as a region that
+covers nothing: of the square 50 to 150 with it, `Union` and `Subtract` give the square, `Intersect` nothing, where Clipper2 laid
+its vertex of NaN on the corner of its own frame and worked with a corner that was nowhere in the shape. Nothing of a shape that is
+not finite at all, a segment, a box, a plane, a polygon or an ellipse of NaN, collides with anything or is nought from anything: it
+is not a number away from every shape (the largest number, 1.8E+308, was given for a polygon of NaN against an arc), `GetClosestEdge`
+of it throws the message above, and the ball of NaN and the plane of NaN have no segment of no length where they would meet a shape,
+but one of NaN. Of 993 members that took a shape or a point of NaN, 326 of `CollidesWith`, 386 of `DistanceTo` and the rest of
+`GetIntersections`, `TryIntersectWith`, `Contains`, `Locate`, `GetClosestEdge`, `GetShortestLineTo` and the booleans reported a
+meeting. 47 of `GetClosestPointOnBoundary` and `GetClosestPointOnSurface` of an arc, a circle, an edge, a face, a polygon or a chain
+in space and of a spline still answer a point of the shape for a probe of NaN, as `GetParameterAtPoint` answers a parameter: they say
+where on a shape its nearest point lies, not whether it meets anything, and are left as they were.
 
 ## Angle
 

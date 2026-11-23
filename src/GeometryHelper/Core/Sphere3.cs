@@ -69,6 +69,14 @@ namespace GeometryHelper.Core
             GeoVector3 toNearest = sphere.Center.GetVectorTo(nearest);
             double far = toNearest.Length;
 
+            // A ball or a shape of NaN meets nothing, and has no segment of no length where they would meet.
+            if (double.IsNaN(reach) || double.IsNaN(far))
+            {
+                var nowhere = new GeoPoint3(double.NaN, double.NaN, double.NaN);
+
+                return new GeoLine3(nowhere, nowhere);
+            }
+
             if (!(reach > 0.0) || !(far > sphere.Radius))
             {
                 return new GeoLine3(nearest, nearest);
@@ -92,6 +100,14 @@ namespace GeometryHelper.Core
         {
             GeoVector3 between = first.Center.GetVectorTo(second.Center);
             double far = between.Length;
+
+            // A ball whose centre is not a finite point meets nothing, and has no segment of no length where they would meet.
+            if (double.IsNaN(far))
+            {
+                var nowhere = new GeoPoint3(double.NaN, double.NaN, double.NaN);
+
+                return new GeoLine3(nowhere, nowhere);
+            }
 
             if (!(far > 0.0))
             {

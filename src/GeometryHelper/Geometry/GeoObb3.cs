@@ -238,6 +238,11 @@ namespace GeometryHelper.Geometry
 
             if (!(ExtentX > nought) || !(ExtentY > nought) || !(ExtentZ > nought))
             {
+                // A centre or a size that is not a finite number leaves no face to build for that reason, not for a size of nought.
+                Guard.FiniteShape(
+                    Center.IsValid && Guard.IsFinite(ExtentX) && Guard.IsFinite(ExtentY) && Guard.IsFinite(ExtentZ)
+                );
+
                 throw new InvalidOperationException("A box with a zero size on some axis has no faces to build.");
             }
 

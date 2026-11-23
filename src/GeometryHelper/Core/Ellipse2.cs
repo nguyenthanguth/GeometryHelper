@@ -705,6 +705,15 @@ namespace GeometryHelper.Core
 
         private static void Closest(GeoEllipse2 ellipse, double along, double across, out double cos, out double sin)
         {
+            // A point that is not a finite one has no nearest point of the rim, rather than the one the search settles on
+            // when every comparison in it fails.
+            if (!Guard.IsFinite(along) || !Guard.IsFinite(across))
+            {
+                cos = double.NaN;
+                sin = double.NaN;
+                return;
+            }
+
             double a = ellipse.MajorRadius;
 
             UnitClosest(ellipse.MinorRadius / a, Math.Abs(along) / a, Math.Abs(across) / a, out cos, out sin);

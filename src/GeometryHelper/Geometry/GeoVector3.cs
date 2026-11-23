@@ -178,7 +178,7 @@ namespace GeometryHelper.Geometry
         /// Returns a normalized (unit length) copy of this vector.
         /// </summary>
         /// <returns>The unit vector pointing in the same direction.</returns>
-        /// <exception cref="InvalidOperationException">Thrown when the vector has zero length.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the vector has zero length, or a coordinate that is not a finite number.</exception>
         /// <remarks>
         /// A zero-length vector has no direction, so there is no answer to return. Use
         /// <see cref="TryGetNormal(out GeoVector3)"/> where a degenerate input is expected and should be
@@ -188,6 +188,9 @@ namespace GeometryHelper.Geometry
         {
             if (!TryGetNormal(out GeoVector3 normal))
             {
+                // A coordinate that is not a finite number leaves no direction for that reason, not for a length of nought.
+                Guard.FiniteShape(IsValid);
+
                 throw new InvalidOperationException("Cannot normalize a zero-length vector.");
             }
 
@@ -227,7 +230,7 @@ namespace GeometryHelper.Geometry
         /// Gets an arbitrary unit vector perpendicular to this one.
         /// </summary>
         /// <returns>A unit vector perpendicular to this vector.</returns>
-        /// <exception cref="InvalidOperationException">Thrown when the vector has zero length.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the vector has zero length, or a coordinate that is not a finite number.</exception>
         /// <remarks>
         /// In 3D a vector has a whole plane of perpendiculars and no way to prefer one, so which of them
         /// comes back is unspecified beyond being perpendicular and of unit length. It is stable for a
@@ -259,11 +262,14 @@ namespace GeometryHelper.Geometry
         /// <param name="angleRad">The rotation angle in radians, counter-clockwise seen from the axis tip.</param>
         /// <param name="axis">The rotation axis; it need not be normalized.</param>
         /// <returns>The rotated vector.</returns>
+        /// <exception cref="ArgumentException">Thrown when the axis has a coordinate that is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the axis has zero length.</exception>
         public GeoVector3 RotateBy(double angleRad, GeoVector3 axis)
         {
             if (!axis.TryGetNormal(out GeoVector3 unitAxis))
             {
+                Guard.Argument(axis.IsValid, nameof(axis), "The axis has a coordinate that is not a finite number.");
+
                 throw new InvalidOperationException("Cannot rotate around a zero-length axis.");
             }
 

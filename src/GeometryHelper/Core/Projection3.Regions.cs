@@ -813,6 +813,12 @@ namespace GeometryHelper.Core
             double height = plane.SignedDistanceTo(ray.Origin);
             double climb = ray.Direction.DotProduct(plane.Normal);
 
+            // An origin or a plane that is not a number stands at no height, and the ray is not a number away.
+            if (double.IsNaN(height))
+            {
+                return new GeoLine3(ray.Origin, ProjectToPlane(plane, ray.Origin));
+            }
+
             // Standing strictly to one side and running along the plane or away from it, the ray is nearest at its origin.
             bool clear = (height > 0.0 && climb >= 0.0) || (height < 0.0 && climb <= 0.0);
 
@@ -850,16 +856,34 @@ namespace GeometryHelper.Core
             return new GeoLine3(corner, corner);
         }
 
-        private static GeoLine3 JoinToPlane(IReadOnlyList<GeoPoint3> corners, GeoPlane3 plane)
+        /// <summary>
+        /// Finds a corner that stands at no height over a plane, because it or the plane is not a finite thing, and gives
+        /// the segment of no number that joins it: the shape is not a number away (amendment D7).
+        /// </summary>
+        /// <remarks>
+        /// The walk of <see cref="TryReachPlane"/> would read such a corner as reaching the plane and give a segment of no
+        /// length.
+        /// </remarks>
+        private static bool TryNotANumberAway(IReadOnlyList<GeoPoint3> corners, GeoPlane3 plane, out GeoLine3 line)
         {
-            // A corner that is not a number stands at no height, and the shape is not a number away (amendment D7): the
-            // walk below would read it as reaching the plane and give a segment of no length.
             foreach (GeoPoint3 corner in corners)
             {
                 if (double.IsNaN(plane.SignedDistanceTo(corner)))
                 {
-                    return new GeoLine3(corner, ProjectToPlane(plane, corner));
+                    line = new GeoLine3(corner, ProjectToPlane(plane, corner));
+                    return true;
                 }
+            }
+
+            line = default;
+            return false;
+        }
+
+        private static GeoLine3 JoinToPlane(IReadOnlyList<GeoPoint3> corners, GeoPlane3 plane)
+        {
+            if (TryNotANumberAway(corners, plane, out GeoLine3 notANumber))
+            {
+                return notANumber;
             }
 
             if (TryReachPlane(corners, true, plane, out GeoPoint3 at))
