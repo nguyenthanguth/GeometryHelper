@@ -11,6 +11,12 @@ Model drawings live in the private repository TeklaHelper.DrawingManager.
 - The full item-by-item history of Part A (about 1 100 lines) is in this file at commit `ddf1ff27`
   (`git show ddf1ff27:PROGRESS.md`).
 
+## Repository split (running, 2026-11-23)
+
+The CAD app and its libraries move to their own repository, `D:\GitHub\opencad2d` (OpenCAD2D), using the core as
+`Lib\GeometryHelper.dll`. The plan, its decisions and its steps S1 to S12 are in `D:\GitHub\opencad2d\PROGRESS.md`:
+read it first after any stop. Until step S10 is ticked there, no CAD work merges here.
+
 ## Part A: the presenter (finished, 2026-11-17)
 
 The maintainer judged Part A done on 2026-11-17. What it covers, in short:
