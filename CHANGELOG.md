@@ -6,6 +6,12 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `WblockCloneObjects` copies the field of a text's words. A TEXT, an MTEXT, an attribute or a dimension with a field, and each
+attribute of an INSERT copied with it, came out with its words but none of the FIELD behind them (the extension dictionary was not copied),
+so that a title block's `\AcVar` and `\AcSm` attributes showed their words once and never changed again; AutoCAD's deep clone copies them.
+The copy has a field of its own, of the same code and children, in the drawing it is copied into (the same drawing or another), and the copied
+fields are listed in the drawing's list of fields (ACAD_FIELDLIST), as AutoCAD lists them: `FieldFromMText` and `FieldToMText` list theirs now too.
+
 **FIXED.** A DXF saved from a drawing read from a DWG that our writer made is no longer refused by AutoCAD 2021 ("Invalid or incomplete DXF input -- drawing discarded", ErrorStatus 53). The DWG writer gave a drawing with no `$CELTYPE` a null handle for the current linetype, the reader turned that handle into an empty name (`6` with no value), and AutoCAD will not open a DXF whose current linetype, layer or text style is empty (measured on 2021: an empty `$CLAYER` or `$TEXTSTYLE` is refused as well, an empty `$DIMSTYLE`, `$DIMTXSTY` or `$CMLSTYLE` is not). A blank drawing written as DWG in each of the six versions and saved as DXF from the reading now says `$CELTYPE ByLayer`, and opens; the DWG writer writes the handle of ByLayer where the header has none, and the DWG reader names ByLayer, `0` and `Standard` for a current linetype, layer or text style whose handle names no record, as a DWG of another program may hold.
 
 **NEW.** A block made in code can be marked as one an external reference brings, as a layer or a linetype can

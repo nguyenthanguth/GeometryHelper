@@ -418,7 +418,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Writes a copy of a field of the file into a dictionary of fields under a name, with its children, as AutoCAD copies
         /// one: every group of its own part kept, its children copied after it and named by the copies' handles. The FIELD of
-        /// the name, where there is one, is erased with its children first.
+        /// the name, where there is one, is erased with its children first. The copies are listed in the drawing's list of
+        /// fields (ACAD_FIELDLIST) as <see cref="Write(DxfDBDictionary, string, DxfFieldDraft)"/> lists them.
         /// </summary>
         internal static void WriteCopy(DxfDBDictionary fields, string key, DxfField source)
         {
@@ -427,7 +428,9 @@ namespace GeometryHelper.Dxf
             Node node = Copied(source, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { source.Handle });
             file.AddClass("FIELD", "AcDbField", 1152);
             EraseOld(fields, key);
-            WriteTree(file, node, groups => fields.Add(key, "FIELD", groups));
+            var written = new List<DxfItem>();
+            WriteTree(file, node, groups => fields.Add(key, "FIELD", groups), written);
+            Register(file, written);
         }
 
         /// <summary>
