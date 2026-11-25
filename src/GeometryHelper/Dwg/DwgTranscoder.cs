@@ -1122,6 +1122,25 @@ namespace GeometryHelper.Dwg
             }
         }
 
+        /// <summary>
+        /// The name a header variable gets where its handle names no record: AutoCAD 2021 refuses a DXF whose current layer,
+        /// text style or linetype has no name ("Invalid or incomplete DXF input"), so those are the ones every drawing has.
+        /// </summary>
+        private static byte[] NameWhereNoneIsNamed(string variable)
+        {
+            switch (variable)
+            {
+                case "CLAYER":
+                    return Encoding.ASCII.GetBytes("0");
+                case "TEXTSTYLE":
+                    return Encoding.ASCII.GetBytes("Standard");
+                case "CELTYPE":
+                    return Encoding.ASCII.GetBytes("ByLayer");
+                default:
+                    return new byte[0];
+            }
+        }
+
         private void WriteHeader()
         {
             _dxf.Write(0, "SECTION");
@@ -1181,7 +1200,7 @@ namespace GeometryHelper.Dwg
 
                 if (value is ulong handle && name != "HANDSEED" && (code < 330 || code > 369))
                 {
-                    _dxf.Write(code, NameOf(handle) ?? new byte[0]);
+                    _dxf.Write(code, NameOf(handle) ?? NameWhereNoneIsNamed(name));
                 }
                 else if (value is double angle && code == 50)
                 {
