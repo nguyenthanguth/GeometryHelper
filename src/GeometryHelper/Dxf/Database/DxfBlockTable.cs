@@ -4378,6 +4378,52 @@ namespace GeometryHelper.Dxf
         public bool IsFromOverlayReference => (Flags & 8) != 0;
 
         /// <summary>
+        /// Marks the block as one an external reference brings, as AutoCAD lists the blocks of a drawing attached in the block
+        /// table of the drawing that attaches it while the reference is loaded: flag 16 of its BLOCK's group 70 where it comes
+        /// from one, and 32 as well where that reference is resolved. AutoCAD 2021 gives 48 to the block <c>grid|TAG</c> of a
+        /// drawing attached and loaded (<c>tblnext</c> says <c>70 48</c>, -BLOCK ? says <c>Xdep: "grid"</c>), and none once the
+        /// reference is unloaded or detached.
+        /// </summary>
+        /// <remarks>
+        /// A block made in code is marked before it is added, so that its table takes its name: <c>new DxfBlockTableRecord {
+        /// Name = "grid|TAG" }</c> marked dependent and resolved is written <c>2 grid|TAG, 70 48</c>, with its BLOCK_RECORD. Its
+        /// name and the marks agree: a block named with a | is dependent, and one without is not. AutoCAD 2021 keeps these
+        /// blocks in memory and writes none of them (its DXFOUT writes the layers and linetypes of a reference, not its
+        /// blocks), and its DXF reader refuses one (<c>Invalid symbol table record name: "grid|TAG"</c>, the drawing
+        /// discarded), so a drawing that holds one is for the program that made it, not for a file AutoCAD opens. Internal:
+        /// the presenter makes them to carry what AutoCAD lists.
+        /// </remarks>
+        /// <param name="dependent">Whether the block comes from an external reference (flag 16).</param>
+        /// <param name="resolved">Whether that reference is resolved (flag 32); only where it is dependent.</param>
+        /// <exception cref="ArgumentException">Thrown when the block is resolved and not dependent, or its name has a | in it and
+        /// it is not dependent, or none and it is.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the block is erased.</exception>
+        internal void SetDependent(bool dependent, bool resolved)
+        {
+            int bits = Dependence(dependent, resolved);
+
+            if (_file == null)
+            {
+                MadeDependence = bits;
+            }
+            else if (_block?.Head != null && (Flags & 48) != bits)
+            {
+                _file.SetValues(
+                    _block.Head,
+                    new[]
+                    {
+                        new KeyValuePair<int, string>(
+                            70,
+                            ((Flags & ~48) | bits).ToString(CultureInfo.InvariantCulture)
+                        ),
+                    },
+                    BlockOrder,
+                    false
+                );
+            }
+        }
+
+        /// <summary>
         /// Gets whether the block has attribute definitions (flag 2), as AutoCAD's <c>HasAttributeDefinitions</c>: set when one is
         /// appended (<see cref="AppendEntity(DxfEntity)"/>), constant or not, in model space too, and kept when it is erased, as AutoCAD 2021
         /// sets and saves it; a block read from a file says what its file says.
@@ -5070,7 +5116,7 @@ namespace GeometryHelper.Dxf
                 _scaling == DxfBlockScaling.Uniform,
                 _comments,
                 out DxfItem record,
-                MadeFlags,
+                MadeFlags | MadeDependence,
                 MadePath
             );
             _file = file;

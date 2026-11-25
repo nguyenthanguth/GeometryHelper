@@ -420,7 +420,11 @@ refuses one. The records an external reference brings are written as AutoCAD 202
 marked by `SetDependent(dependent, resolved)` before it is added, so that its table takes a name with a |: `new
 DxfLayerTableRecord { Name = "x|WALL", ColorIndex = 3 }` marked `SetDependent(true, true)` is written `2 x|WALL, 70 48`,
 and marked `SetDependent(true, false)` once the reference is unloaded, 16. AutoCAD's DXFOUT writes no text style,
-dimension style or block of a reference, only its layers and linetypes. The library reads no drawing referenced; the presenter does, and shows it
+dimension style or block of a reference, only its layers and linetypes. AutoCAD does hold the blocks of the drawing it attaches, in memory while the reference is
+loaded (`grid|TAG` for the block TAG of `grid`, flagged 48 in `tblnext` and listed `Xdep: "grid"` by -BLOCK ?, gone when the
+reference is unloaded or detached), and its DXF reader refuses a drawing whose block table names one: the presenter makes
+such a block in the small drawings it sends to a program outside, and reads one in a file as it finds it (`IsDependent`,
+`IsResolved`). The library reads no drawing referenced; the presenter does, and shows it
 ([Editing in the presenter](https://github.com/nguyenthanguth/opencad2d/blob/main/docs/presenter/editing.md)). AutoCAD 2021 reads only a DWG as an external reference: a path to a
 DXF it keeps, saying "Unable to load".
 

@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** A block made in code can be marked as one an external reference brings, as a layer or a linetype can
+(`SetDependent(dependent, resolved)` before it is added, so that the block table takes a name with a |), and is written
+`2 grid|TAG, 70 48` with its BLOCK_RECORD. The member is internal, for OpenCAD2D, which makes the blocks of the drawings
+attached (`grid|TAG`) in the small drawings it sends to other programs: AutoCAD 2021 lists them in memory while the
+reference is loaded (`tblnext` `70 48`, -BLOCK ? `Xdep: "grid"`) and writes none, and its DXF reader refuses a drawing
+that holds one (`Invalid symbol table record name: "grid|TAG"`, measured on 2021), so no file made for AutoCAD should.
+Reading a drawing with such a block, naming the block, `IsDependent` and `IsResolved` are as they were.
+
 **NEW.** `DxfEntity.DxfName` is the type an entity is written as, the group 0 of its record: `LINE`, `LWPOLYLINE`, `INSERT`,
 `DIMENSION`, `ACAD_TABLE`, `REGION`. It gives the name of the drawing's own version, so a 2D polyline that is `LWPOLYLINE`
 in a drawing of R2000 is `POLYLINE` in the R12 drawing it is saved as, one class can have several names (a `DxfPolyline2d`,
