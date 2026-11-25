@@ -60,6 +60,19 @@ namespace GeometryHelper.Dxf
         private protected DxfEntity(string dxfName, IEnumerable<DxfTypedValue> groups)
             : base(DxfFile.Detached(dxfName, groups)) { }
 
+        /// <summary>
+        /// Gets the type of the entity as the file names it in its group 0, as AutoCAD's class names its <c>DxfName</c>:
+        /// <c>LINE</c>, <c>LWPOLYLINE</c>, <c>INSERT</c>, <c>DIMENSION</c>, <c>ACAD_TABLE</c>, <c>REGION</c>.
+        /// </summary>
+        /// <value>
+        /// The name the record is written under in the drawing's own version, which differs from one version to another where
+        /// the kinds do: a 2D polyline of R2000 is an <c>LWPOLYLINE</c>, and the same drawing saved as R12 holds it as a
+        /// <c>POLYLINE</c>. A class does not give one name: a <see cref="DxfPolyline2d"/>, a <see cref="DxfPolyline3d"/>, a
+        /// <see cref="DxfPolygonMesh"/> and a <see cref="DxfPolyFaceMesh"/> are all <c>POLYLINE</c>, and every dimension class
+        /// is <c>DIMENSION</c>. An entity made in code has the name its class is written under, before it is in a drawing.
+        /// </value>
+        public string DxfName => Item.Type;
+
         #region The look
 
         /// <summary>

@@ -10,7 +10,7 @@ namespace GeometryHelper.Dxf
     /// Builds an MLINE as AutoCAD writes it, from the points it is drawn through, its style, scale and justification, and
     /// builds the record anew after an edit, as AutoCAD's <c>Mline</c> (<c>AppendSegment</c>, <c>MoveVertexAt</c>,
     /// <c>IsClosed</c>) does: its direction, miter and the offset of each element at every vertex worked out as AutoCAD works
-    /// them out. A multiline is a <see cref="DxfUnknownEntity"/> whose <see cref="DxfUnknownEntity.DxfName"/> is MLINE.
+    /// them out. A multiline is a <see cref="DxfUnknownEntity"/> whose <see cref="DxfEntity.DxfName"/> is MLINE.
     /// </summary>
     /// <remarks>
     /// <para>

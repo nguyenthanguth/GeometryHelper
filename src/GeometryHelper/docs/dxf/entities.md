@@ -7,7 +7,7 @@ and each entity's shape given typed.
 
 Every entity has AutoCAD's `Layer`, `Color`, `ColorIndex`, `TrueColor`, `Linetype`, `LinetypeScale`, `LineWeight`,
 `Visible` and `Transparency`, its `Handle`, `OwnerHandle`, `XData`, `Hyperlinks` and `ExtensionDictionary`, its `Owner` and
-`BlockName`, and `GetGeometry()`, the library's shapes for it as [`DxfReader`](xref:GeometryHelper.Dxf.DxfReader) reads it, a LEADER its curve and a
+`BlockName`, its `DxfName`, the type its record is written under, and `GetGeometry()`, the library's shapes for it as [`DxfReader`](xref:GeometryHelper.Dxf.DxfReader) reads it, a LEADER its curve and a
 MULTILEADER the lines of its leaders. A true colour's `Color` carries the
 index nearest it, orange (0xFF8000) the index 30, and is written with it. `Transparency`, group 440, is a [`DxfTransparency`](xref:GeometryHelper.Dxf.DxfTransparency):
 BYLAYER where the record gives none, BYBLOCK, or an alpha from 0, clear, to 255, solid, `new DxfTransparency(127)` the 50 per
@@ -29,6 +29,12 @@ refused before anything is written, since AutoCAD 2021 keeps such contexts uncon
 of them: a TEXT of contexts handed over to an MTEXT keeping its dictionary throws `ArgumentException`, as do an MTEXT handed
 to a TEXT, an INSERT to a TEXT and a TEXT to an INSERT. A TEXT, an ATTDEF and an ATTRIB take one another's contexts, which
 AutoCAD read; a LINE, never annotative, takes any. Not keeping the dictionary, the new entity writes contexts of its own.
+
+`DxfName` is the group 0 of the record, as AutoCAD's class names its `DxfName`: `LINE`, `LWPOLYLINE`, `INSERT`, `DIMENSION`,
+`ACAD_TABLE`, `REGION`. It is the name in the drawing's own version, so the same 2D polyline is `LWPOLYLINE` in a drawing
+of R2000 and `POLYLINE` in the R12 drawing it is saved as, and a class does not give one name: a `DxfPolyline2d`, a
+`DxfPolyline3d`, a polygon mesh and a polyface mesh are all `POLYLINE`, and every dimension class is `DIMENSION`. An entity
+made in code, `new DxfLine(a, b).DxfName`, gives `LINE` before it is in any drawing.
 
 ### Its box and its shapes
 

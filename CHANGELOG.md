@@ -6,6 +6,12 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DxfEntity.DxfName` is the type an entity is written as, the group 0 of its record: `LINE`, `LWPOLYLINE`, `INSERT`,
+`DIMENSION`, `ACAD_TABLE`, `REGION`. It gives the name of the drawing's own version, so a 2D polyline that is `LWPOLYLINE`
+in a drawing of R2000 is `POLYLINE` in the R12 drawing it is saved as, one class can have several names (a `DxfPolyline2d`,
+a `DxfPolyline3d`, a polygon mesh and a polyface mesh are all `POLYLINE`, and every dimension class is `DIMENSION`), and an
+entity made in code names its type before it is in a drawing. Only `DxfUnknownEntity` had it, and now every entity has it,
+as AutoCAD's `Entity.DxfName`; code that read the type of an entity from the first word of its `ToString` can use it.
 **NEW.** `DxfDatabase.BorrowFonts(path)` sets `FontSearchPath` for the life of the scope it returns and measures in one set
 of fonts that every borrow of that path in the drawing shares, putting back the path and the fonts the drawing had when
 the scope is disposed (scopes nest). Setting `FontSearchPath` reads the fonts anew each time, as before, so code that set

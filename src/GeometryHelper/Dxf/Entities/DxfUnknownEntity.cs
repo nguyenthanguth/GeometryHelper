@@ -24,12 +24,6 @@ namespace GeometryHelper.Dxf
             : base(item) { }
 
         /// <summary>
-        /// Gets the type of the entity as the file names it in its group 0, as AutoCAD's class names its <c>DxfName</c>:
-        /// <c>REGION</c>, <c>SHAPE</c>, <c>ACAD_PROXY_ENTITY</c>.
-        /// </summary>
-        public string DxfName => Item.Type;
-
-        /// <summary>
         /// Gets every group of the entity's record, in the order of the file, after the group 0 that names its type, each value
         /// the text the file prints; a new list on each call. Of a POLYLINE they run on through its vertices and of an INSERT
         /// through its attributes, each opened by its own group 0. A comment (999) is not among them, though the file keeps it.
