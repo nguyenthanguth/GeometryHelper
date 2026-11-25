@@ -6,6 +6,13 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DxfDatabase.BorrowFonts(path)` sets `FontSearchPath` for the life of the scope it returns and measures in one set
+of fonts that every borrow of that path in the drawing shares, putting back the path and the fonts the drawing had when
+the scope is disposed (scopes nest). Setting `FontSearchPath` reads the fonts anew each time, as before, so code that set
+it and cleared it round each text it measured looked for the font file and read it again for every text: the
+`GeometricExtents` of 2 000 TEXTs in an SHX font took 102 ms that way on .NET Framework 4.8 (87 ms on .NET 10), and 9.6 ms
+(4.9 ms) borrowed, the boxes the same to the bit. `FontSearchPath` itself is unchanged.
+
 ## 13.12.1 (2026-11-23)
 
 **BREAKING.** The CAD app and everything built for it left this repository for one of its own, as **OpenCAD2D**

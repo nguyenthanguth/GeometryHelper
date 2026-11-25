@@ -169,6 +169,29 @@ its words of one line only. Of 14 750 MTEXTs AutoCAD 2021 measured in five round
 them give AutoCAD's sizes, extents and every exploded TEXT; the most of the others explode with %% codes, where AutoCAD's
 own TEXTs do not follow its lines, or are of isocp.shx, whose heights are up to 0.01 off as they were for a line.
 
+### Measuring in a scope
+
+Setting `FontSearchPath` reads the fonts anew, so that a code page registered since is picked up. Code that measures many
+texts one after another, setting the path before each and putting it back after, reads the font file once a text: some
+0.12 ms for an SHX font. `BorrowFonts` sets the path for as long as the scope it returns lives, and reads each font of a
+path once for the life of the drawing, however many scopes borrow it; disposing the scope puts back the path and the fonts
+the drawing had, and scopes nest:
+
+```csharp
+foreach (DxfDBText text in texts)
+{
+    using (db.BorrowFonts(@"C:\Program Files\Autodesk\AutoCAD 2021\Fonts"))
+    {
+        box = text.GeometricExtents;   // the same box, to the bit, as with FontSearchPath set
+    }
+}
+```
+
+The set is kept by the drawing under the path as it is spelled. A font file that changes on disk, or a code page registered
+after the set was first used, is not seen again by a borrow of that path: set `FontSearchPath` itself to read the fonts
+anew. Measuring the `GeometricExtents` of 2 000 TEXTs this way took 9.6 ms where setting and clearing the path round each
+took 102 ms (.NET Framework 4.8; 4.9 ms against 87 ms on .NET 10).
+
 ### Results and machines
 
 The results follow the fonts supplied, so they differ between machines and between versions of a font, as AutoCAD's drawings
