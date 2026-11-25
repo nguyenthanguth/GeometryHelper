@@ -1545,6 +1545,8 @@ namespace GeometryHelper.Dwg
                     handle = _drawing.HandleOf("STYLE", Value(name, "Standard"));
                     break;
                 case "CELTYPE":
+                    handle = _drawing.HandleOf("LTYPE", Value(name, "ByLayer"));
+                    break;
                 case "DIMLTYPE":
                 case "DIMLTEX1":
                 case "DIMLTEX2":
