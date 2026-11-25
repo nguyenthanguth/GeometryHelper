@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 namespace GeometryHelper.Dxf
 {
@@ -28,7 +29,8 @@ namespace GeometryHelper.Dxf
         /// of the annotation not among those given back; copied alone within this drawing, it points to none
         /// (<see cref="DxfLeader.AnnoType"/> <see cref="DxfAnnotationType.NoAnnotation"/>). A handle of extended data (1005)
         /// naming an entity copied with it names that entity's copy; one naming anything else is null (0) in a copy into
-        /// another drawing, in its place, as AutoCAD keeps it. No GROUP is copied, as AutoCAD 2021's WblockCloneObjects copies
+        /// another drawing, in its place, as AutoCAD keeps it. The field of a text's words (<see cref="DxfDBObject.GetField()"/>),
+        /// and of each attribute of an INSERT copied, is copied with it and listed in the drawing's list of fields. No GROUP is copied, as AutoCAD 2021's WblockCloneObjects copies
         /// none: <see cref="Insert(GeometryHelper.Geometry.GeoTransform3, DxfDatabase, bool)"/> copies them.
         /// </para>
         /// <para>
@@ -261,6 +263,7 @@ namespace GeometryHelper.Dxf
 
                 target.Copies?.Entity(entities[i].Item, copies[i].Item);
                 MapDataHandles(entities[i], copies[i], copyOf);
+                CopyFields(entities[i], copies[i]);
 
                 if (entities[i] is DxfHatch hatch && hatch.Associative)
                 {
@@ -306,6 +309,32 @@ namespace GeometryHelper.Dxf
                     + "."
             );
             return copies.GetRange(0, count).AsReadOnly();
+        }
+
+        /// <summary>
+        /// Gives the copy of an entity a copy of the field of its words (the property TEXT of its extension dictionary), as AutoCAD's
+        /// deep clone copies the extension dictionary with the objects it owns, and the copy of each attribute of an INSERT the
+        /// field of the attribute it copies.
+        /// </summary>
+        private static void CopyFields(DxfEntity entity, DxfEntity copy)
+        {
+            DxfField field = entity.GetField();
+
+            if (field != null && copy.IsResident && copy.Item.File.Supports(1018))
+            {
+                DxfField.WriteCopy(copy.FieldDictionary(true), "TEXT", field);
+            }
+
+            if (entity is DxfBlockReference insert && copy is DxfBlockReference made)
+            {
+                List<DxfAttributeReference> from = insert.AttributeCollection.ToList();
+                List<DxfAttributeReference> to = made.AttributeCollection.ToList();
+
+                for (int i = 0; i < from.Count && i < to.Count; i++)
+                {
+                    CopyFields(from[i], to[i]);
+                }
+            }
         }
 
         /// <summary>
