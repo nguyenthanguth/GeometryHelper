@@ -6,6 +6,8 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+## 13.13.0 (2026-11-26)
+
 **FIXED.** `WblockCloneObjects` copies the field of a text's words. A TEXT, an MTEXT, an attribute or a dimension with a field, and each
 attribute of an INSERT copied with it, came out with its words but none of the FIELD behind them (the extension dictionary was not copied),
 so that a title block's `\AcVar` and `\AcSm` attributes showed their words once and never changed again; AutoCAD's deep clone copies them.
@@ -28,6 +30,7 @@ in a drawing of R2000 is `POLYLINE` in the R12 drawing it is saved as, one class
 a `DxfPolyline3d`, a polygon mesh and a polyface mesh are all `POLYLINE`, and every dimension class is `DIMENSION`), and an
 entity made in code names its type before it is in a drawing. Only `DxfUnknownEntity` had it, and now every entity has it,
 as AutoCAD's `Entity.DxfName`; code that read the type of an entity from the first word of its `ToString` can use it.
+
 **NEW.** `DxfDatabase.BorrowFonts(path)` sets `FontSearchPath` for the life of the scope it returns and measures in one set
 of fonts that every borrow of that path in the drawing shares, putting back the path and the fonts the drawing had when
 the scope is disposed (scopes nest). Setting `FontSearchPath` reads the fonts anew each time, as before, so code that set

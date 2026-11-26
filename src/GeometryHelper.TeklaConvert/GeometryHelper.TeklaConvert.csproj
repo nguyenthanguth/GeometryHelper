@@ -28,6 +28,11 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageIcon>icon.png</PackageIcon>
         <PackageReleaseNotes>
+      NEW IN 13.13.0
+      - GeometryHelper.TeklaConvert is released at 13.13.0 with GeometryHelper, whose entities name their DXF type, whose
+        drawings borrow one set of fonts for many measurements and whose WblockCloneObjects copies the fields of texts;
+        nothing in TeklaConvert changes.
+
       NEW IN 13.12.1
       - GeometryHelper.TeklaConvert is released at 13.12.1 with GeometryHelper, whose shapes that are not finite meet nothing
         and whose DWG keeps the jog angle of a dimension style as AutoCAD does; nothing in TeklaConvert changes.
