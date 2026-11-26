@@ -6,8 +6,9 @@ using GeometryHelper.Dxf;
 namespace GeometryHelper.Export
 {
     /// <summary>
-    /// How the writers that keep their numbers exactly print a double: a text that reads back to that very double, on either
-    /// runtime.
+    /// How the library prints a double it keeps exactly, as a text that reads back to that very double, and reads a double from
+    /// a text, as the double nearest it: the same on either runtime, which .NET Framework's own <c>"R"</c> and parser are not. No
+    /// other code of the library calls <c>double.Parse</c> or <c>double.TryParse</c>.
     /// </summary>
     internal static class Numbers
     {
@@ -258,6 +259,53 @@ namespace GeometryHelper.Export
             }
 
             return DxfFastNumber.TryText(text, at, end, out value) || TryReadLong(text, out value);
+        }
+
+        /// <summary>
+        /// Reads a number that has to be one, as <see cref="TryRead"/> does: the text of a constant, or of a value a record
+        /// gives as a number once it has been checked.
+        /// </summary>
+        /// <exception cref="FormatException">Thrown when the text is not a finite number a double holds.</exception>
+        internal static double Parse(string text)
+        {
+            if (!TryRead(text, out double value))
+            {
+                throw new FormatException("\"" + text + "\" is not a number.");
+            }
+
+            return value;
+        }
+
+        /// <summary>
+        /// Reads the words <c>NaN</c> and <c>Infinity</c> (a sign before the second), the texts .NET writes for a number that is
+        /// not finite and <see cref="TryRead"/> does not read. Spaces either side are allowed; letter case is not told apart.
+        /// </summary>
+        internal static bool TryReadNotFinite(string text, out double value)
+        {
+            value = 0.0;
+            string word = text?.Trim();
+
+            if (string.IsNullOrEmpty(word))
+            {
+                return false;
+            }
+
+            if (string.Equals(word, "NaN", StringComparison.OrdinalIgnoreCase))
+            {
+                value = double.NaN;
+                return true;
+            }
+
+            bool negative = word[0] == '-';
+            string name = negative || word[0] == '+' ? word.Substring(1) : word;
+
+            if (!string.Equals(name, "Infinity", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            value = negative ? double.NegativeInfinity : double.PositiveInfinity;
+            return true;
         }
 
         /// <summary>

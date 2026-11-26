@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using GeometryHelper.Export;
 
 namespace GeometryHelper.Dxf
 {
@@ -242,8 +243,8 @@ namespace GeometryHelper.Dxf
                 i++;
             }
 
-            double.TryParse(width, NumberStyles.Float, CultureInfo.InvariantCulture, out double columnWidth);
-            double.TryParse(gutter, NumberStyles.Float, CultureInfo.InvariantCulture, out double columnGutter);
+            Numbers.TryRead(width, out double columnWidth);
+            Numbers.TryRead(gutter, out double columnGutter);
             Number(count, out int columns);
 
             double total = columns > 0 ? columns * columnWidth + (columns - 1) * columnGutter : 0.0;

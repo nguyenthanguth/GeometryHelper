@@ -152,7 +152,7 @@ namespace GeometryHelper.Dxf
         /// <summary>The digits of a positive number without their zeros at either end, and where the point stands: 0.digits times ten to the point.</summary>
         private static void Split(double magnitude, out string digits, out int point)
         {
-            string written = magnitude.ToString("R", CultureInfo.InvariantCulture);
+            string written = Numbers.Exact(magnitude);
             int exponent = 0;
             int e = written.IndexOfAny(new[] { 'E', 'e' });
 

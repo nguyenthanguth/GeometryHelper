@@ -314,30 +314,8 @@ namespace GeometryHelper.Dwg
             }
         }
 
-        /// <summary>A real as the SAT writes it; -0 keeps its sign, which the framework's parser drops.</summary>
-        private static bool Real(string word, out double value)
-        {
-            if (
-                !double.TryParse(
-                    word,
-                    NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent,
-                    CultureInfo.InvariantCulture,
-                    out value
-                )
-                || double.IsNaN(value)
-                || double.IsInfinity(value)
-            )
-            {
-                return false;
-            }
-
-            if (value == 0.0 && word[0] == '-')
-            {
-                value = -0.0;
-            }
-
-            return true;
-        }
+        /// <summary>A real as the SAT writes it; -0 keeps its sign.</summary>
+        private static bool Real(string word, out double value) => Export.Numbers.TryRead(word, out value);
 
         private static bool IsWhole(string word) =>
             word.Length > 0

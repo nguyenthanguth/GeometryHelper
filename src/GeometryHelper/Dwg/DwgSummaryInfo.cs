@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using GeometryHelper.Export;
 
 namespace GeometryHelper.Dwg
 {
@@ -175,7 +176,7 @@ namespace GeometryHelper.Dwg
         }
 
         private static double Days(string text) =>
-            double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+            Numbers.TryRead(text, out double value)
             && !double.IsNaN(value)
             && !double.IsInfinity(value)
             && value >= 0.0

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using GeometryHelper.Export;
 
 namespace GeometryHelper.Dwg
 {
@@ -584,7 +585,7 @@ namespace GeometryHelper.Dwg
                         _data.BitDouble(
                             given
                                 ? (code == 50 ? Radians(style.Double(code)) : style.Double(code))
-                                : double.Parse(parts[2], CultureInfo.InvariantCulture)
+                                : Numbers.Parse(parts[2])
                         );
                         break;
                     case "B":

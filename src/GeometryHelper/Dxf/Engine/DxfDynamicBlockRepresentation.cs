@@ -1648,18 +1648,8 @@ namespace GeometryHelper.Dxf
                     {
                         if (
                             kept[last + 2 + i].TypeCode == value[i].TypeCode
-                            && double.TryParse(
-                                kept[last + 2 + i].Value,
-                                NumberStyles.Float,
-                                CultureInfo.InvariantCulture,
-                                out double earlier
-                            )
-                            && double.TryParse(
-                                value[i].Value,
-                                NumberStyles.Float,
-                                CultureInfo.InvariantCulture,
-                                out double now
-                            )
+                            && Numbers.TryRead(kept[last + 2 + i].Value, out double earlier)
+                            && Numbers.TryRead(value[i].Value, out double now)
                         )
                         {
                             value[i] = new DxfTypedValue(value[i].TypeCode, Real(earlier + now));
@@ -1696,7 +1686,7 @@ namespace GeometryHelper.Dxf
 
             foreach (DxfTypedValue group in value)
             {
-                if (!double.TryParse(group.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double part))
+                if (!Numbers.TryRead(group.Value, out double part))
                 {
                     return false;
                 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using GeometryHelper.Export;
 
 namespace GeometryHelper.Dwg
 {
@@ -540,7 +541,7 @@ namespace GeometryHelper.Dwg
                     case "BD":
                         double number = _data.BitDouble();
                         // DIMJOGANG (50) is degrees in DXF and radians in a DWG.
-                        if (number != double.Parse(parts[2], CultureInfo.InvariantCulture) && code != 0)
+                        if (number != Numbers.Parse(parts[2]) && code != 0)
                         {
                             groups.Add(new DwgGroup(code, code == 50 ? Degrees(number) : number));
                         }

@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using GeometryHelper.Export;
 
 namespace GeometryHelper.Dxf
 {
@@ -234,7 +235,7 @@ namespace GeometryHelper.Dxf
 
                     string written = Text.Substring(from, At - from);
 
-                    if (!double.TryParse(written, NumberStyles.Float, CultureInfo.InvariantCulture, out double number))
+                    if (!Numbers.TryRead(written, out double number))
                     {
                         throw Refused(Text);
                     }

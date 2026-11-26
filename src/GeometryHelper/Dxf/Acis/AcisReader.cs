@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using GeometryHelper.Export;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Dxf
@@ -140,7 +141,7 @@ namespace GeometryHelper.Dxf
                     record.Tokens.Add(new Token('s', 0.0, trimmed.Substring(start, count)));
                     at = start + count;
                 }
-                else if (double.TryParse(word, NumberStyles.Float, CultureInfo.InvariantCulture, out double number))
+                else if (Numbers.TryRead(word, out double number))
                 {
                     record.Tokens.Add(new Token('d', number, null));
                 }

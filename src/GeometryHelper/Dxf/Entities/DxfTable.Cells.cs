@@ -825,14 +825,7 @@ namespace GeometryHelper.Dxf
 
             if (times.Success)
             {
-                if (
-                    double.TryParse(
-                        times.Groups[1].Value,
-                        NumberStyles.Float,
-                        CultureInfo.InvariantCulture,
-                        out double f
-                    ) && Guard.IsFinite(f)
-                )
+                if (Numbers.TryRead(times.Groups[1].Value, out double f) && Guard.IsFinite(f))
                 {
                     factor = f;
                 }
@@ -1550,7 +1543,7 @@ namespace GeometryHelper.Dxf
 
             string inches = Fixed(length - 12.0 * feet, places);
 
-            if (double.Parse(inches, CultureInfo.InvariantCulture) >= 12.0)
+            if (Numbers.Parse(inches) >= 12.0)
             {
                 feet += 1.0;
                 inches = Fixed(0.0, places);
@@ -1895,8 +1888,7 @@ namespace GeometryHelper.Dxf
             }
 
             private static bool Finite(string text, out double value) =>
-                double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
-                && Guard.IsFinite(value);
+                Numbers.TryRead(text, out value) && Guard.IsFinite(value);
         }
 
         /// <summary>A value to write: its kind, itself, its groups of data and its text.</summary>

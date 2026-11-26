@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using GeometryHelper.Export;
 
 namespace GeometryHelper.Dxf
 {
@@ -1081,21 +1082,7 @@ namespace GeometryHelper.Dxf
         private static string Number(double value)
         {
             // The fewest digits, of 15 to 17, that read back as the same real: AutoCAD writes 314.1592653589793, not 314.15926535897933.
-            string text = null;
-
-            for (int digits = 15; digits <= 17 && text == null; digits++)
-            {
-                string candidate = value.ToString(
-                    "G" + digits.ToString(CultureInfo.InvariantCulture),
-                    CultureInfo.InvariantCulture
-                );
-
-                if (double.Parse(candidate, CultureInfo.InvariantCulture) == value || digits == 17)
-                {
-                    text = candidate;
-                }
-            }
-
+            string text = Numbers.Exact(value + 0.0);
             return text.IndexOfAny(new[] { '.', 'E' }) < 0 ? text + ".0" : text;
         }
 

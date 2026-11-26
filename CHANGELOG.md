@@ -6,6 +6,19 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The DXF and DWG code reads every number it takes from a text with the library's own exact parse, and prints with
+the library's own exact printer every number it writes that has to read back, so that both runtimes give the same drawing.
+The 40 calls of `double.Parse` and `double.TryParse` in 28 files (the version converters, the R12 hatch and explosion,
+dimension variables, table fills and formulas, the DWG table and summary code, the SAT and ACIS readers, FIELD, MTEXT and
+the plot settings) are now `Numbers.TryRead` or `Numbers.Parse`. .NET Framework's parser reads about one decimal of 6 to 15
+digits in a thousand a unit off in the last bit (-0.999778 and 498.222296 as the double above), drops the sign of a negative
+nought, and refuses a number past a double where .NET Core gives infinity. The R12 hatch data, the table editing text, the
+stacked fraction height of a dimension and the real of a FIELD no longer print with Framework's `"R"` or `"G15"` to `"G17"`,
+which are a digit short for about one double in 25 000 (4532.5992882869205 was written 4532.59928828692). A drawing saved as
+R12 is the same bytes under .NET Framework 4.8 and .NET 10 now (one of 40 000 lines, 40 000 circles and 10 000 hatches differed
+by 24 KB), and a drawing saved as R2000 or later is the same bytes as before. A number past a double (`1e400`) in a DWG record
+is nought on both runtimes, where it was infinity on .NET Core.
+
 ## 13.13.0 (2026-11-26)
 
 **FIXED.** `WblockCloneObjects` copies the field of a text's words. A TEXT, an MTEXT, an attribute or a dimension with a field, and each

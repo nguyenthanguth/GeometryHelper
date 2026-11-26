@@ -697,10 +697,7 @@ namespace GeometryHelper.Dxf
                 number = number.Substring(0, number.Length - 1);
             }
 
-            return number.Length > 0
-                && double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double size)
-                && Guard.IsFinite(size)
-                && size >= 0.0;
+            return number.Length > 0 && Numbers.TryRead(number, out double size) && Guard.IsFinite(size) && size >= 0.0;
         }
 
         private void SetReal(string name, double value, double now, bool check)

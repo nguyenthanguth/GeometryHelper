@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using GeometryHelper.Export;
 
 namespace GeometryHelper.Dxf
 {
@@ -348,14 +349,7 @@ namespace GeometryHelper.Dxf
                     }
                     else if (code == 144)
                     {
-                        look.TextHeight = double.TryParse(
-                            value,
-                            NumberStyles.Float,
-                            CultureInfo.InvariantCulture,
-                            out double h
-                        )
-                            ? h
-                            : 0.0;
+                        look.TextHeight = Numbers.TryRead(value, out double h) ? h : 0.0;
                     }
                 }
                 else if (!afterContent && code == 62)

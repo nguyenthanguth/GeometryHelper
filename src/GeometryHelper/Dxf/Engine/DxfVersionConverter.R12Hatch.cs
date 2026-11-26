@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using GeometryHelper.Export;
 
 namespace GeometryHelper.Dxf
 {
@@ -69,7 +70,7 @@ namespace GeometryHelper.Dxf
         /// <summary>A real number as a group of R12 writes it: as short as it reads back, a whole one with its <c>.0</c>, never an exponent.</summary>
         private static string Plain(double value)
         {
-            string text = value.ToString("R", CultureInfo.InvariantCulture);
+            string text = Numbers.Exact(value);
 
             if (text.IndexOf('E') >= 0)
             {
@@ -111,10 +112,7 @@ namespace GeometryHelper.Dxf
             {
                 string text = Text(code);
 
-                if (
-                    !double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
-                    && !Failed
-                )
+                if (!Numbers.TryRead(text, out double value) && !Failed)
                 {
                     Failed = true;
                 }

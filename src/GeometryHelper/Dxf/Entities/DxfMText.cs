@@ -3018,14 +3018,7 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                if (
-                    double.TryParse(
-                        part.Substring(0, index),
-                        NumberStyles.Float,
-                        CultureInfo.InvariantCulture,
-                        out double size
-                    )
-                )
+                if (Numbers.TryRead(part.Substring(0, index), out double size))
                 {
                     scaled.Append(General(size * factor));
                 }
