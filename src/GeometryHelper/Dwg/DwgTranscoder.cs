@@ -517,7 +517,9 @@ namespace GeometryHelper.Dwg
         /// not hold. From R2004 a layout lists its viewports, the one showing the paper first, and they are numbered from
         /// 1 in that order. An R2000 layout lists none: the viewport that shows the paper itself (its view centre and height
         /// its own) is number 1 and the others follow in the order of their handles. The status is 0 for a viewport that is
-        /// off, else its number from R2004 and -1 in R2000. The viewports of the other layouts are 0 and 0.
+        /// off, else its number from R2004 and -1 in R2000. A layout other than the current one is numbered the same way where
+        /// the file shows AutoCAD has numbered it (a list of its viewports from R2004, a header for each viewport in R2000);
+        /// its viewports where it did not are 0 and 0.
         /// </summary>
         private void NumberViewports()
         {
@@ -552,16 +554,82 @@ namespace GeometryHelper.Dwg
                     }
                 }
 
-                int paper = order.FindIndex(ShowsThePaper);
+                PutThePaperFirst(order);
+            }
 
-                if (paper > 0)
+            Assign(order);
+
+            // The other layouts: those AutoCAD has shown list their viewports (from R2004), and in R2000 it keeps a header for
+            // each viewport it has numbered. A layout it has not shown has neither, and its viewports stay 0 and 0.
+            foreach (DwgObject layout in _objects)
+            {
+                ulong block = layout.Name == "LAYOUT" ? Owned330(layout) : 0;
+
+                if (block == 0 || block == active)
                 {
-                    DwgObject first = order[paper];
-                    order.RemoveAt(paper);
-                    order.Insert(0, first);
+                    continue;
+                }
+
+                var others = new List<DwgObject>();
+
+                if (layout.Viewports != null)
+                {
+                    foreach (ulong handle in layout.Viewports)
+                    {
+                        if (Find(handle) is DwgObject viewport && viewport.Type == 0x22 && !others.Contains(viewport))
+                        {
+                            others.Add(viewport);
+                        }
+                    }
+                }
+                else if (_version < 1018)
+                {
+                    others.AddRange(
+                        _objects.FindAll(one =>
+                            one.Type == 0x22
+                            && one.Decoded
+                            && one.EntityMode == 0
+                            && one.Owner == block
+                            && HasHeader(one)
+                        )
+                    );
+                    PutThePaperFirst(others);
+                }
+
+                Assign(others);
+            }
+        }
+
+        /// <summary>Whether a viewport of a file of R2000 has a viewport entity header, which AutoCAD keeps for one it has numbered.</summary>
+        private static bool HasHeader(DwgObject viewport)
+        {
+            foreach (DwgGroup group in viewport.Body)
+            {
+                if (group.Code == 69 && group.Value is DwgViewportNumber number)
+                {
+                    return number.Header != 0;
                 }
             }
 
+            return false;
+        }
+
+        /// <summary>Moves the viewport that shows the paper itself to the front of its layout's viewports.</summary>
+        private static void PutThePaperFirst(List<DwgObject> order)
+        {
+            int paper = order.FindIndex(ShowsThePaper);
+
+            if (paper > 0)
+            {
+                DwgObject first = order[paper];
+                order.RemoveAt(paper);
+                order.Insert(0, first);
+            }
+        }
+
+        /// <summary>Numbers the viewports of one layout in their order, as <see cref="NumberViewports"/> says.</summary>
+        private void Assign(List<DwgObject> order)
+        {
             for (int i = 0; i < order.Count; i++)
             {
                 bool off = (Int(order[i], 90) & 0x20000) != 0;

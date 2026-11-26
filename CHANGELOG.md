@@ -6,6 +6,29 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The viewports of a layout written as DWG and read back are on and numbered as they were. A layout that was not the one the
+file was current in read back with every viewport at status 0 and number 0, so a viewport made in code (`Initialize`, then a viewport of
+240 by 230 at 1:10 turned on) came back off (`On` false, `Number` -1), the viewport that shows the sheet came back off too and counted as a
+viewport of the user's, and a plot of the layout showed no model. The file held them all right (the flag 0x20000 of the status clear, the
+layout's list of its viewports and its last active viewport, the block's link to the layout, AutoCAD opens it with `AUDIT` 0): the reader
+numbered only the layout of `*Paper_Space`. It now numbers the viewports of every layout whose file says AutoCAD numbered them, from the
+layout's list (R2004 and later) or from the viewport entity header each numbered viewport has in R2000; a layout with neither, which AutoCAD
+never showed, stays at 0 and 0 as its own DXF has it. A drawing with a layout `S1` (a sheet of A3, a viewport on the sheet of number 1 and
+one of 240 by 230, a viewport turned off) written as R2000, R2004, R2007, R2010, R2013 and R2018 reads back with the viewports `1`, `2`
+and `-1` as before it was written (the six red before). The 846 DWG files the writer makes of the test data (the DXF the reader makes of each of the 71 drawings,
+and the DXF AutoCAD wrote of 70 of them, each written as the six versions) are the same bytes as before. `DwgViewportsOfALayoutTests`
+(8 tests, 8 red before).
+
+**FIXED.** A multileader (MLEADER) of a drawing made in code is written to a DWG and no longer left out. The writer reported
+`MULTILEADER 1` as left out in every version: it names the type of an entity by its class, and the CLASSES section of a drawing made in code
+lists the class of the multileader's style and not that of the multileader, which a DXF read from AutoCAD has. The class is listed when the
+drawing holds a multileader and does not list it (`MULTILEADER`, `AcDbMLeader`, `ACDB_MLEADER_CLASS`, proxy flags 1025, an entity, as AutoCAD
+lists it), and the objects were written already: the words, the leaders, the style and the context in R2000 to R2018 (AutoCAD's own R2000
+file holds multileaders too, so there is nothing to leave out below R2007). A note of "SEE DETAIL 3" 4 high at 2:1 with a leader from (0, 0)
+reads back with its words, its place, its leader's ends, its dogleg and its style in the six versions, and AutoCAD 2021 opens the six files
+with `AUDIT` 0 and gives the words back in its DXF of the R2000, R2007 and R2018 ones. A drawing that has the class (every DXF read from AutoCAD) is the same bytes as before.
+`DwgMultileaderTests` (12 tests, 12 red before).
+
 **FIXED.** The auxiliary header of a DWG saved as R2000, R2004, R2010 or R2013 names AutoCAD 2021 as the application, 33 and 174, before and
 after the version of the file, as AutoCAD writes it (23 and 15 in R2000, 25 and 104 in R2004, 29 and 226 in R2010, 31 and 125 in R2013); the
 writer named the version of the file in all three places (31 and 125 three times in R2013). AutoCAD 2021 saved three drawings built in code
