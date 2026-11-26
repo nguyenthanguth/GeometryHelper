@@ -2268,6 +2268,27 @@ namespace GeometryHelper.Dwg
                     case 2:
                         groups.Add(new DwgGroup(140, _data.BitDouble()));
                         break;
+                    case 8:
+                        byte[] date = _data.Bytes(Count(_data.BitLong()));
+                        groups.Add(new DwgGroup(92, date.Length));
+                        groups.Add(new DwgGroup(310, Hex(date)));
+                        break;
+                    case 16:
+                    case 32:
+                        byte[] raw = _data.Bytes(Count(_data.BitLong()));
+                        int[] codes = type == 32 ? new[] { 11, 21, 31 } : new[] { 10, 20 };
+
+                        for (int k = 0; k < codes.Length; k++)
+                        {
+                            groups.Add(
+                                new DwgGroup(
+                                    codes[k],
+                                    raw.Length >= 8 * (k + 1) ? BitConverter.ToDouble(raw, 8 * k) : 0.0
+                                )
+                            );
+                        }
+
+                        break;
                     case 4:
                     case 512:
                         int length = _data.BitLong();

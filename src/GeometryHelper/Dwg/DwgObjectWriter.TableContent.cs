@@ -947,42 +947,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>A value (20.4.99): its flags, type and, unless flag 1 says it holds nothing, the value; its unit, format and text.</summary>
-        private void WriteValue(DwgCellValue value)
-        {
-            // Before R2007 a value is its type and the value alone, as a field's is.
-            if (!R2007Plus)
-            {
-                WriteFieldValue(value);
-                return;
-            }
-
-            _data.BitLong(value.Flags);
-            _data.BitLong(value.Type);
-
-            if ((value.Flags & 1) == 0)
-            {
-                switch (value.Type)
-                {
-                    case 0:
-                    case 1:
-                        _data.BitLong(value.Long);
-                        break;
-                    case 2:
-                        _data.BitDouble(value.Double);
-                        break;
-                    default:
-                        // A string as UTF-16 with its closing zero, counted in bytes.
-                        byte[] utf16 = Encoding.Unicode.GetBytes(value.Text + "\0");
-                        _data.BitLong(utf16.Length);
-                        _data.Bytes(utf16);
-                        break;
-                }
-            }
-
-            _data.BitLong(value.Unit);
-            T(value.Format);
-            T(value.Shown);
-        }
+        private void WriteValue(DwgCellValue value) => WriteFieldValue(value);
 
         private void WriteContentFormat(DwgContentFormat format)
         {
@@ -1579,8 +1544,21 @@ namespace GeometryHelper.Dwg
                     case 2:
                         kept.Double = g.Double(140);
                         break;
+                    case 8:
+                    case 16:
+                    case 32:
+                        PointOrDateOf(g, kept);
+                        break;
                     default:
-                        kept.Text = g.Text(1);
+                        // The chunks of 250 characters of a long text are in 2 and its last part in 1.
+                        var words = new StringBuilder();
+
+                        while (g.At(2))
+                        {
+                            words.Append(g.Text(2));
+                        }
+
+                        kept.Text = words.Append(g.Text(1)).ToString();
                         break;
                 }
 
@@ -1600,6 +1578,11 @@ namespace GeometryHelper.Dwg
                     case 2:
                         value.Double = g.Double(140);
                         break;
+                    case 8:
+                    case 16:
+                    case 32:
+                        PointOrDateOf(g, value);
+                        break;
                     default:
                         var text = new StringBuilder();
 
@@ -1615,9 +1598,41 @@ namespace GeometryHelper.Dwg
 
             value.Unit = g.Int(94);
             value.Format = g.Text(300);
-            value.Shown = g.Text(302);
+
+            // The text it shows is cut into chunks of 250 characters in 303, the last part in 302, as the text is in 2 and 1.
+            var shown = new StringBuilder();
+
+            while (g.At(303))
+            {
+                shown.Append(g.Text(303));
+            }
+
+            value.Shown = shown.Append(g.Text(302)).ToString();
             Need(g, 304);
             return value;
+        }
+
+        /// <summary>
+        /// The data of a value of a date (8: its bytes, after their count in 92), a 2D point (16: 10 and 20) or a 3D point
+        /// (32: 11, 21 and 31), from its DXF.
+        /// </summary>
+        private static void PointOrDateOf(Cursor g, DwgCellValue value)
+        {
+            if (value.Type == 8)
+            {
+                if (g.At(92))
+                {
+                    g.Text(92);
+                }
+
+                value.Bytes = g.At(310) ? Unhex(g.Text(310)) : new byte[0];
+                return;
+            }
+
+            int first = value.Type == 16 ? 10 : 11;
+            value.Point[0] = g.Double(first);
+            value.Point[1] = g.Double(first + 10);
+            value.Point[2] = value.Type == 32 ? g.Double(31) : 0.0;
         }
 
         /// <summary>The formatted part of a column, row or cell from DXF: its name and its cell style between two marks.</summary>

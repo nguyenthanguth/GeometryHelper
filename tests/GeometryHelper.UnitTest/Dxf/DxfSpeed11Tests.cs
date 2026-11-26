@@ -23,14 +23,15 @@ namespace GeometryHelper.UnitTest.Dxf
     {
         #region The bytes the library saved before
 
+        // C2: the R2000 lines of rounds 0 and 1 of AC1032 and AC1024 changed: a long text in R2000 is now written as AutoCAD's table, not as its block.
         private static readonly string[] CellEditsLines =
         {
             "AC1032 round 0 native 3521A0133F47540E8B46C54B",
             "AC1032 round 0 R2013 A87BEADF4A3411385043231A",
-            "AC1032 round 0 R2000 7A22D936934A99CD5486ADE4",
+            "AC1032 round 0 R2000 5E6BDA414608BDFD77240BF6",
             "AC1032 round 1 native E4ADE7F450A836F425238DD6",
             "AC1032 round 1 R2013 7F1128C5D38F5484F4EDA1B4",
-            "AC1032 round 1 R2000 7A22D936934A99CD5486ADE4",
+            "AC1032 round 1 R2000 0ED9DEEBD130824AC21A185F",
             "AC1032 round 2 native 1F4B9D0A7D24FC9919A778CF",
             "AC1032 round 2 R2013 E76CDF7B0B7409A595F0DBEC",
             "AC1032 round 2 R2000 2298F4113B6E0D5677D1C2F9",
@@ -54,10 +55,10 @@ namespace GeometryHelper.UnitTest.Dxf
             "AC1018 round 2 R2000 3871B58F9E59E3FE9586CFBC",
             "AC1024 round 0 native 81F2E82F697871DAA683A103",
             "AC1024 round 0 R2013 A87BEADF4A3411385043231A",
-            "AC1024 round 0 R2000 7A22D936934A99CD5486ADE4",
+            "AC1024 round 0 R2000 5E6BDA414608BDFD77240BF6",
             "AC1024 round 1 native C38F2BB394FE595BEB46E0AB",
             "AC1024 round 1 R2013 7F1128C5D38F5484F4EDA1B4",
-            "AC1024 round 1 R2000 7A22D936934A99CD5486ADE4",
+            "AC1024 round 1 R2000 0ED9DEEBD130824AC21A185F",
             "AC1024 round 2 native B6C652B83FD2D845DC389229",
             "AC1024 round 2 R2013 E76CDF7B0B7409A595F0DBEC",
             "AC1024 round 2 R2000 2298F4113B6E0D5677D1C2F9",

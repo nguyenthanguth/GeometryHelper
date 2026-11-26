@@ -240,7 +240,10 @@ namespace GeometryHelper.Dwg
 
             if (type == 1 && field == 0 && !R2007Plus)
             {
-                string text = DxfReader.Carets(FirstOf(own, 1));
+                // A text of over 250 characters is cut into chunks in 3 before its last part in 1.
+                string text = DxfReader.Carets(
+                    string.Concat(own.FindAll(g => g.Key == 3).ConvertAll(g => g.Value)) + FirstOf(own, 1)
+                );
                 content = text.Length > 0;
                 T(text);
             }
@@ -320,49 +323,59 @@ namespace GeometryHelper.Dwg
 
         /// <summary>
         /// The value of a cell of R2007, from <c>301 CELL_VALUE</c> to <c>304 ACVALUE_END</c>: its flags, its type, the value
-        /// unless the flags say it is empty (a string as UTF-16 counted in bytes), its unit, format and the text it shows.
+        /// unless the flags say it is empty (a string as UTF-16 counted in bytes, a date its bytes, a point its doubles), its
+        /// unit, format and the text it shows, written as a field's value is.
         /// </summary>
         private void WriteCellValueBefore2010(List<KeyValuePair<int, string>> cell, int valueAt)
         {
             List<KeyValuePair<int, string>> value =
                 valueAt < 0 ? new List<KeyValuePair<int, string>>() : cell.GetRange(valueAt, cell.Count - valueAt);
-            int flags = DwgRecord.Int(FirstOf(value, 93, "1"));
-            int type = DwgRecord.Int(FirstOf(value, 90, "0"));
-            _data.BitLong(flags);
-            _data.BitLong(type);
-
-            if ((flags & 1) == 0)
+            var held = new DwgCellValue
             {
-                switch (type)
-                {
-                    case 0:
-                    case 1:
-                        _data.BitLong(DwgRecord.Int(FirstOf(value, 91, "0")));
-                        break;
-                    case 2:
-                        _data.BitDouble(DwgRecord.Double(FirstOf(value, 140, "0")));
-                        break;
-                    default:
-                        var text = new StringBuilder();
+                Flags = DwgRecord.Int(FirstOf(value, 93, "1")),
+                Type = DwgRecord.Int(FirstOf(value, 90, "0")),
+            };
 
-                        foreach (KeyValuePair<int, string> group in value)
+            switch (held.Type)
+            {
+                case 0:
+                case 1:
+                    held.Long = DwgRecord.Int(FirstOf(value, 91, "0"));
+                    break;
+                case 2:
+                    held.Double = DwgRecord.Double(FirstOf(value, 140, "0"));
+                    break;
+                case 8:
+                    held.Bytes = Unhex(FirstOf(value, 310));
+                    break;
+                case 16:
+                case 32:
+                    int first = held.Type == 16 ? 10 : 11;
+                    held.Point[0] = DwgRecord.Double(FirstOf(value, first, "0"));
+                    held.Point[1] = DwgRecord.Double(FirstOf(value, first + 10, "0"));
+                    held.Point[2] = held.Type == 32 ? DwgRecord.Double(FirstOf(value, 31, "0")) : 0.0;
+                    break;
+                default:
+                    var text = new StringBuilder();
+
+                    foreach (KeyValuePair<int, string> group in value)
+                    {
+                        if (group.Key == 2 || group.Key == 1)
                         {
-                            if (group.Key == 2 || group.Key == 1)
-                            {
-                                text.Append(group.Value);
-                            }
+                            text.Append(group.Value);
                         }
+                    }
 
-                        byte[] utf16 = Encoding.Unicode.GetBytes(DxfReader.Carets(text.ToString()) + "\0");
-                        _data.BitLong(utf16.Length);
-                        _data.Bytes(utf16);
-                        break;
-                }
+                    held.Text = DxfReader.Carets(text.ToString());
+                    break;
             }
 
-            _data.BitLong(DwgRecord.Int(FirstOf(value, 94, "0")));
-            T(FirstOf(value, 300));
-            T(FirstOf(value, 302));
+            held.Unit = DwgRecord.Int(FirstOf(value, 94, "0"));
+            held.Format = FirstOf(value, 300);
+
+            // The text it shows is cut into chunks of 250 characters in 303 before its last part in 302.
+            held.Shown = string.Concat(value.FindAll(g => g.Key == 303).ConvertAll(g => g.Value)) + FirstOf(value, 302);
+            WriteFieldValue(held);
         }
 
         /// <summary>

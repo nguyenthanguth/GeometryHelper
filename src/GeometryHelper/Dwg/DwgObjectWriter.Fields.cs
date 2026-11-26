@@ -307,8 +307,10 @@ namespace GeometryHelper.Dwg
                     break;
                 case 16:
                 case 32:
-                    value.Point[0] = DwgRecord.Double(Take(groups, ref at, 11, "0"));
-                    value.Point[1] = DwgRecord.Double(Take(groups, ref at, 21, "0"));
+                    // A 2D point is 10 and 20 as AutoCAD writes a cell's value, 11 and 21 as a field's was written here before.
+                    int first = at < groups.Count && groups[at].Key == 10 ? 10 : 11;
+                    value.Point[0] = DwgRecord.Double(Take(groups, ref at, first, "0"));
+                    value.Point[1] = DwgRecord.Double(Take(groups, ref at, first + 10, "0"));
                     value.Point[2] = value.Type == 32 ? DwgRecord.Double(Take(groups, ref at, 31, "0")) : 0.0;
                     break;
                 case 64:
