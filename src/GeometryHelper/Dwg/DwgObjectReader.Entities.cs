@@ -1124,10 +1124,8 @@ namespace GeometryHelper.Dwg
 
             ulong boundary = H();
 
-            if (!R2004Plus)
-            {
-                H();
-            }
+            // In a file of R2000 the header AutoCAD keeps for a viewport it has numbered (0 for one it has not).
+            ulong header = R2004Plus ? 0 : H();
 
             ulong namedUcs = H();
             ulong baseUcs = H();
@@ -1149,7 +1147,7 @@ namespace GeometryHelper.Dwg
             _object.Add(40, width);
             _object.Add(41, height);
             _object.Add(68, new DwgViewportNumber(_object.Handle, true));
-            _object.Add(69, new DwgViewportNumber(_object.Handle, false));
+            _object.Add(69, new DwgViewportNumber(_object.Handle, false) { Header = header });
             _object.AddPoint(12, viewCentre);
             _object.AddPoint(13, snapBase);
             _object.AddPoint(14, snapSpacing);

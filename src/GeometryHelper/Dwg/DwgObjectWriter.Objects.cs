@@ -840,8 +840,14 @@ namespace GeometryHelper.Dwg
             _data.Point3(layout.Point(14));
             _data.Point3(layout.Point(15));
             ulong block = layout.Handle(330);
-            // A layout lists its viewports once one of them has been active (331); AutoCAD's layouts that never were list none.
-            List<DwgRecord> viewports = R2004Plus && layout.Has(331) ? ViewportsOf(block) : new List<DwgRecord>();
+            // A layout lists its viewports once one of them has been active (331), or where one has a number (69 over 0), as
+            // the viewports of a file of R2000 are given a header for it; AutoCAD's layouts that never were list none.
+            List<DwgRecord> viewports = R2004Plus ? ViewportsOf(block) : new List<DwgRecord>();
+
+            if (!layout.Has(331) && !viewports.Exists(viewport => viewport.Of("AcDbViewport").Int(69) > 0))
+            {
+                viewports.Clear();
+            }
 
             if (R2004Plus)
             {

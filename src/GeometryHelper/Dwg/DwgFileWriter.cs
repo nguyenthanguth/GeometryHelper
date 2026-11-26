@@ -249,6 +249,32 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>
+        /// Lists the class MULTILEADER where the drawing holds a multileader and its CLASSES section does not list it, as a
+        /// multileader made in code is: the library lists the class of the style and not that of the multileader, and a record
+        /// of a type with no class is left out. AutoCAD lists it as an entity of the application ACDB_MLEADER_CLASS.
+        /// </summary>
+        private void ListClassOfMultileaders()
+        {
+            if (
+                _drawing.Classes.Exists(c => c.Of(null).Text(1).Trim() == "MULTILEADER")
+                || !_drawing.All.Exists(r => r.Type == "MULTILEADER")
+            )
+            {
+                return;
+            }
+
+            var record = new DwgRecord { Type = "CLASS" };
+            record.Groups.Add(new KeyValuePair<int, string>(1, "MULTILEADER"));
+            record.Groups.Add(new KeyValuePair<int, string>(2, "AcDbMLeader"));
+            record.Groups.Add(new KeyValuePair<int, string>(3, "ACDB_MLEADER_CLASS"));
+            record.Groups.Add(new KeyValuePair<int, string>(90, "1025"));
+            record.Groups.Add(new KeyValuePair<int, string>(280, "0"));
+            record.Groups.Add(new KeyValuePair<int, string>(281, "1"));
+            record.Split();
+            _drawing.Classes.Add(record);
+        }
+
+        /// <summary>
         /// Lists the class CELLSTYLEMAP where a file before R2010 is given a map for a table style (<see cref="AddCellStyleMaps"/>)
         /// and its CLASSES section does not list it.
         /// </summary>
@@ -476,6 +502,7 @@ namespace GeometryHelper.Dwg
         {
             ListClassesOfFields();
             ListClassOfCellStyleMaps();
+            ListClassOfMultileaders();
 
             foreach (DwgRecord one in _drawing.Classes)
             {

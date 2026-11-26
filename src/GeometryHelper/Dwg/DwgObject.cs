@@ -162,6 +162,12 @@ namespace GeometryHelper.Dwg
         /// <summary>Whether the group is the status (68) rather than the number (69).</summary>
         public readonly bool Status;
 
+        /// <summary>
+        /// The handle of the viewport entity header of a file of R2000, which AutoCAD keeps for each viewport it has numbered;
+        /// 0 for none, and in every later version.
+        /// </summary>
+        public ulong Header;
+
         /// <summary>The number of <paramref name="viewport"/>, or its status where <paramref name="status"/> is set.</summary>
         public DwgViewportNumber(ulong viewport, bool status)
         {
