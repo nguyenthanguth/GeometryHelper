@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The auxiliary header of a DWG saved as R2000, R2004, R2010 or R2013 names AutoCAD 2021 as the application, 33 and 174, before and
+after the version of the file, as AutoCAD writes it (23 and 15 in R2000, 25 and 104 in R2004, 29 and 226 in R2010, 31 and 125 in R2013); the
+writer named the version of the file in all three places (31 and 125 three times in R2013). AutoCAD 2021 saved three drawings built in code
+(a hatch of a notched outline, a multi-line attribute, a gradient hatch) as R2000, R2004, R2010, R2013 and R2018, and the library wrote the
+same 15 files: the 123 bytes of the auxiliary header (129 in R2018) differ from AutoCAD's in 22, 18, 18, 18 and 14 bytes before and in 18, 14,
+14, 14 and 14 after, the rest being the dates of the save, the handseed and, in R2000, four bytes of AutoCAD's own memory; AutoCAD opens the 15
+with `AUDIT` reporting 0 errors. A file of R2007 or R2018 is the same bytes as before (18 of 18 files of nine drawings), one of R2000, R2004,
+R2010 or R2013 differs in those six bytes, and the check sums and page data that follow from them. `DwgAuxiliaryHeaderTests` (9 tests, 8 red before).
+
 **FIXED.** A table with a date, a 2D or 3D point, a data link or a text of more than 250 characters saved as R2000, R2004 or R2007
 keeps its values, as AutoCAD 2021 writes them in those versions. The date, the point and the long text of a table with a TABLECONTENT (a table
 style of its own, a merged range, a link) left the table as the block it is drawn with in R2000 and R2004, and the long text of a plain table
