@@ -6,6 +6,12 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+- **NEW.** A dimension on a layout can be tied through a viewport to model space objects, as AutoCAD 2021 writes a
+  trans-spatial DIMASSOC: `DxfOsnapPointRef.ViewportHandle` and `WithViewport(handle)`; group 70 is 1, each reference
+  names the viewport (331, or 332 before an intersection's second object) before the object, its point is 0,0 with
+  Z = 2E+50 for an end or start, and the viewport carries the DIMASSOC as a reactor. AutoCAD 2021 opened such a file
+  with AUDIT reporting 0 errors and kept the dimensions associative.
+
 **FIXED.** The DXF and DWG code reads every number it takes from a text with the library's own exact parse, and prints with
 the library's own exact printer every number it writes that has to read back, so that both runtimes give the same drawing.
 The 40 calls of `double.Parse` and `double.TryParse` in 28 files (the version converters, the R12 hatch and explosion,

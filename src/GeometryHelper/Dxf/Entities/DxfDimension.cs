@@ -2944,7 +2944,14 @@ namespace GeometryHelper.Dxf
 
             foreach (DxfOsnapPointRef reference in list)
             {
-                foreach (string handle in new[] { reference.ObjectHandle, reference.IntersectionObjectHandle })
+                foreach (
+                    string handle in new[]
+                    {
+                        reference.ViewportHandle,
+                        reference.ObjectHandle,
+                        reference.IntersectionObjectHandle,
+                    }
+                )
                 {
                     if (handle == null)
                     {
@@ -3048,7 +3055,14 @@ namespace GeometryHelper.Dxf
 
             foreach (DxfOsnapPointRef reference in assoc.PointReferences)
             {
-                foreach (string handle in new[] { reference.ObjectHandle, reference.IntersectionObjectHandle })
+                foreach (
+                    string handle in new[]
+                    {
+                        reference.ViewportHandle,
+                        reference.ObjectHandle,
+                        reference.IntersectionObjectHandle,
+                    }
+                )
                 {
                     if (
                         handle != null

@@ -103,6 +103,7 @@ namespace GeometryHelper.Dxf
                 intersectionObjectHandle,
                 2,
                 0,
+                null,
                 null
             ) { }
 
@@ -117,7 +118,8 @@ namespace GeometryHelper.Dxf
             string intersectionObjectHandle,
             int intersectionSubentType,
             int intersectionGsMarker,
-            DxfOsnapPointRef lastPointReference
+            DxfOsnapPointRef lastPointReference,
+            string viewportHandle
         )
         {
             if (pointIndex < 0 || pointIndex > 3)
@@ -140,6 +142,7 @@ namespace GeometryHelper.Dxf
             IntersectionSubentType = intersectionSubentType;
             IntersectionGsMarker = intersectionGsMarker;
             LastPointReference = lastPointReference;
+            ViewportHandle = viewportHandle;
         }
 
         /// <summary>Gets which point of the dimension the reference ties, 0 to 3.</summary>
@@ -177,6 +180,14 @@ namespace GeometryHelper.Dxf
         internal int IntersectionGsMarker { get; }
 
         /// <summary>
+        /// Gets the handle of the viewport the point was snapped through, for a dimension on a layout tied to objects of model
+        /// space as AutoCAD's trans-spatial association ties it (DIMASSOC 70 written 1): AutoCAD writes it as a group 331 before
+        /// the object's, and before the second object's 332 of an intersection. Null for a point snapped in the space the
+        /// dimension is in.
+        /// </summary>
+        public string ViewportHandle { get; }
+
+        /// <summary>
         /// Gets the reference of the point a perpendicular or a tangent was drawn from (group 75 written 1, then that reference),
         /// as AutoCAD 2021 writes a DIMALIGNED from the start of a line to the foot of its perpendicular on another: the
         /// start of the first line; its <see cref="ObjectHandle"/> null and its snap <see cref="DxfOsnapType.None"/> where that
@@ -210,6 +221,7 @@ namespace GeometryHelper.Dxf
                 lastPoint.IntersectionObjectHandle,
                 lastPoint.IntersectionSubentType,
                 lastPoint.IntersectionGsMarker,
+                null,
                 null
             );
             return new DxfOsnapPointRef(
@@ -223,7 +235,8 @@ namespace GeometryHelper.Dxf
                 IntersectionObjectHandle,
                 IntersectionSubentType,
                 IntersectionGsMarker,
-                last
+                last,
+                ViewportHandle
             );
         }
 
@@ -245,7 +258,33 @@ namespace GeometryHelper.Dxf
                 IntersectionObjectHandle,
                 IntersectionSubentType,
                 IntersectionGsMarker,
-                new DxfOsnapPointRef(PointIndex, DxfOsnapType.None, null, 0, 0, 0.0, point, null, 0, 0, null)
+                new DxfOsnapPointRef(PointIndex, DxfOsnapType.None, null, 0, 0, 0.0, point, null, 0, 0, null, null),
+                ViewportHandle
+            );
+
+        /// <summary>
+        /// Gives a copy of the reference snapped through a viewport, as AutoCAD 2021 ties a dimension on a layout to the model
+        /// space objects a viewport shows (trans-spatial association, DIMASSOC 70 written 1): the handle of the viewport goes
+        /// before the handle of the object, and of the second object of an intersection, in the DIMASSOC, and the DIMASSOC is
+        /// among the reactors of the viewport. The point of the reference is kept as no point there, as AutoCAD keeps none (it
+        /// writes 0, 0, 0 and, for an end, 2E50 for its Z): the object and the parameter say where the point is.
+        /// </summary>
+        /// <param name="viewportHandle">The handle of the viewport; null for a point snapped in the space of the dimension.</param>
+        /// <returns>The copy.</returns>
+        public DxfOsnapPointRef WithViewport(string viewportHandle) =>
+            new DxfOsnapPointRef(
+                PointIndex,
+                OsnapType,
+                ObjectHandle,
+                SubentType,
+                GsMarker,
+                NearParameter,
+                Point,
+                IntersectionObjectHandle,
+                IntersectionSubentType,
+                IntersectionGsMarker,
+                LastPointReference,
+                viewportHandle
             );
 
         /// <inheritdoc/>
@@ -253,7 +292,12 @@ namespace GeometryHelper.Dxf
             PointIndex.ToString(CultureInfo.InvariantCulture) + " " + OsnapType + " " + ObjectHandle;
 
         /// <summary>Reads the references of a DIMASSOC from its groups after its 71.</summary>
-        internal static List<DxfOsnapPointRef> Read(IReadOnlyList<DxfTypedValue> groups, int from, int flags)
+        internal static List<DxfOsnapPointRef> Read(
+            IReadOnlyList<DxfTypedValue> groups,
+            int from,
+            int flags,
+            bool transSpace
+        )
         {
             var found = new List<DxfOsnapPointRef>();
             int next = 0;
@@ -271,7 +315,7 @@ namespace GeometryHelper.Dxf
                     next++;
                 }
 
-                DxfOsnapPointRef reference = ReadOne(groups, ref i, Math.Min(next, 3));
+                DxfOsnapPointRef reference = ReadOne(groups, ref i, Math.Min(next, 3), transSpace);
 
                 if (next < 4 && reference.ObjectHandle != null)
                 {
@@ -288,17 +332,22 @@ namespace GeometryHelper.Dxf
         /// Reads one reference from its group 1 at <paramref name="i"/>, and the reference of its last point after it where its
         /// 75 is 1, as AutoCAD writes a perpendicular or a tangent; <paramref name="i"/> left at the last group read.
         /// </summary>
-        private static DxfOsnapPointRef ReadOne(IReadOnlyList<DxfTypedValue> groups, ref int i, int index)
+        private static DxfOsnapPointRef ReadOne(
+            IReadOnlyList<DxfTypedValue> groups,
+            ref int i,
+            int index,
+            bool transSpace
+        )
         {
             int type = 0;
-            string handle = null;
+            var handles = new List<string>();
+            var others = new List<string>();
             int subent = 0;
             int marker = 0;
             double parameter = 0.0;
             double x = 0.0;
             double y = 0.0;
             double z = 0.0;
-            string other = null;
             int otherSubent = 0;
             int otherMarker = 0;
             bool hasLast = false;
@@ -314,7 +363,7 @@ namespace GeometryHelper.Dxf
                         type = Whole(value);
                         break;
                     case 331:
-                        handle = value;
+                        handles.Add(value);
                         break;
                     case 73:
                         subent = Whole(value);
@@ -335,7 +384,7 @@ namespace GeometryHelper.Dxf
                         z = Real(value);
                         break;
                     case 332:
-                        other = value;
+                        others.Add(value);
                         break;
                     case 74:
                         otherSubent = Whole(value);
@@ -355,9 +404,13 @@ namespace GeometryHelper.Dxf
             if (hasLast && j < groups.Count)
             {
                 i = j;
-                last = ReadOne(groups, ref i, index);
+                last = ReadOne(groups, ref i, index, transSpace);
             }
 
+            // A trans-spatial reference (DIMASSOC 70 = 1) has the viewport's handle before each object's.
+            string handle = handles.Count == 0 ? null : handles[handles.Count - 1];
+            string other = others.Count == 0 ? null : others[others.Count - 1];
+            string viewport = transSpace && handles.Count > 1 ? handles[0] : null;
             return new DxfOsnapPointRef(
                 index,
                 (DxfOsnapType)type,
@@ -369,7 +422,8 @@ namespace GeometryHelper.Dxf
                 other,
                 otherSubent,
                 otherMarker,
-                last
+                last,
+                viewport
             );
         }
 
@@ -384,18 +438,32 @@ namespace GeometryHelper.Dxf
 
             if (ObjectHandle != null)
             {
+                if (ViewportHandle != null)
+                {
+                    groups.Add(Pair(331, ViewportHandle));
+                }
+
                 groups.Add(Pair(331, ObjectHandle));
                 groups.Add(Pair(73, SubentType.ToString(CultureInfo.InvariantCulture)));
                 groups.Add(Pair(91, GsMarker.ToString(CultureInfo.InvariantCulture)));
             }
 
             groups.Add(Pair(40, Numbers.Exact(NearParameter)));
-            groups.Add(Pair(10, Numbers.Exact(Point.X)));
-            groups.Add(Pair(20, Numbers.Exact(Point.Y)));
-            groups.Add(Pair(30, Numbers.Exact(Point.Z)));
+
+            // A point snapped through a viewport is kept as no point: 0, 0 and, for an end, the 2E50 AutoCAD writes for Z.
+            bool unplaced = ViewportHandle != null;
+            bool end = OsnapType == DxfOsnapType.Endpoint || OsnapType == DxfOsnapType.StartPoint;
+            groups.Add(Pair(10, Numbers.Exact(unplaced ? 0.0 : Point.X)));
+            groups.Add(Pair(20, Numbers.Exact(unplaced ? 0.0 : Point.Y)));
+            groups.Add(Pair(30, Numbers.Exact(unplaced ? (end ? 2E50 : 0.0) : Point.Z)));
 
             if (IntersectionObjectHandle != null)
             {
+                if (ViewportHandle != null)
+                {
+                    groups.Add(Pair(332, ViewportHandle));
+                }
+
                 groups.Add(Pair(332, IntersectionObjectHandle));
                 groups.Add(Pair(74, IntersectionSubentType.ToString(CultureInfo.InvariantCulture)));
                 groups.Add(Pair(92, IntersectionGsMarker.ToString(CultureInfo.InvariantCulture)));
@@ -411,7 +479,8 @@ namespace GeometryHelper.Dxf
         private static int Whole(string value) =>
             int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) ? number : 0;
 
-        private static double Real(string value) => Numbers.TryRead(value, out double number) ? number : 0.0;
+        private static double Real(string value) =>
+            double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) ? number : 0.0;
     }
 
     /// <summary>
@@ -458,7 +527,7 @@ namespace GeometryHelper.Dxf
                 IReadOnlyList<DxfTypedValue> groups = Groups(out int at);
                 return at < 0
                     ? (IReadOnlyList<DxfOsnapPointRef>)Array.Empty<DxfOsnapPointRef>()
-                    : DxfOsnapPointRef.Read(groups, at + 1, AssociativityFlags).AsReadOnly();
+                    : DxfOsnapPointRef.Read(groups, at + 1, AssociativityFlags, IsTransSpace).AsReadOnly();
             }
         }
 
@@ -472,10 +541,12 @@ namespace GeometryHelper.Dxf
         )
         {
             int flags = 0;
+            bool transSpace = false;
 
             foreach (DxfOsnapPointRef reference in references)
             {
                 flags |= 1 << reference.PointIndex;
+                transSpace |= reference.ViewportHandle != null;
             }
 
             var groups = new List<KeyValuePair<int, string>>
@@ -483,7 +554,7 @@ namespace GeometryHelper.Dxf
                 new KeyValuePair<int, string>(100, "AcDbDimAssoc"),
                 new KeyValuePair<int, string>(330, dimension),
                 new KeyValuePair<int, string>(90, flags.ToString(CultureInfo.InvariantCulture)),
-                new KeyValuePair<int, string>(70, "0"),
+                new KeyValuePair<int, string>(70, transSpace ? "1" : "0"),
                 new KeyValuePair<int, string>(71, "0"),
             };
 

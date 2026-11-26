@@ -87,6 +87,36 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
+        public void ADimensionOnALayoutTiedThroughAViewport_IsTransSpatial_WithTheViewportBeforeTheObject_AsAutoCad2021WritesIt()
+        {
+            DxfDatabase db = Drawing(out DxfLine line, out DxfRotatedDimension dimension);
+            var viewport = new DxfViewport();
+            db.PaperSpace.AppendEntity(viewport);
+
+            DxfDimAssoc assoc = dimension.SetDimAssoc(
+                BothEnds(line).Select(r => r.WithViewport(viewport.Handle)).ToArray()
+            );
+
+            Assert.True(assoc.IsTransSpace);
+            Assert.Contains(assoc.Handle, viewport.GetPersistentReactorIds());
+            string text = db.ToText().Replace("\r\n", "\n");
+            Assert.Contains(
+                "\n 90\n3\n 70\n1\n 71\n0\n  1\nAcDbOsnapPointRef\n 72\n13\n331\n"
+                    + viewport.Handle
+                    + "\n331\n"
+                    + line.Handle
+                    + "\n",
+                text
+            );
+
+            DxfDatabase again = DxfDatabase.Parse(db.ToText());
+            var read = (DxfRotatedDimension)again.GetObject(dimension.Handle);
+            Assert.True(read.DimAssoc.IsTransSpace);
+            Assert.All(read.DimAssoc.PointReferences, r => Assert.Equal(viewport.Handle, r.ViewportHandle));
+            Assert.All(read.DimAssoc.PointReferences, r => Assert.Equal(line.Handle, r.ObjectHandle));
+        }
+
+        [Fact]
         public void ARadiusTiedToTheCenterOfACircle_HasTheSecondPointTied_AsAutoCadNumbersIt()
         {
             var db = new DxfDatabase("AC1027");
