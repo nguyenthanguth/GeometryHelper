@@ -281,8 +281,8 @@ namespace GeometryHelper.Dwg
                         _object.Add(310, Hex(value.Bytes));
                         break;
                     case 16:
-                        _object.Add(11, value.Point[0]);
-                        _object.Add(21, value.Point[1]);
+                        _object.Add(10, value.Point[0]);
+                        _object.Add(20, value.Point[1]);
                         break;
                     case 32:
                         _object.Add(11, value.Point[0]);

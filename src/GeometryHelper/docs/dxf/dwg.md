@@ -687,9 +687,14 @@ the `_text` that names the field that works out the date, file name or number: f
 worked out, `93=1 90=0`), and the checksum of its words as of any text (0 for a field and a general value). A cell that names a field the
 drawing does not hold is written with no words, as AutoCAD's own file has it (the handle would be a null one, and AutoCAD refuses a table whose
 cell then lacks its words, ErrorStatus 53). The TABLECONTENT of R2000 and
-R2004 holds a value of the type 512 with its words in 1 (`90=512 1=`), as AutoCAD's files of `tcustom` do. A table whose cells hold a link to
-data, a value of another kind (a date, a point) or a text of more than 250 characters in its TABLECONTENT is still written as the block it is
-drawn with. The ACAD_TABLE, TABLECONTENT, TABLEGEOMETRY and data table of `tclean`, `tcustom`, `ttable`, `tstyles` and of two tables with a
+R2004 holds a value of the type 512 with its words in 1 (`90=512 1=`), as AutoCAD's files of `tcustom` do. A date, a 2D or 3D point and a text of more than 250
+characters (the chunks stay in 2 before the last part in 1, in a cell 3 before 1) in the cells of a table, in its TABLECONTENT or in the data
+table, are written as AutoCAD writes them in those versions: the cell shows the words of the value (`11/26/2026`, `1.500000, 2.250000, 3.000000`),
+the data table keeps the value (a date its 16 bytes with the day of the week, a 2D point with a third coordinate of nought), and the TABLECONTENT of
+R2000 and R2004 holds a date as 8 bytes, the seconds since 1970 in UTC of the time of the machine's own zone (`8AD5076B00000000` for 13:45:30 on
+26 November 2026 at UTC+7) where R2007 holds its 16 bytes (a SYSTEMTIME). The data link of a table (DATALINK) and the TABLECONTENT it owns are in the
+form of R2000 and R2004 too (its date of the last update likewise), where its content was written empty. A table is still the block it is drawn
+with where a cell holds a value of another kind than text, a number, a general value, a date, a point or a field, or a block cell with attributes. The ACAD_TABLE, TABLECONTENT, TABLEGEOMETRY and data table of `tclean`, `tcustom`, `ttable`, `tstyles` and of two tables with a
 date, a file name, an author and a save date in their cells (the last three not worked out in a console, `####`), written from their R2018
 drawings as R2000 and R2004, are AutoCAD 2021's own files of the same drawings, read by the reader, group for group but for the proxy
 graphics of R2000, the masks of the data table of `tcustom` (below) and the size of the value of a date field (92: 16 in R2018 and 8 in

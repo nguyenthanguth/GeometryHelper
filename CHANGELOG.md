@@ -6,6 +6,32 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A table with a date, a 2D or 3D point, a data link or a text of more than 250 characters saved as R2000, R2004 or R2007
+keeps its values, as AutoCAD 2021 writes them in those versions. The date, the point and the long text of a table with a TABLECONTENT (a table
+style of its own, a merged range, a link) left the table as the block it is drawn with in R2000 and R2004, and the long text of a plain table
+lost every chunk of it but the last (a text of 600 characters read back as its last 99, in the cell and in the text it shows); the content of
+a data link (the TABLECONTENT it owns) was written empty in R2000 and R2004 and its date of the last update as 16 bytes where AutoCAD keeps 8
+(AutoCAD read it back as `FFFFFFFFFFFFFFFF`); and R2007 and later wrote a date cell as the bytes of its words (a date read back as
+`0000330000000100...`), a point as nought and the text a long cell shows as nothing. Now a cell holds the words of its value (`11/26/2026`,
+`1.500000, 2.250000, 3.000000`) with its text in chunks of 250 characters in 3 (R2000 and R2004 cells) or 2 and 303 (R2007), the data table keeps
+the value (a date as its 16 bytes with its day of the week, a 2D point with a third coordinate of nought), the TABLECONTENT of R2000 and R2004
+holds a date as 8 bytes (the seconds since 1970 in UTC of the machine's time zone: `8AD5076B00000000` for 13:45:30 on 26 November 2026 at
+UTC+7), a long text in 2 before its last part in 1 and no 303, and the data link's content and custom data are in that form too. The reader
+reads a date and a point in a cell of R2007 and in a TABLECONTENT (it dropped the whole table as a broken object, "the table cell has a value of
+the kind 8, which is not read"), so that a table of AutoCAD's own R2018 file with a date in a cell is a table in a drawing read from it. Five
+drawings built in code in AutoCAD 2021's console (a plain table and a table in a style of its own, each with texts of 250, 251, 500 and 600
+characters; a 3D and a 2D point; a date, both points and a number; a table linked to a CSV file), written as R2000, R2004 and R2007 by AutoCAD
+itself and by this library, and ten more (a merged range, a table override, a mix of every kind): AutoCAD's DXFOUT of the 30 files of ours
+differs from its DXFOUT of its own in 4 groups of 397 before (the day of the week AutoCAD leaves in the data table of a plain table's date is
+what its memory held, `01DB` or `01C5`, here 4 as the date has), and the 30 open with AUDIT 0 (30 of 30, and a table made in code with texts of
+300 and 600 characters, as DXF and DWG of the three versions, 6 of 6). A drawing saved as R2010 or later is the same bytes as before (126 of 180
+files of 60 drawings, those of every table in the test data and of AutoCAD's own R2000 to R2018 files of the five), except where it holds a date,
+a point or a long text in a TABLECONTENT: those 54 were wrong in AutoCAD's own DXFOUT before (the date's bytes, the point at nought, the shown text
+lost) and are its values now. `DwgTablesWithLongTextsDatesPointsAndLinksTests` (67 tests, 51 red before); Two tests pin the bytes of
+an R2000 save of a table with a text of 300 characters in its content, a block until now, and pin them anew (`DxfSaveCostTests`, 11254 bytes, now
+21787, and 4 R2000 lines of `DxfSpeed11Tests`). A table of R2000 or R2004 with a date or a long text in its TABLECONTENT taken up to R2007 or later is still the block it
+is drawn with (the content of the older form is not given its new one).
+
 **FIXED.** The DXF and DWG code reads every number it takes from a text with the library's own exact parse, and prints with
 the library's own exact printer every number it writes that has to read back, so that both runtimes give the same drawing.
 The 40 calls of `double.Parse` and `double.TryParse` in 28 files (the version converters, the R12 hatch and explosion,

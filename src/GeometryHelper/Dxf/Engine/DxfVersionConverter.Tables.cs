@@ -60,9 +60,9 @@ namespace GeometryHelper.Dxf
         /// (1) and the groups of its overrides: the cell's value (301 CELL_VALUE to 304 ACVALUE_END) and its 92 of the later form
         /// are left out, its 177 is its 91 less the bits the older form has not. A table that holds its TABLECONTENT (the round trip
         /// of its extension dictionary, ACAD_ROUNDTRIP_2008_TABLE_ENTITY) keeps it with the values in the form of R2004. A number,
-        /// a general value and a field are in the cell as the words they show and the field's handle (see <see cref="CellDown"/>).
-        /// False, the table left as it is, where a cell holds anything but those, text or a block (a link, a value of another
-        /// kind): the caller then draws the table as the block it is drawn with.
+        /// a general value, a date, a point and a field are in the cell as the words they show and the field's handle (see
+        /// <see cref="CellDown"/>). False, the table left as it is, where a cell holds anything but those, text or a block (a value
+        /// of another kind): the caller then draws the table as the block it is drawn with.
         /// </summary>
         private bool TableDown(Record table)
         {
@@ -176,10 +176,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gives one cell of the new form its old form, written to <paramref name="made"/>: its head with 177 for 91, its text (1,
         /// empty where it has none; a block cell has none), then the groups it holds before its value and after it (the overrides,
-        /// the block and its attributes). A number (a whole number or a real) or a general value is written as the text it shows
-        /// (the 302 of its value: <c>12</c>, <c>2.500000</c>, nothing), a field (344) as its handle where the words would stand.
-        /// False where the cell is not made of these: a 92 of a link, a value that is none of those, or groups after the value of
-        /// the last cell, which may be the table's own.
+        /// the block and its attributes). A number (a whole number or a real), a date, a point (2D or 3D) or a general value is
+        /// written as the text it shows (the 302 of its value: <c>12</c>, <c>2.500000</c>, <c>11/26/2026</c>, nothing), a field (344)
+        /// as its handle where the words would stand. False where the cell is not made of these: a 92 of a link, a value that is
+        /// none of those, or groups after the value of the last cell, which may be the table's own.
         /// </summary>
         private bool CellDown(List<Group> cell, bool last, List<Group> made, List<CellData> data, List<Group> text)
         {
@@ -471,7 +471,8 @@ namespace GeometryHelper.Dxf
         /// Reads the value of a cell, the groups from <paramref name="from"/> up to <paramref name="end"/> (the 304): its flags (93)
         /// and type (90), the groups of its text where it has any (the chunks of 250 characters of a longer one in 2, then the last
         /// part in 1), then 94, 300, the value again (the chunks in 303, the last part in 302). <paramref name="whole"/> is the
-        /// text in one piece. A whole number (type 1, its 91), a real (type 2, its 140) and a general value (type 512, nothing)
+        /// text in one piece. A whole number (type 1, its 91), a real (type 2, its 140), a date (type 8, its size in 92 and its
+        /// bytes in 310), a point (type 16, 10 and 20; type 32, 11, 21 and 31) and a general value (type 512, nothing)
         /// hold no text: <paramref name="whole"/> is the text they show (the 302) and <paramref name="kept"/> their groups from
         /// the flags (93) up to the 302, null for any other. False where it is of another shape.
         /// </summary>
@@ -511,13 +512,9 @@ namespace GeometryHelper.Dxf
                 text.Add(cell[i]);
             }
 
-            bool number =
-                text.Count == 0 && i < end && ((type == 1 && cell[i].Code == 91) || (type == 2 && cell[i].Code == 140));
-
-            if (number)
-            {
-                i++;
-            }
+            int data = text.Count == 0 ? DataEnd(cell, i, end, type) : i;
+            bool number = data > i;
+            i = data;
 
             if (i + 2 >= end || cell[i].Code != 94 || cell[i + 1].Code != 300)
             {
@@ -553,6 +550,51 @@ namespace GeometryHelper.Dxf
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// The index past the data of a value of <paramref name="type"/> that stands at <paramref name="at"/>: a whole number (1: 91),
+        /// a real (2: 140), a date (8: its size in 92 and its bytes in 310), a 2D point (16: 10 and 20) or a 3D point (32: 11, 21 and
+        /// 31); <paramref name="at"/> where the value has none of those.
+        /// </summary>
+        private static int DataEnd(List<Group> groups, int at, int end, int type)
+        {
+            int[] codes;
+
+            switch (type)
+            {
+                case 1:
+                    codes = new[] { 91 };
+                    break;
+                case 2:
+                    codes = new[] { 140 };
+                    break;
+                case 8:
+                    codes = new[] { 92, 310 };
+                    break;
+                case 16:
+                    codes = new[] { 10, 20 };
+                    break;
+                case 32:
+                    codes = new[] { 11, 21, 31 };
+                    break;
+                default:
+                    return at;
+            }
+
+            int i = at;
+
+            foreach (int code in codes)
+            {
+                if (i >= end || groups[i].Code != code)
+                {
+                    return at;
+                }
+
+                i++;
+            }
+
+            return i;
         }
 
         /// <summary>
@@ -1202,7 +1244,7 @@ namespace GeometryHelper.Dxf
                 // A number or a general value is kept as it is: its flags, type, data, unit, format and shown text.
                 if (cell.Value != null)
                 {
-                    groups.AddRange(cell.Value);
+                    groups.AddRange(RecordValue(cell.Value));
                     _added.Add(record);
                     continue;
                 }
@@ -1223,6 +1265,78 @@ namespace GeometryHelper.Dxf
                 groups.Add(noFormat);
                 groups.Add(text ? new Group(302, cell.Text) : noText);
                 _added.Add(record);
+            }
+        }
+
+        /// <summary>
+        /// The value of a cell as its XRECORD in the data table holds it: as the cell does, but a date has no size in 92 and its day
+        /// of the week set, and a 2D point has a third coordinate (30) of nought.
+        /// </summary>
+        private static List<Group> RecordValue(List<Group> value)
+        {
+            int type = value.Count > 1 && int.TryParse(value[1].Value.Trim(), out int found) ? found : 0;
+
+            if (type != 8 && type != 16)
+            {
+                return value;
+            }
+
+            var made = new List<Group>(value.Count + 1);
+
+            foreach (Group group in value)
+            {
+                if (type == 8 && group.Code == 92)
+                {
+                    continue;
+                }
+
+                made.Add(type == 8 && group.Code == 310 ? new Group(310, WithWeekday(group.Value)) : group);
+
+                if (type == 16 && group.Code == 20)
+                {
+                    made.Add(new Group(30, "0.0"));
+                }
+            }
+
+            return made;
+        }
+
+        /// <summary>The 16 bytes of a date in hex (a SYSTEMTIME) with its day of the week (2 bytes, the third) the date has.</summary>
+        private static string WithWeekday(string hex)
+        {
+            string trimmed = hex.Trim();
+
+            if (trimmed.Length != 32)
+            {
+                return hex;
+            }
+
+            try
+            {
+                int year = int.Parse(
+                    trimmed.Substring(2, 2) + trimmed.Substring(0, 2),
+                    NumberStyles.HexNumber,
+                    CultureInfo.InvariantCulture
+                );
+                int month = int.Parse(
+                    trimmed.Substring(6, 2) + trimmed.Substring(4, 2),
+                    NumberStyles.HexNumber,
+                    CultureInfo.InvariantCulture
+                );
+                int day = int.Parse(
+                    trimmed.Substring(14, 2) + trimmed.Substring(12, 2),
+                    NumberStyles.HexNumber,
+                    CultureInfo.InvariantCulture
+                );
+                int weekday = (int)new DateTime(year, month, day).DayOfWeek;
+                return trimmed.Substring(0, 8)
+                    + weekday.ToString("X2", CultureInfo.InvariantCulture)
+                    + "00"
+                    + trimmed.Substring(12);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return hex;
             }
         }
 
@@ -1349,9 +1463,10 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Puts the values of the table's TABLECONTENT in the form of R2004 and before, as a change to make once the whole table is
-        /// known to be converted: the flags (93) before each value's type are left out, and the 94, 300, 302 and ACVALUE_END after
-        /// its data. A value of the type 512 gets the words it shows in 1 (the 302 it leaves out). False where a value is of a
-        /// shape that is not known.
+        /// known to be converted: the flags (93) before each value's type are left out, and the 94, 300, 303 (the chunks of a long
+        /// text it shows), 302 and ACVALUE_END after its data. A value of the type 512 gets the words it shows in 1 (the 302 it
+        /// leaves out), a date its 8 bytes (the seconds since 1970) for its 16 (see <see cref="DateDown"/>), and the chunks of a
+        /// long text stay in 2 before its last part in 1. False where a value is of a shape that is not known.
         /// </summary>
         private bool ContentDown(Record table, List<Action> changes)
         {
@@ -1361,12 +1476,15 @@ namespace GeometryHelper.Dxf
             }
 
             Record content = ContentOf(xrecord, entity);
+            return content == null || ValuesDown(content, changes);
+        }
 
-            if (content == null)
-            {
-                return true;
-            }
-
+        /// <summary>
+        /// Puts the values of a record that holds some (a TABLECONTENT, or a data link with its custom data) in the form of R2004 and
+        /// before, as <see cref="ContentDown"/> says.
+        /// </summary>
+        private bool ValuesDown(Record content, List<Action> changes)
+        {
             List<Group> groups = content.Groups;
             var made = new List<Group>(groups.Count);
 
@@ -1386,19 +1504,50 @@ namespace GeometryHelper.Dxf
 
                 int end = groups.FindIndex(i + 3, g => g.Code == 304 && g.Value == ValueEnd);
 
-                if (end < 0 || groups[end - 3].Code != 94 || groups[end - 2].Code != 300 || groups[end - 1].Code != 302)
+                if (end < 0 || groups[end - 1].Code != 302)
                 {
                     return false;
                 }
 
-                made.AddRange(groups.GetRange(i + 2, end - 3 - (i + 2)));
+                // The text it shows may be in chunks of 250 characters in 303 before the 302.
+                int shown = end - 1;
+
+                while (shown - 1 > i + 3 && groups[shown - 1].Code == 303)
+                {
+                    shown--;
+                }
+
+                int unit = shown - 2;
+
+                if (unit <= i + 2 || groups[unit].Code != 94 || groups[unit + 1].Code != 300)
+                {
+                    return false;
+                }
+
+                bool date = groups[i + 2].Value.Trim() == "8";
+
+                for (int g = i + 2; g < unit; g++)
+                {
+                    Group group = groups[g];
+
+                    if (date && group.Code == 92)
+                    {
+                        group = Whole(92, 8);
+                    }
+                    else if (date && group.Code == 310)
+                    {
+                        group = new Group(310, DateDown(group.Value, TimeZoneInfo.Local));
+                    }
+
+                    made.Add(group);
+                }
 
                 // A value of no kind (93 of 7, 90 of 0) is written 90 of 0 and a 91 of 0 in the form before R2007.
-                if (groups[i + 2].Value.Trim() == "0" && groups[end - 3].Code == 94 && end - 3 == i + 3)
+                if (groups[i + 2].Value.Trim() == "0" && unit == i + 3)
                 {
                     made.Add(Whole(91, 0));
                 }
-                else if (groups[i + 2].Value.Trim() == "512" && end - 3 == i + 3)
+                else if (groups[i + 2].Value.Trim() == "512" && unit == i + 3)
                 {
                     // A general value holds the words it shows, as its type 4 does (none, in a table drawn with nothing in it).
                     made.Add(new Group(1, groups[end - 1].Value));
@@ -1409,6 +1558,88 @@ namespace GeometryHelper.Dxf
 
             changes.Add(() => content.Groups = made);
             return true;
+        }
+
+        /// <summary>
+        /// A data link's custom data and the TABLECONTENT it owns (360), in the form of R2004 and before; what is not of a shape
+        /// that is known is left as it is.
+        /// </summary>
+        private void LinkDown(Record link)
+        {
+            var changes = new List<Action>();
+            int at = link.Groups.FindIndex(g => g.Code == 360);
+            Record owned = at < 0 ? null : ObjectAt(link.Groups[at].Value);
+            bool done = ValuesDown(link, changes);
+
+            if (owned != null && owned.Type == "TABLECONTENT")
+            {
+                done = ValuesDown(owned, changes) && done;
+            }
+
+            if (done)
+            {
+                foreach (Action change in changes)
+                {
+                    change();
+                }
+            }
+        }
+
+        /// <summary>
+        /// The bytes of a date as AutoCAD 2021 writes it before R2007 in a value (8 bytes, the seconds since 1970 in UTC as a long,
+        /// 8AD5076B00000000 for 13:45:30 on 26 November 2026 at UTC+7) for the 16 bytes of R2007 and later (a SYSTEMTIME: year,
+        /// month, day of the week, day, hour, minute, second and milliseconds, 2 bytes each: EA070B0004001A000D002D001E000000), in
+        /// hex. AutoCAD takes the time of its own time zone; so does this, by <paramref name="zone"/>.
+        /// </summary>
+        internal static string DateDown(string hex, TimeZoneInfo zone)
+        {
+            string trimmed = hex.Trim();
+
+            if (trimmed.Length != 32)
+            {
+                return hex;
+            }
+
+            var part = new int[8];
+
+            for (int k = 0; k < 8; k++)
+            {
+                part[k] = int.Parse(
+                    trimmed.Substring(4 * k + 2, 2) + trimmed.Substring(4 * k, 2),
+                    NumberStyles.HexNumber,
+                    CultureInfo.InvariantCulture
+                );
+            }
+
+            DateTime local;
+
+            try
+            {
+                local = new DateTime(part[0], part[1], part[3], part[4], part[5], part[6], DateTimeKind.Unspecified);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return hex;
+            }
+
+            TimeSpan offset = zone.IsInvalidTime(local) ? zone.BaseUtcOffset : zone.GetUtcOffset(local);
+            long seconds = (long)
+                (local - offset - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Unspecified)).TotalSeconds;
+            var bytes = BitConverter.GetBytes(seconds);
+
+            if (!BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(bytes);
+            }
+
+            var text = new StringBuilder(16);
+
+            foreach (byte one in bytes)
+            {
+                text.Append(one.ToString("X2", CultureInfo.InvariantCulture));
+            }
+
+            return text.ToString();
         }
 
         /// <summary>

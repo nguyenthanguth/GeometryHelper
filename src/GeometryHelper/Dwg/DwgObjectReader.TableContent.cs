@@ -622,39 +622,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>A value in DXF, after the group that names it: its flags, type, the value, unit, format and text.</summary>
-        private void AddValue(DwgCellValue value)
-        {
-            if (!R2007Plus)
-            {
-                AddFieldValue(value);
-                return;
-            }
-
-            _object.Add(93, value.Flags);
-            _object.Add(90, value.Type);
-
-            if ((value.Flags & 1) == 0)
-            {
-                switch (value.Type)
-                {
-                    case 0:
-                    case 1:
-                        _object.Add(91, value.Long);
-                        break;
-                    case 2:
-                        _object.Add(140, value.Double);
-                        break;
-                    default:
-                        _object.Add(1, Encoding.UTF8.GetBytes(value.Text));
-                        break;
-                }
-            }
-
-            _object.Add(94, value.Unit);
-            _object.Add(300, Encoding.UTF8.GetBytes(value.Format));
-            _object.Add(302, Encoding.UTF8.GetBytes(value.Shown));
-            _object.Add(304, "ACVALUE_END");
-        }
+        private void AddValue(DwgCellValue value) => AddFieldValue(value);
 
         /// <summary>
         /// A TABLESTYLE of R2010 and later: a version, its description, its flags, the next number of a cell style of its
@@ -910,52 +878,8 @@ namespace GeometryHelper.Dwg
             }
         }
 
-        /// <summary>A value (20.4.99): its flags, its type, the value unless it holds nothing, its unit, format and text.</summary>
-        private DwgCellValue ReadValue()
-        {
-            // Before R2007 a value is its type and the value alone, as a field's is.
-            if (!R2007Plus)
-            {
-                return ReadFieldValue();
-            }
-
-            var value = new DwgCellValue { Flags = _data.BitLong(), Type = _data.BitLong() };
-
-            if ((value.Flags & 1) == 0)
-            {
-                switch (value.Type)
-                {
-                    case 0:
-                    case 1:
-                        value.Long = _data.BitLong();
-                        break;
-                    case 2:
-                        value.Double = _data.BitDouble();
-                        break;
-                    case 4:
-                    case 512:
-                        int length = _data.BitLong();
-
-                        if (length < 0 || length * 8L > _data.Remaining)
-                        {
-                            throw new FormatException("The value of the table cell runs past its end.");
-                        }
-
-                        byte[] utf16 = _data.Bytes(length);
-                        value.Text = Encoding.Unicode.GetString(utf16, 0, Math.Max(0, length - 2));
-                        break;
-                    default:
-                        throw new FormatException(
-                            "The table cell has a value of the kind " + value.Type + ", which is not read."
-                        );
-                }
-            }
-
-            value.Unit = _data.BitLong();
-            value.Format = Text();
-            value.Shown = Text();
-            return value;
-        }
+        /// <summary>A value (20.4.99): its flags, its type, the value unless it holds nothing, its unit, format and text, as a field's is.</summary>
+        private DwgCellValue ReadValue() => ReadFieldValue();
 
         /// <summary>A content format (20.4.101.3).</summary>
         private DwgContentFormat ReadContentFormat()

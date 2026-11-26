@@ -26,7 +26,7 @@ namespace GeometryHelper.Dxf
     /// handle in the older form); the visual styles of R2007, R2010 and R2013, each in a
     /// form of its own (<c>VisualStyle</c>, with the round trip AutoCAD keeps of what the older form has no place for); and the columns of an MTEXT, in its extended data to R2013 and in an embedded object
     /// from R2018 (<c>Columns</c>, <c>ColumnsUp</c>). What cannot be given its form is left out or replaced, and said: a table
-    /// whose cells hold more than words, numbers, a general value and fields (a link to data, a date) becomes the block it is
+    /// whose cells hold more than words, numbers, a general value, fields, dates and points becomes the block it is
     /// drawn with, and a body whose records the converter does not
     /// place (the splines of the ACIS 4.00 text of R2000, a solid made by a sweep) is kept as it is between the versions that hold text, and
     /// left out going to R2013 or later (AutoCAD reads a file whose entity holds text there as no drawing) and, its data being
@@ -811,6 +811,10 @@ namespace GeometryHelper.Dxf
                     else if (tables && type == "ACAD_TABLE" && !(_target < 1021 ? TableDown(record) : TableUp(record)))
                     {
                         Block(record);
+                    }
+                    else if (tables && type == "DATALINK" && _target < 1021)
+                    {
+                        LinkDown(record);
                     }
                 }
             }
