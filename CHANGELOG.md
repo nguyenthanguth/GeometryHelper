@@ -15,9 +15,19 @@ numbered only the layout of `*Paper_Space`. It now numbers the viewports of ever
 layout's list (R2004 and later) or from the viewport entity header each numbered viewport has in R2000; a layout with neither, which AutoCAD
 never showed, stays at 0 and 0 as its own DXF has it. A drawing with a layout `S1` (a sheet of A3, a viewport on the sheet of number 1 and
 one of 240 by 230, a viewport turned off) written as R2000, R2004, R2007, R2010, R2013 and R2018 reads back with the viewports `1`, `2`
-and `-1` as before it was written (the six red before). The 846 DWG files the writer makes of the test data (the DXF the reader makes of each of the 71 drawings,
-and the DXF AutoCAD wrote of 70 of them, each written as the six versions) are the same bytes as before. `DwgViewportsOfALayoutTests`
-(8 tests, 8 red before).
+and `-1` as before it was written (the six red before). Three edges of the same fault are closed with it. A layout never set up with
+`Initialize` (no last active viewport, 331) whose viewports are on with the ids 2 and 3 read back on as 1 and 2 in R2000 and off in R2004 and
+later, since the writer listed a layout's viewports only with a 331 while R2000 gave a header to each numbered viewport: the writer now
+lists them where one has a number (69 over 0), and all six versions read them on. A viewport with the number 0 in a layout that is shown
+took number 1 from the viewport of the sheet in R2004 and later (the list is in the order of the numbers, 0 first): the reader puts the
+viewport that shows the sheet first in the list, as it does in R2000. And in R2000 the viewports were numbered in the order of their
+handles, so a viewport made after another was erased (it takes the number the erased one had, with the highest handle) read back 1, 2, 3
+for 1, 3, 2: the reader numbers by the handles of the viewport entity headers, which the writer makes in the order of the numbers; a
+viewport in a list or a header table that belongs to another block is not numbered in this one, and a header that is not a header is none.
+`DwgViewportsOfALayoutTests` (23 tests, 9 red before these three). The 846 DWG files the writer makes of the test data (the DXF the reader
+makes of each of the 71 drawings, and the DXF AutoCAD wrote of 70 of them, each written as the six versions) are the same bytes as before
+but ten: AutoCAD's own R2000 file of `vports` has numbered viewports in `Layout1` and no last active viewport, and written as R2004 or
+later its layout now lists them (AUDIT 0 on four of them).
 
 **FIXED.** A multileader (MLEADER) of a drawing made in code is written to a DWG and no longer left out. The writer reported
 `MULTILEADER 1` as left out in every version: it names the type of an entity by its class, and the CLASSES section of a drawing made in code

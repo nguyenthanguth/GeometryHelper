@@ -90,5 +90,84 @@ namespace GeometryHelper.UnitTest.Dwg
             Assert.Equal(50.0, now[1].ViewCenter.X, 1E-9);
             Assert.Equal(30.0, now[1].ViewCenter.Y, 1E-9);
         }
+
+        private static DxfViewport AddViewport(DxfLayout layout, double width)
+        {
+            var viewport = new DxfViewport();
+            layout.BlockTableRecord.AppendEntity(viewport);
+            viewport.CenterPoint = new GeoPoint3(width * 3, 100, 0);
+            viewport.Width = width;
+            viewport.Height = width;
+            viewport.On = true;
+            return viewport;
+        }
+
+        [Theory]
+        [InlineData("AC1032")]
+        [InlineData("AC1024")]
+        [InlineData("AC1021")]
+        [InlineData("AC1018")]
+        [InlineData("AC1015")]
+        public void ALayoutNeverSetUpWithNumberedViewports_ReadsTheSameInEveryVersion(string version)
+        {
+            // No Initialize, so no viewport of the sheet and no last active viewport (331), the viewports on with the ids 2 and 3.
+            // The file of R2000 gave them headers and read them on, the file of R2004 and later listed none and read them off.
+            var database = new DxfDatabase("AC1032");
+            var layout = new DxfLayout { LayoutName = "S1" };
+            layout.AddToLayoutDictionary(database, null);
+            AddViewport(layout, 50);
+            AddViewport(layout, 70);
+
+            DxfViewport[] now = S1(ThroughDwg(database, version)).GetViewports().ToArray();
+
+            Assert.Equal(new[] { true, true }, now.Select(v => v.On));
+            Assert.Equal(new[] { 1, 2 }, now.Select(v => v.Number));
+        }
+
+        [Theory]
+        [InlineData("AC1032")]
+        [InlineData("AC1024")]
+        [InlineData("AC1021")]
+        [InlineData("AC1018")]
+        [InlineData("AC1015")]
+        public void AViewportOfNumberNought_DoesNotTakeNumberOneFromTheSheetsViewport(string version)
+        {
+            // A viewport the file gives no number (69 of 0) sorts before the sheet's viewport in the layout's list.
+            string text = LayoutWithAViewport().ToText();
+            string numbered = System.Text.RegularExpressions.Regex.Replace(text, @"(\n\s*69\r?\n)\s*2\r?\n", "$1 0\n");
+            Assert.NotEqual(text, numbered);
+
+            DxfViewport[] now = S1(ThroughDwg(DxfDatabase.Parse(numbered), version)).GetViewports().ToArray();
+            DxfViewport sheet = now.Single(v => v.Width > 400);
+
+            Assert.True(sheet.On);
+            Assert.Equal(1, sheet.Number);
+        }
+
+        [Theory]
+        [InlineData("AC1032")]
+        [InlineData("AC1024")]
+        [InlineData("AC1021")]
+        [InlineData("AC1018")]
+        [InlineData("AC1015")]
+        public void ANumberTakenAgainAfterAnErase_IsReadAsItWas_InEveryVersion(string version)
+        {
+            // Initialize, then A, B; A erased; C takes the number A had (2) and the highest handle: the numbers 1, 3, 2.
+            var database = new DxfDatabase("AC1032");
+            var layout = new DxfLayout { LayoutName = "S1" };
+            layout.AddToLayoutDictionary(database, null);
+            layout.Initialize();
+            DxfViewport a = AddViewport(layout, 10);
+            AddViewport(layout, 20);
+            a.Erase();
+            AddViewport(layout, 30);
+
+            Assert.Equal(new[] { 1, 3, 2 }, S1(database).GetViewports().Select(v => v.Number));
+
+            DxfViewport[] now = S1(ThroughDwg(database, version)).GetViewports().ToArray();
+
+            Assert.Equal(new[] { 1, 3, 2 }, now.Select(v => v.Number));
+            Assert.Equal(new[] { 20.0, 30.0 }, now.Where(v => v.Width < 100).Select(v => v.Width));
+        }
     }
 }

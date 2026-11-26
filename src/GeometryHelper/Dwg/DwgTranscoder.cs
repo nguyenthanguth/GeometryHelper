@@ -513,105 +513,85 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>
-        /// Gives the viewports of the current layout the number (group 69) and status (68) AutoCAD writes, which a DWG does
-        /// not hold. From R2004 a layout lists its viewports, the one showing the paper first, and they are numbered from
-        /// 1 in that order. An R2000 layout lists none: the viewport that shows the paper itself (its view centre and height
-        /// its own) is number 1 and the others follow in the order of their handles. The status is 0 for a viewport that is
-        /// off, else its number from R2004 and -1 in R2000. A layout other than the current one is numbered the same way where
-        /// the file shows AutoCAD has numbered it (a list of its viewports from R2004, a header for each viewport in R2000);
-        /// its viewports where it did not are 0 and 0.
+        /// Gives the viewports of each layout the number (group 69) and status (68) AutoCAD writes, which a DWG does not hold.
+        /// From R2004 a layout lists its viewports and they are numbered from 1 in that order, the one showing the paper (its
+        /// view centre and height its own) first. An R2000 layout lists none: its viewports AutoCAD numbered each have a header,
+        /// and are numbered in the order of their headers, the one showing the paper first; the current layout's others
+        /// follow in the order of their handles. The status is 0 for a viewport that is off, else its number from R2004 and
+        /// -1 in R2000. A layout with no list and no headers, which AutoCAD never showed, has its viewports at 0 and 0.
         /// </summary>
         private void NumberViewports()
         {
             ulong active = _header.Handle("_PAPERSPACE");
-            var order = new List<DwgObject>();
 
-            foreach (DwgObject layout in _objects)
-            {
-                if (layout.Name == "LAYOUT" && layout.Viewports != null && Owned330(layout) == active)
-                {
-                    foreach (ulong handle in layout.Viewports)
-                    {
-                        if (Find(handle) is DwgObject viewport && viewport.Type == 0x22 && !order.Contains(viewport))
-                        {
-                            order.Add(viewport);
-                        }
-                    }
-                }
-            }
-
-            if (_version < 1018)
-            {
-                foreach (DwgObject one in _objects)
-                {
-                    if (
-                        one.Type == 0x22
-                        && one.Decoded
-                        && (one.EntityMode == 1 || (one.EntityMode == 0 && one.Owner == active))
-                    )
-                    {
-                        order.Add(one);
-                    }
-                }
-
-                PutThePaperFirst(order);
-            }
-
-            Assign(order);
-
-            // The other layouts: those AutoCAD has shown list their viewports (from R2004), and in R2000 it keeps a header for
-            // each viewport it has numbered. A layout it has not shown has neither, and its viewports stay 0 and 0.
             foreach (DwgObject layout in _objects)
             {
                 ulong block = layout.Name == "LAYOUT" ? Owned330(layout) : 0;
 
-                if (block == 0 || block == active)
+                if (block == 0)
                 {
                     continue;
                 }
 
-                var others = new List<DwgObject>();
+                var order = new List<DwgObject>();
 
                 if (layout.Viewports != null)
                 {
                     foreach (ulong handle in layout.Viewports)
                     {
-                        if (Find(handle) is DwgObject viewport && viewport.Type == 0x22 && !others.Contains(viewport))
+                        if (
+                            Find(handle) is DwgObject viewport
+                            && viewport.Type == 0x22
+                            && InBlock(viewport, block, active)
+                            && !order.Contains(viewport)
+                        )
                         {
-                            others.Add(viewport);
+                            order.Add(viewport);
                         }
                     }
                 }
                 else if (_version < 1018)
                 {
-                    others.AddRange(
-                        _objects.FindAll(one =>
-                            one.Type == 0x22
-                            && one.Decoded
-                            && one.EntityMode == 0
-                            && one.Owner == block
-                            && HasHeader(one)
-                        )
+                    // R2000 lists none. A layout keeps the viewports AutoCAD numbered, each with a header, in the order of the
+                    // headers, which AutoCAD makes in the order of the numbers; the current layout's others follow, in the
+                    // order of their handles.
+                    order = _objects.FindAll(one =>
+                        one.Type == 0x22
+                        && one.Decoded
+                        && InBlock(one, block, active)
+                        && (block == active || HeaderOf(one) != 0)
                     );
-                    PutThePaperFirst(others);
+                    order.Sort(
+                        (a, b) =>
+                        {
+                            ulong x = HeaderOf(a) == 0 ? ulong.MaxValue : HeaderOf(a);
+                            ulong y = HeaderOf(b) == 0 ? ulong.MaxValue : HeaderOf(b);
+                            return x != y ? x.CompareTo(y) : a.Handle.CompareTo(b.Handle);
+                        }
+                    );
                 }
 
-                Assign(others);
+                PutThePaperFirst(order);
+                Assign(order);
             }
         }
 
-        /// <summary>Whether a viewport of a file of R2000 has a viewport entity header, which AutoCAD keeps for one it has numbered.</summary>
-        private static bool HasHeader(DwgObject viewport)
+        /// <summary>Whether a viewport is one of the entities of the block of a layout: owned by it, or in paper space for the current one.</summary>
+        private static bool InBlock(DwgObject viewport, ulong block, ulong active) =>
+            viewport.EntityMode == 0 ? viewport.Owner == block : viewport.EntityMode == 1 && block == active;
+
+        /// <summary>The handle of the viewport entity header of a viewport of a file of R2000, which AutoCAD keeps for one it has numbered; 0 where it has none or the file has no such object.</summary>
+        private ulong HeaderOf(DwgObject viewport)
         {
             foreach (DwgGroup group in viewport.Body)
             {
                 if (group.Code == 69 && group.Value is DwgViewportNumber number)
                 {
-                    return number.Header != 0;
+                    return Find(number.Header)?.Type == 0x47 ? number.Header : 0;
                 }
             }
 
-            return false;
+            return 0;
         }
 
         /// <summary>Moves the viewport that shows the paper itself to the front of its layout's viewports.</summary>
