@@ -1228,15 +1228,7 @@ namespace GeometryHelper.Dxf
                         // NaN and the infinities are read as .NET writes them where they are asked for as stored.
                         bool read =
                             Numbers.TryRead(value.Value, out double number)
-                            || (
-                                stored
-                                && double.TryParse(
-                                    value.Value?.Trim(),
-                                    NumberStyles.Float,
-                                    CultureInfo.InvariantCulture,
-                                    out number
-                                )
-                            );
+                            || (stored && Numbers.TryReadNotFinite(value.Value, out number));
                         return read && (stored || Guard.IsFinite(number)) ? number : fallback;
                     }
                 }

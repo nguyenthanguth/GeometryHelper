@@ -334,12 +334,7 @@ namespace GeometryHelper.Dxf
                 if (
                     end == 0
                     || (end < field.Length && field[end] != ' ' && field[end] != '\t')
-                    || !double.TryParse(
-                        field.Substring(0, end),
-                        NumberStyles.Float,
-                        CultureInfo.InvariantCulture,
-                        out double value
-                    )
+                    || !Export.Numbers.TryRead(field.Substring(0, end), out double value)
                     || !Guard.IsFinite(value)
                 )
                 {

@@ -35,8 +35,7 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A value set as AutoCAD 2021 takes it: read back from the text <see cref="Written"/> gives, as it solved Height 612.3456789012345 of its Fluorescent sample at 612.345678901 (plugin D27b).</summary>
-        internal static double Rounded(double value) =>
-            double.Parse(Written(value), NumberStyles.Float, CultureInfo.InvariantCulture);
+        internal static double Rounded(double value) => Numbers.Parse(Written(value));
 
         /// <summary>
         /// Takes out the copy of a network an anonymous block holds, where it holds one: each object of the network erased,

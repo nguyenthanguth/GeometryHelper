@@ -153,7 +153,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>
-        /// A real number as DXF writes it; 0 for a broken one. Read by the library's own exact parse, as the double nearest the
+        /// A real number as DXF writes it; 0 for a broken one or one too large for a double (on either runtime), NaN and the infinities read as .NET writes them. Read by the library's own exact parse, as the double nearest the
         /// text, for the parse of .NET Framework is a unit off in the last bit for about one decimal of 6 to 15 digits in a
         /// thousand (-0.999778 is read as the next double), and the DWG written from the text would not be the one .NET Core writes.
         /// </summary>
@@ -166,7 +166,7 @@ namespace GeometryHelper.Dwg
                 return exact;
             }
 
-            double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number);
+            Numbers.TryReadNotFinite(text, out double number);
             return number;
         }
 

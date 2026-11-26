@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Text;
+using GeometryHelper.Export;
 
 namespace GeometryHelper.Dxf
 {
@@ -464,13 +465,7 @@ namespace GeometryHelper.Dxf
             string part =
                 fraction == 2
                     ? top + "/" + bottom
-                    : "{\\H"
-                        + stack.ToString("R", CultureInfo.InvariantCulture)
-                        + "x;\\S"
-                        + top
-                        + (fraction == 1 ? "#" : "/")
-                        + bottom
-                        + ";}";
+                    : "{\\H" + Numbers.Exact(stack) + "x;\\S" + top + (fraction == 1 ? "#" : "/") + bottom + ";}";
 
             if (whole == 0 && !wholeShown)
             {

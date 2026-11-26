@@ -313,12 +313,12 @@ namespace GeometryHelper.Dxf
                 case DxfDimKind.Real:
                     return Numbers.TryRead(text, out double real) && Guard.IsFinite(real)
                         ? real
-                        : double.Parse(Fallback, CultureInfo.InvariantCulture);
+                        : Numbers.Parse(Fallback);
                 case DxfDimKind.Angle:
                     double degrees =
                         Numbers.TryRead(text, out double angle) && Guard.IsFinite(angle)
                             ? angle
-                            : double.Parse(Fallback, CultureInfo.InvariantCulture);
+                            : Numbers.Parse(Fallback);
                     return degrees * (Math.PI / 180.0);
                 case DxfDimKind.Text:
                     return text ?? Fallback;
@@ -376,7 +376,7 @@ namespace GeometryHelper.Dxf
 
             return Numbers.TryRead(text, out double angle) && Guard.IsFinite(angle)
                 ? angle
-                : double.Parse(Fallback, CultureInfo.InvariantCulture) * (Math.PI / 180.0);
+                : Numbers.Parse(Fallback) * (Math.PI / 180.0);
         }
 
         /// <summary>The text of a dimension's override of a value of the variable, as <see cref="Write"/> writes it, but an angle in radians, as <see cref="FromOverride"/> reads it.</summary>

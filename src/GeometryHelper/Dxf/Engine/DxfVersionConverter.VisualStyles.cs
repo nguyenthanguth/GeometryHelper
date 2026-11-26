@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using GeometryHelper.Export;
 
 namespace GeometryHelper.Dxf
 {
@@ -219,9 +220,7 @@ namespace GeometryHelper.Dxf
         {
             string plain = value.TrimStart('-');
             bool used = (modifiers & (code == 40 ? 1 : 2)) != 0;
-            bool zero =
-                double.TryParse(plain, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
-                && number == 0.0;
+            bool zero = Numbers.TryRead(plain, out double number) && number == 0.0;
             return used || zero || (code != 40 && code != 41) ? plain : "-" + plain;
         }
 

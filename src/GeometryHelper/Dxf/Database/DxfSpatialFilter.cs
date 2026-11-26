@@ -643,14 +643,7 @@ namespace GeometryHelper.Dxf
         }
 
         private static double Number(string text) =>
-            double.TryParse(
-                text == null ? string.Empty : text.Trim(),
-                NumberStyles.Float,
-                CultureInfo.InvariantCulture,
-                out double value
-            )
-                ? value
-                : 0.0;
+            Numbers.TryRead(text == null ? string.Empty : text.Trim(), out double value) ? value : 0.0;
 
         /// <summary>Writes a state into the record, after its subclass marker.</summary>
         private void Write(State state)

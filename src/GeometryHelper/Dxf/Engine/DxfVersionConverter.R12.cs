@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using GeometryHelper.Export;
 
 namespace GeometryHelper.Dxf
 {
@@ -426,8 +427,7 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Whether a value is a number written as nought.</summary>
         private static bool IsZero(string value) =>
-            double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
-            && Math.Abs(number) < 1E-12;
+            Numbers.TryRead(value, out double number) && Math.Abs(number) < 1E-12;
 
         /// <summary>Whether a record holds the extrusion (0, 0, 1) in its groups 210, 220 and 230, which R12 leaves out as it is the default.</summary>
         private static bool HasPlainNormal(Record record)
@@ -440,7 +440,7 @@ namespace GeometryHelper.Dxf
             {
                 if (
                     (group.Code == 210 || group.Code == 220 || group.Code == 230)
-                    && double.TryParse(group.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+                    && Numbers.TryRead(group.Value, out double value)
                 )
                 {
                     if (group.Code == 210)
@@ -1479,7 +1479,7 @@ namespace GeometryHelper.Dxf
                 if (width.Value != null && !IsZero(width.Value))
                 {
                     head.Groups.Insert(at++, width);
-                    defaults[i] = double.Parse(width.Value, NumberStyles.Float, CultureInfo.InvariantCulture);
+                    defaults[i] = Numbers.Parse(width.Value);
                 }
             }
 
@@ -1491,15 +1491,7 @@ namespace GeometryHelper.Dxf
                 {
                     int found = vertex.Groups.FindIndex(g => g.Code == codes[i]);
                     double own =
-                        found >= 0
-                        && double.TryParse(
-                            vertex.Groups[found].Value,
-                            NumberStyles.Float,
-                            CultureInfo.InvariantCulture,
-                            out double value
-                        )
-                            ? value
-                            : 0.0;
+                        found >= 0 && Numbers.TryRead(vertex.Groups[found].Value, out double value) ? value : 0.0;
                     bool same = Math.Abs(own - defaults[i]) < 1E-12;
 
                     if (same && found >= 0)
@@ -1576,12 +1568,7 @@ namespace GeometryHelper.Dxf
 
                     if (
                         (group.Code == 10 || group.Code == 20 || group.Code == 30)
-                        && double.TryParse(
-                            group.Value,
-                            NumberStyles.Float,
-                            CultureInfo.InvariantCulture,
-                            out double value
-                        )
+                        && Numbers.TryRead(group.Value, out double value)
                     )
                     {
                         record.Groups[i] = new Group(group.Code, SixFigures(value));
@@ -1617,15 +1604,7 @@ namespace GeometryHelper.Dxf
             {
                 int at = record.Groups.FindIndex(g => g.Code == code);
 
-                if (
-                    at >= 0
-                    && double.TryParse(
-                        record.Groups[at].Value,
-                        NumberStyles.Float,
-                        CultureInfo.InvariantCulture,
-                        out double value
-                    )
-                )
+                if (at >= 0 && Numbers.TryRead(record.Groups[at].Value, out double value))
                 {
                     groups.Add(new Group(code, SixFigures(value)));
                 }

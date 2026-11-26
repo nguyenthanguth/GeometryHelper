@@ -2048,11 +2048,7 @@ namespace GeometryHelper.Dxf
         {
             double rounded = places <= 15 ? Math.Round(value, places) : value;
             return Guard.IsFinite(rounded)
-                ? double.Parse(
-                    rounded.ToString("G15", CultureInfo.InvariantCulture),
-                    NumberStyles.Float,
-                    CultureInfo.InvariantCulture
-                ) + 0.0
+                ? Numbers.Parse(rounded.ToString("G15", CultureInfo.InvariantCulture)) + 0.0
                 : rounded;
         }
 

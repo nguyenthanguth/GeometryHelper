@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using GeometryHelper.Export;
 
 namespace GeometryHelper.Dxf
 {
@@ -270,8 +271,7 @@ namespace GeometryHelper.Dxf
 
         /// <summary>A value as acad.mln writes it: an angle or an offset with fourteen decimals, the rest as the record has it.</summary>
         private static string MlnValue(int code, string value) =>
-            (code == 51 || code == 52 || code == 49)
-            && double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+            (code == 51 || code == 52 || code == 49) && Numbers.TryRead(value, out double number)
                 ? number.ToString("F14", CultureInfo.InvariantCulture)
                 : value;
 

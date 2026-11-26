@@ -804,10 +804,7 @@ namespace GeometryHelper.Dxf
 
         /// <summary>A size of a sheet's name, as <c>594.00</c>; nought where it is not a finite number.</summary>
         private static double Size(string text) =>
-            double.TryParse(text, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double value)
-            && Guard.IsFinite(value)
-                ? value
-                : 0.0;
+            Numbers.TryRead(text, out double value) && Guard.IsFinite(value) ? value : 0.0;
 
         /// <summary>Refuses margins that leave no room on a sheet of a size; a sheet of no size given takes any.</summary>
         private static void CheckRoom(DxfExtents2d margins, GeoPoint2 size, string parameter)

@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using GeometryHelper.Export;
 
 namespace GeometryHelper.Dxf
 {
@@ -1116,12 +1117,7 @@ namespace GeometryHelper.Dxf
                         bool times = code == 'H' && value.EndsWith("x", StringComparison.OrdinalIgnoreCase);
 
                         if (
-                            !double.TryParse(
-                                times ? value.Substring(0, value.Length - 1) : value,
-                                NumberStyles.Float,
-                                CultureInfo.InvariantCulture,
-                                out double v
-                            )
+                            !Numbers.TryRead(times ? value.Substring(0, value.Length - 1) : value, out double v)
                             || !Guard.IsFinite(v)
                             || !(v > 0.0 || (code == 'A' && v == 0.0))
                         )

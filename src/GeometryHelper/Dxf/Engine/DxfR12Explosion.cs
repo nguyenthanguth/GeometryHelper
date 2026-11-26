@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using GeometryHelper.Export;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Dxf
@@ -952,12 +953,7 @@ namespace GeometryHelper.Dxf
             {
                 int axis = group.TypeCode / 10 - 1;
 
-                if (
-                    axis >= 0
-                    && axis < 3
-                    && group.TypeCode % 10 == 0
-                    && double.TryParse(group.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
-                )
+                if (axis >= 0 && axis < 3 && group.TypeCode % 10 == 0 && Numbers.TryRead(group.Value, out double value))
                 {
                     point[axis] = value;
                     found++;
