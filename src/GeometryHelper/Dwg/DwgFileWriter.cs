@@ -1209,23 +1209,25 @@ namespace GeometryHelper.Dwg
         {
             var aux = new MemoryStream();
             int version = DwgContainerWriter.DwgVersionNumber(_version);
-            Action maint = () =>
+            Action<int> release = value =>
             {
                 if (_number > 1027)
                 {
-                    Long(aux, maintenance);
+                    Long(aux, value);
                 }
                 else
                 {
-                    aux.WriteByte((byte)maintenance);
+                    aux.WriteByte((byte)value);
                     aux.WriteByte(0);
                 }
             };
+            // AutoCAD 2021 names itself, 33 and 174, where the application comes first and last, and the version of the file
+            // between them (23 and 15 in R2000, 25 and 104 in R2004, 29 and 226 in R2010, 31 and 125 in R2013).
             aux.WriteByte(0xFF);
             aux.WriteByte(0x77);
             aux.WriteByte(0x01);
-            Short(aux, version);
-            maint();
+            Short(aux, DwgContainerWriter.SavedByVersion);
+            release(DwgContainerWriter.SavedByMaintenance);
             Long(aux, 1);
             Long(aux, -1);
             Short(aux, 1);
@@ -1241,11 +1243,11 @@ namespace GeometryHelper.Dwg
             else
             {
                 Short(aux, version);
-                maint();
+                release(maintenance);
             }
 
-            Short(aux, version);
-            maint();
+            Short(aux, DwgContainerWriter.SavedByVersion);
+            release(DwgContainerWriter.SavedByMaintenance);
             // Where the specification has the shorts 5, 0x893, 5, 0x893 AutoCAD 2021 writes 0; then 0 and 1, and five longs
             // of which it sets three as below.
             Short(aux, 0);

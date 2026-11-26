@@ -479,8 +479,7 @@ namespace GeometryHelper.Dxf
         private static int Whole(string value) =>
             int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) ? number : 0;
 
-        private static double Real(string value) =>
-            double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) ? number : 0.0;
+        private static double Real(string value) => Numbers.TryRead(value, out double number) ? number : 0.0;
     }
 
     /// <summary>
